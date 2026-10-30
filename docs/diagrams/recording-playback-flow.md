@@ -6,25 +6,29 @@ flowchart TB
   Grant{"OS user-session capture permission?"}
   No["No recording; mark gap/denial"]
   Capture["Visible capture + finalized segments"]
-  Upload["HTTPS hash-verified upload"]
-  Index[("PostgreSQL recording index + protected media")]
-  Catalog["Restricted recording catalog"]
-  Request["Review case: device + reason + UTC range"]
-  Approve{"Authorized independent approval?"}
+  Upload["Authenticated HTTPS checksum-verified upload"]
+  Index[("Restricted PostgreSQL index + local media")]
+  Catalog["Permission-filtered recording catalog"]
+  Request["Review case: device, purpose, UTC interval"]
+  Approve{"Independent approver grants scoped access?"}
   Deny["Deny and audit"]
-  Playback["Authenticated, range-scoped playback"]
+  Gate["Spring checks session + group + case + segment/time"]
+  Playback["Server-mediated playback of verified segment range"]
   Audit["Playback/export access audit"]
-  Retain["Retention expiration and deletion"]
+  Retain["Retention expiry + verifiable deletion"]
   Policy --> Grant
   Grant -->|"No"| No
   Grant -->|"Yes"| Capture
-  Capture --> Upload --> Index --> Catalog
+  Capture --> Upload --> Index
+  Index -->|"Metadata only"| Catalog
   Catalog --> Request --> Approve
   Approve -->|"No"| Deny
-  Approve -->|"Yes"| Playback
-  Index --> Playback
-  Playback --> Audit --> Retain
+  Approve -->|"Yes"| Gate
+  Gate -->|"Granted time/role only"| Playback
+  Gate -.->|"Read verified bytes after authorization"| Index
+  Playback --> Audit
   Index --> Retain
+  Audit --> Retain
 ~~~
 
-Stored playback is **not realtime screen streaming**; separate permission/design is required for live screen previews. Neither hidden recording nor bypassing OS grants is permitted. [Center UI and API](../development/recording-playback-center.md).
+**No direct `Index → Playback` authorization bypass:** content is loaded through the authenticated Spring media handler only **after** checking session, role, group, approved case, permitted time window and each HTTP Range request. Missing/corrupt/unavailable segments show gaps. Stored playback is **not** live screen streaming. [Recording & Playback Center](../development/recording-playback-center.md).

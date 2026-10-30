@@ -1,29 +1,37 @@
-# D-15 — Dashboard navigation and data boundaries
+# D-15 — Dashboard navigation and authorization boundaries (planned)
 
 ~~~mermaid
 flowchart TB
-  Login["Admin sign-in / secure session"]
-  Overview["Overview: devices and health — v0.1"]
-  Devices["Device list — v0.1"]
-  Detail["Device detail: status, queue, gaps — v0.1"]
-  Enroll["Enrollment and revoke — v0.1"]
-  Activity["Activity / system audit — v0.2"]
-  Policy["Groups, roles, policies — v0.2"]
-  Record["Recording and playback — v0.3"]
-  Cases["Approved recording case — v0.3"]
+  Login["Admin sign-in: session + role/group scope"]
+  Overview["Overview: fleet KPIs (V0.1)"]
+  Monitor["Monitoring Center: heartbeat, collectors, backlog (V0.1)"]
+  Devices["Device inventory + group scope (V0.1)"]
+  Detail["Device detail: identity, CPU/RAM/disks, NIC/IP/MAC (V0.1)"]
+  Enroll["Enrollment / revoke (V0.1)"]
+  Audit["Audit Center: allowlisted events and timeline (V0.2)"]
+  Record["Recording & Playback Center: catalog (V0.3)"]
+  Cases["Review cases: separate approval (V0.3)"]
+  Play["Case-scoped, audited playback (V0.3)"]
+  Admin["Policies, groups, roles, access log"]
+  REST["Spring REST: authoritative + RBAC on each request"]
+  WS["WSS: scoped small status hints, reconnect then REST"]
   Login --> Overview
-  Overview --> Devices
+  Overview --> Monitor
+  Monitor --> Devices
   Devices --> Detail
   Detail --> Enroll
-  Detail -.-> Activity
-  Overview -.-> Policy
-  Detail -.-> Record
-  Cases --> Record
-  Scope["REST scopes + RBAC on every query"]
-  WSS["Scoped WSS status hints"]
-  Detail --> Scope
-  WSS -.-> Overview
-  WSS -.-> Detail
+  Detail -.-> Audit
+  Audit -.-> Record
+  Record --> Cases
+  Cases -->|"Valid grant only"| Play
+  Overview --> Admin
+  Detail --> REST
+  Monitor --> REST
+  Audit --> REST
+  Record --> REST
+  Play --> REST
+  WS -.-> Monitor
+  WS -.-> Overview
 ~~~
 
-WSS updates metadata only. On connect/reconnect, the dashboard fetches its authoritative scoped REST snapshot. A user without recording approval never sees unprotected screen previews. See [dashboard UX](../development/dashboard-ux.md).
+**Monitoring Center** means device and source health; it does **not** stream employee screens. V0.3 media requires separate OS/user-session capture permission and **case-approved read authorization**. The server checks role, group and case on every sensitive request. After WSS subscription acceptance, the dashboard fetches a fresh scoped REST snapshot. See [dashboard UX](../development/dashboard-ux.md), [Monitoring Center](../development/monitoring-center.md), [Recording & Playback Center](../development/recording-playback-center.md).
