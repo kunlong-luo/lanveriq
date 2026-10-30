@@ -20,7 +20,7 @@ Grant is bound to **session, source and OS implementation**; a new login session
 - TLS for transport; limited-size upload; quotas; deduplicate repeated upload.
 
 ## Access control
-A viewer must have device-group permission and an approved case/purpose/time range. Create review/access record before playback or download, log denied attempts as well. No direct NAS URL.
+A viewer must have device-group permission and an approved case/purpose/UTC time range. Create review/access record before playback or download, log denied attempts as well. **HTTP Range selects bytes, not timestamps**: only serve a verified time-bounded media rendition or complete segments wholly contained within the approved window; otherwise deny rather than leaking frames from an overlapping segment. No direct NAS URL. See [Playback Center](../development/recording-playback-center.md).
 
 ## Gaps
 Examples: logoff, restart, lock, session switch, Wayland capture denial, unsupported compositor, paused recording, full disk, encoder failure or power outage. Mark as `capture_gap` with reason/time; **no assertion of flawless 24-hour footage**.

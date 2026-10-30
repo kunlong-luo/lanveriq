@@ -28,7 +28,7 @@ For sensitive actions: authenticate principal -> check role permission -> check 
 ## Required control behavior
 - API responds 403 for known out-of-scope identities; do not leak resource existence to callers outside their scope (use 404 where appropriate, consistently).
 - Cursor-based pagination also filters by scope before rows are returned; no cross-group total counts or raw media paths.
-- Video access uses server-mediated, expiring authorization, validates segment and requested byte range; every access/download recorded, no direct anonymous NAS link.
+- Video access uses server-mediated, expiring authorization, verifies **approved UTC case time → allowable media frames/segments**, and checks each requested byte range. **An HTTP Range by itself cannot authorize frames outside the approved time window.** Every access/download is recorded; no direct anonymous NAS link.
 - Session cookies HttpOnly/Secure/SameSite; CSRF defenses on state-changing browser requests, and no tokens in localStorage.
 - Role/group changes invalidate or re-evaluate existing access grants promptly. Revoke credentials closes ongoing session/stream where feasible.
 - Administrative decisions and denied access must be in append-only audit records with protected retention.
