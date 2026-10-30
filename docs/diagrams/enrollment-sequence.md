@@ -1,35 +1,44 @@
-# D-04 — Certificate trust and device enrollment
+# D-04 — Certificate trust and device enrollment (D-07 PILOT CANDIDATE ONLY)
+
+**Not approved, not executable:** three purpose-separated TLS hostnames and human-operated client-CA signing must receive D0 sign-off. This flow deliberately adds a pending certificate state before an Agent can become active.
 
 ~~~mermaid
 sequenceDiagram
   autonumber
   actor Operator as Authorized IT operator
-  participant UI as React Dashboard
-  participant Server as Spring Boot
+  participant UI as Browser console host
+  participant Server as Spring Boot (protected upstream)
   participant PG as PostgreSQL
   participant Agent as Rust Agent
-  participant Key as Endpoint secure key store
-  Operator->>UI: Request one-use enrollment
+  participant Key as Agent key store
+  participant CA as Offline client CA (step CLI)
+  Operator->>UI: Create approved one-use pairing token
   UI->>Server: POST /api/v1/enrollments (session + CSRF)
-  Server->>PG: Store hashed token, group, expiry, policy
+  Server->>PG: Hash token; bind group, expiry and notice
   PG-->>Server: Commit
-  Server-->>UI: Display short-lived token once
-  Operator->>Agent: Provide LAN hostname and token
-  Agent->>Agent: Validate configured server CA and target hostname during TLS handshake
-  Agent->>Agent: Display approved policy notice
-  Agent->>Key: Create unique device keypair
-  Agent->>Server: POST /api/v1/devices/enroll (token + public key)
-  Server->>PG: Atomically consume token and insert devices.id = uuidv7()
-  alt Valid and unused
-    PG-->>Server: Commit device identity
-    Server-->>Agent: device_id + bound credential information
-    Agent->>Key: Protect device credential
-    Agent->>Server: Authenticated heartbeat over HTTPS
-    Server-->>Agent: Accepted
-  else Expired, reused or invalid
-    PG-->>Server: Reject, no enrollment
-    Server-->>Agent: Error (no credential)
+  Server-->>UI: Display token once
+  Operator->>Agent: Provision trusted server CA root + pairing token
+  Agent->>Agent: Verify enrollment-host TLS and prior notice
+  Agent->>Key: Generate private key and signed CSR
+  Agent->>Server: POST enrollment-host /api/v1/devices/enroll (token + CSR)
+  Server->>PG: Atomic consume token + uuidv7() + pending_certificate
+  alt Token valid and CSR acceptable
+    PG-->>Server: Commit pending identity
+    Server-->>Agent: 202 pending_certificate + device_id
+    Operator->>Server: Review authorized pending CSR, device and group
+    Operator->>CA: Sign reviewed CSR with clientAuth certificate
+    CA-->>Operator: Leaf certificate and CA chain only
+    Operator->>Server: Register certificate fingerprint for device
+    Operator->>Agent: Deliver leaf/chain over trusted channel
+    Agent->>Key: Install cert with protected private key
+    Agent->>Server: Agent-host HTTPS mTLS first proof (verified Caddy)
+    Server->>PG: Match verified fingerprint and device_id; activate
+    PG-->>Server: Commit active status
+    Server-->>Agent: Authorized heartbeat/response
+  else Token invalid, expired, reused or CSR rejected
+    PG-->>Server: Reject and audit, no active enrollment
+    Server-->>Agent: No credential, require admin remediation
   end
 ~~~
 
-Reinstallation after loss of key and SQLite storage creates a new device identity; old event sequences are not reused. See [bootstrap contract](../architecture/enrollment-bootstrap.md).
+Caddy's separate browser/enrollment/Agent TLS sites and Spring's per-request verified fingerprint lookup are not bypassed by a token or any client-supplied identity header. Reinstall after loss of key and SQLite creates a new device identity, never reuses previous sequences. See [D-07 proposal](../architecture/enrollment-bootstrap.md), [API review fixtures](../architecture/api-contract.md) and [D0 approval gate](../governance/documentation-gate.md).
