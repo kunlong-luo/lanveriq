@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — AUTH-01 staged console browser sessions (disabled by default)
+- Added conditional Spring Security native console-only form login/logout, HttpSession CSRF JSON bootstrap and session fixation rotation, strict exact HTTPS Host/Origin/Fetch-Site checks ordered BEFORE CSRF/logout/login, and Secure/HttpOnly/SameSite=Strict `__Host-` cookie configuration (15-minute inactivity timeout).
+- Feature flag `LANVERIQ_CONSOLE_AUTH_ENABLED=false` stays off; no device, monitoring or WSS routes are opened. Unit tests cover malformed origins, cross-site and duplicate headers, missing CSRF bootstrap and no-store response. See [manual acceptance plan](docs/testing/console-session-manual.md).
+- Real PG18, Caddy hostname/SNI/mTLS, runtime browser sessions, login throttling, security audit, disabled-session invalidation and rate-limited login **have not been tested or completed**.
+
+
 ## 2026-10-30 — AUTH-01 offline first-admin bootstrap
 - Added explicit opt-in non-web Spring Boot CLI that uses an interactive terminal password prompt (not shell/env), Argon2id through Spring Security, a PostgreSQL owner-role row lock and a single JPA transaction for the first administrator, group, assigned owner scope and audit log. There is no default admin and no automatic `internal_operational` data grant.
 - Added Java 25 unit tests for canonical input/secret redaction, missing confirmation, non-web-only restrictions, first-admin existence guard, locking order and audit. [Build + unit CI passed](https://github.com/kunlong-luo/lanveriq/actions/runs/41067769799); a separate subsequent fix prevents HTTP filter bean construction in offline mode.

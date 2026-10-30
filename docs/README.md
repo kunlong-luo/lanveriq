@@ -59,6 +59,7 @@
 - [Manual synthetic PostgreSQL 18.6 / Flyway V1-V2 / startup verification — NOT RUN](testing/server-postgres18-manual.md)
 - [Cross-platform and WebSocket test matrix](testing/test-matrix.md)
 - [Device inventory unit/manual acceptance cases](testing/device-inventory-checklist.md)
+- [Default-off console browser login/Origin/CSRF manual acceptance (not executed)](testing/console-session-manual.md)
 - [Definition of done](planning/definition-of-done.md)
 
 ## Security and operations

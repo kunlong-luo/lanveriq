@@ -2,7 +2,7 @@
 
 D0-approved Java 25 / Gradle 9.8.2 (Groovy DSL) / Spring Boot 4.1.2 / Spring Data JPA/Hibernate / PostgreSQL 18 / Flyway.
 
-**Not a usable monitoring service.** SRV-02 now contains internal 256-bit one-use token generation and a group-scoped **JPA issuance** operation, plus V2 users/roles/scopes/audit migration. SRV-02 additionally validates a PKCS#10 CSR with Bouncy Castle 1.86 (ECDSA P-256/SHA-256 proof of possession) and now performs conditional one-time token consumption plus PostgreSQL UUIDv7 pending-device/CSR inserts in a **single Spring JPA transaction**. The CSR's requested subject/SAN is never treated as authoritative identity. **No public enrollment endpoint, admin session, certificate issuance/registration, mTLS activation, uploads or dashboard REST/WSS has been implemented.** The service rejects business routes by default. No real workplace data is authorized.
+**Not a usable monitoring service.** SRV-02 now contains internal 256-bit one-use token generation and a group-scoped **JPA issuance** operation, plus V2 users/roles/scopes/audit migration. SRV-02 additionally validates a PKCS#10 CSR with Bouncy Castle 1.86 (ECDSA P-256/SHA-256 proof of possession) and now performs conditional one-time token consumption plus PostgreSQL UUIDv7 pending-device/CSR inserts in a **single Spring JPA transaction**. The CSR's requested subject/SAN is never treated as authoritative identity. **No public enrollment endpoint, enabled browser login, certificate issuance/registration, mTLS activation, uploads or dashboard REST/WSS has been implemented.** A conditional console login/CSRF/logout slice now exists in code but is OFF by default, NOT an approved deployment feature. The service rejects business routes by default. No real workplace data is authorized.
 
 ## Build and run (Java 25 required)
 
@@ -17,6 +17,12 @@ The wrapper JAR is copied from the official Gradle `v9.8.2` tag and verified aga
 To start, provision **an isolated PostgreSQL 18 database with a non-superuser**, configure `LANVERIQ_DB_URL`, `LANVERIQ_DB_USER`, `LANVERIQ_DB_PASSWORD`, and run `./gradlew bootRun`. The DB is required; do not disable Flyway or replace PG with H2 to mask startup/migration failures. The app binds to `127.0.0.1:8080` by default and exposes only a basic health endpoint. No default administrator password or user is created.
 
 Flyway V1/V2/V3/V4 SQL is **not yet executed against PostgreSQL** in an observed test. [Manual PostgreSQL 18.6 validation](../../docs/testing/server-postgres18-manual.md) provides a disposable, synthetic local smoke check: `bash scripts/verify-postgres18.sh` (requires local Docker, JDK 25, curl and openssl). CI has **passed** Java 25 compilation, the new real CSR/transaction-orchestration JUnit tests, JaCoCo and `bootJar` archive packaging ([run 41066726762](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762)); CI runs only unit tests, with packaging as an additional build task. Migration and JPA-generated UUID behavior still require a real PG18 test environment.
+
+## AUTH-01 staged browser session — DEFAULT OFF
+
+Spring Security's maintained form login/logout, HttpSession-based CSRF tokens and session fixation protection have been staged for the **console-only** `/api/v1/auth/**` paths; no business APIs become accessible. Security requires an explicitly canonical HTTPS console origin and verifies exact Host/Origin/fetch-metadata **before** CSRF/logout/login filters. Browser sessions use a 15-minute host-only `__Host-lanveriq-session` cookie with `Secure`, `HttpOnly`, `SameSite=Strict`; forwarding headers are not automatically trusted.
+
+**Config remains `LANVERIQ_CONSOLE_AUTH_ENABLED=false`**. An operator must not enable it for a real pilot: true PostgreSQL 18, Caddy trusted TLS/DNS and strict SNI/Host, login throttling, session disable/revocation, security audit, and browser manual negative tests are still missing. See [console session acceptance matrix](../../docs/testing/console-session-manual.md). The code has Java 25 unit coverage for Host/Origin/fetch-site and CSRF response; neither real HTTPS login nor the complete Spring filter chain has been manually exercised.
 
 ## AUTH-01 internal authentication and authorization foundation
 
