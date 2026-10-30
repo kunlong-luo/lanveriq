@@ -3,7 +3,7 @@
 **Status:** D0-approved V0.1 technical design; no runnable installer, provisioned CA or tested certificate lifecycle. Device enrollment occurs only on managed, notified organization equipment. For operational simplicity, use a verified set of purpose-separated LAN hostnames in the D-07 selected technical design below; never infer trust merely from a local IP address.
 
 ## Server TLS design (D0 baseline, not yet configured)
-- One Caddy service with purpose-separated HTTPS hosts (e.g. console/enroll/agent; exact LAN DNS names and TLS site policies remain D-07 decisions).
+- One Caddy service with purpose-separated HTTPS hosts (D0-selected pilot names: console/enroll/agent.lanveriq.internal; provisioning DNS, actual TLS policy and Caddy validation remain required implementation work).
 - **Selected pilot server trust approach:** Caddy `tls internal` as a private server CA (independent of the dedicated offline client-identity CA). Install the CA root into the operating-system trust store on each managed endpoint/admin workstation **through a verified, authorized channel** and verify its fingerprint out-of-band.
 - Caddy in Docker may not install its root into the **host/endpoint** trust stores automatically. Treat that as a provisioning task, **never bypass verification** with insecure TLS flags.
 - Protect and back up CA private keys securely; establish rotation and disaster-recovery procedure. Production may replace Caddy internal CA with an organization-managed PKI.
