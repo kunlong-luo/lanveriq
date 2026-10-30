@@ -7,7 +7,7 @@ Legend: V=view, M=manage, E=export, C=case-required view, —=deny. An authentic
 | Resource / action | Owner/security admin | IT operator | Security auditor | Recording reviewer | Device user |
 |---|---|---|---|---|---|
 | Device health and **non-sensitive hardware summary** (assigned group) | V | V | V within scope | V within scope | own local status |
-| Full network inventory (MAC, private IP, interface list, asset tag) | V | V within assigned device groups | — unless separately granted | — | only policy-approved own local view |
+| Full network inventory (MAC, private IP, interface list, asset tag) | **V only with explicit `internal_operational` grant** | **V only with assigned group + `internal_operational` grant** | — unless separately granted | — | only policy-approved own local view |
 | Create/revoke pairing and device keys | M | M if delegated | — | — | — |
 | Inspect detailed audit/activity | V with logged reason | — by default | V with scope/reason | — | — |
 | Change collection policy | M + organizational approval | — | — | — | — |
@@ -47,7 +47,7 @@ Decision record and sign-off: [D-17/D-18/D-20](../governance/open-decisions.md),
 For sensitive actions: authenticate principal -> check role permission -> check active device group scope -> check data category -> check time range -> check policy/approval/reason -> audit decision -> return minimal data. An owner cannot silently bypass an organizational recording approval requirement. For V0.3 review cases, `approved_by` must identify an authorized person **other than the requester**, and the server must reject self-approval regardless of role.
 
 ## Required control behavior
-- API responds 403 for known out-of-scope identities; do not leak resource existence to callers outside their scope (use 404 where appropriate, consistently).
+- For an identified device outside a principal's assigned scope, return the same non-enumerating `404 not_found` as for a nonexistent device; use `403 forbidden` when a principal is authenticated and entitled to the device but lacks the separate requested sensitive-data permission. Apply consistently to REST, detail views, cursor pages, error envelopes and summary counts. Audit the real denial reason server-side without exposing hidden identities.
 - Cursor-based pagination also filters by scope before rows are returned; no cross-group total counts or raw media paths.
 - Video access uses server-mediated, expiring authorization, verifies **approved UTC case time → allowable media frames/segments**, and checks each requested byte range. **An HTTP Range by itself cannot authorize frames outside the approved time window.** Every access/download is recorded; no direct anonymous NAS link.
 - Session cookies HttpOnly/Secure/SameSite; CSRF defenses on state-changing browser requests, and no tokens in localStorage.
