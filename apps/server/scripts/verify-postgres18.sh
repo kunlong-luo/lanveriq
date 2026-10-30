@@ -90,8 +90,8 @@ if [[ "$HEALTH_READY" -ne 1 ]]; then
 fi
 
 MIGRATIONS="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
-    "SELECT COUNT(*) FROM flyway_schema_history WHERE success AND version IN ('1', '2')")"
-[[ "$MIGRATIONS" == "2" ]] || { echo "Flyway V1/V2 migration check failed" >&2; exit 1; }
+    "SELECT COUNT(*) FROM flyway_schema_history WHERE success AND version IN ('1', '2', '3')")"
+[[ "$MIGRATIONS" == "3" ]] || { echo "Flyway V1/V2/V3 migration check failed" >&2; exit 1; }
 
 UUID_CHECK="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
     "BEGIN; INSERT INTO device_groups (name) VALUES ('synthetic_pg18_check') RETURNING uuid_extract_version(id); ROLLBACK;")"
@@ -111,5 +111,5 @@ DENIED_HTTP="$(curl --silent --output /dev/null --write-out '%{http_code}' \
     exit 1
 }
 
-echo "MANUAL PASS: PG18.6 startup, Flyway V1/V2, native UUIDv7, no default admin, denied business route."
+echo "MANUAL PASS: PG18.6 startup, Flyway V1/V2/V3, native UUIDv7, no default admin, denied business route."
 echo "Important: this does NOT validate mTLS, an enrollment transaction, CSRF or a real endpoint."

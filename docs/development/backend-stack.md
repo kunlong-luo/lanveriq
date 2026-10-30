@@ -1,6 +1,6 @@
 # Spring Boot server stack — Gradle / Java 25 stable baseline
 
-**Maintainer decision (2026-10-30): Gradle, not Maven.** D0 is approved and the [SRV-01 source scaffold](../../apps/server/README.md) now exists, including real `build.gradle`, official Gradle Wrapper and CI unit tests. **Java 25 compilation and unit tests passed** on GitHub Actions [run 41058974204](https://github.com/kunlong-luo/lanveriq/actions/runs/41058974204); **`bootJar` packaging passed** in [Java 25 unit/package CI run 41061058441](https://github.com/kunlong-luo/lanveriq/actions/runs/41061058441); PostgreSQL 18 V1/V2 migrations, native JPA authorization SQL, mTLS and live server startup remain **UNVERIFIED**. The user chose Groovy DSL; the entire D0 technical baseline was separately approved, not merely this build tool.
+**Maintainer decision (2026-10-30): Gradle, not Maven.** D0 is approved and the [SRV-01 source scaffold](../../apps/server/README.md) now exists, including real `build.gradle`, official Gradle Wrapper and CI unit tests. **Java 25 compilation and unit tests passed** on GitHub Actions [run 41058974204](https://github.com/kunlong-luo/lanveriq/actions/runs/41058974204); **`bootJar` packaging passed** in [Java 25 unit/package CI run 41061058441](https://github.com/kunlong-luo/lanveriq/actions/runs/41061058441); PostgreSQL 18 V1/V2/V3 migrations, native JPA authorization/one-use-consumption SQL, mTLS and live server startup remain **UNVERIFIED**. The user chose Groovy DSL; the entire D0 technical baseline was separately approved, not merely this build tool.
 
 ## Verified stable release baseline (2026-10-30)
 
@@ -46,6 +46,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | `spring-boot-starter-data-jpa` | **Only direct application persistence starter**: Spring Data repositories + Hibernate ORM + HikariCP (transitive) |
 | `spring-boot-starter-flyway` | Versioned PostgreSQL migrations |
 | `org.flywaydb:flyway-database-postgresql` | PostgreSQL support in modern Flyway |
+| `org.bouncycastle:bcpkix-jdk18on:1.86` | Mature PKCS#10 parser and CSR signature verification in SRV-02; BC transitively supplies required ASN.1 crypto modules |
 | `org.postgresql:postgresql` (runtime) | PG JDBC |
 | `spring-boot-starter-actuator` | Restricted health and basic Micrometer metrics |
 | `org.springdoc:springdoc-openapi-starter-webmvc-api:3.2.0` | Controlled internal OpenAPI JSON; disable in deployment/prod |
@@ -70,7 +71,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | GoRules Zen Engine | **Exclude** | No dynamic rules engine planned; versioned typed policies are sufficient |
 | Lombok | **Omit** | Java 25 records/standard constructors remove most boilerplate; avoid annotation tooling |
 | MapStruct | **Defer** | Add only if DTO mapping becomes complex |
-| BouncyCastle provider | **Defer** | Standard Java cryptography supports current P-256/X.509 design; add only after a required crypto algorithm is identified |
+| Bouncy Castle PKIX (`bcpkix-jdk18on:1.86`) | **Include for SRV-02 PKCS#10 CSR validation** | Mature maintained PEM/ASN.1/PKCS#10 parser and proof-of-possession verification; use JDK JCA for P-256, do not hand-write CSR parsers or run an online CA |
 | Logstash Logback Encoder | **Defer** | Standard Boot SLF4J/Logback adequate initially; redact security data |
 | OpenTelemetry API + Javaagent | **Defer** | No collector/backend to receive spans; Actuator/Micrometer first |
 | Testcontainers PG/Kafka | **No early CI** | Tests needing containers are *integration* tests, while early CI executes **only unit tests**; add PG integration tests later, no Kafka |

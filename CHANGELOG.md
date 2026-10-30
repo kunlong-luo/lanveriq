@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-30 — SRV-02 pending enrollment and CSR validation
+- Added maintained Bouncy Castle 1.86 PKCS#10 parsing and P-256/SHA-256 CSR signature validation; malformed, wrong-key and unsupported-curve requests are rejected in JUnit tests.
+- Added one-transaction JPA PostgreSQL token consume (conditional UPDATE), pending server-side UUIDv7 device insert, public CSR digest/SPKI insert and Flyway V3 uniqueness/size checks. No raw JDBC, homegrown CSR parser, live TLS endpoint or certificate issuer.
+- [Java 25 CI compilation, JUnit and bootJar passed](https://github.com/kunlong-luo/lanveriq/actions/runs/41065309965). PostgreSQL migrations, concurrency and failed-transaction rollback are **NOT TESTED**. The manual PG18.6 script now checks V1/V2/V3, but still has **not been executed**.
+
 ## 2026-10-30 — SRV-02 internal identity and issuance slice
 - Added V2 PostgreSQL admin users, roles, group scope and admin access audit schema with **no default administrator**; Flyway V1/V2 have **not** been run against a real PG18 instance.
 - Added secure 256-bit one-use pairing token issuance through a group-authorized JPA native SQL operation, with hashed verifier storage, 1–15-minute expiry, audit and fail-closed handling. The token is **not** an Agent credential and no HTTP enrollment/CSR/mTLS activation or consumer endpoint exists yet.
