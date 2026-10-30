@@ -73,6 +73,7 @@
 - [Lightweight release and upgrade plan](operations/release.md)
 
 ## Governance
+- [D0 technical decision/sign-off package — **review ready, unsigned**](governance/d0-decision-package-2026-10-30.md): four proposed technical resolutions, negative tests and blank approval record.
 - [Final documentation closure review: conceptual closure vs D0 blockers (2026-10-30)](governance/final-closure-review-2026-10-30.md)
 - [Cross-document / diagram / SVG consistency review — 2026-10-30](governance/documentation-review-2026-10-30.md)
 - [Open decisions](governance/open-decisions.md)
