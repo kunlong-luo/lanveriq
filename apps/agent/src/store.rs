@@ -349,6 +349,74 @@ fn is_patched_sqlite(version: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn failed_cursor_write_rolls_back_event_and_sequence() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = OutboxStore::open(&dir.path().join("rollback.sqlite"))
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TRIGGER fail_cursor BEFORE INSERT ON collector_cursors \
+             BEGIN SELECT RAISE(ABORT, 'synthetic cursor failure'); END",
+        )
+        .execute(&store.pool)
+        .await
+        .unwrap();
+        let event = SyntheticEvent {
+            event_id: Uuid::now_v7(),
+            occurred_at_utc: "2026-10-31T00:00:00Z".into(),
+            policy_version: 1,
+            payload: serde_json::json!({"synthetic": true}),
+            cursor: vec![1],
+        };
+        assert!(matches!(
+            store.append_synthetic(&event).await,
+            Err(StoreError::Database(_))
+        ));
+        assert_eq!(store.next_sequence().await.unwrap(), 1);
+        assert!(store.pending_batch().await.unwrap().is_empty());
+        assert!(store.cursor().await.unwrap().is_none());
+        sqlx::query("DROP TRIGGER fail_cursor")
+            .execute(&store.pool)
+            .await
+            .unwrap();
+        assert_eq!(store.append_synthetic(&event).await.unwrap(), 1);
+    }
+
+    #[tokio::test]
+    async fn full_queue_records_bounded_gap_without_advancing_cursor() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = OutboxStore::open(&dir.path().join("queue.sqlite"))
+            .await
+            .unwrap();
+        // Seed synthetic fixtures transactionally in one test-only statement;
+        // no privileged disk-fill or network operation is performed.
+        sqlx::query(
+            "WITH RECURSIVE counter(n) AS ( \
+             SELECT 1 UNION ALL SELECT n+1 FROM counter WHERE n < 2048) \
+             INSERT INTO outbox_events(event_id,device_sequence,schema_version,source, \
+             event_type,policy_version,occurred_at_utc,payload_json,content_digest,bytes) \
+             SELECT printf('fixture-%d',n),n,1,'synthetic_test','protocol_fixture',1, \
+             '2026-10-31T00:00:00Z','{}',lower(hex(zeroblob(32))),2 FROM counter",
+        )
+        .execute(&store.pool)
+        .await
+        .unwrap();
+        let event = SyntheticEvent {
+            event_id: Uuid::now_v7(),
+            occurred_at_utc: "2026-10-31T00:00:00Z".into(),
+            policy_version: 1,
+            payload: serde_json::json!({"synthetic": true}),
+            cursor: vec![1],
+        };
+        for _ in 0..3 {
+            assert!(matches!(store.append_synthetic(&event).await, Err(StoreError::QueueFull)));
+        }
+        assert_eq!(store.gap_count().await.unwrap(), 3);
+        assert!(store.cursor().await.unwrap().is_none());
+        assert_eq!(store.next_sequence().await.unwrap(), 1);
+    }
+
     #[test]
     fn rejects_old_and_withdrawn_sqlite() {
         for v in ["3.50.4", "3.51.2", "3.52.0", "bad", "3.51"] {
