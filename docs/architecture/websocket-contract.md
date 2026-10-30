@@ -20,7 +20,7 @@ The WebSocket channel reduces device-status/alert latency for 1–10 machines. I
   "type": "device.status.changed",
   "notification_id": "bf4c1a31-417f-4fe0-9b18-1d4e144e15c0",
   "server_time": "2026-10-30T08:40:00Z",
-  "device_id": "a0e51319-7c8c-4557-85d3-187d91ee5213",
+  "device_id": "018f9fad-5c71-7db1-b89e-b71f8d620f44",
   "payload": {
     "status": "online",
     "last_seen_at": "2026-10-30T08:39:58Z"
@@ -51,7 +51,7 @@ The WebSocket channel reduces device-status/alert latency for 1–10 machines. I
 ## Browser → server frames
 Initial version only supports:
 ~~~json
-{"protocol_version":1,"type":"subscribe","request_id":"req-001","device_ids":["a0e51319-7c8c-4557-85d3-187d91ee5213"]}
+{"protocol_version":1,"type":"subscribe","request_id":"req-001","device_ids":["018f9fad-5c71-7db1-b89e-b71f8d620f44"]}
 ~~~
 - `device_ids` is a bounded allowlist of requested visible devices (max 10 in v0.1); empty means no device-specific subscription. Server intersects request with active server-side scope. Do not allow wildcards, raw SQL filters, arbitrary topic names or admin commands.
 - Reply `subscription.accepted` with only authorized `device_ids`, or `subscription.rejected` without leaking hidden device existence. Refresh subscription after any role/group change. A dashboard overview may request all **currently entitled** devices using REST first; it never subscribes to the entire LAN by client claim.
