@@ -8,7 +8,8 @@ flowchart TB
   Group{"Device group in scope?"}
   Data{"Data class and time range allowed?"}
   Case{"Sensitive recording requires approved case?"}
-  Audit["Write security decision/audit entry"]
+  AllowAudit["Log authorized sensitive access"]
+  DenyAudit["Log denied access"]
   Allow["Read minimal authorized data / subscribe"]
   Deny["Deny without revealing hidden resources"]
   Request --> Auth
@@ -20,11 +21,10 @@ flowchart TB
   Group -->|Yes| Data
   Data -->|No| Deny
   Data -->|Yes| Case
-  Case -->|No / not required| Audit
+  Case -->|Not required / valid approval| AllowAudit
   Case -->|Required but invalid| Deny
-  Case -->|Valid| Audit
-  Audit --> Allow
-  Deny --> Audit
+  AllowAudit --> Allow
+  Deny --> DenyAudit
 ~~~
 
 | Action | Security admin | IT operator | Auditor | Recording reviewer |
