@@ -4,7 +4,7 @@
 
 ## Proposed local tables
 - `agent_state`: schema_version, device_id, enrollment_status, policy_version, next_sequence (audit), **next_inventory_revision** (independent and durably monotonic). Do not use a global last_ack_sequence to delete outstanding lower-numbered rows.
-- `outbox_events`: event_id UUID UNIQUE, device_sequence INTEGER UNIQUE NOT NULL, source, event_type, policy_version, occurred_at_utc, payload_json (allowlisted), created_at_utc, acked_at_utc NULL, bytes.
+- `outbox_events`: event_id UUID UNIQUE, device_sequence INTEGER UNIQUE NOT NULL, **schema_version**, source, event_type, policy_version, occurred_at_utc, payload_json (allowlisted), **immutable canonical content_digest**, created_at_utc, acked_at_utc NULL, bytes. Persist every event-fingerprint field atomically; retries cannot regenerate it.
 - `collector_cursors`: source PRIMARY KEY, cursor_blob, updated_at, last_event_sequence.
 - `upload_batches`: id UUID, first_sequence, last_sequence, attempts, next_attempt_at, last_error_code.
 - `collection_gaps`: id UUID, source, from_at, to_at, reason, reported_at.
@@ -17,7 +17,7 @@ Never store plaintext enrollment token, device private key, password, keyboard d
 ## Write and upload path
 1. Adapter observes a scoped event and validates/redacts fields.
 2. SQLx single-connection write pool executes an explicit **async transaction** inserting the event, incrementing sequence and advancing source cursor, then commits; never hold DB transactions across network I/O.
-3. Async uploader loads up to 100 events or 512 KiB (provisional caps), sends request with device identity; immutable event IDs + device_sequence make retry idempotent.
+3. Async uploader loads up to 100 events or 512 KiB (provisional caps), sends request with device identity; persisted event ID, device_sequence, schema_version and payload/digest make retry idempotent. Persist the prepared `batch_id` for byte-identical retries where used; server dedup is **per event**, not based solely on batch ID.
 4. Server validates the **whole batch**, inserts or deduplicates it atomically in PostgreSQL and returns **all** accepted sequences after commit; any invalid/conflicting item rejects the whole batch.
 5. Local writer marks **only explicitly acknowledged sequences** and prunes the acknowledged rows. Ambiguous timeout → retry, do not drop. A `409 sequence_conflict` is quarantined and surfaced as degraded.
 6. If outbox is full, reserve bounded emergency gap capacity and report the **affected loss interval**. If disk is fully unwriteable, heartbeat exposes integrity_degraded so server can infer a coarse gap. Never fabricate event completeness.

@@ -38,15 +38,17 @@ See [inventory checklist INV-01–16](device-inventory-checklist.md) for hardwar
 | WS-002 | RBAC | Wrong-group device subscription rejected without leak |
 | WS-003 | RBAC | Revoked session/group change blocks subsequent push |
 | WS-004 | Dispatch | No WS notification before commit or after rollback |
-| WS-005 | Reliability | Reconnect calls REST refresh; dropped WS notice is safe |
+| WS-005 | Reliability | Reconnect re-subscribes then refetches REST; dropped WS hint is eventually reconciled |
 | WS-006 | Backpressure | Slow client gets bounded queue, resync/disconnect |
 | WS-007 | Client | Duplicate and out-of-order notifications do not corrupt state |
 | WS-008 | Privacy | Notifications contain no raw window titles, video or credentials |
+| WS-009 | Initial race | State changes after initial device-ID REST read but before subscription accepted; post-subscription REST refresh sees it |
+| WS-010 | Silent dropped hint | WSS remains open but a hint is lost; tab resume/periodic REST reconciliation eventually sees committed data |
 
 ## Manual browser/LAN WSS scenarios
 | ID | Scenario | Expected result |
 |---|---|---|
-| MAN-WS-01 | Dashboard opens with admin session | WSS `system.ready` and REST snapshot |
+| MAN-WS-01 | Dashboard opens with admin session | WSS `system.ready`, authorized `subscription.accepted`, **then** authoritative REST snapshot |
 | MAN-WS-02 | Windows Agent goes offline | Server-derived offline notification; UI updates |
 | MAN-WS-03 | Router disconnects browser then reconnects | bounded reconnect and REST resync |
 | MAN-WS-04 | User role/device group changes live | unauthorized notifications stop |
@@ -54,6 +56,7 @@ See [inventory checklist INV-01–16](device-inventory-checklist.md) for hardwar
 | MAN-WS-06 | Tamper Origin/host/TLS | upgrade refused; no insecure fallback |
 | MAN-WS-07 | Stop/restart Spring Boot | browser reconnects; refreshes from PostgreSQL |
 | MAN-WS-08 | Burst of 100 heartbeats | no unbounded push/queue growth |
+| MAN-WS-09 | WSS remains connected but a change hint is suppressed | Visible-page periodic REST reconcile or tab resume refetches committed state |
 
 ## Results policy
 Never mark "PASS" without recording date, OS, version, reviewer and evidence. Unit-green is not production approval. Real employee information must not be used in test fixtures or issue screenshots.

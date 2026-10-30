@@ -34,7 +34,7 @@
 Use [INV-01 through INV-16](device-inventory-checklist.md): CPU model, RAM, OS/kernel, volumes, multi-NIC IPv4/IPv6/MAC, changing DHCP, stale/absent data, policy scope and 30s heartbeat versus 24h inventory. These checks have not been executed. Do not attach real internal addresses to public issue reports.
 
 ## v0.1 WSS manual checks
-Also run [MAN-WS-01–08](test-matrix.md) with synthetic devices: login/Origin, status push, router/browser disconnect, REST resync, access-scope changes and server restart. Record actual outcomes separately; none have been executed yet.
+Also run [MAN-WS-01–09](test-matrix.md) with synthetic devices: login/Origin, status push, router/browser disconnect, REST resync, access-scope changes and server restart. Record actual outcomes separately; none have been executed yet.
 
 ## v0.2 checks
 Scoped application metadata on supported OS; Windows and Linux allowlisted security events; unsupported Wayland activity shown honestly; clock drift; bounded event pagination; role permission matrix; retention deletion and access audit. Nothing may silently collect URL contents, clipboard, keyboard or messages.

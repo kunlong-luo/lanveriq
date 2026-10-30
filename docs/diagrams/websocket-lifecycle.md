@@ -10,6 +10,7 @@ stateDiagram-v2
   Resyncing --> Reconciling: Subscribe and receive acceptance
   Reconciling --> Subscribed: Refetch authoritative REST snapshot
   Subscribed --> Subscribed: Notification invalidates REST query
+  Subscribed --> Subscribed: Visible-page periodic REST reconcile / tab resume
   Subscribed --> Backoff: Network loss / server restart
   Resyncing --> Backoff: Connection lost
   Reconciling --> Backoff: Connection lost

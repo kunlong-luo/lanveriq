@@ -22,7 +22,7 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 | POST | /devices/{id}/revoke | privileged admin | Disable identity and future uploads |
 | GET | /devices/{id}/activity | scoped auditor | Time-range and kind-filtered activity |
 | GET | /devices/{id}/audit-events | scoped auditor | Time-range and event filters |
-| GET | /devices/{id}/collection-gaps | scoped auditor | Collection discontinuity and failures |
+| GET | /devices/{id}/collection-gaps | scoped IT operator (health-only), scoped auditor (approved detail) | Role-specific projections; never expose sensitive event fields to a health-only operator |
 | GET | /admin/access-log | privileged auditor | Immutable viewing/action trace |
 
 ## V0.3 restricted recording APIs (design only)
@@ -41,16 +41,17 @@ Enrollment request fields: `token`, `agent_version`, `os`, `capabilities`, `devi
 
 Heartbeat fields: `device_id`, `sent_at`, `agent_version`, `status`, `capabilities`, `queue_count`, `queue_bytes`, `oldest_pending_at`, `last_successful_upload_at`, `dropped_count`, `integrity_degraded`, `collection_errors`. Server stamps `received_at` and derives online/stale/offline. See [health states](health-and-gap-semantics.md).
 
-Event batch (illustrative):
+Event batch (**synthetic protocol fixture only**; `system_audit/program_started` is not a real V0.1 collector and requires a later V0.2 approved source allowlist):
 ~~~json
 {
   "schema_version": 1,
   "batch_id": "7ba33d0d-9340-47ad-b4c7-70a5080ad239",
-  "device_id": "a0e51319-7c8c-4557-85d3-187d91ee5213",
+  "device_id": "018f9fad-5c71-7db1-b89e-b71f8d620f44",
   "events": [
     {
       "event_id": "6782a074-e42c-4198-adfa-5f6ab57d7d43",
       "device_sequence": 101,
+      "schema_version": 1,
       "source": "system_audit",
       "event_type": "program_started",
       "policy_version": 1,
@@ -71,11 +72,11 @@ A batch is limited to **100 events and 512 KiB**, with no partial acknowledgment
 
 ## Error and retry
 - 400 invalid syntax; 401 no identity; 403 revoked/out-of-scope; 409 identity or sequence payload conflict; 413 oversized; 422 field/schema validation; 429 backoff; 5xx retry. Network timeout, 429 and 5xx retain the local batch and use bounded retry, not repeated immediate retries.
-- Stable `code`, `message`, `request_id`, optional `retry_after_seconds`. Never echo credentials or raw sensitive payload.
+- Stable `code`, `message`, `request_id`, optional `retry_after_seconds`. Freeze these error semantics and role-scoped response projections in OpenAPI **before** Orval generation; no non-2xx response counts as an ACK. Never echo credentials or sensitive payload.
 - A duplicate sequence with identical immutable canonical event content is idempotent; a conflict in sequence or event ID with different content is an audit-worthy **conflict**, not an overwrite. Canonical event fields are `event_id`, `device_sequence`, `schema_version`, `source`, `event_type`, `occurred_at`, `payload`, `policy_version`. The database adds server-received `received_at`.
 - Limit pagination and time range. Validate `device_id` against credential, not the body alone. Query ordering uses stable `received_at, event_id` cursor keys; source timestamps are untrusted and should not silently reorder evidence. Admin device/time/data-category scopes are enforced before database rows are returned; see [permission matrix](../security/authorization-matrix.md).
 
 ## Authentication
 Initial certificate trust and device pairing are specified in [LAN bootstrap](enrollment-bootstrap.md). 
 
-Admin: secure session with MFA support and role/device-group scopes; Agent: unique client credential bound to device (mTLS preferred if local certificate distribution is feasible; otherwise proof-of-possession tokens). Credentials revocable/rotatable. No insecure plaintext HTTP exception on a trusted LAN.
+Admin: secure session with MFA support and role/device-group scopes; Agent: revocable unique credential bound to device. **mTLS is the preferred technical candidate, not a fully frozen contract**: CA/certificate issuance, enrollment, proxy identity binding, rotation and revocation remain unresolved in [D-07](../governance/open-decisions.md). Browser and pre-enrollment requests must not inherit mandatory post-enrollment Agent certificate checks. No insecure plaintext HTTP exception on a trusted LAN.

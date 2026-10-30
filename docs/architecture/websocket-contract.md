@@ -63,6 +63,7 @@ Initial version only supports:
 3. On a notification, invalidate matching TanStack Query keys and fetch on demand; coalesce bursts (draft: 250–1000 ms).
 4. On disconnect or server restart, mark feed as `reconnecting`; retry with exponential backoff + jitter (draft base 1 s, cap 30 s), stop after explicit 401/403 until re-login.
 5. After **every** successful reconnect, re-authenticate, refresh the authorized device list, resubscribe and take a **post-subscription REST snapshot** of affected resources. Notifications can be lost/reordered; no replay cursor is promised.
+5a. **Silent lost hint while the socket remains open:** also reconcile the authorized REST overview on tab visibility/focus/resume and at a **low-frequency configurable interval (pilot proposal: 60–120 s while visible)**, merging with any in-flight refetch. Show `as_of`/last-refresh and stale state; do not poll unlimited audit timelines. WSS connection health is not evidence of up-to-date data.
 6. Server sends WS protocol ping periodically (draft: 30 s) and closes idle/dead connections (draft: 90 s). Proxies must permit idle timeout longer than ping interval.
 7. If server outbound queue exceeds its per-connection cap, issue `system.resync_required` when possible, close with appropriate code and rely on REST reconnect; do not block ingestion.
 
@@ -75,7 +76,7 @@ The Spring service uses an **in-process dispatcher** on a single app instance. D
 - Revoke/logout terminates delivery, recording notifications remain case scoped.
 - Inbound payload size cap, malformed JSON, unsupported version, flood/slow consumer limits.
 - Server emits after commit only; failure/rollback emits nothing.
-- Client initial connect/reconnect closes the snapshot-to-subscribe race using a post-subscription REST refresh; duplicate/out-of-order events are harmless. Test a status update occurring after the first REST list response but before `subscription.accepted`.
+- Client initial connect/reconnect closes the snapshot-to-subscribe race using a post-subscription REST refresh; duplicate/out-of-order events are harmless. Test a status update occurring after the first REST list response but before `subscription.accepted`, plus a **silently dropped notification with WSS still open** and a browser tab resuming.
 
 ## Diagram
 See [WebSocket sequence](../diagrams/websocket-flow.md) and [overall component architecture](../diagrams/component-architecture.md).

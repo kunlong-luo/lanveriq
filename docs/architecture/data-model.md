@@ -29,7 +29,7 @@
 | retention_policies | id, group_id, data_class, days, max_bytes | Scoped retention |
 
 ## Hardware and network inventory
-The authoritative [Device inventory specification](device-inventory.md) defines collection fields, source, sample frequency, bounded payloads and retention. **Canonical `devices.id` is a server-assigned UUIDv7**, not a MAC, IP or hostname. A computer can have many NICs, IP addresses and volumes; therefore these are child records rather than one `ip`/`mac` column. Inventory upserts are **atomic and idempotent with snapshot ID + digest** and distinct from durable `endpoint_events` event batches. Metrics samples are bounded and may be transmitted in heartbeat summaries; current inventory and history have different retention.
+The authoritative [Device inventory specification](device-inventory.md) defines collection fields, source, sample frequency, bounded payloads and retention. **Canonical `devices.id` is a server-assigned UUIDv7**, not a MAC, IP or hostname. A computer can have many NICs, IP addresses and volumes; therefore these are child records rather than one `ip`/`mac` column. Inventory upserts are **atomic and idempotent with device-scoped `inventory_revision` + snapshot ID + digest**, with stale revisions unable to overwrite current state and distinct from durable `endpoint_events` event batches. Metrics samples are bounded and may be transmitted in heartbeat summaries; current inventory and history have different retention.
 
 ## Database guarantees
 - All IDs server-generated or checked; client event IDs have size/format constraints.
@@ -42,7 +42,7 @@ The authoritative [Device inventory specification](device-inventory.md) defines 
 - Retention cleanup runs in bounded batches with access logs; database/index backup lifecycle documented separately. Derived activity/gap rows are deleted consistently with their parent events; no orphan projections. Sensitive queries must enforce [role and device-group scope](../security/authorization-matrix.md).
 
 ## Agent SQLite entities
-Refer to [Agent Persistence](agent-persistence.md). Store `outbox_events`, `collector_cursors`, `collection_gaps`, `upload_batches`, `schema_migrations`, optional `recording_manifests`. Do not duplicate central RBAC tables locally.
+Refer to [Agent Persistence](agent-persistence.md). Store `outbox_events`, `collector_cursors`, `collection_gaps`, `upload_batches`, **SQLx-managed `_sqlx_migrations`**, optional `recording_manifests`. Do not add a duplicate bespoke migration-tracking table. Do not duplicate central RBAC tables locally.
 
 ## Migration policy
 Every schema change carries a forward Flyway migration and tests; avoid destructive renames without rollout and recovery. Do not use auto-schema mutation in production. Restore from a verified pre-migration backup if rollback cannot be safely expressed.

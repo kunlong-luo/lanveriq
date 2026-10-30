@@ -19,7 +19,7 @@
 | INV-03 | Bounded CPU/RAM/disk sampling, freshness and device detail UI | P0 | INV-02, WEB-01 | INV-13–16, permission checks and freshness display |
 | WEB-01 | Dashboard shell + **Orval-generated OpenAPI TanStack Query client**, authoritative REST device list | P0 | SRV-02 | generated schema/API diff and UI unit tests |
 | MON-01 | Dedicated Monitoring Center: fleet/source health, backlog, limited hardware summary | P0 | WEB-01, INV-03, WS-01 | real-device heartbeat, group scope and no unsupported-as-zero tests |
-| WS-01 | Authenticated Spring WSS upgrade, scoped topics, after-commit notifier | P0 | SRV-02, SRV-03, AUTH-01 | WS-001 through WS-009 unit tests; manual MAN-WS-01 through 08 |
+| WS-01 | Authenticated Spring WSS upgrade, scoped topics, after-commit notifier | P0 | SRV-02, SRV-03, AUTH-01 | WS-001 through WS-010 unit tests; manual MAN-WS-01 through 09 |
 | WEB-WS-01 | React WSS client with resubscribe/reconnect and REST refetch | P0 | WEB-01, WS-01 | duplicate/slow/reconnect unit tests and manual validation |
 | OPS-00 | Secure bootstrap, credential and manual LAN acceptance | P0 | SRV-01, AGT-03 | [MAN-001–013](../testing/manual-acceptance.md) evidence on synthetic endpoints |
 | AUD-01 | Windows scoped Event Log source | P1 | AGT-03 | mock unit + manual Windows test |
@@ -29,7 +29,7 @@
 | OPS-01 | Retention, quota and backup/restore | P1 | SRV-03 | cleanup unit + restore exercise |
 | CAP-01 | Visible recording companion and OS grant | P1 | privacy gate | manual deny/allow tests |
 | CAP-02 | Segmented upload and manifest | P1 | CAP-01 | checksums/retry tests |
-| AUTH-02 | V0.3 approved recording review cases, per-request/Range access checks | P1 | AUTH-01, CAP-02 | independent approval, expiry/revoke, cross-group, byte-range denial and access audit tests |
+| AUTH-02 | V0.3 approved recording review cases, **time-window-to-media mapping** and per-request/Range authorization | P1 | AUTH-01, CAP-02 | independent approval, expiry/revoke, cross-group, **no out-of-window frames**, Range denial and access audit tests |
 | WEB-02 | Recording & Playback Center: catalog, approved case and scoped playback | P1 | CAP-02, AUTH-02 | case approval/expiry, partial range, missing segment and access audit tests |
 | REC-03 | Recording retention, integrity and verified deletion closure | P1 | WEB-02, OPS-01 | failed/expired segment clean-up and backup-restore audit |
 | PKG-01 | Windows/Linux installers | P1 | v0.2 | clean-device installation |
