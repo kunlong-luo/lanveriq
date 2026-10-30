@@ -11,9 +11,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 final class ConsoleLoginRateLimitFilter extends OncePerRequestFilter {
 
     private final ConsoleLoginRateLimiter limiter;
+    private final AdminAuthenticationAudit audit;
 
-    ConsoleLoginRateLimitFilter(ConsoleLoginRateLimiter limiter) {
+    ConsoleLoginRateLimitFilter(ConsoleLoginRateLimiter limiter, AdminAuthenticationAudit audit) {
         this.limiter = limiter;
+        this.audit = audit;
     }
 
     @Override
@@ -21,8 +23,20 @@ final class ConsoleLoginRateLimitFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
         if ("POST".equals(request.getMethod()) &&
                 "/api/v1/auth/login".equals(request.getServletPath())) {
-            if (request.getContentLengthLong() > 8192 ||
-                    !limiter.allow(request.getParameter("username"), request.getRemoteAddr())) {
+            long length = request.getContentLengthLong();
+            if (length <= 0 || length > 8192) {
+                response.setHeader("Cache-Control", "no-store");
+                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+                return;
+            }
+            if (!limiter.allow(request.getParameter("username"), request.getRemoteAddr())) {
+                try {
+                    audit.loginThrottled();
+                } catch (RuntimeException e) {
+                    response.setHeader("Cache-Control", "no-store");
+                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                    return;
+                }
                 response.setHeader("Cache-Control", "no-store");
                 response.setHeader("Retry-After", "60");
                 response.sendError(429);

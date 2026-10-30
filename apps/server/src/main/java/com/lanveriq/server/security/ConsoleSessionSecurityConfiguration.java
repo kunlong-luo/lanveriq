@@ -34,10 +34,12 @@ public class ConsoleSessionSecurityConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     SecurityFilterChain consoleAuthenticationOnly(
             HttpSecurity http, AuthenticationProvider adminAuthenticationProvider,
-            Environment environment, AdminAccountRepository accounts) throws Exception {
+            Environment environment, AdminAccountRepository accounts,
+            AdminAuthenticationAudit audit) throws Exception {
         var policy = new ConsoleOriginPolicy(
                 environment.getProperty("lanveriq.console.auth.origin"));
         var csrfTokens = new HttpSessionCsrfTokenRepository();
+        var handlers = new ConsoleSessionEventHandlers(audit);
 
         return http
                 .securityMatcher("/api/v1/auth/**")
@@ -45,7 +47,7 @@ public class ConsoleSessionSecurityConfiguration {
                         CsrfFilter.class)
                 .addFilterAfter(new ConsoleSessionRevalidationFilter(accounts),
                         SecurityContextHolderFilter.class)
-                .addFilterBefore(new ConsoleLoginRateLimitFilter(new ConsoleLoginRateLimiter()),
+                .addFilterBefore(new ConsoleLoginRateLimitFilter(new ConsoleLoginRateLimiter(), audit),
                         UsernamePasswordAuthenticationFilter.class)
                 .authenticationProvider(adminAuthenticationProvider)
                 .authorizeHttpRequests(requests -> requests
@@ -57,23 +59,14 @@ public class ConsoleSessionSecurityConfiguration {
                         .sessionFixation(fixation -> fixation.changeSessionId()))
                 .formLogin(login -> login
                         .loginProcessingUrl("/api/v1/auth/login")
-                        .successHandler((request, response, authentication) -> {
-                            response.setHeader("Cache-Control", "no-store");
-                            response.setStatus(204);
-                        })
-                        .failureHandler((request, response, exception) -> {
-                            response.setHeader("Cache-Control", "no-store");
-                            response.sendError(401);
-                        })
+                        .successHandler(handlers.loginSuccess())
+                        .failureHandler(handlers.loginFailure())
                         .permitAll())
                 .logout(logout -> logout
                         .logoutUrl("/api/v1/auth/logout")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
-                        .logoutSuccessHandler((request, response, authentication) -> {
-                            response.setHeader("Cache-Control", "no-store");
-                            response.setStatus(204);
-                        }))
+                        .logoutSuccessHandler(handlers.logoutSuccess()))
                 .build();
     }
 }
