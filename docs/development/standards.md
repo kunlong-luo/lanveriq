@@ -1,6 +1,6 @@
 # Monorepo layout and engineering conventions
 
-**Current repo is docs-only. The tree below is planned and should not be pre-created with empty implementation packages.**
+**Implementation has started:** `apps/server/` and the real unit-only `.github/workflows/server-unit.yml` exist. The remaining Agent/dashboard/desktop and deployment layout below is **planned**, not pre-created with empty packages.
 
 ~~~text
 lanveriq/

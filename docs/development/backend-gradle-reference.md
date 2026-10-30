@@ -1,6 +1,6 @@
 # Gradle 9.8.2 + Spring Boot 4.1.2 — Groovy DSL reference
 
-**Reference only.** This is **NOT** an installed Gradle project, and no executable `build.gradle` / wrapper has been committed. Copy into `apps/server/build.gradle` **after D0 sign-off**, generate the official wrapper and test actual dependency/plugin compatibility. This follows the maintainer's example style but excludes unrelated Kafka/Redis/InfluxDB/geo/OTel dependencies; **Spring Data JPA/Hibernate is selected**. Canonical version policy: [backend-stack.md](backend-stack.md).
+**Reference example (retained for design history).** The actual [SRV-01 Gradle project](../../apps/server/build.gradle) and [server README](../../apps/server/README.md) were committed after D0 approval, including an official tagged Gradle 9.8.2 wrapper JAR with verified SHA-256. This reference is **not the authoritative live build script**; read actual files and unit-CI results for current behavior. This follows the maintainer's example style but excludes unrelated Kafka/Redis/InfluxDB/geo/OTel dependencies; **Spring Data JPA/Hibernate is selected**. Canonical version policy: [backend-stack.md](backend-stack.md).
 
 ## Proposed `apps/server/build.gradle`
 
@@ -91,7 +91,7 @@ rootProject.name = 'lanveriq-server'
 
 ## Wrapper and invocation
 
-**During implementation only**, from `apps/server` with an officially installed Gradle 9.8.2 (the initial wrapper bootstrap):
+**Actual wrapper is already committed; for future official wrapper regeneration/upgrade**, from `apps/server` with an approved Gradle installation:
 
 ~~~bash
 gradle wrapper --gradle-version 9.8.2 --distribution-type bin

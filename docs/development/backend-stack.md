@@ -1,6 +1,6 @@
 # Spring Boot server stack — Gradle / Java 25 stable baseline
 
-**Maintainer decision (2026-10-30): Gradle, not Maven.** This document is a **design / dependency freeze candidate**, not an installed or tested server. The user explicitly chose **Groovy DSL `build.gradle`**, in the style of the provided reference. This build-tool selection **does not approve the entire D0 documentation gate**.
+**Maintainer decision (2026-10-30): Gradle, not Maven.** D0 is approved and the [SRV-01 source scaffold](../../apps/server/README.md) now exists, including real `build.gradle`, official Gradle Wrapper and CI unit tests. **Actual PostgreSQL 18 migration, mTLS and server runtime are not verified by the scaffold alone.** The user chose Groovy DSL; the entire D0 technical baseline was separately approved, not merely this build tool.
 
 ## Verified stable release baseline (2026-10-30)
 
@@ -31,7 +31,7 @@ Spring Boot's BOM pins its supported transitive libraries and starters. **Don't 
 - Boot BOM manages Spring/framework versions automatically. Build scripts use explicit versions only for Gradle/Boot/plugin, JaCoCo and community springdoc.
 - **Use Maven Central as the dependency repository** (this is a repository service, **not** choosing the Maven build tool). The Aliyun Maven mirror in the supplied example may be enabled **optionally** for developer networks, after verifying cache provenance/TLS and avoiding silent repository-switching. Gradle Plugin Portal remains required to resolve Gradle plugins.
 - One `apps/server/` Gradle **single-module executable jar** initially, one Spring Boot modular monolith, with logical package boundaries not 10 deployables.
-- When scaffolding code, commit `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.properties`, verified `gradle-wrapper.jar` generated from official Gradle tooling and `settings.gradle`, `build.gradle`. **No wrapper binary has been created during the docs-only phase.**
+- SRV-01 has committed `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.properties`, the official `v9.8.2` Gradle wrapper JAR and actual `settings.gradle`/`build.gradle`. The JAR SHA-256 is checked against Gradle's official published checksum; the distribution ZIP checksum is pinned. Source scaffolding and checksum verification **do not prove dependency resolution or Java/PG integration**.
 
 See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 
@@ -86,4 +86,4 @@ Keep Spring behind Caddy/private server network. mTLS Agent access, browser sess
 
 JaCoCo reports are attached to unit tests. The supplied **83% coverage limit** is a possible *later reviewed quality target*, **not an unconditional `check` or CI gate** before meaningful tests exist. Add sensible coverage exclusions only with explanation, never fake a passing placeholder. Early GitHub CI invokes real `./gradlew test` when the Java project exists; Gradle `check` and local build may be run by developers; no E2E/Testcontainers integration jobs in early CI.
 
-When the Java code exists, validate plugin/Gradle compatibility, `./gradlew --version`, dependencies resolution, `./gradlew test` and `./gradlew bootJar` locally. **All versions above are documented choices, not verified build artifacts.**
+With Java source now committed, validate plugin/Gradle compatibility, `./gradlew --version`, dependency resolution, `./gradlew test` and `./gradlew bootJar` on JDK 25; also run a real PostgreSQL 18 Flyway/JPA integration exercise outside unit-only CI. **All versions above are documented choices, not verified build artifacts.**

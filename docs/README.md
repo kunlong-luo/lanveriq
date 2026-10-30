@@ -1,6 +1,6 @@
 # Lanveriq — documentation index
 
-**Baseline:** V0.1 technical D0 **approved 2026-10-30 for source implementation**. The repo is **documentation-only at sign-off**; the selected architecture has not been implemented, compiled or tested. English technical documents are canonical; see [中文介绍](../README.zh.md).
+**Baseline:** V0.1 technical D0 **approved 2026-10-30**. The [SRV-01 Java/Gradle source foundation](../apps/server/README.md) and unit-only GitHub Actions workflow now exist; this is **not** a working monitoring product or proof of a PostgreSQL/PKI/OS integration test. English technical documents are canonical; see [中文介绍](../README.zh.md).
 
 ## Product
 - [Requirements and scope](product/requirements.md)

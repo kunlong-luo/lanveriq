@@ -1,12 +1,12 @@
 # Issue-ready prioritized backlog
 
-**V0.1 implementation is authorized following D0 technical approval on 2026-10-30; no code or runtime evidence exists at sign-off.** These are unimplemented tasks. Priority P0 = first usable skeleton, P1 = pre-release capability, P2 = optional later. No real employee data without separate approval.
+**V0.1 development is underway after D0 approval on 2026-10-30.** SRV-01 source and unit CI have been committed; the other feature tasks remain unimplemented. Migration/runtime evidence must be verified before marking SRV-01 fully accepted. Priority P0 = first usable skeleton, P1 = pre-release capability, P2 = optional later. No real employee data without separate approval.
 
 | ID | Title | Priority | Depends on | Acceptance evidence |
 |---|---|---|---|---|
 | DOC-01 | **D0 baseline decision recorded** (V0.1 technical scope and first Linux target; no real-data notice) | P0 **D0 approved** | none | [technical sign-off](../governance/d0-decision-package-2026-10-30.md); organizational/legal data policy remains open |
 | ARCH-01 | **D0 protocol design accepted** for event_type, atomic batch, re-enrollment and CSR-based pairing | P0 **D0 approved** | DOC-01 | [API design contract](../architecture/api-contract.md) selected; generated schema and integration negative tests post-D0 |
-| SRV-01 | Bootstrap **Gradle 9.8.2** Groovy + **Spring Boot 4.1.2/Java 25** + JPA/Hibernate/PostgreSQL 18 + Flyway | P0 | D0 | official Gradle Wrapper, local dependency resolution/migration, real JUnit 6 unit test |
+| SRV-01 | Bootstrap **Gradle 9.8.2** Groovy + **Spring Boot 4.1.2/Java 25** + JPA/Hibernate/PostgreSQL 18 + Flyway | P0 **source committed, verification pending** | D0 | [server code](../../apps/server/README.md), official checksum-verified wrapper and meaningful JUnit unit test; Gradle CI and real PostgreSQL 18 migration/JPA mapping acceptance recorded separately |
 | SRV-02 | Device enrollment and revocation | P0 | SRV-01 | unit tests token replay/expiry |
 | ID-01 | PostgreSQL uuidv7() device key and bound credential; safe re-enrollment | P0 | SRV-02 | identity collision/wrong-key/clone/lost identity unit tests |
 | AUTH-01 | Baseline secure admin session, role/group-scoped REST + WSS access | P0 | SRV-01 | role/group/Origin/CSRF and device-credential negative tests |
