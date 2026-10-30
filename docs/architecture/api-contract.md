@@ -144,7 +144,7 @@ Proposed successful response:
 }
 ~~~
 
-**All heartbeat/event/inventory routes reject a pending certificate until activation has committed.** Use exact certificate identity and database state on each subsequent request; a merely trusted client CA is not enough.
+**All heartbeat/event/inventory routes reject a pending certificate until activation has committed.** The single signed-leaf registration route is console-admin-only (no CA private key exposed); pending-CSR fetch is likewise restricted and audited. Use exact certificate identity and database state on each subsequent request; a merely trusted client CA is not enough.
 
 ### Candidate Agent heartbeat
 
@@ -196,7 +196,7 @@ Use the full [inventory request example](device-inventory.md) unchanged as the c
   "request_id": "a2fdba9e-fb11-42fd-ad05-3b7f19cbe0b2"
 }
 ~~~
-HTTP and stable `code` pairs under review: `400 invalid_json`, `401 unauthenticated`, `403 forbidden | revoked_device`, `404 not_found` (consistent non-disclosing scope handling), `409 sequence_conflict | inventory_conflict | enrollment_conflict`, `413 request_too_large`, `422 invalid_schema | unsupported_schema_version`, `429 rate_limited`, `503 temporarily_unavailable`. A `429` or retryable `503` may include numeric `retry_after_seconds` and corresponding `Retry-After`; clamp and use exponential backoff with jitter. Never echo authentication tokens, raw sensitive payloads or hidden device existence. No non-2xx is an event ACK. `401/403` pauses Agent upload until identity is repaired; `409` quarantines conflict; `422` requires schema/policy remediation, never rapid retry.
+HTTP and stable `code` pairs under review: `400 invalid_json`, `401 unauthenticated`, `403 forbidden | revoked_device`, `404 not_found` (consistent non-disclosing scope handling), `409 sequence_conflict | inventory_conflict | enrollment_conflict`, `410 pending_enrollment_expired` (authenticated/admin-scoped pending enrollment only), `413 request_too_large`, `422 invalid_schema | unsupported_schema_version | invalid_client_certificate`, `429 rate_limited`, `503 temporarily_unavailable`. A `429` or retryable `503` may include numeric `retry_after_seconds` and corresponding `Retry-After`; clamp and use exponential backoff with jitter. Never echo authentication tokens, raw sensitive payloads or hidden device existence. No non-2xx is an event ACK. `401/403` pauses Agent upload until identity is repaired; `409` quarantines conflict; `422` requires schema/policy remediation, never rapid retry.
 
 ### Pre-approval contract checklist
 
