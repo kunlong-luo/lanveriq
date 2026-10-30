@@ -25,10 +25,12 @@ sequenceDiagram
   alt Token valid and CSR acceptable
     PG-->>Server: Commit pending identity
     Server-->>Agent: 202 pending_certificate + device_id
-    Operator->>Server: Review authorized pending CSR, device and group
-    Operator->>CA: Sign reviewed CSR with clientAuth certificate
+    Operator->>Server: GET console /devices/{id}/enrollment-csr (scoped admin)
+    Server-->>Operator: Pending CSR, digest, authoritative device ID and group
+    Operator->>CA: Verify CSR digest; sign issuer-owned clientAuth-only template
     CA-->>Operator: Leaf certificate and CA chain only
-    Operator->>Server: Register certificate fingerprint for device
+    Operator->>Server: POST console /devices/{id}/client-certificates (public PEM)
+    Server->>PG: Validate CSR SPKI = leaf key, CA/issuer, device ID and uniqueness; register pending fingerprint
     Operator->>Agent: Deliver leaf/chain over trusted channel
     Agent->>Key: Install cert with protected private key
     Agent->>Server: POST Agent-host /api/v1/devices/{id}/activate (mTLS)
