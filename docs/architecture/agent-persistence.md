@@ -12,7 +12,7 @@
 - `recording_manifests` (v0.3): session_id, segment_id, local_path, sha256, size, state, last_attempt_at. Paths must be confined to the configured media directory.
 - `schema_migrations`: version, checksum, applied_at.
 
-Never store plaintext enrollment token, device private key, password, keyboard data, clipboard data or the actual video as SQLite BLOBs.
+Never store plaintext enrollment token, device private key, password, keyboard data, clipboard data or the actual video as SQLite BLOBs. **V0.1 source collection is synthetic/test-only** beyond disclosed inventory and operational device health; real app/audit collectors start only after V0.2 policy review.
 
 ## Write and upload path
 1. Adapter observes a scoped event and validates/redacts fields.

@@ -22,7 +22,10 @@
 | D-16 | WSS push timing and failure thresholds | WSS metadata-only, best-effort, **post-subscription REST reconcile**, proposed <2s normal push, limits to validate | v0.1 manual acceptance |
 | D-17 | Device hardware/IP/MAC inventory field scope | V0.1 CPU/RAM/disks/OS, permitted NICs and multiple IPv4/IPv6; no hardware serial/TPM by default; last-seen and inventory freshness distinct | before v0.1 schema |
 | D-18 | Inventory retention and sensitive network address exposure | Current record plus proposed 7-day IP/MAC change log; role/group restrictions and no WSS address payload | before real managed endpoints |
-| D-19 | Inventory snapshot reliability | Stable snapshot_id, digest, bounded retry and no older snapshot overwrite; local latest pending snapshot on outage | before v0.1 Agent/API code |
+| D-19 | Inventory snapshot reliability | Stable snapshot_id, **monotonic inventory_revision**, digest, bounded retry and no older snapshot overwrite; local latest pending snapshot on outage | before v0.1 Agent/API code |
+| D-20 | Baseline V0.1 authorization design | Admin session, device-group scoped REST inventory/monitoring and WSS; validate Origin/CSRF, revoke credentials; fine-grained audit/video access staged separately | before V0.1 auth code |
+| D-21 | Recording access approval and storage lifecycle | Case approval must predate playback; independent approver, byte-range time scoping and verified retention/delete; no direct file/NAS access | before V0.3 |
+| D-22 | Initial client compatibility/protocol freeze | Stable field limits, optional/missing capability states, inventory revisions, API error codes, 30s heartbeat and 60–120s metrics require tested platform fixtures | before V0.1 client/server rollout |
 
 ## Decision process
 Record who approved, date, consequences and relevant ADR/PRD changes. Any deployment collecting real employee data requires D-01, D-03, D-05 and D-07 resolved even if code exists. The documentation gate can be **ready for technical review** while legal/operational approvals remain open.

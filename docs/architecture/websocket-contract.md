@@ -7,7 +7,7 @@ The WebSocket channel reduces device-status/alert latency for 1–10 machines. I
 
 ## Transport and authentication
 - Caddy terminates TLS and forwards authenticated upgrade requests to Spring Boot's **native WebSocket handler** (no separate broker, STOMP service or Redis for v0.1).
-- Browser uses an existing **Secure, HttpOnly, SameSite** admin session cookie. The server checks authentication during upgrade, exact allowed `Origin`, active session, role and device-group permissions; reject unauthorized upgrades with an HTTP error. Do **not** send access tokens in query parameters, logs or browser localStorage.
+- Browser uses an existing **Secure, HttpOnly, SameSite** admin session cookie. **Baseline admin role/group authorization is required in V0.1**, even though detailed audit activity and recording permissions arrive later. The server checks authentication during upgrade, exact allowed `Origin`, active session, role and device-group permissions; reject unauthorized upgrades with an HTTP error. Do **not** send access tokens in query parameters, logs or browser localStorage.
 - WSS only; reject `ws://` outside localhost-only synthetic development. Restrict Caddy to authorized LAN networks.
 - Cookie-based, read-only WS messages do not mutate server business state; **all** policy, pairing and other writes go through CSRF-protected REST APIs. Client requests to subscribe/unsubscribe are never authorization grants.
 - Apply per-user connection count (proposal: 5), message-size cap (proposal: 64 KiB), outbound queue cap, and rate limits. Close slow clients rather than allowing unlimited memory.

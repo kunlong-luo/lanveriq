@@ -28,7 +28,7 @@ Small offices need a simple private-server tool to review endpoint availability,
 | FR-11 | Configurable event retention and disk-quota alerts | v0.2 |
 | FR-12 | Optional disclosed, OS-authorized recording and indicator | v0.3 |
 | FR-13 | Recorded segment integrity, upload, controlled playback | v0.3 |
-| FR-14 | Report collection/recording gaps and unsupported platforms | v0.3 |
+| FR-14 | Report **collection/transport gaps and unsupported source states from V0.1**, with **recording-specific permission/capture gaps added V0.3** | v0.1 / v0.3 |
 | FR-15 | Stable Windows and Linux packages, upgrade/rollback | v1.0 |
 | FR-16 | Dashboard authenticated WSS live device state notifications + REST resync | v0.1 |
 | FR-17 | Managed device asset inventory: CPU/RAM/disk/OS, multiple NICs with IP/MAC, authorized detail and freshness | v0.1 |
@@ -37,6 +37,7 @@ Small offices need a simple private-server tool to review endpoint availability,
 | FR-20 | Dedicated **Monitoring Center** (/monitoring): scoped device health, source coverage, queue/gaps, live WSS state | v0.1 |
 | FR-21 | Dedicated **Recording & Playback Center** (/recordings): catalog, access request, independent approval, gap-aware time-scoped playback and audit | v0.3 |
 | FR-22 | **Baseline** administrator login, role/group isolation and WSS subscription authorization | v0.1 |
+| FR-23 | Secure reviewed recording case/approval and retention expiry before showing stored media | v0.3 |
 
 **Product center reference:** [Monitoring Center](../development/monitoring-center.md), [Recording & Playback Center](../development/recording-playback-center.md), [Functional closure](functional-closure.md). **Monitoring Center means device/collector health, not live-screen streaming.** Recording remains a separate notified and OS-authorized V0.3 feature; backend video upload alone does not close the playback loop.
 

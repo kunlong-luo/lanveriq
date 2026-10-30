@@ -8,14 +8,14 @@
 | Build defaults | app release | queue cap, timeouts, schema compatibility | never include credentials |
 | Machine bootstrap | local installer | server URL, internal CA trust, enrollment token | token single-use; avoid command-line leakage |
 | Agent runtime config | authenticated admin / machine | heartbeat, upload retry, storage path, logging | schema-validated; safe ranges |
-| Organization collection policy | designated security admin | allowed event sources, app metadata, working hours, retention, recording approval | versioned, disclosed, audited and least-privilege |
+| Organization collection policy | designated security admin | inventory field allowlist (including optional MAC/IP), allowed event sources, app metadata, working hours, retention, recording approval | versioned, disclosed, audited and least-privilege |
 | OS recording permission | interactive OS/user session | screen source, portal session grant | cannot be overridden by server policy |
 
 ## Proposed initial values (not production defaults)
 - Heartbeat interval: 30 seconds, adaptive retry on outage; stale >90 seconds; offline >300 seconds of **server-received** heartbeat absence.
 - Batch cap: 100 events or 512 KiB (whichever lower). HTTP retry bounded exponential backoff with jitter and maximum delay; avoid storms after server restart.
 - SQLite outbox: proposed max 1 GiB / 7 days with reserved gap metadata capacity. Warning thresholds at 70/90%, explicit degraded state at full.
-- Event source allowlist: minimal heartbeat + health in v0.1; selected OS audit and coarse app name/activity v0.2.
+- **V0.1 is not a real activity collector:** authenticated heartbeat, operational health and approved inventory use dedicated endpoints; synthetic test-only events exercise the bounded audit outbox. V0.2 adds **explicitly allowlisted** OS audit and coarse application-activity event sources. No real activity scope is enabled merely because test ingestion exists.
 - Recording: **disabled by default**; v0.3 separate approved policy with display of current capture state; audio off.
 - All values belong to one typed, documented schema with min/max and source of truth. Production values may change after pilot measurement.
 

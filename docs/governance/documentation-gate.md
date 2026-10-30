@@ -21,9 +21,11 @@
 - [x] WebSocket contract, role-scoped push security, reconnect/refetch and unit/manual acceptance written
 - [x] Mermaid context/component/sequence/ER/security diagrams and index written
 - [x] Test strategy, runbooks, roadmap and issue-sized backlog written
+- [x] Baseline V0.1 access controls and separate later recording review-case authorization reconciled in PRD, API, tasks and drawings
 - [ ] Maintainer explicitly reviews and accepts D0 technical baseline
 - [ ] Validate the supplied Pop!_OS 24.04 LTS/KDE KWin pilot environment (`XDG_SESSION_TYPE` still unknown) and finalize certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
+- [ ] Approve V0.1 baseline administrator role/group permission checks and bind uploaded device inventory to its credential before coding
 - [ ] Approve initial network-address/MAC collection scope, data retention, disclosure and Linux/Windows field-capability tests; inventory is only designed, not verified on endpoints
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
 - [x] Re-audited all **83 Markdown files** for file-relative links against the current repository tree on 2026-10-30; no missing file targets were found. Folder links such as `assets/` require directory-aware checking. **20 Mermaid pages and 8 SVG concept assets exist**. This verifies path existence, **not** browser/diagram rendering, all anchors or actual system operation.
