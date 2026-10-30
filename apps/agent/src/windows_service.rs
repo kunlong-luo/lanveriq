@@ -34,7 +34,10 @@ fn service_main(_arguments: Vec<OsString>) {
 }
 
 fn status(state: ServiceState, error: u32) -> ServiceStatus {
-    let pending = matches!(state, ServiceState::StartPending | ServiceState::StopPending);
+    let pending = matches!(
+        state,
+        ServiceState::StartPending | ServiceState::StopPending
+    );
     ServiceStatus {
         service_type: ServiceType::OWN_PROCESS,
         current_state: state,
@@ -71,7 +74,9 @@ fn run_service() -> Result<()> {
     let handle = service_control_handler::register(SERVICE_NAME, handler)?;
     handle.set_service_status(status(ServiceState::StartPending, 0))?;
 
-    let config = CONFIG_PATH.get().and_then(|path| AgentConfig::load(path).ok());
+    let config = CONFIG_PATH
+        .get()
+        .and_then(|path| AgentConfig::load(path).ok());
     let Some(config) = config else {
         handle.set_service_status(status(ServiceState::Stopped, 1))?;
         return Ok(());
