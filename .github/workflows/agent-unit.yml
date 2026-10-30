@@ -21,16 +21,21 @@ permissions:
 
 jobs:
   agent-unit:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy
-      - name: Generate initial lockfile if absent; then use locked dependencies
+      - name: Resolve Windows SCM dependency for review and lockfile update
+        shell: bash
         run: |
-          if [ ! -f Cargo.lock ]; then cargo +1.94.0 generate-lockfile; fi
+          cargo +1.94.0 generate-lockfile
           echo 'LANVERIQ_LOCK_BEGIN'
           cat Cargo.lock
           echo 'LANVERIQ_LOCK_END'
@@ -41,6 +46,7 @@ jobs:
       - name: Clippy static checks
         run: cargo +1.94.0 clippy --workspace --all-targets --locked -- -D warnings
       - name: Preserve generated lockfile for reviewed commit
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
           name: agent-cargo-lockfile
