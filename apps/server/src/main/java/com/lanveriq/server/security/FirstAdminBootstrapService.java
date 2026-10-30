@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
  * credentials are provided. The caller owns and wipes its password char[].
  */
 @Service
-public final class FirstAdminBootstrapService {
+public class FirstAdminBootstrapService {
 
     private final FirstAdminBootstrapRepository repository;
     private final PasswordEncoder encoder;
