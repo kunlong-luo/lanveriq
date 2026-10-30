@@ -35,10 +35,8 @@ mod tests {
 
     #[tokio::test]
     async fn cancellation_wins_over_immediate_tick() {
-        let config = AgentConfig::parse(
-            "schema_version = 1\n[runtime]\ncycle_seconds = 10\n",
-        )
-        .unwrap();
+        let config =
+            AgentConfig::parse("schema_version = 1\n[runtime]\ncycle_seconds = 10\n").unwrap();
         let finished = tokio::time::timeout(
             Duration::from_secs(1),
             run_until_shutdown(&config, async {}),
@@ -49,10 +47,8 @@ mod tests {
 
     #[tokio::test]
     async fn cancels_without_waiting_for_next_long_tick() {
-        let config = AgentConfig::parse(
-            "schema_version = 1\n[runtime]\ncycle_seconds = 300\n",
-        )
-        .unwrap();
+        let config =
+            AgentConfig::parse("schema_version = 1\n[runtime]\ncycle_seconds = 300\n").unwrap();
         let (sender, receiver) = tokio::sync::oneshot::channel::<()>();
         let future = run_until_shutdown(&config, async {
             let _ = receiver.await;
