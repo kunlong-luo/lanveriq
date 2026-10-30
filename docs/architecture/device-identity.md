@@ -23,7 +23,7 @@ PostgreSQL 18's built-in `uuidv7()` is the authoritative generator for `devices.
 ## Identity lifecycle
 1. Authorized installer verifies TLS server certificate and accepted notice; Agent generates host-protected asymmetric key.
 2. Server atomically consumes a one-use enrollment token plus validated CSR, inserts `devices.id = uuidv7()` and records group/policy in `pending_certificate`. No credential is active simply because a token was consumed.
-3. The approved operator signs the CSR using the dedicated client CA and registers a fingerprint; Agent stores returned `device_id` in SQLite and protects its private key outside SQLite. First successful verified mTLS proof activates the device; both active credential and matching device ID are required for uploads.
+3. The approved operator signs the CSR using the dedicated client CA and registers a fingerprint; Agent stores returned `device_id` in SQLite and protects its private key outside SQLite. First successful verified mTLS request to the **dedicated activation endpoint** activates the device; both active credential and matching device ID are required for uploads.
 4. OS reboot, agent service restart, IP/DHCP/MAC change, hostname rename and **ordinary version upgrades** keep the same device identity.
 5. Key rotation is authorized and audited under the **same device_id** only when the existing identity can be proved/recovered by the defined process.
 6. Loss of local key or local SQLite identity is treated as a **new enrollment**, creating a new UUIDv7. The old identity is revoked/retired. An administrator may link the old identity via `replaces_device_id` after checking the asset; never silently stitch events or reuse prior `device_sequence` numbers.
