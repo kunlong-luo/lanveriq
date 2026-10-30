@@ -12,7 +12,7 @@
 - `recording_manifests` (v0.3): session_id, segment_id, local_path, sha256, size, state, last_attempt_at. Paths must be confined to the configured media directory.
 - Database migrations: SQLx-managed `_sqlx_migrations` metadata; no bespoke migration runner.
 
-Never store plaintext enrollment token, device private key, password, keyboard data, clipboard data or the actual video as SQLite BLOBs. **V0.1 source collection is synthetic/test-only** beyond disclosed inventory and operational device health; real app/audit collectors start only after V0.2 policy review.
+Never store plaintext enrollment token, device private key, password, keyboard data, clipboard data or the actual video as SQLite BLOBs. **V0.1 has no real application/process/audit collectors**: scoped inventory and heartbeat are operational, `agent_transport/collection_gap` is the only proposed production **operational gap event** when a gap can be safely persisted, and `synthetic_test/protocol_fixture` is only permitted in a controlled test profile. Real app/audit collectors require V0.2 policy review. A persistent `device_id`/private-key pair must survive an ordinary Agent restart; lost identity requires re-enrollment.
 
 ## Write and upload path
 1. Adapter observes a scoped event and validates/redacts fields.
