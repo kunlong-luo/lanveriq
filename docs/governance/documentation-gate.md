@@ -21,7 +21,7 @@
 - [ ] Finalize first target Linux environment and certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
-- [ ] Recheck all new and changed Markdown links; the previous baseline was verified
+- [x] Validate internal Markdown file links against all 46 current repository Markdown files on main (2026-10-30); no missing local file targets found. External links and heading anchors were not exhaustively checked.
 
 ## Start-code rule
 **Only after maintainer approval**, begin v0.1 implementation on main, no feature branch or PR necessary. Unit-only CI may be added alongside real source and tests; avoid placeholder passing jobs. Do not begin recording before its separate consent/OS authorization gate.
