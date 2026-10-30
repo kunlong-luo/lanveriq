@@ -23,7 +23,9 @@
 - [ ] Finalize first target Linux environment and certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
-- [x] Internal Markdown file-link checks completed incrementally across the current 68-document main tree; no missing local targets found. All 16 Mermaid files contain one correctly bounded Mermaid code fence. **Not yet verified:** visual Mermaid rendering, external URLs, heading anchors, real OS/browser operation.
+- [x] Earlier 68-document Markdown-link check completed; current visual-gallery update checked changed Markdown/image references against repository paths (73 Markdown files + 8 SVG assets); all inspected local targets exist. All 16 Mermaid drawings remain in the repository.
+- [x] Eight coordinated 16:9 SVG concept images and gallery, inventory, style guide and scope/terminology matrix added; all images carry a design-stage label and use no actual employee data.
+- [ ] Manually inspect all SVGs and Mermaid diagrams in GitHub/browser at full and reduced sizes, including Chinese font fallback; automated metadata/link checks do not prove visual rendering correctness. External URLs and heading anchors have not been exhaustively checked.
 
 ## Start-code rule
 **Only after maintainer approval**, begin v0.1 implementation on main, no feature branch or PR necessary. Unit-only CI may be added alongside real source and tests; avoid placeholder passing jobs. Do not begin recording before its separate consent/OS authorization gate.
