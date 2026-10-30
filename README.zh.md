@@ -4,7 +4,7 @@
 
 **局域网内、自托管的企业终端活动与安全审计平台。**
 
-> **D0 技术基线已批准，V0.1 后端工程 SRV-01 已开始提交代码。** 已加入 [Spring Boot/Gradle 服务端基础工程](apps/server/README.md)及仅运行单元测试的 CI；尚未完成设备配对、Agent、管理后台或安全联调，也未验证 PostgreSQL 18 迁移。**尚未批准采集真实员工数据、生产部署、V0.2 审计或 V0.3 录像。**
+> **D0 技术基线已批准，V0.1 后端工程 SRV-01 已开始提交代码。** 已加入 [Spring Boot/Gradle 服务端基础工程](apps/server/README.md)及仅运行单元测试的 CI；尚未完成设备配对、Agent 数据采集/持久化、管理后台或安全联调；已有 [Rust Agent 空闲服务生命周期代码](apps/agent/README.md)，但不执行采集或上传，也未验证 PostgreSQL 18 迁移。**尚未批准采集真实员工数据、生产部署、V0.2 审计或 V0.3 录像。**
 
 ![Lanveriq 系统总览彩图（设计概念）](docs/visuals/assets/01-overview.svg)
 

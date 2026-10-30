@@ -1,6 +1,6 @@
 # Rust Agent — ecosystem-first, maintainable library baseline
 
-**Status: design selection 2026-10-30, not compiled or verified on Windows/Pop!_OS.** This replaces the original `rusqlite`-plus-handwritten-blocking-worker implementation recommendation with **SQLx 0.9** for async SQLite. It does **not** change SQLite/WAL, transaction/inventory/ACK semantics, device identity or the privacy scope. See [ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md).
+**Status: D0 design selection plus AGT-01 Rust lifecycle source; OS service smoke NOT TESTED.** This replaces the original `rusqlite`-plus-handwritten-blocking-worker implementation recommendation with **SQLx 0.9** for async SQLite. It does **not** change SQLite/WAL, transaction/inventory/ACK semantics, device identity or the privacy scope. See [ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md).
 
 ## Reuse tested crates instead of inventing infrastructure
 
@@ -22,6 +22,10 @@
 | Video codec | maintained FFmpeg integration at V0.3, audited licensing | V0.3 | custom H.264 encoder/container/segmenter |
 
 **Only install what a implemented feature needs.** One stable crate version and its transitive dependencies are pinned in `Cargo.lock` for the final Agent binary. Avoid adding `reqwest` and another HTTP client, multiple logging frameworks, or parallel ORMs.
+
+## AGT-01 implemented scope (no collection)
+
+[Agent lifecycle source](../../apps/agent/README.md) uses pinned Rust 1.94.0 and a committed `Cargo.lock`: Tokio 1.54.1, Serde/TOML, Clap, tracing and Windows `windows-service` 0.8.1. The runtime is cancellable, Linux reacts to SIGTERM, and Windows supports the SCM Stop/Running/Stopped lifecycle through the maintained crate. Configuration has no secrets, network addresses, collection options or implicit defaults. Both Windows and Linux service smoke remain **NOT TESTED ON ACTUAL DEVICES**. SQLx, reqwest/rustls, uuid, os_info, sysinfo and SQLite are **not yet installed**; they belong to feature slices that actually use them. [AGT-01 test plan](../testing/agent-lifecycle-manual.md).
 
 ## SQLx SQLite selection and safety constraints
 

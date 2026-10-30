@@ -1,6 +1,6 @@
 # Monorepo layout and engineering conventions
 
-**Implementation has started:** `apps/server/` and the real unit-only `.github/workflows/server-unit.yml` exist. The remaining Agent/dashboard/desktop and deployment layout below is **planned**, not pre-created with empty packages.
+**Implementation has started:** `apps/server/` and `apps/agent/` contain real server and Rust Agent lifecycle code plus distinct unit-only CI workflows. Dashboard, desktop, database outbox and other packages below are **planned**, not pre-created with empty packages.
 
 ~~~text
 lanveriq/

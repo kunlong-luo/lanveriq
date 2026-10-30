@@ -2,7 +2,7 @@
 
 **LAN-first, self-hosted endpoint activity and audit platform for disclosed, authorized workplace devices.**
 
-> **Status: V0.1 development has begun.** The [SRV-01 Spring Boot/Gradle server foundation](apps/server/README.md) and unit-only CI are committed, but enrollment, Agent, dashboard and recording are **not implemented**. The PostgreSQL 18 migration and live PKI/OS integration are not verified. This is **not a deployable monitoring product**; no real employee-data processing is authorized.
+> **Status: V0.1 development has begun.** The [SRV-01 Spring Boot/Gradle server foundation](apps/server/README.md) and unit-only CI are committed, but real enrollment, Agent telemetry/SQLite, dashboard and recording are **not implemented**. An [idle Rust Agent lifecycle source](apps/agent/README.md) now exists; it has no collection or uploads. The PostgreSQL 18 migration and live PKI/OS integration are not verified. This is **not a deployable monitoring product**; no real employee-data processing is authorized.
 
 ![Lanveriq overall architecture concept](docs/visuals/assets/01-overview.svg)
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-31 — AGT-01 Rust idle lifecycle and OS service adapters
+- Created Rust 1.94 workspace, committed Cargo.lock, Tokio 1.54.1 idle lifecycle with cooperative stop, strict Serde/TOML versioned config, Clap CLI, tracing, bounded 64 KiB config and negative tests. No network, enrollment, inventory, SQLite or screen capture.
+- Added experimental Linux systemd sandboxed unit with SIGTERM handling, Windows SCM dispatcher/Stop status through the maintained `windows-service` 0.8.1 crate and separate Linux/Windows unit build workflow.
+- Actual real Pop!_OS/systemd and Windows 11 SCM service install/stop, credential custody, OS privileges, linked SQLite version, endpoint TLS and any monitoring are **NOT TESTED/IMPLEMENTED**. [Manual AGT-01 acceptance](docs/testing/agent-lifecycle-manual.md).
+
+
 ## 2026-10-31 — AUTH-01 login abuse limits, revocable sessions and authentication audit
 - Added Bucket4j 8.21.0 + Caffeine 3.3.1 with bounded local rate-limit state for canonical login and transport peer, a JDK two-permit concurrent Argon2id budget, plus request-size guard and generic 429 responses; never trust user-supplied forwarded IP headers.
 - Added Flyway V5 `users.session_version` and separate append-only `admin_auth_log`; browser auth session checks live disabled/version state, internal group-scoped owner-only revocation transaction increments the epoch and audits allowed action. Failed/unknown login audit stores no submitted user identifier.
