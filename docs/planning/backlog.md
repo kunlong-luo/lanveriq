@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | DOC-01 | Approve PRD, collection policy and Linux matrix | P0 | none | documented owner review |
 | ARCH-01 | Validate canonical event_type schema, atomic batch, re-enrollment and pairing | P0 | DOC-01 | [delivery contract](../architecture/event-delivery.md) and negative cases accepted |
-| SRV-01 | Bootstrap **Gradle 9.8.2** Groovy + **Spring Boot 4.1.2/Java 25** + Spring JDBC/PostgreSQL 18 + Flyway | P0 | D0 | official Gradle Wrapper, local dependency resolution/migration, real JUnit 6 unit test |
+| SRV-01 | Bootstrap **Gradle 9.8.2** Groovy + **Spring Boot 4.1.2/Java 25** + JPA/Hibernate/PostgreSQL 18 + Flyway | P0 | D0 | official Gradle Wrapper, local dependency resolution/migration, real JUnit 6 unit test |
 | SRV-02 | Device enrollment and revocation | P0 | SRV-01 | unit tests token replay/expiry |
 | ID-01 | PostgreSQL uuidv7() device key and bound credential; safe re-enrollment | P0 | SRV-02 | identity collision/wrong-key/clone/lost identity unit tests |
 | AUTH-01 | Baseline secure admin session, role/group-scoped REST + WSS access | P0 | SRV-01 | role/group/Origin/CSRF and device-credential negative tests |

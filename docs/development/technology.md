@@ -9,7 +9,7 @@
 | Endpoint embedded DB | rusqlite + bundled SQLite WAL | ordered durable outbox with no external DB |
 | Optional desktop | Tauri 2 + React | system-tray/status/settings and OS permission UX |
 | API backend | **Java 25 LTS + Spring Boot 4.1.2 + Gradle 9.8.2 Wrapper** | Groovy DSL `build.gradle`, single deployable modular monolith; no Maven build |
-| Access/data | Spring Security **7.1.2** + **Spring JDBC/JdbcClient** + Flyway **12.4.0** | BOM-managed libraries, explicit SQL/transactions/unique event dedup; no JPA/Redis/Kafka by default |
+| Access/data | Spring Security **7.1.2** + **Spring Data JPA / Hibernate ORM** + Flyway **12.4.0** | JPA repositories for CRUD; JPA native SQL + DB transactions/constraints for event dedup; no separate JDBC client/Redis/Kafka |
 | Server DB | PostgreSQL 18.x | concurrent multi-user indexed audit and transactional idempotency |
 | Management UI | React 19 + Vite 8 + TypeScript | simple static LAN UI, no SSR requirement |
 | JS workspace | pnpm Workspace | package manager, **not** a framework; one lockfile for dashboard, optional Tauri UI and reusable packages |
@@ -23,7 +23,7 @@
 | v0.1 admin live status | Spring Boot native WebSocket (WSS) + TanStack Query | scoped after-commit notification; refetch authenticated REST on connect/reconnect; see [ADR-0005](../architecture/adrs/0005-rest-plus-websocket.md) |
 | Tests | cargo test, **JUnit 6.0.3 + Mockito 5.23.0 + JaCoCo 0.8.16**, Vitest | Java versions from Boot BOM; unit-only early CI |
 
-**Backend dependency policy:** `java`, `jacoco`, Spring Boot and dependency-management Gradle plugins; webmvc, websocket, security, validation, JDBC, Flyway, PostgreSQL, Actuator, springdoc OpenAPI **3.2.0** and unit-test dependencies only. The user-supplied IoT example's Redis, Kafka, InfluxDB, geo libraries, JPA/Hibernate and OTel agent are **not automatically included**. See [fully justified choices](backend-stack.md).
+**Backend dependency policy:** `java`, `jacoco`, Spring Boot and dependency-management Gradle plugins; webmvc, websocket, security, validation, **data-jpa (Hibernate)**, Flyway, PostgreSQL JDBC driver, Actuator, springdoc OpenAPI **3.2.0** and unit-test dependencies only. The user-supplied IoT example's Redis, Kafka, InfluxDB, geo libraries and OTel agent are **not automatically included**. See [fully justified choices](backend-stack.md).
 
 The Rust Agent deliberately stays **HTTPS REST** for durable delivery and media segments; the browser alone maintains a WSS session in v0.1. See [WS protocol](../architecture/websocket-contract.md) and [ADR-0006](../architecture/adrs/0006-agent-rest-dashboard-ws.md).
 

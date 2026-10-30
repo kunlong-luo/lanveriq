@@ -16,7 +16,7 @@
 | PostgreSQL | **18.x** | Existing server DB major; pin **tested patch image/digest** on deployment |
 | Flyway | **12.4.0** | Boot BOM; add `flyway-database-postgresql` |
 | PostgreSQL JDBC driver | **42.7.14** | Boot BOM |
-| HikariCP | **7.0.2** | Boot BOM via JDBC starter |
+| HikariCP | **7.0.2** | Boot BOM, transitively included by Spring Data JPA starter |
 | Micrometer | **1.17.2** | Boot BOM via Actuator |
 | JUnit Jupiter | **6.0.3** | Boot BOM via test starter; older JUnit 5 reference superseded |
 | Mockito | **5.23.0** | Boot BOM via test starter |
@@ -43,7 +43,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | `spring-boot-starter-security` | Admin login/session, CSRF, group/scope authorization; device identity mapping |
 | `spring-boot-starter-websocket` | Native WSS push to authenticated dashboard; metadata only |
 | `spring-boot-starter-validation` | DTO/Bean Validation and input constraints |
-| `spring-boot-starter-jdbc` | Spring `JdbcClient`, HikariCP, explicit SQL/transactions |
+| `spring-boot-starter-data-jpa` | **Only direct application persistence starter**: Spring Data repositories + Hibernate ORM + HikariCP (transitive) |
 | `spring-boot-starter-flyway` | Versioned PostgreSQL migrations |
 | `org.flywaydb:flyway-database-postgresql` | PostgreSQL support in modern Flyway |
 | `org.postgresql:postgresql` (runtime) | PG JDBC |
@@ -53,7 +53,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | `org.springframework.security:spring-security-test` (test) | Targeted authorization unit/slice tests |
 | `org.junit.platform:junit-platform-launcher` (test runtime) | Gradle JUnit Platform launcher (BOM) |
 
-**Why plain Spring JDBC instead of JPA?** Lanveriq needs strongly controlled PostgreSQL transactions and idempotent bulk event ingest, inventory-revision compare-and-set, time/scope-filtered queries and no accidental implicit ORM N+1. Pick explicit SQL + `@Transactional` + parameter binding first; evaluate JPA/jOOQ later if domain queries actually justify them.
+**Persistence decision (maintainer): JPA/Hibernate only for application database access.** Spring Data `JpaRepository` handles bounded ordinary CRUD and pagination. For specialized PostgreSQL operations (all-or-nothing event batches, `ON CONFLICT` idempotency, inventory revision compare-and-set, scoped audit queries), use **Spring Data JPA `@Query(nativeQuery=true)` / `@NativeQuery` or JPA `EntityManager.createNativeQuery` within `@Transactional`**, not a parallel `JdbcClient` or `JdbcTemplate` repository layer. Preserve SQL constraints, bound parameters, transactional rollback, explicit flush/clear behavior when mixing ORM writes and native SQL, and profile Hibernate batching/N+1 before tuning. Avoid entity graphs and eager loading for large event histories. Flyway owns every schema migration; Hibernate uses `ddl-auto=validate` and `open-in-view=false`. The PostgreSQL JDBC driver, connection pool and transitive `spring-jdbc` **still exist** under JPA: removing direct JDBC access does not remove the JDBC transport.
 
 ## Review of the supplied example dependencies
 
@@ -62,7 +62,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | `jacoco` | **Include**, tool 0.8.16; produce XML + HTML | Measurable Java unit-test coverage, no false pass |
 | Caffeine + Cache starter | **Defer** | 1–10 devices and one app instance; prefer bounded simple in-process logic first; cache role decisions only with correct invalidation |
 | OAuth2 Resource Server | **Defer** | Admin uses secured same-origin session; Agent uses separately approved device mTLS; no JWT API gateway in V0.1 |
-| Data JPA/Hibernate | **Do not add for V0.1** | Explicit JDBC SQL + Flyway is clearer for event ingest and unique keys |
+| Spring Data JPA / Hibernate | **Include as the single V0.1 ORM/persistence API** | Ordinary entity CRUD + targeted native PostgreSQL SQL for events/inventory within JPA transaction boundary |
 | Redis / Kafka | **Exclude** | No distributed queue/cache; SQLite already provides Agent outbox and WSS is in-process |
 | InfluxDB 3 | **Exclude** | PostgreSQL bounded device metrics suffice for 1–10 devices |
 | Hibernate Spatial / JTS | **Exclude** | No geospatial tracking or location analytics requirement |
@@ -76,7 +76,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | Testcontainers PG/Kafka | **No early CI** | Tests needing containers are *integration* tests, while early CI executes **only unit tests**; add PG integration tests later, no Kafka |
 | ArchUnit | **Optional later** | Useful for package boundary enforcement once multiple Java modules grow |
 
-No H2 emulation of PostgreSQL 18 behavior for claims about actual transactions/UUIDv7; DB migration correctness requires a real PostgreSQL test environment outside the early unit-only CI.
+**Special caution:** `devices.id DEFAULT uuidv7()` is server/database-generated; verify the JPA/Hibernate identifier mapping and insertion/RETURNING behavior against a real PostgreSQL 18 instance before relying on automatic ID generation. Ensure JPA unique constraints and Flyway schema do not drift. No H2 emulation of PostgreSQL 18 behavior for claims about actual transactions/UUIDv7; DB migration correctness requires a real PostgreSQL test environment outside the early unit-only CI.
 
 ## Operational/security baseline
 

@@ -1,6 +1,6 @@
 # Gradle 9.8.2 + Spring Boot 4.1.2 — Groovy DSL reference
 
-**Reference only.** This is **NOT** an installed Gradle project, and no executable `build.gradle` / wrapper has been committed. Copy into `apps/server/build.gradle` **after D0 sign-off**, generate the official wrapper and test actual dependency/plugin compatibility. This follows the maintainer's example style but excludes unrelated Kafka/Redis/InfluxDB/JPA/geo/OTel dependencies. Canonical version policy: [backend-stack.md](backend-stack.md).
+**Reference only.** This is **NOT** an installed Gradle project, and no executable `build.gradle` / wrapper has been committed. Copy into `apps/server/build.gradle` **after D0 sign-off**, generate the official wrapper and test actual dependency/plugin compatibility. This follows the maintainer's example style but excludes unrelated Kafka/Redis/InfluxDB/geo/OTel dependencies; **Spring Data JPA/Hibernate is selected**. Canonical version policy: [backend-stack.md](backend-stack.md).
 
 ## Proposed `apps/server/build.gradle`
 
@@ -34,8 +34,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    // PostgreSQL: explicit SQL, connection pool and migrations
-    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    // PostgreSQL: JPA/Hibernate repositories, connection pool and migrations
+    // Includes Spring JDBC + HikariCP transitively; no direct JDBC starter.
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-database-postgresql'
     runtimeOnly 'org.postgresql:postgresql'
@@ -70,6 +71,8 @@ tasks.named('jacocoTestReport') {
 // No unconditional 83% coverage gate during the first real unit-test phase.
 // Review measured coverage and add a meaningful threshold after the baseline exists.
 ~~~
+
+**JPA runtime defaults (application configuration, not build.gradle):** use `spring.jpa.hibernate.ddl-auto=validate`, `spring.jpa.open-in-view=false`. Hibernate does not automatically implement PostgreSQL idempotency: event batches and revision-aware inventory updates must use versioned, parameter-bound native SQL inside JPA transactions and verified unique constraints. Validate DB-default UUIDv7 identity generation against real PostgreSQL 18.
 
 **Security is in application configuration, not a build-script toggle:** disable `springdoc.api-docs.enabled` in deployment/production and restrict non-health Actuator endpoints. Do not expose Spring management ports on the LAN. Do not enable `spring-boot-starter-cache` or blanket `@Cacheable` on identity/device-group authorization without correct revocation/invalidation.
 
@@ -106,4 +109,4 @@ The early CI Java job should run **only `./gradlew test`** from `apps/server`, w
 
 ## Explicitly excluded from the reference
 
-`spring-boot-starter-data-jpa`, `spring-boot-starter-data-redis`, `spring-boot-starter-kafka`, InfluxDB, JTS/Hibernate Spatial, Lombok, MapStruct, Zen Engine, OpenTelemetry agent, Testcontainers Kafka/PostgreSQL and unrelated log encoders are **not part of V0.1**. Review additions by specific feature/benchmark, rather than cloning an IoT application's entire build.
+`spring-boot-starter-jdbc` (direct), `spring-boot-starter-data-redis`, `spring-boot-starter-kafka`, InfluxDB, JTS/Hibernate Spatial, Lombok, MapStruct, Zen Engine, OpenTelemetry agent, Testcontainers Kafka/PostgreSQL and unrelated log encoders are **not part of V0.1**. Review additions by specific feature/benchmark, rather than cloning an IoT application's entire build.
