@@ -6,7 +6,8 @@ Legend: V=view, M=manage, E=export, C=case-required view, —=deny. An authentic
 
 | Resource / action | Owner/security admin | IT operator | Security auditor | Recording reviewer | Device user |
 |---|---|---|---|---|---|
-| Device inventory/health (assigned group) | V | V | V | V | own visible status |
+| Device health and **non-sensitive hardware summary** (assigned group) | V | V | V within scope | V within scope | own local status |
+| Full network inventory (MAC, private IP, interface list, asset tag) | V | V within assigned device groups | — unless separately granted | — | only policy-approved own local view |
 | Create/revoke pairing and device keys | M | M if delegated | — | — | — |
 | Inspect detailed audit/activity | V with logged reason | — by default | V with scope/reason | — | — |
 | Change collection policy | M + organizational approval | — | — | — | — |
@@ -17,6 +18,9 @@ Legend: V=view, M=manage, E=export, C=case-required view, —=deny. An authentic
 | Export event evidence | E with recorded purpose | — | E if separately authorized | — | — |
 | Read admin access audit | V | — | V if independently authorized | — | — |
 | Delete/retention policy | M with audit | — | — | — | — |
+
+## V0.1 baseline authorization
+**Before any V0.1 dashboard release**, authenticate administrator sessions and enforce assigned device-group scope on REST inventories, monitoring counts, device details and WSS subscriptions. Role-scope checks cannot be deferred to the V0.2 detailed-audit phase. Private IP/MAC details require an additional `internal_operational` permission rather than mere heartbeat/overview visibility. Do not send raw NIC/IP/MAC through WSS. See [device inventory](../architecture/device-inventory.md).
 
 ## Authorization predicate
 For sensitive actions: authenticate principal -> check role permission -> check active device group scope -> check data category -> check time range -> check policy/approval/reason -> audit decision -> return minimal data. An owner cannot silently bypass an organizational recording approval requirement.

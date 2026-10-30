@@ -10,7 +10,7 @@ Start with a single administrator created via a secure first-run bootstrap (no h
 - Recording reviewer: permitted approved time windows and case-specific video access.
 - Device user: local status/policy view without admin API access.
 
-Enforce **role + device group + data category + time window** at the server API, not by hiding links in React. Log reads/denials/exports, especially recording. No superuser bypass outside documented emergency process.
+Enforce **role + device group + data category + time window** at the server API, not by hiding links in React. **V0.1 already requires** admin login and group-scoped inventory/monitoring/WSS reads; V0.2 extends audit event and export permissions. IP/MAC/asset-tag details are sensitive operational data, not public dashboard badges. Log reads/denials/exports, especially recording. No superuser bypass outside documented emergency process.
 
 ## Enrollment
 1. Authenticated admin creates expiring single-use token hashed in PostgreSQL; chooses device group and published policy.

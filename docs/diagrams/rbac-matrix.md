@@ -29,7 +29,8 @@ flowchart TB
 
 | Action | Security admin | IT operator | Auditor | Recording reviewer |
 |---|---|---|---|---|
-| View assigned device health | Allowed | Allowed | Allowed | Allowed |
+| View assigned device health (non-sensitive) | Allowed | Allowed | Scoped | Scoped |
+| View full NIC/MAC/IP inventory | Allowed | Assigned scope only | Additional explicit grant | Denied |
 | Pair/revoke device | Allowed | If delegated | Denied | Denied |
 | Read detailed activity/audit | Logged scoped access | Denied by default | Scoped reason required | Denied |
 | Change collection policy | With organizational approval | Denied | Denied | Denied |
