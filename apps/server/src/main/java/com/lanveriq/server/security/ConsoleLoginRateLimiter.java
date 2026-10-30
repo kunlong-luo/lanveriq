@@ -21,10 +21,11 @@ final class ConsoleLoginRateLimiter {
             .maximumSize(2_000).expireAfterAccess(WINDOW).build();
 
     boolean allow(String suppliedLogin, String transportPeer) {
-        // Unknown/bad names also consume a per-account budget. No username
-        // gets written to an audit row or response body.
+        // Match AdminIdentityUserDetailsService exactly: lowercase only, never
+        // strip whitespace. An invalid padded login must not drain the
+        // quota of its corresponding valid account. No names are audited.
         String login = suppliedLogin == null ? "" :
-                suppliedLogin.strip().toLowerCase(Locale.ROOT);
+                suppliedLogin.toLowerCase(Locale.ROOT);
         if (login.length() > 190) {
             login = login.substring(0, 190);
         }
