@@ -6,6 +6,8 @@
 |---|---|---|
 | Agent overhead | idle <150 MiB RAM and <2% of one CPU core, excludes video/GUI | 60-min manual benchmark |
 | Heartbeat | every 30 s; stale after 90 s; offline after 300 s | unit clock tests |
+| Dashboard live status | WSS notification target <2 s after committed transition on healthy LAN; REST resync after reconnect | UI/Java unit tests and manual LAN timing; target not yet benchmarked |
+| WS resource bounds | bounded 64 KiB frames, <=5 connections per admin, bounded outbound queue (draft) | unit floods/slow-client logic; manual connection checks |
 | LAN event latency | p95 <15 s when connected | targeted manual sampling |
 | Transport durability | no silent loss of committed events through restart | unit fault/replay + manual reboot |
 | Endpoint event storage | bounded by configurable bytes and age; report gaps | unit quota tests |
@@ -18,4 +20,4 @@
 
 **Sizing example:** at an average 2 Mbit/s, uninterrupted 24-h recording creates about 21.6 GB per device/day. Ten devices for fourteen days need roughly 3.0 TB raw, excluding replicas, logs and capacity headroom. Actual capacity depends on frame rate, encoder, actual hours and screen content.
 
-**Status:** OS session recording reliability, Wayland support and specific Linux distributions are unverified; the MVP must expose capability flags instead of promising universal coverage.
+**Status:** All latency/performance values are **targets, not measurements**. OS session recording reliability, Wayland support and specific Linux distributions are unverified; the MVP must expose capability flags instead of promising universal coverage.

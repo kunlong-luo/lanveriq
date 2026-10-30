@@ -29,7 +29,8 @@ Overview -> Devices -> Device detail (Health / Activity / Security / Gaps / Reco
 - Do not insert private screen previews into general overview tiles by default. The video area is restricted and requires case approval.
 
 ## Early performance rules
-One bounded paginated device list; 10–30 s polling while visible, throttle when hidden; no WebSockets for v0.1. No SSR, CDN, external analytics or PWA background-sync dependency.
+One bounded paginated REST device list and **one same-origin WSS connection** after authenticated login. Invalidate/refetch TanStack Query on scope-filtered status notifications, coalesce bursts and **always refetch on WS reconnect**. Show a clear reconnecting/degraded indicator; optional slow fallback polling may be added only for resilience, not as the primary v0.1 transport. No SSR, CDN, external analytics or PWA background-sync dependency. See [WS contract](../architecture/websocket-contract.md).
 
 ## UI unit-test targets
+WSS lifecycle: connect + initial REST snapshot, subscribe to authorized IDs, status notification invalidates query, reconnection triggers REST refetch, no live data shown from unauthorized subscription, session expiry indicates login required. Only unit tests are run in early CI.
 Online/stale/offline formatting; empty/unavailable states; scope-gated actions; query error/loading; no cross-device display leakage; warning before revoke; no playback affordance without a case grant.

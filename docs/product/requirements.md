@@ -30,6 +30,7 @@ Small offices need a simple private-server tool to review endpoint availability,
 | FR-13 | Recorded segment integrity, upload, controlled playback | v0.3 |
 | FR-14 | Report collection/recording gaps and unsupported platforms | v0.3 |
 | FR-15 | Stable Windows and Linux packages, upgrade/rollback | v1.0 |
+| FR-16 | Dashboard authenticated WSS live device state notifications + REST resync | v0.1 |
 
 ## Non-goals
 Covert monitoring, hidden installs, permission bypass, keylogging, password/clipboard/message collection, webcam/microphone, arbitrary remote-shell, AI/LLM, public SaaS, enterprise MDM and high-volume video analytics. Having a company-owned device does not eliminate privacy obligations.
@@ -41,6 +42,7 @@ Covert monitoring, hidden installs, permission bypass, keylogging, password/clip
 - Admin role restrictions protect device-specific queries, video, exports and policy changes.
 - No claims of perfect 24-hour visibility during suspend, logout, permissions denial, failures or offline time.
 - Early CI only runs unit tests; separate targeted manual security and recovery checks are mandatory before deployment.
+- Dashboard WSS push is scope-filtered and ephemeral; network reconnect must fetch canonical REST state, not invent events or silently retain stale status.
 
 ## Traceability
 Every FR maps to a milestone item and a unit/manual acceptance method. Unresolved decisions and risks are tracked in [open decisions](../governance/open-decisions.md). No product code until [docs gate](../governance/documentation-gate.md).

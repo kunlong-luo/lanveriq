@@ -12,7 +12,9 @@
 | AGT-02 | SQLite WAL single-writer outbox | P0 | AGT-01 | crash/retry/quota unit tests |
 | AGT-03 | HTTPS authenticated heartbeat and event batch | P0 | AGT-02, SRV-02 | unit test retries/dedup |
 | SRV-03 | Whole-batch PostgreSQL event ingestion + idempotent ack | P0 | SRV-02 | exact duplicate/conflict/rollback unit tests |
-| WEB-01 | Dashboard shell and device list | P0 | SRV-02 | UI unit tests |
+| WEB-01 | Dashboard shell and device list (authoritative REST snapshot) | P0 | SRV-02 | UI unit tests |
+| WS-01 | Authenticated Spring WSS upgrade, scoped topics, after-commit notifier | P0 | SRV-02, SRV-03 | WS-001 through WS-008 unit tests; manual MAN-WS-01 through 08 |
+| WEB-WS-01 | React WSS client with resubscribe/reconnect and REST refetch | P0 | WEB-01, WS-01 | duplicate/slow/reconnect unit tests and manual validation |
 | OPS-00 | Secure bootstrap, credential and manual LAN acceptance | P0 | SRV-01, AGT-03 | [MAN-001–013](../testing/manual-acceptance.md) evidence on synthetic endpoints |
 | AUD-01 | Windows scoped Event Log source | P1 | AGT-03 | mock unit + manual Windows test |
 | AUD-02 | Linux auditd/journal adapter | P1 | AGT-03 | mock unit + manual Linux test |

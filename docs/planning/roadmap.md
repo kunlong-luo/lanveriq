@@ -10,8 +10,8 @@ Deliver/review PRD, user roles, data fields, platform capabilities, component bo
 2. Rust agent skeleton, embedded SQLite store with migrations and single writer.
 3. Device identity, short-lived pairing, revocation, heartbeat and capability reporting.
 4. Durable event outbox, all-or-nothing bounded batch ingestion, immutable device sequence and per-sequence retry acknowledgments.
-5. Basic dashboard device list, device detail, last-seen and queue/error status via **scoped REST polling** (no WebSocket in v0.1; [ADR-0005](../architecture/adrs/0005-http-first.md)).
-**Exit:** actual Windows and Linux devices enroll using verified local CA trust, show heartbeat, survive server outage, replay once. Run [MAN-001 through MAN-013](../testing/manual-acceptance.md) as separate manual smoke checks; unit CI remains minimal.
+5. Basic dashboard device list, device detail, last-seen and queue/error status via **scoped REST + authenticated WSS live notifications**, with REST snapshot/resync on connection/reconnect; [ADR-0005](../architecture/adrs/0005-rest-plus-websocket.md).
+**Exit:** actual Windows and Linux devices enroll using verified local CA trust, show heartbeat, survive server outage, replay once; WSS pushes a scoped online/offline status change to the authenticated dashboard, which refetches REST after reconnect. Run [MAN-001 through MAN-013](../testing/manual-acceptance.md) as separate manual smoke checks; unit CI remains minimal.
 
 ## v0.2 — activity and audit
 Allowlisted Windows Event Log and Linux auditd adapters, supported application activity metadata, gap semantics, server timeline search and RBAC, event retention, administrator activity audit. Backend tests cover authorization, dedup, retention and schema constraints. **Exit:** a recorded event is searchable with correct source/device/time and unauthorized access is blocked in manual checks.
