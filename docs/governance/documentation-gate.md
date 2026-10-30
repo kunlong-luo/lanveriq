@@ -1,6 +1,8 @@
 # D0 — documentation-before-code gate
 
-**Status: WRITTEN / AWAITING MAINTAINER REVIEW.** Documentation completeness is distinct from implementation readiness and real-world deployment authorization.
+**Status: REVIEW PACKAGE PREPARED / D0 APPROVAL STILL PENDING.** Documentation completeness is distinct from implementation readiness and real-world deployment authorization.
+
+**Review this compact [D0 decision package](d0-decision-package-2026-10-30.md)** and its linked D-07 PKI, D-11/D-22 wire fixtures, D-17/18/20 privacy/RBAC and D-02 pilot proposal. All are **candidates, not a signed technical freeze**.
 
 ## Review checklist
 - [x] Product scope, non-goals and user personas written
@@ -28,8 +30,8 @@
 - [x] [Cross-document review of V0.1 scope, RBAC, REST, recording case flow and all drawings](documentation-review-2026-10-30.md) written; no runtime claims
 - [x] Baseline V0.1 access controls and separate later recording review-case authorization reconciled in PRD, API, tasks and drawings
 - [x] Split **pre-code design decisions** from **post-D0 implementation evidence**: SQLx/SQLite bundled WAL patch, actual single-connection transactions, generated Orval client compatibility and dependency redistribution/license verification cannot be claimed tested in this docs-only repository. See the post-D0 verification list below.
-- [ ] **D-07 BLOCKER:** maintainer/security review of Agent mTLS vs browser/pre-enrollment access, CA issuance, trusted proxy identity mapping, rotation/revocation and OS key storage (see [bootstrap](../architecture/enrollment-bootstrap.md))
-- [ ] **D-11/D-22 BLOCKER:** explicitly freeze V0.1 message/DTO examples, errors, privacy-scoped responses and API/Agent schema before starting code; Springdoc OpenAPI/Orval generated artifacts follow implementation, not fictitious pre-code tests
+- [ ] **D-07 BLOCKER:** sign off the [three-ingress + operator-mediated client-CA proposal](../architecture/enrollment-bootstrap.md) or record a reviewed alternative; choose actual hostnames, cert issuance/delivery, trusted proxy-to-Spring identity mapping, key custody, rotation and revocation. A proposed workflow is not proof of working PKI.
+- [ ] **D-11/D-22 BLOCKER:** maintainer approves the [candidate V0.1 DTO/source/error/role projection fixtures](../architecture/api-contract.md), event/gap semantics and inventory CAS, or requests changes. Springdoc OpenAPI/Orval artifacts follow implementation and are not falsely reported tested.
 - [ ] Maintainer explicitly reviews and accepts **the full D0 technical baseline**; choosing the Java build tool alone does not satisfy D0
 - [ ] Confirm the initial Pop!_OS 24.04 LTS/KDE KWin **pilot target and actual user-session `XDG_SESSION_TYPE`** (still unknown), plus the proposed certificate/bootstrap boundary before D0; real Agent/OS integration and capability tests occur after code is permitted.
 - [ ] Freeze **V0.1 synthetic protocol-fixture source names and policy fields** before V0.1 code. Real Windows/Linux application and audit collector source allowlists remain V0.2 approval requirements, not silently enabled in V0.1.
@@ -48,7 +50,7 @@
 - [ ] Run platform/auth/CA/revocation, WSS browser and backup/restore manual acceptance on representative Windows/Linux machines before any real-data pilot. Keep results NOT TESTED until evidence exists.
 
 ## Explicit D0 sign-off (intentionally unsigned)
-The maintainer must record **their approval decision, date, reviewed commit SHA, D-07 and D-11/D-22 decisions, V0.1 privacy/role boundaries and any approved exceptions** here and in [open decisions](open-decisions.md). Current decision: **PENDING — implementation code is NOT authorized.** A commit, a document review or a selected library cannot auto-approve this gate.
+The maintainer must record **their approval decision, date, reviewed commit SHA, D-07 and D-11/D-22 decisions, V0.1 privacy/role boundaries and any approved exceptions** here, in the [unsigned decision package](d0-decision-package-2026-10-30.md), and in [open decisions](open-decisions.md). Current decision: **PENDING — implementation code is NOT authorized.** A commit, a document review or a selected library cannot auto-approve this gate.
 
 ## Start-code rule
 **Only after maintainer approval**, begin v0.1 implementation on main, no feature branch or PR necessary. Unit-only CI may be added alongside real source and tests; avoid placeholder passing jobs. Do not begin recording before its separate consent/OS authorization gate.
