@@ -28,13 +28,15 @@
 - [x] [Cross-document review of V0.1 scope, RBAC, REST, recording case flow and all drawings](documentation-review-2026-10-30.md) written; no runtime claims
 - [x] Baseline V0.1 access controls and separate later recording review-case authorization reconciled in PRD, API, tasks and drawings
 - [ ] Verify **SQLx/SQLite bundled WAL patch**, single-connection transactions on Windows/Pop!_OS, Orval-generated client schema alignment and dependency licenses before sign-off.
+- [ ] **D-07 BLOCKER:** maintainer/security review of Agent mTLS vs browser/pre-enrollment access, CA issuance, trusted proxy identity mapping, rotation/revocation and OS key storage (see [bootstrap](../architecture/enrollment-bootstrap.md))
+- [ ] **D-11/D-22 BLOCKER:** explicitly freeze V0.1 message/DTO examples, errors, privacy-scoped responses and API/Agent schema before starting code; Springdoc OpenAPI/Orval generated artifacts follow implementation, not fictitious pre-code tests
 - [ ] Maintainer explicitly reviews and accepts **the full D0 technical baseline**; choosing the Java build tool alone does not satisfy D0
 - [ ] Validate the supplied Pop!_OS 24.04 LTS/KDE KWin pilot environment (`XDG_SESSION_TYPE` still unknown) and finalize certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
 - [ ] Approve V0.1 baseline administrator role/group permission checks and bind uploaded device inventory to its credential before coding
 - [ ] Approve initial network-address/MAC collection scope, data retention, disclosure and Linux/Windows field-capability tests; inventory is only designed, not verified on endpoints
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
-- [x] Re-audited all **83 Markdown files** for file-relative links against the current repository tree on 2026-10-30; no missing file targets were found. Folder links such as `assets/` require directory-aware checking. **20 Mermaid pages and 8 SVG concept assets exist**. This verifies path existence, **not** browser/diagram rendering, all anchors or actual system operation.
+- [x] Historical review inspected **83 Markdown files** at that time. **Final 2026-10-30 pre-report pass inspected 90 existing Markdown files / 446 local path links (none missing); 20 Mermaid pages and 8 SVGs passed structural-only checks.** See [final closure report](final-closure-review-2026-10-30.md). Folder links such as `assets/` require directory-aware checking. **20 Mermaid pages and 8 SVG concept assets exist**. This verifies path existence, **not** browser/diagram rendering, all anchors or actual system operation.
 - [x] Eight coordinated 16:9 SVG concept images and gallery, inventory, style guide and scope/terminology matrix added; all images carry a design-stage label and use no actual employee data.
 - [ ] Manually inspect all SVGs and Mermaid diagrams in GitHub/browser at full and reduced sizes, including Chinese font fallback; automated metadata/link checks do not prove visual rendering correctness. External URLs and heading anchors have not been exhaustively checked.
 
