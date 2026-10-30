@@ -2,14 +2,14 @@
 
 **Not in v0.1 or v0.2.** Screen capture is more sensitive than process/security telemetry. No recording code should begin until disclosure, approval, platform-specific permission and retention policies are documented and reviewed.
 
-## States
-`disabled` → `policy-approved` → `awaiting OS permission` → `recording` → `finalizing` → `uploaded` / `failed` / `unsupported`. UI shows state honestly. No service-level workaround for a denied OS grant.
+## Canonical capture and segment lifecycle (proposed V0.3)
+The single documented lifecycle is `disabled → awaiting_permission → recording → finalizing → uploading → available`, with `permission_denied`, `unsupported` and `failed` exits. This describes the lifecycle of a recording/segment, **not** a claim that an active session must stop while previously finalized segments upload. `policy-approved` is an authorization **precondition**, not an OS recorder state. The `available` state requires server-side size/hash verification and a committed manifest; merely uploading bytes is not sufficient. UI reports truthful capture and upload states, without bypassing denied OS permissions.
 
 ## Capture architecture
 A signed and visible **user-session companion** obtains Windows.Graphics.Capture or Linux X11/Wayland (PipeWire + xdg-desktop-portal) permissions as appropriate. Native dialogs, system indicators and protected-content restrictions are respected. On Linux Wayland, portal `persist_mode` and `restore_token` are conditional; tokens are single-use and a new token must replace the previous one after successful restoration. No promise that reopening a session skips the user prompt, and no bypass on permission denial. See the [official ScreenCast interface](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html). A background audit service cannot capture a session without permission merely because the organization owns the PC.
 
 ## Permission and recorder state transitions
-Grant is bound to **session, source and OS implementation**; a new login session, display change or portal denial may invalidate it. Explicit transitions: `disabled → awaiting_permission → recording → finalizing → uploading → available`, with `permission_denied/unsupported/failed` exits and a separate coverage-gap record. Stop collection when policy is revoked or the desktop permission is withdrawn, even if the service remains online. See [health/coverage states](health-and-gap-semantics.md).
+Grant is bound to **session, source and OS implementation**; a new login session, display change or portal denial may invalidate it. Apply the canonical lifecycle above separately to active capture, finalized segments and upload status; represent partial recordings and overlapping segment uploads explicitly rather than implying perfect continuous coverage. Stop capture when policy is revoked or desktop permission is withdrawn, record the reason and affected coverage gap, and do not report an incomplete upload as available. See [health/coverage states](health-and-gap-semantics.md).
 
 ## Segments and manifests
 - **Benchmark proposal, not a fixed policy:** H.264, up to 1080p at 10–15 FPS, audio off, **roughly 1–5 minute finalized segments** with bounded encoded bytes; tune by storage budget, consent, encoder stability and real Windows/Linux validation. Avoid 30-minute open segments: a crash or disk-full event would delay upload and enlarge unavailable intervals.
