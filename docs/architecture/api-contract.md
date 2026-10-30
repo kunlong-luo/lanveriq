@@ -9,7 +9,8 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 | Method | Path | Principal | Semantics |
 |---|---|---|---|
 | POST | /enrollments | authenticated admin | Create one-use short-lived device code, device group, expiry |
-| POST | /devices/enroll | pairing-capable installer | One-time token exchange after server certificate validation |
+| POST | /devices/enroll | pairing-capable installer on enrollment host | Validate token + CSR; create pending_certificate UUIDv7, **not an active credential** |
+| POST | /devices/{id}/activate | bound pending-certificate Agent on **mTLS Agent host** | Verify registered certificate fingerprint and atomically activate pending enrollment; same-cert retries idempotent |
 | POST | /devices/{id}/heartbeats | bound device credential | 30s status, version, queue and *latest sampled* CPU/RAM/volume health; **not** complete hardware info |
 | POST | /devices/{id}/event-batches | bound device credential | Validate, insert-once, durable ack |
 | GET | /devices | authorized operator | Scope-filtered paginated inventory |
@@ -74,7 +75,7 @@ Response after DB commit:
 ### Candidate endpoint ownership and version rules
 
 - API major prefix `/api/v1`; JSON uses `snake_case`, `schema_version: 1` for versioned payloads, integer `policy_version`, UTC RFC 3339 timestamps with `Z`, integer byte counts, positive monotonic 64-bit `device_sequence`/`inventory_revision`, UUIDv7 **server** device IDs and persisted UUID **Agent** event/snapshot IDs.
-- `console` host: administrator session REST, `/ws` WSS and restricted monitoring queries. `enroll` host: pairing request only, TLS server verification and a one-use secret; new device has no client certificate yet. `agent` host: **mTLS-only** enrolled-device routes. Hostnames are examples; D-07 signing/route controls must be approved before implementation.
+- `console` host: administrator session REST, `/ws` WSS and restricted monitoring queries. `enroll` host: pairing request only, TLS server verification and a one-use secret; new device has no client certificate yet. `agent` host: **mTLS-only** enrolled-device routes, with a narrowly authorized pending-certificate **activation** endpoint. Hostnames are examples; D-07 signing/route controls must be approved before implementation.
 - Required fields must not disappear; nullable fields are explicit `null` **with a capability/error reason** for unavailable data. An **unauthorized field is omitted entirely** from read projections (not `null` with a revealing reason). Unknown mandatory schema versions fail with `422 unsupported_schema_version`; additive, optional response properties may be added within `v1`. No automatic widening of collection rights.
 - **V0.1 accepted canonical event pairs** proposed for deployed Agent: `agent_transport / collection_gap` (minimal operational coverage; allowlisted keys `affected_source`, `reason`, `range_start`, `range_end`). Development/test profile may add `synthetic_test / protocol_fixture` using invented data; production configuration must reject this pair. No process titles, URLs, window activity, system audit details, recordings or other V0.2+ sources in V0.1.
 - Batch cap: 100 events and 512 KiB; inventory cap: 128 KiB, 32 NICs, 16 IPs/NIC, 64 volumes, 256 characters per bounded string, subject to the [inventory limits](device-inventory.md). Reject over-limit requests before writes. Idempotent duplicate event-batches return the same acknowledged sequences **after** commit; a conflicting event ID/sequence rejects the *entire* batch.
@@ -103,7 +104,32 @@ Proposed `202 Accepted` after the token is **atomically consumed** and the serve
   "request_id": "a2fdba9e-fb11-42fd-ad05-3b7f19cbe0b2"
 }
 ~~~
-The CSR signing and trusted out-of-band leaf delivery follow [D-07](enrollment-bootstrap.md); no private key is returned or sent. `device_public_key` is derivable from a validated CSR and must not be separately accepted as a contradictory identity. First valid enrolled mTLS proof activates the credential. Reusing the pairing token fails; recovery is an administrator-audited new attempt. Neither this response nor a device ID is proof of an active authenticated device.
+The CSR signing and trusted out-of-band leaf delivery follow [D-07](enrollment-bootstrap.md); no private key is returned or sent. `device_public_key` is derivable from a validated CSR and must not be separately accepted as a contradictory identity. First valid enrolled mTLS **activation request** activates the credential; pending Agent credentials cannot use heartbeats/events/inventory. Reusing the pairing token fails; recovery is an administrator-audited new attempt. Neither this response nor a device ID is proof of an active authenticated device.
+
+### Candidate first proof and activation endpoint (Agent mTLS host only)
+
+`POST /api/v1/devices/{id}/activate` is the **sole pending → active transition**. It requires a Caddy-verified client certificate, a **registered pending credential fingerprint**, an unexpired `pending_certificate` enrollment, exact path/body `device_id`, a non-revoked credential and an atomic PostgreSQL transition. It **does not** accept a pairing token or caller-supplied fingerprint. A different device/certificate, expired pending state or unknown CSR/leaf must fail. Retry with the **same already-active bound certificate** is idempotent (does not create or reassign device ID).
+
+~~~json
+{
+  "schema_version": 1,
+  "device_id": "018f9fad-5c71-7db1-b89e-b71f8d620f44",
+  "agent_version": "0.1.0"
+}
+~~~
+
+Proposed successful response:
+~~~json
+{
+  "schema_version": 1,
+  "device_id": "018f9fad-5c71-7db1-b89e-b71f8d620f44",
+  "enrollment_state": "active",
+  "server_time": "2026-10-30T09:00:30Z",
+  "request_id": "a2fdba9e-fb11-42fd-ad05-3b7f19cbe0b2"
+}
+~~~
+
+**All heartbeat/event/inventory routes reject a pending certificate until activation has committed.** Use exact certificate identity and database state on each subsequent request; a merely trusted client CA is not enough.
 
 ### Candidate Agent heartbeat
 
