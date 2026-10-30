@@ -61,7 +61,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | User-supplied component | V0.1 choice | Reason |
 |---|---|---|
 | `jacoco` | **Include**, tool 0.8.16; produce XML + HTML | Measurable Java unit-test coverage, no false pass |
-| Caffeine + Cache starter | **Defer** | 1–10 devices and one app instance; prefer bounded simple in-process logic first; cache role decisions only with correct invalidation |
+| Bucket4j + Caffeine local-only login throttle | **Included for AUTH-01** | `com.bucket4j:bucket4j_jdk17-core:8.21.0` and `com.github.ben-manes.caffeine:caffeine:3.3.1`; bounded transient, per-account/peer token buckets. No Spring cache starter, no cached RBAC grants and no multi-instance guarantee |
 | OAuth2 Resource Server | **Defer** | Admin uses secured same-origin session; Agent uses separately approved device mTLS; no JWT API gateway in V0.1 |
 | Spring Data JPA / Hibernate | **Include as the single V0.1 ORM/persistence API** | Ordinary entity CRUD + targeted native PostgreSQL SQL for events/inventory within JPA transaction boundary |
 | Redis / Kafka | **Exclude** | No distributed queue/cache; SQLite already provides Agent outbox and WSS is in-process |

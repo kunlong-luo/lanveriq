@@ -90,8 +90,8 @@ if [[ "$HEALTH_READY" -ne 1 ]]; then
 fi
 
 MIGRATIONS="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
-    "SELECT COUNT(*) FROM flyway_schema_history WHERE success AND version IN ('1', '2', '3', '4')")"
-[[ "$MIGRATIONS" == "4" ]] || { echo "Flyway V1/V2/V3/V4 migration check failed" >&2; exit 1; }
+    "SELECT COUNT(*) FROM flyway_schema_history WHERE success AND version IN ('1', '2', '3', '4', '5')")"
+[[ "$MIGRATIONS" == "5" ]] || { echo "Flyway V1/V2/V3/V4/V5 migration check failed" >&2; exit 1; }
 
 UUID_CHECK="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
     "BEGIN; INSERT INTO device_groups (name) VALUES ('synthetic_pg18_check') RETURNING uuid_extract_version(id); ROLLBACK;")"
@@ -103,6 +103,13 @@ grep -qx '7' <<< "$UUID_CHECK" || {
 USER_COUNT="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
     "SELECT COUNT(*) FROM users")"
 [[ "$USER_COUNT" == "0" ]] || { echo "Unexpected default administrator exists" >&2; exit 1; }
+
+AUTH_AUDIT_COUNT="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
+    "SELECT COUNT(*) FROM admin_auth_log")"
+[[ "$AUTH_AUDIT_COUNT" == "0" ]] || {
+    echo "Unexpected default authentication audit exists" >&2
+    exit 1
+}
 
 GRANT_COUNT="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
     "SELECT COUNT(*) FROM user_data_grants")"
@@ -118,5 +125,5 @@ DENIED_HTTP="$(curl --silent --output /dev/null --write-out '%{http_code}' \
     exit 1
 }
 
-echo "MANUAL PASS: PG18.6 startup, Flyway V1/V2/V3/V4, native UUIDv7, no default admin or sensitive grants, denied business route."
+echo "MANUAL PASS: PG18.6 startup, Flyway V1/V2/V3/V4/V5, native UUIDv7, no default admin/audit or sensitive grants, denied business route."
 echo "Important: this does NOT validate mTLS, an enrollment transaction, CSRF or a real endpoint."

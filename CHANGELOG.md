@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 — AUTH-01 login abuse limits, revocable sessions and authentication audit
+- Added Bucket4j 8.21.0 + Caffeine 3.3.1 with bounded local rate-limit state for normalized login and transport peer, plus request-size guard and generic 429 responses; never trust user-supplied forwarded IP headers.
+- Added Flyway V5 `users.session_version` and separate append-only `admin_auth_log`; browser auth session checks live disabled/version state, internal group-scoped owner-only revocation transaction increments the epoch and audits allowed action. Failed/unknown login audit stores no submitted user identifier.
+- Login/out audit handlers fail closed for unavailable audit DB (including session invalidation on a failed successful-login audit). Source unit tests cover rate limits, epoch changes, group revocation, audit and malformed traffic.
+- **Evidence boundary:** Gradle unit tests/bootJar can verify source behavior, not actual PG18 V1–V5 migration or concurrent DB changes, live Caddy/TLS/CSRF/browser behavior, device sessions, audit retention, or real monitored endpoints. Console login stays OFF by default.
+
+
+
 ## 2026-10-30 — AUTH-01 staged console browser sessions (disabled by default)
 - Added conditional Spring Security native console-only form login/logout, HttpSession CSRF JSON bootstrap and session fixation rotation, strict exact HTTPS Host/Origin/Fetch-Site checks ordered BEFORE CSRF/logout/login, and Secure/HttpOnly/SameSite=Strict `__Host-` cookie configuration (15-minute inactivity timeout).
 - Feature flag `LANVERIQ_CONSOLE_AUTH_ENABLED=false` stays off; no device, monitoring or WSS routes are opened. Unit tests cover malformed origins, cross-site and duplicate headers, missing CSRF bootstrap and no-store response. See [manual acceptance plan](docs/testing/console-session-manual.md).

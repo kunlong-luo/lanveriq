@@ -1,6 +1,6 @@
 # Staged console browser-authentication acceptance (NOT EXECUTED)
 
-**Status:** implementation and unit tests exist; the console authentication feature is **disabled by default**, and enabling it is **not yet approved for a managed-device pilot or production**. The real PostgreSQL 18 Flyway V1–V4 and first-admin bootstrapping checks, real TLS/DNS and strict Caddy host isolation, login throttling, browser CSRF/session verification and revocation tests remain separate acceptance requirements.
+**Status:** implementation and unit tests exist; the console authentication feature is **disabled by default**, and enabling it is **not yet approved for a managed-device pilot or production**. The real PostgreSQL 18 Flyway V1–V5 and first-admin bootstrapping checks, real TLS/DNS and strict Caddy host isolation, browser CSRF/session verification, throttle behavior and session revocation integration tests remain separate acceptance requirements.
 
 ## Code and trust boundary
 
@@ -10,7 +10,9 @@
 - Before CSRF, logout or login handlers run, `ConsoleRequestGuardFilter` requires exactly one matching console `Host`; state-changing requests require exactly one **exact HTTPS `Origin`** and reject any supplied `Sec-Fetch-Site` value other than `same-origin` or `none`. Cross-site/same-site origins, duplicate headers and mismatched vhosts fail with 403.
 - Session cookie: `__Host-lanveriq-session`, `Secure`, `HttpOnly`, host-only, `Path=/`, `SameSite=Strict`, 15 minute inactivity timeout. Session fixation rotates the identifier on successful authentication. `server.forward-headers-strategy=none` avoids automatically trusting forwarded client assertions. Proxy must preserve the authoritative **console Host** and terminate trusted HTTPS, not forward arbitrary user-supplied identity headers.
 - This does **not** grant access to `/api/v1/devices`, inventory or WSS. No role scope is inferred from an authenticated session. Operations still require per-request server-side group/category authorization.
-- **Missing before use:** bounded login attempt throttling/abuse handling, login/logout/security-access audit, explicit active/disabled account revalidation on session reuse, role/grant revocation propagation, CSRF token lifecycle and Caddy h1/h2/strict SNI/Host connection reuse verification, secure browser test, WSS scope. Do not enable the feature flag beyond an isolated synthetic manual test until these checks are implemented and recorded.
+- **Source now includes, but is NOT runtime-verified:** Bucket4j 8.21.0 + Caffeine 3.3.1 bounded, single-instance login limits (5 attempts per normalized account/10 min, 30 attempts per transport peer/min); 8 KiB known-length form body gate; `429 Retry-After: 60` on throttle; independent `admin_auth_log` for allowed, denied and throttled login and known-user logout. Authentication audit stores only verified UUIDs for successful actions; unknown login attempts remain unlinked. Login fails closed if success audit cannot commit.
+- **Source also includes, but is NOT runtime-verified:** `users.session_version` V5 monotonic epoch. Browser-auth requests check live enabled account and matching version after context restoration; mismatches invalidate the session and return 401. `AdminSessionRevocationService` can transactionally rotate the target's epoch only if an active owner and target belong to the same group; it logs an allowed admin action. No network revocation endpoint is currently exposed. Multi-node rate limiting requires a separate reviewed distributed backend.
+- **Missing before use:** real browser login/logout and CSRF token lifecycle, actual Caddy h1/h2/strict SNI/Host connection reuse verification, real PostgreSQL rate-limited/denial audit and version-revocation integration, session-state revalidation on future REST/WSS business chains, IP-based ingress throttling behind Caddy, failure-mode and abuse testing, security-audit retention and endpoint scope tests, WSS scope. Do not enable the feature flag beyond an isolated synthetic manual test until these checks are implemented and recorded.
 
 ## Manual test matrix — evidence NOT YET COLLECTED
 
@@ -22,7 +24,13 @@ Use only a synthetic admin account and an isolated test-only PostgreSQL 18 insta
 | Feature opt-in with missing/HTTP/invalid console origin | Fail application startup rather than accepting login |
 | Trusted HTTPS console, same-origin GET csrf | JSON CSRF token, `Cache-Control: no-store`, host-only Secure/HttpOnly/SameSite cookie |
 | POST login with no/invalid CSRF token | 403; no authenticated session |
-| POST login with wrong password and valid CSRF/Origin | 401; no authenticated session |
+| POST login with wrong password and valid CSRF/Origin | 401; no authenticated session; anonymous `admin_auth_log` denied row |
+| Sixth login for one normalized account inside 10 minutes | 429, Retry-After 60; anonymous rate_limited audit |
+| 31st login from same transport peer inside one minute across distinct accounts | 429; Caddy shared-peer behavior must be reviewed |
+| Login request with missing Content-Length or >8 KiB | 413 before parameter parsing; no login |
+| Disable account or increment session_version after login; next /auth/csrf | 401, prior session invalidated |
+| Invalid/mismatched group or inactive owner attempts session epoch rotation | No epoch change, no allowed access audit |
+| Auth audit database failure during successful login | 503 and session invalidated (not false 204 success) |
 | Valid synthetic admin login with CSRF and exact Origin | 204; fresh session identifier (old fixation ID invalid) |
 | Cross-origin, repeated Origin, agent/enroll Host, wrong port, `Sec-Fetch-Site: cross-site` or `same-site` | 403 before login/logout processing |
 | POST logout with correct CSRF/Origin | 204; session invalidated and CSRF cleared |
