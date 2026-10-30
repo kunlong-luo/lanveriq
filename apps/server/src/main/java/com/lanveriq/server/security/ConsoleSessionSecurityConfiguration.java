@@ -12,7 +12,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 
 /**
@@ -40,7 +40,7 @@ public class ConsoleSessionSecurityConfiguration {
         return http
                 .securityMatcher("/api/v1/auth/**")
                 .addFilterBefore(new ConsoleRequestGuardFilter(policy),
-                        UsernamePasswordAuthenticationFilter.class)
+                        CsrfFilter.class)
                 .authenticationProvider(adminAuthenticationProvider)
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
