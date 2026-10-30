@@ -57,6 +57,12 @@
 
 Early GitHub CI is **unit-only as previously decided**; integration/OS/manual validation remains mandatory before any real-data pilot, even if not run in early CI. A mature dependency reduces infrastructure risk **but does not prove correct product integration**.
 
+## Decision conflict and proof of completion
+
+- Treat the latest explicit maintainer instruction as the proposed direction, but check existing ADRs, actual code behavior and authorization constraints before changing architecture. For a consequential change, update the canonical ADR/spec and affected diagrams together; do not silently leave conflicting versions active.
+- Do not label a selection **validated**, **tested** or **secure** merely because a widely used dependency exists. Separate *upstream evidence*, *dependency-resolution/compile evidence*, *unit tests*, and *real OS/DB/manual integration acceptance* in every delivery report.
+- Keep the root `AGENTS.md` as a compact agent-facing **navigation and invariant map**; put lengthy version comparison, UUID case studies and library selection evidence here or in ADRs. Add nested `AGENTS.md` only after actual Java, Rust or frontend subtrees exist and require materially different rules.
+
 ## Applying this in future discussion
 
 For every nontrivial implementation recommendation, explicitly say:

@@ -9,6 +9,7 @@
 - [x] System architecture, trust zones and module boundaries documented
 - [x] Maintainer explicitly chose **Gradle**, not Maven: [stable Java backend stack](../development/backend-stack.md) and [Groovy DSL reference](../development/backend-gradle-reference.md) (Gradle 9.8.2/Boot 4.1.2/Java 25/JaCoCo 0.8.16); **not installed or compiled**
 - [x] Server PostgreSQL and endpoint SQLite/WAL architecture decisions recorded
+- [x] Root `AGENTS.md` strengthened with source-of-truth precedence, operational workflow, security/durability invariants, verification/evidence standards and concise navigation; detailed policy remains in [reuse-first](../development/reuse-first-policy.md).
 - [x] Maintainer's **repository-wide reuse-first policy** codified in [AGENTS.md](../../AGENTS.md), [reuse-first policy](../development/reuse-first-policy.md), contributing guide and ADR-0007: mature built-ins/SDKs/libs before custom utility code; UUID examples use native PostgreSQL/Rust uuid/browser Web Crypto
 - [x] Ecosystem-first ADR and selected libraries documented ([ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md)); **SQLx/Orval have not been installed or tested**
 - [x] Versioned device asset inventory fields (CPU/RAM/OS/volumes/NIC/IP/MAC), sampling, privacy/retention, API and ER diagrams defined
