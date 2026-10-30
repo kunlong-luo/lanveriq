@@ -11,13 +11,18 @@
 
 See [Caddy internal TLS documentation](https://caddyserver.com/docs/caddyfile/directives/tls) for limits of automatic trust installation.
 
+## P0 certificate-auth boundary — unresolved until D0 sign-off
+**Recommended topology for review, not an implemented/frozen client-auth protocol:** separate the **same-origin browser admin + WSS site** from the **enrolled-Agent mTLS ingestion site** using explicit trusted hostnames/vhosts (both may use port 443 through SNI). An **un-enrolled** device must reach a tightly rate-limited, verified-CA enrollment route that cannot require the yet-to-be-issued client certificate. Enrollment exchanges a short-lived one-use token for a credential bound to a server-assigned `device_id`. After enrollment, Agent heartbeat/event/inventory endpoints must require a **verified client certificate** (or an explicitly approved alternative proof-of-possession scheme), and Spring must confirm the forwarded authenticated identity matches the unrevoked database device record **on each request**.
+
+Caddy/TLS client-certificate verification must not be replaced with trusting arbitrary HTTP headers: **strip inbound identity headers**, accept asserted identity only from a controlled Caddy→Spring transport boundary, keep Spring non-public, and document the exact certificate chain/fingerprint/subject mapping, renewal, expiration, emergency revocation and CA-key backup. Browser login and WSS cannot accidentally be blocked by mandatory Agent client-auth. **Whether the pilot uses separate hostnames vs a route-isolated alternative, precise Caddy configuration, certificate issuance and key storage require maintainer review under [D-07](../governance/open-decisions.md).** Do not mark this design ready for code merely because Caddy supports mTLS.
+
 ## Bootstrap and credentials
 1. Start server with a **single-use admin setup secret generated locally**, constrained to a private host console or similarly controlled setup. No shipped universal password.
 2. Administrator enrolls with protected credentials; other accounts created only through authenticated role-managed flows. Configure password storage, sessions and lockout/rate limiting.
 3. Admin creates a short-lived, one-use enrollment token associated with a device group and immutable disclosed policy version. PostgreSQL stores only a verifier/hash.
 4. On the endpoint, the trusted admin installer checks server hostname and certificate chain, displays the organization notice and obtains pairing approval.
 5. Agent generates a unique asymmetric key and performs one-time exchange using the token; server atomically consumes token and registers a new `device_id` bound to credential thumbprint.
-6. Thereafter agent requests prove possession of the device key. Exact mTLS/proof-of-possession mechanism must be chosen before implementation; do not fall back to a long-lived shared API password.
+6. Thereafter agent requests prove possession of the device key. Preferred candidate is **mTLS client certificate** on the enrolled-Agent ingress, with certificate status and `device_id` verified server-side. Exact issuance, proxy identity propagation, renewal and revocation are still D0 blockers. Do not fall back to a long-lived shared API password.
 7. Device credential revocation blocks heartbeat and upload. Key rotation, re-enrollment, server CA rotation and lost-identity cases are documented and audited.
 
 ## Identity lifecycle
@@ -27,4 +32,4 @@ New install -> pending -> enrolled -> active -> revoked/retired. If local identi
 Invalid/missing trust root: refuse connection. Used/expired token: refuse pairing. Duplicated device public key or enrollment conflict: require explicit administrator action. Server unreachable: keep previously enrolled and buffered events in bounded SQLite, without collecting newly unauthorized data.
 
 ## Open sign-off
-Choose the initial hostname, CA trust distribution, device-key storage, and per-request authentication binding before writing the v0.1 enrollment code. These are open in [D-07](../governance/open-decisions.md).
+Choose browser/enrollment/Agent ingress hostnames and route boundaries, Caddy client-auth policy, CA trust distribution, certificate issuance/renewal, OS-protected key storage, revocation behavior and per-request authenticated identity mapping before writing V0.1 enrollment code. A setup diagram is not a deployed PKI. These are open in [D-07](../governance/open-decisions.md).

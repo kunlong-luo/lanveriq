@@ -3,13 +3,13 @@
 ## Starter host (proposed)
 Ubuntu Server 24.04 LTS (or verified compatible server), 4–8 vCPU, 8–16 GiB RAM, 100+ GB SSD for system+PostgreSQL depending on measured event rate, **separate media disk/NAS** sized to codec/retention. Initial 1–10 endpoints. No K8s/Redis/Kafka.
 
-Services behind a single HTTPS/WSS endpoint: Caddy (TLS + static React app reverse proxy) → Spring Boot REST API + **native WebSocket handler/in-process notification hub**; PostgreSQL on an isolated Docker network; media mounted as restricted volume. WSS uses the existing 443 entry point, not another publicly exposed port. Docker Compose for backend only. Rust agent runs natively on clients, not in a desktop Docker container.
+Browser services behind a **single same-origin HTTPS/WSS admin site**: Caddy (TLS + static React app) → Spring Boot REST API + **native WebSocket handler/in-process notification hub**. PostgreSQL stays on an isolated Docker network; media is a restricted mount. Browser WSS uses 443, not another public port. **An enrolled Agent mTLS site may have a separate hostname/vhost on the same Caddy 443 listener** so mandatory client certificates cannot block browser login or pre-enrollment pairing; this is a D0 design candidate, **not yet approved**. Docker Compose for backend only. Rust agent runs natively on clients, not in a desktop Docker container.
 
 ## Network trust
 - Prefer LAN hostname `lanveriq.internal` or local static mapping with a trusted internal CA certificate deployed **explicitly** to authorized machines. The initial proposal is Caddy `tls internal`; see [LAN bootstrap and trust](enrollment-bootstrap.md) for root certificate provisioning and CA-key backup.
 - HTTPS is required even on LAN. Do not disable certificate verification.
 - Only HTTPS management/API port available from authorized local subnets. PostgreSQL 5432 must not be published to LAN. Restrict container volumes and admin SSH.
-- Device pairing uses temporary scoped token; afterward unique, revocable device credentials. Per-device policy scopes.
+- Device pairing uses a temporary scoped token on a separately protected pre-enrollment path; afterward, enrolled Agent routes use unique revocable **client certificates (preferred mTLS design)** bound to `devices.id`. Caddy must strip untrusted forwarded-identity headers and Spring must trust identities only across the locked-down proxy boundary, then check active credentials against PostgreSQL. Hostname/CA issuance and rotation are **D-07 unresolved**; do not ship an unreviewed certificate forwarding scheme. Per-device policy scopes remain enforced.
 - No public ingress or Internet dependence at runtime. Limit or disable outbound network egress where practicable.
 
 ## Server configuration

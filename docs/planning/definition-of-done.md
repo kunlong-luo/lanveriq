@@ -3,8 +3,8 @@
 ## Docs gate D0
 - Requirements, architecture, server/agent storage, API, collection policy, threat model, testing, roadmap and operational plan exist and cross-reference consistently.
 - No false implementation claims; unresolved jurisdiction and data scope documented.
-- Maintainer reviews and accepts architecture + privacy scope before adding application code.
-- English README and Chinese introduction consistent; internal relative links checked.
+- Maintainer reviews and accepts architecture + privacy scope before adding application code. **D-07 device certificate/route/CA and authenticated proxy identity** and the V0.1 schema/permission surface must be explicitly approved; unresolved D0 rows may not be silently treated as satisfied.
+- English README and Chinese introduction consistent; internal relative links checked. **Static Mermaid/SVG validation does not replace actual rendering checks;** record unverified screenshot/Chinese font layout separately.
 - Direct-main, unit-only CI and deferred E2E written as an explicit temporary ADR.
 
 ## Feature completion during v0.x

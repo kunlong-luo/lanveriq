@@ -21,6 +21,8 @@
 | MAN-003 | Valid temporary enrollment on Linux | same logical result |
 | MAN-004 | Replay used/expired token | blocked and logged |
 | MAN-005 | Invalid CA/hostname | connection fails, no TLS bypass |
+| MAN-005a | Admin browser access and first-time pairing without existing Agent client cert | Works **only** on their intended protected routes; unrelated enrolled-Agent API is denied without valid client certificate once mTLS is selected |
+| MAN-005b | Forged forwarded client-cert identity and revoked/expired/rotated Agent certificate | Cannot authenticate or upload; Spring checks bound active device record, not arbitrary client header |
 | MAN-006 | Heartbeat start/stop | online -> stale -> offline accurate |
 | MAN-007 | Disconnect LAN, generate synthetic events, reconnect | buffered data transferred once |
 | MAN-008 | Stop server after PG commit, before client sees response | safe dedup on retry |
