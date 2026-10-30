@@ -3,7 +3,7 @@
 ## 2026-10-31 — AGT-01 Rust idle lifecycle and OS service adapters
 - Created Rust 1.94 workspace, committed Cargo.lock, Tokio 1.54.1 idle lifecycle with cooperative stop, strict Serde/TOML versioned config, Clap CLI, tracing, bounded 64 KiB config and negative tests. No network, enrollment, inventory, SQLite or screen capture.
 - Added experimental Linux systemd sandboxed unit with SIGTERM handling, Windows SCM dispatcher/Stop status through the maintained `windows-service` 0.8.1 crate and separate Linux/Windows unit build workflow.
-- Actual real Pop!_OS/systemd and Windows 11 SCM service install/stop, credential custody, OS privileges, linked SQLite version, endpoint TLS and any monitoring are **NOT TESTED/IMPLEMENTED**. [Manual AGT-01 acceptance](docs/testing/agent-lifecycle-manual.md).
+- [Rustfmt, Linux/Windows Cargo unit tests and Clippy passed](https://github.com/kunlong-luo/lanveriq/actions/runs/41146480955) with the committed root lockfile. Actual real Pop!_OS/systemd and Windows 11 SCM service install/stop, credential custody, OS privileges, linked SQLite version, endpoint TLS and any monitoring are **NOT TESTED/IMPLEMENTED**. [Manual AGT-01 acceptance](docs/testing/agent-lifecycle-manual.md).
 
 
 ## 2026-10-31 — AUTH-01 login abuse limits, revocable sessions and authentication audit
