@@ -13,7 +13,8 @@ Legend: V=view, M=manage, E=export, C=case-required view, —=deny. An authentic
 | Change collection policy | M + organizational approval | — | — | — | — |
 | Manage roles/device groups | M | — | — | — | — |
 | Query collection gaps | V | V (health only) | V | V for approved case | own capture status |
-| Create/approve recording access case | M / approval | — | request only | request only | — |
+| Request recording access case | request | — | request | request | — |
+| Approve recording access case | M **only for an independent authorized approver** | — | — | — | — |
 | Play/download recording | **C, not automatically** | — | — unless explicitly granted | C | — |
 | Export event evidence | E with recorded purpose | — | E if separately authorized | — | — |
 | Read admin access audit | V | — | V if independently authorized | — | — |
@@ -23,7 +24,7 @@ Legend: V=view, M=manage, E=export, C=case-required view, —=deny. An authentic
 **Before any V0.1 dashboard release**, authenticate administrator sessions and enforce assigned device-group scope on REST inventories, monitoring counts, device details and WSS subscriptions. Role-scope checks cannot be deferred to the V0.2 detailed-audit phase. Private IP/MAC details require an additional `internal_operational` permission rather than mere heartbeat/overview visibility. Do not send raw NIC/IP/MAC through WSS. See [device inventory](../architecture/device-inventory.md).
 
 ## Authorization predicate
-For sensitive actions: authenticate principal -> check role permission -> check active device group scope -> check data category -> check time range -> check policy/approval/reason -> audit decision -> return minimal data. An owner cannot silently bypass an organizational recording approval requirement.
+For sensitive actions: authenticate principal -> check role permission -> check active device group scope -> check data category -> check time range -> check policy/approval/reason -> audit decision -> return minimal data. An owner cannot silently bypass an organizational recording approval requirement. For V0.3 review cases, `approved_by` must identify an authorized person **other than the requester**, and the server must reject self-approval regardless of role.
 
 ## Required control behavior
 - API responds 403 for known out-of-scope identities; do not leak resource existence to callers outside their scope (use 404 where appropriate, consistently).
@@ -34,4 +35,4 @@ For sensitive actions: authenticate principal -> check role permission -> check 
 - Administrative decisions and denied access must be in append-only audit records with protected retention.
 
 ## Test matrix
-Anonymous read denied; wrong-group device read denied; operator event export denied; auditor playback denied; reviewer without case denied; expired case denied; owner without recording approval denied; device credential cannot call admin API; old/revoked credential denied; modified cursor cannot access another group.
+Anonymous read denied; wrong-group device read denied; operator event export denied; auditor playback denied; reviewer without case denied; expired case denied; owner without recording approval denied; requester attempting to approve own review case denied; device credential cannot call admin API; old/revoked credential denied; modified cursor cannot access another group.
