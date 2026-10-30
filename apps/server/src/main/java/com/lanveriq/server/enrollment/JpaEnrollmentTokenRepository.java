@@ -50,17 +50,18 @@ final class JpaEnrollmentTokenRepository implements EnrollmentTokenRepository {
                 RETURNING id
                 """;
 
-        Object issuedId = entityManager.createNativeQuery(sql)
+        var query = entityManager.createNativeQuery(sql)
                 .setParameter("digest", tokenVerifier)
                 .setParameter("group_id", deviceGroupId)
                 .setParameter("policy_version", policyNoticeVersion)
                 .setParameter("lifetime", lifetimeSeconds)
-                .setParameter("admin_id", authenticatedAdminId)
-                .getResultStream()
-                .findFirst()
-                .orElseThrow(() -> new AccessDeniedException("Enrollment token creation not authorized"));
+                .setParameter("admin_id", authenticatedAdminId);
+        java.util.List<?> issuedRows = query.getResultList();
+        if (issuedRows.isEmpty()) {
+            throw new AccessDeniedException("Enrollment token creation not authorized");
+        }
 
-        UUID tokenId = (UUID) issuedId;
+        UUID tokenId = (UUID) issuedRows.getFirst();
         entityManager.createNativeQuery("""
                 INSERT INTO admin_access_log
                     (principal_id, resource_id, device_group_id, action, outcome)
