@@ -31,8 +31,8 @@ sequenceDiagram
     Operator->>Server: Register certificate fingerprint for device
     Operator->>Agent: Deliver leaf/chain over trusted channel
     Agent->>Key: Install cert with protected private key
-    Agent->>Server: Agent-host HTTPS mTLS first proof (verified Caddy)
-    Server->>PG: Match verified fingerprint and device_id; activate
+    Agent->>Server: POST Agent-host /api/v1/devices/{id}/activate (mTLS)
+    Server->>PG: Check registered pending fingerprint/device_id and expiry; commit active
     PG-->>Server: Commit active status
     Server-->>Agent: Authorized heartbeat/response
   else Token invalid, expired, reused or CSR rejected
