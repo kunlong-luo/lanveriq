@@ -17,7 +17,7 @@
 - [ ] Maintainer explicitly reviews and accepts D0 technical baseline
 - [ ] Finalize first target Linux environment and certificate/bootstrap choice for v0.1
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
-- [ ] Document internal link check and resolve all broken references
+- [x] Check internal Markdown links and resolve broken references (verified against current main tree; external URLs not exhaustively checked)
 
 ## Start-code rule
 **Only after maintainer approval**, begin v0.1 implementation on main, no feature branch or PR necessary. Unit-only CI may be added alongside real source and tests; avoid placeholder passing jobs. Do not begin recording before its separate consent/OS authorization gate.

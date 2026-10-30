@@ -26,6 +26,12 @@ See [Documentation Index](docs/README.md), [Product Requirements](docs/product/r
 
 **Documentation-first gate:** No product code is to be started until the design baseline, privacy scope, API and data contracts, risks, acceptance criteria and open decisions have been reviewed. See [Documentation Gate](docs/governance/documentation-gate.md).
 
+## Early development workflow
+
+Development is **directly on main** during pre-release; no mandatory feature branches or pull requests. CI will run **unit tests only** once implementation modules and real tests exist (Rust Cargo tests, Java JUnit, React Vitest). E2E, cross-platform automation and comprehensive CI are deliberately postponed until a dedicated hardening milestone. Sensitive authentication, scoped collection, event recovery and OS screen-capture permissions still require targeted manual verification before any real-world pilot.
+
+Pagevela's React/Vite design, feature modules, UI consistency and ordered persistence lessons are selectively adopted: [Pagevela architecture review](docs/development/pagevela-reference.md). Server database is PostgreSQL; Rust Agent local store is SQLite WAL. See [development roadmap](docs/planning/roadmap.md) and [ADR-0004](docs/architecture/adrs/0004-rapid-main-development.md).
+
 ## Contributions and licensing
 Public visibility does **not** grant permission to use or redistribute the software. A software license must be selected and committed after a dependency/license review; until then, rights are reserved. See [Contributing](CONTRIBUTING.md) and [Security](SECURITY.md). Avoid posting actual recordings, personal data or credentials in issues.
 
