@@ -58,10 +58,10 @@ Initial version only supports:
 
 ## Connection and resynchronization
 1. Load authenticated dashboard shell. Open WSS and wait for `system.ready`.
-2. **After WS is open**, issue scoped REST snapshot queries and establish subscriptions from returned authorized device IDs. This ordering minimizes snapshot/notification race conditions.
+2. **Close the initial snapshot/subscription gap deliberately:** after `system.ready`, fetch an initial scope-filtered REST device-ID list, send `subscribe` for those IDs and wait for `subscription.accepted`, **then fetch the authoritative REST snapshot again**. While that final snapshot is in flight, buffer/coalesce any matching WS hints and invalidate/refetch once it settles. Do not declare the view synchronized from a snapshot taken before the subscription was active.
 3. On a notification, invalidate matching TanStack Query keys and fetch on demand; coalesce bursts (draft: 250–1000 ms).
 4. On disconnect or server restart, mark feed as `reconnecting`; retry with exponential backoff + jitter (draft base 1 s, cap 30 s), stop after explicit 401/403 until re-login.
-5. After **every** successful reconnect, re-authenticate and refetch REST list/detail/visible timeline. No notification replay cursor is promised.
+5. After **every** successful reconnect, re-authenticate, refresh the authorized device list, resubscribe and take a **post-subscription REST snapshot** of affected resources. Notifications can be lost/reordered; no replay cursor is promised.
 6. Server sends WS protocol ping periodically (draft: 30 s) and closes idle/dead connections (draft: 90 s). Proxies must permit idle timeout longer than ping interval.
 7. If server outbound queue exceeds its per-connection cap, issue `system.resync_required` when possible, close with appropriate code and rely on REST reconnect; do not block ingestion.
 
@@ -74,7 +74,7 @@ The Spring service uses an **in-process dispatcher** on a single app instance. D
 - Revoke/logout terminates delivery, recording notifications remain case scoped.
 - Inbound payload size cap, malformed JSON, unsupported version, flood/slow consumer limits.
 - Server emits after commit only; failure/rollback emits nothing.
-- Client reconnection refetches REST even if intermediate messages were lost; duplicate/out-of-order events are harmless.
+- Client initial connect/reconnect closes the snapshot-to-subscribe race using a post-subscription REST refresh; duplicate/out-of-order events are harmless. Test a status update occurring after the first REST list response but before `subscription.accepted`.
 
 ## Diagram
 See [WebSocket sequence](../diagrams/websocket-flow.md) and [overall component architecture](../diagrams/component-architecture.md).

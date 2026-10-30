@@ -5,7 +5,7 @@
 | ID | Decision | Current assumption | Required by |
 |---|---|---|---|
 | D-01 | Deployment jurisdiction, lawful purposes and employee notice | company devices, prior specific notice; jurisdiction not defined | pilot with employee data |
-| D-02 | First supported Linux distribution, compositor and CPU arch | Ubuntu LTS x64 first, X11/Wayland individually verified | v0.1 deployment |
+| D-02 | First supported Linux distribution, compositor and CPU arch | **Pilot candidate supplied:** Pop!_OS 24.04 LTS x86_64, KDE Plasma 5.27.12/KWin, kernel 7.2.6-76070206-generic, RTX 4050 Laptop; `XDG_SESSION_TYPE` still unknown, X11/Wayland must be validated separately | v0.1 deployment |
 | D-03 | Allowed application fields and Windows/Linux event source list | coarse app name, scope allowlist, no URL/title by default | v0.2 |
 | D-04 | Recording policy, OS prompts and user status UX | opt-in later, visible state, fail closed | v0.3 |
 | D-05 | Actual video/event retention and backup periods | event 30d, video 14d drafts | real data pilot |
@@ -19,7 +19,7 @@
 | D-13 | Agent local DB damage, replacement device workflow | new device identity after lost local DB; explicitly audit link | before v0.1 |
 | D-14 | Administration scope grants and case approval | role + device group + purpose + time; no default recording access | before v0.2 |
 | D-15 | WebSocket handshake/session lifecycle and initial subscription cap | proposed same-origin Secure HttpOnly cookie + strict Origin + <=5 connections per user + <=10 device IDs; verify exact handler mechanics | before WS-01 |
-| D-16 | WSS push timing and failure thresholds | WSS metadata-only, best-effort, reconnect/refetch REST; proposed <2s normal push, limits to validate | v0.1 manual acceptance |
+| D-16 | WSS push timing and failure thresholds | WSS metadata-only, best-effort, **post-subscription REST reconcile**, proposed <2s normal push, limits to validate | v0.1 manual acceptance |
 
 ## Decision process
 Record who approved, date, consequences and relevant ADR/PRD changes. Any deployment collecting real employee data requires D-01, D-03, D-05 and D-07 resolved even if code exists. The documentation gate can be **ready for technical review** while legal/operational approvals remain open.

@@ -20,7 +20,7 @@
 - [x] Mermaid context/component/sequence/ER/security diagrams and index written
 - [x] Test strategy, runbooks, roadmap and issue-sized backlog written
 - [ ] Maintainer explicitly reviews and accepts D0 technical baseline
-- [ ] Finalize first target Linux environment and certificate/bootstrap choice for v0.1
+- [ ] Validate the supplied Pop!_OS 24.04 LTS/KDE KWin pilot environment (`XDG_SESSION_TYPE` still unknown) and finalize certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
 - [x] Earlier 68-document Markdown-link check completed; current visual-gallery update checked changed Markdown/image references against repository paths (73 Markdown files + 8 SVG assets); all inspected local targets exist. All 16 Mermaid drawings remain in the repository.

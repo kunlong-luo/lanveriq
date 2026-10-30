@@ -16,9 +16,14 @@ sequenceDiagram
     Browser->>API: REST fetch scoped device snapshot
     API->>PG: Scope-filtered query
     PG-->>API: Current authorized state
-    API-->>Browser: Snapshot
+    API-->>Browser: Initial device IDs (may already be stale)
     Browser->>WS: subscribe (authorized device_ids)
     WS-->>Browser: subscription.accepted (scope intersection)
+    Browser->>API: REST refetch AFTER subscription active
+    API->>PG: Scope-filtered authoritative snapshot
+    PG-->>API: Latest committed state
+    API-->>Browser: Reconciled snapshot
+    Note over Browser,WS: Buffer/coalesce hints during REST refetch
     API->>PG: Durable heartbeat/event transaction
     PG-->>API: COMMIT
     API->>WS: After-commit status change
@@ -29,7 +34,10 @@ sequenceDiagram
       Browser->>Browser: Backoff with jitter
       Browser->>WS: Reconnect (authenticate again)
       WS-->>Browser: system.ready
-      Browser->>API: Refetch REST snapshot and resubscribe
+      Browser->>API: Fetch device IDs
+      Browser->>WS: Resubscribe authorized IDs
+      WS-->>Browser: subscription.accepted
+      Browser->>API: Refetch REST snapshot after subscription
     end
   else Unauthorized
     WS-->>Browser: Reject upgrade (401/403)

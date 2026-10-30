@@ -3,7 +3,7 @@
 **Status:** planned checks, **not executed**. During early v0.x, **only unit tests run in GitHub Actions**. All real OS/browser/LAN validation below is **manual** and tracked in [Manual Acceptance](manual-acceptance.md). E2E automation is postponed.
 
 ## Platform coverage
-| Case | Windows 11 x64 | Ubuntu LTS x64/X11 | Ubuntu LTS x64/Wayland | Method / milestone |
+| Case | Windows 11 x64 | Pop!_OS 24.04 KDE/X11 | Pop!_OS 24.04 KDE/Wayland | Method / milestone |
 |---|---|---|---|---|
 | Agent native service starts/stops | Planned | Planned | Planned | Manual v0.1 |
 | CA root/hostname verified, invalid trust refused | Planned | Planned | Planned | Manual v0.1 |
@@ -19,7 +19,7 @@
 | Screen lock/logout creates gap | Planned v0.3 | Planned v0.3 | Planned v0.3 | Manual v0.3 |
 | Installer upgrades/uninstalls | Planned v0.4 | Planned v0.4 | Planned v0.4 | Manual v0.4 |
 
-Actual Linux distro/desktop/compositor versions must be recorded for each test; these cells do **not** promise supported status.
+**Initial Linux test device:** Pop!_OS 24.04 LTS x86_64, KDE Plasma 5.27.12/KWin, NVIDIA RTX 4050 Laptop, kernel 7.2.6-76070206-generic as reported by the maintainer. **Session protocol has not been confirmed**; X11/Wayland columns are separate conditional test cases, not evidence that both sessions were tested. Record `echo $XDG_SESSION_TYPE`, portal backend and versions before marking results. These cells do **not** promise supported status.
 
 ## Protocol unit tests (required)
 | ID | Domain | Test |
