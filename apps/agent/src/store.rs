@@ -410,7 +410,10 @@ mod tests {
             cursor: vec![1],
         };
         for _ in 0..3 {
-            assert!(matches!(store.append_synthetic(&event).await, Err(StoreError::QueueFull)));
+            assert!(matches!(
+                store.append_synthetic(&event).await,
+                Err(StoreError::QueueFull)
+            ));
         }
         assert_eq!(store.gap_count().await.unwrap(), 3);
         assert!(store.cursor().await.unwrap().is_none());
