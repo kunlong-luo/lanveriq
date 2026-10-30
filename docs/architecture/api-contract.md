@@ -1,4 +1,4 @@
-# REST and event protocol contract v0.1 (proposed)
+# REST and event protocol contract v0.1 (D0-approved design; not implemented)
 
 **Base:** `/api/v1` over HTTPS only. Dashboard **WSS /ws** is documented separately in [WebSocket contract](websocket-contract.md) and is not used for endpoint batch ACKs. JSON UTF-8; server controls authorization. Version via both URL major and `schema_version` per event. This is an API **design**, not an OpenAPI implementation. The canonical delivery semantics are in [Event Delivery](event-delivery.md); the API and SQLite writer must conform to that one source of truth.
 
@@ -40,7 +40,7 @@ The canonical Agent ID is **server-created `devices.id` as PostgreSQL UUIDv7**. 
 See [Device Inventory](device-inventory.md) for the typed snapshot body, sampling (static at startup/change/24h, dynamic around 60–120s), MAC/IP source labels, full-snapshot transaction and policy limitations. The server stamps `received_at` and trusted `server_observed_remote_ip`. Hardware identity is **not** derived from MAC, IP, hostname, disk or CPU. Service authenticates `device_id` by bound credential even for inventory uploads. The only canonical identifier is server-assigned `devices.id UUIDv7`.
 
 ## Request envelopes
-Enrollment request fields for the operator-mediated mTLS candidate: `schema_version`, `token`, `agent_version`, `os`, `capabilities`, `csr_pem`, `policy_notice_version`. The server must authenticate identity beyond LAN IP; token only bootstraps identity. Enrollment tokens are not reused as ongoing API keys. On a lost local database/identity, a reinstall enrolls as a **new device_id**, leaving old evidence under a revoked historical identity. Token consumption must be atomic.
+Enrollment request fields for the D0-selected operator-mediated mTLS design: `schema_version`, `token`, `agent_version`, `os`, `capabilities`, `csr_pem`, `policy_notice_version`. The server must authenticate identity beyond LAN IP; token only bootstraps identity. Enrollment tokens are not reused as ongoing API keys. On a lost local database/identity, a reinstall enrolls as a **new device_id**, leaving old evidence under a revoked historical identity. Token consumption must be atomic.
 
 Heartbeat fields: `device_id`, `sent_at`, `agent_version`, `status`, `capabilities`, `queue_count`, `queue_bytes`, `oldest_pending_at`, `last_successful_upload_at`, `dropped_count`, `integrity_degraded`, `collection_errors`. Server stamps `received_at` and derives online/stale/offline. See [health states](health-and-gap-semantics.md).
 
@@ -74,7 +74,7 @@ Response after DB commit:
 
 **Decision rule:** The maintainer's D0 technical approval authorizes this *version-1 design* as the implementation baseline; the JSON examples are illustrative rather than generated OpenAPI or compiled DTOs. Exact implementation schemas and negative fixtures must preserve these semantics, and any incompatible change requires explicit versioned review. The canonical transport split, authorization, event sequencing and inventory-CAS rules remain in [Event Delivery](event-delivery.md), [Inventory](device-inventory.md), [Enrollment](enrollment-bootstrap.md) and [RBAC](../security/authorization-matrix.md). Once accepted, generate actual OpenAPI with Springdoc and TS clients with Orval *after* code starts; fail on schema drift rather than hand-maintain parallel type definitions.
 
-### Candidate endpoint ownership and version rules
+### V0.1 endpoint ownership and version rules (approved design)
 
 - API major prefix `/api/v1`; JSON uses `snake_case`, `schema_version: 1` for versioned payloads, integer `policy_version`, UTC RFC 3339 timestamps with `Z`, integer byte counts, positive monotonic 64-bit `device_sequence`/`inventory_revision`, UUIDv7 **server** device IDs and persisted UUID **Agent** event/snapshot IDs.
 - `console` host: administrator session REST, `/ws` WSS and restricted monitoring queries. `enroll` host: pairing request only, TLS server verification and a one-use secret; new device has no client certificate yet. `agent` host: **mTLS-only** enrolled-device routes, with a narrowly authorized pending-certificate **activation** endpoint. Hostnames are examples; D-07 signing/route controls must be approved before implementation.
@@ -82,7 +82,7 @@ Response after DB commit:
 - **V0.1 allowed canonical event pairs** for deployed Agent: `agent_transport / collection_gap` (minimal operational coverage; allowlisted keys `affected_source`, `reason`, `range_start`, `range_end`). Development/test profile may add `synthetic_test / protocol_fixture` using invented data; production configuration must reject this pair. No process titles, URLs, window activity, system audit details, recordings or other V0.2+ sources in V0.1.
 - Batch cap: 100 events and 512 KiB; inventory cap: 128 KiB, 32 NICs, 16 IPs/NIC, 64 volumes, 256 characters per bounded string, subject to the [inventory limits](device-inventory.md). Reject over-limit requests before writes. Idempotent duplicate event-batches return the same acknowledged sequences **after** commit; a conflicting event ID/sequence rejects the *entire* batch.
 
-### Candidate one-use enrollment (manual certificate issuance pilot)
+### V0.1 one-use enrollment (selected manual certificate issuance pilot)
 
 `POST /api/v1/devices/enroll` request (to enrollment host; no Agent mTLS certificate yet):
 ~~~json
@@ -108,7 +108,7 @@ Proposed `202 Accepted` after the token is **atomically consumed** and the serve
 ~~~
 The CSR signing and trusted out-of-band leaf delivery follow [D-07](enrollment-bootstrap.md); no private key is returned or sent. `device_public_key` is derivable from a validated CSR and must not be separately accepted as a contradictory identity. First valid enrolled mTLS **activation request** activates the credential; pending Agent credentials cannot use heartbeats/events/inventory. Reusing the pairing token fails; recovery is an administrator-audited new attempt. Neither this response nor a device ID is proof of an active authenticated device.
 
-### Candidate security-admin CSR review and signed-certificate registration (console only)
+### V0.1 security-admin CSR review and certificate registration (console only)
 
 These endpoints complete the **operator-mediated offline signing** loop; otherwise `pending_certificate` devices would have no auditable path to an active credential:
 
@@ -119,9 +119,9 @@ These endpoints complete the **operator-mediated offline signing** loop; otherwi
 
 **Suggested bounded response semantics:** 200 CSR fetch; 201 certificate registration; 409 conflict for consumed/mismatched pending identity or duplicate registered fingerprint; 410 pending enrollment expired; 422 invalid CSR/issuer/leaf/profile; 403 admin without assigned group/permission. Wrong-group calls use the API's non-enumerating 404 policy. **Missing private key, invalid CA, revoked leaf or inappropriate EKU cannot be repaired by ignoring TLS validation.**
 
-**Still a D0 proposal:** exact DTO field/endpoint naming, issuer template, certificate fingerprints/chain handling, admin permission and error status must be signed off under D-07/D-11/D-22; don't present this as compiled or OpenAPI-generated.
+**D0 technical baseline accepted:** the endpoint roles, CSR/leaf registration and security predicates above are selected. Generate and verify their exact OpenAPI DTOs during implementation; do not portray this text as compiled, tested, deployed or independently security-audited.
 
-### Candidate first proof and activation endpoint (Agent mTLS host only)
+### V0.1 first proof and activation endpoint (Agent mTLS host only)
 
 `POST /api/v1/devices/{id}/activate` is the **sole pending → active transition**. It requires a Caddy-verified client certificate, a **registered pending credential fingerprint**, an unexpired `pending_certificate` enrollment, exact path/body `device_id`, a non-revoked credential and an atomic PostgreSQL transition. It **does not** accept a pairing token or caller-supplied fingerprint. A different device/certificate, expired pending state or unknown CSR/leaf must fail. Retry with the **same already-active bound certificate** is idempotent (does not create or reassign device ID).
 
@@ -146,7 +146,7 @@ Proposed successful response:
 
 **All heartbeat/event/inventory routes reject a pending certificate until activation has committed.** The single signed-leaf registration route is console-admin-only (no CA private key exposed); pending-CSR fetch is likewise restricted and audited. Use exact certificate identity and database state on each subsequent request; a merely trusted client CA is not enough.
 
-### Candidate Agent heartbeat
+### V0.1 Agent heartbeat (approved design)
 
 `POST /api/v1/devices/{id}/heartbeats` **only** on the enrolled-Agent mTLS host:
 ~~~json
@@ -169,7 +169,7 @@ Proposed successful response:
 ~~~
 Server stamps `received_at` (never trusts `sent_at` for online/stale/offline) and returns `{"server_time":"2026-10-30T09:01:01Z","request_id":"..."}`. Lightweight metrics may appear as a **separately typed optional sampled block**, not a full network inventory on every heartbeat. `status: running` means Agent process state, **not** evidence of source coverage or online determination.
 
-### Candidate inventory upload response and scope-filtered read
+### V0.1 inventory upload response and scope-filtered read
 
 Use the full [inventory request example](device-inventory.md) unchanged as the candidate `POST /devices/{id}/inventory` body. Response after transactional compare-and-set:
 ~~~json
@@ -187,7 +187,7 @@ Use the full [inventory request example](device-inventory.md) unchanged as the c
 
 `GET /api/v1/monitoring/overview` for assigned device groups returns only scoped counts, `as_of` and status classifications; no IP, MAC, hostname or out-of-scope counts. `GET /devices/{id}/inventory` for an authorized **health-only** role includes bounded non-sensitive OS/CPU/RAM/capability/freshness summaries, **omitting** interfaces, addresses, MAC, server-observed IP and asset tag. The complete permitted network details require group scope **plus** `internal_operational` permission, and read/export audit. Unknown information is not zero; for a permitted nullable field return `null` plus a reason `unsupported | permission_denied | not_collected | transient_error`. Frontend must not infer permission from a button or WSS subscription.
 
-### Candidate stable error envelope
+### V0.1 stable error envelope (approved design)
 
 ~~~json
 {
@@ -196,7 +196,7 @@ Use the full [inventory request example](device-inventory.md) unchanged as the c
   "request_id": "a2fdba9e-fb11-42fd-ad05-3b7f19cbe0b2"
 }
 ~~~
-HTTP and stable `code` pairs under review: `400 invalid_json`, `401 unauthenticated`, `403 forbidden | revoked_device`, `404 not_found` (consistent non-disclosing scope handling), `409 sequence_conflict | inventory_conflict | enrollment_conflict`, `410 pending_enrollment_expired` (authenticated/admin-scoped pending enrollment only), `413 request_too_large`, `422 invalid_schema | unsupported_schema_version | invalid_client_certificate`, `429 rate_limited`, `503 temporarily_unavailable`. A `429` or retryable `503` may include numeric `retry_after_seconds` and corresponding `Retry-After`; clamp and use exponential backoff with jitter. Never echo authentication tokens, raw sensitive payloads or hidden device existence. No non-2xx is an event ACK. `401/403` pauses Agent upload until identity is repaired; `409` quarantines conflict; `422` requires schema/policy remediation, never rapid retry.
+HTTP and stable `code` pairs selected for V0.1: `400 invalid_json`, `401 unauthenticated`, `403 forbidden | revoked_device`, `404 not_found` (consistent non-disclosing scope handling), `409 sequence_conflict | inventory_conflict | enrollment_conflict`, `410 pending_enrollment_expired` (authenticated/admin-scoped pending enrollment only), `413 request_too_large`, `422 invalid_schema | unsupported_schema_version | invalid_client_certificate`, `429 rate_limited`, `503 temporarily_unavailable`. A `429` or retryable `503` may include numeric `retry_after_seconds` and corresponding `Retry-After`; clamp and use exponential backoff with jitter. Never echo authentication tokens, raw sensitive payloads or hidden device existence. No non-2xx is an event ACK. `401/403` pauses Agent upload until identity is repaired; `409` quarantines conflict; `422` requires schema/policy remediation, never rapid retry.
 
 ### Approved-baseline implementation and compatibility checklist
 
