@@ -16,9 +16,9 @@ Enforce **role + device group + data category + time window** at the server API,
 1. Authenticated admin creates expiring single-use token hashed in PostgreSQL; chooses device group and published policy.
 2. Installer verifies LAN server certificate via explicitly installed internal CA and sees organization/device policy notice.
 3. Device generates unique identity key; token proves approval only for first pairing.
-4. Server marks token consumed atomically and issues per-device credentials bound to key/device, with expiration.
-5. Agent stores private material using host-protected credential storage; never logs or uploads secrets.
-6. Re-enrollment, recovery and rotation are explicit operations with audit trail and data continuity plan.
+4. In the proposed D-07 pilot flow, server atomically consumes token and validates a CSR, creates UUIDv7 device identity in **pending_certificate**, and does **not** immediately activate a client credential.
+5. An authorized operator signs/reviews the CSR through a dedicated client CA and securely delivers the leaf certificate; registration binds the fingerprint to the pending device. Agent keeps its key in service-protected local storage, not in SQLite; never logs/uploads the private key.
+6. Agent proves possession on the mandatory mTLS ingress; Spring activates only the exact verified, unrevoked credential. Re-enrollment, expiry, abnormal pending state, recovery and rotation require audited operator action. See [candidate bootstrap](../architecture/enrollment-bootstrap.md).
 
 ## WebSocket authorization
 The dashboard opens `wss://<lan-host>/ws` using its existing Secure/HttpOnly same-origin session cookie; the server validates authentication, the exact approved `Origin`, device-group subscription scope and session revocation. No API key in URL/query, no generic wildcard subscriptions, no anonymous video notifications, and no WS channel for policy mutations. See [WebSocket contract](../architecture/websocket-contract.md) and [RBAC drawing](../diagrams/rbac-matrix.md).
