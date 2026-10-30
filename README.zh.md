@@ -21,7 +21,7 @@
 - Agent：Rust + Tokio + rusqlite / bundled SQLite（WAL）。
 - 可选桌面端：Tauri 2 + React。
 - 服务端：Java 25 / Spring Boot 4 模块化单体 + PostgreSQL 18 + Flyway。
-- V0.1 通信：HTTPS REST + 页面定时刷新，不引入 WebSocket；后续确有需要时再加。
+- V0.1 通信：Rust Agent 通过 HTTPS REST 上报；React 后台使用 HTTPS REST + WSS WebSocket 实时推送，断线后 REST 重新同步。
 - 后台：React + Vite + TypeScript + Tailwind + Zustand（有限使用）。
 - 局域网 HTTPS、WebSocket；视频留在本地或 NAS。
 - 单仓库、直接 main 开发；早期 CI 只做单元测试，不做 E2E。
@@ -29,6 +29,8 @@
 ## 文档入口
 从 [文档总览](docs/README.md) 开始。关键文件：[产品需求](docs/product/requirements.md)、
 [系统架构](docs/architecture/system-overview.md)、
+[全部 Mermaid 架构图](docs/diagrams/README.md)、
+[WebSocket 消息协议](docs/architecture/websocket-contract.md)、
 [Agent 数据库 ADR](docs/architecture/adrs/0002-postgres-sqlite.md)、
 [Pagevela 借鉴](docs/development/pagevela-reference.md)、
 [分阶段计划](docs/planning/roadmap.md)、

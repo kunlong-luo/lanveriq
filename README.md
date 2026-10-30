@@ -19,10 +19,10 @@ Lanveriq is planned as a cross-platform (Windows 11 and selected Linux desktops)
 - AI analytics, remote arbitrary command execution, or Internet SaaS.
 
 ## Technology direction (subject to architecture approval)
-Rust endpoint agent; optional Tauri 2 desktop companion; Java 25 / Spring Boot 4 modular-monolith API; React + Vite dashboard; PostgreSQL 18 server + SQLite WAL on endpoints; local disk/NAS video storage; HTTPS REST with v0.1 dashboard polling (WebSocket deferred); Docker Compose + Caddy.
+Rust endpoint agent; optional Tauri 2 desktop companion; Java 25 / Spring Boot 4 modular-monolith API; React + Vite dashboard; PostgreSQL 18 server + SQLite WAL on endpoints; local disk/NAS video storage; HTTPS REST for Rust Agent and REST + authenticated WSS for the v0.1 dashboard; Docker Compose + Caddy.
 
 ## Documentation
-See [Documentation Index](docs/README.md), [Product Requirements](docs/product/requirements.md), [System Architecture](docs/architecture/system-overview.md), [Security and Privacy](docs/security/privacy-and-consent.md), [Development Roadmap](docs/planning/roadmap.md), and [中文说明](README.zh.md).
+See [Architecture Drawings](docs/diagrams/README.md), [WebSocket Contract](docs/architecture/websocket-contract.md), [Documentation Index](docs/README.md), [Product Requirements](docs/product/requirements.md), [System Architecture](docs/architecture/system-overview.md), [Security and Privacy](docs/security/privacy-and-consent.md), [Development Roadmap](docs/planning/roadmap.md), and [中文说明](README.zh.md).
 
 **Documentation-first gate:** No product code is to be started until the design baseline, privacy scope, API and data contracts, risks, acceptance criteria and open decisions have been reviewed. See [Documentation Gate](docs/governance/documentation-gate.md).
 

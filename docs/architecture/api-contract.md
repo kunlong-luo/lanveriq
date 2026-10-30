@@ -1,6 +1,9 @@
 # REST and event protocol contract v0.1 (proposed)
 
-**Base:** `/api/v1` over HTTPS only. JSON UTF-8; server controls authorization. Version via both URL major and `schema_version` per event. This is an API **design**, not an OpenAPI implementation. The canonical delivery semantics are in [Event Delivery](event-delivery.md); the API and SQLite writer must conform to that one source of truth.
+**Base:** `/api/v1` over HTTPS only. Dashboard **WSS /ws** is documented separately in [WebSocket contract](websocket-contract.md) and is not used for endpoint batch ACKs. JSON UTF-8; server controls authorization. Version via both URL major and `schema_version` per event. This is an API **design**, not an OpenAPI implementation. The canonical delivery semantics are in [Event Delivery](event-delivery.md); the API and SQLite writer must conform to that one source of truth.
+
+## Transport split
+Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches; browser ↔ server: REST for snapshots/mutations + authenticated WSS notifications. On every WS reconnect, the browser refetches scoped REST data. See [ADR-0006](adrs/0006-agent-rest-dashboard-ws.md).
 
 ## Device API
 | Method | Path | Principal | Semantics |

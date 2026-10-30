@@ -3,7 +3,7 @@
 **Status:** Proposal, no implementation.
 
 ## Deployment
-A private LAN host runs Caddy TLS, one Spring Boot 4 modular-monolith service, PostgreSQL 18, a static React/Vite dashboard and a protected local/NAS video volume. The v0.1 dashboard polls a bounded REST device API; WebSocket is deferred by [ADR-0005](adrs/0005-http-first.md). Windows 11 and Linux terminals run a Rust service with bundled SQLite WAL. Optional Tauri 2 companion runs in the logged-in user session for device status, policy notice and permission-dependent recording.
+A private LAN host runs Caddy TLS, one Spring Boot 4 modular-monolith service, PostgreSQL 18, a static React/Vite dashboard and a protected local/NAS video volume. The v0.1 dashboard uses **HTTPS REST for authoritative snapshots/mutations plus authenticated WSS for scoped, best-effort status notifications**, per [ADR-0005](adrs/0005-rest-plus-websocket.md) and the [WS contract](websocket-contract.md). Windows 11 and Linux terminals run a Rust service with bundled SQLite WAL. Optional Tauri 2 companion runs in the logged-in user session for device status, policy notice and permission-dependent recording.
 
 ~~~mermaid
 flowchart TD
@@ -21,15 +21,19 @@ flowchart TD
     PG[("PostgreSQL 18")]
     NAS[("Local video disk / NAS")]
     WEB["React/Vite static SPA"]
+    WS["WebSocket notifier: in-process, after commit"]
     P --> API
     P --> WEB
     API --> PG
     API --> NAS
+    API --> WS
   end
   R -->|"Authenticated HTTPS batches"| P
   V -->|"Authorized segmented uploads"| P
-  Admin["Authorized browser"] -->|"HTTPS"| P
+  Admin["Authorized browser"] <-->|"HTTPS REST + WSS"| P
 ~~~
+
+**Diagrams:** [system context](../diagrams/system-context.md) · [component architecture](../diagrams/component-architecture.md) · [deployment](../diagrams/deployment-topology.md) · [trust boundaries](../diagrams/trust-boundaries.md).
 
 ## Trust boundaries
 - An endpoint is not trusted merely because it is on the LAN. Server authenticates agent identity and checks every event's bounds, scope and format.
@@ -40,7 +44,7 @@ flowchart TD
 
 ## Interaction flows
 **Enrollment:** Admin creates expiring single-use code → agent verifies server certificate and user notice → token is atomically consumed → unique device identity is issued → heartbeat begins. Details and key rotation are in [LAN bootstrap](enrollment-bootstrap.md).
-**Event delivery:** Source adapter filters/redacts → SQLite transaction commits immutable event + monotonic sequence + cursor → uploader sends bounded batch → PostgreSQL commits **all or none** with conflict checks → server confirms accepted sequences → agent deletes **only explicit confirmed rows**. See [event delivery](event-delivery.md).
+**Event delivery:** Source adapter filters/redacts → SQLite transaction commits immutable event + monotonic sequence + cursor → uploader sends bounded REST batch → PostgreSQL commits **all or none** with conflict checks → server confirms accepted sequences → Agent deletes **only explicit confirmed rows**. After commit, an in-process WS hub may emit an **ephemeral, scope-filtered status hint**; on reconnect the dashboard refetches REST. See [event delivery](event-delivery.md) and [WS semantics](websocket-contract.md).
 **Recording:** Published policy + OS permission + visible state → session-local recorder writes closed segments → checksums/manifests → authenticated transfer → server validates, indexes and restricts playback.
 
 ## Modular backend domains

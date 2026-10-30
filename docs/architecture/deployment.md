@@ -3,7 +3,7 @@
 ## Starter host (proposed)
 Ubuntu Server 24.04 LTS (or verified compatible server), 4–8 vCPU, 8–16 GiB RAM, 100+ GB SSD for system+PostgreSQL depending on measured event rate, **separate media disk/NAS** sized to codec/retention. Initial 1–10 endpoints. No K8s/Redis/Kafka.
 
-Services behind a single HTTPS endpoint: Caddy (TLS + static React app reverse proxy) → Spring Boot API; PostgreSQL on an isolated Docker network; media mounted as restricted volume. Docker Compose for backend only. Rust agent runs natively on clients, not in a desktop Docker container.
+Services behind a single HTTPS/WSS endpoint: Caddy (TLS + static React app reverse proxy) → Spring Boot REST API + **native WebSocket handler/in-process notification hub**; PostgreSQL on an isolated Docker network; media mounted as restricted volume. WSS uses the existing 443 entry point, not another publicly exposed port. Docker Compose for backend only. Rust agent runs natively on clients, not in a desktop Docker container.
 
 ## Network trust
 - Prefer LAN hostname `lanveriq.internal` or local static mapping with a trusted internal CA certificate deployed **explicitly** to authorized machines. The initial proposal is Caddy `tls internal`; see [LAN bootstrap and trust](enrollment-bootstrap.md) for root certificate provisioning and CA-key backup.
@@ -19,10 +19,12 @@ Environment variables/secret files: public bind hostname, database connection/cr
 At 2 Mbps average, screen video ~21.6 GB/device/day; ten endpoints for 14 days ~3 TB raw before reserve and backup. Video is a separate optional milestone, not part of the first server disk budget.
 
 ## Dashboard transport
-In v0.1, the React dashboard uses scoped, bounded REST queries with 10–30-second conditional polling. No always-on WebSocket or WebRTC server is required. [ADR-0005](adrs/0005-http-first.md) explains why.
+In v0.1, the dashboard uses scoped HTTPS REST queries for state plus a **same-origin authenticated WSS /ws** connection for metadata change notifications; WS is best-effort and clients resync from REST after reconnect. Caddy forwards WebSocket Upgrade and keeps connection idle timeout above the heartbeat. The in-memory notifier assumes **one Spring Boot instance**; no Redis/broker/WebRTC is needed. See [WS contract](websocket-contract.md) and [ADR-0005](adrs/0005-rest-plus-websocket.md).
 
 ## Installation and operations
 See [runbook](../operations/installation.md), [backup](../operations/backup.md) and [monitoring](../operations/monitoring.md). The one-command `docker compose up -d` experience is a **future goal**; no compose file exists yet.
+
+**Diagrams:** [private LAN topology](../diagrams/deployment-topology.md) · [trust boundaries](../diagrams/trust-boundaries.md).
 
 ## Risk
 If a host is compromised, central recordings and audit data are sensitive. Strict RBAC, backups, patching and storage permissions are required before real employee data.

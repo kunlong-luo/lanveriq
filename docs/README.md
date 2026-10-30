@@ -16,6 +16,7 @@
 - [Configuration and collection policy](architecture/policy-configuration.md)
 - [Independent health and coverage semantics](architecture/health-and-gap-semantics.md)
 - [REST and event API contract](architecture/api-contract.md)
+- [Dashboard WebSocket protocol](architecture/websocket-contract.md)
 - [LAN bootstrap and device enrollment](architecture/enrollment-bootstrap.md)
 - [Screen recording pipeline](architecture/recording.md)
 - [Platform feature matrix](architecture/platform-matrix.md)
@@ -24,7 +25,11 @@
 - [ADR 0002: PostgreSQL and SQLite](architecture/adrs/0002-postgres-sqlite.md)
 - [ADR 0003: Authorized recording](architecture/adrs/0003-disclosed-capture.md)
 - [ADR 0004: Direct main, minimal CI, delayed E2E](architecture/adrs/0004-rapid-main-development.md)
-- [ADR 0005: REST and polling first](architecture/adrs/0005-http-first.md)
+- [ADR 0005: REST + WebSocket from v0.1](architecture/adrs/0005-rest-plus-websocket.md)
+- [ADR 0006: Agent REST vs dashboard WS responsibilities](architecture/adrs/0006-agent-rest-dashboard-ws.md)
+
+## Architecture drawings
+- [All Mermaid drawings and sources](diagrams/README.md): system context, components, LAN deployment, enrollment, event delivery, WebSocket, video, RBAC, PostgreSQL ER, outbox, health states, trust boundaries and retention.
 
 ## Engineering
 - [Technology selection](development/technology.md)
@@ -36,6 +41,7 @@
 - [Issue-sized backlog](planning/backlog.md)
 - [Unit-only CI and manual checks](testing/strategy.md)
 - [Hands-on acceptance templates (no E2E CI)](testing/manual-acceptance.md)
+- [Cross-platform and WebSocket test matrix](testing/test-matrix.md)
 - [Definition of done](planning/definition-of-done.md)
 
 ## Security and operations
@@ -47,6 +53,8 @@
 - [Installation and operations](operations/installation.md)
 - [Backup and recovery](operations/backup.md)
 - [Incident and monitoring plan](operations/monitoring.md)
+- [Troubleshooting runbook](operations/troubleshooting.md)
+- [Lightweight release and upgrade plan](operations/release.md)
 
 ## Governance
 - [Open decisions](governance/open-decisions.md)
