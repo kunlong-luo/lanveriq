@@ -1,5 +1,6 @@
 package com.lanveriq.server.security;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -21,7 +22,9 @@ import java.util.Map;
 @Configuration(proxyBeanMethods = false)
 public class DefaultDenySecurityConfiguration {
 
+    // Offline first-run bootstrap must not construct servlet HttpSecurity.
     @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain denyBusinessRoutes(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(requests -> requests
