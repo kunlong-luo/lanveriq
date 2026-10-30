@@ -12,7 +12,9 @@ flowchart TB
   Request["Review case: device, purpose, UTC interval"]
   Approve{"Independent approver grants scoped access?"}
   Deny["Deny and audit"]
-  Gate["Spring checks session + group + case + segment/time"]
+  Gate["Spring checks session + group + case + UTC interval"]
+  Clip{"Requested media wholly within approved time window?"}
+  Bounded["Verified bounded rendition or fully contained segment"]
   Playback["Server-mediated playback of verified segment range"]
   Audit["Playback/export access audit"]
   Retain["Retention expiry + verifiable deletion"]
@@ -24,11 +26,14 @@ flowchart TB
   Catalog --> Request --> Approve
   Approve -->|"No"| Deny
   Approve -->|"Yes"| Gate
-  Gate -->|"Granted time/role only"| Playback
+  Gate -->|"Grant valid"| Clip
+  Clip -->|"Yes"| Bounded
+  Clip -->|"No / clipping unavailable"| Deny
+  Bounded --> Playback
   Gate -.->|"Read verified bytes after authorization"| Index
   Playback --> Audit
   Index --> Retain
   Audit --> Retain
 ~~~
 
-**No direct `Index → Playback` authorization bypass:** content is loaded through the authenticated Spring media handler only **after** checking session, role, group, approved case, permitted time window and each HTTP Range request. Missing/corrupt/unavailable segments show gaps. Stored playback is **not** live screen streaming. [Recording & Playback Center](../development/recording-playback-center.md).
+**No direct `Index → Playback` authorization bypass:** content is loaded through the authenticated Spring media handler only **after** checking session, role, group, approved case, permitted time window and each HTTP Range request. **HTTP Range byte offsets are not equivalent to UTC timestamps**; a segment crossing case boundaries must be verified clipped or denied. Missing/corrupt/unavailable segments show gaps. Stored playback is **not** live screen streaming. [Recording & Playback Center](../development/recording-playback-center.md).
