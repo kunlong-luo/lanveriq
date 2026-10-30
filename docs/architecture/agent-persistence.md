@@ -1,10 +1,10 @@
 # Rust Agent: SQLite outbox, persistence and crash recovery
 
-**Status:** Design, no implementation. **Selected:** `rusqlite` + bundled patched SQLite + WAL; one serialized writer. Inspired by Pagevela's single ordered persistence coordinator, but backend is SQLite, not browser IndexedDB.
+**Status:** Design, no implementation. **Selected:** `rusqlite` + bundled patched SQLite + WAL; one serialized writer. Inspired by Pagevela's single ordered persistence coordinator, but backend is SQLite, not browser IndexedDB. Canonical acknowledgment semantics are specified in [Event Delivery](event-delivery.md).
 
 ## Proposed local tables
-- `agent_state`: schema_version, device_id, enrollment_status, policy_version, last_ack_sequence.
-- `outbox_events`: event_id UUID UNIQUE, sequence INTEGER UNIQUE NOT NULL, source, kind, occurred_at_utc, payload_json (allowlisted), created_at_utc, acked_at_utc NULL, bytes.
+- `agent_state`: schema_version, device_id, enrollment_status, policy_version, next_sequence (durably monotonic). Do not use a global last_ack_sequence to delete outstanding lower-numbered rows.
+- `outbox_events`: event_id UUID UNIQUE, device_sequence INTEGER UNIQUE NOT NULL, source, event_type, policy_version, occurred_at_utc, payload_json (allowlisted), created_at_utc, acked_at_utc NULL, bytes.
 - `collector_cursors`: source PRIMARY KEY, cursor_blob, updated_at, last_event_sequence.
 - `upload_batches`: id UUID, first_sequence, last_sequence, attempts, next_attempt_at, last_error_code.
 - `collection_gaps`: id UUID, source, from_at, to_at, reason, reported_at.
@@ -16,13 +16,16 @@ Never store plaintext enrollment token, device private key, password, keyboard d
 ## Write and upload path
 1. Adapter observes a scoped event and validates/redacts fields.
 2. Single blocking SQLite writer runs a **transaction** inserting event and advancing the source cursor together, then commits.
-3. Async uploader loads up to 100 events or 512 KiB (provisional caps), sends request with device identity and idempotency key.
-4. Server verifies, deduplicates and commits in PostgreSQL before returning accepted event IDs/sequence.
-5. Local writer marks acknowledgment and prunes only committed acknowledgments. Ambiguous timeout → retry, do not drop.
-6. If outbox is full, collection must apply explicit backpressure/drop policy with **reported loss interval**; never fabricate event completeness.
+3. Async uploader loads up to 100 events or 512 KiB (provisional caps), sends request with device identity; immutable event IDs + device_sequence make retry idempotent.
+4. Server validates the **whole batch**, inserts or deduplicates it atomically in PostgreSQL and returns **all** accepted sequences after commit; any invalid/conflicting item rejects the whole batch.
+5. Local writer marks **only explicitly acknowledged sequences** and prunes the acknowledged rows. Ambiguous timeout → retry, do not drop. A `409 sequence_conflict` is quarantined and surfaced as degraded.
+6. If outbox is full, reserve bounded emergency gap capacity and report the **affected loss interval**. If disk is fully unwriteable, heartbeat exposes integrity_degraded so server can infer a coarse gap. Never fabricate event completeness.
 
 ## SQLite configuration proposal
 `journal_mode=WAL`; `foreign_keys=ON`; `busy_timeout=5000`; `synchronous=FULL` for durable outbox pending benchmarking. Use bounded transactions, one writer, scheduled checkpoints and `PRAGMA integrity_check` in diagnostics. Bundle a release incorporating SQLite's 2026 WAL-reset fix (3.51.3 or supported fixed backport) and test the version that ships.
+
+## Identity lifecycle
+A clean reinstall with lost local database/device key requires fresh enrollment and a **new device_id**. Do not reset the sequence counter for an existing device_id. Old server evidence remains linked to the revoked historical record; any replacement mapping is approved and audited. See [Event Delivery](event-delivery.md).
 
 ## OS storage
 - Windows: service-identity-restricted directory under `%ProgramData%/Lanveriq/`; use appropriate ACLs and optional BitLocker.
@@ -41,6 +44,9 @@ Never store plaintext enrollment token, device private key, password, keyboard d
 | Clock jump | keep monotonic sequence; flag drift |
 | Schema upgrade | transactional migration and backup; no silent data loss |
 | Host administrator tampering | cannot guarantee tamper-proof collection; server flags stale/gaps |
+
+## SQLite WAL operational caveat
+SQLite WAL supports one writer; a long-lived reader may stall checkpoints, so queries must be short and WAL size observed. Use the [SQLite WAL official guide](https://sqlite.org/wal.html) and test the actual bundled patch version. Do not place SQLite on SMB/NFS or copy an active DB file as a backup without SQLite-aware snapshot handling.
 
 ## Required unit tests
 Event+cursor atomicity; retry after ambiguous ack; dedup key; sequential cursor; full-queue reporting; restart/replay; WAL checkpoint behavior; migration error; credential redaction. Actual power-loss and disk-pressure validation stay manual until broader integration testing is authorized.

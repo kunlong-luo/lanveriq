@@ -14,6 +14,10 @@
 | D-08 | Software distribution license and dependency audit | unlicensed public repo until formal choice | first public release |
 | D-09 | Storage quotas & capture codec from measured pilot | SQLite WAL, video H.264 initial trial | v0.3 |
 | D-10 | Production testing strategy | CI unit-only now, integration/E2E before v1.0 | v1.0 |
+| D-11 | Atomic batch envelope and event source whitelist | v0.1 all-or-nothing; frozen wire names required | before v0.1 code |
+| D-12 | Policy validity and client behavior during disconnect | last approved scope only; sensitive collection fails closed | before v0.2 |
+| D-13 | Agent local DB damage, replacement device workflow | new device identity after lost local DB; explicitly audit link | before v0.1 |
+| D-14 | Administration scope grants and case approval | role + device group + purpose + time; no default recording access | before v0.2 |
 
 ## Decision process
 Record who approved, date, consequences and relevant ADR/PRD changes. Any deployment collecting real employee data requires D-01, D-03, D-05 and D-07 resolved even if code exists. The documentation gate can be **ready for technical review** while legal/operational approvals remain open.

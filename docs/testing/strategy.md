@@ -1,6 +1,6 @@
 # Test strategy — fast feedback, unit-only GitHub CI
 
-**Explicit product owner preference:** develop directly on main; no mandatory branches/PRs; **CI only runs unit tests**; do not implement E2E initially. This is a *temporary* pre-release policy under [ADR-0004](../architecture/adrs/0004-rapid-main-development.md).
+**Explicit product owner preference:** develop directly on main; no mandatory branches/PRs; **CI only runs unit tests**; do not implement E2E initially. Use the [manual acceptance plan](manual-acceptance.md) to document real-device checks outside CI. This is a *temporary* pre-release policy under [ADR-0004](../architecture/adrs/0004-rapid-main-development.md).
 
 ## CI jobs once code exists
 | Component | Unit runner | Target scope |
@@ -14,14 +14,14 @@ Run only when relevant project exists; unit jobs should fail on real tests, not 
 ## Unit test priorities
 1. Credential/token expiry, replay and authorization deny decisions.
 2. SQLite transaction atomicity and single ordered writer.
-3. Event sequence conflicts and server deduplication.
+3. Entire-batch transaction + sequence/event-ID conflicts, deduplication, explicit per-sequence acknowledgment and new-enrollment identity.
 4. Backoff, queue quota and explicit collection_gap behavior.
 5. Retention predicate and policy scope.
 6. Recording permission state machine and segment manifest validation (v0.3).
 7. UI view models, handling missing unsupported capabilities and stale/offline states.
 
 ## Targeted manual smoke checks (not automated E2E)
-After v0.1 locally: deploy one server and enroll one Windows + one Linux test endpoint; confirm TLS, last-seen, reboot, network disconnect and replay. For v0.2 manually verify cross-role API denial, limited audit sources and retention on test data. For v0.3 verify OS permission dialogs, capture status, denial fail-closed, logout/lock gaps, storage quota and approved playback. Log date/OS/version/operator/outcome in acceptance notes; **manual checks are not CI jobs**.
+After v0.1 locally: deploy one server and enroll one Windows + one Linux test endpoint; confirm TLS, last-seen, reboot, network disconnect and replay. Record cases MAN-001 through MAN-013 from [manual acceptance](manual-acceptance.md) and mark unexecuted tests clearly. For v0.2 manually verify cross-role API denial, limited audit sources and retention on test data. For v0.3 verify OS permission dialogs, capture status, denial fail-closed, logout/lock gaps, storage quota and approved playback. Log date/OS/version/operator/outcome in acceptance notes; **manual checks are not CI jobs**.
 
 ## Security constraints
 Do not conflate unit CI green with end-to-end, platform or security certification. Before production deployment add contract/integration tests, cross-platform install tests, actual capture UX checks, vulnerability checks and eventually E2E; do not silently weaken requirements to maintain speed.

@@ -13,9 +13,9 @@
 | device_credentials | id, device_id, public_key_thumbprint, issued_at, expires_at, revoked_at | Rotation and revocation |
 | enrollment_tokens | id, hash UNIQUE, group_id, expires_at, consumed_at, created_by | Expiring single-use tokens; never persist plaintext |
 | heartbeats | device_id, received_at, agent_version, capabilities_json, queue_depth, errors_json | Small, retained health history |
-| activity_intervals | id, device_id, event_id UNIQUE, kind, app_id, started_at, ended_at, received_at, scope_version | Allowlisted application/idle metadata |
-| audit_events | id, device_id, device_sequence, source, event_type, occurred_at, received_at, schema_version, payload_json; UNIQUE(device_id, device_sequence) | Idempotent event audit |
-| collection_gaps | id, device_id, source, period, reason, detected_at, reported_at | Incomplete collection accounting |
+| activity_intervals | id, device_id, event_id UNIQUE references endpoint_events, activity_kind, app_id, started_at, ended_at, received_at, policy_version | Derived query projection from canonical events, not independently uploaded |
+| endpoint_events | id, device_id, device_sequence, event_id, source, event_type, occurred_at, received_at, schema_version, policy_version, payload_json, content_digest; UNIQUE(device_id, device_sequence), UNIQUE(device_id, event_id) | **Canonical immutable ingested events** (audit, activity and gap) |
+| collection_gaps | id, device_id, event_id nullable references endpoint_events, source, range_start, range_end, reason, detected_at, received_at, inferred_by_server | Derived or server-inferred coverage gaps; not proof of user activity |
 | recording_sessions | id, device_id, policy_version, started_at, ended_at, state | Disclosed recording sessions (later) |
 | recording_segments | id, session_id, begin_at, end_at, object_key UNIQUE, sha256, bytes, codec, state | Video index, not BLOB |
 | review_cases | id, reason, owner_id, approved_by, expires_at, device_id, time_range | Playback authorization |
@@ -24,13 +24,13 @@
 
 ## Database guarantees
 - All IDs server-generated or checked; client event IDs have size/format constraints.
-- Server receive time is authoritative for visibility/retention decisions. Client event time is untrusted and accompanied by clock drift and source.
-- Unique device sequence and event ID allow safe duplicate retries. Acknowledgment happens **after** commit; server transaction is single source of truth.
+- Server receive time is authoritative for visibility/retention decisions. Client event time is untrusted and accompanied by clock drift and source. A new enrollment always receives a new device_id; previous identity and evidence remain immutable historical records.
+- Unique (device_id, device_sequence) and (device_id, event_id) allow safe identical retries; store immutable content digest for detecting conflicting reuse. Whole-batch **all-or-nothing** validation/commit happens before acknowledgment; server transaction is single source of truth. See [delivery contract](event-delivery.md).
 - Device credentials, token secrets, or raw screen contents are never stored inside event payloads.
 - Media paths are opaque server-generated IDs; disallow path traversal and arbitrary client chosen paths.
 - Referential integrity and explicit migrations via Flyway. PostgreSQL JSONB only for allowlisted, versioned event detail—not a dumping ground for raw data.
 - Index likely query patterns: (device_id, received_at DESC), (device_id, occurred_at), (source, event_type, received_at); confirm with EXPLAIN, avoid speculative over-indexing.
-- Retention cleanup runs in bounded batches with access logs; database/index backup lifecycle documented separately.
+- Retention cleanup runs in bounded batches with access logs; database/index backup lifecycle documented separately. Derived activity/gap rows are deleted consistently with their parent events; no orphan projections. Sensitive queries must enforce [role and device-group scope](../security/authorization-matrix.md).
 
 ## Agent SQLite entities
 Refer to [Agent Persistence](agent-persistence.md). Store `outbox_events`, `collector_cursors`, `collection_gaps`, `upload_batches`, `schema_migrations`, optional `recording_manifests`. Do not duplicate central RBAC tables locally.

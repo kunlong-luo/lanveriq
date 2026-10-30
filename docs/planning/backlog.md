@@ -5,14 +5,15 @@
 | ID | Title | Priority | Depends on | Acceptance evidence |
 |---|---|---|---|---|
 | DOC-01 | Approve PRD, collection policy and Linux matrix | P0 | none | documented owner review |
-| ARCH-01 | Validate event schema and pairing contract | P0 | DOC-01 | API example and edge cases accepted |
+| ARCH-01 | Validate canonical event_type schema, atomic batch, re-enrollment and pairing | P0 | DOC-01 | [delivery contract](../architecture/event-delivery.md) and negative cases accepted |
 | SRV-01 | Boot Spring Boot/PostgreSQL with Flyway | P0 | D0 | local startup / migration smoke check |
 | SRV-02 | Device enrollment and revocation | P0 | SRV-01 | unit tests token replay/expiry |
 | AGT-01 | Rust service lifecycle and config | P0 | D0 | Windows/Linux service smoke |
 | AGT-02 | SQLite WAL single-writer outbox | P0 | AGT-01 | crash/retry/quota unit tests |
 | AGT-03 | HTTPS authenticated heartbeat and event batch | P0 | AGT-02, SRV-02 | unit test retries/dedup |
-| SRV-03 | Idempotent PostgreSQL event ingestion | P0 | SRV-02 | uniqueness/conflict tests |
+| SRV-03 | Whole-batch PostgreSQL event ingestion + idempotent ack | P0 | SRV-02 | exact duplicate/conflict/rollback unit tests |
 | WEB-01 | Dashboard shell and device list | P0 | SRV-02 | UI unit tests |
+| OPS-00 | Secure bootstrap, credential and manual LAN acceptance | P0 | SRV-01, AGT-03 | [MAN-001–013](../testing/manual-acceptance.md) evidence on synthetic endpoints |
 | AUD-01 | Windows scoped Event Log source | P1 | AGT-03 | mock unit + manual Windows test |
 | AUD-02 | Linux auditd/journal adapter | P1 | AGT-03 | mock unit + manual Linux test |
 | ACT-01 | OS/window activity metadata collector | P1 | AGT-03 | supported/unsupported feature matrix |

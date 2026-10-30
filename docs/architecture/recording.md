@@ -6,7 +6,10 @@
 `disabled` → `policy-approved` → `awaiting OS permission` → `recording` → `finalizing` → `uploaded` / `failed` / `unsupported`. UI shows state honestly. No service-level workaround for a denied OS grant.
 
 ## Capture architecture
-A signed and visible **user-session companion** obtains Windows.Graphics.Capture or Linux X11/Wayland (PipeWire + xdg-desktop-portal) permissions as appropriate. Native dialogs, system indicators and protected-content restrictions are respected. A background audit service cannot capture a session without permission merely because the organization owns the PC.
+A signed and visible **user-session companion** obtains Windows.Graphics.Capture or Linux X11/Wayland (PipeWire + xdg-desktop-portal) permissions as appropriate. Native dialogs, system indicators and protected-content restrictions are respected. On Linux Wayland, portal `persist_mode` and `restore_token` are conditional; tokens are single-use and a new token must replace the previous one after successful restoration. No promise that reopening a session skips the user prompt, and no bypass on permission denial. See the [official ScreenCast interface](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html). A background audit service cannot capture a session without permission merely because the organization owns the PC.
+
+## Permission and recorder state transitions
+Grant is bound to **session, source and OS implementation**; a new login session, display change or portal denial may invalidate it. Explicit transitions: `disabled → awaiting_permission → recording → finalizing → uploading → available`, with `permission_denied/unsupported/failed` exits and a separate coverage-gap record. Stop collection when policy is revoked or the desktop permission is withdrawn, even if the service remains online. See [health/coverage states](health-and-gap-semantics.md).
 
 ## Segments and manifests
 - Conservative default: H.264 video, 1080p at 10–15 FPS, audio off, 30-minute target segments; configure based on benchmark.

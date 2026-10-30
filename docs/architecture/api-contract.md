@@ -1,6 +1,6 @@
 # REST and event protocol contract v0.1 (proposed)
 
-**Base:** `/api/v1` over HTTPS only. JSON UTF-8; server controls authorization. Version via both URL major and `schema_version` per event. This is an API **design**, not an OpenAPI implementation.
+**Base:** `/api/v1` over HTTPS only. JSON UTF-8; server controls authorization. Version via both URL major and `schema_version` per event. This is an API **design**, not an OpenAPI implementation. The canonical delivery semantics are in [Event Delivery](event-delivery.md); the API and SQLite writer must conform to that one source of truth.
 
 ## Device API
 | Method | Path | Principal | Semantics |
@@ -20,7 +20,7 @@
 Later recording endpoints: `POST /recording-sessions`, `POST /recording-segments/init`, `PUT /recording-segments/{id}/content`, `POST /recording-segments/{id}/complete`, `GET /devices/{id}/recordings`, `GET /recordings/{id}/play`. Each guarded by policy, OS authorization, scope, role and approval.
 
 ## Request envelopes
-Enrollment request fields: `token`, `agent_version`, `os`, `capabilities`, `device_public_key`, `policy_notice_version`. The server must authenticate identity beyond LAN IP; token only bootstraps identity. Enrollment tokens are not reused as ongoing API keys.
+Enrollment request fields: `token`, `agent_version`, `os`, `capabilities`, `device_public_key`, `policy_notice_version`. The server must authenticate identity beyond LAN IP; token only bootstraps identity. Enrollment tokens are not reused as ongoing API keys. On a lost local database/identity, a reinstall enrolls as a **new device_id**, leaving old evidence under a revoked historical identity. Token consumption must be atomic.
 
 Heartbeat fields: `device_id`, `sent_at`, `agent_version`, `status`, `capabilities`, `queue_count`, `queue_bytes`, `collection_errors`. Server stamps `received_at`.
 
@@ -35,7 +35,8 @@ Event batch (illustrative):
       "event_id": "6782a074-e42c-4198-adfa-5f6ab57d7d43",
       "sequence": 101,
       "source": "system_audit",
-      "kind": "program_started",
+      "event_type": "program_started",
+      "policy_version": 1,
       "occurred_at": "2026-10-30T09:00:00Z",
       "payload": {"executable": "example-app"}
     }
@@ -45,14 +46,17 @@ Event batch (illustrative):
 
 Response after DB commit:
 ~~~json
-{"schema_version":1,"accepted_sequences":[101],"rejected":[],"server_time":"2026-10-30T09:00:02Z"}
+{"schema_version":1,"accepted_sequences":[101],"server_time":"2026-10-30T09:00:02Z","request_id":"a2fdba9e-fb11-42fd-ad05-3b7f19cbe0b2"}
 ~~~
 
+## All-or-nothing transaction (v0.1)
+A batch is limited to **100 events and 512 KiB**, with no partial acknowledgments. Server validates device identity, schema version, policy/source allowlist and all events before it commits. A fully valid batch inserts or recognizes identical duplicates in **one PostgreSQL transaction**. A failed batch commits nothing. Only confirmed `accepted_sequences` may be marked acknowledged; never delete everything below a single high-watermark. Same `device_id + device_sequence` with different event content (or same `event_id` mapped to a different sequence) is `409 sequence_conflict` and requires a halted/quarantined batch, not overwrite. See [Event Delivery](event-delivery.md).
+
 ## Error and retry
-- 400 invalid schema; 401 no identity; 403 revoked/out-of-scope; 409 identity or sequence payload conflict; 413 oversized; 422 field validation; 429 backoff; 5xx retry.
+- 400 invalid syntax; 401 no identity; 403 revoked/out-of-scope; 409 identity or sequence payload conflict; 413 oversized; 422 field/schema validation; 429 backoff; 5xx retry. Network timeout, 429 and 5xx retain the local batch and use bounded retry, not repeated immediate retries.
 - Stable `code`, `message`, `request_id`, optional `retry_after_seconds`. Never echo credentials or raw sensitive payload.
-- A duplicate sequence with identical canonical event content is idempotent; same sequence with different payload is an audit-worthy **conflict**, not an overwrite.
-- Limit pagination and time range. Validate `device_id` against credential, not the body alone.
+- A duplicate sequence with identical immutable canonical event content is idempotent; a conflict in sequence or event ID with different content is an audit-worthy **conflict**, not an overwrite. Canonical event fields are `event_id`, `device_sequence`, `schema_version`, `source`, `event_type`, `occurred_at`, `payload`, `policy_version`. The database adds server-received `received_at`.
+- Limit pagination and time range. Validate `device_id` against credential, not the body alone. Query ordering uses stable `received_at, event_id` cursor keys; source timestamps are untrusted and should not silently reorder evidence. Admin device/time/data-category scopes are enforced before database rows are returned; see [permission matrix](../security/authorization-matrix.md).
 
 ## Authentication
 Admin: secure session with MFA support and role/device-group scopes; Agent: unique client credential bound to device (mTLS preferred if local certificate distribution is feasible; otherwise proof-of-possession tokens). Credentials revocable/rotatable. No insecure plaintext HTTP exception on a trusted LAN.
