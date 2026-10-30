@@ -22,13 +22,13 @@ Lanveriq is planned as a cross-platform (Windows 11 and selected Linux desktops)
 - Recording microphones/cameras, scraping private messages or bypassing TLS.
 - AI analytics, remote arbitrary command execution, or Internet SaaS.
 
-## Technology direction (subject to architecture approval)
+## D0-approved V0.1 technical direction (not yet implemented)
 Rust endpoint agent; optional Tauri 2 desktop companion; Java 25 / Spring Boot 4 modular-monolith API; React + Vite dashboard; PostgreSQL 18 server + SQLite WAL on endpoints; local disk/NAS video storage; HTTPS REST for Rust Agent and REST + authenticated WSS for the v0.1 dashboard; Docker Compose + Caddy.
 
 ## Documentation
 See [Architecture Drawings](docs/diagrams/README.md), [WebSocket Contract](docs/architecture/websocket-contract.md), [Documentation Index](docs/README.md), [Product Requirements](docs/product/requirements.md), [System Architecture](docs/architecture/system-overview.md), [Security and Privacy](docs/security/privacy-and-consent.md), [Development Roadmap](docs/planning/roadmap.md), and [中文说明](README.zh.md).
 
-**Documentation-first gate:** No product code is to be started until the D0 technical baseline and blocking security/protocol decisions have been **explicitly approved by the maintainer**, with unresolved risks recorded. Reviewing documents or selecting Gradle alone does not constitute approval. See [Documentation Gate](docs/governance/documentation-gate.md).
+**Documentation-first gate:** the D0 technical baseline was **explicitly approved 2026-10-30 for V0.1 source implementation only**, as recorded in the [D0 sign-off](docs/governance/d0-decision-package-2026-10-30.md) and [documentation gate](docs/governance/documentation-gate.md). Software is still not built or tested. This **does not authorize real employee-data collection, production deployment, V0.2 activity auditing or V0.3 recording**; those have separate privacy, security and platform gates.
 
 ## Early development workflow
 
