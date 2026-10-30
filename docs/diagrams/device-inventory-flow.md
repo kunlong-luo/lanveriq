@@ -10,16 +10,16 @@ sequenceDiagram
   participant WS as Scoped WS notifier
   participant UI as Device details / Monitoring Center
   OS->>Agent: Read allowed OS, CPU, RAM, disk, NIC, IP/MAC
-  Agent->>Agent: Normalize, redact, validate, hash and increment inventory_revision
-  Agent->>Agent: Persist latest pending snapshot in SQLite
+  Agent->>Agent: Normalize, redact, validate, compare snapshot digest
   opt Changed snapshot, startup or 24h reconciliation
+    Agent->>Agent: Allocate inventory_revision and persist pending SQLite snapshot atomically
     Agent->>API: HTTPS POST /devices/{id}/inventory
     API->>API: Validate credential, ID, schema, bounds
     API->>DB: Upsert only if inventory_revision is newer; atomic NIC/IP/volumes
     DB-->>API: COMMIT (or identical retry)
     API-->>Agent: Accepted / identical replay / stale_ignored
     Agent->>Agent: Clear only matching pending revision
-    API->>WS: Optional scoped inventory.changed AFTER COMMIT
+    API->>WS: Optional device.inventory.changed AFTER COMMIT
     WS-->>UI: Small notification, no raw IP/MAC
     UI->>API: Refetch scoped REST inventory
   end

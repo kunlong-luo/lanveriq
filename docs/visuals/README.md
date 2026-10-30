@@ -29,7 +29,7 @@
 - [Visual style guide](STYLE_GUIDE.md): 16:9 canvas, colors, fonts, icons, illustration patterns, accessibility, text limitations.
 - [Asset manifest](ASSET_MANIFEST.md): IDs, intent, stages, use sites and file ownership.
 - [Content and terminology consistency matrix](CONTENT_MATRIX.md): exact architecture semantics, feature stages, user notice and prohibited claims.
-- [Engineering architecture diagrams](../diagrams/README.md): the separate, developer-oriented Mermaid drawings. **Keep both sets**; color posters are explanations, Mermaid diagrams are technical contracts.
+- [Engineering architecture diagrams](../diagrams/README.md): the separate, developer-oriented Mermaid drawings. **Keep both sets** (8 posters + 20 Mermaid diagrams); color posters are explanations, Mermaid diagrams are technical contracts.
 - [Technology selection](../development/technology.md) and [development roadmap](../planning/roadmap.md) determine the actual product, not decorative infographic text.
 
 ## Asset policy

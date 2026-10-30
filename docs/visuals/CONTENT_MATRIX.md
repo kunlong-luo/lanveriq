@@ -10,7 +10,7 @@ The visuals should explain the product **faithfully**, not expand the monitoring
 | Device pairing (02,05) | Unique credential and single-use pairing; verify internal CA | Device is trusted merely because it is on LAN | [Enrollment](../architecture/enrollment-bootstrap.md) |
 | Audit events (01,02,04,07) | Source allowlist, v0.2 scoped activity and OS audit events | Continuous total surveillance, full 24-hour completeness | [PRD](../product/requirements.md) |
 | Offline queue (02,07) | SQLite stores bounded durable pending events, PostgreSQL acknowledges after commit | Unlimited outage retention, absolute zero event loss | [Delivery](../architecture/event-delivery.md) |
-| Dashboard (01,03,06) | React + Vite + TypeScript, scoped REST and WSS notifications | Next.js SSR or an already implemented UI | [Dashboard UX](../development/dashboard-ux.md) |
+| Dashboard (01,03,06) | React + Vite + TypeScript; **Monitoring Center V0.1**, **Audit Center V0.2**, **Recording & Playback Center V0.3**; scoped REST/WSS | Any of these UIs already implemented; unapproved raw video in health overview | [Dashboard UX](../development/dashboard-ux.md) |
 | Tech stack (03) | Java 25, Spring Boot 4, PostgreSQL 18, Caddy, pnpm for JS | pnpm is a framework, PostgreSQL runs on every Agent | [Technology](../development/technology.md) |
 | Privilege (06,08) | Admin session, RBAC, device-group scope, sensitive-read audit | All administrators can view every employee's recordings | [Authorization](../security/authorization-matrix.md) |
 | Recording (04,08) | Optional V0.3, notice, OS permission, review approval | Hidden capture, Wayland permission bypass, guaranteed locked-screen recording | [Recording](../architecture/recording.md) |

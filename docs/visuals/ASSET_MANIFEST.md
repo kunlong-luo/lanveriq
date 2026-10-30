@@ -21,4 +21,4 @@
 - Avoid font binaries and external image hotlinks; all assets must be locally previewable after cloning.
 
 ## Current status
-All eight illustrations are **design concept files**, separate from the 16 Mermaid engineering drawings. No PNG replicas are claimed to have been committed; source/preview asset is the SVG itself.
+All eight illustrations are **design concept files**, separate from the **20** Mermaid engineering drawings. No PNG replicas are claimed to have been committed; source/preview asset is the SVG itself.

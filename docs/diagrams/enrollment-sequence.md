@@ -15,11 +15,11 @@ sequenceDiagram
   PG-->>Server: Commit
   Server-->>UI: Display short-lived token once
   Operator->>Agent: Provide LAN hostname and token
-  Agent->>Server: Validate trusted TLS chain / hostname
+  Agent->>Agent: Validate configured server CA and target hostname during TLS handshake
   Agent->>Agent: Display approved policy notice
   Agent->>Key: Create unique device keypair
   Agent->>Server: POST /api/v1/devices/enroll (token + public key)
-  Server->>PG: Consume token atomically; create new device_id
+  Server->>PG: Atomically consume token and insert devices.id = uuidv7()
   alt Valid and unused
     PG-->>Server: Commit device identity
     Server-->>Agent: device_id + bound credential information
