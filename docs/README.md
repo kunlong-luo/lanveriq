@@ -1,6 +1,6 @@
 # Lanveriq — documentation index
 
-**Baseline:** v0.1 draft (2026-10-30). The repo is **documentation-only**. Planned architecture is not implemented or tested. English technical documents are canonical; see [中文介绍](../README.zh.md).
+**Baseline:** V0.1 technical D0 **approved 2026-10-30 for source implementation**. The repo is **documentation-only at sign-off**; the selected architecture has not been implemented, compiled or tested. English technical documents are canonical; see [中文介绍](../README.zh.md).
 
 ## Product
 - [Requirements and scope](product/requirements.md)
@@ -73,11 +73,11 @@
 - [Lightweight release and upgrade plan](operations/release.md)
 
 ## Governance
-- [D0 technical decision/sign-off package — **review ready, unsigned**](governance/d0-decision-package-2026-10-30.md): four proposed technical resolutions, negative tests and blank approval record.
+- [D0 technical decision/sign-off package — **approved for V0.1 coding**](governance/d0-decision-package-2026-10-30.md): four selected technical baselines, negative tests and dated Git owner approval record.
 - [Final documentation closure review: conceptual closure vs D0 blockers (2026-10-30)](governance/final-closure-review-2026-10-30.md)
 - [Cross-document / diagram / SVG consistency review — 2026-10-30](governance/documentation-review-2026-10-30.md)
 - [Open decisions](governance/open-decisions.md)
 - [Docs-before-code gate](governance/documentation-gate.md)
 - [Contributing](../CONTRIBUTING.md) · [Security reporting](../SECURITY.md) · [Changelog](../CHANGELOG.md)
 
-**Working rule:** MVP changes may commit directly to main, no PR requirement. Pre-release CI executes unit tests only; no E2E suite yet. Code starts only after the D0 technical baseline is **explicitly approved by the maintainer**; document review or build-tool selection alone is insufficient. Privacy/security controls cannot be deferred merely for speed.
+**Working rule:** D0 technical approval is recorded; **V0.1 software development may now begin** directly on main with real tests, unit-only early CI and no PR requirement. No E2E suite in early CI yet. No real employee data or live monitoring without separate employer/legal approval and passed actual PKI/OS/DB/RBAC/manual safety tests. V0.2 audit and V0.3 recording remain gated. Privacy/security controls cannot be deferred for speed.
