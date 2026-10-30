@@ -23,6 +23,9 @@ public class AdminAccount {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(name = "session_version", nullable = false)
+    private long sessionVersion;
+
     @Column(name = "disabled_at")
     private Instant disabledAt;
 
@@ -34,6 +37,7 @@ public class AdminAccount {
         this.normalizedLogin = normalizedLogin;
         this.passwordHash = passwordHash;
         this.disabledAt = disabledAt;
+        this.sessionVersion = 0;
     }
 
     public UUID getId() {
@@ -46,6 +50,10 @@ public class AdminAccount {
 
     public String getPasswordHash() {
         return passwordHash;
+    }
+
+    public long getSessionVersion() {
+        return sessionVersion;
     }
 
     public boolean isEnabled() {

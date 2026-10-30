@@ -32,7 +32,7 @@ public final class AdminIdentityUserDetailsService implements UserDetailsService
         var account = repository.findByNormalizedLogin(normalized).orElseThrow(
                 AdminIdentityUserDetailsService::missing);
         return new AdminPrincipal(account.getId(), account.getNormalizedLogin(),
-                account.getPasswordHash(), account.isEnabled());
+                account.getPasswordHash(), account.isEnabled(), account.getSessionVersion());
     }
 
     private static UsernameNotFoundException missing() {

@@ -13,6 +13,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 
 /**
@@ -20,7 +22,7 @@ import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
  * permissions are granted, even when the operator explicitly enables this
  * narrow console authentication slice in a synthetic TLS acceptance sandbox.
  *
- * DO NOT enable before trusted console TLS, login throttling and browser
+ * DO NOT enable before trusted console TLS, full audit and browser
  * negative tests. This feature flag is not a production approval.
  */
 @Configuration(proxyBeanMethods = false)
@@ -32,7 +34,7 @@ public class ConsoleSessionSecurityConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     SecurityFilterChain consoleAuthenticationOnly(
             HttpSecurity http, AuthenticationProvider adminAuthenticationProvider,
-            Environment environment) throws Exception {
+            Environment environment, AdminAccountRepository accounts) throws Exception {
         var policy = new ConsoleOriginPolicy(
                 environment.getProperty("lanveriq.console.auth.origin"));
         var csrfTokens = new HttpSessionCsrfTokenRepository();
@@ -41,6 +43,10 @@ public class ConsoleSessionSecurityConfiguration {
                 .securityMatcher("/api/v1/auth/**")
                 .addFilterBefore(new ConsoleRequestGuardFilter(policy),
                         CsrfFilter.class)
+                .addFilterAfter(new ConsoleSessionRevalidationFilter(accounts),
+                        SecurityContextHolderFilter.class)
+                .addFilterBefore(new ConsoleLoginRateLimitFilter(new ConsoleLoginRateLimiter()),
+                        UsernamePasswordAuthenticationFilter.class)
                 .authenticationProvider(adminAuthenticationProvider)
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()

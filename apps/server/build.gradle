@@ -28,6 +28,9 @@ dependencies {
     implementation 'org.flywaydb:flyway-database-postgresql'
     // Maintained PKCS#10 parser and verifier; never parse ASN.1/CSR by hand.
     implementation 'org.bouncycastle:bcpkix-jdk18on:1.86'
+    // Maintained token-bucket algorithm and bounded, expiring local cache.
+    implementation 'com.bucket4j:bucket4j_jdk17-core:8.21.0'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.3.1'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:3.2.0'
 

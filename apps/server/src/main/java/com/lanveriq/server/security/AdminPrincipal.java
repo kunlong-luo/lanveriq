@@ -22,13 +22,24 @@ public final class AdminPrincipal implements UserDetails, CredentialsContainer, 
     private final UUID userId;
     private final String username;
     private final boolean enabled;
+    private final long sessionVersion;
     private transient String passwordHash;
 
     AdminPrincipal(UUID userId, String username, String passwordHash, boolean enabled) {
+        this(userId, username, passwordHash, enabled, 0);
+    }
+
+    AdminPrincipal(UUID userId, String username, String passwordHash, boolean enabled,
+                   long sessionVersion) {
+        this.sessionVersion = sessionVersion;
         this.userId = Objects.requireNonNull(userId, "userId");
         this.username = Objects.requireNonNull(username, "username");
         this.passwordHash = Objects.requireNonNull(passwordHash, "passwordHash");
         this.enabled = enabled;
+    }
+
+    public long sessionVersion() {
+        return sessionVersion;
     }
 
     public UUID userId() {
