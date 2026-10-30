@@ -19,7 +19,7 @@
 ## Dependency rules
 - Platform adapters implement contracts from core but do not import UI packages.
 - Agent-store is the **sole** SQLite write gateway. This borrows Pagevela's ordered persistence-coordinator principle and avoids competing writers.
-- Server controllers call domain services; domain services own transactions, data access stays behind repositories. Keep event migrations backward-compatible.
+- Server controllers call domain services; services own `@Transactional` units, and repositories use **Spring JDBC/JdbcClient** with parameter-bound SQL. Flyway owns PostgreSQL schema changes. No Hibernate/JPA or jOOQ in V0.1; see [backend stack](../development/backend-stack.md).
 - UI feature pages depend on typed REST API clients; Zustand stores ephemeral selection/layout, TanStack Query owns server state. WSS carries only scoped notification hints to invalidate/refetch TanStack Query. The dashboard never treats WSS messages as source of truth.
 
 ## Concurrency and performance

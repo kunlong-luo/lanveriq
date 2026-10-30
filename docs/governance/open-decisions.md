@@ -26,6 +26,7 @@
 | D-20 | Baseline V0.1 authorization design | Admin session, device-group scoped REST inventory/monitoring and WSS; validate Origin/CSRF, revoke credentials; fine-grained audit/video access staged separately | before V0.1 auth code |
 | D-21 | Recording access approval and storage lifecycle | Case approval must predate playback; independent approver, byte-range time scoping and verified retention/delete; no direct file/NAS access | before V0.3 |
 | D-22 | Initial client compatibility/protocol freeze | Stable field limits, optional/missing capability states, inventory revisions, API error codes, 30s heartbeat and 60–120s metrics require tested platform fixtures | before V0.1 client/server rollout |
+| D-23 | Java build tool **explicitly selected by maintainer** | **Gradle 9.8.2 Wrapper / Groovy DSL**, Java 25, Spring Boot 4.1.2; JaCoCo 0.8.16, dependency-management 1.1.7. User provided an existing Gradle IoT example; keep **only** Lanveriq-relevant dependencies. **Build selection approved; D0 as a whole NOT approved.** | before SRV-01 |
 
 ## Decision process
 Record who approved, date, consequences and relevant ADR/PRD changes. Any deployment collecting real employee data requires D-01, D-03, D-05 and D-07 resolved even if code exists. The documentation gate can be **ready for technical review** while legal/operational approvals remain open.

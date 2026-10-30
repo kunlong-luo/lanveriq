@@ -7,7 +7,7 @@ lanveriq/
   apps/
     agent/                  # Rust service executable
     desktop/                # optional Tauri user-session UI
-    server/                 # Java Spring Boot modular monolith
+    server/                 # Java 25 + Spring Boot 4.1.2, Gradle Groovy build.gradle + Wrapper
     dashboard/              # React/Vite management UI
   crates/
     agent-core/
@@ -32,6 +32,9 @@ lanveriq/
 
 ## Naming
 Rust: snake_case modules, PascalCase types; Java: conventional packages such as `com.lanveriq.server.devices`; frontend: feature folders and explicitly named hooks/components. API resources kebab-case; JSON field names snake_case across server and agent with documented mapping in TS client. UUID device/event identifiers, UTC timestamps.
+
+## Java backend build
+**Gradle 9.8.2 Wrapper**, Groovy DSL `build.gradle`, Spring Boot Gradle plugin **4.1.2**, Java 25 toolchain and JaCoCo 0.8.16. Start with one `apps/server` Gradle module; Java domain packages stay logical modules. Use Spring JDBC/`JdbcClient` + Flyway for explicit PostgreSQL transactions. **Do not introduce Maven, a second Java build system or all dependencies from the unrelated IoT reference.** See [backend stack](backend-stack.md) and [Gradle reference](backend-gradle-reference.md).
 
 ## Versioning
 Single pre-release project version, semver tags at verified milestone; Event `schema_version` and API `/api/v1` evolve compatibly. Avoid breaking installed agents without compatibility window. Database migrations via Flyway server and Rust versioned local migrations.

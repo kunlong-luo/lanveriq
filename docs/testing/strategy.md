@@ -6,10 +6,12 @@
 | Component | Unit runner | Target scope |
 |---|---|---|
 | Rust crates/Agent | `cargo test --workspace` (native runner, platform-gated code) | outbox, migrations, retry, state transitions, redaction |
-| Java API | `./mvnw test` or pinned Maven `mvn test` | auth, token expiry, event validation/dedup, RBAC logic, retention |
+| Java API | `./gradlew test` from `apps/server` (**Gradle 9.8.2**, Boot **4.1.2**, JUnit **6**) | auth, token expiry, event validation/dedup, RBAC logic, retention; JaCoCo reports |
 | React dashboard | `pnpm test` (Vitest run mode) | UI state, hooks, formatting, error states and auth-related rendering |
 
 Run only when relevant project exists; unit jobs should fail on real tests, not artificially pass with "echo OK". Keep GitHub Actions permissions contents:read, runner/timeouts bounded and no external deployment. Local format, lint, typecheck and build are recommended but **not** part of CI.
+
+**Java backend test baseline:** Boot-managed `spring-boot-starter-test` + `org.springframework.security:spring-security-test`, Gradle's `jacoco` 0.8.16. **83% line coverage is a later possible threshold**, not a green-check substitute or an unconditional gate before real tests. Do not run Docker-dependent Testcontainers, integration E2E or Kafka jobs in the early unit-only CI. See [backend stack](../development/backend-stack.md).
 
 ## Unit test priorities
 1. Credential/token expiry, replay and authorization deny decisions.

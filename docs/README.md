@@ -41,6 +41,8 @@
 
 ## Engineering
 - [Technology selection](development/technology.md)
+- [Spring Boot/Gradle backend stable-version and dependency decisions](development/backend-stack.md)
+- [Gradle 9.8.2 Groovy DSL example (documentation only)](development/backend-gradle-reference.md)
 - [Pagevela reference: reuse and differences](development/pagevela-reference.md)
 - [Repository layout and conventions](development/standards.md)
 - [Dashboard UI/UX contract](development/dashboard-ux.md)
