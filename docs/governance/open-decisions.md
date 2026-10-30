@@ -1,36 +1,39 @@
 # Open decisions and pre-code sign-offs
 
-**Status:** design proposals are written; product owner review is not yet recorded. Do not mark these as approved merely because a document is committed.
+**Status:** specific D0 technical **candidate resolutions are now prepared for review**, but the maintainer/security/organization have **not signed them**. Do not mark these as approved merely because a document is committed. Consolidated [D0 decision package](d0-decision-package-2026-10-30.md).
 
 | ID | Decision | Current assumption | Required by |
 |---|---|---|---|
 | D-01 | Deployment jurisdiction, lawful purposes and employee notice | company devices, prior specific notice; jurisdiction not defined | pilot with employee data |
-| D-02 | First supported Linux distribution, compositor and CPU arch | **Pilot candidate supplied:** Pop!_OS 24.04 LTS x86_64, KDE Plasma 5.27.12/KWin, kernel 7.2.6-76070206-generic, RTX 4050 Laptop; `XDG_SESSION_TYPE` still unknown, X11/Wayland must be validated separately | v0.1 deployment |
+| D-02 | First supported Linux distribution, compositor and CPU arch | **Unsigned [pilot evidence proposal](../architecture/platform-matrix.md):** Pop!_OS 24.04 LTS x86_64, KDE Plasma 5.27.12/KWin, kernel 7.2.6-76070206-generic, RTX 4050 Laptop; `XDG_SESSION_TYPE` still unknown, X11/Wayland must be validated separately | v0.1 deployment |
 | D-03 | Allowed application fields and Windows/Linux event source list | coarse app name, scope allowlist, no URL/title by default | v0.2 |
 | D-04 | Recording policy, OS prompts and user status UX | opt-in later, visible state, fail closed | v0.3 |
 | D-05 | Actual video/event retention and backup periods | event 30d, video 14d drafts | real data pilot |
 | D-06 | Admin MFA rollout and approved recording access workflow | MFA required before real-data recording | v0.3 |
-| D-07 | **D0-blocking: device PKI, per-request auth and key storage** | Preferred **enrolled-Agent mTLS** with separate browser WSS, pre-enrollment and Agent certificate boundary; must freeze hostname/vhost or equivalent route isolation, CA chain + out-of-band trust distribution, CSR/cert issuance, safe proxy→Spring verified identity, OS key storage, renewal and revocation. **Not approved yet.** See [bootstrap](../architecture/enrollment-bootstrap.md) | **before V0.1 code/D0 approval** |
+| D-07 | **D0-blocking: device PKI, per-request auth and key storage** | **Unsigned [three-host/mTLS proposal](../architecture/enrollment-bootstrap.md):** browser/WSS console, no-client-cert enrollment, mandatory mTLS Agent. Operator-mediated reviewed CSR signing using a separate offline client CA is proposed for the 1–10 endpoint pilot (not an installed or tested service). Need precise Caddy configuration, verified proxy fingerprint/DB binding, key storage compatibility, renewal, revocation, CA custody and recovery approval. **Not approved.** | **before V0.1 code/D0 approval** |
 | D-08 | Software distribution license and dependency audit | unlicensed public repo until formal choice | first public release |
 | D-09 | Storage quotas & capture codec from measured pilot | SQLite WAL, video H.264 initial trial | v0.3 |
 | D-10 | Production testing strategy | CI unit-only now, integration/E2E before v1.0 | v1.0 |
-| D-11 | Atomic batch envelope and event source whitelist | v0.1 all-or-nothing; frozen wire names required | before v0.1 code |
+| D-11 | Atomic batch envelope and event source whitelist | **Unsigned [V0.1 wire fixtures](../architecture/api-contract.md):** all-or-nothing; proposed `agent_transport/collection_gap` only for operational events, development-only `synthetic_test/protocol_fixture`, version/errors/bounds require sign-off | before v0.1 code |
 | D-12 | Policy validity and client behavior during disconnect | last approved scope only; sensitive collection fails closed | before v0.2 |
 | D-13 | Agent local DB damage, replacement device workflow | new device identity after lost local DB; explicitly audit link | before v0.1 |
 | D-14 | Administration scope grants and case approval | role + device group + purpose + time; no default recording access | before v0.2 |
 | D-15 | WebSocket handshake/session lifecycle and initial subscription cap | proposed same-origin Secure HttpOnly cookie + strict Origin + <=5 connections per user + <=10 device IDs; verify exact handler mechanics | before WS-01 |
 | D-16 | WSS push timing and failure thresholds | WSS metadata-only, best-effort; **post-subscription REST + tab-resume / low-frequency reconciliation** handles lost hints; proposed <2s normal push and 60–120s visible-page REST sanity interval to validate | v0.1 manual acceptance |
-| D-17 | Device hardware/IP/MAC inventory field scope | V0.1 CPU/RAM/disks/OS, permitted NICs and multiple IPv4/IPv6; no hardware serial/TPM by default; last-seen and inventory freshness distinct | before v0.1 schema |
-| D-18 | Inventory retention and sensitive network address exposure | Current record plus proposed 7-day IP/MAC change log; role/group restrictions and no WSS address payload | before real managed endpoints |
+| D-17 | Device hardware/IP/MAC inventory field scope | **Unsigned [minimum-data proposal](../security/authorization-matrix.md):** managed OS/CPU/RAM/disk/health; policy-approved IP/MAC/NIC details for authorized operational reads only, no serial/TPM by default; independent freshness | before v0.1 schema |
+| D-18 | Inventory retention and sensitive network address exposure | **Unsigned [privacy proposal](../security/authorization-matrix.md):** current record by approved asset lifetime, optional 7-day IP/MAC history *only if justified*, no WSS address payload and no raw IP/MAC in health-only response; real-data retention approval separate | before real managed endpoints |
 | D-19 | Inventory snapshot reliability | Stable snapshot_id, **monotonic inventory_revision**, digest, bounded retry and no older snapshot overwrite; local latest pending snapshot on outage | before v0.1 Agent/API code |
-| D-20 | Baseline V0.1 authorization design | Admin session, device-group scoped REST inventory/monitoring and WSS; validate Origin/CSRF, revoke credentials; fine-grained audit/video access staged separately | before V0.1 auth code |
+| D-20 | Baseline V0.1 authorization design | **Unsigned [RBAC proposal](../security/authorization-matrix.md):** role + group for summaries and WSS; additional `internal_operational` grant for network details, Origin/CSRF and timely revocation; audit/video later | before V0.1 auth code |
 | D-21 | Recording access approval and storage lifecycle | Case approval must predate playback; independent approver, **UTC-to-media-frame/segment authorization (byte Range alone is not time scope)**, verified retention/delete and no direct NAS link | before V0.3 |
-| D-22 | Initial client compatibility/protocol freeze | Stable field limits, optional/missing capability states, inventory revisions, API error codes, 30s heartbeat and 60–120s metrics require tested platform fixtures | before V0.1 client/server rollout |
+| D-22 | Initial client compatibility/protocol freeze | **Unsigned [protocol review fixtures](../architecture/api-contract.md):** typed fields, optional/null/redaction distinction, inventory result enum, negative errors, heartbeat and sample cadence. Generated clients and OS/DB tests are post-D0 evidence | before V0.1 client/server rollout |
 | D-23 | Java build tool **explicitly selected by maintainer** | **Gradle 9.8.2 Wrapper / Groovy DSL**, Java 25, Spring Boot 4.1.2; JaCoCo 0.8.16, dependency-management 1.1.7. User provided an existing Gradle IoT example; keep **only** Lanveriq-relevant dependencies. **Build selection approved; D0 as a whole NOT approved.** | before SRV-01 |
 | D-24 | Application persistence layer **maintainer direction** | Spring Data JPA/Hibernate only; PostgreSQL-native queries through JPA for batch/compare-and-set; no direct Spring JDBC starter/DAO; PG JDBC and Hikari still transitively present. **Not yet compiled/DB-verified**. | before SRV-01 |
 | D-25 | Maintained third-party libraries before bespoke infrastructure | Technical candidate **SQLx 0.9 SQLite** instead of a custom rusqlite worker, **Orval** from Springdoc OpenAPI, and established OS/transport/UI crates. **Build, license, Windows/KDE compatibility and bundled SQLite patch verification remain pending.** | before AGT-02 and WEB-01 |
 
 **Final review:** [2026-10-30 document closure audit](final-closure-review-2026-10-30.md) confirms coherent conceptual business flows, **not D0 approval**. D-07 and D-11/D-22 are explicit technical-baseline blockers; real-data legal/retention approvals remain separate.
+
+## D0 proposal disposition
+**Current state: REVIEW READY / UNSIGNED.** D-07, D-11/D-22, D-17/18/20 and D-02 have concrete review proposals linked above; no owner approval or exact deployed DNS/CA/session facts were supplied. [Decision cover sheet](d0-decision-package-2026-10-30.md) records the specific choices, consequences, acceptance and blank sign-off. Proposals must not be called frozen until recorded as approved by the maintainer; organization/legal real-data authorization is a separate gate.
 
 ## Decision process
 Record who approved, date, consequences and relevant ADR/PRD changes. Any deployment collecting real employee data requires D-01, D-03, D-05 and D-07 resolved even if code exists. The documentation gate can be **ready for technical review** while legal/operational approvals remain open.
