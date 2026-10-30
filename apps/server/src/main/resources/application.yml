@@ -17,6 +17,18 @@ server:
   address: ${LANVERIQ_HTTP_BIND:127.0.0.1}
   port: ${LANVERIQ_HTTP_PORT:8080}
   shutdown: graceful
+  # No implicit trust for request-supplied X-Forwarded-* headers.
+  forward-headers-strategy: none
+  servlet:
+    session:
+      timeout: 15m
+      tracking-modes: cookie
+      cookie:
+        name: __Host-lanveriq-session
+        path: /
+        http-only: true
+        secure: true
+        same-site: strict
 
 management:
   endpoints:
@@ -32,3 +44,11 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+# This HTTP auth slice is NOT deployed until console TLS, Caddy/Host isolation,
+# login throttling and manual browser tests have passed. Default is deny-all.
+lanveriq:
+  console:
+    auth:
+      enabled: ${LANVERIQ_CONSOLE_AUTH_ENABLED:false}
+      origin: ${LANVERIQ_CONSOLE_ORIGIN:}
