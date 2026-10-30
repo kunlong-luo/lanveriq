@@ -20,7 +20,7 @@ public final class AuthenticatedEnrollmentTokenIssuer {
     private final AdminScopeService scopes;
     private final EnrollmentTokenIssuer issuer;
 
-    AuthenticatedEnrollmentTokenIssuer(AdminScopeService scopes, EnrollmentTokenIssuer issuer) {
+    public AuthenticatedEnrollmentTokenIssuer(AdminScopeService scopes, EnrollmentTokenIssuer issuer) {
         this.scopes = Objects.requireNonNull(scopes, "scopes");
         this.issuer = Objects.requireNonNull(issuer, "issuer");
     }
