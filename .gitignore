@@ -1,0 +1,21 @@
+# Java / Gradle
+.gradle/
+**/build/
+!**/src/**/build/
+*.class
+
+# Runtime
+*.log
+*.pid
+.env
+.env.*
+!.env.example
+**/secrets/
+**/credentials/
+
+# Editor / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

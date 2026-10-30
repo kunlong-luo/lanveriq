@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: lanveriq-server
+  datasource:
+    url: ${LANVERIQ_DB_URL:jdbc:postgresql://127.0.0.1:5432/lanveriq}
+    username: ${LANVERIQ_DB_USER:lanveriq}
+    password: ${LANVERIQ_DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    validate-on-migrate: true
+
+server:
+  address: ${LANVERIQ_HTTP_BIND:127.0.0.1}
+  port: ${LANVERIQ_HTTP_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
