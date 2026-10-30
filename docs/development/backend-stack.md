@@ -1,6 +1,6 @@
 # Spring Boot server stack — Gradle / Java 25 stable baseline
 
-**Maintainer decision (2026-10-30): Gradle, not Maven.** D0 is approved and the [SRV-01 source scaffold](../../apps/server/README.md) now exists, including real `build.gradle`, official Gradle Wrapper and CI unit tests. **Actual PostgreSQL 18 migration, mTLS and server runtime are not verified by the scaffold alone.** The user chose Groovy DSL; the entire D0 technical baseline was separately approved, not merely this build tool.
+**Maintainer decision (2026-10-30): Gradle, not Maven.** D0 is approved and the [SRV-01 source scaffold](../../apps/server/README.md) now exists, including real `build.gradle`, official Gradle Wrapper and CI unit tests. **Java 25 compilation and unit tests passed** on GitHub Actions [run 41058974204](https://github.com/kunlong-luo/lanveriq/actions/runs/41058974204); **PostgreSQL 18 migration, `bootJar`, mTLS and server runtime remain unverified**. The user chose Groovy DSL; the entire D0 technical baseline was separately approved, not merely this build tool.
 
 ## Verified stable release baseline (2026-10-30)
 

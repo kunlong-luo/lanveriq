@@ -3,7 +3,7 @@
 ## 2026-10-30 — V0.1 implementation begins (SRV-01)
 - D0 technical baseline approved for V0.1 coding only; real employee-data collection and live pilots still require separate authorization and security/platform evidence.
 - Added `apps/server` Java 25 + Gradle 9.8.2 Wrapper (official JAR checksum verified), Spring Boot 4.1.2, Spring Data JPA/Hibernate, Flyway/PostgreSQL 18 foundation and deny-by-default Spring Security configuration.
-- Added V0.1 server-received heartbeat connectivity classifier with meaningful JUnit unit tests and a unit-only GitHub Actions workflow. Actual PG18 migration, mTLS enrollment, endpoint telemetry and dashboard are **not yet verified or implemented**.
+- Added V0.1 server-received heartbeat connectivity classifier with meaningful JUnit unit tests and a unit-only GitHub Actions workflow. **JDK 25 unit CI passed** ([run 41058974204](https://github.com/kunlong-luo/lanveriq/actions/runs/41058974204)), including Java/test compilation and JaCoCo. Actual PostgreSQL 18 migration/`bootJar` and mTLS enrollment are **not yet verified**; endpoint telemetry and dashboard are not implemented.
 
 
 ## 2026-10-30 — final documentation closure audit
