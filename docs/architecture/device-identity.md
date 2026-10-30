@@ -1,6 +1,6 @@
 # Device identity and replacement policy
 
-**Status:** v0.1 design, not implemented. **Canonical field:** PostgreSQL `devices.id UUID PRIMARY KEY DEFAULT uuidv7()`. REST/JSON name: `device_id`. The server **creates** this value at successful enrollment; the Agent persists the returned value and its own key, and presents it on every authenticated heartbeat/event batch.
+**Status:** v0.1 design, not implemented. **Canonical field:** PostgreSQL `devices.id UUID PRIMARY KEY DEFAULT uuidv7()`. REST/JSON name: `device_id`. The server **allocates** this value when a one-use token is consumed and a `pending_certificate` enrollment is recorded (proposed D-07 flow); the Agent persists the returned value and its own key, and presents it on every authenticated heartbeat/event batch.
 
 PostgreSQL 18 provides `uuidv7()` natively: https://www.postgresql.org/docs/18/functions-uuid.html . RFC 9562 defines UUIDv7: https://www.rfc-editor.org/rfc/rfc9562.html . UUIDv7 is time-sortable but **not** secret, a hardware fingerprint, a proof of possession or an access token. Never authorize a request just because its path contains a known device ID.
 
@@ -15,15 +15,15 @@ PostgreSQL 18's built-in `uuidv7()` is the authoritative generator for `devices.
 | `devices.device_label` | Editable display label, **not** unique |
 | `devices.asset_tag` | Optional organization asset identifier, validated and unique **within the chosen organizational scope** only when supplied; not an authentication secret |
 | `devices.replaces_device_id` | Nullable FK to historic device ID; an **audited administrator-approved** replacement link, not a merge of event histories |
-| `device_credentials.public_key_thumbprint` | Device key binding; active credentials cannot be shared across devices; rotate under authenticated recovery |
+| `device_credentials.public_key_thumbprint` | Device key binding; client-certificate fingerprint/serial and active/revoked lifecycle also tracked after approved CSR signing. No active credential before verified mTLS proof; active credentials cannot be shared across devices |
 | `endpoint_events.device_id` | FK to `devices.id`; together with `device_sequence`, unique event delivery key |
 | `recording_sessions.device_id` | FK for authorized sessions; retaining recording/permission scope |
 | `heartbeats.device_id` | FK for identity-scoped health history |
 
 ## Identity lifecycle
 1. Authorized installer verifies TLS server certificate and accepted notice; Agent generates host-protected asymmetric key.
-2. Server atomically consumes a one-use enrollment token and inserts `devices.id = uuidv7()`, a credential binding and policy version.
-3. Agent stores the `device_id` in protected SQLite state and the private key in OS-protected storage. Both are required for authenticated uploads.
+2. Server atomically consumes a one-use enrollment token plus validated CSR, inserts `devices.id = uuidv7()` and records group/policy in `pending_certificate`. No credential is active simply because a token was consumed.
+3. The approved operator signs the CSR using the dedicated client CA and registers a fingerprint; Agent stores returned `device_id` in SQLite and protects its private key outside SQLite. First successful verified mTLS proof activates the device; both active credential and matching device ID are required for uploads.
 4. OS reboot, agent service restart, IP/DHCP/MAC change, hostname rename and **ordinary version upgrades** keep the same device identity.
 5. Key rotation is authorized and audited under the **same device_id** only when the existing identity can be proved/recovered by the defined process.
 6. Loss of local key or local SQLite identity is treated as a **new enrollment**, creating a new UUIDv7. The old identity is revoked/retired. An administrator may link the old identity via `replaces_device_id` after checking the asset; never silently stitch events or reuse prior `device_sequence` numbers.
