@@ -16,20 +16,25 @@ sequenceDiagram
   Agent->>SQL: Read pending batch up to 100 events / 512 KiB
   Agent->>API: HTTPS POST /devices/{id}/event-batches
   API->>PG: Validate ALL + transaction INSERT or identical dedup
-  alt Entire batch accepted
+  alt Valid batch and transaction commits
     PG-->>API: COMMIT
-    API-->>Agent: accepted_sequences (all, after commit)
-    Agent->>SQL: Mark ONLY explicitly accepted rows
-    API->>Hub: Publish scoped metadata after COMMIT
-    Hub-->>UI: WSS hint: refresh authorized REST query
-  else Any malformed/conflicting event
-    PG-->>API: ROLLBACK (no partial ACK)
+    API->>Hub: Publish scoped metadata AFTER COMMIT
+    Hub-->>UI: WSS hint: refetch authorized REST query
+    alt Response reaches Agent
+      API-->>Agent: accepted_sequences (all)
+      Agent->>SQL: Mark ONLY explicitly acknowledged rows
+    else HTTP response lost after server commit
+      Note over Agent,API: Pending rows remain; retry exact immutable batch
+      Agent->>API: Identical retry
+      API->>PG: Check duplicates / immutable fingerprints
+      PG-->>API: Already committed; no new rows
+      API-->>Agent: accepted_sequences (same events)
+      Agent->>SQL: Mark explicitly acknowledged rows
+    end
+  else Malformed batch or conflicting event
+    PG-->>API: ROLLBACK (no partial commit)
     API-->>Agent: 422 / 409
     Agent->>SQL: Retain or quarantine; report degraded state
-  else Connection breaks after commit
-    Note over Agent,API: Agent retains rows, retries immutable batch
-    Agent->>API: Identical retry
-    API-->>Agent: Same sequences acknowledged (idempotent)
   end
 ~~~
 
