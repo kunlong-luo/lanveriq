@@ -1,0 +1,6 @@
+# Example only. No enrollment, telemetry, key material or collector permissions.
+# Install a local reviewed copy under /etc/lanveriq-agent/agent.toml.
+schema_version = 1
+
+[runtime]
+cycle_seconds = 30

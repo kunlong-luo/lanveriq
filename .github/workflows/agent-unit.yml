@@ -1,0 +1,48 @@
+name: Agent unit tests
+
+on:
+  push:
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'apps/agent/**'
+      - '.github/workflows/agent-unit.yml'
+  pull_request:
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'apps/agent/**'
+      - '.github/workflows/agent-unit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  agent-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy
+      - name: Generate initial lockfile if absent; then use locked dependencies
+        run: |
+          if [ ! -f Cargo.lock ]; then cargo +1.94.0 generate-lockfile; fi
+          echo 'LANVERIQ_LOCK_BEGIN'
+          cat Cargo.lock
+          echo 'LANVERIQ_LOCK_END'
+      - name: Rustfmt
+        run: cargo +1.94.0 fmt --all -- --check
+      - name: Unit tests only (no OS/systemd/E2E)
+        run: cargo +1.94.0 test --workspace --locked
+      - name: Clippy static checks
+        run: cargo +1.94.0 clippy --workspace --all-targets --locked -- -D warnings
+      - name: Preserve generated lockfile for reviewed commit
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-cargo-lockfile
+          path: Cargo.lock
+          retention-days: 7

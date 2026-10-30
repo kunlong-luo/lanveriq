@@ -1,0 +1,28 @@
+# AGT-01 experimental Linux unit; requires an approved local installation.
+# NOT TESTED on the Pop!_OS/KWin target. No monitoring or enrollment enabled.
+[Unit]
+Description=Lanveriq Agent (idle lifecycle skeleton)
+After=network.target
+ConditionPathExists=/etc/lanveriq-agent/agent.toml
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=lanveriq-agent
+ExecStart=/usr/local/bin/lanveriq-agent --config /etc/lanveriq-agent/agent.toml
+Restart=on-failure
+RestartSec=10s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
