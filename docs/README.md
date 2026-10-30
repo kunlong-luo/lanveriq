@@ -16,6 +16,7 @@
 - [Configuration and collection policy](architecture/policy-configuration.md)
 - [Independent health and coverage semantics](architecture/health-and-gap-semantics.md)
 - [REST and event API contract](architecture/api-contract.md)
+- [LAN bootstrap and device enrollment](architecture/enrollment-bootstrap.md)
 - [Screen recording pipeline](architecture/recording.md)
 - [Platform feature matrix](architecture/platform-matrix.md)
 - [Deployment and LAN topology](architecture/deployment.md)
@@ -23,11 +24,13 @@
 - [ADR 0002: PostgreSQL and SQLite](architecture/adrs/0002-postgres-sqlite.md)
 - [ADR 0003: Authorized recording](architecture/adrs/0003-disclosed-capture.md)
 - [ADR 0004: Direct main, minimal CI, delayed E2E](architecture/adrs/0004-rapid-main-development.md)
+- [ADR 0005: REST and polling first](architecture/adrs/0005-http-first.md)
 
 ## Engineering
 - [Technology selection](development/technology.md)
 - [Pagevela reference: reuse and differences](development/pagevela-reference.md)
 - [Repository layout and conventions](development/standards.md)
+- [Dashboard UI/UX contract](development/dashboard-ux.md)
 - [Development roadmap](planning/roadmap.md)
 - [v0.1 implementation sequence](planning/v0.1-implementation-sequence.md)
 - [Issue-sized backlog](planning/backlog.md)

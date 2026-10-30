@@ -8,6 +8,7 @@
 - [x] System architecture, trust zones and module boundaries documented
 - [x] Server PostgreSQL and endpoint SQLite/WAL architecture decisions recorded
 - [x] API/event envelope, all-or-nothing acknowledgment, identity re-enrollment and idempotency behavior documented
+- [x] LAN bootstrap/trusted TLS and dashboard v0.1 REST-polling design documented
 - [x] Typed policy lifecycle, health/gap semantics and role/action matrix documented
 - [x] v0.1 implementation order and hands-on test cases documented
 - [x] Windows/Linux feature and limitations matrix written
@@ -20,7 +21,7 @@
 - [ ] Finalize first target Linux environment and certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
-- [x] Check internal Markdown links and resolve broken references (previous baseline verified; new links pending final pass)
+- [ ] Recheck all new and changed Markdown links; the previous baseline was verified
 
 ## Start-code rule
 **Only after maintainer approval**, begin v0.1 implementation on main, no feature branch or PR necessary. Unit-only CI may be added alongside real source and tests; avoid placeholder passing jobs. Do not begin recording before its separate consent/OS authorization gate.

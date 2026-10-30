@@ -21,6 +21,7 @@
 - Agent：Rust + Tokio + rusqlite / bundled SQLite（WAL）。
 - 可选桌面端：Tauri 2 + React。
 - 服务端：Java 25 / Spring Boot 4 模块化单体 + PostgreSQL 18 + Flyway。
+- V0.1 通信：HTTPS REST + 页面定时刷新，不引入 WebSocket；后续确有需要时再加。
 - 后台：React + Vite + TypeScript + Tailwind + Zustand（有限使用）。
 - 局域网 HTTPS、WebSocket；视频留在本地或 NAS。
 - 单仓库、直接 main 开发；早期 CI 只做单元测试，不做 E2E。
@@ -31,6 +32,8 @@
 [Agent 数据库 ADR](docs/architecture/adrs/0002-postgres-sqlite.md)、
 [Pagevela 借鉴](docs/development/pagevela-reference.md)、
 [分阶段计划](docs/planning/roadmap.md)、
+[事件补传协议](docs/architecture/event-delivery.md)、
+[局域网证书与设备配对](docs/architecture/enrollment-bootstrap.md)、
 [文档完成门槛](docs/governance/documentation-gate.md)。
 
 ## 许可证

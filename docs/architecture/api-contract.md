@@ -22,7 +22,7 @@ Later recording endpoints: `POST /recording-sessions`, `POST /recording-segments
 ## Request envelopes
 Enrollment request fields: `token`, `agent_version`, `os`, `capabilities`, `device_public_key`, `policy_notice_version`. The server must authenticate identity beyond LAN IP; token only bootstraps identity. Enrollment tokens are not reused as ongoing API keys. On a lost local database/identity, a reinstall enrolls as a **new device_id**, leaving old evidence under a revoked historical identity. Token consumption must be atomic.
 
-Heartbeat fields: `device_id`, `sent_at`, `agent_version`, `status`, `capabilities`, `queue_count`, `queue_bytes`, `collection_errors`. Server stamps `received_at`.
+Heartbeat fields: `device_id`, `sent_at`, `agent_version`, `status`, `capabilities`, `queue_count`, `queue_bytes`, `oldest_pending_at`, `last_successful_upload_at`, `dropped_count`, `integrity_degraded`, `collection_errors`. Server stamps `received_at` and derives online/stale/offline. See [health states](health-and-gap-semantics.md).
 
 Event batch (illustrative):
 ~~~json
@@ -33,7 +33,7 @@ Event batch (illustrative):
   "events": [
     {
       "event_id": "6782a074-e42c-4198-adfa-5f6ab57d7d43",
-      "sequence": 101,
+      "device_sequence": 101,
       "source": "system_audit",
       "event_type": "program_started",
       "policy_version": 1,
@@ -59,4 +59,6 @@ A batch is limited to **100 events and 512 KiB**, with no partial acknowledgment
 - Limit pagination and time range. Validate `device_id` against credential, not the body alone. Query ordering uses stable `received_at, event_id` cursor keys; source timestamps are untrusted and should not silently reorder evidence. Admin device/time/data-category scopes are enforced before database rows are returned; see [permission matrix](../security/authorization-matrix.md).
 
 ## Authentication
+Initial certificate trust and device pairing are specified in [LAN bootstrap](enrollment-bootstrap.md). 
+
 Admin: secure session with MFA support and role/device-group scopes; Agent: unique client credential bound to device (mTLS preferred if local certificate distribution is feasible; otherwise proof-of-possession tokens). Credentials revocable/rotatable. No insecure plaintext HTTP exception on a trusted LAN.

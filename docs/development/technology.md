@@ -17,7 +17,11 @@
 | UI state | Zustand 5 (only ephemeral layout/selection) | minimal global client state |
 | Video later | OS capture APIs + tested FFmpeg, H.264 | portable segmented format |
 | Proxy/deploy | Caddy + Docker Compose | HTTPS and single-host management |
+| v0.1 admin live status | TanStack Query REST polling | no WebSocket until it is needed; see [ADR-0005](../architecture/adrs/0005-http-first.md) |
 | Tests | cargo test, JUnit 5, Vitest | fast unit-only CI during initial MVP |
+
+## Initial version and provenance discipline
+Use stable upstream releases verified when implementation actually starts; do not assume any given patch is already tested on both operating systems. Pin Rust crate lockfile, Java dependencies, Node/pnpm lockfile and container tags before a usable pilot. The Agent SQLite bundled library must include the [WAL-reset fix](https://sqlite.org/wal.html), which appeared in 3.51.3 and later or selected fixed backports.
 
 ## What carries over from Pagevela
 React/Vite/TypeScript, Tailwind, component reuse, feature/domain directory boundaries, Zustand discipline, isolated persistence coordination and unit-testable pure functions. See [Pagevela reference](pagevela-reference.md).

@@ -3,7 +3,7 @@
 **Status:** Proposal, no implementation.
 
 ## Deployment
-A private LAN host runs Caddy TLS, one Spring Boot 4 modular-monolith service, PostgreSQL 18, a static React/Vite dashboard and a protected local/NAS video volume. Windows 11 and Linux terminals run a Rust service with bundled SQLite WAL. Optional Tauri 2 companion runs in the logged-in user session for device status, policy notice and permission-dependent recording.
+A private LAN host runs Caddy TLS, one Spring Boot 4 modular-monolith service, PostgreSQL 18, a static React/Vite dashboard and a protected local/NAS video volume. The v0.1 dashboard polls a bounded REST device API; WebSocket is deferred by [ADR-0005](adrs/0005-http-first.md). Windows 11 and Linux terminals run a Rust service with bundled SQLite WAL. Optional Tauri 2 companion runs in the logged-in user session for device status, policy notice and permission-dependent recording.
 
 ~~~mermaid
 flowchart TD
@@ -39,8 +39,8 @@ flowchart TD
 - Endpoint evidence is best-effort, subject to manipulation by local administrators; hashes detect accidental transfer corruption, not all endpoint tampering.
 
 ## Interaction flows
-**Enrollment:** Admin creates expiring single-use code → agent verifies server certificate → local notice presented → code exchanged for device identity → server marks code used → heartbeat begins.
-**Event delivery:** Source adapter filters/redacts → SQLite transaction commits event+cursor → uploader sends bounded batch with device sequence → PostgreSQL unique constraint deduplicates → server replies only after durable commit → agent marks acknowledged.
+**Enrollment:** Admin creates expiring single-use code → agent verifies server certificate and user notice → token is atomically consumed → unique device identity is issued → heartbeat begins. Details and key rotation are in [LAN bootstrap](enrollment-bootstrap.md).
+**Event delivery:** Source adapter filters/redacts → SQLite transaction commits immutable event + monotonic sequence + cursor → uploader sends bounded batch → PostgreSQL commits **all or none** with conflict checks → server confirms accepted sequences → agent deletes **only explicit confirmed rows**. See [event delivery](event-delivery.md).
 **Recording:** Published policy + OS permission + visible state → session-local recorder writes closed segments → checksums/manifests → authenticated transfer → server validates, indexes and restricts playback.
 
 ## Modular backend domains

@@ -10,7 +10,7 @@
 | D-04 | Recording policy, OS prompts and user status UX | opt-in later, visible state, fail closed | v0.3 |
 | D-05 | Actual video/event retention and backup periods | event 30d, video 14d drafts | real data pilot |
 | D-06 | Admin MFA rollout and approved recording access workflow | MFA required before real-data recording | v0.3 |
-| D-07 | Server certificate provisioning and device key storage | internal CA + unique device keys | v0.1 |
+| D-07 | Server certificate provisioning, device auth and key storage | proposed Caddy internal CA with verified root distribution + unique per-device proof-of-possession; exact rotation mechanics pending | v0.1 |
 | D-08 | Software distribution license and dependency audit | unlicensed public repo until formal choice | first public release |
 | D-09 | Storage quotas & capture codec from measured pilot | SQLite WAL, video H.264 initial trial | v0.3 |
 | D-10 | Production testing strategy | CI unit-only now, integration/E2E before v1.0 | v1.0 |
