@@ -33,11 +33,16 @@ public class AdminAccount {
     }
 
     AdminAccount(UUID id, String normalizedLogin, String passwordHash, Instant disabledAt) {
+        this(id, normalizedLogin, passwordHash, disabledAt, 0);
+    }
+
+    AdminAccount(UUID id, String normalizedLogin, String passwordHash,
+                 Instant disabledAt, long sessionVersion) {
         this.id = id;
         this.normalizedLogin = normalizedLogin;
         this.passwordHash = passwordHash;
         this.disabledAt = disabledAt;
-        this.sessionVersion = 0;
+        this.sessionVersion = sessionVersion;
     }
 
     public UUID getId() {
