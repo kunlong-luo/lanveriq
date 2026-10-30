@@ -12,9 +12,9 @@
 | Locked/logged-out screen recording | not guaranteed | not guaranteed | not guaranteed |
 | Auto-update | deferred | deferred | deferred |
 
-## D-02 pilot selection and evidence candidate (NOT YET CONFIRMED)
+## D-02 D0-selected pilot target (runtime capabilities NOT TESTED)
 
-**Candidate:** Pop!_OS 24.04 LTS x86_64 with the specifically reported KDE Plasma/KWin configuration. Windows 11 x64 is a **separate** minimum acceptance target, not automatically validated when Linux succeeds. Do not claim X11 and Wayland both supported until actual sessions are tested.
+**Selected first Linux pilot target:** Pop!_OS 24.04 LTS x86_64 with the specifically reported KDE Plasma/KWin configuration. Windows 11 x64 is a **separate** minimum acceptance target, not automatically validated when Linux succeeds. Do not claim X11 and Wayland both supported until actual sessions are tested.
 
 On the actual **interactive user desktop session**, capture the following as *sanitized environment metadata only* (do not upload or commit usernames, IP/MAC, paths or tokens):
 ~~~sh
@@ -25,11 +25,11 @@ loginctl show-session "${XDG_SESSION_ID}" -p Type -p Desktop 2>/dev/null || true
 ~~~
 If `XDG_SESSION_ID` is absent/empty or commands run from SSH/headless systemd service, classify the **interactive** session type as `unknown`; do not infer X11 or Wayland from KDE/KWin alone. A desktop-session probe may be unavailable to the privileged background service, so encode a capability/status rather than escalating privileges or inspecting arbitrary logged-in users.
 
-**Prior to D0 decision:** maintainer confirms which exact host/session is the first **pilot target**, and whether the planned V0.1 support claim is for basic health/inventory only. Runtime service/CPU/RAM/NIC and credential-store compatibility remain post-D0 real-device tests. Foreground application activity is postponed to V0.2; desktop recording, portal/encoder permissions and visible capture UX are postponed to V0.3.
+**D0 selection:** first Linux target is the reported Pop!_OS/KWin x86_64 pilot environment and V0.1 scope is basic managed health/inventory, not OS foreground-audit or screen capture. The interactive X11/Wayland session remains `UNKNOWN` pending real user-session observation, which is **post-D0 test evidence** rather than permission to declare broad support. Runtime service/CPU/RAM/NIC and credential-store compatibility remain post-D0 real-device tests. Foreground application activity is postponed to V0.2; desktop recording, portal/encoder permissions and visible capture UX are postponed to V0.3.
 
 **Evidence checklist after implementation:** record date, OS build, kernel, service identity, actual session protocol, relevant desktop/portal versions, Agent binary architecture, CPU/RAM/NIC capability results and synthetic enrollment/heartbeat/offline-replay outcomes. Mark unmeasured cells `NOT TESTED`, unsupported capabilities `unavailable` or `unsupported`—not `supported`.
 
-Owner approval and real-device test evidence are different milestones. See [D-02](../governance/open-decisions.md), [test matrix](../testing/test-matrix.md) and [D0 gate](../governance/documentation-gate.md).
+Pilot-target technical approval and real-device platform test evidence are different milestones. See [D-02](../governance/open-decisions.md), [test matrix](../testing/test-matrix.md) and [D0 gate](../governance/documentation-gate.md).
 
 ## Support policy
 - **Initial Linux pilot machine supplied by the maintainer:** Pop!_OS 24.04 LTS x86_64, KDE Plasma 5.27.12 / KWin, kernel 7.2.6-76070206-generic, NVIDIA RTX 4050 Laptop. These are **reported environment details, not certification**. KDE Plasma 5.27 + KWin does **not** identify whether the actual session uses X11 or Wayland.
