@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — AUTH-01 internal administrator identity and group scope
+- Added Spring Data JPA read-only user entity/repository, Spring Security `DaoAuthenticationProvider` and Argon2id password hashes (64 MiB/3 iterations); no default credentials, plaintext fallback or publicly enabled login.
+- Added device-group-scoped `AdminScopeService` that queries live active user/role/group state, with separate `internal_operational` grants (Flyway V4; none seeded) for raw IP/MAC and other sensitive network detail. Added authenticated-principal-only internal token issuance facade.
+- [Java 25 real unit CI and Boot JAR compilation passed](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762), including DAO provider, invalid credentials, disabled users, role changes and forged principal negative checks. PostgreSQL 18 V1–V4 migrations and live admin login/TLS/CSRF/WSS remain **NOT TESTED**.
+
+
 ## 2026-10-30 — SRV-02 pending enrollment and CSR validation
 - Added maintained Bouncy Castle 1.86 PKCS#10 parsing and P-256/SHA-256 CSR signature validation; malformed, wrong-key and unsupported-curve requests are rejected in JUnit tests.
 - Added one-transaction JPA PostgreSQL token consume (conditional UPDATE), pending server-side UUIDv7 device insert, public CSR digest/SPKI insert and Flyway V3 uniqueness/size checks. No raw JDBC, homegrown CSR parser, live TLS endpoint or certificate issuer.

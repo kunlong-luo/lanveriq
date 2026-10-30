@@ -1,6 +1,9 @@
 # Identity, device enrollment and authorization
 
 ## Administrator access
+
+**AUTH-01 partial implementation (2026-10-30):** `AdminIdentityUserDetailsService` loads existing admins through Spring Data JPA for Spring Security's `DaoAuthenticationProvider`; Argon2id password hashes use a reviewed Spring Security `PasswordEncoder`, without a plaintext/default account. `AdminScopeService` checks current active account, role and assigned group on each operation, and Flyway V4 makes `internal_operational` a separate non-seeded grant for IP/MAC network details. `AuthenticatedEnrollmentTokenIssuer` takes its principal from the authenticated server context, not a caller-supplied admin ID. [Unit CI](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762) is green. **No HTTP login handler or browser session is enabled**; the startup bootstrap, login throttling, TLS origin isolation, CSRF, session invalidation, real PostgreSQL migrations, role revocation integration and WSS path are pending. Do not treat the new provider bean as authorization to open login routes.
+
 Start with a single administrator created via a secure first-run bootstrap (no hardcoded/default password). Require password hashing using a maintained password hashing function, secure cookie/session handling, CSRF defenses as appropriate, rate limiting and session expiration. Design optional MFA for operations; enforce MFA for recording review before production rollout.
 
 ## Roles
