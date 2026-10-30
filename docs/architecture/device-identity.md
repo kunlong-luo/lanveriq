@@ -26,6 +26,9 @@ PostgreSQL 18 provides `uuidv7()` natively: https://www.postgresql.org/docs/18/f
 6. Loss of local key or local SQLite identity is treated as a **new enrollment**, creating a new UUIDv7. The old identity is revoked/retired. An administrator may link the old identity via `replaces_device_id` after checking the asset; never silently stitch events or reuse prior `device_sequence` numbers.
 7. Endpoint cloning, VM snapshots, and copying agent state are not supported shortcuts: if the same credential/identity appears from competing endpoints, **quarantine and require re-enrollment**, rather than overwriting logs.
 
+## Inventory is not identity
+IP addresses, MAC addresses, CPU, RAM, disks, OS build, GPU, host model and hostname **are recorded as approved IT inventory properties**, not as device keys. Their collection frequency, multi-NIC schema and privacy rules are in [Hardware/Network Inventory](device-inventory.md). Hardware serial/TPM/OS machine identifiers stay **off by default** unless a separate approved asset reconciliation scope requires them.
+
 ## Never use as a primary identity
 MAC, IP, BIOS/motherboard serial, disk serial, TPM EK, CPU ID, OS machine-id, Windows SID or hostname: not consistently available/unique, may change, may disclose hardware details. If an enterprise truly needs physical-asset reconciliation, use a **separately approved** asset inventory workflow rather than collecting hardware fingerprints by default.
 
@@ -36,4 +39,4 @@ MAC, IP, BIOS/motherboard serial, disk serial, TPM EK, CPU ID, OS machine-id, Wi
 - Device asset tags and hostnames are metadata; mask/remove sensitive values from public examples.
 - Test collision/re-enrollment, key reuse, clone detection, rollback, device revocation and cross-device access denial.
 
-**Canonical refs:** [Enrollment](enrollment-bootstrap.md) · [Data model](data-model.md) · [Event delivery](event-delivery.md) · [RBAC](../security/authorization-matrix.md).
+**Canonical refs:** [Inventory](device-inventory.md) · [Enrollment](enrollment-bootstrap.md) · [Data model](data-model.md) · [Event delivery](event-delivery.md) · [RBAC](../security/authorization-matrix.md).

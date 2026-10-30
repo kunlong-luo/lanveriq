@@ -11,7 +11,7 @@ Follow the [unified infographic/style guide](../visuals/STYLE_GUIDE.md) for bran
 | Sign in + admin bootstrap | Yes | strengthen role UX | policy-dependent MFA for restricted review |
 | Overview: total, online/stale/offline, error/gap | Yes | more health detail | recorder health separate |
 | Devices: search, group, last seen, Agent version | Yes | collector capabilities | screen recording status |
-| Device details: health, identity, queue | Yes | activity/audit/gaps tabs | recording sessions tab |
+| Device details: health, identity, queue, **CPU/RAM/disks/OS/NIC/IP/MAC inventory** | Yes | activity/audit/gaps, GPU/security (optional) | recording sessions tab |
 | Enrollment wizard / revoke credentials | Yes | device group reassignment | none |
 | Activity timeline | — | Yes | contextual video links only with approval |
 | Policy / admin roles / access log | Basic | Yes | recording access cases |
@@ -19,6 +19,9 @@ Follow the [unified infographic/style guide](../visuals/STYLE_GUIDE.md) for bran
 
 ## Information architecture
 Overview -> Devices -> Device detail (Health / Activity / Security / Gaps / Recording) -> Investigations -> Settings (Groups / Policy / Users / Retention) -> Admin Audit.
+
+## Device asset view
+V0.1 Device Detail includes a hardware/network tab: CPU model and cores, RAM installed/available, disks and free space, OS distribution/build/kernel, NIC list with multiple IPv4/IPv6 addresses, MAC when allowed, device ID and optional asset tag. Display inventory observation time separately from live heartbeat time. See [device inventory](../architecture/device-inventory.md) and [Monitoring Center](monitoring-center.md). 
 
 ## State ownership
 - TanStack Query owns server state/cache and refresh timers.

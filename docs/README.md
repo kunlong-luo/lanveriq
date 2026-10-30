@@ -11,6 +11,8 @@
 - [System overview and trust boundaries](architecture/system-overview.md)
 - [Component decomposition](architecture/components.md)
 - [Storage and event models](architecture/data-model.md)
+- [Hardware/OS/network inventory and sampling](architecture/device-inventory.md)
+- [Canonical UUIDv7 device identity](architecture/device-identity.md)
 - [Agent local persistence and outbox](architecture/agent-persistence.md)
 - [Event delivery and idempotency contract](architecture/event-delivery.md)
 - [Configuration and collection policy](architecture/policy-configuration.md)
@@ -46,6 +48,7 @@
 - [Unit-only CI and manual checks](testing/strategy.md)
 - [Hands-on acceptance templates (no E2E CI)](testing/manual-acceptance.md)
 - [Cross-platform and WebSocket test matrix](testing/test-matrix.md)
+- [Device inventory unit/manual acceptance cases](testing/device-inventory-checklist.md)
 - [Definition of done](planning/definition-of-done.md)
 
 ## Security and operations

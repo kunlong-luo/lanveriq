@@ -9,6 +9,11 @@ erDiagram
   DEVICE_GROUPS ||--o{ ENROLLMENT_TOKENS : enrolls_to
   DEVICES ||--o{ DEVICE_CREDENTIALS : uses
   DEVICES ||--o{ HEARTBEATS : sends
+  DEVICES ||--o| DEVICE_INVENTORY_CURRENT : has_latest
+  DEVICES ||--o{ DEVICE_NETWORK_INTERFACES : networks
+  DEVICE_NETWORK_INTERFACES ||--o{ DEVICE_INTERFACE_ADDRESSES : addresses
+  DEVICES ||--o{ DEVICE_VOLUMES : mounts
+  DEVICES ||--o{ DEVICE_METRIC_SAMPLES : samples
   DEVICES ||--o{ ENDPOINT_EVENTS : produces
   ENDPOINT_EVENTS ||--o| ACTIVITY_INTERVALS : projects
   ENDPOINT_EVENTS ||--o| COLLECTION_GAPS : may_project
@@ -32,6 +37,9 @@ erDiagram
   DEVICES {
     uuid id PK
     uuid group_id FK
+    uuid replaces_device_id FK
+    string hostname
+    string asset_tag
     string os_family
     datetime last_seen_at
   }
@@ -70,4 +78,4 @@ erDiagram
   }
 ~~~
 
-**Invariants:** `UNIQUE(device_id, device_sequence)` and `UNIQUE(device_id, event_id)`; derived activity rows come from canonical `endpoint_events`; do not store video as PostgreSQL BLOBs. The drawing is conceptual; complete constraints, access-log details and later tables are in [data model](../architecture/data-model.md).
+**Invariants:** `DEVICES.id` is PostgreSQL 18 server-generated UUIDv7, not a MAC/IP/hostname. Multiple NIC/IP/volumes are represented by child entities; see [Inventory ER detail](device-inventory-er.md). `UNIQUE(device_id, device_sequence)` and `UNIQUE(device_id, event_id)`; derived activity rows come from canonical `endpoint_events`; do not store video as PostgreSQL BLOBs. The drawing is conceptual; complete constraints, access-log details and later tables are in [data model](../architecture/data-model.md).

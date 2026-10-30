@@ -10,10 +10,13 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 |---|---|---|---|
 | POST | /enrollments | authenticated admin | Create one-use short-lived device code, device group, expiry |
 | POST | /devices/enroll | pairing-capable installer | One-time token exchange after server certificate validation |
-| POST | /devices/{id}/heartbeats | bound device credential | Status, OS, version, queue depth, capability flags |
+| POST | /devices/{id}/heartbeats | bound device credential | 30s status, version, queue and *latest sampled* CPU/RAM/volume health; **not** complete hardware info |
 | POST | /devices/{id}/event-batches | bound device credential | Validate, insert-once, durable ack |
 | GET | /devices | authorized operator | Scope-filtered paginated inventory |
 | GET | /devices/{id} | authorized operator | Device detail, capability and health |
+| POST | /devices/{id}/inventory | bound device credential | Idempotent bounded OS/CPU/RAM/NIC/IP/MAC/volume snapshot, versioned; **not** an event-batch ACK |
+| GET | /devices/{id}/inventory | scoped IT/security operator | Restricted current inventory incl. multiple NICs/IPs and volume capacities |
+| GET | /devices/{id}/metrics | scoped IT/security operator | Bounded host CPU/RAM/disk samples, time-range/cursor filters |
 | POST | /devices/{id}/revoke | privileged admin | Disable identity and future uploads |
 | GET | /devices/{id}/activity | scoped auditor | Time-range and kind-filtered activity |
 | GET | /devices/{id}/audit-events | scoped auditor | Time-range and event filters |
@@ -21,6 +24,9 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 | GET | /admin/access-log | privileged auditor | Immutable viewing/action trace |
 
 Later recording endpoints: `POST /recording-sessions`, `POST /recording-segments/init`, `PUT /recording-segments/{id}/content`, `POST /recording-segments/{id}/complete`, `GET /devices/{id}/recordings`, `GET /recordings/{id}/play`. Each guarded by policy, OS authorization, scope, role and approval.
+
+## Asset inventory contract
+See [Device Inventory](device-inventory.md) for the typed snapshot body, sampling (static at startup/change/24h, dynamic around 60–120s), MAC/IP source labels, full-snapshot transaction and policy limitations. The server stamps `received_at` and trusted `server_observed_remote_ip`. Hardware identity is **not** derived from MAC, IP, hostname, disk or CPU. Service authenticates `device_id` by bound credential even for inventory uploads. The only canonical identifier is server-assigned `devices.id UUIDv7`.
 
 ## Request envelopes
 Enrollment request fields: `token`, `agent_version`, `os`, `capabilities`, `device_public_key`, `policy_notice_version`. The server must authenticate identity beyond LAN IP; token only bootstraps identity. Enrollment tokens are not reused as ongoing API keys. On a lost local database/identity, a reinstall enrolls as a **new device_id**, leaving old evidence under a revoked historical identity. Token consumption must be atomic.

@@ -31,6 +31,11 @@ Small offices need a simple private-server tool to review endpoint availability,
 | FR-14 | Report collection/recording gaps and unsupported platforms | v0.3 |
 | FR-15 | Stable Windows and Linux packages, upgrade/rollback | v1.0 |
 | FR-16 | Dashboard authenticated WSS live device state notifications + REST resync | v0.1 |
+| FR-17 | Managed device asset inventory: CPU/RAM/disk/OS, multiple NICs with IP/MAC, authorized detail and freshness | v0.1 |
+| FR-18 | Separate full inventory snapshot from lightweight host metric/health samples; no full snapshot every heartbeat | v0.1 |
+| FR-19 | Stable server-assigned UUIDv7 device identity, optional audited asset replacement linkage | v0.1 |
+
+**Inventory reference:** [Hardware/network field inventory](../architecture/device-inventory.md), [device identity](../architecture/device-identity.md), and [inventory tests](../testing/device-inventory-checklist.md). IP/MAC are diagnostic device properties, not immutable identities. Hardware serials and personally revealing identifiers are off by default.
 
 ## Non-goals
 Covert monitoring, hidden installs, permission bypass, keylogging, password/clipboard/message collection, webcam/microphone, arbitrary remote-shell, AI/LLM, public SaaS, enterprise MDM and high-volume video analytics. Having a company-owned device does not eliminate privacy obligations.
