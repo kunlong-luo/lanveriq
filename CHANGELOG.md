@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — SRV-02 internal identity and issuance slice
+- Added V2 PostgreSQL admin users, roles, group scope and admin access audit schema with **no default administrator**; Flyway V1/V2 have **not** been run against a real PG18 instance.
+- Added secure 256-bit one-use pairing token issuance through a group-authorized JPA native SQL operation, with hashed verifier storage, 1–15-minute expiry, audit and fail-closed handling. The token is **not** an Agent credential and no HTTP enrollment/CSR/mTLS activation or consumer endpoint exists yet.
+- [Java 25 JUnit + Boot JAR packaging CI passed](https://github.com/kunlong-luo/lanveriq/actions/runs/41061058441). Added a separately run [synthetic manual PG18.6 smoke check](docs/testing/server-postgres18-manual.md); its startup, SQL and authorization results are **NOT TESTED** until observed on an actual Docker/JDK25 host.
+
+
 ## 2026-10-30 — V0.1 implementation begins (SRV-01)
 - D0 technical baseline approved for V0.1 coding only; real employee-data collection and live pilots still require separate authorization and security/platform evidence.
 - Added `apps/server` Java 25 + Gradle 9.8.2 Wrapper (official JAR checksum verified), Spring Boot 4.1.2, Spring Data JPA/Hibernate, Flyway/PostgreSQL 18 foundation and deny-by-default Spring Security configuration.

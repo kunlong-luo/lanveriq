@@ -1,13 +1,13 @@
 # Issue-ready prioritized backlog
 
-**V0.1 development is underway after D0 approval on 2026-10-30.** SRV-01 source and unit CI have been committed; the other feature tasks remain unimplemented. Migration/runtime evidence must be verified before marking SRV-01 fully accepted. Priority P0 = first usable skeleton, P1 = pre-release capability, P2 = optional later. No real employee data without separate approval.
+**V0.1 development is underway after D0 approval on 2026-10-30.** SRV-01 source and Java 25 unit + bootJar CI have passed; SRV-02 internal token issuance and RBAC schema are partly implemented but not yet usable externally. PostgreSQL migrations, database issuance guards and mTLS runtime remain UNTESTED. Migration/runtime evidence must be verified before marking SRV-01 fully accepted. Priority P0 = first usable skeleton, P1 = pre-release capability, P2 = optional later. No real employee data without separate approval.
 
 | ID | Title | Priority | Depends on | Acceptance evidence |
 |---|---|---|---|---|
 | DOC-01 | **D0 baseline decision recorded** (V0.1 technical scope and first Linux target; no real-data notice) | P0 **D0 approved** | none | [technical sign-off](../governance/d0-decision-package-2026-10-30.md); organizational/legal data policy remains open |
 | ARCH-01 | **D0 protocol design accepted** for event_type, atomic batch, re-enrollment and CSR-based pairing | P0 **D0 approved** | DOC-01 | [API design contract](../architecture/api-contract.md) selected; generated schema and integration negative tests post-D0 |
-| SRV-01 | Bootstrap **Gradle 9.8.2** Groovy + **Spring Boot 4.1.2/Java 25** + JPA/Hibernate/PostgreSQL 18 + Flyway | P0 **source + JDK25 unit CI PASS; DB/bootJar pending** | D0 | [server code](../../apps/server/README.md); official Gradle wrapper SHA-256 and real `compileJava`/`compileTestJava`/`test`/`jacocoTestReport` verified in [GitHub Actions run](https://github.com/kunlong-luo/lanveriq/actions/runs/41058974204); PostgreSQL 18 Flyway/JPA/uuidv7 mapping and `bootJar` NOT TESTED |
-| SRV-02 | Device enrollment and revocation | P0 | SRV-01 | unit tests token replay/expiry |
+| SRV-01 | Bootstrap **Gradle 9.8.2** Groovy + **Spring Boot 4.1.2/Java 25** + JPA/Hibernate/PostgreSQL 18 + Flyway | P0 **unit + bootJar PASS; PG startup pending** | D0 | [server code](../../apps/server/README.md) and [CI passing run](https://github.com/kunlong-luo/lanveriq/actions/runs/41061058441) establish Java 25 compilation, JUnit and Boot JAR packaging; [manual PG18 runbook](../testing/server-postgres18-manual.md) is scripted **but NOT EXECUTED** |
+| SRV-02 | Device enrollment and revocation | P0 **internal token issuance + RBAC schema partial** | SRV-01, AUTH-01 | 256-bit opaque token/hashed verifier and SQL group-scoped issuance unit-tested; no public admin session, atomic token+CSR consume, signed-cert registration/activation, revocation or PG concurrency test yet |
 | ID-01 | PostgreSQL uuidv7() device key and bound credential; safe re-enrollment | P0 | SRV-02 | identity collision/wrong-key/clone/lost identity unit tests |
 | AUTH-01 | Baseline secure admin session, role/group-scoped REST + WSS access | P0 | SRV-01 | role/group/Origin/CSRF and device-credential negative tests |
 | AGT-01 | Rust service lifecycle and config | P0 | D0 | Windows/Linux service smoke |
