@@ -79,4 +79,4 @@
 - [Docs-before-code gate](governance/documentation-gate.md)
 - [Contributing](../CONTRIBUTING.md) · [Security reporting](../SECURITY.md) · [Changelog](../CHANGELOG.md)
 
-**Working rule:** MVP changes may commit directly to main, no PR requirement. Pre-release CI executes unit tests only; no E2E suite yet. Code starts only after the docs gate has been reviewed. Privacy/security controls cannot be deferred merely for speed.
+**Working rule:** MVP changes may commit directly to main, no PR requirement. Pre-release CI executes unit tests only; no E2E suite yet. Code starts only after the D0 technical baseline is **explicitly approved by the maintainer**; document review or build-tool selection alone is insufficient. Privacy/security controls cannot be deferred merely for speed.
