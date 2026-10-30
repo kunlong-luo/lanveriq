@@ -1,11 +1,14 @@
 package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Semaphore;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -53,6 +56,38 @@ class ConsoleLoginRateLimitFilterTest {
         filter.doFilter(oversized, largeResponse, Mockito.mock(FilterChain.class));
         assertEquals(413, largeResponse.getStatus());
         verify(audit, never()).loginThrottled();
+    }
+
+    @Test
+    void simultaneousPasswordChecksAreBoundedAndReturnShortRetry() throws Exception {
+        var saturated = new ConsoleLoginRateLimitFilter(
+                new ConsoleLoginRateLimiter(), audit, new Semaphore(0));
+        var request = login("operator");
+        var response = new MockHttpServletResponse();
+        FilterChain chain = Mockito.mock(FilterChain.class);
+
+        saturated.doFilter(request, response, chain);
+
+        assertEquals(429, response.getStatus());
+        assertEquals("1", response.getHeader("Retry-After"));
+        verify(audit).loginThrottled();
+        verify(chain, never()).doFilter(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    void concurrentPermitIsReleasedEvenIfNextFilterThrows() {
+        var capacity = new Semaphore(1);
+        var bounded = new ConsoleLoginRateLimitFilter(
+                new ConsoleLoginRateLimiter(), audit, capacity);
+        var request = login("operator");
+        var response = new MockHttpServletResponse();
+        FilterChain failingChain = (req, res) -> {
+            throw new ServletException("synthetic downstream error");
+        };
+
+        assertThrows(ServletException.class,
+                () -> bounded.doFilter(request, response, failingChain));
+        assertEquals(1, capacity.availablePermits());
     }
 
     @Test
