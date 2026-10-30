@@ -69,6 +69,7 @@
 - [Lightweight release and upgrade plan](operations/release.md)
 
 ## Governance
+- [Cross-document / diagram / SVG consistency review — 2026-10-30](governance/documentation-review-2026-10-30.md)
 - [Open decisions](governance/open-decisions.md)
 - [Docs-before-code gate](governance/documentation-gate.md)
 - [Contributing](../CONTRIBUTING.md) · [Security reporting](../SECURITY.md) · [Changelog](../CHANGELOG.md)

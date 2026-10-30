@@ -21,6 +21,7 @@
 - [x] WebSocket contract, role-scoped push security, reconnect/refetch and unit/manual acceptance written
 - [x] Mermaid context/component/sequence/ER/security diagrams and index written
 - [x] Test strategy, runbooks, roadmap and issue-sized backlog written
+- [x] [Cross-document review of V0.1 scope, RBAC, REST, recording case flow and all drawings](documentation-review-2026-10-30.md) written; no runtime claims
 - [x] Baseline V0.1 access controls and separate later recording review-case authorization reconciled in PRD, API, tasks and drawings
 - [ ] Maintainer explicitly reviews and accepts D0 technical baseline
 - [ ] Validate the supplied Pop!_OS 24.04 LTS/KDE KWin pilot environment (`XDG_SESSION_TYPE` still unknown) and finalize certificate/bootstrap choice for v0.1

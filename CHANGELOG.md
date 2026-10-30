@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-30 — document consistency audit
+- Reconciled V0.1 base RBAC, Monitoring Center, recording review-case APIs, agent/DB authorization arrows, capture and source-gap milestones, revised segment trial and inventory flow.
+- Statically reviewed the 83 existing Markdown docs, 20 Mermaid diagrams and 8 SVG assets; recorded remaining non-rendered/manual and organizational decisions in [audit report](docs/governance/documentation-review-2026-10-30.md).
+
+
 All notable project changes will be documented here. No product binaries or running services exist yet.
 
 ## [Unreleased] — documentation planning baseline, 2026-10-30
