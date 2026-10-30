@@ -26,6 +26,7 @@ final class ConsoleOriginPolicy {
         if (!"https".equals(uri.getScheme()) || host == null ||
                 !host.matches("[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?") ||
                 !host.contains(".") ||
+                host.matches("[0-9.]+") ||
                 uri.getUserInfo() != null || uri.getPort() != -1 ||
                 !Objects.equals(uri.getRawPath(), "") ||
                 uri.getRawQuery() != null || uri.getRawFragment() != null ||
