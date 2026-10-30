@@ -13,7 +13,7 @@
 | device_credentials | id, device_id, public_key_thumbprint, issued_at, expires_at, revoked_at | Rotation and revocation |
 | enrollment_tokens | id, hash UNIQUE, group_id, expires_at, consumed_at, created_by | Expiring single-use tokens; never persist plaintext |
 | heartbeats | device_id, received_at, agent_version, capabilities_json, queue_depth, errors_json, latest sampled metrics | Small, retained health history; not full hardware inventory |
-| device_inventory_current | device_id PK/FK, schema_version, snapshot_id, inventory_digest, observed_at, received_at, typed OS/CPU/RAM fields | One **current** authorized hardware/OS snapshot per device |
+| device_inventory_current | device_id PK/FK, schema_version, snapshot_id, **inventory_revision**, inventory_digest, observed_at, received_at, typed OS/CPU/RAM fields | One **current** authorized hardware/OS snapshot per device |
 | device_network_interfaces | (device_id, interface_key) PK, name, kind, nullable MAC, virtual flag, link_state | Multiple actual adapters, MAC **not an identity** |
 | device_interface_addresses | device_id, interface_key, ip_with_prefix `inet`, scope | Zero or many IPv4/IPv6 addresses per interface |
 | device_volumes | (device_id, volume_key) PK, mount_point, filesystem, total_bytes, free_bytes | Local mounted volume inventory and capacity |

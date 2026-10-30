@@ -39,6 +39,7 @@ The WebSocket channel reduces device-status/alert latency for 1–10 machines. I
 | `device.status.changed` | v0.1 | `{status, last_seen_at}` refresh scoped device list/detail |
 | `agent.backlog.changed` | v0.1 | `{queue_count, queue_bytes, integrity_degraded}` refresh device health; throttle/coalesce |
 | `device.enrollment.changed` | v0.1 | `{enrollment_state}` after admin enrollment/revoke transaction |
+| `device.inventory.changed` | v0.1 | `{inventory_revision, received_at}` refresh restricted inventory via REST; **no IP, MAC, serial or detailed hardware in WS frame** |
 | `collector.state.changed` | v0.2 | `{source, state, observed_at}` refresh collector status |
 | `audit.ingest.available` | v0.2 | `{latest_received_at}` refresh visible timeline; never include raw event |
 | `recording.session.changed` | v0.3 | `{state, session_id}` only for separately entitled, case-scoped viewers |

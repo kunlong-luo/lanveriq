@@ -3,11 +3,12 @@
 **Status:** Design, no implementation. **Selected:** `rusqlite` + bundled patched SQLite + WAL; one serialized writer. Inspired by Pagevela's single ordered persistence coordinator, but backend is SQLite, not browser IndexedDB. Canonical acknowledgment semantics are specified in [Event Delivery](event-delivery.md).
 
 ## Proposed local tables
-- `agent_state`: schema_version, device_id, enrollment_status, policy_version, next_sequence (durably monotonic). Do not use a global last_ack_sequence to delete outstanding lower-numbered rows.
+- `agent_state`: schema_version, device_id, enrollment_status, policy_version, next_sequence (audit), **next_inventory_revision** (independent and durably monotonic). Do not use a global last_ack_sequence to delete outstanding lower-numbered rows.
 - `outbox_events`: event_id UUID UNIQUE, device_sequence INTEGER UNIQUE NOT NULL, source, event_type, policy_version, occurred_at_utc, payload_json (allowlisted), created_at_utc, acked_at_utc NULL, bytes.
 - `collector_cursors`: source PRIMARY KEY, cursor_blob, updated_at, last_event_sequence.
 - `upload_batches`: id UUID, first_sequence, last_sequence, attempts, next_attempt_at, last_error_code.
 - `collection_gaps`: id UUID, source, from_at, to_at, reason, reported_at.
+- `inventory_pending`: one bounded latest complete snapshot with stable snapshot_id, **inventory_revision**, validated content digest, body, retry state; replace only older pending versions and never use audit-event sequence.
 - `recording_manifests` (v0.3): session_id, segment_id, local_path, sha256, size, state, last_attempt_at. Paths must be confined to the configured media directory.
 - `schema_migrations`: version, checksum, applied_at.
 
@@ -20,6 +21,9 @@ Never store plaintext enrollment token, device private key, password, keyboard d
 4. Server validates the **whole batch**, inserts or deduplicates it atomically in PostgreSQL and returns **all** accepted sequences after commit; any invalid/conflicting item rejects the whole batch.
 5. Local writer marks **only explicitly acknowledged sequences** and prunes the acknowledged rows. Ambiguous timeout → retry, do not drop. A `409 sequence_conflict` is quarantined and surfaced as degraded.
 6. If outbox is full, reserve bounded emergency gap capacity and report the **affected loss interval**. If disk is fully unwriteable, heartbeat exposes integrity_degraded so server can infer a coarse gap. Never fabricate event completeness.
+
+## Inventory offline reliability
+A hardware/network inventory change persists a newer `inventory_pending` snapshot and advances `next_inventory_revision` through the single SQLite writer **atomically**. Agent sends the latest snapshot over its separate HTTPS inventory endpoint. Same ID/revision/content retries are idempotent; a late older revision must not overwrite current server state. A server ack for old revision N **cannot clear** an unacknowledged newer revision N+1. Inventory is **latest-state diagnostics**, unlike the immutable audit event stream. See [Device Inventory](device-inventory.md).
 
 ## SQLite configuration proposal
 `journal_mode=WAL`; `foreign_keys=ON`; `busy_timeout=5000`; `synchronous=FULL` for durable outbox pending benchmarking. Use bounded transactions, one writer, scheduled checkpoints and `PRAGMA integrity_check` in diagnostics. Bundle a release incorporating SQLite's 2026 WAL-reset fix (3.51.3 or supported fixed backport) and test the version that ships.

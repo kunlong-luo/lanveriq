@@ -22,6 +22,8 @@
 | D-14 | [Agent SQLite entity model](agent-sqlite-model.md) | [Agent persistence](../architecture/agent-persistence.md) |
 | D-15 | [Dashboard navigation](dashboard-navigation.md) | [Dashboard UX](../development/dashboard-ux.md) |
 | D-16 | [Browser WSS lifecycle](websocket-lifecycle.md) | [WebSocket contract](../architecture/websocket-contract.md) |
+| D-17 | [Monitoring Center business flow](monitoring-center-flow.md) | [Monitoring Center spec](../development/monitoring-center.md) |
+| D-18 | [Recording & Playback business flow](recording-playback-flow.md) | [Recording center spec](../development/recording-playback-center.md) |
 | D-19 | [Device hardware/network inventory ER](device-inventory-er.md) | [Device inventory fields](../architecture/device-inventory.md) |
 | D-20 | [Inventory collection/sampling flow](device-inventory-flow.md) | [Device inventory update protocol](../architecture/device-inventory.md) |
 

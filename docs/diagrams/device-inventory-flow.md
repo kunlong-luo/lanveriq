@@ -10,13 +10,15 @@ sequenceDiagram
   participant WS as Scoped WS notifier
   participant UI as Device details / Monitoring Center
   OS->>Agent: Read allowed OS, CPU, RAM, disk, NIC, IP/MAC
-  Agent->>Agent: Normalize, redact, validate and hash snapshot
+  Agent->>Agent: Normalize, redact, validate, hash and increment inventory_revision
+  Agent->>Agent: Persist latest pending snapshot in SQLite
   opt Changed snapshot, startup or 24h reconciliation
     Agent->>API: HTTPS POST /devices/{id}/inventory
     API->>API: Validate credential, ID, schema, bounds
-    API->>DB: Atomic upsert current inventory + NIC/IP/volumes
+    API->>DB: Upsert only if inventory_revision is newer; atomic NIC/IP/volumes
     DB-->>API: COMMIT (or identical retry)
-    API-->>Agent: Accepted / same snapshot idempotently
+    API-->>Agent: Accepted / identical replay / stale_ignored
+    Agent->>Agent: Clear only matching pending revision
     API->>WS: Optional scoped inventory.changed AFTER COMMIT
     WS-->>UI: Small notification, no raw IP/MAC
     UI->>API: Refetch scoped REST inventory
@@ -28,4 +30,4 @@ sequenceDiagram
   end
 ~~~
 
-This stream is **not** the audit event outbox; inventory snapshots have their own idempotency key/hash and must not consume the event `device_sequence` counter. Multiple interfaces/addresses and actual source states are supported; no serial/fingerprint default. The UI does not infer identity from IP/MAC. [Inventory contract](../architecture/device-inventory.md).
+This stream is **not** the audit event outbox; inventory snapshots use a persisted independent `inventory_revision` plus snapshot ID/hash. Retry after outage uses the same snapshot; late old revisions cannot overwrite the server's current inventory and must not consume the event `device_sequence` counter. Multiple interfaces/addresses and actual source states are supported; no serial/fingerprint default. The UI does not infer identity from IP/MAC. [Inventory contract](../architecture/device-inventory.md).
