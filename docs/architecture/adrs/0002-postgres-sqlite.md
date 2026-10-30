@@ -3,9 +3,9 @@
 **Status:** Accepted design direction | **Date:** 2026-10-30
 
 ## Decision
-- **Server:** PostgreSQL major 18, patch version pinned when implementation starts. Java uses JDBC/Spring Data JDBC and Flyway. DB holds devices, roles, scopes, events, activity summaries, segment manifests, retention and admin audit—not video binaries.
-- **Agent:** embedded SQLite using Rust **rusqlite** with a bundled, audited SQLite library and **WAL**. DB holds durable event outbox, source cursors, ack state, local policy digest, upload attempt metadata and collection-gap records—not media files or plaintext secrets.
-- Use local disk only for SQLite; no network-share WAL. Agent runs one serialized writer thread/actor with short transactions; read queries may run separately. All event/cursor writes enter this gateway.
+- **Server:** PostgreSQL major 18, patch version pinned when implementation starts. Java uses **Spring Data JPA/Hibernate and Flyway** (no separate JdbcClient repositories). DB holds devices, roles, scopes, events, activity summaries, segment manifests, retention and admin audit—not video binaries.
+- **Agent:** embedded SQLite using Rust **SQLx 0.9 SQLite** with a bundled, audited SQLite library and **WAL**. DB holds durable event outbox, source cursors, ack state, local policy digest, upload attempt metadata and collection-gap records—not media files or plaintext secrets.
+- Use local disk only for SQLite; no network-share WAL. Agent uses one SQLx write pool with `max_connections(1)` and short async transactions. No manually built SQLite worker thread; event/cursor writes pass through the same transaction boundary.
 
 ## Proposed durability parameters
 - Evaluate `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`, `synchronous=FULL` (benchmark before changing), periodic WAL checkpoint, quota and corruption detection.
@@ -28,4 +28,4 @@ Postgres inside endpoints (operationally excessive); raw JSON logs (harder migra
 Crash/retry tests, abrupt restart, WAL checkpoint, full-disk quota, corrupt database handling, migration/rollback and OS ACL tests. Neither DB makes endpoint evidence tamper-proof.
 
 ## References
-[SQLite WAL](https://sqlite.org/wal.html) · [rusqlite](https://github.com/rusqlite/rusqlite) · [PostgreSQL 18](https://www.postgresql.org/docs/18/).
+[SQLite WAL](https://sqlite.org/wal.html) · [SQLx SQLite](https://docs.rs/sqlx/latest/sqlx/sqlite/) · [ADR-0007](0007-mature-ecosystem-first.md) · [PostgreSQL 18](https://www.postgresql.org/docs/18/).

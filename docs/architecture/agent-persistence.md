@@ -1,6 +1,6 @@
 # Rust Agent: SQLite outbox, persistence and crash recovery
 
-**Status:** Design, no implementation. **Selected:** `rusqlite` + bundled patched SQLite + WAL; one serialized writer. Inspired by Pagevela's single ordered persistence coordinator, but backend is SQLite, not browser IndexedDB. Canonical acknowledgment semantics are specified in [Event Delivery](event-delivery.md).
+**Status:** Design, no implementation. **Selected:** **SQLx 0.9 SQLite** + patched bundled SQLite WAL + one serialized write connection; supersedes the rusqlite blocking-worker proposal under [ADR-0007](adrs/0007-mature-ecosystem-first.md). Inspired by Pagevela's single ordered persistence coordinator, but backend is SQLite, not browser IndexedDB. Canonical acknowledgment semantics are specified in [Event Delivery](event-delivery.md).
 
 ## Proposed local tables
 - `agent_state`: schema_version, device_id, enrollment_status, policy_version, next_sequence (audit), **next_inventory_revision** (independent and durably monotonic). Do not use a global last_ack_sequence to delete outstanding lower-numbered rows.
@@ -10,23 +10,23 @@
 - `collection_gaps`: id UUID, source, from_at, to_at, reason, reported_at.
 - `inventory_pending`: one bounded latest complete snapshot with stable snapshot_id, **inventory_revision**, validated content digest, body, retry state; replace only older pending versions and never use audit-event sequence.
 - `recording_manifests` (v0.3): session_id, segment_id, local_path, sha256, size, state, last_attempt_at. Paths must be confined to the configured media directory.
-- `schema_migrations`: version, checksum, applied_at.
+- Database migrations: SQLx-managed `_sqlx_migrations` metadata; no bespoke migration runner.
 
 Never store plaintext enrollment token, device private key, password, keyboard data, clipboard data or the actual video as SQLite BLOBs. **V0.1 source collection is synthetic/test-only** beyond disclosed inventory and operational device health; real app/audit collectors start only after V0.2 policy review.
 
 ## Write and upload path
 1. Adapter observes a scoped event and validates/redacts fields.
-2. Single blocking SQLite writer runs a **transaction** inserting event and advancing the source cursor together, then commits.
+2. SQLx single-connection write pool executes an explicit **async transaction** inserting the event, incrementing sequence and advancing source cursor, then commits; never hold DB transactions across network I/O.
 3. Async uploader loads up to 100 events or 512 KiB (provisional caps), sends request with device identity; immutable event IDs + device_sequence make retry idempotent.
 4. Server validates the **whole batch**, inserts or deduplicates it atomically in PostgreSQL and returns **all** accepted sequences after commit; any invalid/conflicting item rejects the whole batch.
 5. Local writer marks **only explicitly acknowledged sequences** and prunes the acknowledged rows. Ambiguous timeout → retry, do not drop. A `409 sequence_conflict` is quarantined and surfaced as degraded.
 6. If outbox is full, reserve bounded emergency gap capacity and report the **affected loss interval**. If disk is fully unwriteable, heartbeat exposes integrity_degraded so server can infer a coarse gap. Never fabricate event completeness.
 
 ## Inventory offline reliability
-A hardware/network inventory change persists a newer `inventory_pending` snapshot and advances `next_inventory_revision` through the single SQLite writer **atomically**. Agent sends the latest snapshot over its separate HTTPS inventory endpoint. Same ID/revision/content retries are idempotent; a late older revision must not overwrite current server state. A server ack for old revision N **cannot clear** an unacknowledged newer revision N+1. Inventory is **latest-state diagnostics**, unlike the immutable audit event stream. See [Device Inventory](device-inventory.md).
+A hardware/network inventory change persists a newer `inventory_pending` snapshot and advances `next_inventory_revision` through the SQLx single-connection transaction boundary **atomically**. Agent sends the latest snapshot over its separate HTTPS inventory endpoint. Same ID/revision/content retries are idempotent; a late older revision must not overwrite current server state. A server ack for old revision N **cannot clear** an unacknowledged newer revision N+1. Inventory is **latest-state diagnostics**, unlike the immutable audit event stream. See [Device Inventory](device-inventory.md).
 
 ## SQLite configuration proposal
-`journal_mode=WAL`; `foreign_keys=ON`; `busy_timeout=5000`; `synchronous=FULL` for durable outbox pending benchmarking. Use bounded transactions, one writer, scheduled checkpoints and `PRAGMA integrity_check` in diagnostics. Bundle a release incorporating SQLite's 2026 WAL-reset fix (3.51.3 or supported fixed backport) and test the version that ships.
+`journal_mode=WAL`; `foreign_keys=ON`; `busy_timeout=5000`; `synchronous=FULL` for durable outbox pending benchmarking. Use bounded transactions, one writer, scheduled checkpoints and `PRAGMA integrity_check` in diagnostics. Use SQLx migrations and `SqlitePoolOptions::max_connections(1)` to avoid a bespoke blocking worker. Bundle SQLite including the WAL-reset fix (>=3.51.3 or officially fixed backport); **SQLite 3.54.1 is latest stable as of 2026-10-30**, but verify the actual `sqlite_version()` linked in each built Agent rather than inferring it from SQLx.
 
 ## Identity lifecycle
 A clean reinstall with lost local database/device key requires fresh enrollment and a **new device_id**. Do not reset the sequence counter for an existing device_id. Old server evidence remains linked to the revoked historical record; any replacement mapping is approved and audited. See [Event Delivery](event-delivery.md).

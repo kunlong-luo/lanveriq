@@ -18,12 +18,12 @@
 
 ## Dependency rules
 - Platform adapters implement contracts from core but do not import UI packages.
-- Agent-store is the **sole** SQLite write gateway. This borrows Pagevela's ordered persistence-coordinator principle and avoids competing writers.
+- Agent-store uses a **single-connection SQLx SQLite write pool** with SQLx migrations instead of a custom blocking SQLite driver; it is the **sole** SQLite write gateway. This borrows Pagevela's ordered persistence-coordinator principle and avoids competing writers.
 - Server controllers call domain services; services own `@Transactional` units; repositories use **Spring Data JPA/Hibernate** for bounded CRUD and parameter-bound **JPA native SQL** for idempotent event batches, inventory revisions and scoped aggregate queries. All remain inside the same persistence/transaction layer—**no separate JdbcClient or JdbcTemplate repositories**. Flyway owns PostgreSQL schema changes, Hibernate validates mappings and disables Open Session in View. See [backend stack](../development/backend-stack.md).
 - UI feature pages depend on typed REST API clients; Zustand stores ephemeral selection/layout, TanStack Query owns server state. WSS carries only scoped notification hints to invalidate/refetch TanStack Query. The dashboard never treats WSS messages as source of truth.
 
 ## Concurrency and performance
-Rust async network work uses Tokio; SQLite operations run in a dedicated blocking worker to avoid blocking async executors. Filesystem video upload works on **closed** segments. Client and server retry safely with immutable event IDs; backpressure is explicit.
+Rust async network work uses Tokio; SQLx SQLite handles its blocking work internally and exposes async transactions with serialized writes (pool max_connections=1); no custom blocking thread. Filesystem video upload works on **closed** segments. Client and server retry safely with immutable event IDs; backpressure is explicit.
 
 **Visual:** [component diagram](../diagrams/component-architecture.md). **Contract:** [dashboard WSS](websocket-contract.md).
 

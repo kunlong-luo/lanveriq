@@ -3,11 +3,12 @@
 **Status:** planned, not installed. Product visuals are in [visual gallery](../visuals/README.md) and standardized by [STYLE_GUIDE](../visuals/STYLE_GUIDE.md). Visual drawings do not replace real components.
 
 ## Stack
-- **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; Maven owns Java. pnpm is a package manager, **not** an application framework.
+- **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, **not** an application framework.
 - **React 19 + Vite 8 + TypeScript**, React Router for the LAN Dashboard. A Next.js SSR server is unnecessary. These UI libraries are not exclusive to Next.js.
 - **Tailwind CSS 4 + shadcn/ui + Radix UI** for accessible editable components; retain a modest shared UI package only once both Dashboard and Tauri require it.
 - **Lucide React** as primary stroke-based UI icon library; use explicitly approved/logos where necessary. Avoid installing multiple overlapping icon packs.
 - **Motion** as the single intentional animation library; CSS transitions for simple hover/focus, Motion for dialogs or route transitions. Respect `prefers-reduced-motion`.
+- **Springdoc OpenAPI → Orval → generated TypeScript REST clients and TanStack Query hooks** rather than manually repeating request DTOs and API functions. Generation is done from an approved local OpenAPI artifact, not from an anonymously exposed production API endpoint. See [Orval](https://orval.dev/).
 - **TanStack Query** owns REST server state; WSS status hints invalidate/refetch Query. **TanStack Table** for sortable/filterable device lists; avoid a second state copy in Zustand.
 - **Sonner** for notifications; **React Hook Form + Zod** only for nontrivial forms. **Recharts** for v0.2 event/status trends, **TanStack Virtual** only when row counts justify it. **i18next** for bilingual UI when locale selection becomes a feature.
 - Keep strict API authorization on Spring Boot, not in React component visibility. A UI badge never proves monitoring or employee inactivity.
@@ -24,10 +25,10 @@ Primary blue `#2563EB`, green `#159A69` (healthy), orange `#E88816` (warning), r
 ## Phase-controlled dependencies
 | Phase | Actual need | Install when implementing |
 |---|---|---|
-| v0.1 | React/Vite, pnpm, Tailwind, shadcn UI, Lucide, Query, Router, forms for enrollment/login, Sonner, targeted Motion | only required packages/components |
+| v0.1 | React/Vite, pnpm, Tailwind, shadcn UI, Lucide, **Orval-generated Query client**, Router, forms for enrollment/login, Sonner, targeted Motion | only required packages/components |
 | v0.2 | Timeline charts, large table, internationalization | Recharts, Virtual/i18next as warranted |
 | v0.3 | Tauri 2 desktop companion and authorized recording UX | optional shared UI package, no Electron |
 | v1.0 | more sophisticated validation/testing | review/test expansion after MVP |
 
 ## Dependency governance
-Pin versions/lockfiles **when app scaffolds are actually added**; no pretend package.json or GitHub CI jobs before implementation. Prefer official package documentation and licensing audit before commercialization. Keep examples synthetic and avoid copying Pagevela's unrelated editor/PWA modules.
+Use [ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md) for ecosystem admission; do not hand-edit generated API client files. Pin versions/lockfiles **when app scaffolds are actually added**; no pretend package.json or GitHub CI jobs before implementation. Prefer official package documentation and licensing audit before commercialization. Keep examples synthetic and avoid copying Pagevela's unrelated editor/PWA modules.
