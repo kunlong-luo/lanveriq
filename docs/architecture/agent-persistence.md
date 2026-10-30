@@ -1,0 +1,46 @@
+# Rust Agent: SQLite outbox, persistence and crash recovery
+
+**Status:** Design, no implementation. **Selected:** `rusqlite` + bundled patched SQLite + WAL; one serialized writer. Inspired by Pagevela's single ordered persistence coordinator, but backend is SQLite, not browser IndexedDB.
+
+## Proposed local tables
+- `agent_state`: schema_version, device_id, enrollment_status, policy_version, last_ack_sequence.
+- `outbox_events`: event_id UUID UNIQUE, sequence INTEGER UNIQUE NOT NULL, source, kind, occurred_at_utc, payload_json (allowlisted), created_at_utc, acked_at_utc NULL, bytes.
+- `collector_cursors`: source PRIMARY KEY, cursor_blob, updated_at, last_event_sequence.
+- `upload_batches`: id UUID, first_sequence, last_sequence, attempts, next_attempt_at, last_error_code.
+- `collection_gaps`: id UUID, source, from_at, to_at, reason, reported_at.
+- `recording_manifests` (v0.3): session_id, segment_id, local_path, sha256, size, state, last_attempt_at. Paths must be confined to the configured media directory.
+- `schema_migrations`: version, checksum, applied_at.
+
+Never store plaintext enrollment token, device private key, password, keyboard data, clipboard data or the actual video as SQLite BLOBs.
+
+## Write and upload path
+1. Adapter observes a scoped event and validates/redacts fields.
+2. Single blocking SQLite writer runs a **transaction** inserting event and advancing the source cursor together, then commits.
+3. Async uploader loads up to 100 events or 512 KiB (provisional caps), sends request with device identity and idempotency key.
+4. Server verifies, deduplicates and commits in PostgreSQL before returning accepted event IDs/sequence.
+5. Local writer marks acknowledgment and prunes only committed acknowledgments. Ambiguous timeout → retry, do not drop.
+6. If outbox is full, collection must apply explicit backpressure/drop policy with **reported loss interval**; never fabricate event completeness.
+
+## SQLite configuration proposal
+`journal_mode=WAL`; `foreign_keys=ON`; `busy_timeout=5000`; `synchronous=FULL` for durable outbox pending benchmarking. Use bounded transactions, one writer, scheduled checkpoints and `PRAGMA integrity_check` in diagnostics. Bundle a release incorporating SQLite's 2026 WAL-reset fix (3.51.3 or supported fixed backport) and test the version that ships.
+
+## OS storage
+- Windows: service-identity-restricted directory under `%ProgramData%/Lanveriq/`; use appropriate ACLs and optional BitLocker.
+- Linux: `/var/lib/lanveriq/` owned by dedicated service account (0700). Disk encryption via host policy/LUKS as applicable.
+- WAL is stored on a **local disk** only. Avoid SMB/NFS and any multi-host direct database access.
+- No secrets in logs. Credentials held in protected OS key storage with supportable rotation.
+
+## Failure scenarios
+| Event | Required behavior |
+|---|---|
+| Restart before transaction commit | event may not have been accepted; report source cursor/gap if unrepeatable |
+| Restart after local commit | replay queued event |
+| Network timeout after server commit | retry; PG UNIQUE guarantees one logical event |
+| Disk nearly full | warn; enforce quota; explicit gap |
+| Corrupt SQLite | isolate/quarantine, stop claiming healthy, require controlled repair |
+| Clock jump | keep monotonic sequence; flag drift |
+| Schema upgrade | transactional migration and backup; no silent data loss |
+| Host administrator tampering | cannot guarantee tamper-proof collection; server flags stale/gaps |
+
+## Required unit tests
+Event+cursor atomicity; retry after ambiguous ack; dedup key; sequential cursor; full-queue reporting; restart/replay; WAL checkpoint behavior; migration error; credential redaction. Actual power-loss and disk-pressure validation stay manual until broader integration testing is authorized.
