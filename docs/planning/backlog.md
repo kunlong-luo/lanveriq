@@ -11,13 +11,13 @@
 | ID-01 | PostgreSQL uuidv7() device key and bound credential; safe re-enrollment | P0 | SRV-02 | identity collision/wrong-key/clone/lost identity unit tests |
 | AUTH-01 | Baseline secure admin session, role/group-scoped REST + WSS access | P0 | SRV-01 | role/group/Origin/CSRF and device-credential negative tests |
 | AGT-01 | Rust service lifecycle and config | P0 | D0 | Windows/Linux service smoke |
-| AGT-02 | SQLite WAL single-writer outbox | P0 | AGT-01 | crash/retry/quota unit tests |
+| AGT-02 | **SQLx 0.9 SQLite** single-write-connection WAL outbox + migrations | P0 | AGT-01 | crash/retry/quota, linked SQLite patch and migration unit tests |
 | AGT-03 | HTTPS authenticated heartbeat and event batch | P0 | AGT-02, SRV-02 | unit test retries/dedup |
 | SRV-03 | Whole-batch PostgreSQL event ingestion + idempotent ack | P0 | SRV-02 | exact duplicate/conflict/rollback unit tests |
 | INV-01 | Rust platform inventory: CPU/RAM/OS/volumes/multiple NICs with IP/MAC | P0 | AGT-01 | INV-01 through INV-07 unit cases + manual Windows/Pop!_OS |
 | INV-02 | PG inventory current+NIC/IP/volume schema and idempotent snapshot API | P0 | SRV-02, INV-01 | INV-08–12 unit tests; late snapshot no overwrite |
 | INV-03 | Bounded CPU/RAM/disk sampling, freshness and device detail UI | P0 | INV-02, WEB-01 | INV-13–16, permission checks and freshness display |
-| WEB-01 | Dashboard shell and device list (authoritative REST snapshot) | P0 | SRV-02 | UI unit tests |
+| WEB-01 | Dashboard shell + **Orval-generated OpenAPI TanStack Query client**, authoritative REST device list | P0 | SRV-02 | generated schema/API diff and UI unit tests |
 | MON-01 | Dedicated Monitoring Center: fleet/source health, backlog, limited hardware summary | P0 | WEB-01, INV-03, WS-01 | real-device heartbeat, group scope and no unsupported-as-zero tests |
 | WS-01 | Authenticated Spring WSS upgrade, scoped topics, after-commit notifier | P0 | SRV-02, SRV-03, AUTH-01 | WS-001 through WS-009 unit tests; manual MAN-WS-01 through 08 |
 | WEB-WS-01 | React WSS client with resubscribe/reconnect and REST refetch | P0 | WEB-01, WS-01 | duplicate/slow/reconnect unit tests and manual validation |

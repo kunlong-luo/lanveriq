@@ -9,6 +9,7 @@
 - [x] System architecture, trust zones and module boundaries documented
 - [x] Maintainer explicitly chose **Gradle**, not Maven: [stable Java backend stack](../development/backend-stack.md) and [Groovy DSL reference](../development/backend-gradle-reference.md) (Gradle 9.8.2/Boot 4.1.2/Java 25/JaCoCo 0.8.16); **not installed or compiled**
 - [x] Server PostgreSQL and endpoint SQLite/WAL architecture decisions recorded
+- [x] Ecosystem-first ADR and selected libraries documented ([ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md)); **SQLx/Orval have not been installed or tested**
 - [x] Versioned device asset inventory fields (CPU/RAM/OS/volumes/NIC/IP/MAC), sampling, privacy/retention, API and ER diagrams defined
 - [x] API/event envelope, all-or-nothing acknowledgment, identity re-enrollment and idempotency behavior documented
 - [x] LAN bootstrap/trusted TLS and dashboard v0.1 REST + authenticated WSS design documented
@@ -24,6 +25,7 @@
 - [x] Test strategy, runbooks, roadmap and issue-sized backlog written
 - [x] [Cross-document review of V0.1 scope, RBAC, REST, recording case flow and all drawings](documentation-review-2026-10-30.md) written; no runtime claims
 - [x] Baseline V0.1 access controls and separate later recording review-case authorization reconciled in PRD, API, tasks and drawings
+- [ ] Verify **SQLx/SQLite bundled WAL patch**, single-connection transactions on Windows/Pop!_OS, Orval-generated client schema alignment and dependency licenses before sign-off.
 - [ ] Maintainer explicitly reviews and accepts **the full D0 technical baseline**; choosing the Java build tool alone does not satisfy D0
 - [ ] Validate the supplied Pop!_OS 24.04 LTS/KDE KWin pilot environment (`XDG_SESSION_TYPE` still unknown) and finalize certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors

@@ -8,7 +8,7 @@
 
 ![Lanveriq 系统总览彩图（设计概念）](docs/visuals/assets/01-overview.svg)
 
-[查看全部 8 张统一风格彩图](docs/visuals/README.md) · [查看 16 张 Mermaid 技术图纸](docs/diagrams/README.md)
+[查看全部 8 张统一风格彩图](docs/visuals/README.md) · [查看 20 张 Mermaid 技术图纸](docs/diagrams/README.md)
 
 目标环境：Windows 11 和经过验证的 Linux 桌面；初期 1–10 台公司授权终端；局域网独立部署，不需要互联网或 AI。
 
@@ -22,7 +22,8 @@
 不提供秘密安装、隐蔽录像、键盘记录、密码抓取、绕过 Windows/Linux 录屏授权或隐藏式远程控制。
 
 ## 技术栈
-- Agent：Rust + Tokio + rusqlite / bundled SQLite（WAL）。
+- 前端 REST 访问：**Orval 根据 Springdoc OpenAPI 自动生成 TypeScript API 类型及 TanStack Query Hooks**，避免人工维护重复接口代码。
+- Agent：Rust + Tokio + **SQLx 0.9 / bundled SQLite（WAL）**。
 - 可选桌面端：Tauri 2 + React。
 - 服务端：Java 25 / Spring Boot 4 模块化单体 + PostgreSQL 18 + Flyway。
 - V0.1 通信：Rust Agent 通过 HTTPS REST 上报；React 后台使用 HTTPS REST + WSS WebSocket 实时推送，断线后 REST 重新同步。

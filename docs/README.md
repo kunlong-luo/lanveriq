@@ -31,6 +31,7 @@
 - [ADR 0004: Direct main, minimal CI, delayed E2E](architecture/adrs/0004-rapid-main-development.md)
 - [ADR 0005: REST + WebSocket from v0.1](architecture/adrs/0005-rest-plus-websocket.md)
 - [ADR 0006: Agent REST vs dashboard WS responsibilities](architecture/adrs/0006-agent-rest-dashboard-ws.md)
+- [ADR 0007: Mature open-source ecosystem before custom infrastructure](architecture/adrs/0007-mature-ecosystem-first.md)
 
 ## Product infographics / 产品彩图
 - [Eight coordinated editable SVG posters](visuals/README.md) for non-technical audiences, including overview, flow, stack, features, enrollment, dashboard, recovery and privacy.
@@ -48,7 +49,8 @@
 - [Dashboard UI/UX contract](development/dashboard-ux.md)
 - [Dedicated Monitoring Center design](development/monitoring-center.md)
 - [Recording & Playback Center design](development/recording-playback-center.md)
-- [Frontend design system](development/frontend-design-system.md)
+- [Frontend design system and generated REST client](development/frontend-design-system.md)
+- [Rust Agent dependency stack and service runtime](development/rust-agent-stack.md)
 - [Development roadmap](planning/roadmap.md)
 - [v0.1 implementation sequence](planning/v0.1-implementation-sequence.md)
 - [Issue-sized backlog](planning/backlog.md)
