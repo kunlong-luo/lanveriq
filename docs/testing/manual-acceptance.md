@@ -32,6 +32,9 @@
 | MAN-012 | Cross-device/cross-group API query | rejected |
 | MAN-013 | Postgres backup and isolated restore | expected synthetic data restored |
 
+## D0 contract/security negative scenarios (planned, NOT TESTED)
+Use [D0-SEC-01–03, D0-PROTO-01–03, D0-PRIV-01, D0-OS-01](../governance/d0-decision-package-2026-10-30.md) to verify the exact *approved* API/CSR/CA/proxy/fingerprint and role-projected fixtures after code exists. The proposed manual CSR issuance must be exercised end to end, including response loss, premature activation refusal, expired/rotated device certs, untrusted forwarded headers and actual SSL transport isolation. Do not pass any of these on a static spec or a mocked Caddy process. Record actual Caddy, Rust TLS and Spring versions plus authorized pilot OS details without real employee artifacts.
+
 ## v0.1 device inventory checks
 Use [INV-01 through INV-16](device-inventory-checklist.md): CPU model, RAM, OS/kernel, volumes, multi-NIC IPv4/IPv6/MAC, changing DHCP, stale/absent data, policy scope and 30s heartbeat versus 24h inventory. These checks have not been executed. Do not attach real internal addresses to public issue reports.
 
