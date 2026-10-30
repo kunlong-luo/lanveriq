@@ -28,7 +28,7 @@ Rust endpoint agent; optional Tauri 2 desktop companion; Java 25 / Spring Boot 4
 ## Documentation
 See [Architecture Drawings](docs/diagrams/README.md), [WebSocket Contract](docs/architecture/websocket-contract.md), [Documentation Index](docs/README.md), [Product Requirements](docs/product/requirements.md), [System Architecture](docs/architecture/system-overview.md), [Security and Privacy](docs/security/privacy-and-consent.md), [Development Roadmap](docs/planning/roadmap.md), and [中文说明](README.zh.md).
 
-**Documentation-first gate:** No product code is to be started until the design baseline, privacy scope, API and data contracts, risks, acceptance criteria and open decisions have been reviewed. See [Documentation Gate](docs/governance/documentation-gate.md).
+**Documentation-first gate:** No product code is to be started until the D0 technical baseline and blocking security/protocol decisions have been **explicitly approved by the maintainer**, with unresolved risks recorded. Reviewing documents or selecting Gradle alone does not constitute approval. See [Documentation Gate](docs/governance/documentation-gate.md).
 
 ## Early development workflow
 
