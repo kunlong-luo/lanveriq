@@ -24,7 +24,7 @@ Small offices need a simple private-server tool to review endpoint availability,
 | FR-07 | Scoped application activity and idle-time metadata | v0.2 |
 | FR-08 | Allowlisted Windows Event Log and Linux audit events | v0.2 |
 | FR-09 | Device/date event timeline, search, pagination, time zones | v0.2 |
-| FR-10 | RBAC, device scope and sensitive-read/export audit log | v0.2 |
+| FR-10 | **Expanded** RBAC, granular activity/media/data-class scopes and sensitive-read/export audit log (baseline access control already in V0.1) | v0.2 |
 | FR-11 | Configurable event retention and disk-quota alerts | v0.2 |
 | FR-12 | Optional disclosed, OS-authorized recording and indicator | v0.3 |
 | FR-13 | Recorded segment integrity, upload, controlled playback | v0.3 |
@@ -34,6 +34,11 @@ Small offices need a simple private-server tool to review endpoint availability,
 | FR-17 | Managed device asset inventory: CPU/RAM/disk/OS, multiple NICs with IP/MAC, authorized detail and freshness | v0.1 |
 | FR-18 | Separate full inventory snapshot from lightweight host metric/health samples; no full snapshot every heartbeat | v0.1 |
 | FR-19 | Stable server-assigned UUIDv7 device identity, optional audited asset replacement linkage | v0.1 |
+| FR-20 | Dedicated **Monitoring Center** (/monitoring): scoped device health, source coverage, queue/gaps, live WSS state | v0.1 |
+| FR-21 | Dedicated **Recording & Playback Center** (/recordings): catalog, access request, independent approval, gap-aware time-scoped playback and audit | v0.3 |
+| FR-22 | **Baseline** administrator login, role/group isolation and WSS subscription authorization | v0.1 |
+
+**Product center reference:** [Monitoring Center](../development/monitoring-center.md), [Recording & Playback Center](../development/recording-playback-center.md), [Functional closure](functional-closure.md). **Monitoring Center means device/collector health, not live-screen streaming.** Recording remains a separate notified and OS-authorized V0.3 feature; backend video upload alone does not close the playback loop.
 
 **Inventory reference:** [Hardware/network field inventory](../architecture/device-inventory.md), [device identity](../architecture/device-identity.md), and [inventory tests](../testing/device-inventory-checklist.md). IP/MAC are diagnostic device properties, not immutable identities. Hardware serials and personally revealing identifiers are off by default.
 

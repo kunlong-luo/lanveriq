@@ -4,6 +4,7 @@
 
 ## Product
 - [Requirements and scope](product/requirements.md)
+- [Functional closure by milestone](product/functional-closure.md)
 - [User stories and flows](product/user-stories.md)
 - [Quality requirements](product/nonfunctional.md)
 
@@ -11,6 +12,7 @@
 - [System overview and trust boundaries](architecture/system-overview.md)
 - [Component decomposition](architecture/components.md)
 - [Storage and event models](architecture/data-model.md)
+- [Device identity: UUIDv7 enrollment, re-enrollment and replacement](architecture/device-identity.md)
 - [Hardware/OS/network inventory and sampling](architecture/device-inventory.md)
 - [Canonical UUIDv7 device identity](architecture/device-identity.md)
 - [Agent local persistence and outbox](architecture/agent-persistence.md)
@@ -42,6 +44,9 @@
 - [Pagevela reference: reuse and differences](development/pagevela-reference.md)
 - [Repository layout and conventions](development/standards.md)
 - [Dashboard UI/UX contract](development/dashboard-ux.md)
+- [Dedicated Monitoring Center design](development/monitoring-center.md)
+- [Recording & Playback Center design](development/recording-playback-center.md)
+- [Frontend design system](development/frontend-design-system.md)
 - [Development roadmap](planning/roadmap.md)
 - [v0.1 implementation sequence](planning/v0.1-implementation-sequence.md)
 - [Issue-sized backlog](planning/backlog.md)

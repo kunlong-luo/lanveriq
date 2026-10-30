@@ -5,6 +5,7 @@
 ## Review checklist
 - [x] Product scope, non-goals and user personas written
 - [x] Functional requirements and milestone acceptance written
+- [x] Dedicated Monitoring Center (V0.1) and Recording & Playback Center (V0.3) UI/API loop definitions exist; **not yet implemented**
 - [x] System architecture, trust zones and module boundaries documented
 - [x] Server PostgreSQL and endpoint SQLite/WAL architecture decisions recorded
 - [x] Versioned device asset inventory fields (CPU/RAM/OS/volumes/NIC/IP/MAC), sampling, privacy/retention, API and ER diagrams defined
@@ -25,7 +26,7 @@
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
 - [ ] Approve initial network-address/MAC collection scope, data retention, disclosure and Linux/Windows field-capability tests; inventory is only designed, not verified on endpoints
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
-- [x] Earlier 68-document Markdown-link check completed; current visual-gallery update checked changed Markdown/image references against repository paths (73 Markdown files + 8 SVG assets); all inspected local targets exist. All 16 Mermaid drawings remain in the repository.
+- [x] Re-audited all **83 Markdown files** for file-relative links against the current repository tree on 2026-10-30; no missing file targets were found. Folder links such as `assets/` require directory-aware checking. **20 Mermaid pages and 8 SVG concept assets exist**. This verifies path existence, **not** browser/diagram rendering, all anchors or actual system operation.
 - [x] Eight coordinated 16:9 SVG concept images and gallery, inventory, style guide and scope/terminology matrix added; all images carry a design-stage label and use no actual employee data.
 - [ ] Manually inspect all SVGs and Mermaid diagrams in GitHub/browser at full and reduced sizes, including Chinese font fallback; automated metadata/link checks do not prove visual rendering correctness. External URLs and heading anchors have not been exhaustively checked.
 
