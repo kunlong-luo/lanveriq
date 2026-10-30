@@ -79,13 +79,17 @@ impl OutboxStore {
             .connect_with(opts)
             .await?;
         let version: String = sqlx::query_scalar("SELECT sqlite_version()")
-            .fetch_one(&pool).await?;
+            .fetch_one(&pool)
+            .await?;
         if !is_patched_sqlite(&version) {
             pool.close().await;
             return Err(StoreError::UnsafeSqlite);
         }
         sqlx::migrate!("./migrations").run(&pool).await?;
-        Ok(Self { pool, sqlite_version: version })
+        Ok(Self {
+            pool,
+            sqlite_version: version,
+        })
     }
 
     pub fn sqlite_version(&self) -> &str {
@@ -94,8 +98,10 @@ impl OutboxStore {
 
     /// Atomically append one synthetic event and its cursor, or neither.
     pub async fn append_synthetic(&self, event: &SyntheticEvent) -> Result<i64, StoreError> {
-        if event.policy_version < 1 || !event.payload.is_object()
-            || event.cursor.is_empty() || event.cursor.len() > 4096
+        if event.policy_version < 1
+            || !event.payload.is_object()
+            || event.cursor.is_empty()
+            || event.cursor.len() > 4096
             || !(20..=40).contains(&event.occurred_at_utc.len())
             || !event.occurred_at_utc.ends_with('Z')
         {
@@ -109,18 +115,24 @@ impl OutboxStore {
         let mut tx = self.pool.begin().await?;
         let (count, bytes): (i64, i64) =
             sqlx::query_as("SELECT COUNT(*), COALESCE(SUM(bytes),0) FROM outbox_events")
-                .fetch_one(&mut *tx).await?;
+                .fetch_one(&mut *tx)
+                .await?;
         if count >= MAX_EVENTS || bytes + payload.len() as i64 > MAX_QUEUED_BYTES {
-            sqlx::query("INSERT INTO collection_gaps(source,reason) \
+            sqlx::query(
+                "INSERT INTO collection_gaps(source,reason) \
                 SELECT 'synthetic_test','queue_full' \
-                WHERE (SELECT COUNT(*) FROM collection_gaps) < ?")
-                .bind(MAX_GAPS).execute(&mut *tx).await?;
+                WHERE (SELECT COUNT(*) FROM collection_gaps) < ?",
+            )
+            .bind(MAX_GAPS)
+            .execute(&mut *tx)
+            .await?;
             tx.commit().await?;
             return Err(StoreError::QueueFull);
         }
         let sequence: i64 =
             sqlx::query_scalar("SELECT next_sequence FROM agent_state WHERE singleton=1")
-                .fetch_one(&mut *tx).await?;
+                .fetch_one(&mut *tx)
+                .await?;
         if sequence == i64::MAX {
             return Err(StoreError::QueueFull);
         }
@@ -142,25 +154,36 @@ impl OutboxStore {
             return Err(StoreError::Database(error));
         }
         sqlx::query("UPDATE agent_state SET next_sequence=next_sequence+1 WHERE singleton=1")
-            .execute(&mut *tx).await?;
-        sqlx::query("INSERT INTO collector_cursors(source,cursor_blob,last_event_sequence) \
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query(
+            "INSERT INTO collector_cursors(source,cursor_blob,last_event_sequence) \
                 VALUES ('synthetic_test', ?, ?) ON CONFLICT(source) DO UPDATE SET \
-                cursor_blob=excluded.cursor_blob, last_event_sequence=excluded.last_event_sequence")
-            .bind(&event.cursor).bind(sequence).execute(&mut *tx).await?;
+                cursor_blob=excluded.cursor_blob, last_event_sequence=excluded.last_event_sequence",
+        )
+        .bind(&event.cursor)
+        .bind(sequence)
+        .execute(&mut *tx)
+        .await?;
         tx.commit().await?;
         Ok(sequence)
     }
 
     pub async fn pending_batch(&self) -> Result<Vec<PendingEvent>, StoreError> {
-        let rows = sqlx::query("SELECT event_id,device_sequence,policy_version,payload_json,content_digest \
-                FROM outbox_events ORDER BY device_sequence LIMIT 100")
-            .fetch_all(&self.pool).await?;
+        let rows = sqlx::query(
+            "SELECT event_id,device_sequence,policy_version,payload_json,content_digest \
+                FROM outbox_events ORDER BY device_sequence LIMIT 100",
+        )
+        .fetch_all(&self.pool)
+        .await?;
         let mut total = 0_usize;
         let mut result = Vec::with_capacity(rows.len());
         for row in rows {
             let payload: String = row.try_get("payload_json")?;
             total += payload.len();
-            if total > 512 * 1024 { break; }
+            if total > 512 * 1024 {
+                break;
+            }
             let uuid: String = row.try_get("event_id")?;
             result.push(PendingEvent {
                 event_id: Uuid::parse_str(&uuid).map_err(|_| StoreError::InvalidFixture)?,
@@ -183,58 +206,90 @@ impl OutboxStore {
         let mut count = 0_u64;
         for seq in sequences {
             count += sqlx::query("DELETE FROM outbox_events WHERE device_sequence=?")
-                .bind(seq).execute(&mut *tx).await?.rows_affected();
+                .bind(seq)
+                .execute(&mut *tx)
+                .await?
+                .rows_affected();
         }
         tx.commit().await?;
         Ok(count)
     }
 
     pub async fn cursor(&self) -> Result<Option<(Vec<u8>, i64)>, StoreError> {
-        Ok(sqlx::query_as("SELECT cursor_blob,last_event_sequence FROM collector_cursors \
-                WHERE source='synthetic_test'")
-            .fetch_optional(&self.pool).await?)
+        Ok(sqlx::query_as(
+            "SELECT cursor_blob,last_event_sequence FROM collector_cursors \
+                WHERE source='synthetic_test'",
+        )
+        .fetch_optional(&self.pool)
+        .await?)
     }
 
     pub async fn next_sequence(&self) -> Result<i64, StoreError> {
-        Ok(sqlx::query_scalar("SELECT next_sequence FROM agent_state WHERE singleton=1")
-            .fetch_one(&self.pool).await?)
+        Ok(
+            sqlx::query_scalar("SELECT next_sequence FROM agent_state WHERE singleton=1")
+                .fetch_one(&self.pool)
+                .await?,
+        )
     }
 
     pub async fn gap_count(&self) -> Result<i64, StoreError> {
         Ok(sqlx::query_scalar("SELECT COUNT(*) FROM collection_gaps")
-            .fetch_one(&self.pool).await?)
+            .fetch_one(&self.pool)
+            .await?)
     }
 
     /// Latest-only inventory has an independent monotonic revision.
     pub async fn stage_synthetic_inventory(
-        &self, snapshot: Uuid, body: &serde_json::Value,
+        &self,
+        snapshot: Uuid,
+        body: &serde_json::Value,
     ) -> Result<i64, StoreError> {
-        if !body.is_object() { return Err(StoreError::InvalidFixture); }
+        if !body.is_object() {
+            return Err(StoreError::InvalidFixture);
+        }
         let json = serde_json::to_string(body)?;
-        if json.len() > 65536 { return Err(StoreError::InvalidFixture); }
+        if json.len() > 65536 {
+            return Err(StoreError::InvalidFixture);
+        }
         let digest = format!("{:x}", Sha256::digest(json.as_bytes()));
         let mut tx = self.pool.begin().await?;
-        let rev: i64 = sqlx::query_scalar(
-            "SELECT next_inventory_revision FROM agent_state WHERE singleton=1")
-            .fetch_one(&mut *tx).await?;
-        if rev == i64::MAX { return Err(StoreError::QueueFull); }
-        sqlx::query("INSERT INTO inventory_pending \
+        let rev: i64 =
+            sqlx::query_scalar("SELECT next_inventory_revision FROM agent_state WHERE singleton=1")
+                .fetch_one(&mut *tx)
+                .await?;
+        if rev == i64::MAX {
+            return Err(StoreError::QueueFull);
+        }
+        sqlx::query(
+            "INSERT INTO inventory_pending \
                 (singleton,snapshot_id,inventory_revision,body_json,content_digest) \
                 VALUES(1,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET \
                 snapshot_id=excluded.snapshot_id,inventory_revision=excluded.inventory_revision, \
-                body_json=excluded.body_json,content_digest=excluded.content_digest")
-            .bind(snapshot.to_string()).bind(rev).bind(json).bind(digest)
-            .execute(&mut *tx).await?;
-        sqlx::query("UPDATE agent_state SET next_inventory_revision=next_inventory_revision+1 \
-                WHERE singleton=1").execute(&mut *tx).await?;
+                body_json=excluded.body_json,content_digest=excluded.content_digest",
+        )
+        .bind(snapshot.to_string())
+        .bind(rev)
+        .bind(json)
+        .bind(digest)
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query(
+            "UPDATE agent_state SET next_inventory_revision=next_inventory_revision+1 \
+                WHERE singleton=1",
+        )
+        .execute(&mut *tx)
+        .await?;
         tx.commit().await?;
         Ok(rev)
     }
 
     pub async fn pending_inventory(&self) -> Result<Option<PendingInventory>, StoreError> {
-        let row = sqlx::query("SELECT snapshot_id,inventory_revision,body_json \
-                FROM inventory_pending WHERE singleton=1")
-            .fetch_optional(&self.pool).await?;
+        let row = sqlx::query(
+            "SELECT snapshot_id,inventory_revision,body_json \
+                FROM inventory_pending WHERE singleton=1",
+        )
+        .fetch_optional(&self.pool)
+        .await?;
         match row {
             None => Ok(None),
             Some(r) => {
@@ -249,29 +304,46 @@ impl OutboxStore {
     }
 
     pub async fn acknowledge_inventory(&self, revision: i64) -> Result<bool, StoreError> {
-        if revision <= 0 { return Err(StoreError::InvalidFixture); }
-        Ok(sqlx::query("DELETE FROM inventory_pending WHERE inventory_revision=?")
-            .bind(revision).execute(&self.pool).await?.rows_affected() == 1)
+        if revision <= 0 {
+            return Err(StoreError::InvalidFixture);
+        }
+        Ok(
+            sqlx::query("DELETE FROM inventory_pending WHERE inventory_revision=?")
+                .bind(revision)
+                .execute(&self.pool)
+                .await?
+                .rows_affected()
+                == 1,
+        )
     }
 
     pub async fn settings(&self) -> Result<(String, i64, i64), StoreError> {
         let journal: String = sqlx::query_scalar("PRAGMA journal_mode")
-            .fetch_one(&self.pool).await?;
+            .fetch_one(&self.pool)
+            .await?;
         let sync: i64 = sqlx::query_scalar("PRAGMA synchronous")
-            .fetch_one(&self.pool).await?;
+            .fetch_one(&self.pool)
+            .await?;
         let keys: i64 = sqlx::query_scalar("PRAGMA foreign_keys")
-            .fetch_one(&self.pool).await?;
+            .fetch_one(&self.pool)
+            .await?;
         Ok((journal, sync, keys))
     }
 
-    pub async fn close(self) { self.pool.close().await; }
+    pub async fn close(self) {
+        self.pool.close().await;
+    }
 }
 
 fn is_patched_sqlite(version: &str) -> bool {
     let parts: Option<Vec<u32>> = version.split('.').map(|v| v.parse::<u32>().ok()).collect();
-    let Some(parts) = parts else { return false; };
-    if parts.len() != 3 { return false; }
-    (parts[0], parts[1], parts[2]) >= (3,51,3) && parts[1] != 52
+    let Some(parts) = parts else {
+        return false;
+    };
+    if parts.len() != 3 {
+        return false;
+    }
+    (parts[0], parts[1], parts[2]) >= (3, 51, 3) && parts[1] != 52
 }
 
 #[cfg(test)]
