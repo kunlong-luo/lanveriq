@@ -10,6 +10,8 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 |---|---|---|---|
 | POST | /enrollments | authenticated admin | Create one-use short-lived device code, device group, expiry |
 | POST | /devices/enroll | pairing-capable installer on enrollment host | Validate token + CSR; create pending_certificate UUIDv7, **not an active credential** |
+| GET | /devices/{id}/enrollment-csr | scoped authorized security admin on console host | Return stored pending CSR + server device/group/expiry metadata for independent operator review; no private key |
+| POST | /devices/{id}/client-certificates | scoped authorized security admin on console host | Validate a separately signed clientAuth leaf/chain against pending CSR/SPKI, trusted client CA and device ID; atomically register pending credential fingerprint; no certificate signing on web server |
 | POST | /devices/{id}/activate | bound pending-certificate Agent on **mTLS Agent host** | Verify registered certificate fingerprint and atomically activate pending enrollment; same-cert retries idempotent |
 | POST | /devices/{id}/heartbeats | bound device credential | 30s status, version, queue and *latest sampled* CPU/RAM/volume health; **not** complete hardware info |
 | POST | /devices/{id}/event-batches | bound device credential | Validate, insert-once, durable ack |
@@ -105,6 +107,19 @@ Proposed `202 Accepted` after the token is **atomically consumed** and the serve
 }
 ~~~
 The CSR signing and trusted out-of-band leaf delivery follow [D-07](enrollment-bootstrap.md); no private key is returned or sent. `device_public_key` is derivable from a validated CSR and must not be separately accepted as a contradictory identity. First valid enrolled mTLS **activation request** activates the credential; pending Agent credentials cannot use heartbeats/events/inventory. Reusing the pairing token fails; recovery is an administrator-audited new attempt. Neither this response nor a device ID is proof of an active authenticated device.
+
+### Candidate security-admin CSR review and signed-certificate registration (console only)
+
+These endpoints complete the **operator-mediated offline signing** loop; otherwise `pending_certificate` devices would have no auditable path to an active credential:
+
+1. `GET /api/v1/devices/{id}/enrollment-csr`: only a separately authorized, group-scoped security administrator over the console's authenticated session and read audit. Returns a **pending** certificate-signing request and immutable server-derived `device_id`, group, CSR digest, policy/notice binding and pending expiry. CSR is public key material, **not** a private key; it still contains untrusted subject/extension requests that the operator must not adopt blindly.
+2. Operator validates the device/group and CSR digest with the requestor, signs **offline** using the reviewed client-only CA and a maintained `step certificate sign --template ...` workflow. The issuer-controlled template **overrides** untrusted CSR subject/SAN requests with a server-authorized device identity, enforces **CA=false, digitalSignature, clientAuth EKU only**, suitable algorithm, bounded lifetime and unique issuer serial. Never use the `step` default leaf profile unchanged because it can include both serverAuth and clientAuth; no private CA signing key is deployed to Spring or its web service. Verify the output using maintained certificate tooling before registration.
+3. `POST /api/v1/devices/{id}/client-certificates` (console-admin session **plus CSRF**, restricted role/group, audit) accepts **only the public PEM leaf and issuer chain**, and a reference to the pending CSR. Spring verifies issuer chain against the dedicated approved client CA, validity window, EKU/basic constraints, registered CSR **SPKI/public-key match**, authoritative device-ID identity (not CSR-supplied), unique credential fingerprint/serial, pending enrollment and absence of conflicting registrations. Perform the pending-credential registration in one PostgreSQL transaction; do **not** mark the device `active`.
+4. The operator transfers the signed **public leaf/chain only** to the authorized endpoint through a separately verified channel and checks its fingerprint. No unauthenticated certificate-pickup URL or secret-bearing query string is implied. The Agent holds the corresponding private key locally and calls the separate mTLS `/activate` route.
+
+**Suggested bounded response semantics:** 200 CSR fetch; 201 certificate registration; 409 conflict for consumed/mismatched pending identity or duplicate registered fingerprint; 410 pending enrollment expired; 422 invalid CSR/issuer/leaf/profile; 403 admin without assigned group/permission. Wrong-group calls use the API's non-enumerating 404 policy. **Missing private key, invalid CA, revoked leaf or inappropriate EKU cannot be repaired by ignoring TLS validation.**
+
+**Still a D0 proposal:** exact DTO field/endpoint naming, issuer template, certificate fingerprints/chain handling, admin permission and error status must be signed off under D-07/D-11/D-22; don't present this as compiled or OpenAPI-generated.
 
 ### Candidate first proof and activation endpoint (Agent mTLS host only)
 
