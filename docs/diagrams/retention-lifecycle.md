@@ -6,6 +6,7 @@ flowchart LR
   SQLite[("Local bounded SQLite outbox")]
   Ingest["Server accepts transaction"]
   PG[("PostgreSQL event / index")]
+  Capture["OS-authorized closed media upload — optional v0.3"]
   Media[("Video media — optional v0.3")]
   Policy["Approved retention schedule"]
   Delete["Batch delete / expire"]
@@ -14,7 +15,7 @@ flowchart LR
   Origin --> SQLite
   SQLite -->|"HTTPS + durable ACK"| Ingest
   Ingest --> PG
-  Ingest -.-> Media
+  Capture -.-> Media
   Policy --> Delete
   PG --> Delete
   Media -.-> Delete

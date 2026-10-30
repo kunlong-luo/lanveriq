@@ -17,6 +17,9 @@
 | D-11 | [Health and coverage states](health-coverage-states.md) | [Health model](../architecture/health-and-gap-semantics.md) |
 | D-12 | [Trust boundaries](trust-boundaries.md) | [Threat model](../security/threat-model.md) |
 | D-13 | [Data retention lifecycle](retention-lifecycle.md) | [Retention](../security/data-retention.md) |
+| D-14 | [Agent SQLite entity model](agent-sqlite-model.md) | [Agent persistence](../architecture/agent-persistence.md) |
+| D-15 | [Dashboard navigation](dashboard-navigation.md) | [Dashboard UX](../development/dashboard-ux.md) |
+| D-16 | [Browser WSS lifecycle](websocket-lifecycle.md) | [WebSocket contract](../architecture/websocket-contract.md) |
 
 ## Conventions
 - **Solid arrows** are intended data/control flows; label with transport/authorization where needed.
