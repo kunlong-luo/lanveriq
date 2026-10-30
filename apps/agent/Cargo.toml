@@ -9,6 +9,12 @@ description = "Opt-in LAN-only endpoint agent service skeleton; no data collecti
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+uuid = { version = "1", features = ["v7", "serde"] }
+sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros", "uuid"] }
+# SQLx 0.9 constraint <0.38: 0.37.0 bundles patched SQLite 3.51.3.
+libsqlite3-sys = { version = "=0.37.0", features = ["bundled"] }
 thiserror = "2"
 tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
 toml = "1.1.8"
