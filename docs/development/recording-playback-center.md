@@ -8,7 +8,7 @@ Approved, prior organization notice; eligible device group and business purpose;
 ## Pages
 1. **Recording catalog:** authorized device/group/time/status filters; session rows show start/end, permission source, segment count/size, completion status, last verified upload, retention expiry and **recording gaps**. No automatic thumbnail of potentially sensitive employee content.
 2. **Session detail:** bounded timeline of uploaded, missing/corrupted, paused and policy-disallowed intervals; UTC and viewer local time; integrity/source metadata.
-3. **Review case:** reason, requesting user, approver distinct from requester (recommended), eligible device IDs, explicit allowed UTC interval, expiration, requested scopes, approval/denial and access audit.
+3. **Review case:** reason, requesting user, approver **must be a different authorized person** from the requester (self-approval denied), eligible device IDs, explicit allowed UTC interval, expiration, requested scopes, approval/denial and access audit.
 4. **Playback:** server-mediated authenticated stream of finalized/verified segments with HTTP Range support, seek, gap indication, playback error state and a prominent case reference. **HTTP byte Range is not a recording time interval.** Map the approved UTC interval to only permitted frames/media and re-check role/group/case/time for requests and byte ranges; never expose raw filesystem paths or a public NAS object URL.
 5. **Retention and deletion:** show expiry policy and removal status; deleted or missing media is unavailable, never silently pretended complete.
 
@@ -22,7 +22,7 @@ Approved, prior organization notice; eligible device group and business purpose;
 | GET | `/api/v1/recordings/{sessionId}` | scoped recording metadata and gap summary |
 | GET | `/api/v1/recordings/{sessionId}/segments` | reviewer scoped metadata; no filesystem paths |
 | POST | `/api/v1/review-cases` | authorized request, purpose and desired time scope |
-| POST | `/api/v1/review-cases/{caseId}/approve` | independent approver with role, group and time checks |
+| POST | `/api/v1/review-cases/{caseId}/approve` | independently authorized approver **different from requester**, with role, group and time checks; deny self-approval |
 | GET | `/api/v1/review-cases/{caseId}/recordings/{sessionId}/stream` | **case-bound media**; Range requests permitted only within approved interval |
 
 Recording agent-upload endpoints remain specified separately in [REST API](../architecture/api-contract.md). No case/credential tokens in URL; case IDs are opaque resource IDs, not capabilities. Every request re-checks the authenticated session and approved grant.
@@ -37,6 +37,6 @@ An approval for **10:00–10:05** does not authorize a complete recording segmen
 - No unrestricted live screen view, webcam/microphone, covert install or bypass. Live session streaming requires a **separate later design and permission gate**.
 
 ## Closure and test expectations
-Manual recording permission denial/withdrawal; segment finalization/retry/sha256; case scope/approval/expiry/revocation; metadata-only list visibility; time-window-to-frame verification and 206 Partial Content/Range boundary tests including overlapping segments; playback reads and export audit; retention deletion and restore tests. Unit-only CI remains the early automation scope.
+Manual recording permission denial/withdrawal; segment finalization/retry/sha256; case scope/approval/expiry/revocation and rejected self-approval; metadata-only list visibility; time-window-to-frame verification and 206 Partial Content/Range boundary tests including overlapping segments; playback reads and export audit; retention deletion and restore tests. Unit-only CI remains the early automation scope.
 
 **Diagram:** [Playback center closure flow](../diagrams/recording-playback-flow.md). [Recording architecture](../architecture/recording.md). [Functional closure](../product/functional-closure.md).
