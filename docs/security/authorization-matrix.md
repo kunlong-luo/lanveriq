@@ -20,7 +20,7 @@ Legend: V=view, M=manage, E=export, C=case-required view, —=deny. An authentic
 | Read admin access audit | V | — | V if independently authorized | — | — |
 | Delete/retention policy | M with audit | — | — | — | — |
 
-## D-17/D-18/D-20 V0.1 access and minimization proposal (NOT APPROVED)
+## D-17/D-18/D-20 V0.1 selected technical authorization baseline
 
 **Collection eligibility:** Only explicitly enrolled, managed, previously notified organization endpoints. V0.1 permits device identity, declared OS/CPU/RAM/volume capacity, Agent health, bounded network interface/IP/MAC diagnostics **only where the organization's approved notice and purpose allow them**. Never collect OS user identities, browser history, screen contents, serial/TPM identifiers, keystrokes or unapproved application/audit sources. Missing permission means `not_collected` with honest capability state, not a workaround or fabricated data.
 
@@ -34,11 +34,11 @@ Legend: V=view, M=manage, E=export, C=case-required view, —=deny. An authentic
 | V0.1 operational `collection_gap` health summary | assigned IT operator group | no detailed sensitive audit-event payload |
 | V0.2 audit/activity event payload, any recording/playback | explicitly **not available** in V0.1 | server denies, even if endpoint sends unsupported fields or frontend draws a hidden route |
 
-**Storage/retention proposal for D-18:** current device inventory until replaced/retired under approved asset policy; up to **7 days** of *justified* network/IP/MAC diagnostic changes (do not create that history if not approved); heartbeat + host samples proposed 7 days; collection-gap and security-access log retention follow [retention table](../security/data-retention.md). Require explicit legal/organizational authorization before actual employee data, plus protected backups, expiry and restore-time purge enforcement. These values are candidates, not law, consent or production defaults.
+**D0 design assumptions, NOT an approved real-data retention policy (D-18):** current device inventory until replaced/retired under approved asset policy; up to **7 days** of *justified* network/IP/MAC diagnostic changes (do not create that history if not approved); heartbeat + host samples proposed 7 days; collection-gap and security-access log retention follow [retention table](../security/data-retention.md). Require explicit legal/organizational authorization before actual employee data, plus protected backups, expiry and restore-time purge enforcement. These values are candidates, not law, consent or production defaults.
 
 **Privacy/authorization negative cases:** wrong group must not see device existence, counts or network details; health-only role cannot read MAC/IP via pagination/filter/export, error bodies or WSS; revoked sessions must stop receiving hints; device-issued client credentials cannot use browser admin APIs; previously approved operator loses sensitive access promptly upon group/grant revocation. Data classification (`internal_operational`) is a **server-enforced predicate**, not a React visibility flag.
 
-Decision record and sign-off: [D-17/D-18/D-20](../governance/open-decisions.md), [D0 gate](../governance/documentation-gate.md). Implementation and real-data validation are still forbidden until their respective gates are met.
+Technical baseline recorded in [D-17/D-18/D-20](../governance/open-decisions.md) and [D0 gate](../governance/documentation-gate.md). V0.1 implementation is allowed after recorded D0 approval, **but no real employee-data collection may start** until the independent organizational/legal notice, purposes, retention and access-grant checks are accepted. Production privacy defaults must be approved separately.
 
 ## V0.1 baseline authorization
 **Before any V0.1 dashboard release**, authenticate administrator sessions and enforce assigned device-group scope on REST inventories, monitoring counts, device details and WSS subscriptions. Role-scope checks cannot be deferred to the V0.2 detailed-audit phase. Private IP/MAC details require an additional `internal_operational` permission rather than mere heartbeat/overview visibility. Do not send raw NIC/IP/MAC through WSS. See [device inventory](../architecture/device-inventory.md).
