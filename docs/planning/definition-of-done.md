@@ -1,6 +1,8 @@
 # Definition of done (DOD)
 
 ## Docs gate D0
+**Status as of 2026-10-30: D0 technical baseline approved for V0.1 coding**, with selected PKI, versioned API, minimum authorization and pilot target recorded in [signed D0 decision package](../governance/d0-decision-package-2026-10-30.md). All bullets below were **design-review criteria**, not evidence that software runs. Separate organizational/legal permission and real security/OS/DB verification remain mandatory before a real-data pilot.
+
 - Requirements, architecture, server/agent storage, API, collection policy, threat model, testing, roadmap and operational plan exist and cross-reference consistently.
 - No false implementation claims; unresolved jurisdiction and data scope documented.
 - Maintainer reviews and accepts architecture + privacy scope before adding application code. **D-07 device certificate/route/CA and authenticated proxy identity** and the V0.1 schema/permission surface must be explicitly approved; unresolved D0 rows may not be silently treated as satisfied.
