@@ -5,6 +5,9 @@ Server: API uptime, DB connectivity, storage free %, event ingestion requests/la
 Agent: last heartbeat, OS/capability, assigned policy digest, SQLite queue rows/bytes, oldest pending event, upload error class, clock drift, collector health, dropped-event/gap count.
 Recording (later): OS permission/capture status, encoder failure, segment-close delay, pending upload bytes, rejected checksum, missing manifest and storage quota.
 
+## Dashboard live-connection health
+Track active WSS connections, rejected Origin/auth/scope upgrades, slow-consumer disconnects, notification queue depth and post-commit dispatch failures. WS messages are **not** durable: a client must refetch REST after reconnect. Alert on unusual failed upgrades and cross-scope violations without logging employee data or session cookies. See [WSS contract](../architecture/websocket-contract.md).
+
 ## Alerts and thresholds (initial examples)
 - Device stale >90 seconds, offline >300 seconds; operator can distinguish powered off from network failure only with external evidence.
 - Queue >70% early warning, >90% urgent; disk free <15%; expired/revoked credentials; repeated ingestion denial.

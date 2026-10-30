@@ -30,11 +30,17 @@
 | MAN-012 | Cross-device/cross-group API query | rejected |
 | MAN-013 | Postgres backup and isolated restore | expected synthetic data restored |
 
+## v0.1 WSS manual checks
+Also run [MAN-WS-01–08](test-matrix.md) with synthetic devices: login/Origin, status push, router/browser disconnect, REST resync, access-scope changes and server restart. Record actual outcomes separately; none have been executed yet.
+
 ## v0.2 checks
 Scoped application metadata on supported OS; Windows and Linux allowlisted security events; unsupported Wayland activity shown honestly; clock drift; bounded event pagination; role permission matrix; retention deletion and access audit. Nothing may silently collect URL contents, clipboard, keyboard or messages.
 
 ## v0.3 recording safety and reliability
 Explicit policy/notice and OS grant; visible capture state; denied portal permission fails closed; Wayland consent/token restore tested without bypass; lock/logout/suspend gap; clean closed-segment upload; checksum mismatch rejection; full disk clean stop; unauthorized playback denied; permitted playback audit and retention deletion. Record separate OS/compositor outcomes.
+
+## Cross-platform matrix
+See [platform/protocol test matrix](test-matrix.md) for Windows 11, Linux X11/Wayland and WS unit/manual cases.
 
 ## Exit criteria
 A unit CI green badge **does not** substitute for these manual checks. Before processing real employee data, jurisdictional notice, policy, retention and trusted device identities must be approved. Before claiming production v1.0 quality, add formal integration/platform/E2E validation and a security review.

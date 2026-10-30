@@ -14,7 +14,8 @@ All notable project changes will be documented here. No product binaries or runn
 - Architecture decisions for monorepo, databases, disclosed recording and rapid main-first development.
 - Pagevela architecture reference and selective transfer matrix.
 - Detailed atomic event delivery and reinstall identity rules, organizational policy lifecycle, permission matrix, health/gap semantics, v0.1 manual acceptance and implementation sequence.
-- v0.1 HTTPS/polling simplification, LAN certificate/enrollment plan, and dashboard UX design.
+- Initial polling-first draft was **superseded** by v0.1 REST + authenticated WebSocket dashboard notifications, retaining REST for Agent durability; new WS contract and ADR-0005/0006.
+- Mermaid system/component/deployment/sequence/state/ER/security diagrams, cross-platform/WS test matrix, troubleshooting and release runbooks.
 
 ### Policy
 Direct main commits during pre-release; CI only runs unit tests once code exists; no E2E until a later quality stage. **No functional implementation has begun.**

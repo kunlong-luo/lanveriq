@@ -8,7 +8,7 @@
 - [x] System architecture, trust zones and module boundaries documented
 - [x] Server PostgreSQL and endpoint SQLite/WAL architecture decisions recorded
 - [x] API/event envelope, all-or-nothing acknowledgment, identity re-enrollment and idempotency behavior documented
-- [x] LAN bootstrap/trusted TLS and dashboard v0.1 REST-polling design documented
+- [x] LAN bootstrap/trusted TLS and dashboard v0.1 REST + authenticated WSS design documented
 - [x] Typed policy lifecycle, health/gap semantics and role/action matrix documented
 - [x] v0.1 implementation order and hands-on test cases documented
 - [x] Windows/Linux feature and limitations matrix written
@@ -16,12 +16,14 @@
 - [x] Privacy, admin identity, threat model and retention requirements written
 - [x] Pagevela review and transfer decisions written
 - [x] Direct-main, unit-only CI, postponed E2E decision recorded
+- [x] WebSocket contract, role-scoped push security, reconnect/refetch and unit/manual acceptance written
+- [x] Mermaid context/component/sequence/ER/security diagrams and index written
 - [x] Test strategy, runbooks, roadmap and issue-sized backlog written
 - [ ] Maintainer explicitly reviews and accepts D0 technical baseline
 - [ ] Finalize first target Linux environment and certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
-- [x] Validate internal Markdown file links against all 46 current repository Markdown files on main (2026-10-30); no missing local file targets found. External links and heading anchors were not exhaustively checked.
+- [ ] Revalidate internal links after the WebSocket ADR replacement and new Mermaid diagrams; do not claim the previous 46-document scan covers the new files.
 
 ## Start-code rule
 **Only after maintainer approval**, begin v0.1 implementation on main, no feature branch or PR necessary. Unit-only CI may be added alongside real source and tests; avoid placeholder passing jobs. Do not begin recording before its separate consent/OS authorization gate.

@@ -25,5 +25,11 @@ Managed endpoint → LAN → Caddy → Spring Boot modules → PostgreSQL and NA
 ## Boundary on surveillance
 No stealth install, covert webcam/voice or keylogging; explicitly exclude secret screen capture and unbounded personal content collection. Redacted security telemetry can run unattended **only after appropriate notice**.
 
+## Dashboard WebSocket risks
+- Cross-site WebSocket hijacking: strict Origin allowlist and Secure SameSite session-cookie validation.
+- Improper device subscriptions: enforce role/group scope on subscribe **and each dispatch**; revoke stale subscriptions after group/session changes.
+- Status leakage and memory exhaustion: only metadata, bounded frames and outbound queues, rate limits and slow-client closure.
+- Missed or reordered notifications: treat WSS as hints only; reconnect/refetch authoritative REST state.
+
 ## Validation
 Threat review is repeated when adding a data category, modifying privileges, enabling capture or broadening admin rights. Track open threats as documentation backlog until a real security test/hardening stage.

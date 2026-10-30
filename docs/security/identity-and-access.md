@@ -20,6 +20,9 @@ Enforce **role + device group + data category + time window** at the server API,
 5. Agent stores private material using host-protected credential storage; never logs or uploads secrets.
 6. Re-enrollment, recovery and rotation are explicit operations with audit trail and data continuity plan.
 
+## WebSocket authorization
+The dashboard opens `wss://<lan-host>/ws` using its existing Secure/HttpOnly same-origin session cookie; the server validates authentication, the exact approved `Origin`, device-group subscription scope and session revocation. No API key in URL/query, no generic wildcard subscriptions, no anonymous video notifications, and no WS channel for policy mutations. See [WebSocket contract](../architecture/websocket-contract.md) and [RBAC drawing](../diagrams/rbac-matrix.md).
+
 ## Wire protections
 Use TLS even on LAN; never set 'insecure skip verify'. Limit enrollment endpoint rate/size and payload. Revoked credentials are denied. Replays/different payload same event sequence cause a conflict; do not overwrite previously recorded evidence.
 
