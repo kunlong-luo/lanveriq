@@ -30,6 +30,10 @@ sequenceDiagram
     WS-->>Browser: device.status.changed (small metadata)
     Browser->>API: Refetch affected REST resource
     Note over Browser,WS: WS can drop or reorder hints; REST stays authoritative
+    opt Hidden tab resumes / silent hint lost while connected
+      Browser->>API: Low-frequency visible-page REST reconcile
+      API-->>Browser: Current authorized snapshot
+    end
     opt Disconnection or server restart
       Browser->>Browser: Backoff with jitter
       Browser->>WS: Reconnect (authenticate again)

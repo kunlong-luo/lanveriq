@@ -12,9 +12,9 @@ The user wants an immediate LAN dashboard and WSS is manageable for a single nod
 
 ## Consequences
 - Requires authentication of upgrade requests and strict Origin/session/RBAC/device-scope checks.
-- WSS messages are **not durable**. On reconnect clients refetch authorized REST state; no missed-event replay contract.
+- WSS messages are **not durable**. On reconnect clients refetch authorized REST state; **even without a disconnect, visible-page low-frequency REST reconciliation and tab-resume refetch close the indefinitely stale view risk**. No missed-event replay contract.
 - Offline transitions require a server-side heartbeat-expiry detector, not simply forwarding incoming heartbeats.
-- v0.1 UI tests cover messages, reconnect/refetch, access control and error states. Unit-only CI stays unchanged; real-browser/LAN WSS checks are manual at MVP stage.
+- v0.1 UI tests cover messages, subscription/snapshot race, **silent lost hint with a still-connected socket**, reconnect/refetch, access control and error states. Unit-only CI stays unchanged; real-browser/LAN WSS checks are manual at MVP stage.
 - Future multi-instance deployments will require a deliberate dispatcher architecture change; not needed for v0.1.
 
 ## Contract and visuals
