@@ -23,6 +23,8 @@
 | MAN-005 | Invalid CA/hostname | connection fails, no TLS bypass |
 | MAN-005a | Admin browser access and first-time pairing without existing Agent client cert | Works **only** on their intended protected routes; unrelated enrolled-Agent API is denied without valid client certificate once mTLS is selected |
 | MAN-005b | Forged forwarded client-cert identity and revoked/expired/rotated Agent certificate | Cannot authenticate or upload; Spring checks bound active device record, not arbitrary client header |
+| MAN-005c | Offline CSR signing/registration attack: altered CSR SPKI, leaf SAN/device ID, wrong issuer, serverAuth-only EKU, CA leaf or reused fingerprint | Console-admin certificate registration rejects all mismatches; private keys never enter server; pending device cannot heartbeat |
+| MAN-005d | Host/SNI mismatch, reused HTTP/2 cross-host TLS connection or duplicate client-identity request header | Agent ingress/Spring reject without the verified permitted TLS identity regardless of Host or header supplied by caller |
 | MAN-006 | Heartbeat start/stop | online -> stale -> offline accurate |
 | MAN-007 | Disconnect LAN, generate synthetic events, reconnect | buffered data transferred once |
 | MAN-008 | Stop server after PG commit, before client sees response | safe dedup on retry |
@@ -33,7 +35,7 @@
 | MAN-013 | Postgres backup and isolated restore | expected synthetic data restored |
 
 ## D0 contract/security negative scenarios (planned, NOT TESTED)
-Use [D0-SEC-01–03, D0-PROTO-01–03, D0-PRIV-01, D0-OS-01](../governance/d0-decision-package-2026-10-30.md) to verify the exact *approved* API/CSR/CA/proxy/fingerprint and role-projected fixtures after code exists. The proposed manual CSR issuance must be exercised end to end, including response loss, premature activation refusal, expired/rotated device certs, untrusted forwarded headers and actual SSL transport isolation. Do not pass any of these on a static spec or a mocked Caddy process. Record actual Caddy, Rust TLS and Spring versions plus authorized pilot OS details without real employee artifacts.
+Use [D0-SEC-01–05, D0-PROTO-01–03, D0-PRIV-01, D0-OS-01](../governance/d0-decision-package-2026-10-30.md) to verify the exact *approved* API/CSR/CA/proxy/fingerprint and role-projected fixtures after code exists. The proposed manual CSR issuance must be exercised end to end, including response loss, premature activation refusal, expired/rotated device certs, untrusted forwarded headers and actual SSL transport isolation. Do not pass any of these on a static spec or a mocked Caddy process. Record actual Caddy, Rust TLS and Spring versions plus authorized pilot OS details without real employee artifacts.
 
 ## v0.1 device inventory checks
 Use [INV-01 through INV-16](device-inventory-checklist.md): CPU model, RAM, OS/kernel, volumes, multi-NIC IPv4/IPv6/MAC, changing DHCP, stale/absent data, policy scope and 30s heartbeat versus 24h inventory. These checks have not been executed. Do not attach real internal addresses to public issue reports.
