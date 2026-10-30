@@ -14,7 +14,6 @@
 - [Storage and event models](architecture/data-model.md)
 - [Device identity: UUIDv7 enrollment, re-enrollment and replacement](architecture/device-identity.md)
 - [Hardware/OS/network inventory and sampling](architecture/device-inventory.md)
-- [Canonical UUIDv7 device identity](architecture/device-identity.md)
 - [Agent local persistence and outbox](architecture/agent-persistence.md)
 - [Event delivery and idempotency contract](architecture/event-delivery.md)
 - [Configuration and collection policy](architecture/policy-configuration.md)
