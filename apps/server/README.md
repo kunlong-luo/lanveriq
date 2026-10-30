@@ -25,7 +25,7 @@ Flyway V1/V2/V3/V4 SQL is **not yet executed against PostgreSQL** in an observed
 - `AdminScopeService` makes a fresh DB role + device-group check on every operation. V4 adds independent, **unseeded** `user_data_grants` for `internal_operational` IP/MAC reads. Grant revocation and account disable are checked again, not treated as frozen session roles.
 - `AuthenticatedEnrollmentTokenIssuer` derives the administrator UUID from the Spring Security principal, not from input JSON; both scope service and token repository independently check active group permissions.
 - **HTTP login, CSRF/Origin enforcement with real browser sessions, rate-limited login, Caddy host separation and WSS authorization are not yet implemented/verified**. The existing security filter denies all business HTTP routes; this is an internal implementation slice, not a usable admin login.
-- [Java 25 real authentication + permission tests and `bootJar`](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762) passed. Flyway V4, database role query semantics, login session behavior and credential revocation remain **NOT TESTED against PostgreSQL or real browser/TLS**.
+- [Java 25 real authentication + permission tests and `bootJar`](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762) passed. [Spring AOP transaction-proxy commit/rollback regression tests](https://github.com/kunlong-luo/lanveriq/actions/runs/41068354128) also passed; actual PostgreSQL concurrency is unverified. Flyway V4, database role query semantics, login session behavior and credential revocation remain **NOT TESTED against PostgreSQL or real browser/TLS**.
 
 ## Offline first administrator bootstrap (AUTH-01; synthetic environment only)
 
