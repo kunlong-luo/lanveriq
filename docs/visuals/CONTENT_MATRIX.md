@@ -5,6 +5,7 @@ The visuals should explain the product **faithfully**, not expand the monitoring
 | Theme / posters | Allowed statement | Not allowed / misleading | Technical source |
 |---|---|---|---|
 | Endpoint (01,03) | Native Rust Agent, Windows 11 + selected Linux desktop; local SQLite WAL | All Linux desktop environments fully supported | [Platform matrix](../architecture/platform-matrix.md) |
+| Device inventory (01,04,06) | V0.1 CPU/RAM/storage/OS, multi-NIC IPv4/IPv6/MAC as sensitive IT asset data | MAC/IP/hostname as unique Agent identity, hidden serial collection, or real device addresses in sample screenshots | [Inventory](../architecture/device-inventory.md) |
 | Transport (01,02,03,07) | Agent HTTPS REST; dashboard REST + WSS | Agent WebSocket for durable event ACK or WSS as source of truth | [ADR-0006](../architecture/adrs/0006-agent-rest-dashboard-ws.md) |
 | Device pairing (02,05) | Unique credential and single-use pairing; verify internal CA | Device is trusted merely because it is on LAN | [Enrollment](../architecture/enrollment-bootstrap.md) |
 | Audit events (01,02,04,07) | Source allowlist, v0.2 scoped activity and OS audit events | Continuous total surveillance, full 24-hour completeness | [PRD](../product/requirements.md) |

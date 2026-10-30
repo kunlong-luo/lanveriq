@@ -20,6 +20,9 @@
 | D-14 | Administration scope grants and case approval | role + device group + purpose + time; no default recording access | before v0.2 |
 | D-15 | WebSocket handshake/session lifecycle and initial subscription cap | proposed same-origin Secure HttpOnly cookie + strict Origin + <=5 connections per user + <=10 device IDs; verify exact handler mechanics | before WS-01 |
 | D-16 | WSS push timing and failure thresholds | WSS metadata-only, best-effort, **post-subscription REST reconcile**, proposed <2s normal push, limits to validate | v0.1 manual acceptance |
+| D-17 | Device hardware/IP/MAC inventory field scope | V0.1 CPU/RAM/disks/OS, permitted NICs and multiple IPv4/IPv6; no hardware serial/TPM by default; last-seen and inventory freshness distinct | before v0.1 schema |
+| D-18 | Inventory retention and sensitive network address exposure | Current record plus proposed 7-day IP/MAC change log; role/group restrictions and no WSS address payload | before real managed endpoints |
+| D-19 | Inventory snapshot reliability | Stable snapshot_id, digest, bounded retry and no older snapshot overwrite; local latest pending snapshot on outage | before v0.1 Agent/API code |
 
 ## Decision process
 Record who approved, date, consequences and relevant ADR/PRD changes. Any deployment collecting real employee data requires D-01, D-03, D-05 and D-07 resolved even if code exists. The documentation gate can be **ready for technical review** while legal/operational approvals remain open.

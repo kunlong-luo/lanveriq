@@ -5,6 +5,9 @@
 | Category | Draft default | Storage |
 |---|---|---|
 | Heartbeat history | 7 days | PostgreSQL |
+| Current authorized device inventory (OS/CPU/RAM/NIC/IP/MAC/volumes) | until replaced or device retired, per approved asset-retention policy | PostgreSQL current child tables |
+| Network/IP/MAC change observations | **7 days proposed** where operational history is justified | PostgreSQL; separate from current NIC details |
+| Host CPU/RAM/disk performance samples | **7 days proposed** | PostgreSQL bounded time-series |
 | Application activity and OS events | 30 days | PostgreSQL |
 | Collection gaps | 90 days | PostgreSQL |
 | Recordings (later) | 14 days | local/NAS volume; indexed in PostgreSQL |

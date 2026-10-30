@@ -12,7 +12,11 @@
 | AGT-02 | SQLite WAL single-writer outbox | P0 | AGT-01 | crash/retry/quota unit tests |
 | AGT-03 | HTTPS authenticated heartbeat and event batch | P0 | AGT-02, SRV-02 | unit test retries/dedup |
 | SRV-03 | Whole-batch PostgreSQL event ingestion + idempotent ack | P0 | SRV-02 | exact duplicate/conflict/rollback unit tests |
+| INV-01 | Rust platform inventory: CPU/RAM/OS/volumes/multiple NICs with IP/MAC | P0 | AGT-01 | INV-01 through INV-07 unit cases + manual Windows/Pop!_OS |
+| INV-02 | PG inventory current+NIC/IP/volume schema and idempotent snapshot API | P0 | SRV-02, INV-01 | INV-08–12 unit tests; late snapshot no overwrite |
+| INV-03 | Bounded CPU/RAM/disk sampling, freshness and device detail UI | P0 | INV-02, WEB-01 | INV-13–16, permission checks and freshness display |
 | WEB-01 | Dashboard shell and device list (authoritative REST snapshot) | P0 | SRV-02 | UI unit tests |
+| MON-01 | Monitoring Center: fleet/source health, backlog, limited hardware summary | P0 | WEB-01, INV-03, WS-01 | real-device heartbeat, scope and no unsupported-as-zero tests |
 | WS-01 | Authenticated Spring WSS upgrade, scoped topics, after-commit notifier | P0 | SRV-02, SRV-03 | WS-001 through WS-008 unit tests; manual MAN-WS-01 through 08 |
 | WEB-WS-01 | React WSS client with resubscribe/reconnect and REST refetch | P0 | WEB-01, WS-01 | duplicate/slow/reconnect unit tests and manual validation |
 | OPS-00 | Secure bootstrap, credential and manual LAN acceptance | P0 | SRV-01, AGT-03 | [MAN-001–013](../testing/manual-acceptance.md) evidence on synthetic endpoints |
@@ -23,7 +27,7 @@
 | OPS-01 | Retention, quota and backup/restore | P1 | SRV-03 | cleanup unit + restore exercise |
 | CAP-01 | Visible recording companion and OS grant | P1 | privacy gate | manual deny/allow tests |
 | CAP-02 | Segmented upload and manifest | P1 | CAP-01 | checksums/retry tests |
-| WEB-02 | Case-scoped playback | P1 | CAP-02, RBAC | denied access and audit checks |
+| WEB-02 | Recording & Playback Center: case-scoped catalog and playback | P1 | CAP-02, RBAC | case approval/expiry, missing segment and access log tests |
 | PKG-01 | Windows/Linux installers | P1 | v0.2 | clean-device installation |
 | SEC-01 | Production security review and integration suite | P0 before v1.0 | v0.4 | full evidence, not unit CI only |
 

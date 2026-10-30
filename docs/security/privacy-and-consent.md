@@ -6,7 +6,8 @@
 Define the responsible organization/contact; eligible devices and users; legitimate purpose; exact sources and data fields; collection schedule; restrictions on personal use; retention and deletion; authorized roles; review/export approval; user access/inquiry mechanism; incident escalation. Provide versioned policy acknowledgment where required, and show policy plus agent/capture state in the desktop companion.
 
 ## Data minimization
-- Default collect: device health, coarse application name/active interval, and selected system audit events (allowlisted).
+- Default collect, subject to organization notice: **device asset/diagnostic fields** (CPU type, RAM size, mounted volume capacity, OS/kernel, assigned network interfaces with IPv4/IPv6 and MAC where supported), device health; in v0.2, coarse application name/active interval and allowlisted system audit events. Hardware serial numbers and persistent platform fingerprints are off by default.
+- Network IP/MAC/hostname can identify managed devices and network topology. Treat them as **internal-sensitive**; apply least-privilege access, no anonymous export, explicit limited IP/MAC history and no raw addresses in WSS notifications or public examples.
 - Default **do not** collect: screen content, keystrokes, clipboard, passwords, authentication tokens, private chats, personal browser URLs, full window titles, microphone, webcam or arbitrary personal files.
 - Application activity excludes configured personal applications and categories; OS audit directories/events are explicit allowlists. Redact file paths and command arguments if sensitive.
 - Screen recording is a **separate, later feature**, only under disclosed policy and OS user-session authorization. Keep a visible capture state and native permission dialog where required. Fail closed on denial.

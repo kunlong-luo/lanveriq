@@ -30,6 +30,9 @@
 | MAN-012 | Cross-device/cross-group API query | rejected |
 | MAN-013 | Postgres backup and isolated restore | expected synthetic data restored |
 
+## v0.1 device inventory checks
+Use [INV-01 through INV-16](device-inventory-checklist.md): CPU model, RAM, OS/kernel, volumes, multi-NIC IPv4/IPv6/MAC, changing DHCP, stale/absent data, policy scope and 30s heartbeat versus 24h inventory. These checks have not been executed. Do not attach real internal addresses to public issue reports.
+
 ## v0.1 WSS manual checks
 Also run [MAN-WS-01–08](test-matrix.md) with synthetic devices: login/Origin, status push, router/browser disconnect, REST resync, access-scope changes and server restart. Record actual outcomes separately; none have been executed yet.
 

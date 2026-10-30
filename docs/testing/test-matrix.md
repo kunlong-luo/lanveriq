@@ -12,6 +12,8 @@
 | SQLite WAL queue persists through restart | Planned | Planned | Planned | Rust unit + manual v0.1 |
 | Event upload timeout → safe duplicate retry | Planned | Planned | Planned | Rust/Java unit + manual v0.1 |
 | Browser WSS status & scoped subscription | Planned | Planned | Planned | Spring/React unit + manual browser v0.1 |
+| CPU model/cores, RAM total and disk volumes/capacity | Planned | Planned | Planned | Rust unit + manual v0.1 inventory |
+| IPv4/IPv6, multi-NIC, MAC nullable and source IP split | Planned | Planned | Planned | Rust/Java unit + manual v0.1 inventory |
 | Windows allowlisted Event Log | Planned | N/A | N/A | Unit + manual v0.2 |
 | Linux auditd/journal event | N/A | Planned | Planned | Unit + manual v0.2 |
 | Application name/active interval | Planned | Planned | **Unverified; may be unsupported** | Manual v0.2 |
@@ -20,6 +22,9 @@
 | Installer upgrades/uninstalls | Planned v0.4 | Planned v0.4 | Planned v0.4 | Manual v0.4 |
 
 **Initial Linux test device:** Pop!_OS 24.04 LTS x86_64, KDE Plasma 5.27.12/KWin, NVIDIA RTX 4050 Laptop, kernel 7.2.6-76070206-generic as reported by the maintainer. **Session protocol has not been confirmed**; X11/Wayland columns are separate conditional test cases, not evidence that both sessions were tested. Record `echo $XDG_SESSION_TYPE`, portal backend and versions before marking results. These cells do **not** promise supported status.
+
+## Device inventory unit/manual cases
+See [inventory checklist INV-01–16](device-inventory-checklist.md) for hardware/NIC field accuracy, rate-limited sampling, snapshot retries, authorization and OS-specific unavailability.
 
 ## Protocol unit tests (required)
 | ID | Domain | Test |
