@@ -4,7 +4,7 @@
 
 **局域网内、自托管的企业终端活动与安全审计平台。**
 
-> **设计阶段：尚无可运行的软件。** 先完成产品、架构、安全、接口、数据和验收文档，再编写业务代码。
+> **D0 技术基线已于 2026-10-30 批准，仅允许启动 V0.1 工程开发。** 仓库目前仍无可运行的软件，也没有通过真实操作系统、数据库或安全集成测试。**尚未批准采集真实员工数据、生产部署、V0.2 审计或 V0.3 录像。**
 
 ![Lanveriq 系统总览彩图（设计概念）](docs/visuals/assets/01-overview.svg)
 
@@ -41,7 +41,8 @@
 [分阶段计划](docs/planning/roadmap.md)、
 [事件补传协议](docs/architecture/event-delivery.md)、
 [局域网证书与设备配对](docs/architecture/enrollment-bootstrap.md)、
-[文档完成门槛](docs/governance/documentation-gate.md)。
+[已批准的 D0 技术基线与验收边界](docs/governance/d0-decision-package-2026-10-30.md)、
+[D0 开发准入门槛](docs/governance/documentation-gate.md)。
 
 ## 许可证
 公开仓库不自动授予代码使用和再分发许可。正式开源前需要单独决策并提交 LICENSE。
