@@ -33,3 +33,6 @@ jobs:
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test
+      - name: Verify runnable Boot JAR packaging (no integration/E2E)
+        working-directory: apps/server
+        run: ./gradlew bootJar
