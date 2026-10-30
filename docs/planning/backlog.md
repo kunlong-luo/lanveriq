@@ -1,11 +1,11 @@
 # Issue-ready prioritized backlog
 
-**Draft. No code work authorized until D0 documentation gate.** Priority P0 = first usable skeleton, P1 = pre-release capability, P2 = optional later.
+**V0.1 implementation is authorized following D0 technical approval on 2026-10-30; no code or runtime evidence exists at sign-off.** These are unimplemented tasks. Priority P0 = first usable skeleton, P1 = pre-release capability, P2 = optional later. No real employee data without separate approval.
 
 | ID | Title | Priority | Depends on | Acceptance evidence |
 |---|---|---|---|---|
-| DOC-01 | Approve PRD, collection policy and Linux matrix | P0 | none | documented owner review |
-| ARCH-01 | Validate canonical event_type schema, atomic batch, re-enrollment and pairing | P0 | DOC-01 | [delivery contract](../architecture/event-delivery.md) and negative cases accepted |
+| DOC-01 | **D0 baseline decision recorded** (V0.1 technical scope and first Linux target; no real-data notice) | P0 **D0 approved** | none | [technical sign-off](../governance/d0-decision-package-2026-10-30.md); organizational/legal data policy remains open |
+| ARCH-01 | **D0 protocol design accepted** for event_type, atomic batch, re-enrollment and CSR-based pairing | P0 **D0 approved** | DOC-01 | [API design contract](../architecture/api-contract.md) selected; generated schema and integration negative tests post-D0 |
 | SRV-01 | Bootstrap **Gradle 9.8.2** Groovy + **Spring Boot 4.1.2/Java 25** + JPA/Hibernate/PostgreSQL 18 + Flyway | P0 | D0 | official Gradle Wrapper, local dependency resolution/migration, real JUnit 6 unit test |
 | SRV-02 | Device enrollment and revocation | P0 | SRV-01 | unit tests token replay/expiry |
 | ID-01 | PostgreSQL uuidv7() device key and bound credential; safe re-enrollment | P0 | SRV-02 | identity collision/wrong-key/clone/lost identity unit tests |
