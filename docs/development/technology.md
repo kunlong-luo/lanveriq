@@ -12,6 +12,9 @@
 | Access/data | Spring Security + Spring Data JDBC + Flyway | security, explicit SQL schema evolution |
 | Server DB | PostgreSQL 18.x | concurrent multi-user indexed audit and transactional idempotency |
 | Management UI | React 19 + Vite 8 + TypeScript | simple static LAN UI, no SSR requirement |
+| JS workspace | pnpm Workspace | package manager, **not** a framework; one lockfile for dashboard, optional Tauri UI and reusable packages |
+| Frontend UI, icons, animation | Tailwind CSS 4 + shadcn/ui/Radix + Lucide React + Motion | editable design system, accessible controls, one main icon and animation system; dependencies added as features need them |
+| Data/table/forms | TanStack Query + TanStack Table, React Hook Form + Zod (as required) | scoped queries, typed forms, tables; avoid installing unused packages |
 | CSS/components | Tailwind CSS 4 + accessible shared components | consistent custom enterprise UI |
 | Server state | TanStack Query | request/cache ownership |
 | UI state | Zustand 5 (only ephemeral layout/selection) | minimal global client state |
@@ -21,6 +24,8 @@
 | Tests | cargo test, JUnit 5, Vitest | fast unit-only CI during initial MVP |
 
 The Rust Agent deliberately stays **HTTPS REST** for durable delivery and media segments; the browser alone maintains a WSS session in v0.1. See [WS protocol](../architecture/websocket-contract.md) and [ADR-0006](../architecture/adrs/0006-agent-rest-dashboard-ws.md).
+
+**No Next.js requirement:** UI components and icon/animation ecosystems work with React + Vite; we do not need SSR, public SEO or an extra runtime. See [frontend design system](frontend-design-system.md), [product visuals](../visuals/README.md) and [design tokens](../visuals/STYLE_GUIDE.md).
 
 ## Initial version and provenance discipline
 Use stable upstream releases verified when implementation actually starts; do not assume any given patch is already tested on both operating systems. Pin Rust crate lockfile, Java dependencies, Node/pnpm lockfile and container tags before a usable pilot. The Agent SQLite bundled library must include the [WAL-reset fix](https://sqlite.org/wal.html), which appeared in 3.51.3 and later or selected fixed backports.

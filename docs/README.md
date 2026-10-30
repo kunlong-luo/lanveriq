@@ -28,6 +28,10 @@
 - [ADR 0005: REST + WebSocket from v0.1](architecture/adrs/0005-rest-plus-websocket.md)
 - [ADR 0006: Agent REST vs dashboard WS responsibilities](architecture/adrs/0006-agent-rest-dashboard-ws.md)
 
+## Product infographics / 产品彩图
+- [Eight coordinated editable SVG posters](visuals/README.md) for non-technical audiences, including overview, flow, stack, features, enrollment, dashboard, recovery and privacy.
+- [Asset manifest](visuals/ASSET_MANIFEST.md) · [Visual design rules](visuals/STYLE_GUIDE.md) · [Content consistency matrix](visuals/CONTENT_MATRIX.md). These are **concept images** and not finished UI screenshots.
+
 ## Architecture drawings
 - [All Mermaid drawings and sources](diagrams/README.md): system context, components, LAN deployment, enrollment, event delivery, WebSocket, video, RBAC, PostgreSQL/Agent SQLite models, outbox, WSS lifecycle, dashboard navigation, health states, trust boundaries and retention.
 

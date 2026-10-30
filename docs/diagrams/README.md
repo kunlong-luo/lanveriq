@@ -1,5 +1,7 @@
 # Lanveriq architecture drawings
 
+**Looking for colorful customer-facing graphics?** See the separate [eight-image product gallery](../visuals/README.md). The Mermaid pages below remain the editable engineering diagrams.
+
 **All drawings are conceptual, not executable architecture or evidence of implementation.** Mermaid is embedded in Markdown for direct GitHub rendering. Source-of-truth explanations live in the linked technical specifications; keep diagrams synchronized when contracts change.
 
 | ID | Drawing | Canonical specification |

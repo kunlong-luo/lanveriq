@@ -4,6 +4,10 @@
 
 > **Status: documentation/design phase only. No functional agent, server, dashboard, recording or installer has been implemented. Do not deploy this repository as a monitoring product yet.**
 
+![Lanveriq overall architecture concept](docs/visuals/assets/01-overview.svg)
+
+[Browse all eight color infographics](docs/visuals/README.md) · [Editable Mermaid engineering diagrams](docs/diagrams/README.md)
+
 Lanveriq is planned as a cross-platform (Windows 11 and selected Linux desktops) endpoint-management and audit system for small offices (initial target: 1–10 endpoints). It will run on a private LAN, remain usable without Internet access, and avoid external cloud dependencies and AI.
 
 ## Planned capabilities

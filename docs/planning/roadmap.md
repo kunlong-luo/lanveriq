@@ -2,6 +2,9 @@
 
 **Status:** Draft plan; none of the software milestones have started. **Workflow:** commit directly to main, keep commits atomic, GitHub CI runs only unit tests during pre-release MVP, E2E explicitly deferred.
 
+## Documentation visuals
+The [eight-image stakeholder gallery](../visuals/README.md) and [16 Mermaid engineering diagrams](../diagrams/README.md) are maintained alongside architecture decisions. **They are design proposals, not implemented features**; keep milestone labels and status synchronized with PRD and code as implementation proceeds.
+
 ## Gate D0 — document baseline (CURRENT)
 Deliver/review PRD, user roles, data fields, platform capabilities, component boundaries, atomic event delivery, PG and SQLite models, policy configuration, administrator permission matrix, retention, threat model, manual test plan and development rules. See the [v0.1 step-by-step implementation plan](v0.1-implementation-sequence.md). Confirm operating jurisdiction/monitoring notice scope. **No application code until D0 review is acknowledged**; incomplete sign-offs remain open decisions.
 

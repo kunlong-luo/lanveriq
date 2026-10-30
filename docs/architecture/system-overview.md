@@ -2,6 +2,8 @@
 
 **Status:** Proposal, no implementation.
 
+[Color overview for non-engineers](../visuals/assets/01-overview.svg) · [Product infographic gallery](../visuals/README.md). These assets are **concepts**, not deployed-system screenshots.
+
 ## Deployment
 A private LAN host runs Caddy TLS, one Spring Boot 4 modular-monolith service, PostgreSQL 18, a static React/Vite dashboard and a protected local/NAS video volume. The v0.1 dashboard uses **HTTPS REST for authoritative snapshots/mutations plus authenticated WSS for scoped, best-effort status notifications**, per [ADR-0005](adrs/0005-rest-plus-websocket.md) and the [WS contract](websocket-contract.md). Windows 11 and Linux terminals run a Rust service with bundled SQLite WAL. Optional Tauri 2 companion runs in the logged-in user session for device status, policy notice and permission-dependent recording.
 

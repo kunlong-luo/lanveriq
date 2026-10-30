@@ -6,6 +6,10 @@
 
 > **设计阶段：尚无可运行的软件。** 先完成产品、架构、安全、接口、数据和验收文档，再编写业务代码。
 
+![Lanveriq 系统总览彩图（设计概念）](docs/visuals/assets/01-overview.svg)
+
+[查看全部 8 张统一风格彩图](docs/visuals/README.md) · [查看 16 张 Mermaid 技术图纸](docs/diagrams/README.md)
+
 目标环境：Windows 11 和经过验证的 Linux 桌面；初期 1–10 台公司授权终端；局域网独立部署，不需要互联网或 AI。
 
 ## 主要功能（计划）

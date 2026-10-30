@@ -2,6 +2,9 @@
 
 **Reference:** adopt Pagevela's feature-focused React components, cohesive design tokens and accessible shared UI; do not copy its resume-specific editor/PWA state model.
 
+## Visual identity
+Follow the [unified infographic/style guide](../visuals/STYLE_GUIDE.md) for brand colors and terms, but use actual accessible React components rather than treating the SVGs as UI source. The [concept dashboard](../visuals/assets/06-dashboard-concept.svg) uses **sample data**, not a working UI screenshot. See [frontend design dependencies](frontend-design-system.md) for planned UI/icon/animation choices.
+
 ## Page map / release
 | Page | v0.1 | v0.2 | v0.3 |
 |---|---|---|---|
