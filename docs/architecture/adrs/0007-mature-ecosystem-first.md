@@ -7,6 +7,8 @@ Lanveriq is a LAN-only, 1–10 managed-device product, not an exercise in implem
 
 ## Decision
 
+**Maintainer mandate:** This reuse-first ordering is a persistent **project engineering rule**, not just a suggestion for the current task: **stable standard/platform/DB built-in → official SDK/framework → maintained third-party library → minimal glue → custom solution only with a documented gap analysis**. See [project policy](../../development/reuse-first-policy.md) and root [AGENTS.md](../../../AGENTS.md). No wheel-reinvention by default, but no dependency bloat without a concrete need.
+
 1. **Reuse before build:** search official libraries/references; prioritize projects with active releases, stable APIs, OS compatibility, a suitable license, security advisory process and predictable transitive dependencies. We own product behavior, NOT a custom HTTP/TLS implementation, database adapter, schema generator, icon engine or filesystem-level service manager.
 2. **Frontend:** keep React 19 / Vite 8 / TypeScript / pnpm. Use Tailwind 4 + shadcn/ui/Radix for UI, Lucide for icons, Motion for animation, TanStack Query for server cache, TanStack Table for device/audit grids, React Hook Form + Zod for forms, Sonner for notices. Adopt **Orval** from Springdoc OpenAPI to generate typed REST client and Query Hooks; **don't independently hand-maintain request DTOs and duplicated API wrappers**. Do not change to Next.js solely for component availability.
 3. **Rust Agent:** prefer **SQLx 0.9 SQLite** over writing a `rusqlite` async blocking worker; SQLx migrations, bundled SQLite, one-connection write pool and tested transaction invariants. Use Reqwest/rustls, Tokio, Serde, sysinfo/os_info, windows-service, systemd/sd-notify and tracing rather than implementing replacements. Validate actual SQLite linked version (official 3.54.1 stable on decision date, WAL fix >=3.51.3).
@@ -14,8 +16,14 @@ Lanveriq is a LAN-only, 1–10 managed-device product, not an exercise in implem
 5. **Later capture:** OS-approved user-session permissions, Tauri official plugins and existing video tools; no custom capture/codec/permission-bypass stack. Real screen streaming is not currently scheduled.
 6. **Avoid replacing** the entire product with osquery/Fleet/Wazuh merely because they have more features: any full platform must meet LAN-only, prior notice, no arbitrary remote commands, restricted event sources, local server footprint, licensing and recording-approval requirements. Evaluate only when a demonstrated need warrants its deployment.
 
+## Concrete UUID example: do not invent an ID generator
+- **Device ID:** PostgreSQL 18's built-in `uuidv7()` generates `devices.id`; Java JPA maps it to `java.util.UUID` after a real DB mapping check. No special UUID library is necessary in the Java server for this primary key.
+- **Rust event/snapshot ID:** maintained `uuid` crate with `v7` or `v4`; create once and persist the generated ID for retries.
+- **Browser-only ephemeral ID:** secure-context `crypto.randomUUID()` (v4), never a substitute for server-owned IDs.
+- **Sequence/revisions:** persist separate SQLite counters and enforce PostgreSQL unique constraints. UUIDs are not credentials or a zero-collision promise. [UUID policy](../../development/reuse-first-policy.md).
+
 ## Boundary: what still needs domain code?
-Unique `device_id`, enrollment/mTLS, exact event delivery ACK, collection policy/scope, health versus source gap, inventory revision, RBAC, authorized recording review and retention are **product obligations**. No library supplies these as a single secure, compatible contract. Use library primitives; do not claim they remove the need for explicit tests.
+Unique `device_id`, enrollment/mTLS, exact event delivery ACK, collection policy/scope, health versus source gap, inventory revision, RBAC, authorized recording review and retention are **product obligations**. No library supplies these as a single secure, compatible contract. Use library primitives; **do not re-test vendored algorithms**, but keep our boundary and integration/failure-path tests; do not claim a library removes the need for relevant validation.
 
 ## Dependency admission checklist
 - Is a feature actually in the next milestone? Is the upstream release **stable** (not latest beta) and active?

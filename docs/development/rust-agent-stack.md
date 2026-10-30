@@ -10,7 +10,7 @@
 | REST + client mTLS | `reqwest` 0.13.x with `rustls` | V0.1 | custom HTTP/TLS, retry transport parsing |
 | Wire format | `serde`, `serde_json` | V0.1 | custom serialization |
 | Embedded DB / migrations | **`sqlx` 0.9.x SQLite**, `migrate!`, single-connection pool | V0.1 | manual SQLite FFI, custom DB async worker, custom migration engine |
-| IDs, time | `uuid` 1.x, `time` or `chrono` (pick one with SQLx compatibility) | V0.1 | custom UUID, clock parsing |
+| IDs, time | **`uuid` 1.x (`v7`, `serde` features; `v4` if needed)**, `time` or `chrono` (one selected SQLx-compatible library) | V0.1 | custom UUID generation/RNG/clock parsing; generate once and persist for retries |
 | Device inventory | `sysinfo`, `os_info`, `network-interface` where supported | V0.1 | handcrafted CPU/RAM/NIC OS parsers for common fields |
 | Diagnostics | `tracing`, `tracing-subscriber`; Linux `tracing-journald` if justified | V0.1 | custom logging format/tracing engine |
 | Errors/config | `thiserror`, `serde` + `toml` / vetted config loader | V0.1 | stringly typed error and bespoke config parser |
@@ -34,6 +34,9 @@
 - For compile-time checked SQL, use `query!`/`query_as!` with a controlled development SQLite schema or committed SQLx offline metadata; normalize migration SQL to LF for reproducible checks. No fake success from tests using an unrelated in-memory schema.
 - Validate crash recovery, power loss, full disk, duplicate batches, older inventory revision, cross-platform DB location and ACLs before claiming durability.
 - SQLx pool does **not** replace event/ack business protocol, state-machine tests, encryption-at-rest policy or device-identity auth.
+
+## ID library reference
+Agent event IDs and inventory snapshot IDs use the maintained [Rust `uuid` crate](https://docs.rs/uuid/latest/uuid/), not manually built timestamp/random byte sequences. When `v7` is enabled use `Uuid::now_v7()`; when `v4` is enabled use `Uuid::new_v4()`. **Generate once and persist with the SQLite record**; on upload retry, reuse the ID. The server canonical device_id is **allocated in PostgreSQL 18 using native `uuidv7()`**, not generated on the Agent. See [reuse-first policy](reuse-first-policy.md).
 
 ## Device identity and privileged OS separation
 

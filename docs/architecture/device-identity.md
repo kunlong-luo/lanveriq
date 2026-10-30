@@ -4,6 +4,9 @@
 
 PostgreSQL 18 provides `uuidv7()` natively: https://www.postgresql.org/docs/18/functions-uuid.html . RFC 9562 defines UUIDv7: https://www.rfc-editor.org/rfc/rfc9562.html . UUIDv7 is time-sortable but **not** secret, a hardware fingerprint, a proof of possession or an access token. Never authorize a request just because its path contains a known device ID.
 
+## Mature ID generation — no custom generator
+PostgreSQL 18's built-in `uuidv7()` is the authoritative generator for `devices.id`; on the Java side use the standard JDK `java.util.UUID` and **verify the JPA mapping of a database-generated UUID** on a real PG18 database before implementation. Agent-generated event/snapshot IDs use the maintained Rust [`uuid` crate](https://docs.rs/uuid/latest/uuid/) (`v7` or `v4` as appropriate), not a homegrown UUID generator. Browser-only transient IDs can use secure-context Web Crypto `crypto.randomUUID()` (v4) rather than another npm package. UUIDs are statistically unique identifiers, not guarantees against collision or cryptographic credentials: maintain PK/UNIQUE, authenticated scope and immutable event-content checks. See [reuse-first policy](../development/reuse-first-policy.md).
+
 ## Identity fields
 | Field | Scope and invariants |
 |---|---|

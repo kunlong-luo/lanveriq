@@ -36,6 +36,9 @@ Rust: snake_case modules, PascalCase types; Java: conventional packages such as 
 ## Java backend build
 **Gradle 9.8.2 Wrapper**, Groovy DSL `build.gradle`, Spring Boot Gradle plugin **4.1.2**, Java 25 toolchain and JaCoCo 0.8.16. Start with one `apps/server` Gradle module; Java domain packages stay logical modules. Use **Spring Data JPA/Hibernate** as the only direct application persistence API; use JPA native SQL for PostgreSQL-specific event/inventory operations within explicit transactions, and Flyway for schema migrations. No direct `spring-boot-starter-jdbc`. **Do not introduce Maven, a second Java build system or all dependencies from the unrelated IoT reference.** See [backend stack](backend-stack.md) and [Gradle reference](backend-gradle-reference.md).
 
+## Mandatory reuse-first engineering policy
+**The maintainer requires all future Lanveriq design, implementation and code review to start from a mature existing solution, rather than write a generic utility by default.** Prioritize standard platform/database capabilities, official SDKs, then actively maintained open-source dependencies; use bespoke code only for our business rules or a documented incompatibility. For UUIDs use PostgreSQL 18 `uuidv7()` (server), Rust `uuid` crate (Agent) and browser `crypto.randomUUID()` for disposable UI IDs. Do not reimplement randomness/UUID encodings. See [policy](reuse-first-policy.md) and [root AGENTS.md](../../AGENTS.md). Library adoption reduces low-level testing, **not** our integration/security/durability obligations.
+
 ## Dependency ownership
 React uses pnpm + **Orval-generated OpenAPI REST/Query hooks**, Java uses Gradle + JPA/Hibernate, and Rust Agent uses Cargo + **SQLx SQLite**. Use reviewed third-party packages rather than homemade API code generation, SQLite migrations or OS-service runtimes. See [ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md) and [Rust Agent stack](rust-agent-stack.md).
 

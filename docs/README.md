@@ -41,6 +41,7 @@
 - [All Mermaid drawings and sources](diagrams/README.md): system context, components, LAN deployment, enrollment, event delivery, WebSocket, video, RBAC, PostgreSQL/Agent SQLite models, outbox, WSS lifecycle, dashboard navigation, health states, trust boundaries and retention.
 
 ## Engineering
+- **Mandatory reuse-first principle for future work:** [Repository AGENTS.md](../AGENTS.md) · [Reusable-component / dependency policy](development/reuse-first-policy.md) · [ADR-0007](architecture/adrs/0007-mature-ecosystem-first.md)
 - [Technology selection](development/technology.md)
 - [Spring Boot/Gradle backend stable-version and dependency decisions](development/backend-stack.md)
 - [Gradle 9.8.2 Groovy DSL example (documentation only)](development/backend-gradle-reference.md)
