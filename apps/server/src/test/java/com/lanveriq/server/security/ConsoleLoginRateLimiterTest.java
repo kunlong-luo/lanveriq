@@ -29,6 +29,18 @@ class ConsoleLoginRateLimiterTest {
     }
 
     @Test
+    void paddedInvalidLoginCannotExhaustValidAccountBudget() {
+        var limiter = new ConsoleLoginRateLimiter();
+        for (int i = 0; i < 5; i++) {
+            assertTrue(limiter.allow(" owner ", "127.0.0.1"));
+        }
+        assertFalse(limiter.allow(" owner ", "127.0.0.1"));
+        // Actual UserDetailsService rejects whitespace, so the genuine
+        // lowercased username must remain a separate rate-limit key.
+        assertTrue(limiter.allow("OWNER", "127.0.0.1"));
+    }
+
+    @Test
     void missingLoginAndUnknownPeerAlsoConsumeBudget() {
         var limiter = new ConsoleLoginRateLimiter();
         for (int i = 0; i < 5; i++) {
