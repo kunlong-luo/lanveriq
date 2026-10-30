@@ -24,8 +24,26 @@ Flyway V1/V2/V3/V4 SQL is **not yet executed against PostgreSQL** in an observed
 - The approved password encoder is adaptive, salted **Argon2id** (64 MiB/3 iterations, explicitly versioned `{argon2id}` hashes). `{noop}` and unknown encodings are not accepted. Benchmark these settings on the actual machine before approving use; the real first-admin bootstrap is still pending.
 - `AdminScopeService` makes a fresh DB role + device-group check on every operation. V4 adds independent, **unseeded** `user_data_grants` for `internal_operational` IP/MAC reads. Grant revocation and account disable are checked again, not treated as frozen session roles.
 - `AuthenticatedEnrollmentTokenIssuer` derives the administrator UUID from the Spring Security principal, not from input JSON; both scope service and token repository independently check active group permissions.
-- **HTTP login, CSRF/Origin enforcement with real browser sessions, rate-limited login, initial admin bootstrap, Caddy host separation and WSS authorization are not yet implemented/verified**. The existing security filter denies all business HTTP routes; this is an internal implementation slice, not a usable admin login.
+- **HTTP login, CSRF/Origin enforcement with real browser sessions, rate-limited login, Caddy host separation and WSS authorization are not yet implemented/verified**. The existing security filter denies all business HTTP routes; this is an internal implementation slice, not a usable admin login.
 - [Java 25 real authentication + permission tests and `bootJar`](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762) passed. Flyway V4, database role query semantics, login session behavior and credential revocation remain **NOT TESTED against PostgreSQL or real browser/TLS**.
+
+## Offline first administrator bootstrap (AUTH-01; synthetic environment only)
+
+An explicitly opted-in **offline Java terminal** can provision exactly one first owner with one new assigned device group and an access audit entry. No default username, password, group or sensitive-data grants are seeded. The command refuses to run in a web application context, reads and confirms the **administrator password using `System.console().readPassword()`**, requires 16–128 characters, and clears its terminal char arrays after use. Spring Security stores only a salted, versioned Argon2id hash.
+
+**Requires a dedicated, isolated PostgreSQL 18 instance with Flyway V1–V4 already applied and trusted database credentials.** The following is a manual procedure, **NOT YET EXECUTED against PostgreSQL**. Use a local interactive terminal, not an IDE or CI shell without a console:
+
+```sh
+cd apps/server
+./gradlew bootJar
+java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar \
+  --spring.main.web-application-type=none \
+  --lanveriq.bootstrap.enabled=true \
+  --lanveriq.bootstrap.login=sec.owner \
+  --lanveriq.bootstrap.group=Engineering
+```
+
+Supply `LANVERIQ_DB_URL`, `LANVERIQ_DB_USER` and `LANVERIQ_DB_PASSWORD` through the existing DB configuration. **Never place the administrator password in shell arguments, scripts, environment variables, Git or logs.** Interactive confirmation must match. If a user (even disabled) already exists, bootstrap fails and does not issue a replacement/recovery credential. Concurrent bootstraps are serialized by locking the existing `owner_security_admin` role row in the database transaction. No `internal_operational` grant is created. For evidence, follow the [manual PostgreSQL/first-admin runbook](../../docs/testing/server-postgres18-manual.md). This does **not** enable login: the HTTP security filter continues to deny business routes.
 
 ## Security and implementation boundaries
 

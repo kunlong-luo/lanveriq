@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — AUTH-01 offline first-admin bootstrap
+- Added explicit opt-in non-web Spring Boot CLI that uses an interactive terminal password prompt (not shell/env), Argon2id through Spring Security, a PostgreSQL owner-role row lock and a single JPA transaction for the first administrator, group, assigned owner scope and audit log. There is no default admin and no automatic `internal_operational` data grant.
+- Added Java 25 unit tests for canonical input/secret redaction, missing confirmation, non-web-only restrictions, first-admin existence guard, locking order and audit. [Build + unit CI passed](https://github.com/kunlong-luo/lanveriq/actions/runs/41067769799); a separate subsequent fix prevents HTTP filter bean construction in offline mode.
+- PostgreSQL 18 migration/transaction concurrency, CLI process execution, real browser sessions, Caddy/TLS and WSS are **not yet verified**. The PG18 manual runbook now includes a separate synthetic first-admin acceptance checklist.
+
+
 ## 2026-10-30 — AUTH-01 internal administrator identity and group scope
 - Added Spring Data JPA read-only user entity/repository, Spring Security `DaoAuthenticationProvider` and Argon2id password hashes (64 MiB/3 iterations); no default credentials, plaintext fallback or publicly enabled login.
 - Added device-group-scoped `AdminScopeService` that queries live active user/role/group state, with separate `internal_operational` grants (Flyway V4; none seeded) for raw IP/MAC and other sensitive network detail. Added authenticated-principal-only internal token issuance facade.

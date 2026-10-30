@@ -18,6 +18,30 @@ The script:
 4. Waits for **health UP**, checks successful Flyway versions V1/V2/V3/V4 and DB-generated UUIDv7, verifies **no seeded administrator account or raw-network-access grant**, and asserts an anonymous business GET receives HTTP 403.
 5. Removes the container, app process and temporary files on exit. Its test SQL rolls back the synthetic device-group insertion.
 
+## Separate manual first-admin bootstrap check (NOT RUN)
+
+The basic smoke script above **deletes its disposable PostgreSQL container at exit**. For the following additional acceptance steps, prepare a **separate isolated, persistent-for-test-only PostgreSQL 18** database with Flyway V1–V4. Do not bootstrap an organization's real database until security and organizational authorization are approved.
+
+1. Verify `SELECT count(*) FROM users` is zero and `SELECT count(*) FROM user_data_grants` is zero. Keep this test DB loopback-only.
+2. With the same DB connection variables configured, launch from a genuine **local interactive terminal**, outside an IDE/CI pipe (a Java Console must exist):
+
+   ```sh
+   cd apps/server
+   ./gradlew bootJar
+   java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar \
+     --spring.main.web-application-type=none \
+     --lanveriq.bootstrap.enabled=true \
+     --lanveriq.bootstrap.login=sec.owner \
+     --lanveriq.bootstrap.group=Engineering
+   ```
+
+   Type a newly chosen 16–128-character synthetic passphrase **only into the hidden terminal prompts**. Do not use `--password`, a password environment variable or stdin redirection; `System.console()` deliberately refuses non-interactive launch. No HTTP service must listen during the bootstrap process.
+3. Check exactly one user, one correctly scoped owner/security-admin role, one `administrator.bootstrap` allowed audit row, and **zero** `internal_operational` grants. The original test DB must retain no plaintext password.
+4. Try an identical second interactive bootstrap (with any valid password) against the same test DB; it **must fail without adding any rows**. Concurrent fresh-database attempts must also leave precisely one administrator and one group; verify separately with real PostgreSQL and a controlled two-terminal exercise.
+5. Verify the normal server startup without the opt-in flags still has **no public login endpoint**, and unauthenticated business routes remain denied. Restore only the synthetic test DB snapshot; do not export passwords or live credentials.
+
+The Java 25 unit tests cover first-run validation, SQL operation order, existence denial and secret-array wiping; **they do not prove real database locks, Flyway compatibility, Argon2 resource sizing on the target machine or live session behavior**. Record dated output, PostgreSQL version and image digest if manually exercised.
+
 Retain dated local execution evidence and the tested Docker image digest in the [documentation gate](../governance/documentation-gate.md). A successful run validates startup/migrations/guard rails but **not** JPA token issuance, conditional token consume or pending-device/CSR INSERT under concurrency, JPA administrator authentication, group-scoped grants, client certificate issuance, admin sessions, actual endpoint telemetry or operating-system compatibility. Those need later independent acceptance. If the script fails, capture the redacted error and leave the corresponding gate unchecked; do not disable Flyway, CSRF or security to make the smoke pass.
 
 No real employee information or real certificate secrets belong in test fixtures, CI logs or public GitHub issues.
