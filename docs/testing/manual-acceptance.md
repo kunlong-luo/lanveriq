@@ -42,7 +42,7 @@ Also run [MAN-WS-01–09](test-matrix.md) with synthetic devices: login/Origin, 
 Scoped application metadata on supported OS; Windows and Linux allowlisted security events; unsupported Wayland activity shown honestly; clock drift; bounded event pagination; role permission matrix; retention deletion and access audit. Nothing may silently collect URL contents, clipboard, keyboard or messages.
 
 ## v0.3 recording safety and reliability
-Explicit policy/notice and OS grant; visible capture state; denied portal permission fails closed; Wayland consent/token restore tested without bypass; lock/logout/suspend gap; clean closed-segment upload; checksum mismatch rejection; full disk clean stop; unauthorized playback denied; permitted playback audit and retention deletion. Record separate OS/compositor outcomes.
+Explicit policy/notice and OS grant; visible capture state; denied portal permission fails closed; Wayland consent/token restore tested without bypass; lock/logout/suspend gap; clean closed-segment upload; checksum mismatch rejection; full disk clean stop; unauthorized playback denied; **requester self-approval rejected even for admin role**; independently approved playback audited; retention deletion. Record separate OS/compositor outcomes.
 
 ## Cross-platform matrix
 See [platform/protocol test matrix](test-matrix.md) for Windows 11, Linux X11/Wayland and WS unit/manual cases.
