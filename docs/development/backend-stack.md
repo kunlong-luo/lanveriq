@@ -1,89 +1,89 @@
-# Lanveriq Spring Boot backend — stable dependency baseline
+# Spring Boot server stack — Gradle / Java 25 stable baseline
 
-**Decision date: 2026-10-30. Status: selected for maintainer D0 technical review; no dependencies installed or tested.** This is the **canonical Java backend stack** and overrides older generic `Spring Boot 4` and `JUnit 5` labels. These are the latest **verified stable toolchain releases** as of the decision date, **not an instruction to blindly override every transitive dependency to its own newest release**.
+**Maintainer decision (2026-10-30): Gradle, not Maven.** This document is a **design / dependency freeze candidate**, not an installed or tested server. The user explicitly chose **Groovy DSL `build.gradle`**, in the style of the provided reference. This build-tool selection **does not approve the entire D0 documentation gate**.
 
-## 1. Version freeze
+## Verified stable release baseline (2026-10-30)
 
-| Dependency / tool | Pinned selection or managed version | Mechanism |
+| Technology | Chosen version | Notes |
 |---|---|---|
-| Java language/runtime | **JDK 25 LTS**, compiler release 25 | LTS preference over newer short-lived feature JDK; pin approved distribution on actual implementation |
-| Spring Boot | **4.1.2** GA | `spring-boot-starter-parent:4.1.2` |
-| Spring Framework | 7.x | Spring Boot 4.1.2 BOM (no direct override) |
-| Spring Security | **7.1.2** | BOM |
-| Maven CLI | **3.10.0** GA | **Maven Wrapper** on code start; no Gradle |
-| PostgreSQL server | **18.x** existing Lanveriq DB baseline | Separate deployment image with **explicit tested patch tag/digest** at implementation; don't silently change to another major |
-| PG JDBC driver | **42.7.14** | BOM |
-| Flyway | **12.4.0** | BOM; PostgreSQL-specific module is required |
-| HikariCP | **7.0.2** | BOM via Spring JDBC |
-| Micrometer | **1.17.2** | BOM via Actuator |
-| JUnit Jupiter | **6.0.3** | BOM through `spring-boot-starter-test` |
-| Mockito | **5.23.0** | BOM through test starter |
-| springdoc-openapi | **3.2.0** | Explicit, community-maintained Spring Boot 4.1-compatible version |
-| Servlet runtime | embedded Tomcat 11.0.x | BOM, **not** a separate external servlet installation |
-| JSON/validation/logging | Spring Boot-managed Jackson, Jakarta Validation/Hibernate Validator, SLF4J/Logback | no manual versions |
+| Gradle Wrapper | **9.8.2** stable | Official Gradle releases 2026-10-19; Java 25 runtime/toolchain supported |
+| JDK | **25 LTS** | Gradle Java toolchain `languageVersion=25`; distribution pinned at first build |
+| Spring Boot Gradle plugin | **4.1.2** GA | October 22/23 2026 release; do not use older 4.1.1 example or 4.2 RC |
+| Spring dependency-management plugin | **1.1.7** | Integrates Boot's managed dependency BOM |
+| Gradle JaCoCo plugin | Built-in `jacoco` | Agent/report **0.8.16** latest released version |
+| Spring Framework | 7.x | Boot 4.1.2 BOM owns compatible patch version |
+| Spring Security | **7.1.2** | Boot BOM |
+| PostgreSQL | **18.x** | Existing server DB major; pin **tested patch image/digest** on deployment |
+| Flyway | **12.4.0** | Boot BOM; add `flyway-database-postgresql` |
+| PostgreSQL JDBC driver | **42.7.14** | Boot BOM |
+| HikariCP | **7.0.2** | Boot BOM via JDBC starter |
+| Micrometer | **1.17.2** | Boot BOM via Actuator |
+| JUnit Jupiter | **6.0.3** | Boot BOM via test starter; older JUnit 5 reference superseded |
+| Mockito | **5.23.0** | Boot BOM via test starter |
+| springdoc-openapi | **3.2.0** | explicit dependency; official Boot 4.1.x-compatible release |
 
-**Do not use pre-release Spring Boot 4.2.0-RC1 or Maven 4.0.0-rc; do not claim Gradle is needed.** Java 25 is the selected **LTS** target, not the numerically newest Java release. PostgreSQL 18 is a **chosen supported major**, not a claim that it is the newest PostgreSQL series.
+Spring Boot's BOM pins its supported transitive libraries and starters. **Don't override all transitive versions just because an individual package has a newer release.** Verify real resolution/test/compile when code is created. Latest stable source references: https://gradle.org/releases/ ; https://docs.gradle.org/current/userguide/compatibility.html ; https://plugins.gradle.org/plugin/org.springframework.boot/4.1.2 ; https://plugins.gradle.org/plugin/io.spring.dependency-management ; https://docs.spring.io/spring-boot/appendix/dependency-versions/coordinates.html ; https://www.jacoco.org/jacoco/index.html ; https://springdoc.org/faq.html .
 
-Official verification links (read on 2026-10-30):
-- Spring Boot stable/release: https://spring.io/blog/2026/10/23/spring-boot-4-1-2-available-now/
-- Spring Boot system requirements: https://docs.spring.io/spring-boot/system-requirements.html
-- Boot 4.1.2 managed dependency table: https://docs.spring.io/spring-boot/appendix/dependency-versions/coordinates.html
-- Apache Maven releases/downloads: https://maven.apache.org/download.cgi
-- Spring Boot 4 modularized starters: https://spring.io/blog/2025/10/28/modularizing-spring-boot/
-- springdoc 3.2.0/Boot compatibility: https://springdoc.org/
-- Flyway PostgreSQL module: https://docs.spring.io/spring-boot/how-to/data-initialization.html
+## Build-tool decision
 
-## 2. Exact V0.1 backend dependency set
+- **Gradle 9.8.2 + committed Gradle Wrapper (`./gradlew`)**, `build.gradle` **Groovy DSL** matching the maintainer's supplied example. No `pom.xml`, no `mvnw`, no Maven build workflow.
+- Plugins: `java`, `jacoco`, `org.springframework.boot:4.1.2`, `io.spring.dependency-management:1.1.7`.
+- Boot BOM manages Spring/framework versions automatically. Build scripts use explicit versions only for Gradle/Boot/plugin, JaCoCo and community springdoc.
+- **Use Maven Central as the dependency repository** (this is a repository service, **not** choosing the Maven build tool). The Aliyun Maven mirror in the supplied example may be enabled **optionally** for developer networks, after verifying cache provenance/TLS and avoiding silent repository-switching. Gradle Plugin Portal remains required to resolve Gradle plugins.
+- One `apps/server/` Gradle **single-module executable jar** initially, one Spring Boot modular monolith, with logical package boundaries not 10 deployables.
+- When scaffolding code, commit `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.properties`, verified `gradle-wrapper.jar` generated from official Gradle tooling and `settings.gradle`, `build.gradle`. **No wrapper binary has been created during the docs-only phase.**
 
-| Maven coordinate, `org.springframework.boot:` prefix unless noted | Role | Required? |
+See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
+
+## V0.1 backend dependencies — minimal executable core
+
+| Gradle dependency | Why |
+|---|---|
+| `spring-boot-starter-webmvc` | Typed REST endpoints on Spring MVC + embedded Tomcat |
+| `spring-boot-starter-security` | Admin login/session, CSRF, group/scope authorization; device identity mapping |
+| `spring-boot-starter-websocket` | Native WSS push to authenticated dashboard; metadata only |
+| `spring-boot-starter-validation` | DTO/Bean Validation and input constraints |
+| `spring-boot-starter-jdbc` | Spring `JdbcClient`, HikariCP, explicit SQL/transactions |
+| `spring-boot-starter-flyway` | Versioned PostgreSQL migrations |
+| `org.flywaydb:flyway-database-postgresql` | PostgreSQL support in modern Flyway |
+| `org.postgresql:postgresql` (runtime) | PG JDBC |
+| `spring-boot-starter-actuator` | Restricted health and basic Micrometer metrics |
+| `org.springdoc:springdoc-openapi-starter-webmvc-api:3.2.0` | Controlled internal OpenAPI JSON; disable in deployment/prod |
+| `spring-boot-starter-test` (test) | JUnit 6, Mockito and assertion libraries |
+| `org.springframework.security:spring-security-test` (test) | Targeted authorization unit/slice tests |
+| `org.junit.platform:junit-platform-launcher` (test runtime) | Gradle JUnit Platform launcher (BOM) |
+
+**Why plain Spring JDBC instead of JPA?** Lanveriq needs strongly controlled PostgreSQL transactions and idempotent bulk event ingest, inventory-revision compare-and-set, time/scope-filtered queries and no accidental implicit ORM N+1. Pick explicit SQL + `@Transactional` + parameter binding first; evaluate JPA/jOOQ later if domain queries actually justify them.
+
+## Review of the supplied example dependencies
+
+| User-supplied component | V0.1 choice | Reason |
 |---|---|---|
-| `spring-boot-starter-webmvc` | Spring MVC REST, validation endpoints, embedded Tomcat | Yes |
-| `spring-boot-starter-security` | Admin session/CSRF, role + device-group permissions and mTLS identity mapping | Yes |
-| `spring-boot-starter-websocket` | Native WSS /ws handler, server-side scope and best-effort notifications | Yes |
-| `spring-boot-starter-validation` | Bean Validation for typed request DTOs and configuration | Yes |
-| `spring-boot-starter-jdbc` | Spring `JdbcClient`, `NamedParameterJdbcTemplate`, HikariCP and PostgreSQL transactions | Yes |
-| `spring-boot-starter-flyway` | Explicit SQL migrations and schema versioning | Yes |
-| `org.flywaydb:flyway-database-postgresql` | Flyway 12 PostgreSQL support | Yes |
-| `org.postgresql:postgresql` (runtime) | JDBC PostgreSQL connector | Yes |
-| `spring-boot-starter-actuator` | Restricted health, readiness/liveness, Micrometer metrics | Yes |
-| `org.springdoc:springdoc-openapi-starter-webmvc-api:3.2.0` | Generate OpenAPI JSON for local controlled developer review | Yes in dev profile; **disable docs endpoint in production** |
-| `spring-boot-starter-test` (test) | JUnit 6, Mockito, AssertJ | Yes, CI runs only real unit tests |
-| `spring-boot-starter-security-test` (test) | Security authorization test utilities compatible with Spring Boot 4 | Yes, only unit/slice tests in early CI |
+| `jacoco` | **Include**, tool 0.8.16; produce XML + HTML | Measurable Java unit-test coverage, no false pass |
+| Caffeine + Cache starter | **Defer** | 1–10 devices and one app instance; prefer bounded simple in-process logic first; cache role decisions only with correct invalidation |
+| OAuth2 Resource Server | **Defer** | Admin uses secured same-origin session; Agent uses separately approved device mTLS; no JWT API gateway in V0.1 |
+| Data JPA/Hibernate | **Do not add for V0.1** | Explicit JDBC SQL + Flyway is clearer for event ingest and unique keys |
+| Redis / Kafka | **Exclude** | No distributed queue/cache; SQLite already provides Agent outbox and WSS is in-process |
+| InfluxDB 3 | **Exclude** | PostgreSQL bounded device metrics suffice for 1–10 devices |
+| Hibernate Spatial / JTS | **Exclude** | No geospatial tracking or location analytics requirement |
+| OpenCSV | **Defer** | Export may be added to V0.2; avoid adding parser/export features before audit data exists |
+| GoRules Zen Engine | **Exclude** | No dynamic rules engine planned; versioned typed policies are sufficient |
+| Lombok | **Omit** | Java 25 records/standard constructors remove most boilerplate; avoid annotation tooling |
+| MapStruct | **Defer** | Add only if DTO mapping becomes complex |
+| BouncyCastle provider | **Defer** | Standard Java cryptography supports current P-256/X.509 design; add only after a required crypto algorithm is identified |
+| Logstash Logback Encoder | **Defer** | Standard Boot SLF4J/Logback adequate initially; redact security data |
+| OpenTelemetry API + Javaagent | **Defer** | No collector/backend to receive spans; Actuator/Micrometer first |
+| Testcontainers PG/Kafka | **No early CI** | Tests needing containers are *integration* tests, while early CI executes **only unit tests**; add PG integration tests later, no Kafka |
+| ArchUnit | **Optional later** | Useful for package boundary enforcement once multiple Java modules grow |
 
-**Do not use `spring-boot-starter-web` as the canonical new dependency**: Boot 4's dedicated MVC starter is `spring-boot-starter-webmvc`. Spring Boot BOM manages all the above versions **except** springdoc 3.2.0. Avoid direct `spring-security-*`, `flyway-core`, `jackson-*`, `logback-*`, `junit-*`, `micrometer-*` version overrides just to chase patch numbers.
+No H2 emulation of PostgreSQL 18 behavior for claims about actual transactions/UUIDv7; DB migration correctness requires a real PostgreSQL test environment outside the early unit-only CI.
 
-## 3. PostgreSQL data access decision
+## Operational/security baseline
 
-Choose **Spring JDBC / JdbcClient** and explicit SQL with `@Transactional`. This is intentionally **not JPA/Hibernate, jOOQ, R2DBC or Spring Data JDBC in V0.1**:
-- Endpoint event ingestion requires all-or-nothing batch validation, PostgreSQL `UNIQUE(device_id,device_sequence)`, strict duplicate comparison and explicit ACKs; SQL and transactions must be directly visible.
-- Inventory snapshots atomically replace bounded child NIC/address/volume rows only if `inventory_revision` is newer.
-- Cursor paging for device events and role-group scope is explicit SQL; create indexes after measuring.
-- Keep repositories/interfaces separated from services; use parameter binding (never dynamic SQL concatenating client input) and purpose-specific query methods.
-- The current conceptual data model remains PostgreSQL/Flyway; revise the technology summary from earlier `Spring Data JDBC` to `Spring JDBC` to avoid implying two competing approaches.
+Keep Spring behind Caddy/private server network. mTLS Agent access, browser sessions, CSRF/Origin checks, group-scoped REST + WSS, least privilege and stored access audits remain product security requirements. Do not trust client-supplied certificate headers. Restrict Actuator and disable public OpenAPI/Swagger UI endpoints in deployment; no raw employee data in metrics/logs. Spring Boot in-process WSS assumes **one server instance** until explicitly redesigned.
 
-Spring Data JDBC, jOOQ and Hibernate are **not inherently wrong** and can be reviewed with an ADR if complexity later warrants them.
+## Coverage and testing policy
 
-## 4. Server modules (logical Java packages, not separate deployables)
+JaCoCo reports are attached to unit tests. The supplied **83% coverage limit** is a possible *later reviewed quality target*, **not an unconditional `check` or CI gate** before meaningful tests exist. Add sensible coverage exclusions only with explanation, never fake a passing placeholder. Early GitHub CI invokes real `./gradlew test` when the Java project exists; Gradle `check` and local build may be run by developers; no E2E/Testcontainers integration jobs in early CI.
 
-`bootstrap`, `identity`, `enrollment`, `devices`, `inventory`, `health`, `events`, `policy`, `websocket`, `retention`, and later `audit` / `recording` / `reviewcases`. One Maven `jar`, one Spring process, one PostgreSQL database.
-
-Controller (typed DTO/validation) → application service (auth checks/transaction) → repository (bound SQL) → PostgreSQL. WebSocket dispatcher publishes **after commit** and never acts as durable ACK. Browser REST session and Agent device-credential trust must be distinct; LAN/hostnames do not confer permissions.
-
-## 5. Security/operational defaults
-
-- Spring Security HTTP session in a Secure/HttpOnly/SameSite cookie for browser. Validate CSRF on mutations, exact WS Origin on upgrade, role + assigned group on **every** REST call/WS dispatch. Secure password hash via Spring Security's supported PasswordEncoder; no JWT library needed initially.
-- Agent requests must be bound to an active per-device credential (P0 device mTLS design requires a separately reviewed Caddy/proxy boundary; do not blindly trust a user-supplied forwarded certificate header). Device_id UUID alone is **not** authentication.
-- Explicit JSON schema/version checks, payload caps, pagination, time bounds and uniform structured errors; sensitive fields redacted from logs.
-- Actuator `health` and minimum diagnostics are allowed only through internal/admin-restricted paths; **never publish** env, configprops, heapdump, mappings, loggers, metrics or OpenAPI JSON to unauthenticated LAN clients. Prometheus server and export registry can be added **only when needed**, not default.
-- Use HikariCP pool caps suitable for one app instance, transaction timeout, bound query and connection timeouts. Do not block network ingress waiting on unbounded WS outbound buffers.
-- Structured JSON logging can be added after actual operational need; SLF4J + Boot-managed Logback is sufficient for startup. Administrative/security access logs live in PostgreSQL and have their own retention.
-
-## 6. Unit tests, versions and upgrade policy
-
-Unit-only GitHub CI for V0.x, with real JUnit 6/Mockito tests. Include deterministic pure-domain tests for role scope, enrollment token expiry/one-use, immutable event fingerprints, error classification, WSS subscription scope and clock boundaries. **PostgreSQL migrations, commit behavior, proxy mTLS and real WSS behavior require manual/integration checks outside early unit CI**; tests are not considered complete solely by unit success.
-
-At V0.1 implementation:
-1. Adopt [reference Maven POM](backend-maven-reference.md) and Maven Wrapper with Maven 3.10.0, JDK 25.
-2. Confirm dependency tree resolves, compile/package locally, run actual unit tests, audit transitive licenses/vulnerabilities and pin exact server container tag.
-3. Maintain one `spring-boot-starter-parent` version; use BOM updates as a **reviewed unit** after compatible stable patch release, not automatic major upgrades.
-4. Record confirmed versions from actual lock/build artifacts. This document is a **planning version snapshot**, not evidence of a successful build.
+When the Java code exists, validate plugin/Gradle compatibility, `./gradlew --version`, dependencies resolution, `./gradlew test` and `./gradlew bootJar` locally. **All versions above are documented choices, not verified build artifacts.**
