@@ -23,7 +23,7 @@
 - [ ] Finalize first target Linux environment and certificate/bootstrap choice for v0.1
 - [ ] Decide and record fixed initial event source allowlist and supported policy fields before implementing collectors
 - [ ] Organization confirms collection scope/notice/legal requirements before any real employee data
-- [ ] Revalidate internal links after the WebSocket ADR replacement and new Mermaid diagrams; do not claim the previous 46-document scan covers the new files.
+- [x] Internal Markdown file-link checks completed incrementally across the current 68-document main tree; no missing local targets found. All 16 Mermaid files contain one correctly bounded Mermaid code fence. **Not yet verified:** visual Mermaid rendering, external URLs, heading anchors, real OS/browser operation.
 
 ## Start-code rule
 **Only after maintainer approval**, begin v0.1 implementation on main, no feature branch or PR necessary. Unit-only CI may be added alongside real source and tests; avoid placeholder passing jobs. Do not begin recording before its separate consent/OS authorization gate.
