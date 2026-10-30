@@ -15,9 +15,11 @@
 - Heartbeat interval: 30 seconds, adaptive retry on outage; stale >90 seconds; offline >300 seconds of **server-received** heartbeat absence.
 - Batch cap: 100 events or 512 KiB (whichever lower). HTTP retry bounded exponential backoff with jitter and maximum delay; avoid storms after server restart.
 - SQLite outbox: proposed max 1 GiB / 7 days with reserved gap metadata capacity. Warning thresholds at 70/90%, explicit degraded state at full.
-- **V0.1 is not a real activity collector:** authenticated heartbeat, operational health and approved inventory use dedicated endpoints; synthetic test-only events exercise the bounded audit outbox. V0.2 adds **explicitly allowlisted** OS audit and coarse application-activity event sources. No real activity scope is enabled merely because test ingestion exists.
+- **V0.1 is not a real activity collector:** authenticated heartbeat, operational health and approved inventory use dedicated endpoints; a narrowly allowlisted `agent_transport/collection_gap` reports operational coverage, and `synthetic_test/protocol_fixture` is enabled **only** in a controlled development/test profile to exercise the bounded outbox. V0.2 adds **explicitly allowlisted** OS audit and coarse application-activity event sources. No real activity scope is enabled merely because test ingestion exists.
 - Recording: **disabled by default**; v0.3 separate approved policy with display of current capture state; audio off.
 - All values belong to one typed, documented schema with min/max and source of truth. Production values may change after pilot measurement.
+
+The D-11/D-22 candidate allowlist and error/field semantics are specified in [V0.1 API review fixtures](api-contract.md). No production V0.1 configuration may enable system-audit or application-process collector event pairs. Network/IP/MAC collection remains conditional on the [D-17/18/20 privacy/role proposal](../security/authorization-matrix.md), not automatically approved by a schema field.
 
 ## Policy lifecycle
 1. Security admin drafts policy -> identifies source fields, purposes, devices, schedule, retention and notice version.
