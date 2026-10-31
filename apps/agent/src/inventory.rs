@@ -190,10 +190,12 @@ impl InventorySnapshot {
             key(&nic.key)?;
             required(&nic.name, 128)?;
             optional(&nic.kind, 32)?;
-            if let Some(state) = &nic.link_state {
-                if !matches!(state.as_str(), "up" | "down" | "unknown") {
-                    return Err(InventoryError::InvalidField);
-                }
+            if nic
+                .link_state
+                .as_deref()
+                .is_some_and(|state| !matches!(state, "up" | "down" | "unknown"))
+            {
+                return Err(InventoryError::InvalidField);
             }
             if let Some(mac) = nic.mac_address.take() {
                 let lowered = mac.to_ascii_lowercase();
@@ -214,13 +216,10 @@ impl InventorySnapshot {
                 {
                     return Err(InventoryError::InvalidField);
                 }
-                if let Some(scope) = &addr.scope {
-                    if !matches!(
-                        scope.as_str(),
-                        "global" | "private" | "link_local" | "loopback" | "unknown"
-                    ) {
-                        return Err(InventoryError::InvalidField);
-                    }
+                if addr.scope.as_deref().is_some_and(|scope| {
+                    !matches!(scope, "global" | "private" | "link_local" | "loopback" | "unknown")
+                }) {
+                    return Err(InventoryError::InvalidField);
                 }
                 addr.ip = parsed.to_string();
             }
@@ -338,10 +337,10 @@ fn required(text: &str, max: usize) -> Result<(), InventoryError> {
 }
 
 fn optional(text: &Option<String>, max: usize) -> Result<(), InventoryError> {
-    if let Some(text) = text {
-        if text.len() > max || text.chars().any(char::is_control) {
-            return Err(InventoryError::InvalidField);
-        }
+    if text.as_ref().is_some_and(|text| {
+        text.len() > max || text.chars().any(char::is_control)
+    }) {
+        return Err(InventoryError::InvalidField);
     }
     Ok(())
 }
