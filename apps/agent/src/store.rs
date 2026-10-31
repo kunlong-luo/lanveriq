@@ -376,13 +376,11 @@ impl OutboxStore {
                 return Err(StoreError::InventoryConflict);
             }
             let checked_pending = match pending {
-                Some((id, revision, json, stored_digest)) => Some(
-                    verify_typed_pending(
-                        device_id,
-                        (previous_id, last_revision, digest),
-                        (&id, revision, &json, &stored_digest),
-                    )?,
-                ),
+                Some((id, revision, json, stored_digest)) => Some(verify_typed_pending(
+                    device_id,
+                    (previous_id, last_revision, digest),
+                    (&id, revision, &json, &stored_digest),
+                )?),
                 None => None,
             };
             if digest == &semantic_digest {
@@ -648,14 +646,14 @@ async fn load_verified_pending(
             Err(StoreError::InventoryConflict)
         }
         (Some(_), None) => Ok(None),
-        (Some((_, id, revision, semantic_digest)),
-         Some((pending_id, pending_rev, body, digest))) => {
-            Ok(Some(verify_typed_pending(
-                device_id,
-                (&id, revision, &semantic_digest),
-                (&pending_id, pending_rev, &body, &digest),
-            )?))
-        }
+        (
+            Some((_, id, revision, semantic_digest)),
+            Some((pending_id, pending_rev, body, digest)),
+        ) => Ok(Some(verify_typed_pending(
+            device_id,
+            (&id, revision, &semantic_digest),
+            (&pending_id, pending_rev, &body, &digest),
+        )?)),
     }
 }
 
