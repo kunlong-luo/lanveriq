@@ -3,7 +3,7 @@
 //! unless the signed-in server response names EXACTLY every sent sequence.
 //! The *server* must additionally bind Caddy-verified mTLS fingerprint to
 //! an active PostgreSQL device; this module cannot grant that trust.
-use crate::store::{OutboxStore, PendingEvent, StoreError};
+use crate::store::{OutboxStore, PendingEvent, PendingInventory, StoreError};
 use reqwest::header::{CONTENT_TYPE, RETRY_AFTER};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, time::Duration};
@@ -32,6 +32,8 @@ pub enum TransportError {
     InvalidAcknowledgement,
     #[error("invalid outbound event envelope")]
     InvalidEvent,
+    #[error("invalid typed inventory payload or device identity")]
+    InvalidInventory,
     #[error("local SQLite operation failed")]
     Store(#[from] StoreError),
     #[error("event envelope could not be serialized")]
@@ -72,6 +74,26 @@ struct EventAck {
     accepted_sequences: Vec<i64>,
     server_time: String,
     request_id: Uuid,
+}
+
+/// Exact internal Spring V0.1 inventory receipt, not an event-batch ACK.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InventoryAck {
+    schema_version: u32,
+    device_id: Uuid,
+    snapshot_id: Uuid,
+    inventory_revision: i64,
+    outcome: InventoryOutcome,
+    server_time: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum InventoryOutcome {
+    Applied,
+    Duplicate,
+    StaleIgnored,
 }
 
 /// V0.1 heartbeat fields. This explicit type is deliberately NOT generated
@@ -224,6 +246,48 @@ pub fn classify_batch_response(
         return Err(TransportError::InvalidAcknowledgement);
     }
     Ok(DeliveryDisposition::Accepted)
+}
+
+/// Only an exact authenticated HTTP 200 receipt for the sent tuple is
+/// eligible for removal from the local outbox. A stale_ignored response
+/// refers to a newer server state and must not be treated as an exact ACK.
+pub fn classify_inventory_response(
+    status: u16,
+    response: &[u8],
+    device_id: Uuid,
+    expected: &PendingInventory,
+    retry_after: Option<&str>,
+) -> Result<DeliveryDisposition, TransportError> {
+    if device_id.is_nil()
+        || expected.snapshot_id.is_nil()
+        || expected.revision < 1
+        || expected.body_json.is_empty()
+        || expected.body_json.len() > 128 * 1024
+    {
+        return Err(TransportError::InvalidInventory);
+    }
+    if status != 200 {
+        return Ok(classify_error_status(status, retry_after));
+    }
+    if response.len() > MAX_RESPONSE_BYTES {
+        return Err(TransportError::OversizedResponse);
+    }
+    let ack: InventoryAck =
+        serde_json::from_slice(response).map_err(|_| TransportError::InvalidAcknowledgement)?;
+    if ack.schema_version != 1
+        || ack.device_id != device_id
+        || ack.snapshot_id != expected.snapshot_id
+        || ack.inventory_revision != expected.revision
+        || ack.server_time.len() < 20
+        || ack.server_time.len() > 40
+        || !ack.server_time.ends_with('Z')
+    {
+        return Err(TransportError::InvalidAcknowledgement);
+    }
+    Ok(match ack.outcome {
+        InventoryOutcome::Applied | InventoryOutcome::Duplicate => DeliveryDisposition::Accepted,
+        InventoryOutcome::StaleIgnored => DeliveryDisposition::Quarantine,
+    })
 }
 
 pub fn classify_error_status(status: u16, retry_after: Option<&str>) -> DeliveryDisposition {
