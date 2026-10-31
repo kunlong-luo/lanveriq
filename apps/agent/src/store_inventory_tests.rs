@@ -163,12 +163,12 @@ async fn changed_asset_increments_only_inventory_revision_and_stale_ack_cannot_e
             .await
             .unwrap()
     );
-    assert!(
-        !store
+    assert!(matches!(
+        store
             .acknowledge_inventory_snapshot(Uuid::now_v7(), second.snapshot_id, second.revision)
-            .await
-            .unwrap()
-    );
+            .await,
+        Err(StoreError::InventoryConflict)
+    ));
     assert!(
         !store
             .acknowledge_inventory_snapshot(device, Uuid::now_v7(), second.revision)
