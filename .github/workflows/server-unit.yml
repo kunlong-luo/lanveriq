@@ -34,6 +34,8 @@ jobs:
       - name: Verify official Gradle Wrapper binary
         working-directory: apps/server
         run: echo '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
+      - name: Unit-test the manual PostgreSQL evidence checker (synthetic XML only)
+        run: python3 -m unittest discover -s apps/server/scripts -p 'test_assert_postgres18_junit.py'
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test

@@ -35,6 +35,12 @@ jobs:
       - name: Run Testcontainers PostgreSQL 18.6 Flyway + real transaction tests
         working-directory: apps/server
         run: ./gradlew integrationTest --stacktrace
+      # A zero-exit Gradle task alone does not prove each security gate ran.
+      # Require real Gradle JUnit XML for all five Testcontainers classes,
+      # the PostgreSQL 18.6/Flyway assertion and all critical negative cases.
+      - name: Fail closed if mandatory PostgreSQL tests were skipped or missing
+        working-directory: apps/server
+        run: python3 scripts/assert-postgres18-junit.py build/test-results/integrationTest
       - name: Record synthetic PostgreSQL image and commit provenance
         if: always()
         run: |

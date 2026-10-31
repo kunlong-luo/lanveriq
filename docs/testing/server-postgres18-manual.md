@@ -7,6 +7,20 @@ Requirements: JDK 25, Docker engine with a daemon you control, a free host port 
 
 **New staged SRV-02-REV suite:** `PostgreSqlDeviceRevocationIT` now additionally exercises the **default-OFF** group-scoped JPA device/credential revoke and allowed audit atomically, disabled/wrong-group denial, idempotency and deliberate PostgreSQL audit-trigger failure rollback. It is part of the **manually dispatched** `integrationTest` source, **not actual executed PostgreSQL evidence**, and does not add an HTTP revocation path. See [manual device revocation gate](server-device-revocation-manual.md).
 
+## Manual JUnit evidence gate — mandatory, not a database substitute
+
+The [manually dispatched workflow](../../.github/workflows/server-postgres18-integration.yml) now runs a **fail-closed post-test evidence check** using `apps/server/scripts/assert-postgres18-junit.py`. It reads Gradle's generated `build/test-results/integrationTest/TEST-*.xml`, and **fails the manual run** unless all five Testcontainers suites (event/heartbeat, activation, inventory, certificate registration and revocation) report **at least 45 successful tests in total**, with explicit mandatory checks for PostgreSQL 18.6/Flyway V1–V8, two-key event conflict rollback, immutable event trigger, cross-device identity isolation, certificate revocation/race, audited registration/activation, inventory child-table rollback and post-lock admin revocation. Every failed, errored or skipped JUnit case blocks acceptance; absent, corrupted and duplicate reports are rejected. The Git commit, image ID/digests and JUnit artifacts continue to be captured by the existing manual workflow.
+
+The evidence checker itself is unit-tested using **invented XML only** in automatic Java CI; it runs **no Docker container or database** there. To verify an explicitly run local integration suite, use:
+
+```sh
+cd apps/server
+./gradlew integrationTest
+python3 scripts/assert-postgres18-junit.py build/test-results/integrationTest
+```
+
+**No manual run has been observed.** A passing XML evidence checker on invented fixtures proves only that the gate logic is functional; actual PostgreSQL test acceptance requires a successful explicitly dispatched manual run on the reviewed SHA.
+
 ## Preferred real SQL and transaction verification (separate from the smoke script)
 
 The V8 `PostgreSqlDeviceInventoryIT` suite now additionally injects PostgreSQL trigger failures separately in NIC, address and volume inserts, asserting all current/child rows roll back to the previous committed snapshot before a normal retry, and races higher/lower revisions to prove the higher snapshot wins. These cases are **source-only until the Docker-backed suite actually executes**. The [SRV-03 Testcontainers suite](server-event-ingestion-manual.md), [HB-01 heartbeat suite](server-heartbeat-manual.md), [SRV-02 activation suite](server-cert-activation-manual.md) and [INV-02 latest inventory suite](server-inventory-manual.md) are staged to exercise PostgreSQL 18 with Flyway/JPA, including event dedup, latest heartbeat, certificate activation and monotonic multi-NIC inventory replacement. It is **not** part of the default `test` task. Run `cd apps/server && ./gradlew integrationTest` with JDK 25 and Docker, or manually dispatch **Actions → PostgreSQL 18 integration (manual, synthetic-only)** on `main`. Keep the gate open until an actual successful run is recorded, regardless of successful source compilation.

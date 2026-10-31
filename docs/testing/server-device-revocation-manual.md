@@ -10,6 +10,8 @@
 - **Exactly one** `admin_access_log` row with `action='device.revoke'` and `outcome='allowed'` must commit with both updates. SQL exceptions **and a silently suppressed `INSERT` affecting zero rows** must roll back **all** state changes. An authorized retry on an already-revoked device is idempotent and creates no second audit. A retired device is not implicitly reactivated/revoked. The same old device ID and certificate must never be reused to bypass an explicit re-enrollment.
 - This is **DB-state revocation**, not CA CRL/OCSP implementation, TLS session invalidation, or a complete browser-admin/CSRF/API review. Those remain separate explicit gates.
 
+**Execution evidence guard (staged, not executed):** the manual PostgreSQL workflow now requires a complete Gradle/JUnit XML matrix via `scripts/assert-postgres18-junit.py`, including the post-device-lock admin-disable race, silently suppressed audit insert, wrong-group denial and transaction rollback. Missing/skipped/failing cases fail the manual workflow. Only the XML-checker's synthetic unit tests run in ordinary CI; no actual revocation transaction is claimed until the manual database suite runs.
+
 ## Acceptance, synthetic-only
 
 The [manual PostgreSQL 18 integration workflow](../../.github/workflows/server-postgres18-integration.yml) runs `cd apps/server && ./gradlew integrationTest` with Java 25 and Docker. Do not add it to automatic push/PR CI. `PostgreSqlDeviceRevocationIT` opts into the service with test-only configuration and creates invented UUIDv7 devices, independent groups, users and certificates in a disposable PostgreSQL 18.6 database. It injects a test-only Spring Security principal; it **does not prove administrator password/session authentication**.

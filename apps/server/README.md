@@ -18,6 +18,10 @@ D0-approved Java 25 / Gradle 9.8.2 (Groovy DSL) / Spring Boot 4.1.2 / Spring Dat
 
 Flyway V8 adds a latest inventory row plus normalized multi-NIC, IPv4/IPv6 `inet` and volume tables. The internal `DeviceInventoryService` validates a bounded complete snapshot, checks package-internal verified device identity, and delegates to a Spring JPA transaction. PostgreSQL locks both active device and matching live credential; incoming higher revision atomically replaces all inventory rows, identical same-revision retries are no-op, stale lower revisions are ignored, and same-revision changed data is rejected. No event sequence, activity audit or heartbeat cursor is modified. Synthetic JVM/JPA tests and opt-in PG18 Testcontainers source exist, now including native NIC/IP/volume insertion-failure rollback and competing-revision concurrency cases; **real PG18 execution is still missing**. No public inventory upload/read route, actual Rust inventory collector, live Caddy/Tomcat binding or real device data is authorized. [INV-02 acceptance](../../docs/testing/server-inventory-manual.md).
 
+## Manual PostgreSQL 18.6 evidence gate — NOT EXECUTED
+
+The explicitly dispatched `server-postgres18-integration.yml` workflow runs the real `integrationTest` Testcontainers suite, then executes `python3 scripts/assert-postgres18-junit.py build/test-results/integrationTest`. The Python **standard-library** XML checker requires all five PostgreSQL test classes, a minimum of 45 passing tests and named security negative cases; missing, skipped, duplicate, failed and corrupt JUnit reports block success. The checker has synthetic-only Python unit tests wired into ordinary CI, which **does not start PostgreSQL**. See [PostgreSQL manual acceptance](../../docs/testing/server-postgres18-manual.md). No successful manual PostgreSQL execution evidence exists yet.
+
 ## Build and run (Java 25 required)
 
 ```sh
