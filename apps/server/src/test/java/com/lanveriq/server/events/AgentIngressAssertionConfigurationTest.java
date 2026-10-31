@@ -25,20 +25,18 @@ class AgentIngressAssertionConfigurationTest {
 
     @Test
     void requiresExplicitBackendMutualTlsConfiguration() {
-        var missing = configuredTlsEnvironment()
+        var disabledTls = configuredTlsEnvironment()
                 .withProperty("server.ssl.enabled", "false");
         assertThrows(IllegalStateException.class,
-                () -> configuration.agentIngressAssertionPolicy(missing));
+                () -> configuration.agentIngressAssertionPolicy(disabledTls));
 
-        missing = configuredTlsEnvironment()
+        var optionalCert = configuredTlsEnvironment()
                 .withProperty("server.ssl.client-auth", "want");
-        MockEnvironment optionalCert = missing;
         assertThrows(IllegalStateException.class,
                 () -> configuration.agentIngressAssertionPolicy(optionalCert));
 
-        missing = configuredTlsEnvironment()
+        var noTrust = configuredTlsEnvironment()
                 .withProperty("server.ssl.trust-store", "");
-        MockEnvironment noTrust = missing;
         assertThrows(IllegalStateException.class,
                 () -> configuration.agentIngressAssertionPolicy(noTrust));
     }
