@@ -375,12 +375,12 @@ impl OutboxStore {
             if owner != &device_id.to_string() {
                 return Err(StoreError::InventoryConflict);
             }
-            if let Some((ref queued_id, queued_rev, _)) = pending {
-                if queued_id != previous_id || queued_rev != last_revision {
-                    // Do not overwrite an orphaned/legacy pending payload:
-                    // it might still require an explicit acknowledgement.
-                    return Err(StoreError::InventoryConflict);
-                }
+            if pending.as_ref().is_some_and(|(queued_id, queued_rev, _)| {
+                queued_id != previous_id || *queued_rev != last_revision
+            }) {
+                // Do not overwrite an orphaned/legacy pending payload:
+                // it might still require an explicit acknowledgement.
+                return Err(StoreError::InventoryConflict);
             }
             if digest == &semantic_digest {
                 return match pending {
