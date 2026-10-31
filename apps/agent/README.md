@@ -1,6 +1,6 @@
 # Lanveriq Agent — AGT-01 lifecycle, AGT-02 SQLite and staged AGT-03 transport
 
-**D0-approved V0.1 coding slice, not a deployed or usable endpoint monitor.** This service performs **no network requests, enrollment, heartbeat, real inventory/audit collection, input monitoring or screen recording**. The AGT-01 binary remains an idle loop. AGT-02 adds a standalone SQLite persistence module used by synthetic unit tests; AGT-03 now stages an **unwired, explicitly constructed** HTTPS/mTLS client. Neither module is called by the normal Agent service.
+**D0-approved V0.1 coding slice, not a deployed or usable endpoint monitor.** The running Agent binary remains an idle loop and performs **no inventory collection, network requests, enrollment, heartbeat, audit collection, input monitoring or screen recording**. AGT-02 SQLx persistence, staged AGT-03 HTTPS/mTLS transport, and new INV-01 local OS adapter are **standalone library components only**; none is invoked by the service binary. The adapter is callable explicitly in an isolated test only; no real workplace data is authorized.
 
 ## Toolchain and dependencies
 
@@ -14,6 +14,14 @@ cargo build --release --locked -p lanveriq-agent
 ```
 
 The committed root `Cargo.lock` pins transitive dependencies. Tokio supplies the async runtime/signal handling; Serde + TOML enforce the versioned schema; Clap parses the command line; tracing supplies diagnostics; Windows SCM events use `windows-service` 0.8.1. No custom async worker, service manager, TLS implementation or collector is introduced. AGT-02 adds SQLx 0.9.0, `uuid`, `serde_json`, `sha2` and a pinned bundled `libsqlite3-sys =0.37.0` with the WAL-reset fix.
+
+## INV-01 on-demand local inventory (NOT WIRED TO SERVICE)
+
+`inventory.rs` implements the typed, bounded V0.1 complete snapshot (CPU/RAM, OS, multi-NIC/IP and volumes) with **stable externally assigned** device UUID, snapshot ID and monotonic revision; it merges multiple address records per NIC, checks numeric IPv4/IPv6 prefixes and preserves unavailable fields as null. This module never probes the host, persists a revision or uploads data.
+
+`inventory_platform.rs` adds an **explicitly invoked** local Windows/Linux source adapter using maintained and locked **`sysinfo =0.37.1`**, **`os_info =3.15.0`** and **`network-interface =2.0.5`**. Sysinfo is built only with `system` and `disk` features, omitting user/process/component/network enumeration; the adapter queries CPU/RAM, OS version, non-loopback NIC IPs/MAC and local mounted disks only. There is no automatic 30-second collection, service scheduler, SQLx integration, network upload, serial/TPM, Wi-Fi location, username, process list, activity or screen access. An unknown metric remains null/unavailable; no fake zero or trust bypass. **A successful build is not evidence of genuine Windows 11 or Pop!_OS asset accuracy.** [INV-01 manual acceptance](../../docs/testing/agent-inventory-manual.md).
+
+The repo `Cargo.lock` was updated by Cargo itself in a **one-time repository-scoped maintenance workflow**. That temporary write-enabled workflow has been removed; normal Linux/Windows cargo tests/clippy still run with `--locked`. New dependency versions must be reviewed when changed.
 
 ## AGT-03 source: strict mTLS and batch ACK (NOT NETWORK TESTED)
 
