@@ -57,6 +57,7 @@ class DeviceDirectoryRestControllerTest {
         assertFalse(response.contains("event_payload"));
         verify(directory).list(null, 2);
 
+        when(directory.list(next, 10)).thenReturn(new DeviceDirectoryPage(List.of(), null));
         mvc.perform(get("/api/v1/devices").param("cursor", next.toString())
                         .param("limit", "10"))
                 .andExpect(status().isOk());
