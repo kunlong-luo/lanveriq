@@ -134,7 +134,10 @@ impl EventBatch {
         let mut previous = 0;
         let mut events = Vec::with_capacity(pending.len());
         for event in pending {
-            if event.sequence <= previous || !seen.insert(event.sequence) || event.policy_version < 1 {
+            if event.sequence <= previous
+                || !seen.insert(event.sequence)
+                || event.policy_version < 1
+            {
                 return Err(TransportError::InvalidEvent);
             }
             previous = event.sequence;
@@ -144,7 +147,8 @@ impl EventBatch {
                 return Err(TransportError::InvalidEvent);
             }
             let payload: serde_json::Value = serde_json::from_str(&event.payload_json)?;
-            if !payload.is_object() || event.occurred_at_utc.len() < 20
+            if !payload.is_object()
+                || event.occurred_at_utc.len() < 20
                 || !event.occurred_at_utc.ends_with('Z')
             {
                 return Err(TransportError::InvalidEvent);
@@ -160,7 +164,12 @@ impl EventBatch {
                 payload,
             });
         }
-        let batch = Self { schema_version: 1, batch_id, device_id, events };
+        let batch = Self {
+            schema_version: 1,
+            batch_id,
+            device_id,
+            events,
+        };
         if serde_json::to_vec(&batch)?.len() > MAX_BATCH_BYTES {
             return Err(TransportError::InvalidEvent);
         }
@@ -168,7 +177,10 @@ impl EventBatch {
     }
 
     pub fn sequences(&self) -> Vec<i64> {
-        self.events.iter().map(|event| event.device_sequence).collect()
+        self.events
+            .iter()
+            .map(|event| event.device_sequence)
+            .collect()
     }
 }
 
@@ -182,7 +194,8 @@ pub fn classify_batch_response(
     expected: &[i64],
     retry_after: Option<&str>,
 ) -> Result<DeliveryDisposition, TransportError> {
-    if expected.is_empty() || expected.len() > MAX_BATCH_EVENTS
+    if expected.is_empty()
+        || expected.len() > MAX_BATCH_EVENTS
         || expected.iter().any(|s| *s <= 0)
         || expected.iter().copied().collect::<HashSet<_>>().len() != expected.len()
     {
@@ -194,12 +207,18 @@ pub fn classify_batch_response(
     if response.len() > MAX_RESPONSE_BYTES {
         return Err(TransportError::OversizedResponse);
     }
-    let ack: EventAck = serde_json::from_slice(response)
-        .map_err(|_| TransportError::InvalidAcknowledgement)?;
-    if ack.schema_version != 1 || ack.server_time.len() < 20
-        || !ack.server_time.ends_with('Z') || ack.request_id.is_nil()
+    let ack: EventAck =
+        serde_json::from_slice(response).map_err(|_| TransportError::InvalidAcknowledgement)?;
+    if ack.schema_version != 1
+        || ack.server_time.len() < 20
+        || !ack.server_time.ends_with('Z')
+        || ack.request_id.is_nil()
         || ack.accepted_sequences.len() != expected.len()
-        || ack.accepted_sequences.iter().copied().collect::<HashSet<_>>()
+        || ack
+            .accepted_sequences
+            .iter()
+            .copied()
+            .collect::<HashSet<_>>()
             != expected.iter().copied().collect::<HashSet<_>>()
     {
         return Err(TransportError::InvalidAcknowledgement);
@@ -215,7 +234,9 @@ pub fn classify_error_status(status: u16, retry_after: Option<&str>) -> Delivery
                 .and_then(|s| s.parse::<u64>().ok())
                 .map(|s| s.clamp(1, MAX_RETRY_AFTER_SECONDS))
                 .unwrap_or(30);
-            DeliveryDisposition::Retry { after: Duration::from_secs(seconds) }
+            DeliveryDisposition::Retry {
+                after: Duration::from_secs(seconds),
+            }
         }
         _ => DeliveryDisposition::Quarantine,
     }
@@ -228,7 +249,11 @@ pub struct AgentTlsTransport {
 }
 
 impl AgentTlsTransport {
-    pub fn new(origin: &str, ca_pem: &[u8], client_identity_pem: &[u8]) -> Result<Self, TransportError> {
+    pub fn new(
+        origin: &str,
+        ca_pem: &[u8],
+        client_identity_pem: &[u8],
+    ) -> Result<Self, TransportError> {
         if origin != AGENT_ORIGIN {
             return Err(TransportError::InvalidOrigin);
         }
@@ -267,15 +292,20 @@ impl AgentTlsTransport {
         // All paths are constructed below from a parsed UUID, never supplied
         // by a remote peer. Client is HTTPS-only, redirects and proxies off.
         let url = format!("{AGENT_ORIGIN}{path}");
-        let mut response = self.client.post(url)
+        let mut response = self
+            .client
+            .post(url)
             .header(CONTENT_TYPE, "application/json")
             .body(body)
             .send()
             .await
             .map_err(TransportError::Network)?;
         let status = response.status().as_u16();
-        let retry_after = response.headers().get(RETRY_AFTER)
-            .and_then(|v| v.to_str().ok()).map(str::to_owned);
+        let retry_after = response
+            .headers()
+            .get(RETRY_AFTER)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned);
         let mut bytes = Vec::new();
         while let Some(chunk) = response.chunk().await.map_err(TransportError::Network)? {
             if bytes.len() + chunk.len() > MAX_RESPONSE_BYTES {
@@ -287,10 +317,16 @@ impl AgentTlsTransport {
     }
 
     /// Never called by AGT-01 service, and no live Agent authorization exists.
-    pub async fn send_heartbeat(&self, heartbeat: &Heartbeat) -> Result<DeliveryDisposition, TransportError> {
-        if heartbeat.schema_version != 1 || heartbeat.policy_version < 1
-            || heartbeat.queue_count < 0 || heartbeat.queue_bytes < 0
-            || heartbeat.dropped_count < 0 || heartbeat.device_id.is_nil()
+    pub async fn send_heartbeat(
+        &self,
+        heartbeat: &Heartbeat,
+    ) -> Result<DeliveryDisposition, TransportError> {
+        if heartbeat.schema_version != 1
+            || heartbeat.policy_version < 1
+            || heartbeat.queue_count < 0
+            || heartbeat.queue_bytes < 0
+            || heartbeat.dropped_count < 0
+            || heartbeat.device_id.is_nil()
         {
             return Err(TransportError::InvalidEvent);
         }
@@ -299,12 +335,17 @@ impl AgentTlsTransport {
         if status != 200 {
             return Ok(classify_error_status(status, retry_after.as_deref()));
         }
-        let response: serde_json::Value = serde_json::from_slice(&body)
-            .map_err(|_| TransportError::InvalidAcknowledgement)?;
-        if response.get("server_time").and_then(serde_json::Value::as_str)
+        let response: serde_json::Value =
+            serde_json::from_slice(&body).map_err(|_| TransportError::InvalidAcknowledgement)?;
+        if response
+            .get("server_time")
+            .and_then(serde_json::Value::as_str)
             .is_none_or(|v| v.len() < 20 || !v.ends_with('Z'))
-            || response.get("request_id").and_then(serde_json::Value::as_str)
-                .and_then(|v| Uuid::parse_str(v).ok()).is_none()
+            || response
+                .get("request_id")
+                .and_then(serde_json::Value::as_str)
+                .and_then(|v| Uuid::parse_str(v).ok())
+                .is_none()
         {
             return Err(TransportError::InvalidAcknowledgement);
         }
@@ -345,9 +386,8 @@ impl AgentTlsTransport {
         }
         let path = format!("/api/v1/devices/{}/event-batches", batch.device_id);
         let (status, response, retry_after) = self.post_json(&path, batch).await?;
-        let disposition = classify_batch_response(
-            status, &response, &sequences, retry_after.as_deref(),
-        )?;
+        let disposition =
+            classify_batch_response(status, &response, &sequences, retry_after.as_deref())?;
         if disposition == DeliveryDisposition::Accepted {
             // Server committed all events and acknowledged every sequence.
             store.acknowledge(&sequences).await?;

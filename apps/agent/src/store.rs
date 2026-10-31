@@ -227,7 +227,10 @@ impl OutboxStore {
             if !selected.is_empty() && fingerprint(&selected) == *old_fingerprint {
                 let id = Uuid::parse_str(old_id).map_err(|_| StoreError::InvalidFixture)?;
                 tx.commit().await?;
-                return Ok(Some(PreparedBatch { batch_id: id, events: selected }));
+                return Ok(Some(PreparedBatch {
+                    batch_id: id,
+                    events: selected,
+                }));
             }
             // An explicit ACK or invalid/corrupt stale state invalidates this
             // planned batch. Do not pretend its older fingerprint was sent.
@@ -260,7 +263,10 @@ impl OutboxStore {
         .execute(&mut *tx)
         .await?;
         tx.commit().await?;
-        Ok(Some(PreparedBatch { batch_id, events: selected }))
+        Ok(Some(PreparedBatch {
+            batch_id,
+            events: selected,
+        }))
     }
 
     /// An ambiguous HTTP timeout MUST NOT call acknowledge. Only explicitly

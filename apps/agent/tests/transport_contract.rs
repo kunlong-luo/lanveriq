@@ -163,12 +163,13 @@ fn invalid_envelope_or_wrong_order_or_oversize_is_refused() {
 #[test]
 fn heartbeat_explicitly_discloses_missing_capabilities() {
     let id = Uuid::now_v7();
-    let payload = serde_json::to_value(Heartbeat::synthetic(
-        id, "2026-10-31T00:00:00Z".into(),
-    ))
-    .unwrap();
+    let payload =
+        serde_json::to_value(Heartbeat::synthetic(id, "2026-10-31T00:00:00Z".into())).unwrap();
     assert_eq!(payload["device_id"], id.to_string());
-    assert_eq!(payload["capabilities"]["hardware_inventory"], "not_collected");
+    assert_eq!(
+        payload["capabilities"]["hardware_inventory"],
+        "not_collected"
+    );
     assert_eq!(payload["capabilities"]["app_activity"], "not_collected");
     assert_eq!(payload["queue_count"], 0);
     assert!(payload["last_successful_upload_at"].is_null());
