@@ -32,8 +32,7 @@ pub fn collect_local_inventory() -> RawInventory {
                 .map(|value| value.brand().to_string())
                 .filter(|value| !value.is_empty()),
             arch: Some(std::env::consts::ARCH.to_string()),
-            physical_cores: System::physical_core_count()
-                .and_then(|n| u32::try_from(n).ok()),
+            physical_cores: System::physical_core_count().and_then(|n| u32::try_from(n).ok()),
             logical_cores: u32::try_from(cpus.len()).ok(),
         })
     };
@@ -99,9 +98,7 @@ pub fn collect_local_inventory() -> RawInventory {
                 filesystem: (!filesystem.is_empty()).then_some(filesystem),
                 total_bytes: disk.total_space(),
                 free_bytes: Some(disk.available_space()),
-                is_system: Some(
-                    mount == "/" || mount.eq_ignore_ascii_case("C:\\"),
-                ),
+                is_system: Some(mount == "/" || mount.eq_ignore_ascii_case("C:\\")),
             })
         })
         .collect();
@@ -112,8 +109,15 @@ pub fn collect_local_inventory() -> RawInventory {
     };
 
     let capabilities = BTreeMap::from([
-        ("hardware_inventory".to_string(),
-            if cpu.is_some() || ram.is_some() { "available" } else { "unavailable" }.to_string()),
+        (
+            "hardware_inventory".to_string(),
+            if cpu.is_some() || ram.is_some() {
+                "available"
+            } else {
+                "unavailable"
+            }
+            .to_string(),
+        ),
         ("network_interfaces".to_string(), nic_state.to_string()),
         ("mounted_volumes".to_string(), volume_state.to_string()),
         ("desktop_session".to_string(), "not_collected".to_string()),
@@ -211,23 +215,44 @@ mod tests {
 
     #[test]
     fn ip_netmasks_must_be_contiguous_and_never_guessed() {
-        assert_eq!(prefix_from_netmask(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0))), Some(24));
-        assert_eq!(prefix_from_netmask(IpAddr::V4(Ipv4Addr::new(255, 0, 255, 0))), None);
-        assert_eq!(prefix_from_netmask(IpAddr::V6(Ipv6Addr::new(
-            0xffff, 0xffff, 0xffff, 0xffff, 0, 0, 0, 0,
-        ))), Some(64));
-        assert_eq!(prefix_from_netmask(IpAddr::V6(Ipv6Addr::UNSPECIFIED)), Some(0));
+        assert_eq!(
+            prefix_from_netmask(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 0))),
+            Some(24)
+        );
+        assert_eq!(
+            prefix_from_netmask(IpAddr::V4(Ipv4Addr::new(255, 0, 255, 0))),
+            None
+        );
+        assert_eq!(
+            prefix_from_netmask(IpAddr::V6(Ipv6Addr::new(
+                0xffff, 0xffff, 0xffff, 0xffff, 0, 0, 0, 0,
+            ))),
+            Some(64)
+        );
+        assert_eq!(
+            prefix_from_netmask(IpAddr::V6(Ipv6Addr::UNSPECIFIED)),
+            Some(0)
+        );
     }
 
     #[test]
     fn keyed_attributes_do_not_use_mutable_mac_or_network_address() {
-        assert_eq!(stable_attribute_key("nic", "eth0"), stable_attribute_key("nic", "eth0"));
-        assert_ne!(stable_attribute_key("nic", "eth0"), stable_attribute_key("nic", "eth1"));
+        assert_eq!(
+            stable_attribute_key("nic", "eth0"),
+            stable_attribute_key("nic", "eth0")
+        );
+        assert_ne!(
+            stable_attribute_key("nic", "eth0"),
+            stable_attribute_key("nic", "eth1")
+        );
     }
 
     #[test]
     fn address_scope_does_not_claim_publicity_for_private_addresses() {
-        assert_eq!(address_scope(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 3))), "private");
+        assert_eq!(
+            address_scope(IpAddr::V4(Ipv4Addr::new(192, 168, 0, 3))),
+            "private"
+        );
         assert_eq!(address_scope(IpAddr::V4(Ipv4Addr::LOCALHOST)), "loopback");
         assert_eq!(address_scope(IpAddr::V6(Ipv6Addr::LOCALHOST)), "loopback");
     }
