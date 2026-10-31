@@ -115,7 +115,8 @@ fn stale_ignored_is_never_an_exact_positive_ack() {
             device,
             &item,
             None
-        ).unwrap(),
+        )
+        .unwrap(),
         DeliveryDisposition::Quarantine
     );
     assert!(matches!(

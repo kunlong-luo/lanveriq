@@ -289,9 +289,7 @@ pub fn classify_inventory_response(
         // Never delete or retry indefinitely without an operator reconciliation.
         return Ok(DeliveryDisposition::Quarantine);
     }
-    if ack.snapshot_id != expected.snapshot_id
-        || ack.inventory_revision != expected.revision
-    {
+    if ack.snapshot_id != expected.snapshot_id || ack.inventory_revision != expected.revision {
         return Err(TransportError::InvalidAcknowledgement);
     }
     Ok(DeliveryDisposition::Accepted)
