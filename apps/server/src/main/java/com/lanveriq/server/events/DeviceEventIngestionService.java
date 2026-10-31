@@ -3,6 +3,7 @@ package com.lanveriq.server.events;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
@@ -18,6 +19,7 @@ public class DeviceEventIngestionService {
     private final EventIngestionRepository repository;
     private final DeviceEventBatchPolicy policy;
 
+    @Autowired
     DeviceEventIngestionService(EventIngestionRepository repository, JsonMapper mapper) {
         this(repository, new DeviceEventBatchPolicy(mapper, false));
     }

@@ -3,6 +3,7 @@ package com.lanveriq.server.events;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
@@ -18,6 +19,7 @@ public class DeviceHeartbeatService {
     private final DeviceHeartbeatPolicy policy;
     private final Clock clock;
 
+    @Autowired
     DeviceHeartbeatService(DeviceHeartbeatRepository repository, JsonMapper mapper) {
         this(repository, new DeviceHeartbeatPolicy(mapper, Clock.systemUTC()), Clock.systemUTC());
     }

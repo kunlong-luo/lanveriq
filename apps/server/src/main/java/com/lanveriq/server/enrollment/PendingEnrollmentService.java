@@ -1,6 +1,7 @@
 package com.lanveriq.server.enrollment;
 
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ public class PendingEnrollmentService {
     private final EnrollmentTokenCodec tokens;
     private final CertificateSigningRequestValidator csrs;
 
+    @Autowired
     PendingEnrollmentService(PendingEnrollmentRepository repository) {
         this(repository, new EnrollmentTokenCodec(), new CertificateSigningRequestValidator());
     }
