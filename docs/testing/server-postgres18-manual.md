@@ -26,6 +26,10 @@ The script:
 
 The new [Spring Tomcat upstream-mTLS workflow](../../.github/workflows/spring-upstream-mtls-synthetic.yml) / `bash apps/server/scripts/verify-agent-upstream-tls.sh` starts a **separate disposable PG18.6 Docker container**, real Spring Boot JAR, and one-time synthetic server/client trust stores. It probes actual Java TLSv1.3 client-certificate enforcement and confirms a valid upstream proxy identity still cannot access disabled Agent business APIs. This is not a substitute for `./gradlew integrationTest`: it exercises real Flyway/startup and TLS handshake, but does **not run** all JPA concurrency, activation, inventory, or event integration cases. Nor does it run actual Caddy; both manual gates remain independent.
 
+## Combined Caddy-to-real-Tomcat upstream bridge (manual, not run)
+
+The [separately dispatched combined bridge workflow](../../.github/workflows/caddy-spring-postgres18-bridge.yml) adds live Caddy 2.11.7 in front of the **real Spring/Tomcat** TLSv1.3 connector and disposable PostgreSQL 18.6 via `LANVERIQ_SYNTHETIC_CADDY_BRIDGE=1 bash apps/server/scripts/verify-agent-upstream-tls.sh`. Unlike the standalone Python backend probe, it checks the real proxy-to-Tomcat handshake with both trust sides, wrong-CA upstream client rejection and wrong backend CA rejection. A successful authorized transport receives HTTP 403 due to intentionally disabled Agent routes. This is **not a functional Agent HTTP test**, nor evidence that the Testcontainers JPA integration suite has run; all these gates remain separately open without an observed manual success.
+
 ## Separate manual first-admin bootstrap check (NOT RUN)
 
 The basic smoke script above **deletes its disposable PostgreSQL container at exit**. For the following additional acceptance steps, prepare a **separate isolated, persistent-for-test-only PostgreSQL 18** database with Flyway V1–V8. Do not bootstrap an organization's real database until security and organizational authorization are approved.

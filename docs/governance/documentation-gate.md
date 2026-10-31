@@ -6,6 +6,8 @@
 
 **Post-D0 acceptance note (2026-10-31):** A separate manual-only Spring Boot/Tomcat TLSv1.3 + PostgreSQL 18.6 synthetic acceptance script/workflow has been committed. Its presence and automatic `bash -n` check do **not** constitute an executed mTLS handshake or database acceptance; the real Caddy, real Spring and PostgreSQL security gates stay open until independently observed evidence is recorded. See [Agent ingress manual gate](../testing/agent-ingress-identity-manual.md).
 
+**Additional synthetic transport gate (2026-10-31):** A manual-only Caddy 2.11.7 → **real** Spring/Tomcat TLSv1.3 → PostgreSQL 18.6 bridge script/workflow now exists. It reuses the standalone Spring fixture and keeps all Agent controllers default-denied. Shell syntax in automatic CI is **not** the actual Caddy/Tomcat handshake; no run or credential-revocation evidence is claimed. See [D-07 manual ingress gate](../testing/agent-ingress-identity-manual.md).
+
 ## Review checklist
 - [x] Product scope, non-goals and user personas written
 - [x] Functional requirements and milestone acceptance written

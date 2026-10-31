@@ -8,7 +8,20 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 TMP="$(mktemp -d)"
 DB_CID=""
 APP_PID=""
+CADDY_CID=""
+BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
+[[ "$BRIDGE_MODE" == 0 || "$BRIDGE_MODE" == 1 ]] || {
+    echo "Synthetic bridge mode must be 0 or 1" >&2
+    exit 1
+}
+stop_caddy() {
+    if [[ -n "$CADDY_CID" ]]; then
+        docker rm -f "$CADDY_CID" >/dev/null 2>&1 || true
+        CADDY_CID=""
+    fi
+}
 cleanup() {
+    stop_caddy
     if [[ -n "$APP_PID" ]]; then
         kill "$APP_PID" >/dev/null 2>&1 || true
         wait "$APP_PID" >/dev/null 2>&1 || true
@@ -26,6 +39,22 @@ for cmd in java keytool openssl curl docker sha256sum; do
     }
 done
 docker info >/dev/null
+if [[ "$BRIDGE_MODE" == 1 ]]; then
+    for tool in jq sed awk; do
+        command -v "$tool" >/dev/null || {
+            echo "Missing synthetic Caddy test tool: $tool" >&2
+            exit 1
+        }
+    done
+    [[ "$(curl --version)" == *HTTP2* ]] || {
+        echo "HTTP/2 capable curl is required" >&2
+        exit 1
+    }
+    if (echo > /dev/tcp/127.0.0.1/443) >/dev/null 2>&1; then
+        echo "Port 443 occupied; refuse unrelated service test" >&2
+        exit 1
+    fi
+fi
 [[ "$(java -version 2>&1)" == *'version "25'* ]] || {
     echo "Java 25 is required" >&2
     exit 1
@@ -67,6 +96,19 @@ make_ca untrusted-ca "Synthetic Wrong Client CA"
 make_leaf backend backend-ca serverAuth "DNS:spring-backend.lanveriq.internal"
 make_leaf proxy proxy-ca clientAuth "DNS:caddy-proxy.lanveriq.internal"
 make_leaf untrusted untrusted-ca clientAuth "DNS:wrong-proxy.lanveriq.internal"
+if [[ "$BRIDGE_MODE" == 1 ]]; then
+    DEVICE_ID="00000000-0000-7000-8000-000000000001"
+    make_ca approved-client-ca "Synthetic Agent Client CA"
+    make_ca untrusted-agent-ca "Synthetic Wrong Agent Client CA"
+    make_leaf agent approved-client-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
+    make_leaf wrong-agent untrusted-agent-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
+    cp "$TMP/pki/approved-client-ca.crt" "$TMP/pki/approved-client-ca.pem"
+    cp "$TMP/pki/backend-ca.crt" "$TMP/pki/backend-server-ca.pem"
+    cp "$TMP/pki/untrusted-ca.crt" "$TMP/pki/wrong-backend-ca.pem"
+    cp "$TMP/pki/proxy.crt" "$TMP/pki/caddy-upstream-client.crt"
+    cp "$TMP/pki/proxy.key" "$TMP/pki/caddy-upstream-client.key"
+    mkdir -p "$TMP/caddy-data" "$TMP/caddy-config"
+fi
 openssl verify -purpose sslserver -CAfile "$TMP/pki/backend-ca.crt" \
     "$TMP/pki/backend.crt" >/dev/null
 openssl verify -purpose sslclient -CAfile "$TMP/pki/proxy-ca.crt" \
@@ -225,6 +267,169 @@ if (echo > /dev/tcp/127.0.0.1/8080) >/dev/null 2>&1; then
     exit 1
 fi
 echo "PASS: no plaintext service is available on the tested connector/port 8080."
+
+if [[ "$BRIDGE_MODE" == 1 ]]; then
+    IMAGE="caddy:2.11.7"
+    docker pull "$IMAGE" >/dev/null
+    docker image inspect "$IMAGE" --format \
+        'Synthetic Caddy image ID {{.Id}}; digests {{json .RepoDigests}}'
+    # Make the Caddy reference loopback-only during this synthetic test.
+    # The original Caddyfile is never changed or exposed on the LAN.
+    sed -e 's/servers :443 {/servers 127.0.0.1:443 {/' \
+        -e '/^console\.lanveriq\.internal {/a\    bind 127.0.0.1' \
+        -e '/^enroll\.lanveriq\.internal {/a\    bind 127.0.0.1' \
+        -e '/^agent\.lanveriq\.internal {/a\    bind 127.0.0.1' \
+        "$ROOT/deploy/caddy/Caddyfile.reference" > "$TMP/Caddyfile.synthetic"
+    CADDY_REFERENCE="$TMP/Caddyfile.synthetic"
+    run_caddy_command() {
+        local config="$1"
+        shift
+        docker run --rm \
+            -v "$config:/etc/caddy/Caddyfile:ro" \
+            -v "$TMP/pki:/etc/lanveriq/pki:ro" \
+            -v "$TMP/caddy-data:/data" \
+            -v "$TMP/caddy-config:/config" \
+            "$IMAGE" "$@"
+    }
+    run_caddy_command "$CADDY_REFERENCE" adapt \
+        --config /etc/caddy/Caddyfile --pretty > "$TMP/caddy-adapted.json"
+    jq -e '[.apps.http.servers[] | select(.strict_sni_host == true and
+        ((.protocols // []) | index("h1") != null) and
+        ((.protocols // []) | index("h2") != null) and
+        ((.protocols // []) | index("h3") == null))] | length > 0' \
+        "$TMP/caddy-adapted.json" >/dev/null
+    jq -e '[.. | objects | select(.client_authentication?.mode? == "require_and_verify")]
+        | length > 0' "$TMP/caddy-adapted.json" >/dev/null
+    run_caddy_command "$CADDY_REFERENCE" validate \
+        --config /etc/caddy/Caddyfile >/dev/null
+    start_caddy() {
+        local config="$1"
+        stop_caddy
+        local port_released=0
+        for _ in $(seq 1 20); do
+            if ! (echo > /dev/tcp/127.0.0.1/443) >/dev/null 2>&1; then
+                port_released=1
+                break
+            fi
+            sleep 1
+        done
+        [[ "$port_released" == 1 ]] || {
+            echo "Prior synthetic Caddy still occupies TCP 443" >&2
+            exit 1
+        }
+        CADDY_CID="$(docker run --detach --rm --network host \
+            -v "$config:/etc/caddy/Caddyfile:ro" \
+            -v "$TMP/pki:/etc/lanveriq/pki:ro" \
+            -v "$TMP/caddy-data:/data" \
+            -v "$TMP/caddy-config:/config" \
+            "$IMAGE" run --config /etc/caddy/Caddyfile)"
+        local ready=0
+        for _ in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/443) >/dev/null 2>&1; then
+                ready=1
+                break
+            fi
+            docker inspect --format '{{.State.Running}}' "$CADDY_CID" | grep -qx true || {
+                echo "Synthetic Caddy startup failed" >&2
+                exit 1
+            }
+            sleep 1
+        done
+        [[ "$ready" == 1 ]] || {
+            echo "Synthetic Caddy failed to listen on loopback TCP 443" >&2
+            exit 1
+        }
+    }
+    start_caddy "$CADDY_REFERENCE"
+    ROOT_CA="$TMP/caddy-data/caddy/pki/authorities/local/root.crt"
+    for _ in $(seq 1 30); do
+        [[ -s "$ROOT_CA" ]] && break
+        sleep 1
+    done
+    [[ -s "$ROOT_CA" ]] || {
+        echo "Caddy did not publish its synthetic public trust root" >&2
+        exit 1
+    }
+    EDGE_URL="https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/activate"
+    edge_request() {
+        curl --silent --show-error --noproxy '*' --http2 --max-time 12 \
+            --cacert "$ROOT_CA" \
+            --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+            -X POST -o "$TMP/edge-response" -w '%{http_code}' "$EDGE_URL"
+    }
+    status="$(edge_request)"
+    [[ "$status" == 403 ]] || {
+        echo "FAIL: legitimate Agent and proxy chain must reach default-deny Tomcat (got $status)" >&2
+        exit 1
+    }
+    echo "PASS: Agent->Caddy mTLS and Caddy->real Spring/Tomcat mTLS, HTTP business deny 403."
+
+    deny_agent_handshake() {
+        local label="$1"
+        shift
+        local code=000
+        local rc=0
+        code="$(curl --silent --noproxy '*' --http2 --max-time 10 \
+            --cacert "$ROOT_CA" \
+            --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            "$@" -X POST -o "$TMP/agent-denied" -w '%{http_code}' \
+            "$EDGE_URL" 2>"$TMP/agent-error")" || rc=$?
+        if [[ "$rc" == 0 || "$code" != 000 ]]; then
+            echo "FAIL: $label was not denied at TLS boundary (HTTP $code)" >&2
+            exit 1
+        fi
+        echo "PASS: $label denied at Caddy TLS boundary."
+    }
+    deny_agent_handshake "no Agent client certificate"
+    deny_agent_handshake "Agent client signed by untrusted CA" \
+        --cert "$TMP/pki/wrong-agent.crt" --key "$TMP/pki/wrong-agent.key"
+    host_mismatch="$(curl --silent --show-error --noproxy '*' --http2 --max-time 10 \
+        --cacert "$ROOT_CA" \
+        --resolve agent.lanveriq.internal:443:127.0.0.1 \
+        --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+        -H 'Host: console.lanveriq.internal' -X POST \
+        -o "$TMP/mismatch" -w '%{http_code}' "$EDGE_URL")"
+    [[ "$host_mismatch" == 421 ]] || {
+        echo "FAIL: cross-SNI HTTP/2 Host request not rejected (HTTP $host_mismatch)" >&2
+        exit 1
+    }
+    echo "PASS: cross-host HTTP/2 coalescing rejected with 421."
+
+    cp "$CADDY_REFERENCE" "$TMP/Caddyfile.wrong-proxy"
+    sed -i \
+        -e 's@caddy-upstream-client.crt@untrusted.crt@g' \
+        -e 's@caddy-upstream-client.key@untrusted.key@g' \
+        "$TMP/Caddyfile.wrong-proxy"
+    start_caddy "$TMP/Caddyfile.wrong-proxy"
+    status="$(edge_request)"
+    [[ "$status" == 502 ]] || {
+        echo "FAIL: wrong Caddy upstream client certificate did not fail closed (HTTP $status)" >&2
+        exit 1
+    }
+    echo "PASS: real Tomcat rejects Caddy with wrong upstream client CA (edge 502)."
+
+    cp "$CADDY_REFERENCE" "$TMP/Caddyfile.wrong-backend-ca"
+    sed -i 's@backend-server-ca.pem@wrong-backend-ca.pem@g' \
+        "$TMP/Caddyfile.wrong-backend-ca"
+    start_caddy "$TMP/Caddyfile.wrong-backend-ca"
+    status="$(edge_request)"
+    [[ "$status" == 502 ]] || {
+        echo "FAIL: Caddy accepted wrong Spring backend CA (HTTP $status)" >&2
+        exit 1
+    }
+    echo "PASS: Caddy rejects wrong Spring backend CA (edge 502)."
+
+    start_caddy "$CADDY_REFERENCE"
+    status="$(edge_request)"
+    [[ "$status" == 403 ]] || {
+        echo "FAIL: restoring authentic upstream chain did not restore default-deny (HTTP $status)" >&2
+        exit 1
+    }
+    echo "MANUAL SYNTHETIC BRIDGE PASS: actual Caddy->real Tomcat, PostgreSQL 18.6 Flyway."
+    echo "NOT PROVEN: Agent controller/revocation, actual servlet assertion, key ACL, live OS."
+fi
+
 echo "MANUAL SYNTHETIC PASS: real Spring/Tomcat mTLS, PG18 Flyway startup, default deny."
 echo "NOT PROVEN: real Caddy-to-Tomcat handshake, path-specific policy resolution,"
 echo "per-request PostgreSQL revocation, OS key custody, or any actual Agent."
