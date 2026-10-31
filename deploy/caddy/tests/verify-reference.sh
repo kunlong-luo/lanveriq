@@ -51,6 +51,10 @@ make_ca approved-client-ca "Synthetic Agent Client CA"
 make_ca backend-server-ca "Synthetic Backend Server CA"
 make_ca upstream-proxy-ca "Synthetic Caddy Proxy CA"
 make_ca untrusted-ca "Untrusted Synthetic CA"
+# The Caddy reference intentionally uses .pem trust paths. Both aliases
+# refer to generated PUBLIC CA certificates only; no private-key alias.
+cp "$TMP/pki/approved-client-ca.crt" "$TMP/pki/approved-client-ca.pem"
+cp "$TMP/pki/backend-server-ca.crt" "$TMP/pki/backend-server-ca.pem"
 make_leaf synthetic-agent approved-client-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
 make_leaf untrusted-agent untrusted-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
 make_leaf caddy-upstream-client upstream-proxy-ca clientAuth \
