@@ -1,4 +1,4 @@
-package com.lanveriq.server.inventory;
+package com.lanveriq.server.events;
 
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -61,7 +61,7 @@ final class DeviceInventoryPolicy {
             throw invalid();
         }
         var os = body.os();
-        if (!Set.of("windows", "linux").contains(os.family())) {
+        if (os.family() == null || !Set.of("windows", "linux").contains(os.family())) {
             throw invalid();
         }
         bounded(os.name(), 128);
@@ -118,7 +118,8 @@ final class DeviceInventoryPolicy {
             throw invalid();
         }
         for (Map.Entry<String, String> item : body.capabilities().entrySet()) {
-            if (!key(item.getKey()) || !Set.of("available", "not_collected",
+            if (!key(item.getKey()) || item.getValue() == null
+                    || !Set.of("available", "not_collected",
                     "unsupported", "unavailable", "permission_denied",
                     "transient_error").contains(item.getValue())) {
                 throw invalid();

@@ -1,4 +1,4 @@
-package com.lanveriq.server.inventory;
+package com.lanveriq.server.events;
 
 /** Never return raw SQL, hostname or network-address detail to a caller. */
 public final class DeviceInventoryRejection extends RuntimeException {

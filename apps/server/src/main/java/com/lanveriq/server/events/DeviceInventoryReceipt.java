@@ -1,4 +1,4 @@
-package com.lanveriq.server.inventory;
+package com.lanveriq.server.events;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;

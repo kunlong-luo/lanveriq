@@ -1,6 +1,5 @@
-package com.lanveriq.server.inventory;
+package com.lanveriq.server.events;
 
-import com.lanveriq.server.events.VerifiedDeviceCertificate;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
@@ -38,7 +37,7 @@ final class JpaDeviceInventoryRepository implements DeviceInventoryRepository {
                   AND c.status='active' AND c.revoked_at IS NULL
                   AND c.issued_at<=clock_timestamp()
                   AND c.expires_at>clock_timestamp()
-                FOR UPDATE OF d
+                FOR UPDATE OF d, c
                 """)
                 .setParameter("device", deviceId)
                 .setParameter("fingerprint", peer.sha256Fingerprint())

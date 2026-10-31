@@ -1,6 +1,5 @@
-package com.lanveriq.server.inventory;
+package com.lanveriq.server.events;
 
-import com.lanveriq.server.events.VerifiedDeviceCertificate;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
