@@ -49,6 +49,12 @@ jacoco {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Preserve Spring test-context root causes in synthetic-only CI logs.
+    testLogging {
+        events 'failed'
+        exceptionFormat = 'full'
+        showStackTraces = true
+    }
     finalizedBy tasks.named('jacocoTestReport')
 }
 
