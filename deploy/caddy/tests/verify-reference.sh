@@ -150,6 +150,22 @@ mismatch="$(curl -sS --noproxy '*' --max-time 10 --http2 \
 [[ "$mismatch" == 421 ]] || { echo "FAIL: expected Host/SNI 421, got $mismatch" >&2; exit 1; }
 echo "PASS: cross-host HTTP/2 SNI/Host rejected."
 
+# The two unprotected vhosts must NOT proxy Agent operations; neither asks
+# for an Agent client certificate, and both intentionally return 503.
+for host in console.lanveriq.internal enroll.lanveriq.internal; do
+    status="$(curl -sS --noproxy '*' --max-time 10 --http2         --cacert "$CA_ROOT" --resolve "$host:443:127.0.0.1"         -X POST -o "$TMP/denied-site.json" -w '%{http_code}'         "https://$host/api/v1/devices/$DEVICE_ID/activate")"
+    [[ "$status" == 503 ]] || {
+        echo "FAIL: $host should not proxy an Agent operation: $status" >&2; exit 1;
+    }
+    echo "PASS: $host does not proxy Agent operations."
+done
+# Unknown Agent paths must fail at the Caddy edge, even with valid mTLS.
+status="$(curl -sS --noproxy '*' --max-time 10 --http2     --cacert "$CA_ROOT" --resolve agent.lanveriq.internal:443:127.0.0.1     --cert "$AGENT_CRT" --key "$AGENT_KEY" -X POST     -o "$TMP/unknown.json" -w '%{http_code}'     "https://agent.lanveriq.internal/api/v1/unknown")"
+[[ "$status" == 404 ]] || {
+    echo "FAIL: unknown Agent route should be rejected at edge: $status" >&2; exit 1;
+}
+echo "PASS: unregistered Agent routes are denied at edge."
+
 BACKEND_URL="https://spring-backend.lanveriq.internal:8443/api/v1/devices/$DEVICE_ID/activate"
 deny_direct() {
     local label="$1"
