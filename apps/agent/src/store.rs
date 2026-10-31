@@ -45,6 +45,7 @@ pub struct PendingEvent {
     pub event_id: Uuid,
     pub sequence: i64,
     pub policy_version: i64,
+    pub occurred_at_utc: String,
     pub payload_json: String,
     pub content_digest: String,
 }
@@ -171,7 +172,7 @@ impl OutboxStore {
 
     pub async fn pending_batch(&self) -> Result<Vec<PendingEvent>, StoreError> {
         let rows = sqlx::query(
-            "SELECT event_id,device_sequence,policy_version,payload_json,content_digest \
+            "SELECT event_id,device_sequence,policy_version,occurred_at_utc,payload_json,content_digest \
                 FROM outbox_events ORDER BY device_sequence LIMIT 100",
         )
         .fetch_all(&self.pool)
@@ -189,6 +190,7 @@ impl OutboxStore {
                 event_id: Uuid::parse_str(&uuid).map_err(|_| StoreError::InvalidFixture)?,
                 sequence: row.try_get("device_sequence")?,
                 policy_version: row.try_get("policy_version")?,
+                occurred_at_utc: row.try_get("occurred_at_utc")?,
                 payload_json: payload,
                 content_digest: row.try_get("content_digest")?,
             });
