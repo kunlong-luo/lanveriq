@@ -13,6 +13,11 @@ serde_json = "1"
 # Official maintained Rustls HTTPS/mTLS transport. No native-TLS or plaintext fallback.
 reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "json", "http2"] }
 sha2 = "0.10"
+# INV-01: explicit local hardware/OS + NIC snapshots; no process/user collection.
+# sysinfo disables components, user enumeration and built-in network features.
+sysinfo = { version = "=0.37.1", default-features = false, features = ["system", "disk"] }
+os_info = { version = "=3.15.0", default-features = false }
+network-interface = "=2.0.5"
 uuid = { version = "1", features = ["v7", "serde"] }
 sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros", "uuid"] }
 # SQLx 0.9 constraint <0.38: 0.37.0 bundles patched SQLite 3.51.3.
