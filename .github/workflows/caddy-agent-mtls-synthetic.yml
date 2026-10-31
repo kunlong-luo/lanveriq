@@ -27,5 +27,9 @@ jobs:
           openssl version
           curl --version | head -n 1
           python3 --version
+      - name: Check synthetic test harness syntax
+        run: |
+          bash -n deploy/caddy/tests/verify-reference.sh
+          python3 -m py_compile deploy/caddy/tests/synthetic-mtls-backend.py
       - name: Run real Caddy 2.11.7 two-way TLS and negative ingress probes
         run: bash deploy/caddy/tests/verify-reference.sh
