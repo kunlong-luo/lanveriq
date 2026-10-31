@@ -672,7 +672,7 @@ impl OutboxStore {
         checkpoint
             .validate(checkpoint.device_id)
             .map_err(|_| StoreError::InventoryConflict)?;
-        if expected_generation < 0 || expected_generation >= i64::MAX - 1 {
+        if !(0..i64::MAX - 1).contains(&expected_generation) {
             return Err(StoreError::InventoryConflict);
         }
         let json = serde_json::to_string(checkpoint)?;
