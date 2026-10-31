@@ -418,7 +418,9 @@ fn parse_batch_rows(rows: Vec<sqlx::sqlite::SqliteRow>) -> Result<Vec<PendingEve
     let mut selected = Vec::with_capacity(rows.len());
     for row in rows {
         let length: i64 = row.try_get("bytes")?;
-        if length < 1 || bytes + length as usize > 512 * 1024 {
+        // Reserve room for up to 100 JSON envelope headers; Reqwest's
+        // complete serialized request must still fit the 512 KiB wire cap.
+        if length < 1 || bytes + length as usize > 480 * 1024 {
             break;
         }
         bytes += length as usize;
