@@ -84,3 +84,9 @@ testing {
         }
     }
 }
+
+// Integration suites do not implicitly inherit this project's implementation
+// dependencies; reuse the Spring Boot/JPA/Jackson versions already selected.
+configurations.named('integrationTestImplementation') {
+    extendsFrom configurations.implementation
+}
