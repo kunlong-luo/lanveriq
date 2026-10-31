@@ -311,6 +311,24 @@ impl AgentTlsTransport {
         Ok(DeliveryDisposition::Accepted)
     }
 
+    /// One explicit attempt using SQLx's durable prepared batch identity.
+    /// A network timeout returns without ACK and the next attempt reuses
+    /// the exact same batch UUID and selected events.
+    pub async fn send_next_synthetic_batch(
+        &self,
+        store: &OutboxStore,
+        device_id: Uuid,
+    ) -> Result<Option<DeliveryDisposition>, TransportError> {
+        if device_id.is_nil() {
+            return Err(TransportError::InvalidEvent);
+        }
+        let Some(prepared) = store.prepare_synthetic_batch().await? else {
+            return Ok(None);
+        };
+        let batch = EventBatch::from_pending(device_id, prepared.batch_id, &prepared.events)?;
+        self.send_synthetic_batch(store, &batch).await.map(Some)
+    }
+
     /// One network attempt per call; caller schedules bounded retry/backoff.
     /// This method deletes local entries ONLY after full validated 200 ACK.
     pub async fn send_synthetic_batch(
