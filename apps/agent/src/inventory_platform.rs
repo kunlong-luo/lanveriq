@@ -8,7 +8,9 @@ use crate::inventory::{
 use network_interface::{Addr, NetworkInterface as OsNetworkInterface, NetworkInterfaceConfig};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::IpAddr;
+#[cfg(test)]
+use std::net::{Ipv4Addr, Ipv6Addr};
 use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, RefreshKind, System};
 
 /// This call is an explicit local opt-in; never schedule or upload it
