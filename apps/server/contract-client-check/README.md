@@ -2,8 +2,8 @@
 
 Only the **real Springdoc-generated** `../build/contracts/openapi.json` is accepted
 as input. Run the Java 25 / Gradle `test` task first, then from this
-directory run `pnpm install --frozen-lockfile` (after the initial checked-in
-lockfile is recorded) and `pnpm verify`.
+directory run `pnpm install --frozen-lockfile` against the committed
+`pnpm-lock.yaml`, followed by `pnpm verify`.
 
 This temporary build-only harness uses the mature Orval 8 Fetch + TanStack
 Query generator and TypeScript; it does not include React pages, live login,

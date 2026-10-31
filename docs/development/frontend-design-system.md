@@ -6,6 +6,8 @@
 
 **MON-01-OVERVIEW backend slice:** the planned monitoring-count endpoint now has a default-OFF controller, separate security chain, Postgres aggregate and a generated-OpenAPI contract test. A passing CI artifact is prerequisite for Orval use. No React code or real device data is present; this does not clear the manual database/TLS release gates.
 
+**Source-generated frontend-client readiness check (2026-10-31):** A standalone `apps/server/contract-client-check` directory has exact versions and a checked-in pnpm lockfile for Orval 8 Fetch/TanStack Query, React 19 and TypeScript 7. The first CI-generated hooks passed `tsc --noEmit` before a subsequent *unrelated* Gradle dependency resolution error; the frozen-lock CI rerun must still pass. This is **only a build verification harness** and does not create `apps/web`, React pages or live API access. When implementation starts, adopt the generated output instead of maintaining hand-written response types.
+
 ## Stack
 - **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, **not** an application framework.
 - **React 19 + Vite 8 + TypeScript**, React Router for the LAN Dashboard. A Next.js SSR server is unnecessary. These UI libraries are not exclusive to Next.js.
