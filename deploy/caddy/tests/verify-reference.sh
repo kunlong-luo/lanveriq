@@ -20,7 +20,7 @@ for cmd in openssl curl jq docker python3; do
     command -v "$cmd" >/dev/null || { echo "Missing tool: $cmd" >&2; exit 1; }
 done
 docker info >/dev/null
-curl --version | grep -q HTTP2 || { echo "curl must support HTTP/2" >&2; exit 1; }
+[[ "$(curl --version)" == *HTTP2* ]] || { echo "curl must support HTTP/2" >&2; exit 1; }
 DEVICE_ID="00000000-0000-7000-8000-000000000001"
 make_ca() {
     openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 \
@@ -114,7 +114,7 @@ URL="https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/activate"
 AGENT_CRT="$TMP/pki/synthetic-agent.crt"
 AGENT_KEY="$TMP/pki/synthetic-agent.key"
 FP_FORGED="$(printf '%064d' 0)"
-status="$(curl -sS --noproxy '*' --max-time 15 --http2 \
+status="$(curl -sS --noproxy '*' --max-time 15 --retry 5 --retry-connrefused --retry-delay 1 --http2 \
     --cacert "$CA_ROOT" --resolve agent.lanveriq.internal:443:127.0.0.1 \
     --cert "$AGENT_CRT" --key "$AGENT_KEY" \
     -H "X-Lanveriq-Verified-Client-Fingerprint: $FP_FORGED" \
