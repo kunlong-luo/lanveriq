@@ -1,0 +1,19 @@
+{
+  "name": "@lanveriq/contract-client-check",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.0.0",
+  "scripts": {
+    "generate": "orval --config orval.config.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "verify": "pnpm run generate && pnpm run typecheck && node verify-generated.mjs"
+  },
+  "devDependencies": {
+    "orval": "8.44.0",
+    "@tanstack/react-query": "5.105.0",
+    "typescript": "7.0.2",
+    "react": "19.2.0",
+    "@types/react": "19.3.0"
+  }
+}

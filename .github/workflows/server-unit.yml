@@ -51,6 +51,33 @@ jobs:
           path: apps/server/build/contracts/openapi.json
           if-no-files-found: error
           retention-days: 14
+      # Node/pnpm is used ONLY for typed API contract verification; no UI
+      # app is deployed, and PostgreSQL/manual TLS gates stay independent.
+      - name: Set up pnpm and Node 24 for Orval contract smoke
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24
+          working-directory: apps/server/contract-client-check
+          install: true
+          cache: false
+      - name: Print initial public dependency lock for reproducible follow-up commit
+        working-directory: apps/server/contract-client-check
+        run: |
+          echo 'LANVERIQ_PNPM_LOCK_BEGIN'
+          base64 -w0 pnpm-lock.yaml
+          echo
+          echo 'LANVERIQ_PNPM_LOCK_END'
+      - name: Generate and typecheck actual Orval Fetch/TanStack Query client
+        working-directory: apps/server/contract-client-check
+        run: pnpm verify
+      - name: Upload non-deployed typechecked Orval candidate
+        uses: actions/upload-artifact@v7
+        with:
+          name: lanveriq-orval-contract-${{ github.sha }}
+          path: apps/server/contract-client-check/generated/
+          if-no-files-found: error
+          retention-days: 14
       - name: Compile opt-in PostgreSQL integration source (do not start Docker)
         working-directory: apps/server
         run: ./gradlew compileIntegrationTestJava
