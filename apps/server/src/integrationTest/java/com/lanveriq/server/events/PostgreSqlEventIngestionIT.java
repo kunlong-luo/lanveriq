@@ -126,6 +126,21 @@ class PostgreSqlEventIngestionIT {
                 WHERE success AND version IN ('1','2','3','4','5','6')
                 """).getSingleResult()).longValue();
         assertEquals(6, count);
+        long uniqueConstraints = ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM pg_constraint
+                WHERE conrelid = 'endpoint_events'::regclass
+                  AND contype = 'u'
+                  AND conname IN ('endpoint_events_device_sequence_unique',
+                                  'endpoint_events_device_event_id_unique')
+                """).getSingleResult()).longValue();
+        assertEquals(2L, uniqueConstraints, "Both device-scoped identities must be unique");
+        long immutableTriggers = ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM pg_trigger
+                WHERE tgrelid = 'endpoint_events'::regclass
+                  AND tgname = 'endpoint_events_immutable'
+                  AND NOT tgisinternal
+                """).getSingleResult()).longValue();
+        assertEquals(1L, immutableTriggers, "Canonical event mutation must be blocked");
         assertEquals(7, ((Number) entityManager.createNativeQuery("""
                 SELECT uuid_extract_version(id) FROM devices WHERE id=:id
                 """).setParameter("id", deviceId).getSingleResult()).intValue());
@@ -167,6 +182,31 @@ class PostgreSqlEventIngestionIT {
         var rejected = assertThrows(DeviceBatchRejection.class, () ->
                 ingestion.ingest(credential, deviceId,
                         request(event(id, 2, "2026-10-30T08:57:00Z"))));
+        assertEquals(DeviceBatchRejection.Reason.SEQUENCE_CONFLICT, rejected.reason());
+        assertEquals(1L, deviceEventCount());
+    }
+
+    @Test
+    void splitIdentityCollisionAcrossTwoRowsIsRejectedWithoutMutation() {
+        var first = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
+        var second = event(UUID.randomUUID(), 2, "2026-10-30T08:58:00Z");
+        ingestion.ingest(credential, deviceId, request(first, second));
+        // Sequence points to the first stored row, but event ID to the second.
+        var split = event(second.eventId(), 1, "2026-10-30T08:59:00Z");
+        var rejected = assertThrows(DeviceBatchRejection.class, () ->
+                ingestion.ingest(credential, deviceId, request(split)));
+        assertEquals(DeviceBatchRejection.Reason.SEQUENCE_CONFLICT, rejected.reason());
+        assertEquals(2L, deviceEventCount());
+    }
+
+    @Test
+    void reusedEventIdLateInBatchRollsBackEarlierNewRow() {
+        var stored = event(UUID.randomUUID(), 4, "2026-10-30T08:57:00Z");
+        ingestion.ingest(credential, deviceId, request(stored));
+        var newEarlier = event(UUID.randomUUID(), 2, "2026-10-30T08:58:00Z");
+        var reusedId = event(stored.eventId(), 5, "2026-10-30T08:59:00Z");
+        var rejected = assertThrows(DeviceBatchRejection.class, () ->
+                ingestion.ingest(credential, deviceId, request(newEarlier, reusedId)));
         assertEquals(DeviceBatchRejection.Reason.SEQUENCE_CONFLICT, rejected.reason());
         assertEquals(1L, deviceEventCount());
     }
@@ -262,7 +302,11 @@ class PostgreSqlEventIngestionIT {
                         UPDATE endpoint_events SET policy_version=2
                         WHERE device_id=:device
                         """).setParameter("device", deviceId).executeUpdate()));
-        assertEquals(1, deviceEventCount());
+        assertThrows(RuntimeException.class, () ->
+                tx.executeWithoutResult(ignored -> entityManager.createNativeQuery("""
+                        DELETE FROM endpoint_events WHERE device_id=:device
+                        """).setParameter("device", deviceId).executeUpdate()));
+        assertEquals(1L, deviceEventCount());
     }
 
     @Test
