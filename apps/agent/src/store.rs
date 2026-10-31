@@ -57,6 +57,12 @@ pub struct PendingInventory {
     pub body_json: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct PreparedBatch {
+    pub batch_id: Uuid,
+    pub events: Vec<PendingEvent>,
+}
+
 pub struct OutboxStore {
     pool: SqlitePool,
     sqlite_version: String,
@@ -198,6 +204,65 @@ impl OutboxStore {
         Ok(result)
     }
 
+    /// Persists a stable batch UUID and the exact selected event fingerprint.
+    /// Additional local events after a timeout cannot mutate that batch.
+    /// This method owns one SQLite transaction on the SQLx single connection.
+    pub async fn prepare_synthetic_batch(&self) -> Result<Option<PreparedBatch>, StoreError> {
+        let mut tx = self.pool.begin().await?;
+        let existing: Option<(String, i64, String)> = sqlx::query_as(
+            "SELECT batch_id,last_sequence,content_fingerprint FROM upload_batches WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        if let Some((old_id, cutoff, old_fingerprint)) = &existing {
+            let rows = sqlx::query(
+                "SELECT event_id,device_sequence,policy_version,occurred_at_utc,payload_json,content_digest,bytes \
+                 FROM outbox_events WHERE device_sequence <= ? ORDER BY device_sequence LIMIT 100",
+            )
+            .bind(cutoff)
+            .fetch_all(&mut *tx)
+            .await?;
+            let selected = parse_batch_rows(rows)?;
+            if !selected.is_empty() && fingerprint(&selected) == *old_fingerprint {
+                let id = Uuid::parse_str(old_id).map_err(|_| StoreError::InvalidFixture)?;
+                tx.commit().await?;
+                return Ok(Some(PreparedBatch { batch_id: id, events: selected }));
+            }
+            // An explicit ACK or invalid/corrupt stale state invalidates this
+            // planned batch. Do not pretend its older fingerprint was sent.
+            sqlx::query("DELETE FROM upload_batches WHERE singleton=1")
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        let rows = sqlx::query(
+            "SELECT event_id,device_sequence,policy_version,occurred_at_utc,payload_json,content_digest,bytes \
+             FROM outbox_events ORDER BY device_sequence LIMIT 100",
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+        let selected = parse_batch_rows(rows)?;
+        if selected.is_empty() {
+            tx.commit().await?;
+            return Ok(None);
+        }
+        let batch_id = Uuid::now_v7();
+        let end = selected.last().ok_or(StoreError::InvalidFixture)?.sequence;
+        let digest = fingerprint(&selected);
+        sqlx::query(
+            "INSERT INTO upload_batches(singleton,batch_id,last_sequence,content_fingerprint) \
+             VALUES(1,?,?,?)",
+        )
+        .bind(batch_id.to_string())
+        .bind(end)
+        .bind(digest)
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok(Some(PreparedBatch { batch_id, events: selected }))
+    }
+
     /// An ambiguous HTTP timeout MUST NOT call acknowledge. Only explicitly
     /// confirmed sequences can be removed; never a high-watermark purge.
     pub async fn acknowledge(&self, sequences: &[i64]) -> Result<u64, StoreError> {
@@ -212,6 +277,11 @@ impl OutboxStore {
                 .execute(&mut *tx)
                 .await?
                 .rows_affected();
+        }
+        if count > 0 {
+            sqlx::query("DELETE FROM upload_batches WHERE singleton=1")
+                .execute(&mut *tx)
+                .await?;
         }
         tx.commit().await?;
         Ok(count)
@@ -335,6 +405,38 @@ impl OutboxStore {
     pub async fn close(self) {
         self.pool.close().await;
     }
+}
+
+fn parse_batch_rows(rows: Vec<sqlx::sqlite::SqliteRow>) -> Result<Vec<PendingEvent>, StoreError> {
+    let mut bytes = 0_usize;
+    let mut selected = Vec::with_capacity(rows.len());
+    for row in rows {
+        let length: i64 = row.try_get("bytes")?;
+        if length < 1 || bytes + length as usize > 512 * 1024 {
+            break;
+        }
+        bytes += length as usize;
+        let uuid: String = row.try_get("event_id")?;
+        selected.push(PendingEvent {
+            event_id: Uuid::parse_str(&uuid).map_err(|_| StoreError::InvalidFixture)?,
+            sequence: row.try_get("device_sequence")?,
+            policy_version: row.try_get("policy_version")?,
+            occurred_at_utc: row.try_get("occurred_at_utc")?,
+            payload_json: row.try_get("payload_json")?,
+            content_digest: row.try_get("content_digest")?,
+        });
+    }
+    Ok(selected)
+}
+
+fn fingerprint(events: &[PendingEvent]) -> String {
+    let mut hash = Sha256::new();
+    for item in events {
+        hash.update(item.sequence.to_be_bytes());
+        hash.update(item.event_id.as_bytes());
+        hash.update(item.content_digest.as_bytes());
+    }
+    format!("{:x}", hash.finalize())
 }
 
 fn is_patched_sqlite(version: &str) -> bool {
