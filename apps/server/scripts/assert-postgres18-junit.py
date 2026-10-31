@@ -12,7 +12,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 
-# Minimum discovered tests in the five independent Testcontainers classes.
+# Minimum discovered tests in six independent Testcontainers classes.
 # Review increases when acceptance cases are added; never lower to hide skips.
 MIN_COUNTS = {
     "PostgreSqlEventIngestionIT": 20,
@@ -20,6 +20,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceInventoryIT": 11,
     "PostgreSqlCertificateRegistrationIT": 3,
     "PostgreSqlDeviceRevocationIT": 6,
+    "PostgreSqlDeviceDirectoryIT": 2,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -57,6 +58,10 @@ REQUIRED_CASES = {
         "failedAuditInsertRollsBackBothCredentialAndDeviceRevocation",
         "silentlyDroppedAuditInsertRollsBackRevocationAndPermitsRetry",
         "disablingAdminWhileRevocationWaitsForDeviceLockDeniesWithoutMutation",
+    },
+    "PostgreSqlDeviceDirectoryIT": {
+        "groupScopedKeysetAndDetailDoNotLeakOtherGroupOrPrivateNetwork",
+        "disabledAdministratorLosesAllHealthScopeDespiteStalePrincipal",
     },
 }
 
@@ -117,8 +122,8 @@ def main() -> int:
         for error in errors:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
-    print("PG18 synthetic JUnit evidence verified: all 5 Testcontainers classes, "
-          ">=45 passing tests, mandatory DB/lock/revocation/rollback cases; "
+    print("PG18 synthetic JUnit evidence verified: all 6 Testcontainers classes, "
+          ">=47 passing tests, mandatory DB/lock/revocation/rollback cases; "
           "no failed, errored or skipped cases.")
     return 0
 

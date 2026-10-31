@@ -13,6 +13,8 @@ IT operator can view assigned device health, connectivity, queue and supported s
 - WSS updates are small scoped hints, not durable records; on first connection/reconnect retrieve authorized IDs, subscribe, then take a **post-subscription REST snapshot**.
 - Admin actions: enroll/revoke (delegated), acknowledge an operational alert with reason/audit, view source capability; no arbitrary remote shell or hidden capture toggle.
 
+**Current implementation boundary:** a feature-flagged default-OFF internal Spring/JPA device list/detail health-only query foundation now exists with DB permission checks and immutable page summaries. It does not compute online/stale/offline, export network identifiers or serve an HTTP endpoint. The manual-only `PostgreSqlDeviceDirectoryIT` fixture is staged but PostgreSQL execution has not been observed. Do not call the source code a live monitoring endpoint.
+
 ## Initial REST and WSS contracts (draft)
 - `GET /api/v1/monitoring/overview` — server-derived counts within authorized device groups; includes `as_of`.
 - `GET /api/v1/monitoring/devices?cursor=&limit=` — bounded, scoped device-health summaries; OS/CPU/RAM/disk and a primary IP **only if the caller has `internal_operational` authorization**; do not leak the value in JSON/WSS or summaries otherwise.

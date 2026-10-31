@@ -24,6 +24,8 @@ Overview → **Monitoring Center (V0.1)** → Devices / device detail (Hardware,
 ## Device asset view
 V0.1 Device Detail includes a hardware/network tab: CPU model and cores, RAM installed/available, disks and free space, OS distribution/build/kernel, NIC list with multiple IPv4/IPv6 addresses, MAC when allowed, device ID and optional asset tag. Display inventory observation time separately from live heartbeat time. See [device inventory](../architecture/device-inventory.md) and [Monitoring Center](monitoring-center.md). 
 
+**2026-10-31 backend preparation:** a default-OFF internal device directory read service now supports current DB group/role scope, UUID-keyset pagination and health-only projections without network/IP/MAC. Java tests are in CI; no accepted HTTP/OpenAPI/frontend component exists yet. Start production-facing React page wiring only after the session/security REST boundary and typed OpenAPI are implemented and approved; a standalone UI design preview can be made earlier with explicitly labeled synthetic data.
+
 ## State ownership
 - TanStack Query owns server state/cache and refresh timers.
 - Zustand (if needed) owns local UI state such as table sorting, selection and dialogs, **not** a duplicate of device/event data.

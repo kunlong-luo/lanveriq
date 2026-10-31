@@ -7,6 +7,8 @@
 ## Transport split
 Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches; browser ↔ server: REST for snapshots/mutations + authenticated WSS notifications. On every WS reconnect, the browser refetches scoped REST data. See [ADR-0006](adrs/0006-agent-rest-dashboard-ws.md).
 
+**WEB-01-READ implementation boundary (internal only):** `DeviceDirectoryService` now stages DB-scoped health-only keyset list and single-device projection behind a default-OFF property, without any HTTP controller. A future `GET /devices` page is expected to return bounded `items` and opaque-to-client `next_cursor` (currently device UUID internally), with stable device ID, group, label and enrollment state; `last_seen_at`, `heartbeat_received_at`, `inventory_received_at`, `agent_version`, queue and OS/CPU/RAM fields are nullable. This is **not yet an accepted/generated OpenAPI JSON schema**. Unknown or out-of-scope IDs produce the same empty result for a future non-disclosing 404. Network/IP/MAC fields are **omitted**, never included as `null` in this health-only projection. Only future independently authorized network views may include them. A device with no heartbeat is not automatically online; the final server-derived status rule remains to be implemented and tested.
+
 ## Device API
 | Method | Path | Principal | Semantics |
 |---|---|---|---|

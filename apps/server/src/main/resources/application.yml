@@ -56,6 +56,9 @@ lanveriq:
       expected-host: ${LANVERIQ_AGENT_INGRESS_EXPECTED_HOST:}
   # This internal-only service has no HTTP route. Keep OFF until reviewed
   # admin/Caddy/CSRF, PostgreSQL and organizational acceptance.
+  # WEB-01 health-only scoped JPA reads; DEFAULT OFF and NO HTTP endpoint.
+  device-directory:
+    enabled: ${LANVERIQ_DEVICE_DIRECTORY_ENABLED:false}
   device-revocation:
     enabled: ${LANVERIQ_DEVICE_REVOCATION_ENABLED:false}
   console:
