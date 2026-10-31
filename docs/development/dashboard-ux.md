@@ -26,6 +26,8 @@ V0.1 Device Detail includes a hardware/network tab: CPU model and cores, RAM ins
 
 **2026-10-31 backend preparation:** a default-OFF internal device directory read service now supports current DB group/role scope, UUID-keyset pagination and health-only projections without network/IP/MAC. Java tests are in CI; no accepted HTTP/OpenAPI/frontend component exists yet. Start production-facing React page wiring only after the session/security REST boundary and typed OpenAPI are implemented and approved; a standalone UI design preview can be made earlier with explicitly labeled synthetic data.
 
+**WEB-01-HTTP backend progress (source-only):** Admin device list and detail have opt-in `GET` controller mappings, explicit JSON snake_case health response records, Springdoc annotations and a separate session/Host/Origin guarded filter chain. All three flags default OFF; OpenAPI JSON is not yet generated/reviewed; UI has not started. This is not production console-login acceptance, even with a successful MockMvc test.
+
 ## State ownership
 - TanStack Query owns server state/cache and refresh timers.
 - Zustand (if needed) owns local UI state such as table sorting, selection and dialogs, **not** a duplicate of device/event data.
