@@ -3,6 +3,7 @@
 pub mod config;
 pub mod runtime;
 pub mod store;
+pub mod transport;
 
 #[cfg(windows)]
 pub mod windows_service;

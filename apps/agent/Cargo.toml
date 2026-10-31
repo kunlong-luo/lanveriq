@@ -10,6 +10,8 @@ description = "Opt-in LAN-only endpoint agent service skeleton; no data collecti
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1"
+# Official maintained Rustls HTTPS/mTLS transport. No native-TLS or plaintext fallback.
+reqwest = { version = "=0.13.5", default-features = false, features = ["rustls", "json", "http2"] }
 sha2 = "0.10"
 uuid = { version = "1", features = ["v7", "serde"] }
 sqlx = { version = "=0.9.0", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros", "uuid"] }

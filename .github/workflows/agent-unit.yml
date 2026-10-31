@@ -36,7 +36,11 @@ jobs:
         shell: bash
         run: |
           test -f Cargo.lock
-          cargo +1.94.0 metadata --locked --no-deps --format-version 1 > /dev/null
+          # Temporary lockfile regeneration. Commit pinned dependency diff, then restore --locked.
+          cargo +1.94.0 generate-lockfile
+          echo LANVERIQ_LOCK_BEGIN
+          cat Cargo.lock
+          echo LANVERIQ_LOCK_END
       - name: Rustfmt
         run: cargo +1.94.0 fmt --all -- --check
       - name: Unit tests only (no OS/systemd/E2E)
