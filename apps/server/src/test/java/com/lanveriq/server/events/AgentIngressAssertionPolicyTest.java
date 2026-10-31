@@ -52,7 +52,12 @@ class AgentIngressAssertionPolicyTest {
 
     @Test
     void insecureTlsConnectionIsDenied() {
-        assertDenied(request -> request.setSecure(false));
+        // Spring MockHttpServletRequest.isSecure() is secureFlag OR https
+        // scheme, so clear both to model a genuine plaintext request.
+        assertDenied(request -> {
+            request.setSecure(false);
+            request.setScheme("http");
+        });
     }
 
     @Test
