@@ -60,9 +60,20 @@ final class DeviceEventBatchPolicy {
                     || !ids.add(event.eventId())
                     || event.deviceSequence() <= previous
                     || event.schemaVersion() != 1 || event.policyVersion() <= 0
-                    || event.occurredAt() == null || event.occurredAt().isBefore(Instant.EPOCH)
-                    || event.occurredAt().isAfter(Instant.now().plusSeconds(86_400))
+                    || event.occurredAt() == null
+                    || event.occurredAt().length() < 20 || event.occurredAt().length() > 40
+                    || !event.occurredAt().endsWith("Z")
                     || event.payload() == null || !event.payload().isObject()) {
+                throw invalid();
+            }
+            Instant occurredAt;
+            try {
+                occurredAt = Instant.parse(event.occurredAt());
+            } catch (java.time.format.DateTimeParseException invalid) {
+                throw invalid();
+            }
+            if (occurredAt.isBefore(Instant.EPOCH)
+                    || occurredAt.isAfter(Instant.now().plusSeconds(86_400))) {
                 throw invalid();
             }
             previous = event.deviceSequence();
@@ -91,12 +102,12 @@ final class DeviceEventBatchPolicy {
             envelope.put("source", event.source());
             envelope.put("event_type", event.eventType());
             envelope.put("policy_version", event.policyVersion());
-            envelope.put("occurred_at", event.occurredAt().toString());
+            envelope.put("occurred_at", occurredAt.toString());
             envelope.put("payload", normalizedPayload);
             String digest = digest(mapper.writeValueAsBytes(envelope));
             results.add(new CanonicalEvent(event.eventId(), event.deviceSequence(),
                     event.schemaVersion(), event.source(), event.eventType(),
-                    event.policyVersion(), event.occurredAt(), normalizedPayload, digest));
+                    event.policyVersion(), occurredAt, normalizedPayload, digest));
         }
         return List.copyOf(results);
     }
@@ -115,6 +126,10 @@ final class DeviceEventBatchPolicy {
         }
         if (!"agent_transport".equals(payload.get("affected_source").textValue())
                 || !"quota_exceeded".equals(payload.get("reason").textValue())) {
+            throw invalid();
+        }
+        if (!payload.get("range_start").textValue().endsWith("Z")
+                || !payload.get("range_end").textValue().endsWith("Z")) {
             throw invalid();
         }
         try {

@@ -2,7 +2,6 @@ package com.lanveriq.server.events;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import tools.jackson.databind.JsonNode;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,7 +19,7 @@ public record DeviceEventBatch(
             @JsonProperty("source") String source,
             @JsonProperty("event_type") String eventType,
             @JsonProperty("policy_version") long policyVersion,
-            @JsonProperty("occurred_at") Instant occurredAt,
+            @JsonProperty("occurred_at") String occurredAt,
             @JsonProperty("payload") JsonNode payload) {
     }
 }

@@ -7,7 +7,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +24,7 @@ class DeviceEventBatchPolicyTest {
     private DeviceEventBatch.Event event(long sequence) {
         return new DeviceEventBatch.Event(UUID.randomUUID(), sequence, 1,
                 "agent_transport", "collection_gap", 1,
-                Instant.parse("2026-10-30T09:00:00Z"),
+                "2026-10-30T09:00:00Z",
                 mapper.readTree("""
                         {"reason":"quota_exceeded","range_end":"2026-10-30T09:00:00Z",
                          "affected_source":"agent_transport","range_start":"2026-10-30T08:57:00Z"}
@@ -121,6 +120,24 @@ class DeviceEventBatchPolicyTest {
             assertThrows(DeviceBatchRejection.class,
                     () -> policy.validate(deviceId, credential, request(changed)));
         }
+    }
+
+    @Test
+    void onlyStrictZuluUtcWireTimestampsAreAccepted() {
+        var valid = event(1);
+        var offset = new DeviceEventBatch.Event(valid.eventId(), 1, 1,
+                valid.source(), valid.eventType(), 1,
+                "2026-10-30T10:00:00+01:00", valid.payload());
+        assertThrows(DeviceBatchRejection.class, () ->
+                new DeviceEventBatchPolicy(mapper, false)
+                        .validate(deviceId, credential, request(offset)));
+
+        var invalid = new DeviceEventBatch.Event(valid.eventId(), 1, 1,
+                valid.source(), valid.eventType(), 1,
+                "garbled-timestamp", valid.payload());
+        assertThrows(DeviceBatchRejection.class, () ->
+                new DeviceEventBatchPolicy(mapper, false)
+                        .validate(deviceId, credential, request(invalid)));
     }
 
     @Test

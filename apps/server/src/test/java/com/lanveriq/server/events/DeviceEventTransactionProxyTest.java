@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -66,7 +65,7 @@ class DeviceEventTransactionProxyTest {
     private DeviceEventBatch batch(UUID deviceId) {
         var event = new DeviceEventBatch.Event(UUID.randomUUID(), 1, 1,
                 "agent_transport", "collection_gap", 1,
-                Instant.parse("2026-10-30T09:00:00Z"),
+                "2026-10-30T09:00:00Z",
                 mapper.readTree("""
                         {"affected_source":"agent_transport",
                          "reason":"quota_exceeded",
