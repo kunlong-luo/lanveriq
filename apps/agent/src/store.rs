@@ -483,22 +483,27 @@ impl OutboxStore {
         if device_id.is_nil() || snapshot_id.is_nil() || revision <= 0 {
             return Err(StoreError::InvalidFixture);
         }
+        let mut tx = self.pool.begin().await?;
+        let Some(pending) = load_verified_pending(&mut tx, device_id).await? else {
+            return Ok(false);
+        };
+        if pending.snapshot_id != snapshot_id || pending.revision != revision {
+            return Ok(false);
+        }
         let affected = sqlx::query(
             "DELETE FROM inventory_pending \
-             WHERE singleton=1 AND snapshot_id=? AND inventory_revision=? \
-             AND EXISTS (SELECT 1 FROM inventory_latest_state \
-                 WHERE singleton=1 AND device_id=? \
-                   AND snapshot_id=? AND inventory_revision=?)",
+             WHERE singleton=1 AND snapshot_id=? AND inventory_revision=?",
         )
         .bind(snapshot_id.to_string())
         .bind(revision)
-        .bind(device_id.to_string())
-        .bind(snapshot_id.to_string())
-        .bind(revision)
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?
         .rows_affected();
-        Ok(affected == 1)
+        if affected != 1 {
+            return Err(StoreError::InventoryConflict);
+        }
+        tx.commit().await?;
+        Ok(true)
     }
 
     /// Current semantic revision is intentionally retained after ACK.
