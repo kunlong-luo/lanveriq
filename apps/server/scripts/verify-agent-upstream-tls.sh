@@ -293,6 +293,11 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
     }
     run_caddy_command "$CADDY_REFERENCE" adapt \
         --config /etc/caddy/Caddyfile --pretty > "$TMP/caddy-adapted.json"
+    # Fail before Docker can bind a public interface if Caddy adaptation
+    # unexpectedly introduces any listener other than loopback TCP 443.
+    jq -e '[.apps.http.servers[] | .listen[]] |
+        (length > 0) and (all(.[]; . == "127.0.0.1:443"))' \
+        "$TMP/caddy-adapted.json" >/dev/null
     jq -e '[.apps.http.servers[] | select(.strict_sni_host == true and
         ((.protocols // []) | index("h1") != null) and
         ((.protocols // []) | index("h2") != null) and
