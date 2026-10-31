@@ -19,7 +19,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.TestPropertySource;
@@ -42,7 +42,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 class DeviceDirectorySecurityWebMvcTest {
     // Spring Boot's MVC slice deliberately excludes the production security
     // auto-configuration; enable the native HttpSecurity builder ONLY here.
-    @Configuration(proxyBeanMethods = false)
+    @TestConfiguration(proxyBeanMethods = false)
     @EnableWebSecurity
     static class EnableSecurityInMvcSlice {
     }
