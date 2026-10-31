@@ -54,6 +54,10 @@ lanveriq:
     ingress:
       assertions-enabled: ${LANVERIQ_AGENT_INGRESS_ASSERTIONS_ENABLED:false}
       expected-host: ${LANVERIQ_AGENT_INGRESS_EXPECTED_HOST:}
+  # This internal-only service has no HTTP route. Keep OFF until reviewed
+  # admin/Caddy/CSRF, PostgreSQL and organizational acceptance.
+  device-revocation:
+    enabled: ${LANVERIQ_DEVICE_REVOCATION_ENABLED:false}
   console:
     auth:
       enabled: ${LANVERIQ_CONSOLE_AUTH_ENABLED:false}

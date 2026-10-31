@@ -65,6 +65,7 @@
 ## Security and operations
 - [Notice, purpose and privacy](security/privacy-and-consent.md)
 - [Device identity and administrative RBAC](security/identity-and-access.md)
+- [SRV-02-REV manual device/certificate revocation acceptance — default OFF, synthetic-only](testing/server-device-revocation-manual.md)
 - [Role/action permission matrix](security/authorization-matrix.md)
 - [Threat model](security/threat-model.md)
 - [Retention and deletion](security/data-retention.md)
