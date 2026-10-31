@@ -27,11 +27,22 @@ final class JpaDeviceActivationRepository implements DeviceActivationRepository 
             throw denied();
         }
 
-        // Every attempt locks the canonical device, including retries. A
-        // pending identity is usable only when an operator-reviewed CSR and
-        // an unexpired registered pending credential agree on the SPKI digest.
-        // The branch for an already-active identical credential permits safe
-        // retries, not activating arbitrary replacement pending credentials.
+        // First acquire the device lock in its own SQL statement. Under
+        // READ COMMITTED the next statement gets a fresh committed snapshot,
+        // including a concurrent successful activation before this lock.
+        List<?> deviceLock = entityManager.createNativeQuery("""
+                SELECT d.id FROM devices AS d
+                WHERE d.id=:device_id
+                FOR UPDATE OF d
+                """)
+                .setParameter("device_id", deviceId)
+                .getResultList();
+        if (deviceLock.size() != 1) {
+            throw denied();
+        }
+
+        // Also lock the exact credential against concurrent revocation.
+        // An approved unexpired CSR with matching SPKI is mandatory.
         List<?> bound = entityManager.createNativeQuery("""
                 SELECT d.enrollment_state, c.status
                 FROM devices AS d
@@ -50,7 +61,7 @@ final class JpaDeviceActivationRepository implements DeviceActivationRepository 
                         AND r.pending_expires_at>clock_timestamp())
                     OR (d.enrollment_state='active' AND c.status='active')
                   )
-                FOR UPDATE OF d
+                FOR UPDATE OF c
                 """)
                 .setParameter("device_id", deviceId)
                 .setParameter("fingerprint", verifiedPeer.sha256Fingerprint())

@@ -20,24 +20,29 @@ import org.mockito.Mockito;
 class JpaDeviceActivationRepositoryTest {
 
     private final EntityManager manager = Mockito.mock(EntityManager.class);
-    private final Query lock = Mockito.mock(Query.class);
+    private final Query deviceLock = Mockito.mock(Query.class);
+    private final Query credentialLock = Mockito.mock(Query.class);
     private final Query credentialUpdate = Mockito.mock(Query.class);
     private final Query deviceUpdate = Mockito.mock(Query.class);
     private final UUID id = UUID.randomUUID();
     private final VerifiedDeviceCertificate peer = new VerifiedDeviceCertificate(id, "f".repeat(64));
 
     private void wire() {
+        when(deviceLock.getResultList()).thenReturn(List.of(id));
         when(manager.createNativeQuery(anyString())).thenAnswer(invocation -> {
             String sql = invocation.getArgument(0);
             if (sql.contains("FOR UPDATE OF d")) {
-                return lock;
+                return deviceLock;
+            }
+            if (sql.contains("FOR UPDATE OF c")) {
+                return credentialLock;
             }
             if (sql.contains("UPDATE device_credentials")) {
                 return credentialUpdate;
             }
             return deviceUpdate;
         });
-        for (Query q : List.of(lock, credentialUpdate, deviceUpdate)) {
+        for (Query q : List.of(deviceLock, credentialLock, credentialUpdate, deviceUpdate)) {
             when(q.setParameter(anyString(), Mockito.any())).thenReturn(q);
         }
     }
@@ -45,21 +50,22 @@ class JpaDeviceActivationRepositoryTest {
     @Test
     void pendingReviewedCertificateActivatesBothRowsWithinOneTransaction() {
         wire();
-        when(lock.getResultList()).thenReturn(Collections.singletonList(
+        when(credentialLock.getResultList()).thenReturn(Collections.singletonList(
                 new Object[]{"pending_certificate", "pending"}));
         when(credentialUpdate.executeUpdate()).thenReturn(1);
         when(deviceUpdate.executeUpdate()).thenReturn(1);
         new JpaDeviceActivationRepository(manager).activate(peer, id);
 
         var sql = ArgumentCaptor.forClass(String.class);
-        verify(manager, Mockito.times(3)).createNativeQuery(sql.capture());
+        verify(manager, Mockito.times(4)).createNativeQuery(sql.capture());
         assertTrue(sql.getAllValues().get(0).contains("FOR UPDATE OF d"));
-        assertTrue(sql.getAllValues().get(0).contains("r.pending_expires_at>clock_timestamp()"));
-        assertTrue(sql.getAllValues().get(0).contains("r.reviewed_by IS NOT NULL"));
-        assertTrue(sql.getAllValues().get(0).contains("c.csr_spki_digest=r.csr_spki_digest"));
-        assertTrue(sql.getAllValues().get(0).contains("c.revoked_at IS NULL"));
-        assertTrue(sql.getAllValues().get(0).contains("c.expires_at>clock_timestamp()"));
-        verify(lock).setParameter("fingerprint", peer.sha256Fingerprint());
+        assertTrue(sql.getAllValues().get(1).contains("FOR UPDATE OF c"));
+        assertTrue(sql.getAllValues().get(1).contains("r.pending_expires_at>clock_timestamp()"));
+        assertTrue(sql.getAllValues().get(1).contains("r.reviewed_by IS NOT NULL"));
+        assertTrue(sql.getAllValues().get(1).contains("c.csr_spki_digest=r.csr_spki_digest"));
+        assertTrue(sql.getAllValues().get(1).contains("c.revoked_at IS NULL"));
+        assertTrue(sql.getAllValues().get(1).contains("c.expires_at>clock_timestamp()"));
+        verify(credentialLock).setParameter("fingerprint", peer.sha256Fingerprint());
         verify(credentialUpdate).executeUpdate();
         verify(deviceUpdate).executeUpdate();
     }
@@ -67,7 +73,7 @@ class JpaDeviceActivationRepositoryTest {
     @Test
     void sameActiveFingerprintRetryIsIdempotentAndPerformsNoWrites() {
         wire();
-        when(lock.getResultList()).thenReturn(Collections.singletonList(
+        when(credentialLock.getResultList()).thenReturn(Collections.singletonList(
                 new Object[]{"active", "active"}));
         new JpaDeviceActivationRepository(manager).activate(peer, id);
         verify(credentialUpdate, never()).executeUpdate();
@@ -77,7 +83,7 @@ class JpaDeviceActivationRepositoryTest {
     @Test
     void unknownExpiredRevokedOrUnreviewedCertificateDeniesWithoutWrites() {
         wire();
-        when(lock.getResultList()).thenReturn(List.of());
+        when(credentialLock.getResultList()).thenReturn(List.of());
         var error = assertThrows(DeviceActivationRejection.class,
                 () -> new JpaDeviceActivationRepository(manager).activate(peer, id));
         assertEquals(DeviceActivationRejection.Reason.DENIED, error.reason());
@@ -88,7 +94,7 @@ class JpaDeviceActivationRepositoryTest {
     @Test
     void credentialUpdateConflictDeniesBeforeChangingDevice() {
         wire();
-        when(lock.getResultList()).thenReturn(Collections.singletonList(
+        when(credentialLock.getResultList()).thenReturn(Collections.singletonList(
                 new Object[]{"pending_certificate", "pending"}));
         when(credentialUpdate.executeUpdate()).thenReturn(0);
         assertEquals(DeviceActivationRejection.Reason.DENIED,
@@ -100,7 +106,7 @@ class JpaDeviceActivationRepositoryTest {
     @Test
     void wrongDeviceStateDeniesWithoutWrites() {
         wire();
-        when(lock.getResultList()).thenReturn(Collections.singletonList(
+        when(credentialLock.getResultList()).thenReturn(Collections.singletonList(
                 new Object[]{"active", "pending"}));
         assertEquals(DeviceActivationRejection.Reason.DENIED,
                 assertThrows(DeviceActivationRejection.class,
