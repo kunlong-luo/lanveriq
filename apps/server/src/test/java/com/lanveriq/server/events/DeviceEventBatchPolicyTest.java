@@ -153,6 +153,20 @@ class DeviceEventBatchPolicyTest {
     }
 
     @Test
+    void fullAckSerializesAsVersionOneSnakeCaseAndUtcString() {
+        var response = new DeviceBatchAcknowledgement(1, List.of(1L, 4L),
+                java.time.Instant.parse("2026-10-31T00:00:00Z"), UUID.randomUUID());
+        var json = mapper.readTree(mapper.writeValueAsString(response));
+        assertEquals(1, json.get("schema_version").intValue());
+        assertEquals(2, json.get("accepted_sequences").size());
+        assertEquals(1L, json.get("accepted_sequences").get(0).longValue());
+        assertEquals(4L, json.get("accepted_sequences").get(1).longValue());
+        assertEquals("2026-10-31T00:00:00Z", json.get("server_time").textValue());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                UUID.fromString(json.get("request_id").textValue()).version() > 0);
+    }
+
+    @Test
     void serviceDoesNotAckBeforeRepositoryVerification() {
         var repo = Mockito.mock(EventIngestionRepository.class);
         var service = new DeviceEventIngestionService(repo, mapper);
