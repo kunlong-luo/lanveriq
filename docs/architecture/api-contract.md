@@ -2,7 +2,7 @@
 
 **Base:** `/api/v1` over HTTPS only. Dashboard **WSS /ws** is documented separately in [WebSocket contract](websocket-contract.md) and is not used for endpoint batch ACKs. JSON UTF-8; server controls authorization. Version via both URL major and `schema_version` per event. This is an API **design**, not an OpenAPI implementation. The canonical delivery semantics are in [Event Delivery](event-delivery.md); the API and SQLite writer must conform to that one source of truth.
 
-**Implementation boundary:** the staged [Rust mTLS transport](../../apps/agent/src/transport.rs) serializes only `synthetic_test/protocol_fixture` and validates full batch ACKs against locally selected sequences; the actual Spring device heartbeat/event-batch REST endpoints, Caddy mTLS, device credential activation, client key custody and live transport are NOT implemented. [AGT-03 manual cases](../testing/agent-transport-manual.md).
+**Implementation boundary:** the staged [Rust mTLS transport](../../apps/agent/src/transport.rs) serializes only `synthetic_test/protocol_fixture` and validates full batch ACKs against locally selected sequences; the actual Spring device heartbeat/event-batch REST endpoints (internal JPA heartbeat and event services are staged, but not HTTP-exposed), Caddy mTLS, device credential activation, client key custody and live transport are NOT implemented. [AGT-03 manual cases](../testing/agent-transport-manual.md).
 
 ## Transport split
 Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches; browser ↔ server: REST for snapshots/mutations + authenticated WSS notifications. On every WS reconnect, the browser refetches scoped REST data. See [ADR-0006](adrs/0006-agent-rest-dashboard-ws.md).

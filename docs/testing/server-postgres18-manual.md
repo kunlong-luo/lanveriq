@@ -1,7 +1,7 @@
 # Manual PostgreSQL 18 and Spring Boot smoke verification
 
 **State: scripted but NOT EXECUTED in the repository authoring environment.**
-This is a strictly **manual, synthetic-only local check** for SRV-01/SRV-02/SRV-03 schema checks. The automatic GitHub Actions workflow runs unit tests, compiles opt-in database integration-test sources and packages the Boot JAR, but does **not execute** PostgreSQL containers; no privileged employee data is used. A separate manual Testcontainers workflow can execute PostgreSQL 18 integration tests.
+This is a strictly **manual, synthetic-only local check** for SRV-01/SRV-02/SRV-03 schema checks, including V7 latest heartbeat state. The automatic GitHub Actions workflow runs unit tests, compiles opt-in database integration-test sources and packages the Boot JAR, but does **not execute** PostgreSQL containers; no privileged employee data is used. A separate manual Testcontainers workflow can execute PostgreSQL 18 integration tests.
 
 Requirements: JDK 25, Docker engine with a daemon you control, a free host port 55432 and 18080, curl, openssl, Bash and permission to pull the official PostgreSQL `postgres:18.6` Docker tag. The official current supported 18.x minor is 18.6 as of 2026-10-30; a production image must be independently reviewed and **pinned by digest** before deployment.
 
@@ -24,7 +24,7 @@ The script:
 
 ## Separate manual first-admin bootstrap check (NOT RUN)
 
-The basic smoke script above **deletes its disposable PostgreSQL container at exit**. For the following additional acceptance steps, prepare a **separate isolated, persistent-for-test-only PostgreSQL 18** database with Flyway V1–V6. Do not bootstrap an organization's real database until security and organizational authorization are approved.
+The basic smoke script above **deletes its disposable PostgreSQL container at exit**. For the following additional acceptance steps, prepare a **separate isolated, persistent-for-test-only PostgreSQL 18** database with Flyway V1–V7. Do not bootstrap an organization's real database until security and organizational authorization are approved.
 
 1. Verify `SELECT count(*) FROM users` is zero and `SELECT count(*) FROM user_data_grants` is zero. Keep this test DB loopback-only.
 2. With the same DB connection variables configured, launch from a genuine **local interactive terminal**, outside an IDE/CI pipe (a Java Console must exist):
