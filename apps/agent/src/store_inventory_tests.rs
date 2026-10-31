@@ -361,3 +361,54 @@ async fn invalid_inventory_is_rejected_before_any_state_or_pending_mutation() {
     assert_eq!(store.latest_inventory_revision().await.unwrap(), None);
     assert_eq!(store.next_sequence().await.unwrap(), 1);
 }
+
+#[tokio::test]
+async fn modified_pending_json_is_never_forwarded_acknowledged_or_retried() {
+    let directory = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&directory.path().join("integrity.sqlite"))
+        .await.unwrap();
+    let device = Uuid::now_v7();
+    let first = staged(store.stage_inventory_snapshot(device, OBSERVED, raw()).await.unwrap());
+    assert_eq!(store.verified_pending_inventory(device).await.unwrap(), Some(first.clone()));
+    sqlx::query(
+        "UPDATE inventory_pending SET body_json=json_set(body_json, '$.os.version', 'tampered') \
+         WHERE singleton=1",
+    ).execute(&store.pool).await.unwrap();
+    assert!(matches!(store.verified_pending_inventory(device).await,
+        Err(StoreError::InventoryConflict)));
+    assert!(matches!(store.stage_inventory_snapshot(device, OBSERVED, raw()).await,
+        Err(StoreError::InventoryConflict)));
+    assert!(matches!(store.acknowledge_inventory_snapshot(
+        device, first.snapshot_id, first.revision).await,
+        Err(StoreError::InventoryConflict)));
+    assert!(store.pending_inventory().await.unwrap().is_some());
+    assert_eq!(store.latest_inventory_revision().await.unwrap(), Some(1));
+}
+
+#[tokio::test]
+async fn recomputed_wire_digest_cannot_bypass_semantic_digest_or_identity_checks() {
+    let directory = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&directory.path().join("forged.sqlite"))
+        .await.unwrap();
+    let device = Uuid::now_v7();
+    let first = staged(store.stage_inventory_snapshot(device, OBSERVED, raw()).await.unwrap());
+    let mut value: serde_json::Value = serde_json::from_str(&first.body_json).unwrap();
+    value["os"]["version"] = serde_json::json!("edited");
+    let rewritten = serde_json::to_string(&value).unwrap();
+    let digest = format!("{:x}", sha2::Sha256::digest(rewritten.as_bytes()));
+    sqlx::query(
+        "UPDATE inventory_pending SET body_json=?,content_digest=? WHERE singleton=1",
+    ).bind(&rewritten).bind(&digest).execute(&store.pool).await.unwrap();
+    assert!(matches!(store.verified_pending_inventory(device).await,
+        Err(StoreError::InventoryConflict)));
+
+    // Restore the original wire content and digest, then tamper the embedded
+    // device identity with an internally consistent wire checksum.
+    let initial_digest = format!("{:x}", sha2::Sha256::digest(first.body_json.as_bytes()));
+    sqlx::query(
+        "UPDATE inventory_pending SET body_json=?,content_digest=? WHERE singleton=1",
+    ).bind(&first.body_json).bind(initial_digest).execute(&store.pool).await.unwrap();
+    assert_eq!(store.verified_pending_inventory(device).await.unwrap(), Some(first));
+    assert!(matches!(store.verified_pending_inventory(Uuid::now_v7()).await,
+        Err(StoreError::InventoryConflict)));
+}
