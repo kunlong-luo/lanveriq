@@ -45,18 +45,38 @@ class AgentIngressAssertionPolicyTest {
     }
 
     @Test
-    void forgedHeaderWithoutAuthenticatedProxyTlsPeerIsRejected() {
+    void missingTlsPeerCertificateIsDenied() {
         assertDenied(request -> request.removeAttribute(
                 "jakarta.servlet.request.X509Certificate"));
+    }
+
+    @Test
+    void insecureTlsConnectionIsDenied() {
         assertDenied(request -> request.setSecure(false));
+    }
+
+    @Test
+    void plaintextSchemeWithCertificateAttributeIsDenied() {
         assertDenied(request -> request.setScheme("http"));
+    }
+
+    @Test
+    void wrongPinnedTlsClientCertificateIsDenied() {
         assertDenied(request -> request.setAttribute(
                 "jakarta.servlet.request.X509Certificate",
                 new X509Certificate[]{syntheticTlsPeer(
                         "forged-local-peer".getBytes(StandardCharsets.UTF_8))}));
+    }
+
+    @Test
+    void emptyTlsCertificateChainIsDenied() {
         assertDenied(request -> request.setAttribute(
                 "jakarta.servlet.request.X509Certificate",
                 new X509Certificate[0]));
+    }
+
+    @Test
+    void arbitraryServletCertificateAttributeIsDenied() {
         assertDenied(request -> request.setAttribute(
                 "jakarta.servlet.request.X509Certificate", "spoofed"));
     }
