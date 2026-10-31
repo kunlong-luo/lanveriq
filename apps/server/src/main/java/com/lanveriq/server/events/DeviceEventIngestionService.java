@@ -28,7 +28,7 @@ public class DeviceEventIngestionService {
     }
 
     @Transactional
-    DeviceBatchAcknowledgement ingest(VerifiedDeviceCertificate identity,
+    public DeviceBatchAcknowledgement ingest(VerifiedDeviceCertificate identity,
                                       UUID pathDeviceId, DeviceEventBatch batch) {
         var validated = policy.validate(pathDeviceId, identity, batch);
         repository.appendOrVerify(identity, validated);
