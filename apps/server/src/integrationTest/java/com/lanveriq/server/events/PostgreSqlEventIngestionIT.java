@@ -201,6 +201,58 @@ class PostgreSqlEventIngestionIT {
     }
 
     @Test
+    void forgedFingerprintAndExpiredCertificateAreDeniedByTheDatabase() {
+        var e = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
+        var forged = new VerifiedDeviceCertificate(deviceId, "f".repeat(64));
+        assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceBatchRejection.class, () ->
+                        ingestion.ingest(forged, deviceId, request(e))).reason());
+
+        var tx = new TransactionTemplate(transactionManager);
+        tx.executeWithoutResult(ignored -> entityManager.createNativeQuery("""
+                UPDATE device_credentials
+                SET expires_at=CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+                WHERE device_id=:device
+                """).setParameter("device", deviceId).executeUpdate());
+        assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceBatchRejection.class, () ->
+                        ingestion.ingest(credential, deviceId, request(e))).reason());
+        assertEquals(0, deviceEventCount());
+    }
+
+    @Test
+    void competingConcurrentPayloadsHaveOneWinnerAndOneConflict() throws Exception {
+        var one = request(event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z"));
+        var other = request(event(UUID.randomUUID(), 1, "2026-10-30T08:58:00Z"));
+        var start = new CountDownLatch(1);
+        try (var workers = Executors.newFixedThreadPool(2)) {
+            var first = workers.submit(() -> {
+                start.await();
+                try {
+                    ingestion.ingest(credential, deviceId, one);
+                    return "committed";
+                } catch (DeviceBatchRejection rejected) {
+                    return rejected.reason().name();
+                }
+            });
+            var second = workers.submit(() -> {
+                start.await();
+                try {
+                    ingestion.ingest(credential, deviceId, other);
+                    return "committed";
+                } catch (DeviceBatchRejection rejected) {
+                    return rejected.reason().name();
+                }
+            });
+            start.countDown();
+            assertEquals(java.util.Set.of("committed", "SEQUENCE_CONFLICT"),
+                    java.util.Set.of(first.get(30, TimeUnit.SECONDS),
+                            second.get(30, TimeUnit.SECONDS)));
+        }
+        assertEquals(1L, deviceEventCount());
+    }
+
+    @Test
     void forbiddenMutationFailsAgainstRealPostgresqlTrigger() {
         var e = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
         ingestion.ingest(credential, deviceId, request(e));
