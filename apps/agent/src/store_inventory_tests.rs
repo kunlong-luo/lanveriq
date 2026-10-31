@@ -70,7 +70,12 @@ async fn unchanged_content_does_not_advance_revision_or_change_stable_pending_uu
     let path = directory.path().join("no-churn.sqlite");
     let device = Uuid::now_v7();
     let store = OutboxStore::open(&path).await.unwrap();
-    let first = staged(store.stage_inventory_snapshot(device, OBSERVED, raw()).await.unwrap());
+    let first = staged(
+        store
+            .stage_inventory_snapshot(device, OBSERVED, raw())
+            .await
+            .unwrap(),
+    );
     assert_eq!(first.revision, 1);
     assert_eq!(store.latest_inventory_revision().await.unwrap(), Some(1));
     let wire: serde_json::Value = serde_json::from_str(&first.body_json).unwrap();
@@ -80,8 +85,10 @@ async fn unchanged_content_does_not_advance_revision_or_change_stable_pending_uu
     assert_eq!(wire["inventory_revision"], 1);
     assert_eq!(wire["interfaces"][0]["addresses"][0]["ip"], "192.0.2.10");
 
-    let repeated = store.stage_inventory_snapshot(device,
-        "2026-10-31T09:01:00Z", raw()).await.unwrap();
+    let repeated = store
+        .stage_inventory_snapshot(device, "2026-10-31T09:01:00Z", raw())
+        .await
+        .unwrap();
     assert_eq!(repeated, InventoryStage::AlreadyPending(first.clone()));
     assert_eq!(store.pending_inventory().await.unwrap().unwrap(), first);
     assert_eq!(store.next_sequence().await.unwrap(), 1);
@@ -89,52 +96,104 @@ async fn unchanged_content_does_not_advance_revision_or_change_stable_pending_uu
 
     let reopened = OutboxStore::open(&path).await.unwrap();
     assert_eq!(reopened.pending_inventory().await.unwrap().unwrap(), first);
-    assert_eq!(reopened.stage_inventory_snapshot(device,
-        "2026-10-31T09:05:00Z", raw()).await.unwrap(),
-        InventoryStage::AlreadyPending(first.clone()));
+    assert_eq!(
+        reopened
+            .stage_inventory_snapshot(device, "2026-10-31T09:05:00Z", raw())
+            .await
+            .unwrap(),
+        InventoryStage::AlreadyPending(first.clone())
+    );
     assert_eq!(reopened.latest_inventory_revision().await.unwrap(), Some(1));
-    assert!(reopened.acknowledge_inventory_snapshot(
-        device, first.snapshot_id, first.revision).await.unwrap());
+    assert!(
+        reopened
+            .acknowledge_inventory_snapshot(device, first.snapshot_id, first.revision)
+            .await
+            .unwrap()
+    );
     assert!(reopened.pending_inventory().await.unwrap().is_none());
-    assert_eq!(reopened.stage_inventory_snapshot(device,
-        "2026-10-31T09:07:00Z", raw()).await.unwrap(), InventoryStage::Unchanged);
+    assert_eq!(
+        reopened
+            .stage_inventory_snapshot(device, "2026-10-31T09:07:00Z", raw())
+            .await
+            .unwrap(),
+        InventoryStage::Unchanged
+    );
     assert_eq!(reopened.latest_inventory_revision().await.unwrap(), Some(1));
     reopened.close().await;
 
     let after_ack_restart = OutboxStore::open(&path).await.unwrap();
-    assert_eq!(after_ack_restart.stage_inventory_snapshot(device,
-        "2026-10-31T09:10:00Z", raw()).await.unwrap(), InventoryStage::Unchanged);
+    assert_eq!(
+        after_ack_restart
+            .stage_inventory_snapshot(device, "2026-10-31T09:10:00Z", raw())
+            .await
+            .unwrap(),
+        InventoryStage::Unchanged
+    );
 }
 
 #[tokio::test]
 async fn changed_asset_increments_only_inventory_revision_and_stale_ack_cannot_erase_it() {
     let directory = tempfile::tempdir().unwrap();
     let store = OutboxStore::open(&directory.path().join("supersession.sqlite"))
-        .await.unwrap();
+        .await
+        .unwrap();
     let device = Uuid::now_v7();
-    let first = staged(store.stage_inventory_snapshot(device, OBSERVED, raw()).await.unwrap());
+    let first = staged(
+        store
+            .stage_inventory_snapshot(device, OBSERVED, raw())
+            .await
+            .unwrap(),
+    );
     let mut new_asset = raw();
     new_asset.interfaces[0].addresses[0].ip = "192.0.2.11".into();
-    let second = staged(store.stage_inventory_snapshot(device,
-        "2026-10-31T10:00:00Z", new_asset.clone()).await.unwrap());
+    let second = staged(
+        store
+            .stage_inventory_snapshot(device, "2026-10-31T10:00:00Z", new_asset.clone())
+            .await
+            .unwrap(),
+    );
     assert_eq!(second.revision, 2);
     assert_ne!(second.snapshot_id, first.snapshot_id);
     assert_eq!(store.next_sequence().await.unwrap(), 1);
     assert_eq!(store.latest_inventory_revision().await.unwrap(), Some(2));
-    assert!(!store.acknowledge_inventory_snapshot(device,
-        first.snapshot_id, first.revision).await.unwrap());
-    assert!(!store.acknowledge_inventory_snapshot(Uuid::now_v7(),
-        second.snapshot_id, second.revision).await.unwrap());
-    assert!(!store.acknowledge_inventory_snapshot(device,
-        Uuid::now_v7(), second.revision).await.unwrap());
+    assert!(
+        !store
+            .acknowledge_inventory_snapshot(device, first.snapshot_id, first.revision)
+            .await
+            .unwrap()
+    );
+    assert!(
+        !store
+            .acknowledge_inventory_snapshot(Uuid::now_v7(), second.snapshot_id, second.revision)
+            .await
+            .unwrap()
+    );
+    assert!(
+        !store
+            .acknowledge_inventory_snapshot(device, Uuid::now_v7(), second.revision)
+            .await
+            .unwrap()
+    );
     assert_eq!(store.pending_inventory().await.unwrap().unwrap(), second);
-    assert_eq!(store.stage_inventory_snapshot(device,
-        "2026-10-31T10:01:00Z", new_asset).await.unwrap(),
-        InventoryStage::AlreadyPending(second.clone()));
-    assert!(store.acknowledge_inventory_snapshot(device,
-        second.snapshot_id, second.revision).await.unwrap());
-    assert!(!store.acknowledge_inventory_snapshot(device,
-        second.snapshot_id, second.revision).await.unwrap());
+    assert_eq!(
+        store
+            .stage_inventory_snapshot(device, "2026-10-31T10:01:00Z", new_asset)
+            .await
+            .unwrap(),
+        InventoryStage::AlreadyPending(second.clone())
+    );
+    assert!(
+        store
+            .acknowledge_inventory_snapshot(device, second.snapshot_id, second.revision)
+            .await
+            .unwrap()
+    );
+    assert!(
+        !store
+            .acknowledge_inventory_snapshot(device, second.snapshot_id, second.revision)
+            .await
+            .unwrap()
+    );
     assert!(store.pending_inventory().await.unwrap().is_none());
 }
 
@@ -142,7 +201,8 @@ async fn changed_asset_increments_only_inventory_revision_and_stale_ack_cannot_e
 async fn same_semantics_in_different_nic_order_are_not_new_inventory() {
     let directory = tempfile::tempdir().unwrap();
     let store = OutboxStore::open(&directory.path().join("canonical.sqlite"))
-        .await.unwrap();
+        .await
+        .unwrap();
     let device = Uuid::now_v7();
     let mut original = raw();
     let mut other = original.interfaces[0].clone();
@@ -156,34 +216,65 @@ async fn same_semantics_in_different_nic_order_are_not_new_inventory() {
         scope: Some("global".into()),
     }];
     original.interfaces.push(other);
-    let first = staged(store.stage_inventory_snapshot(device,
-        OBSERVED, original.clone()).await.unwrap());
+    let first = staged(
+        store
+            .stage_inventory_snapshot(device, OBSERVED, original.clone())
+            .await
+            .unwrap(),
+    );
     original.interfaces.reverse();
-    assert_eq!(store.stage_inventory_snapshot(device,
-        "2026-10-31T09:01:00Z", original).await.unwrap(),
-        InventoryStage::AlreadyPending(first));
+    assert_eq!(
+        store
+            .stage_inventory_snapshot(device, "2026-10-31T09:01:00Z", original)
+            .await
+            .unwrap(),
+        InventoryStage::AlreadyPending(first)
+    );
 }
 
 #[tokio::test]
 async fn different_device_id_and_unbound_legacy_inventory_fail_closed() {
     let directory = tempfile::tempdir().unwrap();
     let store = OutboxStore::open(&directory.path().join("bound.sqlite"))
-        .await.unwrap();
+        .await
+        .unwrap();
     let device = Uuid::now_v7();
-    let first = staged(store.stage_inventory_snapshot(device, OBSERVED, raw()).await.unwrap());
-    assert!(matches!(store.stage_inventory_snapshot(Uuid::now_v7(), OBSERVED, raw()).await,
-        Err(StoreError::InventoryConflict)));
+    let first = staged(
+        store
+            .stage_inventory_snapshot(device, OBSERVED, raw())
+            .await
+            .unwrap(),
+    );
+    assert!(matches!(
+        store
+            .stage_inventory_snapshot(Uuid::now_v7(), OBSERVED, raw())
+            .await,
+        Err(StoreError::InventoryConflict)
+    ));
     assert_eq!(store.pending_inventory().await.unwrap().unwrap(), first);
-    assert!(matches!(store.stage_synthetic_inventory(Uuid::now_v7(),
-        &serde_json::json!({"synthetic":true})).await,
-        Err(StoreError::InventoryConflict)));
+    assert!(matches!(
+        store
+            .stage_synthetic_inventory(Uuid::now_v7(), &serde_json::json!({"synthetic":true}))
+            .await,
+        Err(StoreError::InventoryConflict)
+    ));
 
     let legacy = OutboxStore::open(&directory.path().join("legacy.sqlite"))
-        .await.unwrap();
-    assert_eq!(legacy.stage_synthetic_inventory(Uuid::now_v7(),
-        &serde_json::json!({"synthetic":true})).await.unwrap(), 1);
-    assert!(matches!(legacy.stage_inventory_snapshot(device, OBSERVED, raw()).await,
-        Err(StoreError::InventoryConflict)));
+        .await
+        .unwrap();
+    assert_eq!(
+        legacy
+            .stage_synthetic_inventory(Uuid::now_v7(), &serde_json::json!({"synthetic":true}))
+            .await
+            .unwrap(),
+        1
+    );
+    assert!(matches!(
+        legacy
+            .stage_inventory_snapshot(device, OBSERVED, raw())
+            .await,
+        Err(StoreError::InventoryConflict)
+    ));
     assert_eq!(legacy.latest_inventory_revision().await.unwrap(), None);
 }
 
@@ -191,38 +282,63 @@ async fn different_device_id_and_unbound_legacy_inventory_fail_closed() {
 async fn database_failure_rolls_back_pending_row_digest_and_revision_atomically() {
     let directory = tempfile::tempdir().unwrap();
     let store = OutboxStore::open(&directory.path().join("rollback.sqlite"))
-        .await.unwrap();
+        .await
+        .unwrap();
     let device = Uuid::now_v7();
     sqlx::query(
         "CREATE TRIGGER reject_state BEFORE INSERT ON inventory_latest_state \
          BEGIN SELECT RAISE(ABORT, 'synthetic inventory state fault'); END",
     )
-    .execute(&store.pool).await.unwrap();
-    assert!(matches!(store.stage_inventory_snapshot(device, OBSERVED, raw()).await,
-        Err(StoreError::Database(_))));
+    .execute(&store.pool)
+    .await
+    .unwrap();
+    assert!(matches!(
+        store
+            .stage_inventory_snapshot(device, OBSERVED, raw())
+            .await,
+        Err(StoreError::Database(_))
+    ));
     assert!(store.pending_inventory().await.unwrap().is_none());
     assert_eq!(store.latest_inventory_revision().await.unwrap(), None);
-    let revision: i64 = sqlx::query_scalar(
-        "SELECT next_inventory_revision FROM agent_state WHERE singleton=1",
-    ).fetch_one(&store.pool).await.unwrap();
+    let revision: i64 =
+        sqlx::query_scalar("SELECT next_inventory_revision FROM agent_state WHERE singleton=1")
+            .fetch_one(&store.pool)
+            .await
+            .unwrap();
     assert_eq!(revision, 1);
     sqlx::query("DROP TRIGGER reject_state")
-        .execute(&store.pool).await.unwrap();
+        .execute(&store.pool)
+        .await
+        .unwrap();
 
-    let first = staged(store.stage_inventory_snapshot(device, OBSERVED, raw()).await.unwrap());
+    let first = staged(
+        store
+            .stage_inventory_snapshot(device, OBSERVED, raw())
+            .await
+            .unwrap(),
+    );
     sqlx::query(
         "CREATE TRIGGER reject_update BEFORE UPDATE ON inventory_latest_state \
          BEGIN SELECT RAISE(ABORT, 'synthetic inventory replacement fault'); END",
-    ).execute(&store.pool).await.unwrap();
+    )
+    .execute(&store.pool)
+    .await
+    .unwrap();
     let mut changed = raw();
     changed.os.version = Some("synthetic-upgraded".into());
-    assert!(matches!(store.stage_inventory_snapshot(device,
-        "2026-10-31T10:00:00Z", changed).await, Err(StoreError::Database(_))));
+    assert!(matches!(
+        store
+            .stage_inventory_snapshot(device, "2026-10-31T10:00:00Z", changed)
+            .await,
+        Err(StoreError::Database(_))
+    ));
     assert_eq!(store.pending_inventory().await.unwrap().unwrap(), first);
     assert_eq!(store.latest_inventory_revision().await.unwrap(), Some(1));
-    let revision: i64 = sqlx::query_scalar(
-        "SELECT next_inventory_revision FROM agent_state WHERE singleton=1",
-    ).fetch_one(&store.pool).await.unwrap();
+    let revision: i64 =
+        sqlx::query_scalar("SELECT next_inventory_revision FROM agent_state WHERE singleton=1")
+            .fetch_one(&store.pool)
+            .await
+            .unwrap();
     assert_eq!(revision, 2);
 }
 
@@ -230,12 +346,17 @@ async fn database_failure_rolls_back_pending_row_digest_and_revision_atomically(
 async fn invalid_inventory_is_rejected_before_any_state_or_pending_mutation() {
     let directory = tempfile::tempdir().unwrap();
     let store = OutboxStore::open(&directory.path().join("invalid.sqlite"))
-        .await.unwrap();
+        .await
+        .unwrap();
     let device = Uuid::now_v7();
     let mut malicious = raw();
     malicious.interfaces[0].addresses[0].ip = "private.example".into();
-    assert!(matches!(store.stage_inventory_snapshot(device, OBSERVED, malicious).await,
-        Err(StoreError::Inventory(_))));
+    assert!(matches!(
+        store
+            .stage_inventory_snapshot(device, OBSERVED, malicious)
+            .await,
+        Err(StoreError::Inventory(_))
+    ));
     assert!(store.pending_inventory().await.unwrap().is_none());
     assert_eq!(store.latest_inventory_revision().await.unwrap(), None);
     assert_eq!(store.next_sequence().await.unwrap(), 1);

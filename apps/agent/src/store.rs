@@ -345,13 +345,8 @@ impl OutboxStore {
     ) -> Result<InventoryStage, StoreError> {
         // Normalization is also the only allowed JSON field boundary. Never
         // accept arbitrary user-supplied JSON or identity from the raw data.
-        let mut body = InventorySnapshot::from_raw(
-            device_id,
-            Uuid::now_v7(),
-            1,
-            observed_at.to_owned(),
-            raw,
-        )?;
+        let mut body =
+            InventorySnapshot::from_raw(device_id, Uuid::now_v7(), 1, observed_at.to_owned(), raw)?;
         let semantic_json = serde_json::to_vec(&(
             &body.device_id,
             &body.hardware,
@@ -389,14 +384,14 @@ impl OutboxStore {
             }
             if digest == &semantic_digest {
                 return match pending {
-                    Some((id, revision, json)) => Ok(InventoryStage::AlreadyPending(
-                        PendingInventory {
+                    Some((id, revision, json)) => {
+                        Ok(InventoryStage::AlreadyPending(PendingInventory {
                             snapshot_id: Uuid::parse_str(&id)
                                 .map_err(|_| StoreError::InventoryConflict)?,
                             revision,
                             body_json: json,
-                        },
-                    )),
+                        }))
+                    }
                     None => Ok(InventoryStage::Unchanged),
                 };
             }
@@ -406,11 +401,10 @@ impl OutboxStore {
             return Err(StoreError::InventoryConflict);
         }
 
-        let revision: i64 = sqlx::query_scalar(
-            "SELECT next_inventory_revision FROM agent_state WHERE singleton=1",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        let revision: i64 =
+            sqlx::query_scalar("SELECT next_inventory_revision FROM agent_state WHERE singleton=1")
+                .fetch_one(&mut *tx)
+                .await?;
         if revision < 1 || revision == i64::MAX {
             return Err(StoreError::QueueFull);
         }
@@ -523,11 +517,10 @@ impl OutboxStore {
         }
         let digest = format!("{:x}", Sha256::digest(json.as_bytes()));
         let mut tx = self.pool.begin().await?;
-        let bound: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM inventory_latest_state WHERE singleton=1",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        let bound: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM inventory_latest_state WHERE singleton=1")
+                .fetch_one(&mut *tx)
+                .await?;
         if bound != 0 {
             return Err(StoreError::InventoryConflict);
         }
@@ -585,17 +578,15 @@ impl OutboxStore {
         if revision <= 0 {
             return Err(StoreError::InvalidFixture);
         }
-        Ok(
-            sqlx::query(
-                "DELETE FROM inventory_pending WHERE inventory_revision=? \
+        Ok(sqlx::query(
+            "DELETE FROM inventory_pending WHERE inventory_revision=? \
                  AND NOT EXISTS(SELECT 1 FROM inventory_latest_state WHERE singleton=1)",
-            )
-                .bind(revision)
-                .execute(&self.pool)
-                .await?
-                .rows_affected()
-                == 1,
         )
+        .bind(revision)
+        .execute(&self.pool)
+        .await?
+        .rows_affected()
+            == 1)
     }
 
     pub async fn settings(&self) -> Result<(String, i64, i64), StoreError> {
