@@ -20,6 +20,7 @@ import org.mockito.Mockito;
 class JpaDeviceInventoryRepositoryTest {
     private final EntityManager manager = Mockito.mock(EntityManager.class);
     private final Query verifiedLock = Mockito.mock(Query.class);
+    private final Query credentialLock = Mockito.mock(Query.class);
     private final Query latest = Mockito.mock(Query.class);
     private final Query insert = Mockito.mock(Query.class);
     private final Query remove = Mockito.mock(Query.class);
@@ -38,19 +39,21 @@ class JpaDeviceInventoryRepositoryTest {
     private void mockQueries() {
         when(manager.createNativeQuery(anyString())).thenAnswer(call -> {
             String sql = call.getArgument(0);
-            if (sql.contains("FOR UPDATE OF d, c")) return verifiedLock;
+            if (sql.contains("FOR UPDATE OF d")) return verifiedLock;
+            if (sql.contains("FOR UPDATE OF c")) return credentialLock;
             if (sql.contains("SELECT inventory_revision")) return latest;
             if (sql.contains("DELETE FROM device_inventory_current")) return remove;
             return insert;
         });
-        for (Query query : List.of(verifiedLock, latest, insert, remove)) {
+        for (Query query : List.of(verifiedLock, credentialLock, latest, insert, remove)) {
             when(query.setParameter(anyString(), Mockito.any())).thenReturn(query);
         }
         when(verifiedLock.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
     }
 
     @Test
-    void newerRevisionWritesUnderDeviceAndCredentialLock() {
+    void newerRevisionWritesUnderDeviceThenCredentialLocks() {
         mockQueries();
         when(latest.getResultList()).thenReturn(List.of());
         when(insert.getResultList()).thenReturn(List.of(Instant.now()));
@@ -62,10 +65,11 @@ class JpaDeviceInventoryRepositoryTest {
         verify(insert).getResultList();
         verify(remove, never()).executeUpdate();
         var sql = ArgumentCaptor.forClass(String.class);
-        verify(manager, Mockito.times(3)).createNativeQuery(sql.capture());
-        assertTrue(sql.getAllValues().getFirst().contains("FOR UPDATE OF d, c"));
-        assertTrue(sql.getAllValues().getFirst().contains("c.status='active'"));
-        assertTrue(sql.getAllValues().getFirst().contains("c.revoked_at IS NULL"));
+        verify(manager, Mockito.times(4)).createNativeQuery(sql.capture());
+        assertTrue(sql.getAllValues().getFirst().contains("FOR UPDATE OF d"));
+        assertTrue(sql.getAllValues().get(1).contains("FOR UPDATE OF c"));
+        assertTrue(sql.getAllValues().get(1).contains("c.status='active'"));
+        assertTrue(sql.getAllValues().get(1).contains("c.revoked_at IS NULL"));
     }
 
     @Test
@@ -114,7 +118,7 @@ class JpaDeviceInventoryRepositoryTest {
     @Test
     void revokedOrUnregisteredCertificateCannotReadOrReplaceState() {
         mockQueries();
-        when(verifiedLock.getResultList()).thenReturn(List.of());
+        when(credentialLock.getResultList()).thenReturn(List.of());
         var snap = snapshot(19);
         var error = assertThrows(DeviceInventoryRejection.class, () ->
                 new JpaDeviceInventoryRepository(manager).persist(

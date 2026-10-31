@@ -27,22 +27,7 @@ final class JpaDeviceInventoryRepository implements DeviceInventoryRepository {
     public DeviceInventoryReceipt persist(VerifiedDeviceCertificate peer, UUID deviceId,
                                           DeviceInventorySnapshot snapshot, String digest,
                                           String capabilitiesJson, Instant observedAt) {
-        List<?> verified = manager.createNativeQuery("""
-                SELECT d.id
-                FROM devices AS d
-                JOIN device_credentials AS c ON c.device_id=d.id
-                WHERE d.id=:device AND d.enrollment_state='active'
-                  AND d.revoked_at IS NULL
-                  AND c.client_cert_sha256_fingerprint=:fingerprint
-                  AND c.status='active' AND c.revoked_at IS NULL
-                  AND c.issued_at<=clock_timestamp()
-                  AND c.expires_at>clock_timestamp()
-                FOR UPDATE OF d, c
-                """)
-                .setParameter("device", deviceId)
-                .setParameter("fingerprint", peer.sha256Fingerprint())
-                .getResultList();
-        if (verified.size() != 1) {
+        if (!JpaActiveDeviceCredentialGuard.lock(manager, peer, deviceId)) {
             throw rejection(DeviceInventoryRejection.Reason.REVOKED_DEVICE);
         }
 

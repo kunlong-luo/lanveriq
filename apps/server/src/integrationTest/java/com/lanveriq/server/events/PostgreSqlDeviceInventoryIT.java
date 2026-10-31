@@ -297,4 +297,55 @@ class PostgreSqlDeviceInventoryIT {
         assertEquals(0L, count("addresses"));
         assertEquals(1L, count("volumes"));
     }
+
+    @Test
+    void revokedCredentialCannotReplacePreviouslyCommittedCompleteInventory() {
+        var committed = snapshot(31, UUID.randomUUID(), true);
+        inventory.ingest(credential, deviceId, committed);
+        new TransactionTemplate(transactions).executeWithoutResult(ignored ->
+                manager.createNativeQuery("""
+                        UPDATE device_credentials
+                        SET status='revoked', revoked_at=clock_timestamp()
+                        WHERE device_id=:device
+                        """).setParameter("device", deviceId).executeUpdate());
+        assertEquals(DeviceInventoryRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceInventoryRejection.class, () ->
+                        inventory.ingest(credential, deviceId,
+                                snapshot(32, UUID.randomUUID(), false))).reason());
+        Object[] saved = (Object[]) manager.createNativeQuery("""
+                SELECT snapshot_id, inventory_revision
+                FROM device_inventory_current WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        assertEquals(committed.snapshotId(), saved[0]);
+        assertEquals(31L, ((Number) saved[1]).longValue());
+        assertEquals(2L, count("interfaces"));
+        assertEquals(2L, count("addresses"));
+        assertEquals(1L, count("volumes"));
+    }
+
+    @Test
+    void expiredAndFutureCredentialCannotCreateAnyInventory() {
+        for (String state : List.of("expired", "future")) {
+            new TransactionTemplate(transactions).executeWithoutResult(ignored ->
+                    manager.createNativeQuery(state.equals("expired") ? """
+                            UPDATE device_credentials
+                            SET issued_at=clock_timestamp()-INTERVAL '3 hours',
+                                expires_at=clock_timestamp()-INTERVAL '1 hour'
+                            WHERE device_id=:device
+                            """ : """
+                            UPDATE device_credentials
+                            SET issued_at=clock_timestamp()+INTERVAL '1 hour',
+                                expires_at=clock_timestamp()+INTERVAL '3 hours'
+                            WHERE device_id=:device
+                            """).setParameter("device", deviceId).executeUpdate());
+            assertEquals(DeviceInventoryRejection.Reason.REVOKED_DEVICE,
+                    assertThrows(DeviceInventoryRejection.class, () ->
+                            inventory.ingest(credential, deviceId,
+                                    snapshot(1, UUID.randomUUID(), true))).reason());
+        }
+        assertEquals(0L, count("current"));
+        assertEquals(0L, count("interfaces"));
+        assertEquals(0L, count("addresses"));
+        assertEquals(0L, count("volumes"));
+    }
 }

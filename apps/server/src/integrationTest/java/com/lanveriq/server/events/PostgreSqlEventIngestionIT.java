@@ -413,4 +413,106 @@ class PostgreSqlEventIngestionIT {
         }
         assertEquals(1L, deviceEventCount());
     }
+
+    @Test
+    void revokedCredentialDeniesBothEventAndHeartbeatWithoutAnySideEffects() {
+        new TransactionTemplate(transactionManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        UPDATE device_credentials
+                        SET status='revoked', revoked_at=clock_timestamp()
+                        WHERE device_id=:device
+                        """).setParameter("device", deviceId).executeUpdate());
+        var sample = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
+        var heartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
+                "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
+                null, null, 0, false, List.of());
+
+        assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceBatchRejection.class, () ->
+                        ingestion.ingest(credential, deviceId, request(sample))).reason());
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeats.ingest(credential, deviceId, heartbeat)).reason());
+        assertEquals(0L, deviceEventCount());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult()).longValue());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM devices
+                WHERE id=:device AND last_seen_at IS NOT NULL
+                """).setParameter("device", deviceId).getSingleResult()).longValue());
+    }
+
+    @Test
+    void expiredAndNotYetValidCredentialDoNotMutateEventsOrHeartbeats() {
+        var sample = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
+        var heartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
+                "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
+                null, null, 0, false, List.of());
+        for (String window : List.of("expired", "future")) {
+            new TransactionTemplate(transactionManager).executeWithoutResult(ignored ->
+                    entityManager.createNativeQuery(window.equals("expired") ? """
+                            UPDATE device_credentials
+                            SET issued_at=clock_timestamp()-INTERVAL '3 hours',
+                                expires_at=clock_timestamp()-INTERVAL '1 hour'
+                            WHERE device_id=:device
+                            """ : """
+                            UPDATE device_credentials
+                            SET issued_at=clock_timestamp()+INTERVAL '1 hour',
+                                expires_at=clock_timestamp()+INTERVAL '3 hours'
+                            WHERE device_id=:device
+                            """).setParameter("device", deviceId).executeUpdate());
+            assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
+                    assertThrows(DeviceBatchRejection.class, () ->
+                            ingestion.ingest(credential, deviceId, request(sample))).reason());
+            assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                    assertThrows(DeviceHeartbeatRejection.class, () ->
+                            heartbeats.ingest(credential, deviceId, heartbeat)).reason());
+        }
+        assertEquals(0L, deviceEventCount());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult()).longValue());
+    }
+
+    @Test
+    void concurrentCredentialRevocationWinsBeforeEventWriteWithoutAnAck() throws Exception {
+        var changed = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var e = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
+        try (var workers = Executors.newFixedThreadPool(2)) {
+            var revoke = workers.submit(() ->
+                    new TransactionTemplate(transactionManager).executeWithoutResult(ignored -> {
+                        entityManager.createNativeQuery("""
+                                UPDATE device_credentials
+                                SET status='revoked', revoked_at=clock_timestamp()
+                                WHERE device_id=:device
+                                """).setParameter("device", deviceId).executeUpdate();
+                        changed.countDown();
+                        try {
+                            if (!release.await(20, TimeUnit.SECONDS)) {
+                                throw new IllegalStateException("Synthetic revocation gate timed out");
+                            }
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(ex);
+                        }
+                    }));
+            try {
+                assertTrue(changed.await(20, TimeUnit.SECONDS));
+                var result = workers.submit(() ->
+                        assertThrows(DeviceBatchRejection.class, () ->
+                                ingestion.ingest(credential, deviceId, request(e))).reason());
+                // The revocation transaction commits before the competing
+                // ingestion can obtain its matching credential row lock.
+                release.countDown();
+                revoke.get(30, TimeUnit.SECONDS);
+                assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
+                        result.get(30, TimeUnit.SECONDS));
+            } finally {
+                release.countDown();
+            }
+        }
+        assertEquals(0L, deviceEventCount());
+    }
 }

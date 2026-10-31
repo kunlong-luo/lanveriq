@@ -30,24 +30,7 @@ final class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
             throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA);
         }
 
-        var active = manager.createNativeQuery("""
-                SELECT d.id FROM devices AS d
-                WHERE d.id=:device_id AND d.enrollment_state='active'
-                  AND d.revoked_at IS NULL
-                  AND EXISTS (
-                      SELECT 1 FROM device_credentials AS c
-                      WHERE c.device_id=d.id
-                        AND c.client_cert_sha256_fingerprint=:fingerprint
-                        AND c.status='active' AND c.revoked_at IS NULL
-                        AND c.issued_at<=CURRENT_TIMESTAMP
-                        AND c.expires_at>CURRENT_TIMESTAMP
-                  )
-                FOR UPDATE OF d
-                """)
-                .setParameter("device_id", deviceId)
-                .setParameter("fingerprint", identity.sha256Fingerprint())
-                .getResultList();
-        if (active.size() != 1) {
+        if (!JpaActiveDeviceCredentialGuard.lock(manager, identity, deviceId)) {
             throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE);
         }
         manager.createNativeQuery("""

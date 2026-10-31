@@ -23,6 +23,7 @@ class JpaEventIngestionRepositoryTest {
 
     private final EntityManager manager = Mockito.mock(EntityManager.class);
     private final Query auth = Mockito.mock(Query.class);
+    private final Query credentialLock = Mockito.mock(Query.class);
     private final Query insert = Mockito.mock(Query.class);
     private final Query compare = Mockito.mock(Query.class);
     private final UUID deviceId = UUID.randomUUID();
@@ -41,15 +42,14 @@ class JpaEventIngestionRepositoryTest {
     private void wire() {
         when(manager.createNativeQuery(anyString())).thenAnswer(call -> {
             String sql = call.getArgument(0);
-            if (sql.contains("FOR UPDATE OF d")) {
-                return auth;
-            }
+            if (sql.contains("FOR UPDATE OF d")) return auth;
+            if (sql.contains("FOR UPDATE OF c")) return credentialLock;
             if (sql.contains("INSERT INTO endpoint_events")) {
                 return insert;
             }
             return compare;
         });
-        for (Query q : List.of(auth, insert, compare)) {
+        for (Query q : List.of(auth, credentialLock, insert, compare)) {
             when(q.setParameter(anyString(), Mockito.any())).thenReturn(q);
         }
     }
@@ -59,6 +59,7 @@ class JpaEventIngestionRepositoryTest {
         wire();
         var e = event(7);
         when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
         when(compare.getResultList()).thenReturn(
                 Collections.singletonList(new Object[]{7L, e.eventId(), e.digest()}));
 
@@ -66,13 +67,15 @@ class JpaEventIngestionRepositoryTest {
                 .appendOrVerify(credential, List.of(e));
 
         var sql = ArgumentCaptor.forClass(String.class);
-        verify(manager, Mockito.times(3)).createNativeQuery(sql.capture());
+        verify(manager, Mockito.times(4)).createNativeQuery(sql.capture());
         assertTrue(sql.getAllValues().get(0).contains("enrollment_state = 'active'"));
-        assertTrue(sql.getAllValues().get(0).contains("client_cert_sha256_fingerprint"));
-        assertTrue(sql.getAllValues().get(0).contains("expires_at > CURRENT_TIMESTAMP"));
-        assertTrue(sql.getAllValues().get(1).contains("jsonb_to_recordset"));
-        assertTrue(sql.getAllValues().get(1).contains("ON CONFLICT DO NOTHING"));
-        verify(auth).setParameter("fingerprint", credential.sha256Fingerprint());
+        assertTrue(sql.getAllValues().get(0).contains("FOR UPDATE OF d"));
+        assertTrue(sql.getAllValues().get(1).contains("FOR UPDATE OF c"));
+        assertTrue(sql.getAllValues().get(1).contains("client_cert_sha256_fingerprint"));
+        assertTrue(sql.getAllValues().get(1).contains("expires_at>clock_timestamp()"));
+        assertTrue(sql.getAllValues().get(2).contains("jsonb_to_recordset"));
+        assertTrue(sql.getAllValues().get(2).contains("ON CONFLICT DO NOTHING"));
+        verify(credentialLock).setParameter("fingerprint", credential.sha256Fingerprint());
         verify(insert).executeUpdate();
         verify(compare).setParameter("device_sequence", 7L);
         verify(compare).setParameter("event_id", e.eventId());
@@ -81,7 +84,8 @@ class JpaEventIngestionRepositoryTest {
     @Test
     void unknownRevokedOrExpiredCertificateFailsBeforeAnyInsert() {
         wire();
-        when(auth.getResultList()).thenReturn(List.of());
+        when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of());
         var error = assertThrows(DeviceBatchRejection.class, () ->
                 new JpaEventIngestionRepository(manager, mapper)
                         .appendOrVerify(credential, List.of(event(1))));

@@ -2,11 +2,13 @@
 
 **State:** V0.1 Java JPA/Flyway V7 implementation committed, Java unit and transactional-proxy coverage; opt-in real PostgreSQL integration assertions staged. **No PostgreSQL 18 execution observed, no HTTP heartbeat route or trusted Caddy mTLS bridge exists. No real endpoint monitoring authorized.**
 
+**Credential revocation race test (2026-10-31, opt-in source only):** The shared `JpaActiveDeviceCredentialGuard` now requires the same ordered device→credential locks for heartbeats, event batches and inventory. A staged synthetic PostgreSQL 18.6 suite checks revoked, expired and future client credentials cannot change `device_heartbeat_latest`, `devices.last_seen_at` or canonical events. This does **not** prove actual mTLS/Tomcat certificate attributes or real DB execution until the manual workflow succeeds.
+
 ## Scope and privacy boundary
 
 - `DeviceHeartbeatService` is internal. It must be invoked only after an independently verified Agent mTLS identity is mapped to the enrolled device. An arbitrary body `device_id` or forwarded fingerprint header does **not** authenticate the caller.
 - The service validates `schema_version=1`, device/path/credential ID equality, version, status, bounded machine-code capability/error states, nonnegative queue counters, and UTC timestamps **before SQL**. Raw free-text error messages, IP/MAC, file paths, process/window activity, employee names or recording status are not accepted.
-- Inside **one Spring-managed transaction**, the JPA repository locks a currently active device row and checks the current unexpired, unrevoked bound client certificate fingerprint in PostgreSQL; it then updates `devices.last_seen_at` and upserts one `device_heartbeat_latest` row. `received_at` is database-owned. The Agent's clock must not determine online/stale/offline.
+- Inside **one Spring-managed transaction**, the JPA repository first locks the currently active device row and then the exact registered credential row with `FOR UPDATE`, verifying its fingerprint, validity window and nonrevoked state after the lock (using `clock_timestamp()`); it then updates `devices.last_seen_at` and upserts one `device_heartbeat_latest` row. `received_at` is database-owned. The Agent's clock must not determine online/stale/offline.
 - Capabilities `not_collected`, `unsupported`, `permission_denied` and `degraded` retain their distinct meanings. Successful heartbeats do **not** establish collector coverage or authorize future device telemetry.
 
 ## Opt-in synthetic PostgreSQL test
