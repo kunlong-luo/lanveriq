@@ -8,7 +8,7 @@
 - `append_synthetic` is for synthetic fixture objects ONLY, with a stable caller-generated UUIDv7. Event+cursor+monotonic sequence are committed as one transaction; failed cursor write rolls back all three. Canonical compact JSON bytes are hashed with SHA-256 and stored with immutable payload. Full envelope-fingerprint interoperability is still an AGT-03/SRV-03 contract item.
 - Outbox has 2048-event / 16 MiB budget, 16 KiB per-event cap, 100-event/512 KiB pending batch cap and 256 gap-record cap. A full queue writes a bounded **synthetic** collection gap when possible without advancing cursor; this is not permission to drop real audit events silently.
 - ACK deletes **only explicit positive sequence numbers**. Ambiguous timeout, 5xx or missing server response must never call ACK. Server trust/authenticated ACK path is not yet implemented.
-- Inventory pending uses a *separate* persistent monotonic revision; latest pending snapshot replaces previous pending, and an older ACK cannot delete a newer revision.
+- **INV-01-C V3 (staged):** single latest `inventory_pending` is expanded from 64 KiB to **128 KiB** without discarding preexisting synthetic pending rows, and `inventory_latest_state` records enrolled device ID, last UUID, revision and semantic content SHA-256 (excluding volatile `observed_at`, UUID, revision). `stage_inventory_snapshot` requires typed normalized `RawInventory`; identical content returns the same pending UUID/JSON or `Unchanged` after ACK, without revision churn. Changed content atomically supersedes the latest pending snapshot while incrementing the independent revision. Transaction failure restores previous body/digest/revision; stale ACK must match **device ID, snapshot UUID and revision**. Old synthetic staging cannot cross an enrolled device identity boundary. No automatic collection or transport is connected.
 - `OutboxStore` is a module for controlled tests. It is not wired into the AGT-01 startup service, and it collects or uploads nothing.
 
 ## Acceptance matrix
@@ -23,6 +23,9 @@
 | AGT-DB-06 | Duplicate event UUID rejected without advancing cursor | Synthetic Rust test |
 | AGT-DB-07 | Queue full records bounded synthetic gap, leaves cursor and sequence unchanged | Synthetic Rust test; real disk-full not run |
 | AGT-DB-08 | Inventory revision advances independently, stale ACK cannot wipe fresh snapshot | Synthetic Rust test |
+| AGT-DB-08A | Content-normalized IPv4/IPv6 inventory is staged once; same content across timestamp/restart/ACK consumes no extra revision | Synthetic file-backed Rust tests; real endpoint pending |
+| AGT-DB-08B | Device/snapshot/revision-bound ACK, old ACK cannot delete new pending; identity change denied | Synthetic file-backed Rust tests; real server ACK pending |
+| AGT-DB-08C | Injected SQL abort rolls back pending, semantic digest and SQLite counter together | Synthetic file-backed Rust tests; sudden power loss pending |
 | AGT-DB-09 | Forced power-off, disk full/read-only/corrupt DB, live checkpoints and SQLite-aware backup/restore | NOT TESTED |
 | AGT-DB-10 | Pinned `Cargo.lock`, Windows and Linux compile, unit and Clippy | CI evidence linked in backlog |
 | AGT-DB-11 | Exact event-envelope digest, device credentials, retry/backoff, server dedup and TLS | NOT IMPLEMENTED; AGT-03/SRV-03 |
