@@ -11,6 +11,8 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 
 **WEB-01-HTTP source-stage (not deployed):** `GET /api/v1/devices` and `GET /api/v1/devices/{deviceId}` now have controller source, explicit `snake_case` health-only response records, Springdoc annotations and a **separate conditional Spring Security chain**. All three independent console-auth/directory/HTTP opt-in switches must be true; otherwise the existing deny-all filter applies. List: `cursor` UUID or omitted, `limit` 1–100 (default 50), `items` and nullable `next_cursor`; detail: 200 for visible device, same 404 for unknown/out-of-scope. No raw IP/MAC/credentials or event payload. Missing/expired session 401, unsafe/wrong console Host/Origin 403, invalid limits 400, GET responses `Cache-Control: no-store`. OpenAPI annotations are **not** a frozen or generated TypeScript client; real cookie/session/CSRF/TLS/PG acceptance is still blocked.
 
+**Generated OpenAPI gate (synthetic-only):** The Springdoc annotations on `GET /api/v1/devices` and `GET /api/v1/devices/{deviceId}` are now exercised by a dedicated CI test that creates an actual `build/contracts/openapi.json` from `/v3/api-docs` within an isolated Boot MVC test context. A separate fail-closed verifier checks paths, methods, cookie security and field allowlists. The candidate JSON may be used to prototype Orval clients after CI succeeds, but does **not** yet prove real PostgreSQL/HTTPS/browser session integration, and does not turn on docs in the production application.
+
 ## Device API
 | Method | Path | Principal | Semantics |
 |---|---|---|---|

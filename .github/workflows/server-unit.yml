@@ -36,9 +36,21 @@ jobs:
         run: echo '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
       - name: Unit-test the manual PostgreSQL evidence checker (synthetic XML only)
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_assert_postgres18_junit.py'
+      - name: Unit-test Springdoc contract validator (invented JSON, no DB)
+        run: python3 -m unittest discover -s apps/server/scripts -p 'test_verify_generated_openapi.py'
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test
+      - name: Verify REAL Springdoc-generated device contract (no DB, Docker or TLS)
+        working-directory: apps/server
+        run: python3 scripts/verify-generated-openapi.py build/contracts/openapi.json
+      - name: Publish reviewed source-generated OpenAPI as CI artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: lanveriq-device-openapi-${{ github.sha }}
+          path: apps/server/build/contracts/openapi.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Compile opt-in PostgreSQL integration source (do not start Docker)
         working-directory: apps/server
         run: ./gradlew compileIntegrationTestJava
