@@ -276,18 +276,25 @@ pub fn classify_inventory_response(
         serde_json::from_slice(response).map_err(|_| TransportError::InvalidAcknowledgement)?;
     if ack.schema_version != 1
         || ack.device_id != device_id
-        || ack.snapshot_id != expected.snapshot_id
-        || ack.inventory_revision != expected.revision
+        || ack.snapshot_id.is_nil()
+        || ack.inventory_revision < 1
         || ack.server_time.len() < 20
         || ack.server_time.len() > 40
         || !ack.server_time.ends_with('Z')
     {
         return Err(TransportError::InvalidAcknowledgement);
     }
-    Ok(match ack.outcome {
-        InventoryOutcome::Applied | InventoryOutcome::Duplicate => DeliveryDisposition::Accepted,
-        InventoryOutcome::StaleIgnored => DeliveryDisposition::Quarantine,
-    })
+    if matches!(ack.outcome, InventoryOutcome::StaleIgnored) {
+        // Server reports a *newer current snapshot*, not the submitted ID.
+        // Never delete or retry indefinitely without an operator reconciliation.
+        return Ok(DeliveryDisposition::Quarantine);
+    }
+    if ack.snapshot_id != expected.snapshot_id
+        || ack.inventory_revision != expected.revision
+    {
+        return Err(TransportError::InvalidAcknowledgement);
+    }
+    Ok(DeliveryDisposition::Accepted)
 }
 
 pub fn classify_error_status(status: u16, retry_after: Option<&str>) -> DeliveryDisposition {
