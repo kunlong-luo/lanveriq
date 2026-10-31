@@ -16,13 +16,19 @@ The wrapper JAR is copied from the official Gradle `v9.8.2` tag and verified aga
 
 To start, provision **an isolated PostgreSQL 18 database with a non-superuser**, configure `LANVERIQ_DB_URL`, `LANVERIQ_DB_USER`, `LANVERIQ_DB_PASSWORD`, and run `./gradlew bootRun`. The DB is required; do not disable Flyway or replace PG with H2 to mask startup/migration failures. The app binds to `127.0.0.1:8080` by default and exposes only a basic health endpoint. No default administrator password or user is created.
 
-Flyway V1/V2/V3/V4/V5 SQL is **not yet executed against PostgreSQL** in an observed test. [Manual PostgreSQL 18.6 validation](../../docs/testing/server-postgres18-manual.md) provides a disposable, synthetic local smoke check: `bash scripts/verify-postgres18.sh` (requires local Docker, JDK 25, curl and openssl). CI has **passed** Java 25 compilation, the new real CSR/transaction-orchestration JUnit tests, JaCoCo and `bootJar` archive packaging ([run 41066726762](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762)); CI runs only unit tests, with packaging as an additional build task. Migration and JPA-generated UUID behavior still require a real PG18 test environment.
+Flyway V1/V2/V3/V4/V5/V6 SQL is **not yet executed against PostgreSQL** in an observed test. [Manual PostgreSQL 18.6 validation](../../docs/testing/server-postgres18-manual.md) provides a disposable, synthetic local smoke check: `bash scripts/verify-postgres18.sh` (requires local Docker, JDK 25, curl and openssl). CI has **passed** Java 25 compilation, the new real CSR/transaction-orchestration JUnit tests, JaCoCo and `bootJar` archive packaging ([run 41066726762](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762)); CI runs only unit tests, with packaging as an additional build task. Migration and JPA-generated UUID behavior still require a real PG18 test environment.
 
 ## AUTH-01 staged browser session — DEFAULT OFF
 
 Spring Security's maintained form login/logout, HttpSession-based CSRF tokens and session fixation protection have been staged for the **console-only** `/api/v1/auth/**` paths; no business APIs become accessible. Security requires an explicitly canonical HTTPS console origin and verifies exact Host/Origin/fetch-metadata **before** CSRF/logout/login filters. Browser sessions use a 15-minute host-only `__Host-lanveriq-session` cookie with `Secure`, `HttpOnly`, `SameSite=Strict`; forwarding headers are not automatically trusted.
 
 **Config remains `LANVERIQ_CONSOLE_AUTH_ENABLED=false`**. Source now includes Bucket4j/Caffeine login throttling, session-version revalidation/revocation and a minimal authentication audit, but **actual** PostgreSQL 18, Caddy trusted TLS/DNS/strict SNI/Host, real browser/session negative tests, abuse controls, and audit retention verification remain missing. An operator must not enable it for a real pilot. See [console session acceptance matrix](../../docs/testing/console-session-manual.md). The code has Java 25 unit coverage for Host/Origin/fetch-site and CSRF response; neither real HTTPS login nor the complete Spring filter chain has been manually exercised.
+
+## SRV-03 internal event ingestion — Flyway V6, no HTTP route
+
+[SRV-03 service](src/main/java/com/lanveriq/server/events/DeviceEventIngestionService.java) validates the entire V0.1 operational event batch before opening a database write. Flyway V6 provides immutable `endpoint_events`, native UUIDv7, JSONB and two device-scoped unique identifiers. One Spring JPA/Hibernate transaction locks the active device, revalidates its active/expiry/revocation credential fingerprint, inserts new events through PostgreSQL JSONB `ON CONFLICT DO NOTHING` and compares every accepted sequence+ID+canonical SHA-256 fingerprint. A conflict fails and rolls back every new row; Spring AOP commits before ACK is returned.
+
+Production service accepts only bounded `agent_transport/collection_gap` events; `synthetic_test/protocol_fixture` is test-policy-only. **No actual HTTP ingestion controller, Caddy verified-client identity bridge, credential activation or real PostgreSQL 18 test has run.** Business endpoints remain denyAll. [SRV-03 acceptance matrix](../../docs/testing/server-event-ingestion-manual.md).
 
 ## AUTH-01 V5 credential/session hardening (unit verified; deployment NOT approved)
 
@@ -44,7 +50,7 @@ Spring Security's maintained form login/logout, HttpSession-based CSRF tokens an
 
 An explicitly opted-in **offline Java terminal** can provision exactly one first owner with one new assigned device group and an access audit entry. No default username, password, group or sensitive-data grants are seeded. The command refuses to run in a web application context, reads and confirms the **administrator password using `System.console().readPassword()`**, requires 16–128 characters, and clears its terminal char arrays after use. Spring Security stores only a salted, versioned Argon2id hash.
 
-**Requires a dedicated, isolated PostgreSQL 18 instance with Flyway V1–V5 already applied and trusted database credentials.** The following is a manual procedure, **NOT YET EXECUTED against PostgreSQL**. Use a local interactive terminal, not an IDE or CI shell without a console:
+**Requires a dedicated, isolated PostgreSQL 18 instance with Flyway V1–V6 already applied and trusted database credentials.** The following is a manual procedure, **NOT YET EXECUTED against PostgreSQL**. Use a local interactive terminal, not an IDE or CI shell without a console:
 
 ```sh
 cd apps/server

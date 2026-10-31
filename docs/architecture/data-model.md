@@ -1,6 +1,10 @@
 # Storage model and invariants
 
-**Status:** Conceptual schema, not executable migrations. PostgreSQL is the sole authoritative server database; Rust endpoints use local SQLite and persist only bounded delivery state. Media goes to local disk/NAS.
+**Status:** Conceptual schema partially implemented by `endpoint_events` Flyway V6; real PostgreSQL 18 migration/runtime and other projection tables remain unverified. PostgreSQL is the sole authoritative server database; Rust endpoints use local SQLite and persist only bounded delivery state. Media goes to local disk/NAS.
+
+## Executable SRV-03 V6 event model
+
+[Flyway V6](../../apps/server/src/main/resources/db/migration/V6__endpoint_events_atomic_ingestion.sql) implements canonical `endpoint_events` with JSONB, server-side receive time, both device-scoped uniqueness constraints and a mutation-blocking trigger. [JPA bulk ingestion](../../apps/server/src/main/java/com/lanveriq/server/events/JpaEventIngestionRepository.java) implements duplicate/conflict verification inside one transaction. **Not yet exercised against real PostgreSQL 18**; retention workflow requires a reviewed follow-up. [Acceptance](../testing/server-event-ingestion-manual.md).
 
 ## PostgreSQL entities
 | Entity | Key fields / constraints | Purpose |

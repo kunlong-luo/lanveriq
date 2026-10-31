@@ -1,6 +1,10 @@
 # Event delivery contract — v0.1
 
-**Status:** approved design with partial AGT-02 synthetic SQLx outbox and AGT-03 staged mTLS/ACK adapter; SRV-03 ingestion, real device activation, Caddy and live end-to-end validation NOT implemented. This document is the canonical design for endpoint sequence numbers, acknowledgments, replay and event/collector gaps. See [API](api-contract.md), [data model](data-model.md) and [Agent persistence](agent-persistence.md).
+**Status:** approved design with partial AGT-02 synthetic SQLx outbox and AGT-03 staged mTLS/ACK adapter; SRV-03 internal ingestion source exists; real device activation, Caddy and live end-to-end validation NOT implemented. This document is the canonical design for endpoint sequence numbers, acknowledgments, replay and event/collector gaps. See [API](api-contract.md), [data model](data-model.md) and [Agent persistence](agent-persistence.md).
+
+## SRV-03 internal source boundary
+
+[Spring JPA ingestion](../../apps/server/src/main/java/com/lanveriq/server/events/DeviceEventIngestionService.java) now validates the whole operational batch and rechecks active device/credential fingerprint under a PostgreSQL device lock, inserts canonical events via JSONB dedup and checks both identifiers plus immutable content digest before returning a full post-commit ACK. [Flyway V6](../../apps/server/src/main/resources/db/migration/V6__endpoint_events_atomic_ingestion.sql) provides the two unique identifiers and immutable-row trigger. **No actual REST endpoint, mTLS adapter, PostgreSQL 18 integration or live replay has been observed.** [Manual acceptance](../testing/server-event-ingestion-manual.md).
 
 ## Partial AGT-03 implementation boundary
 

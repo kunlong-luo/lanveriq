@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-31 — SRV-03 JPA atomic event ingestion foundation
+- Added Flyway V6 immutable canonical `endpoint_events` with native uuidv7(), PostgreSQL JSONB, two device-scoped unique keys and deny-UPDATE/DELETE trigger; no seeded events.
+- Added Spring Boot 4.1/Jackson 3 event DTOs and bounded operational-gap policy, active registered credential/device row locking, JPA PostgreSQL bulk `ON CONFLICT DO NOTHING` then mandatory exact event ID/sequence/digest comparison. Spring AOP commits before the complete ACK is exposed; conflicts roll back all rows.
+- Added Java 25 unit negatives for wrong identity, invalid order/schema/source, duplicate event IDs, reused sequence/changed digest, reused event ID/changed sequence, and transaction commit/rollback. Existing security denies all device business HTTP routes.
+- **Gate still open:** real PG18 Flyway V1–V6 concurrency, Caddy/mTLS fingerprint trust, real Agent upload and retention/backup verification. [Manual SRV-03 acceptance](docs/testing/server-event-ingestion-manual.md).
+
+
 ## 2026-10-31 — AGT-03 staged Rustls transport and durable batch identity
 - Added pinned Reqwest 0.13.5 Rustls-only HTTPS/mTLS client with exact agent origin, dedicated trusted CA, PEM certificate/private identity, HTTPS-only, no proxies/redirects, bounded timeouts/response size; typed synthetic heartbeat and batch envelope (no real OS collectors).
 - Added SQLx second migration for stable in-flight batch UUID and fingerprint; next attempt after response loss or restart reuses exact batch and excludes newer queued events. Local events are pruned only after full-sequence valid 200 response; 401/403 pause, 409 quarantine, 429/5xx backoff decision.
