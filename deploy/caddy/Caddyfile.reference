@@ -1,0 +1,58 @@
+# REFERENCE ONLY — DO NOT DEPLOY.
+# D-07 V0.1 single-host, isolated synthetic acceptance template.
+# No real Agent routes are implemented in Spring; default deny returns 403.
+# Before even a synthetic deployment, run caddy adapt / validate AND
+# prove hostname, HTTP/2 coalescing, mTLS, direct backend and revocation negatives.
+# Caddy must own TCP/443; Spring must bind 127.0.0.1:8080 on SAME host/namespace.
+# NEVER publish that port through Docker, VPN, or reverse NAT.
+# Mount a real approved DEDICATED PUBLIC CLIENT CA PEM at the path below;
+# do NOT use the Caddy internal *server* CA as the client-identity CA.
+{
+    admin off
+    auto_https disable_redirects
+    servers :443 {
+        protocols h1 h2
+        strict_sni_host on
+    }
+}
+
+# Browser console and pairing are deliberately NOT proxied in this example;
+# they retain independent hostnames without accidental Agent route access.
+console.lanveriq.internal {
+    tls internal
+    respond "Console not enabled in this reference configuration" 503
+}
+
+enroll.lanveriq.internal {
+    tls internal
+    respond "Pairing not enabled in this reference configuration" 503
+}
+
+agent.lanveriq.internal {
+    tls internal {
+        client_auth {
+            mode require_and_verify
+            trust_pool file /etc/lanveriq/pki/approved-client-ca.pem
+        }
+    }
+
+    # This list is a candidate for later approved handlers ONLY.
+    # Default-deny Spring Security blocks all these paths today.
+    @agentRoutes path /api/v1/devices/*/activate /api/v1/devices/*/heartbeats /api/v1/devices/*/event-batches /api/v1/devices/*/inventory
+    handle @agentRoutes {
+        reverse_proxy 127.0.0.1:8080 {
+            # Always strip the entire untrusted family before injecting the
+            # fingerprint of the TLS peer Caddy itself has just verified.
+            header_up -X-Lanveriq-Verified-Client-*
+            header_up -X-Forwarded-Client-Cert
+            header_up -SSL-Client-Cert
+            header_up X-Lanveriq-Verified-Client-Fingerprint {http.request.tls.client.fingerprint}
+            header_up Host agent.lanveriq.internal
+        }
+    }
+
+    # Unrecognized Agent routes fail at the edge.
+    handle {
+        respond "Unavailable" 404
+    }
+}
