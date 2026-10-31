@@ -146,10 +146,14 @@ class AgentIngressAssertionPolicyTest {
         }
     }
 
+    private int assertionCase;
+
     private void assertDenied(Consumer<MockHttpServletRequest> mutation) {
         var request = request();
         mutation.accept(request);
+        int scenario = ++assertionCase;
         assertThrows(SecurityException.class,
-                () -> policy.resolve(request, deviceId, "activate"));
+                () -> policy.resolve(request, deviceId, "activate"),
+                "Expected denial for synthetic request mutation #" + scenario);
     }
 }
