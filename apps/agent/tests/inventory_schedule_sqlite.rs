@@ -66,11 +66,16 @@ async fn retry_and_strict_pending_identity_survive_real_sqlite_restart() {
     store.close().await;
 
     let store = OutboxStore::open(&path).await.unwrap();
-    let recovery = store.load_inventory_schedule_recovery(device()).await.unwrap();
+    let recovery = store
+        .load_inventory_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(recovery.generation, 1);
-    assert_eq!(recovery.pending.as_ref().unwrap().snapshot_id, pending.snapshot_id);
-    let restarted =
-        InventoryScheduler::restore(device(), true, recovery.checkpoint).unwrap();
+    assert_eq!(
+        recovery.pending.as_ref().unwrap().snapshot_id,
+        pending.snapshot_id
+    );
+    let restarted = InventoryScheduler::restore(device(), true, recovery.checkpoint).unwrap();
     assert_eq!(
         restarted.decide(1001, true),
         ScheduleDecision::WaitUntil(deadline)
@@ -108,17 +113,22 @@ async fn checkpoint_is_device_bound_and_invalid_rows_fail_closed() {
     let path = dir.path().join("checkpoint.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
     let own = InventoryScheduleCheckpoint::initial(device()).unwrap();
-    assert_eq!(store.save_inventory_schedule_checkpoint(&own, 0).await.unwrap(), 1);
-    assert!(matches!(
+    assert_eq!(
         store
-            .load_inventory_schedule_recovery(Uuid::now_v7())
-            .await,
+            .save_inventory_schedule_checkpoint(&own, 0)
+            .await
+            .unwrap(),
+        1
+    );
+    assert!(matches!(
+        store.load_inventory_schedule_recovery(Uuid::now_v7()).await,
         Err(StoreError::InventoryConflict)
     ));
     assert!(matches!(
         store
             .save_inventory_schedule_checkpoint(
-                &InventoryScheduleCheckpoint::initial(Uuid::now_v7()).unwrap(), 1
+                &InventoryScheduleCheckpoint::initial(Uuid::now_v7()).unwrap(),
+                1
             )
             .await,
         Err(StoreError::InventoryConflict)
@@ -175,8 +185,7 @@ async fn identity_and_stale_acks_remain_paused_on_disk() {
             .load_inventory_schedule_recovery(device())
             .await
             .unwrap();
-        let restarted =
-            InventoryScheduler::restore(device(), true, recovered.checkpoint).unwrap();
+        let restarted = InventoryScheduler::restore(device(), true, recovered.checkpoint).unwrap();
         assert!(matches!(
             restarted.decide(24 * 60 * 60 * 10, true),
             ScheduleDecision::Halted(ScheduleHalt::Identity | ScheduleHalt::Quarantine)
@@ -187,18 +196,40 @@ async fn identity_and_stale_acks_remain_paused_on_disk() {
 #[tokio::test]
 async fn stale_writer_cannot_overwrite_new_pause_or_clear_halt() {
     let dir = tempfile::tempdir().unwrap();
-    let store = OutboxStore::open(&dir.path().join("cas.sqlite")).await.unwrap();
+    let store = OutboxStore::open(&dir.path().join("cas.sqlite"))
+        .await
+        .unwrap();
     let initial = InventoryScheduleCheckpoint::initial(device()).unwrap();
-    assert_eq!(store.save_inventory_schedule_checkpoint(&initial, 0).await.unwrap(), 1);
-    let old_view = store.load_inventory_schedule_recovery(device()).await.unwrap();
-    let mut paused = InventoryScheduler::restore(device(), true, old_view.checkpoint.clone()).unwrap();
-    paused.note_delivery_result(100, &DeliveryDisposition::PauseIdentity).unwrap();
-    assert_eq!(store.save_inventory_schedule_checkpoint(paused.checkpoint(), 1).await.unwrap(), 2);
+    assert_eq!(
+        store
+            .save_inventory_schedule_checkpoint(&initial, 0)
+            .await
+            .unwrap(),
+        1
+    );
+    let old_view = store
+        .load_inventory_schedule_recovery(device())
+        .await
+        .unwrap();
+    let mut paused =
+        InventoryScheduler::restore(device(), true, old_view.checkpoint.clone()).unwrap();
+    paused
+        .note_delivery_result(100, &DeliveryDisposition::PauseIdentity)
+        .unwrap();
+    assert_eq!(
+        store
+            .save_inventory_schedule_checkpoint(paused.checkpoint(), 1)
+            .await
+            .unwrap(),
+        2
+    );
     // A stale timeout/retry cannot overwrite a newer security halt.
     let mut stale = InventoryScheduler::restore(device(), true, old_view.checkpoint).unwrap();
     stale.note_transport_failure(110).unwrap();
     assert!(matches!(
-        store.save_inventory_schedule_checkpoint(stale.checkpoint(), 1).await,
+        store
+            .save_inventory_schedule_checkpoint(stale.checkpoint(), 1)
+            .await,
         Err(StoreError::InventoryConflict)
     ));
     // Even a caller with the current generation cannot silently unblock.
@@ -206,9 +237,15 @@ async fn stale_writer_cannot_overwrite_new_pause_or_clear_halt() {
         store.save_inventory_schedule_checkpoint(&initial, 2).await,
         Err(StoreError::InventoryConflict)
     ));
-    let recovered = store.load_inventory_schedule_recovery(device()).await.unwrap();
+    let recovered = store
+        .load_inventory_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(recovered.generation, 2);
-    assert_eq!(recovered.checkpoint.unwrap().halted, Some(ScheduleHalt::Identity));
+    assert_eq!(
+        recovered.checkpoint.unwrap().halted,
+        Some(ScheduleHalt::Identity)
+    );
 }
 
 #[tokio::test]
@@ -217,12 +254,21 @@ async fn checkpoint_deleted_after_first_save_does_not_reset_retry_or_halt() {
     let db = dir.path().join("missing.sqlite");
     let store = OutboxStore::open(&db).await.unwrap();
     let mut scheduler = InventoryScheduler::restore(device(), true, None).unwrap();
-    scheduler.note_delivery_result(5, &DeliveryDisposition::Quarantine).unwrap();
-    store.save_inventory_schedule_checkpoint(scheduler.checkpoint(), 0).await.unwrap();
+    scheduler
+        .note_delivery_result(5, &DeliveryDisposition::Quarantine)
+        .unwrap();
+    store
+        .save_inventory_schedule_checkpoint(scheduler.checkpoint(), 0)
+        .await
+        .unwrap();
     store.close().await;
-    let pool = sqlx::SqlitePool::connect(&format!("sqlite:{}", db.display())).await.unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite:{}", db.display()))
+        .await
+        .unwrap();
     sqlx::query("DELETE FROM inventory_schedule_checkpoint WHERE singleton=1")
-        .execute(&pool).await.unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
     pool.close().await;
     let store = OutboxStore::open(&db).await.unwrap();
     assert!(matches!(
@@ -242,21 +288,33 @@ async fn injected_sqlite_write_failure_rolls_back_entire_checkpoint() {
     let db = dir.path().join("rollback.sqlite");
     let store = OutboxStore::open(&db).await.unwrap();
     let initial = InventoryScheduleCheckpoint::initial(device()).unwrap();
-    store.save_inventory_schedule_checkpoint(&initial, 0).await.unwrap();
-    let pool = sqlx::SqlitePool::connect(&format!("sqlite:{}", db.display())).await.unwrap();
+    store
+        .save_inventory_schedule_checkpoint(&initial, 0)
+        .await
+        .unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite:{}", db.display()))
+        .await
+        .unwrap();
     sqlx::query(
         "CREATE TRIGGER synthetic_fail_checkpoint BEFORE UPDATE ON inventory_schedule_checkpoint \
-         BEGIN SELECT RAISE(ABORT, 'synthetic checkpoint write failure'); END"
+         BEGIN SELECT RAISE(ABORT, 'synthetic checkpoint write failure'); END",
     )
-    .execute(&pool).await.unwrap();
+    .execute(&pool)
+    .await
+    .unwrap();
     pool.close().await;
     let mut scheduler = InventoryScheduler::restore(device(), true, Some(initial.clone())).unwrap();
     scheduler.note_transport_failure(10).unwrap();
     assert!(matches!(
-        store.save_inventory_schedule_checkpoint(scheduler.checkpoint(), 1).await,
+        store
+            .save_inventory_schedule_checkpoint(scheduler.checkpoint(), 1)
+            .await,
         Err(StoreError::Database(_))
     ));
-    let recovered = store.load_inventory_schedule_recovery(device()).await.unwrap();
+    let recovered = store
+        .load_inventory_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(recovered.generation, 1);
     assert_eq!(recovered.checkpoint, Some(initial));
 }
@@ -266,13 +324,19 @@ async fn corrupted_outbox_blocks_schedule_recovery_and_checkpoint_writes() {
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("outbox-corruption.sqlite");
     let store = OutboxStore::open(&db).await.unwrap();
-    store.stage_inventory_snapshot(
-        device(), "2026-10-31T00:00:00Z", synthetic_assets()
-    ).await.unwrap();
+    store
+        .stage_inventory_snapshot(device(), "2026-10-31T00:00:00Z", synthetic_assets())
+        .await
+        .unwrap();
     let initial = InventoryScheduleCheckpoint::initial(device()).unwrap();
-    store.save_inventory_schedule_checkpoint(&initial, 0).await.unwrap();
+    store
+        .save_inventory_schedule_checkpoint(&initial, 0)
+        .await
+        .unwrap();
     store.close().await;
-    let pool = sqlx::SqlitePool::connect(&format!("sqlite:{}", db.display())).await.unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite:{}", db.display()))
+        .await
+        .unwrap();
     sqlx::query(
         "UPDATE inventory_pending SET body_json = json_set(body_json, '$.os.family', 'windows') WHERE singleton=1"
     ).execute(&pool).await.unwrap();

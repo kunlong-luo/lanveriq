@@ -635,11 +635,10 @@ impl OutboxStore {
         )
         .fetch_optional(&mut *tx)
         .await?;
-        let ever_saved: i64 = sqlx::query_scalar(
-            "SELECT inventory_schedule_seen FROM agent_state WHERE singleton=1",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        let ever_saved: i64 =
+            sqlx::query_scalar("SELECT inventory_schedule_seen FROM agent_state WHERE singleton=1")
+                .fetch_one(&mut *tx)
+                .await?;
         if !matches!((ever_saved, row.is_some()), (0, false) | (1, true)) {
             // Do not reset a lost identity pause/backoff to first-start state.
             return Err(StoreError::InventoryConflict);
@@ -686,11 +685,10 @@ impl OutboxStore {
         )
         .fetch_optional(&mut *tx)
         .await?;
-        let ever_saved: i64 = sqlx::query_scalar(
-            "SELECT inventory_schedule_seen FROM agent_state WHERE singleton=1",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        let ever_saved: i64 =
+            sqlx::query_scalar("SELECT inventory_schedule_seen FROM agent_state WHERE singleton=1")
+                .fetch_one(&mut *tx)
+                .await?;
         if !matches!((ever_saved, current.is_some()), (0, false) | (1, true)) {
             return Err(StoreError::InventoryConflict);
         }
@@ -730,12 +728,11 @@ impl OutboxStore {
         if affected != 1 {
             return Err(StoreError::InventoryConflict);
         }
-        let marker_written = sqlx::query(
-            "UPDATE agent_state SET inventory_schedule_seen=1 WHERE singleton=1",
-        )
-        .execute(&mut *tx)
-        .await?
-        .rows_affected();
+        let marker_written =
+            sqlx::query("UPDATE agent_state SET inventory_schedule_seen=1 WHERE singleton=1")
+                .execute(&mut *tx)
+                .await?
+                .rows_affected();
         if marker_written != 1 {
             return Err(StoreError::InventoryConflict);
         }
