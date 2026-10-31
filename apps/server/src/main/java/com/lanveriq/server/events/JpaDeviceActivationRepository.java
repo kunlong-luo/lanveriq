@@ -40,14 +40,14 @@ final class JpaDeviceActivationRepository implements DeviceActivationRepository 
                 WHERE d.id=:device_id
                   AND c.client_cert_sha256_fingerprint=:fingerprint
                   AND d.revoked_at IS NULL AND c.revoked_at IS NULL
-                  AND c.issued_at<=CURRENT_TIMESTAMP
-                  AND c.expires_at>CURRENT_TIMESTAMP
+                  AND c.issued_at<=clock_timestamp()
+                  AND c.expires_at>clock_timestamp()
                   AND c.csr_spki_digest=r.csr_spki_digest
                   AND r.reviewed_by IS NOT NULL AND r.reviewed_at IS NOT NULL
                   AND (
                     (d.enrollment_state='pending_certificate'
                         AND c.status='pending'
-                        AND r.pending_expires_at>CURRENT_TIMESTAMP)
+                        AND r.pending_expires_at>clock_timestamp())
                     OR (d.enrollment_state='active' AND c.status='active')
                   )
                 FOR UPDATE OF d
@@ -76,8 +76,8 @@ final class JpaDeviceActivationRepository implements DeviceActivationRepository 
                 WHERE device_id=:device_id
                   AND client_cert_sha256_fingerprint=:fingerprint
                   AND status='pending' AND revoked_at IS NULL
-                  AND issued_at<=CURRENT_TIMESTAMP
-                  AND expires_at>CURRENT_TIMESTAMP
+                  AND issued_at<=clock_timestamp()
+                  AND expires_at>clock_timestamp()
                 """)
                 .setParameter("device_id", deviceId)
                 .setParameter("fingerprint", verifiedPeer.sha256Fingerprint())

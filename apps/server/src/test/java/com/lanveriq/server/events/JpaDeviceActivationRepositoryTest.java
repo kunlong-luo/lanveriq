@@ -54,11 +54,11 @@ class JpaDeviceActivationRepositoryTest {
         var sql = ArgumentCaptor.forClass(String.class);
         verify(manager, Mockito.times(3)).createNativeQuery(sql.capture());
         assertTrue(sql.getAllValues().get(0).contains("FOR UPDATE OF d"));
-        assertTrue(sql.getAllValues().get(0).contains("r.pending_expires_at>CURRENT_TIMESTAMP"));
+        assertTrue(sql.getAllValues().get(0).contains("r.pending_expires_at>clock_timestamp()"));
         assertTrue(sql.getAllValues().get(0).contains("r.reviewed_by IS NOT NULL"));
         assertTrue(sql.getAllValues().get(0).contains("c.csr_spki_digest=r.csr_spki_digest"));
         assertTrue(sql.getAllValues().get(0).contains("c.revoked_at IS NULL"));
-        assertTrue(sql.getAllValues().get(0).contains("c.expires_at>CURRENT_TIMESTAMP"));
+        assertTrue(sql.getAllValues().get(0).contains("c.expires_at>clock_timestamp()"));
         verify(lock).setParameter("fingerprint", peer.sha256Fingerprint());
         verify(credentialUpdate).executeUpdate();
         verify(deviceUpdate).executeUpdate();
