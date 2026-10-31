@@ -504,3 +504,7 @@ impl AgentTlsTransport {
         Ok(disposition)
     }
 }
+
+#[cfg(test)]
+#[path = "transport_inventory_tests.rs"]
+mod inventory_transport_tests;
