@@ -1,6 +1,6 @@
-# Lanveriq Agent — AGT-01 lifecycle + AGT-02 synthetic persistence foundation
+# Lanveriq Agent — AGT-01 lifecycle, AGT-02 SQLite and staged AGT-03 transport
 
-**D0-approved V0.1 coding slice, not a deployed or usable endpoint monitor.** This service performs **no network requests, enrollment, heartbeat, real inventory/audit collection, input monitoring or screen recording**. The AGT-01 binary remains an idle loop. AGT-02 adds a standalone SQLite persistence module used by synthetic unit tests; the module is **not** called by the Agent service.
+**D0-approved V0.1 coding slice, not a deployed or usable endpoint monitor.** This service performs **no network requests, enrollment, heartbeat, real inventory/audit collection, input monitoring or screen recording**. The AGT-01 binary remains an idle loop. AGT-02 adds a standalone SQLite persistence module used by synthetic unit tests; AGT-03 now stages an **unwired, explicitly constructed** HTTPS/mTLS client. Neither module is called by the normal Agent service.
 
 ## Toolchain and dependencies
 
@@ -14,6 +14,12 @@ cargo build --release --locked -p lanveriq-agent
 ```
 
 The committed root `Cargo.lock` pins transitive dependencies. Tokio supplies the async runtime/signal handling; Serde + TOML enforce the versioned schema; Clap parses the command line; tracing supplies diagnostics; Windows SCM events use `windows-service` 0.8.1. No custom async worker, service manager, TLS implementation or collector is introduced. AGT-02 adds SQLx 0.9.0, `uuid`, `serde_json`, `sha2` and a pinned bundled `libsqlite3-sys =0.37.0` with the WAL-reset fix.
+
+## AGT-03 source: strict mTLS and batch ACK (NOT NETWORK TESTED)
+
+`transport.rs` uses maintained `reqwest =0.13.5` with Rustls to require the exact `https://agent.lanveriq.internal` origin, a dedicated trust-only CA and a PEM client identity. HTTPS-only, no redirects/proxies, bounded timeouts and response sizes; no TLS verification bypass. `Heartbeat` is typed but synthetic and declares unavailable source capabilities as `not_collected`. Event batches are built from the AGT-02 SQLite synthetic fixtures, never arbitrary OS activity. `upload_batches` SQLx migration persists a stable batch UUID and its exact event selection across timeouts and restarts, even when new events arrive. Only a complete, validated 200 ACK deletes explicitly confirmed sequences; 401/403 pause, 409 quarantines and 429/5xx return retry instructions without any immediate retry loop.
+
+**Not implemented:** storing client keys in approved OS service custody, server-side mTLS identity/fingerprint binding, SRV-03 ingestion, authorized device activation, endpoint network requests from the Agent binary, real heartbeats, collection, retry scheduler and real TLS/OS integration tests. [AGT-03 manual acceptance](../../docs/testing/agent-transport-manual.md). No production deployment or real employee-data collection.
 
 ## Local console-only smoke
 

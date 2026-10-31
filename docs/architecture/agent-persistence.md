@@ -2,6 +2,10 @@
 
 **Status:** D0 design with partial AGT-02 SQLx synthetic persistence source; production and real OS evidence remain open. **Selected:** **SQLx 0.9 SQLite** + patched bundled SQLite WAL + one serialized write connection; supersedes the rusqlite blocking-worker proposal under [ADR-0007](adrs/0007-mature-ecosystem-first.md). Inspired by Pagevela's single ordered persistence coordinator, but backend is SQLite, not browser IndexedDB. Canonical acknowledgment semantics are specified in [Event Delivery](event-delivery.md).
 
+## AGT-03 durable in-flight batch state (synthetic-only)
+
+The second SQLx migration adds a single-outstanding `upload_batches` row to persist `batch_id` and the immutable selected event fingerprint. An ambiguous network response or additional queued events cannot regenerate a different batch identity; after a verified complete ACK the stored batch is cleared transactionally with acknowledged rows. [Transport and manual acceptance](../testing/agent-transport-manual.md). No live upload client or agent service scheduler is running.
+
 ## AGT-02 current code boundary
 
 [Standalone Agent SQLite implementation](../../apps/agent/src/store.rs) now has SQLx embedded migrations for `agent_state`, `outbox_events`, `collector_cursors`, `collection_gaps` and `inventory_pending`. Only `synthetic_test/protocol_fixture` may enter the current outbox; the executable still does not load or write this DB. The current SHA-256 content digest is of compact deterministic serde_json payload bytes; exact cross-language wire-envelope canonicalization must be frozen before AGT-03/SRV-03. Real collectors, server ACK validation, upload batches, retry state, inventory collectors, live checkpoint scheduler, integrity diagnostics and SQLite backup/repair are NOT implemented. A single SQLx pool connection plus transactional changes is tested with real local SQLite files, not just mocks. [AGT-02 manual tests](../testing/agent-sqlite-manual.md) remain open on actual endpoint OS and power-failure conditions.

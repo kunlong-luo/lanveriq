@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-31 — AGT-03 staged Rustls transport and durable batch identity
+- Added pinned Reqwest 0.13.5 Rustls-only HTTPS/mTLS client with exact agent origin, dedicated trusted CA, PEM certificate/private identity, HTTPS-only, no proxies/redirects, bounded timeouts/response size; typed synthetic heartbeat and batch envelope (no real OS collectors).
+- Added SQLx second migration for stable in-flight batch UUID and fingerprint; next attempt after response loss or restart reuses exact batch and excludes newer queued events. Local events are pruned only after full-sequence valid 200 response; 401/403 pause, 409 quarantine, 429/5xx backoff decision.
+- **Boundary:** normal Agent executable never connects or sends, real OS key custody/active cert is missing, SRV-03 server API not yet implemented, no real Caddy/PG18/TLS integration or supported production monitoring. [Manual acceptance](docs/testing/agent-transport-manual.md).
+
+
 ## 2026-10-31 — AGT-02 synthetic SQLx WAL outbox
 - Added SQLx 0.9.0 and `libsqlite3-sys =0.37.0` patched bundled SQLite; committed Cargo.lock. AGT-02 standalone synthetic-only SQLite migration and single-connection WAL/FULL storage are not invoked from the Agent service.
 - Added atomic persisted event/sequence/cursor with UUIDv7, SHA-256 payload digest, durable replay, explicit sparse ACK, synthetic bounded quota-gap reporting, latest-only inventory snapshots with independent revisions, and unit tests for failure rollback and invalid fixtures.

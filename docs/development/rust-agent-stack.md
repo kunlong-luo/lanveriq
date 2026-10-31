@@ -27,6 +27,10 @@
 
 [Agent lifecycle source](../../apps/agent/README.md) uses pinned Rust 1.94.0 and a committed `Cargo.lock`: Tokio 1.54.1, Serde/TOML, Clap, tracing and Windows `windows-service` 0.8.1. The runtime is cancellable, Linux reacts to SIGTERM, and Windows supports the SCM Stop/Running/Stopped lifecycle through the maintained crate. Configuration has no secrets, network addresses, collection options or implicit defaults. Both Windows and Linux service smoke remain **NOT TESTED ON ACTUAL DEVICES**. reqwest/rustls, os_info and sysinfo are **not yet installed**; SQLx 0.9.0, uuid, serde_json, sha2 and pinned bundled SQLite 3.51.3 via `libsqlite3-sys =0.37.0` are present for AGT-02 synthetic persistence; they belong to feature slices that actually use them. [AGT-01 test plan](../testing/agent-lifecycle-manual.md).
 
+## AGT-03 staged Reqwest/Rustls source (not active)
+
+[Agent transport adapter](../../apps/agent/src/transport.rs) uses pinned `reqwest =0.13.5` and Rustls, strict single-purpose HTTPS origin, server trust CA only, operator-approved PEM client identity, no redirect/proxy, bounded timeouts, wire DTOs, exact all-or-nothing ACK and status classification. [Manual TLS/identity/negative cases](../testing/agent-transport-manual.md) remain open. The executable does not call it; no live TLS/PG18/Caddy integration or production key custody, upload scheduler, genuine heartbeat or device identity binding is implemented.
+
 ## AGT-02 implemented partial SQLx migration and WAL outbox
 
 [AGT-02 source](../../apps/agent/src/store.rs) uses SQLx 0.9.0, a single pooled SQLite connection, embedded SQLx migration, WAL + synchronous FULL, foreign keys and bounded synthetic outbox with atomic cursor/sequence and sparse ACK. `libsqlite3-sys =0.37.0` is pinned and bundles the upstream 3.51.3 WAL-reset fix; runtime reads `SELECT sqlite_version()` and fails closed if the version is older/withdrawn. Real disk pressure/power failures, cross-language payload digest, server ACK identity, installed-service filesystem permissions and actual OS backup/restore are **not accepted**. [AGT-02 test gates](../testing/agent-sqlite-manual.md).

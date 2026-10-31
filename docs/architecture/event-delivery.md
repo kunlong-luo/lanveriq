@@ -1,6 +1,10 @@
 # Event delivery contract — v0.1
 
-**Status:** proposed architecture; no implementation. This document is the canonical design for endpoint sequence numbers, acknowledgments, replay and event/collector gaps. See [API](api-contract.md), [data model](data-model.md) and [Agent persistence](agent-persistence.md).
+**Status:** approved design with partial AGT-02 synthetic SQLx outbox and AGT-03 staged mTLS/ACK adapter; SRV-03 ingestion, real device activation, Caddy and live end-to-end validation NOT implemented. This document is the canonical design for endpoint sequence numbers, acknowledgments, replay and event/collector gaps. See [API](api-contract.md), [data model](data-model.md) and [Agent persistence](agent-persistence.md).
+
+## Partial AGT-03 implementation boundary
+
+The Rust module `apps/agent/src/transport.rs` builds a canonical **synthetic_test/protocol_fixture only** event envelope and strict full-batch ACK classifier; SQLx `upload_batches` persists one stable in-flight batch identity. HTTP timeouts or malformed/non-200 responses do not remove local records. This source is not wired into the Agent executable; there is no live identity/certificate custody, retry scheduler or PostgreSQL whole-batch ingestion yet. [Unexecuted TLS/ACK acceptance](../testing/agent-transport-manual.md).
 
 ## Identity and event model
 - An enrollment creates a unique **device_id** and local persisted monotonic **device_sequence** counter starting at 1; the server does not infer hardware identity from serial number, MAC or fingerprint.
