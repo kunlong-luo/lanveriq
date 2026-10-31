@@ -9,6 +9,9 @@ import static org.mockito.Mockito.when;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -259,5 +262,134 @@ class PostgreSqlDeviceRevocationIT {
                 SELECT status FROM device_credentials WHERE device_id=:device
                 """));
         assertEquals(1L, auditCount());
+    }
+
+    @Test
+    void silentlyDroppedAuditInsertRollsBackRevocationAndPermitsRetry() {
+        var tx = new TransactionTemplate(transactions);
+        tx.executeWithoutResult(ignored -> {
+            manager.createNativeQuery("""
+                    CREATE FUNCTION synthetic_revoke_audit_suppress()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                      IF NEW.action = 'device.revoke' THEN
+                        RETURN NULL;
+                      END IF;
+                      RETURN NEW;
+                    END
+                    $$
+                    """).executeUpdate();
+            manager.createNativeQuery("""
+                    CREATE TRIGGER synthetic_revoke_audit_suppress
+                    BEFORE INSERT ON admin_access_log
+                    FOR EACH ROW EXECUTE FUNCTION synthetic_revoke_audit_suppress()
+                    """).executeUpdate();
+        });
+        try {
+            assertThrows(AccessDeniedException.class, () -> revocation.revoke(deviceId));
+            assertEquals("active", state("""
+                    SELECT enrollment_state FROM devices WHERE id=:device
+                    """));
+            assertEquals("active", state("""
+                    SELECT status FROM device_credentials WHERE device_id=:device
+                    """));
+            assertEquals(0L, auditCount());
+        } finally {
+            tx.executeWithoutResult(ignored -> {
+                manager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS synthetic_revoke_audit_suppress
+                        ON admin_access_log
+                        """).executeUpdate();
+                manager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS synthetic_revoke_audit_suppress()
+                        """).executeUpdate();
+            });
+        }
+        assertTrue(revocation.revoke(deviceId));
+        assertEquals("revoked", state("""
+                SELECT enrollment_state FROM devices WHERE id=:device
+                """));
+        assertEquals("revoked", state("""
+                SELECT status FROM device_credentials WHERE device_id=:device
+                """));
+        assertEquals(1L, auditCount());
+    }
+
+    @Test
+    void disablingAdminWhileRevocationWaitsForDeviceLockDeniesWithoutMutation()
+            throws Exception {
+        var holderHasLock = new CountDownLatch(1);
+        var releaseHolder = new CountDownLatch(1);
+        var workerStarted = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var holder = pool.submit(() ->
+                    new TransactionTemplate(transactions).executeWithoutResult(ignored -> {
+                        manager.createNativeQuery("""
+                                SELECT id FROM devices WHERE id=:device
+                                FOR UPDATE
+                                """).setParameter("device", deviceId).getSingleResult();
+                        holderHasLock.countDown();
+                        try {
+                            if (!releaseHolder.await(25, TimeUnit.SECONDS)) {
+                                throw new IllegalStateException("Synthetic device lock timed out");
+                            }
+                        } catch (InterruptedException error) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(error);
+                        }
+                    }));
+            try {
+                assertTrue(holderHasLock.await(15, TimeUnit.SECONDS));
+                var revokeAttempt = pool.submit(() -> {
+                    // Spring SecurityContext is thread-local by design.
+                    loginAs(adminId);
+                    try {
+                        workerStarted.countDown();
+                        return assertThrows(AccessDeniedException.class,
+                                () -> revocation.revoke(deviceId));
+                    } finally {
+                        SecurityContextHolder.clearContext();
+                    }
+                });
+                assertTrue(workerStarted.await(15, TimeUnit.SECONDS));
+
+                // Verify the revocation query is actually blocked on the
+                // device row before changing the admin user. This avoids
+                // a false-positive test that only checked sequential writes.
+                boolean blocked = false;
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+                while (System.nanoTime() < deadline) {
+                    long waiting = ((Number) manager.createNativeQuery("""
+                            SELECT COUNT(*) FROM pg_stat_activity
+                            WHERE datname=current_database()
+                              AND wait_event_type='Lock'
+                              AND query LIKE '%SELECT d.enrollment_state%'
+                            """).getSingleResult()).longValue();
+                    if (waiting > 0) {
+                        blocked = true;
+                        break;
+                    }
+                    Thread.sleep(50);
+                }
+                assertTrue(blocked, "Must observe real PostgreSQL lock wait");
+                new TransactionTemplate(transactions).executeWithoutResult(ignored ->
+                        manager.createNativeQuery("""
+                                UPDATE users SET disabled_at=clock_timestamp()
+                                WHERE id=:admin
+                                """).setParameter("admin", adminId).executeUpdate());
+                releaseHolder.countDown();
+                holder.get(25, TimeUnit.SECONDS);
+                revokeAttempt.get(25, TimeUnit.SECONDS);
+            } finally {
+                releaseHolder.countDown();
+            }
+        }
+        assertEquals("active", state("""
+                SELECT enrollment_state FROM devices WHERE id=:device
+                """));
+        assertEquals("active", state("""
+                SELECT status FROM device_credentials WHERE device_id=:device
+                """));
+        assertEquals(0L, auditCount());
     }
 }
