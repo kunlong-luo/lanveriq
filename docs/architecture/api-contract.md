@@ -13,6 +13,8 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 
 **Generated OpenAPI gate (synthetic-only):** The Springdoc annotations on `GET /api/v1/devices` and `GET /api/v1/devices/{deviceId}` are now exercised by a dedicated CI test that creates an actual `build/contracts/openapi.json` from `/v3/api-docs` within an isolated Boot MVC test context. A separate fail-closed verifier checks paths, methods, cookie security and field allowlists. The candidate JSON may be used to prototype Orval clients after CI succeeds, but does **not** yet prove real PostgreSQL/HTTPS/browser session integration, and does not turn on docs in the production application.
 
+**Executed synthetic contract evidence (2026-10-31):** [Server CI #41190792718](https://github.com/kunlong-luo/lanveriq/actions/runs/41190792718) passed on commit `050610d222d6125fc49ff060ea80cd69d223b7e3`. The actual Springdoc-generated `openapi.json` for `GET /devices` and `GET /devices/{deviceId}` was validated against the exact two-route/GET-only/session-cookie/response-field contract and uploaded as the 14-day artifact `lanveriq-device-openapi-050610d222d6125fc49ff060ea80cd69d223b7e3`. This validates **source-generated metadata in a synthetic Boot MVC context only**, not live database row authorization, a signed HTTPS connection, accepted production browser sessions or a finished Orval client. Swagger and API docs remain OFF in default server config.
+
 ## Device API
 | Method | Path | Principal | Semantics |
 |---|---|---|---|

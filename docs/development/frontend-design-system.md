@@ -2,7 +2,7 @@
 
 **Status:** planned, not installed. Product visuals are in [visual gallery](../visuals/README.md) and standardized by [STYLE_GUIDE](../visuals/STYLE_GUIDE.md). Visual drawings do not replace real components.
 
-**V0.1 backend contract milestone:** The Spring Boot device-read controller now has a synthetic-only Springdoc OpenAPI generation and strict CI validation path. A successful CI run provides a versioned `openapi.json` artifact suitable for a future Orval trial without opening the backend's docs endpoint. This is still not a completed React project or a production-accepted API; real PostgreSQL, HTTPS and cookie/session acceptance are separate.
+**V0.1 backend contract milestone:** The Spring Boot device-read controller now has a synthetic-only Springdoc OpenAPI generation and strict CI validation path. [Java CI #41190792718](https://github.com/kunlong-luo/lanveriq/actions/runs/41190792718) has **actually passed** Springdoc generation, JSON drift validation and contract artifact upload; that versioned `openapi.json` is suitable for a future Orval trial without opening the backend's docs endpoint. This is still not a completed React project or a production-accepted API; real PostgreSQL, HTTPS and cookie/session acceptance are separate.
 
 ## Stack
 - **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, **not** an application framework.
