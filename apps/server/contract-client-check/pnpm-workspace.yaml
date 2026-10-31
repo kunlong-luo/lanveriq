@@ -1,0 +1,6 @@
+# Keep dependency installation fail-closed. Only the reviewed, build-required
+# esbuild package may execute an install script; all others need fresh review.
+packages:
+  - '.'
+allowBuilds:
+  esbuild: true
