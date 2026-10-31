@@ -364,8 +364,8 @@ impl OutboxStore {
         )
         .fetch_optional(&mut *tx)
         .await?;
-        let pending: Option<(String, i64, String)> = sqlx::query_as(
-            "SELECT snapshot_id,inventory_revision,body_json \
+        let pending: Option<(String, i64, String, String)> = sqlx::query_as(
+            "SELECT snapshot_id,inventory_revision,body_json,content_digest \
              FROM inventory_pending WHERE singleton=1",
         )
         .fetch_optional(&mut *tx)
