@@ -48,22 +48,22 @@ pub enum DeliveryDisposition {
 
 #[derive(Debug, Serialize)]
 pub struct EventBatch {
-    pub schema_version: u32,
-    pub batch_id: Uuid,
-    pub device_id: Uuid,
-    pub events: Vec<EventWire>,
+    schema_version: u32,
+    batch_id: Uuid,
+    device_id: Uuid,
+    events: Vec<EventWire>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct EventWire {
-    pub event_id: Uuid,
-    pub device_sequence: i64,
-    pub schema_version: u32,
-    pub source: &'static str,
-    pub event_type: &'static str,
-    pub policy_version: i64,
-    pub occurred_at: String,
-    pub payload: serde_json::Value,
+    event_id: Uuid,
+    device_sequence: i64,
+    schema_version: u32,
+    source: &'static str,
+    event_type: &'static str,
+    policy_version: i64,
+    occurred_at: String,
+    payload: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -372,7 +372,7 @@ impl AgentTlsTransport {
 
     /// One network attempt per call; caller schedules bounded retry/backoff.
     /// This method deletes local entries ONLY after full validated 200 ACK.
-    pub async fn send_synthetic_batch(
+    async fn send_synthetic_batch(
         &self,
         store: &OutboxStore,
         batch: &EventBatch,
