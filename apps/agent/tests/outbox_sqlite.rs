@@ -135,3 +135,38 @@ async fn invalid_fixtures_leave_cursor_and_sequence_unchanged() {
     assert_eq!(store.next_sequence().await.unwrap(), 1);
     assert!(store.cursor().await.unwrap().is_none());
 }
+
+#[tokio::test]
+async fn prepared_batch_identity_and_membership_survive_retry_and_restart() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("prepared.sqlite");
+    let first = Uuid::now_v7();
+    let second = Uuid::now_v7();
+    let store = OutboxStore::open(&file).await.unwrap();
+    assert!(store.prepare_synthetic_batch().await.unwrap().is_none());
+    store.append_synthetic(&fixture(first, 1)).await.unwrap();
+    let prepared = store.prepare_synthetic_batch().await.unwrap().unwrap();
+    assert_eq!(prepared.events.len(), 1);
+    assert_eq!(prepared.events[0].event_id, first);
+    let batch_id = prepared.batch_id;
+    // An incoming event must NOT expand an outstanding ambiguous-timeout batch.
+    store.append_synthetic(&fixture(second, 2)).await.unwrap();
+    let retry = store.prepare_synthetic_batch().await.unwrap().unwrap();
+    assert_eq!(retry.batch_id, batch_id);
+    assert_eq!(retry.events.len(), 1);
+    store.close().await;
+
+    let recovered = OutboxStore::open(&file).await.unwrap();
+    let retry = recovered.prepare_synthetic_batch().await.unwrap().unwrap();
+    assert_eq!(retry.batch_id, batch_id);
+    assert_eq!(retry.events[0].event_id, first);
+    // Only an externally validated ACK would invoke this low-level method.
+    assert_eq!(recovered.acknowledge(&[1]).await.unwrap(), 1);
+    let next = recovered.prepare_synthetic_batch().await.unwrap().unwrap();
+    assert_ne!(next.batch_id, batch_id);
+    assert_eq!(next.events.len(), 1);
+    assert_eq!(next.events[0].event_id, second);
+    assert_eq!(next.events[0].sequence, 2);
+    assert_eq!(recovered.acknowledge(&[2]).await.unwrap(), 1);
+    assert!(recovered.prepare_synthetic_batch().await.unwrap().is_none());
+}
