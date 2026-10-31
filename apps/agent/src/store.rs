@@ -1,4 +1,6 @@
-//! Synthetic-only SQLx WAL outbox. No telemetry collector or network path.
+//! SQLx WAL outbox with synthetic events and local-only typed inventory.
+//! Neither path is connected to Agent service scheduling or network I/O.
+use crate::inventory::{InventorySnapshot, RawInventory};
 use sha2::{Digest, Sha256};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 use sqlx::{Row, SqlitePool};
@@ -19,6 +21,10 @@ pub enum StoreError {
     UnsafeSqlite,
     #[error("invalid synthetic fixture")]
     InvalidFixture,
+    #[error("invalid normalized inventory")]
+    Inventory(#[from] crate::inventory::InventoryError),
+    #[error("inventory belongs to a different enrolled device or has conflicting state")]
+    InventoryConflict,
     #[error("outbox full; gap recorded if space available")]
     QueueFull,
     #[error("duplicate event identity")]
@@ -55,6 +61,14 @@ pub struct PendingInventory {
     pub snapshot_id: Uuid,
     pub revision: i64,
     pub body_json: String,
+}
+
+/// Local staging outcomes. No outcome implies remote upload or server ACK.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InventoryStage {
+    Staged(PendingInventory),
+    AlreadyPending(PendingInventory),
+    Unchanged,
 }
 
 #[derive(Debug, Clone)]
@@ -316,6 +330,184 @@ impl OutboxStore {
             .await?)
     }
 
+    /// Local-only INV-01-C durable snapshot selection. Never reads the OS:
+    /// callers must provide approved, normalized whitelist data explicitly.
+    ///
+    /// Content digest intentionally excludes observed_at, snapshot_id and
+    /// inventory_revision; their volatility must not create false changes.
+    /// Latest semantic digest survives ACK and process restarts. One SQLite
+    /// transaction owns all state changes and the pending wire JSON.
+    pub async fn stage_inventory_snapshot(
+        &self,
+        device_id: Uuid,
+        observed_at: &str,
+        raw: RawInventory,
+    ) -> Result<InventoryStage, StoreError> {
+        // Normalization is also the only allowed JSON field boundary. Never
+        // accept arbitrary user-supplied JSON or identity from the raw data.
+        let mut body = InventorySnapshot::from_raw(
+            device_id,
+            Uuid::now_v7(),
+            1,
+            observed_at.to_owned(),
+            raw,
+        )?;
+        let semantic_json = serde_json::to_vec(&(
+            &body.device_id,
+            &body.hardware,
+            &body.os,
+            &body.interfaces,
+            &body.volumes,
+            &body.capabilities,
+        ))?;
+        let semantic_digest = format!("{:x}", Sha256::digest(&semantic_json));
+
+        let mut tx = self.pool.begin().await?;
+        let latest: Option<(String, String, i64, String)> = sqlx::query_as(
+            "SELECT device_id,snapshot_id,inventory_revision,semantic_digest \
+             FROM inventory_latest_state WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        let pending: Option<(String, i64, String)> = sqlx::query_as(
+            "SELECT snapshot_id,inventory_revision,body_json \
+             FROM inventory_pending WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        if let Some((ref owner, ref previous_id, last_revision, ref digest)) = latest {
+            if owner != &device_id.to_string() {
+                return Err(StoreError::InventoryConflict);
+            }
+            if let Some((ref queued_id, queued_rev, _)) = pending {
+                if queued_id != previous_id || queued_rev != last_revision {
+                    // Do not overwrite an orphaned/legacy pending payload:
+                    // it might still require an explicit acknowledgement.
+                    return Err(StoreError::InventoryConflict);
+                }
+            }
+            if digest == &semantic_digest {
+                return match pending {
+                    Some((id, revision, json)) => Ok(InventoryStage::AlreadyPending(
+                        PendingInventory {
+                            snapshot_id: Uuid::parse_str(&id)
+                                .map_err(|_| StoreError::InventoryConflict)?,
+                            revision,
+                            body_json: json,
+                        },
+                    )),
+                    None => Ok(InventoryStage::Unchanged),
+                };
+            }
+        } else if pending.is_some() {
+            // A pre-V3 synthetic pending row has no device binding or
+            // semantic state. Fail closed rather than silently deleting it.
+            return Err(StoreError::InventoryConflict);
+        }
+
+        let revision: i64 = sqlx::query_scalar(
+            "SELECT next_inventory_revision FROM agent_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if revision < 1 || revision == i64::MAX {
+            return Err(StoreError::QueueFull);
+        }
+        body.inventory_revision = revision as u64;
+        let wire_json = serde_json::to_string(&body)?;
+        if wire_json.len() > 128 * 1024 {
+            return Err(StoreError::Inventory(
+                crate::inventory::InventoryError::TooLarge,
+            ));
+        }
+        let wire_digest = format!("{:x}", Sha256::digest(wire_json.as_bytes()));
+        sqlx::query(
+            "INSERT INTO inventory_pending \
+             (singleton,snapshot_id,inventory_revision,body_json,content_digest) \
+             VALUES(1,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET \
+             snapshot_id=excluded.snapshot_id, \
+             inventory_revision=excluded.inventory_revision, \
+             body_json=excluded.body_json,content_digest=excluded.content_digest",
+        )
+        .bind(body.snapshot_id.to_string())
+        .bind(revision)
+        .bind(&wire_json)
+        .bind(wire_digest)
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query(
+            "INSERT INTO inventory_latest_state \
+             (singleton,device_id,snapshot_id,inventory_revision,semantic_digest) \
+             VALUES(1,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET \
+             device_id=excluded.device_id,snapshot_id=excluded.snapshot_id, \
+             inventory_revision=excluded.inventory_revision, \
+             semantic_digest=excluded.semantic_digest",
+        )
+        .bind(device_id.to_string())
+        .bind(body.snapshot_id.to_string())
+        .bind(revision)
+        .bind(semantic_digest)
+        .execute(&mut *tx)
+        .await?;
+        let advanced = sqlx::query(
+            "UPDATE agent_state SET next_inventory_revision=next_inventory_revision+1 \
+             WHERE singleton=1 AND next_inventory_revision=?",
+        )
+        .bind(revision)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if advanced != 1 {
+            return Err(StoreError::InventoryConflict);
+        }
+        tx.commit().await?;
+        Ok(InventoryStage::Staged(PendingInventory {
+            snapshot_id: body.snapshot_id,
+            revision,
+            body_json: wire_json,
+        }))
+    }
+
+    /// Only an independently authenticated server ACK may invoke this API.
+    /// Timeout / 5xx / guessed revision is never a valid ACK. The old ACK
+    /// cannot clear a newer pending revision or a different device identity.
+    pub async fn acknowledge_inventory_snapshot(
+        &self,
+        device_id: Uuid,
+        snapshot_id: Uuid,
+        revision: i64,
+    ) -> Result<bool, StoreError> {
+        if device_id.is_nil() || snapshot_id.is_nil() || revision <= 0 {
+            return Err(StoreError::InvalidFixture);
+        }
+        let affected = sqlx::query(
+            "DELETE FROM inventory_pending \
+             WHERE singleton=1 AND snapshot_id=? AND inventory_revision=? \
+             AND EXISTS (SELECT 1 FROM inventory_latest_state \
+                 WHERE singleton=1 AND device_id=? \
+                   AND snapshot_id=? AND inventory_revision=?)",
+        )
+        .bind(snapshot_id.to_string())
+        .bind(revision)
+        .bind(device_id.to_string())
+        .bind(snapshot_id.to_string())
+        .bind(revision)
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
+        Ok(affected == 1)
+    }
+
+    /// Current semantic revision is intentionally retained after ACK.
+    pub async fn latest_inventory_revision(&self) -> Result<Option<i64>, StoreError> {
+        Ok(sqlx::query_scalar(
+            "SELECT inventory_revision FROM inventory_latest_state WHERE singleton=1",
+        )
+        .fetch_optional(&self.pool)
+        .await?)
+    }
+
     /// Latest-only inventory has an independent monotonic revision.
     pub async fn stage_synthetic_inventory(
         &self,
@@ -331,6 +523,14 @@ impl OutboxStore {
         }
         let digest = format!("{:x}", Sha256::digest(json.as_bytes()));
         let mut tx = self.pool.begin().await?;
+        let bound: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM inventory_latest_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if bound != 0 {
+            return Err(StoreError::InventoryConflict);
+        }
         let rev: i64 =
             sqlx::query_scalar("SELECT next_inventory_revision FROM agent_state WHERE singleton=1")
                 .fetch_one(&mut *tx)
@@ -386,7 +586,10 @@ impl OutboxStore {
             return Err(StoreError::InvalidFixture);
         }
         Ok(
-            sqlx::query("DELETE FROM inventory_pending WHERE inventory_revision=?")
+            sqlx::query(
+                "DELETE FROM inventory_pending WHERE inventory_revision=? \
+                 AND NOT EXISTS(SELECT 1 FROM inventory_latest_state WHERE singleton=1)",
+            )
                 .bind(revision)
                 .execute(&self.pool)
                 .await?
