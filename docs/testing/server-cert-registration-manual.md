@@ -11,6 +11,8 @@
 5. A successful registration transaction records the actual reviewing administrator, inserts the verified public leaf fingerprint/issuer/serial/SPKI with `device_credentials.status='pending'` and records `device_certificate.register` in `admin_access_log`. Device remains `pending_certificate`; it can **not** heartbeat or upload until a separate verified mTLS activation commits. Every failed update/insert/audit must roll back the whole transaction.
 6. These checks **do not** prove offline signing custody, CSR retrieval review UX, administrator session/CSRF/Origin, signed-chain revocation (PKIX revocation is not enabled in this staging validator), TLS client-certificate provenance or real device operation. Do not expose the registrar without separate gates.
 
+**2026-10-31 fixture correctness repair (SOURCE ONLY):** `PostgreSqlCertificateRegistrationIT` previously inserted the same fixed CSR SPKI digest for each `@BeforeEach`, violating V3's cross-device unique index after the first test. It now uses a per-device random 64-hex digest consistently in the pending CSR, simulated verified leaf and assertions. The simulated leaf validity also uses a bounded rolling time window rather than fixed 2026 dates; no production certificate lifetime or offline-CA policy changes. Actual PostgreSQL execution is still unverified.
+
 ## Evidence matrix
 
 | Case | Expected result | Current proof |

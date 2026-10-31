@@ -55,9 +55,14 @@ class PostgreSqlDeviceActivationIT {
 
     private UUID deviceId;
     private VerifiedDeviceCertificate credential;
+    private String csrSpkiSha256;
 
     @BeforeEach
     void createSyntheticReviewedPendingCredential() {
+        // V3 uniquely indexes stored CSR public-key digests across ALL devices.
+        // Each @BeforeEach fixture must therefore represent a fresh key.
+        csrSpkiSha256 = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
         var tx = new TransactionTemplate(txManager);
         tx.executeWithoutResult(ignored -> {
             UUID groupId = (UUID) entityManager.createNativeQuery("""
@@ -78,7 +83,7 @@ class PostgreSqlDeviceActivationIT {
                     """)
                     .setParameter("device", deviceId)
                     .setParameter("csr_digest", "a".repeat(64))
-                    .setParameter("spki_digest", "b".repeat(64))
+                    .setParameter("spki_digest", csrSpkiSha256)
                     .setParameter("reviewer", UUID.randomUUID())
                     .executeUpdate();
             String fingerprint = UUID.randomUUID().toString().replace("-", "").repeat(2);
@@ -94,7 +99,7 @@ class PostgreSqlDeviceActivationIT {
                     .setParameter("device", deviceId)
                     .setParameter("fingerprint", fingerprint)
                     .setParameter("serial", UUID.randomUUID().toString())
-                    .setParameter("spki_digest", "b".repeat(64))
+                    .setParameter("spki_digest", csrSpkiSha256)
                     .executeUpdate();
             credential = new VerifiedDeviceCertificate(deviceId, fingerprint);
         });

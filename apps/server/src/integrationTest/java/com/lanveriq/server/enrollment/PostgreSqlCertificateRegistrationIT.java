@@ -51,6 +51,7 @@ class PostgreSqlCertificateRegistrationIT {
     private UUID deviceId;
     private UUID adminId;
     private UUID groupId;
+    private String csrSpkiSha256;
 
     private TransactionTemplate transaction() {
         return new TransactionTemplate(txManager);
@@ -58,6 +59,9 @@ class PostgreSqlCertificateRegistrationIT {
 
     @BeforeEach
     void createIsolatedSyntheticPendingEnrollmentAndOwner() {
+        // Flyway V3 forbids reusing a CSR public key between test devices.
+        csrSpkiSha256 = UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
         transaction().executeWithoutResult(ignored -> {
             groupId = (UUID) manager.createNativeQuery("""
                     INSERT INTO device_groups (name) VALUES(:name) RETURNING id
@@ -86,16 +90,16 @@ class PostgreSqlCertificateRegistrationIT {
                             clock_timestamp()+INTERVAL '1 hour')
                     """).setParameter("device", deviceId)
                     .setParameter("sha", "a".repeat(64))
-                    .setParameter("spki", "b".repeat(64)).executeUpdate();
+                    .setParameter("spki", csrSpkiSha256).executeUpdate();
         });
     }
 
     private ClientCertificateProfileValidator.VerifiedLeaf fakeValidatedLeaf() {
         return new ClientCertificateProfileValidator.VerifiedLeaf(
                 UUID.randomUUID().toString().replace("-", "").repeat(2),
-                "a".repeat(64), UUID.randomUUID().toString(), "b".repeat(64),
-                Instant.parse("2026-10-30T00:00:00Z"),
-                Instant.parse("2026-12-30T00:00:00Z"));
+                "a".repeat(64), UUID.randomUUID().toString(), csrSpkiSha256,
+                Instant.now().minusSeconds(3600),
+                Instant.now().plusSeconds(48 * 3600));
     }
 
     private long count(String table) {
@@ -114,7 +118,7 @@ class PostgreSqlCertificateRegistrationIT {
         transaction().executeWithoutResult(ignored -> {
             var pending = registration.lockPendingForScopedAdmin(adminId, deviceId);
             assertEquals(groupId, pending.groupId());
-            assertEquals("b".repeat(64), pending.csrSpkiSha256());
+            assertEquals(csrSpkiSha256, pending.csrSpkiSha256());
             registration.registerReviewed(adminId, deviceId, signed);
         });
         assertEquals(1L, count("credentials"));

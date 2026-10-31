@@ -10,6 +10,8 @@
 - The JPA repository locks the canonical device row and checks an approved/unexpired CSR, matching SPKI, a bound unexpired and unrevoked pending credential and its exact certificate fingerprint. It sets the credential and device to `active` in one Spring-managed transaction, populating `devices.enrolled_at`. Same already-active certificate retries perform no writes. Pending/expired/revoked/forged credentials cannot authorize heartbeat or event ingestion.
 - **Important limit:** the synthetic Testcontainers fixture directly inserts a pending CSR and credential with fictitious fingerprint. It verifies conditional database transitions and locking only, **not** certificate chain/provenance, administrator review authorization or a real TLS handshake.
 
+**2026-10-31 fixture correctness repair (SOURCE ONLY):** `PostgreSqlDeviceActivationIT` previously reused the exact same `csr_spki_digest` (the 64-hex `b…b` fixture) for each `@BeforeEach` synthetic enrollment, in conflict with Flyway V3's `device_enrollment_csrs_unique_spki` index when the isolated PostgreSQL container is reused between test methods. Each fixture now generates a fresh 256-bit-shaped hexadecimal SPKI digest and binds that same digest to its CSR and pending client credential. This prevents false failures from duplicate invented keys without weakening the unique-index rule. Actual PostgreSQL 18 execution remains **NOT OBSERVED**.
+
 ## Synthetic-only Testcontainers acceptance matrix
 
 Run `cd apps/server && ./gradlew integrationTest` with Java 25 and a permitted Docker daemon, or explicitly dispatch `server-postgres18-integration.yml` on `main` in GitHub Actions. Automatic CI must remain unit-only (plus integration-source compilation).
