@@ -1,0 +1,28 @@
+# EXPLICIT SYNTHETIC ACCEPTANCE PROFILE ONLY — not enabled by default.
+# Enable with spring.profiles.active=agent-upstream-mtls-acceptance only after
+# separately provisioning reviewed test keys/certificates. Do not commit secrets.
+#
+# Dedicated backend server TLS leaf: DNS SAN spring-backend.lanveriq.internal
+# Dedicated Caddy -> Spring client CA in trust-store (NOT the Agent client CA).
+# Caddy -> Spring client key is held by Caddy only; do not put it in this app.
+# Caddy validates backend server CA and hostname independently.
+server:
+  address: 127.0.0.1
+  port: 8443
+  ssl:
+    enabled: true
+    client-auth: need
+    enabled-protocols: TLSv1.3
+    key-store-type: PKCS12
+    key-store: ${LANVERIQ_BACKEND_TLS_KEYSTORE}
+    key-store-password: ${LANVERIQ_BACKEND_TLS_KEYSTORE_PASSWORD}
+    trust-store-type: PKCS12
+    trust-store: ${LANVERIQ_BACKEND_TLS_CADDY_CLIENT_TRUSTSTORE}
+    trust-store-password: ${LANVERIQ_BACKEND_TLS_CADDY_CLIENT_TRUSTSTORE_PASSWORD}
+
+lanveriq:
+  agent:
+    ingress:
+      assertions-enabled: true
+      expected-host: agent.lanveriq.internal
+      trusted-proxy-cert-sha256: ${LANVERIQ_CADDY_UPSTREAM_CLIENT_DER_SHA256}
