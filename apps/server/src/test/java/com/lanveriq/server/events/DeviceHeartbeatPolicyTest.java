@@ -82,6 +82,22 @@ class DeviceHeartbeatPolicyTest {
     }
 
     @Test
+    void missingStatusOrCapabilityValueFailClosed() {
+        var missingStatus = new DeviceHeartbeat(1, deviceId, "2026-10-30T23:59:00Z",
+                "0.1.0", 1, null, Map.of(), 0, 0, null, null, 0, false, List.of());
+        var missingCapability = new java.util.HashMap<String, String>();
+        missingCapability.put("hardware_inventory", null);
+        var invalidValue = new DeviceHeartbeat(1, deviceId, "2026-10-30T23:59:00Z",
+                "0.1.0", 1, "running", missingCapability, 0, 0,
+                null, null, 0, false, List.of());
+        for (var invalid : List.of(missingStatus, invalidValue)) {
+            assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
+                    assertThrows(DeviceHeartbeatRejection.class, () ->
+                            policy.validate(identity, deviceId, invalid)).reason());
+        }
+    }
+
+    @Test
     void rejectsOversizedCapabilitiesBeforeAnyDatabaseWrite() {
         var many = new java.util.HashMap<String, String>();
         for (int i = 0; i < 33; i++) {

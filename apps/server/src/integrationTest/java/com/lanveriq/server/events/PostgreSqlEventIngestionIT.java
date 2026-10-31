@@ -24,7 +24,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Opt-in ONLY: executes Flyway V1-V6 and the real JPA/Hibernate PostgreSQL
+ * Opt-in ONLY: executes Flyway V1-V7 and the real JPA/Hibernate PostgreSQL
  * statements against an isolated synthetic Testcontainers PostgreSQL 18.6.
  * Not included in ./gradlew test or automatic CI integration execution.
  */
@@ -44,6 +44,9 @@ class PostgreSqlEventIngestionIT {
 
     @Autowired
     private DeviceEventIngestionService ingestion;
+
+    @Autowired
+    private DeviceHeartbeatService heartbeats;
 
     @Autowired
     private EntityManager entityManager;
@@ -115,15 +118,15 @@ class PostgreSqlEventIngestionIT {
     }
 
     @Test
-    void postgres18ExecutesAllSixFlywayMigrationsAndNativeUuidv7() {
+    void postgres18ExecutesAllSevenFlywayMigrationsAndNativeUuidv7() {
         int serverVersion = Integer.parseInt((String) entityManager
                 .createNativeQuery("SHOW server_version_num").getSingleResult());
         assertEquals(180006, serverVersion, "The tested server must be PostgreSQL 18.6");
         long count = ((Number) entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM flyway_schema_history
-                WHERE success AND version IN ('1','2','3','4','5','6')
+                WHERE success AND version IN ('1','2','3','4','5','6','7')
                 """).getSingleResult()).longValue();
-        assertEquals(6, count);
+        assertEquals(7, count);
         long uniqueConstraints = ((Number) entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM pg_constraint
                 WHERE conrelid = 'endpoint_events'::regclass
@@ -143,6 +146,68 @@ class PostgreSqlEventIngestionIT {
                 SELECT uuid_extract_version(id) FROM devices WHERE id=:id
                 """).setParameter("id", deviceId).getSingleResult()).intValue());
         assertEquals(0, deviceEventCount());
+    }
+
+    @Test
+    void authenticatedHeartbeatStoresLatestServerReceivedStatusWithoutInventingCoverage() {
+        var request = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
+                "0.1.0", 1, "running",
+                java.util.Map.of("hardware_inventory", "not_collected"),
+                2, 512, "2026-10-30T08:58:00Z", null, 0, false,
+                java.util.List.of("transport_backoff"));
+        var receipt = heartbeats.ingest(credential, deviceId, request);
+        assertTrue(receipt.serverTime() != null);
+        Object[] saved = (Object[]) entityManager.createNativeQuery("""
+                SELECT h.agent_status, h.queue_count,
+                       h.capabilities_json ->> 'hardware_inventory',
+                       h.received_at > h.agent_sent_at,
+                       d.last_seen_at IS NOT NULL,
+                       pg_typeof(h.capabilities_json)::text,
+                       h.collection_errors_json ->> 0
+                FROM device_heartbeat_latest h
+                JOIN devices d ON d.id=h.device_id
+                WHERE h.device_id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        assertEquals("running", saved[0]);
+        assertEquals(2L, ((Number) saved[1]).longValue());
+        assertEquals("not_collected", saved[2]);
+        assertTrue((Boolean) saved[3]);
+        assertTrue((Boolean) saved[4]);
+        assertEquals("jsonb", saved[5]);
+        assertEquals("transport_backoff", saved[6]);
+
+        var updated = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:01:00Z",
+                "0.1.0", 1, "degraded", java.util.Map.of("hardware_inventory", "unsupported"),
+                0, 0, null, null, 1, true, java.util.List.of("database_corrupt"));
+        heartbeats.ingest(credential, deviceId, updated);
+        Object[] latest = (Object[]) entityManager.createNativeQuery("""
+                SELECT agent_status, dropped_count,
+                       capabilities_json ->> 'hardware_inventory'
+                FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        assertEquals("degraded", latest[0]);
+        assertEquals(1L, ((Number) latest[1]).longValue());
+        assertEquals("unsupported", latest[2]);
+        assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult()).longValue());
+    }
+
+    @Test
+    void revokedCredentialCannotUpdateHeartbeatOrLastSeen() {
+        var denied = new VerifiedDeviceCertificate(deviceId, "f".repeat(64));
+        var request = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
+                "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
+                null, null, 0, false, java.util.List.of());
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeats.ingest(denied, deviceId, request)).reason());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult()).longValue());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM devices WHERE id=:device AND last_seen_at IS NOT NULL
+                """).setParameter("device", deviceId).getSingleResult()).longValue());
     }
 
     @Test

@@ -34,7 +34,7 @@ final class DeviceHeartbeatPolicy {
         if (identity == null || pathId == null || body == null
                 || !pathId.equals(identity.deviceId())
                 || !pathId.equals(body.deviceId()) || body.schemaVersion() != 1
-                || !STATUS.contains(body.status())
+                || body.status() == null || !STATUS.contains(body.status())
                 || body.agentVersion() == null
                 || !body.agentVersion().matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
                 || body.policyVersion() <= 0 || body.queueCount() < 0
@@ -45,7 +45,7 @@ final class DeviceHeartbeatPolicy {
         }
         for (var entry : body.capabilities().entrySet()) {
             if (entry.getKey() == null || !entry.getKey().matches("[a-z][a-z0-9_]{0,63}")
-                    || !CAPABILITY.contains(entry.getValue())) {
+                    || entry.getValue() == null || !CAPABILITY.contains(entry.getValue())) {
                 throw invalid();
             }
         }
