@@ -1,6 +1,6 @@
 # Cross-platform and protocol verification matrix
 
-**Status:** planned checks, **not executed**. During early v0.x, **only unit tests run in GitHub Actions**. All real OS/browser/LAN validation below is **manual** and tracked in [Manual Acceptance](manual-acceptance.md). E2E automation is postponed.
+**Status:** planned checks, **not executed**. During early v0.x, automatic GitHub Actions runs **unit tests and compilation** only; a separate explicitly manually dispatched synthetic Testcontainers PostgreSQL 18 workflow is available, but its execution must be evidenced before any database gate is marked PASS. All real OS/browser/LAN validation below is **manual** and tracked in [Manual Acceptance](manual-acceptance.md). E2E automation is postponed.
 
 ## Platform coverage
 | Case | Windows 11 x64 | Pop!_OS 24.04 KDE/X11 | Pop!_OS 24.04 KDE/Wayland | Method / milestone |

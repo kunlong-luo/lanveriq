@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-31 — Opt-in real PostgreSQL 18 Testcontainers acceptance harness
+- Introduced a separate Gradle 9.8.2 `integrationTest` suite based on Spring Boot 4.1.2 `@ServiceConnection` and managed Testcontainers 2.0.5 `postgres:18.6`, rather than H2, ad hoc JDBC or reinvented database setup.
+- Added real-Flyway V1–V6/JPA tests for UUIDv7, exact replay, both identity conflicts, whole-batch rollback, forged/expired/revoked device credentials, immutable-event trigger and concurrent duplicate/conflicting uploads.
+- Normal automatic Java 25 CI retains unit tests and `bootJar` and now **compiles** database integration sources without executing Docker. A separately manual-only synthetic GitHub workflow executes `integrationTest` and archives short-lived JUnit results.
+- **No actual PostgreSQL 18 integration execution has been observed yet.** Caddy/mTLS and Agent live HTTP remain out of scope; no live monitoring authorized.
+
+
 ## 2026-10-31 — SRV-03 JPA atomic event ingestion foundation
 - Added Flyway V6 immutable canonical `endpoint_events` with native uuidv7(), PostgreSQL JSONB, two device-scoped unique keys and deny-UPDATE/DELETE trigger; no seeded events.
 - Added Spring Boot 4.1/Jackson 3 event DTOs and bounded operational-gap policy, active registered credential/device row locking, JPA PostgreSQL bulk `ON CONFLICT DO NOTHING` then mandatory exact event ID/sequence/digest comparison. Spring AOP commits before the complete ACK is exposed; conflicts roll back all rows.

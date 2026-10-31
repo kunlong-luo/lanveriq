@@ -43,6 +43,8 @@
 - [ ] Manually inspect all SVGs and Mermaid diagrams in GitHub/browser at full and reduced sizes, including Chinese font fallback; automated metadata/link checks do not prove visual rendering correctness. External URLs and heading anchors have not been exhaustively checked.
 
 ## Post-D0 implementation verification (NOT preconditions requiring pre-D0 application code)
+- [x] **SRV-03 opt-in database integration harness added:** Gradle 9.8.2 JVM test suite, Spring Boot 4.1.2 Testcontainers `@ServiceConnection`, managed JPA/Flyway against `postgres:18.6`; real duplicate/replay/conflict/rollback/revocation/mutation/concurrency JUnit cases are present. Automatic CI **compiles** them without Docker; the separate [manually dispatched integration workflow](../../.github/workflows/server-postgres18-integration.yml) performs the true DB run. [Runbook](../testing/server-event-ingestion-manual.md). **The PostgreSQL 18 integration suite has NOT yet been executed with passing evidence.**
+
 - [x] **SRV-03 Java source/JUnit foundation:** Flyway V6 immutable canonical events, DB UUIDv7 and two unique keys, production operational-only policy, active credential-bound device locking, JPA/Hibernate JSONB bulk dedup with per-event digest checks, and Spring AOP commit/rollback tests. [SRV-03 acceptance](../testing/server-event-ingestion-manual.md). This is **not a successful PostgreSQL 18, Caddy/mTLS or REST integration test**, and there is NO public ingestion endpoint.
 - [ ] **SRV-03 real acceptance:** PostgreSQL 18 Flyway V1–V6, concurrent locking/whole-batch dedup, verified active certificate/fingerprint identity, deployed Caddy strict SNI/Host, real HTTP post-commit ACK/Agent replay and retention policy. Real employee data/deployment not authorized.
 

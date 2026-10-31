@@ -1,6 +1,6 @@
 # SRV-03 — PostgreSQL 18 event ingestion acceptance
 
-**Status: Java 25 source and unit/AOP transaction tests only. Real PostgreSQL 18 Flyway V6, concurrent row locks, JSONB conflict handling, verified client-mTLS identity and actual HTTP batch ACK are NOT TESTED.** No real employee monitoring authorized.
+**Status: Java 25 unit/AOP tests plus a separately compiled Testcontainers PostgreSQL 18.6 integration suite. Actual container execution, real Flyway V6, row locks, JSONB conflicts, verified client-mTLS and HTTP batch ACK are NOT YET EXECUTED/ACCEPTED.** No real employee monitoring authorized.
 
 ## Implementation and security boundary
 
@@ -8,6 +8,21 @@
 - [Flyway V6](../../apps/server/src/main/resources/db/migration/V6__endpoint_events_atomic_ingestion.sql) creates immutable `endpoint_events` with native UUIDv7 ID, server-set `received_at`, two independent unique keys `(device_id, device_sequence)` and `(device_id, event_id)`, and a PostgreSQL UPDATE/DELETE rejection trigger. A future retention path requires a separately approved controlled database maintenance process.
 - The whole batch is checked before SQL (1–100 ordered positive sequences, unique IDs, <=512 KiB JSON, permitted operational gap payloads). Only `agent_transport/collection_gap` is accepted by production service. `synthetic_test/protocol_fixture` is test-policy-only.
 - PostgreSQL locks the active device, validates a matching current, unexpired, unrevoked client credential fingerprint, expands validated JSONB using JPA/Hibernate native SQL, inserts with `ON CONFLICT DO NOTHING` and re-reads **every** identifier and canonical SHA-256 digest. Any conflict rejects and rolls back the entire transaction. A complete ACK leaves the Spring AOP boundary only after commit.
+
+## Real PostgreSQL 18 execution — opt-in only
+
+The [dedicated JUnit Testcontainers suite](../../apps/server/src/integrationTest/java/com/lanveriq/server/events/PostgreSqlEventIngestionIT.java) uses an **actual `postgres:18.6` container** with Spring Boot 4.1's `@ServiceConnection` and managed Flyway/JPA. It includes native UUIDv7 and V1–V6 migration checks, duplicate replay, two-key conflicts, an injected earlier-new-event transaction rollback, forged/expired/revoked credential denial, mutation-trigger denial and concurrent identical/conflicting batches. No developer-provided private keys, accounts or employee events are used.
+
+A workstation with a permitted Docker daemon and JDK 25 can run it explicitly:
+
+```sh
+cd apps/server
+./gradlew integrationTest
+```
+
+Or in the GitHub repository, open **Actions → PostgreSQL 18 integration (manual, synthetic-only) → Run workflow → main**. This runs `./gradlew integrationTest` on an isolated hosted runner and uploads short-lived synthetic-only JUnit XML. The workflow has **no push, pull_request or schedule trigger**. The normal `server-unit` workflow only compiles the integration sources; that successful compilation is not evidence that Docker/PostgreSQL or transactional behavior passed.
+
+For an execution to close the *database-only* acceptance gate, record the Git SHA, run URL, real Testcontainers PostgreSQL version, Flyway history, successful JUnit cases and sanitized logs. A green DB suite **still does not validate Caddy TLS, certificate custody, cross-protocol ACK or actual endpoint/OS security**.
 
 ## Manual test matrix — all real database/HTTP cases still open
 

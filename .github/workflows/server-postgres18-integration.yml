@@ -35,3 +35,11 @@ jobs:
       - name: Run Testcontainers PostgreSQL 18.6 Flyway + real transaction tests
         working-directory: apps/server
         run: ./gradlew integrationTest --stacktrace
+      - name: Archive short-lived synthetic JUnit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: srv03-pg18-synthetic-junit
+          path: apps/server/build/test-results/integrationTest/*.xml
+          if-no-files-found: warn
+          retention-days: 7

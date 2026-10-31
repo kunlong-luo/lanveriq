@@ -1,9 +1,13 @@
 # Manual PostgreSQL 18 and Spring Boot smoke verification
 
 **State: scripted but NOT EXECUTED in the repository authoring environment.**
-This is a strictly **manual, synthetic-only local check** for SRV-01/SRV-02/SRV-03 schema checks. The automatic GitHub Actions workflow continues to run unit tests and archive packaging only; no integration/E2E job or privileged employee data is used.
+This is a strictly **manual, synthetic-only local check** for SRV-01/SRV-02/SRV-03 schema checks. The automatic GitHub Actions workflow runs unit tests, compiles opt-in database integration-test sources and packages the Boot JAR, but does **not execute** PostgreSQL containers; no privileged employee data is used. A separate manual Testcontainers workflow can execute PostgreSQL 18 integration tests.
 
 Requirements: JDK 25, Docker engine with a daemon you control, a free host port 55432 and 18080, curl, openssl, Bash and permission to pull the official PostgreSQL `postgres:18.6` Docker tag. The official current supported 18.x minor is 18.6 as of 2026-10-30; a production image must be independently reviewed and **pinned by digest** before deployment.
+
+## Preferred real SQL and transaction verification (separate from the smoke script)
+
+The [SRV-03 Testcontainers suite](server-event-ingestion-manual.md) exercises actual PostgreSQL 18 with Flyway and JPA, including concurrent whole-batch event dedup and failures. It is **not** part of the default `test` task. Run `cd apps/server && ./gradlew integrationTest` with JDK 25 and Docker, or manually dispatch **Actions → PostgreSQL 18 integration (manual, synthetic-only)** on `main`. Keep the gate open until an actual successful run is recorded, regardless of successful source compilation.
 
 From the project root, on a local workstation with these tools:
 

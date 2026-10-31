@@ -10,13 +10,15 @@ D0-approved Java 25 / Gradle 9.8.2 (Groovy DSL) / Spring Boot 4.1.2 / Spring Dat
 cd apps/server
 ./gradlew test
 ./gradlew bootJar
+# Opt-in ONLY: requires an available Docker daemon; starts synthetic PostgreSQL 18.6.
+./gradlew integrationTest
 ```
 
 The wrapper JAR is copied from the official Gradle `v9.8.2` tag and verified against the Gradle 9.8.2 published SHA-256 (`3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98`). The distribution URL is pinned with SHA-256 in wrapper properties. Do not run an unverified wrapper JAR.
 
 To start, provision **an isolated PostgreSQL 18 database with a non-superuser**, configure `LANVERIQ_DB_URL`, `LANVERIQ_DB_USER`, `LANVERIQ_DB_PASSWORD`, and run `./gradlew bootRun`. The DB is required; do not disable Flyway or replace PG with H2 to mask startup/migration failures. The app binds to `127.0.0.1:8080` by default and exposes only a basic health endpoint. No default administrator password or user is created.
 
-Flyway V1/V2/V3/V4/V5/V6 SQL is **not yet executed against PostgreSQL** in an observed test. [Manual PostgreSQL 18.6 validation](../../docs/testing/server-postgres18-manual.md) provides a disposable, synthetic local smoke check: `bash scripts/verify-postgres18.sh` (requires local Docker, JDK 25, curl and openssl). CI has **passed** Java 25 compilation, the new real CSR/transaction-orchestration JUnit tests, JaCoCo and `bootJar` archive packaging ([run 41066726762](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762)); CI runs only unit tests, with packaging as an additional build task. Migration and JPA-generated UUID behavior still require a real PG18 test environment.
+Flyway V1/V2/V3/V4/V5/V6 SQL is **not yet executed against PostgreSQL** in an observed test. A dedicated Testcontainers PostgreSQL 18.6 integration suite now exists under `src/integrationTest`, using Spring Boot `@ServiceConnection` and JPA/Hibernate. It is compiled in automatic unit CI but executed only via the explicit `integrationTest` Gradle task or the manual-only [GitHub Action](../../.github/workflows/server-postgres18-integration.yml). This is a test harness, not yet a successful database run. [Manual PostgreSQL 18.6 validation](../../docs/testing/server-postgres18-manual.md) provides a disposable, synthetic local smoke check: `bash scripts/verify-postgres18.sh` (requires local Docker, JDK 25, curl and openssl). CI has **passed** Java 25 compilation, the new real CSR/transaction-orchestration JUnit tests, JaCoCo and `bootJar` archive packaging ([run 41066726762](https://github.com/kunlong-luo/lanveriq/actions/runs/41066726762)); CI runs only unit tests, with packaging as an additional build task. Migration and JPA-generated UUID behavior still require a real PG18 test environment.
 
 ## AUTH-01 staged browser session — DEFAULT OFF
 
@@ -28,7 +30,7 @@ Spring Security's maintained form login/logout, HttpSession-based CSRF tokens an
 
 [SRV-03 service](src/main/java/com/lanveriq/server/events/DeviceEventIngestionService.java) validates the entire V0.1 operational event batch before opening a database write. Flyway V6 provides immutable `endpoint_events`, native UUIDv7, JSONB and two device-scoped unique identifiers. One Spring JPA/Hibernate transaction locks the active device, revalidates its active/expiry/revocation credential fingerprint, inserts new events through PostgreSQL JSONB `ON CONFLICT DO NOTHING` and compares every accepted sequence+ID+canonical SHA-256 fingerprint. A conflict fails and rolls back every new row; Spring AOP commits before ACK is returned.
 
-Production service accepts only bounded `agent_transport/collection_gap` events; `synthetic_test/protocol_fixture` is test-policy-only. **No actual HTTP ingestion controller, Caddy verified-client identity bridge, credential activation or real PostgreSQL 18 test has run.** Business endpoints remain denyAll. [SRV-03 acceptance matrix](../../docs/testing/server-event-ingestion-manual.md).
+Production service accepts only bounded `agent_transport/collection_gap` events; `synthetic_test/protocol_fixture` is test-policy-only. **No actual HTTP ingestion controller, Caddy verified-client identity bridge, credential activation or real PostgreSQL 18 test has run.** Business endpoints remain denyAll. Real PostgreSQL Testcontainers tests are implemented (but execution has not yet been observed). [SRV-03 acceptance matrix](../../docs/testing/server-event-ingestion-manual.md).
 
 ## AUTH-01 V5 credential/session hardening (unit verified; deployment NOT approved)
 
