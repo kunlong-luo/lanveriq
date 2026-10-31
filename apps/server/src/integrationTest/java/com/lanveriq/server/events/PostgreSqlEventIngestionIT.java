@@ -1,7 +1,6 @@
 package com.lanveriq.server.events;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -119,8 +118,7 @@ class PostgreSqlEventIngestionIT {
     void postgres18ExecutesAllSixFlywayMigrationsAndNativeUuidv7() {
         int serverVersion = Integer.parseInt((String) entityManager
                 .createNativeQuery("SHOW server_version_num").getSingleResult());
-        assertTrue(serverVersion >= 180000 && serverVersion < 190000,
-                "An actual PostgreSQL 18 server is required");
+        assertEquals(180006, serverVersion, "The tested server must be PostgreSQL 18.6");
         long count = ((Number) entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM flyway_schema_history
                 WHERE success AND version IN ('1','2','3','4','5','6')
@@ -145,6 +143,27 @@ class PostgreSqlEventIngestionIT {
                 SELECT uuid_extract_version(id) FROM devices WHERE id=:id
                 """).setParameter("id", deviceId).getSingleResult()).intValue());
         assertEquals(0, deviceEventCount());
+    }
+
+    @Test
+    void acceptedEvidenceHasDatabaseGeneratedUuidv7AndNativeJsonb() {
+        var accepted = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
+        ingestion.ingest(credential, deviceId, request(accepted));
+
+        Object[] stored = (Object[]) entityManager.createNativeQuery("""
+                SELECT uuid_extract_version(id), pg_typeof(payload_json)::text,
+                       payload_json ->> 'reason', received_at IS NOT NULL
+                FROM endpoint_events
+                WHERE device_id=:device AND event_id=:event_id
+                """)
+                .setParameter("device", deviceId)
+                .setParameter("event_id", accepted.eventId())
+                .getSingleResult();
+        assertEquals(7, ((Number) stored[0]).intValue(), "Evidence ID must be PostgreSQL UUIDv7");
+        assertEquals("jsonb", stored[1], "Evidence payload must be native PostgreSQL JSONB");
+        assertEquals("quota_exceeded", stored[2]);
+        assertTrue((Boolean) stored[3], "PostgreSQL must set received_at");
+        assertEquals(1L, deviceEventCount());
     }
 
     @Test
