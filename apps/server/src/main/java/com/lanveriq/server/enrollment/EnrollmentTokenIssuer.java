@@ -3,6 +3,7 @@ package com.lanveriq.server.enrollment;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ public class EnrollmentTokenIssuer {
     private final EnrollmentTokenRepository repository;
     private final EnrollmentTokenCodec codec;
 
+    @Autowired
     EnrollmentTokenIssuer(EnrollmentTokenRepository repository) {
         this(repository, new EnrollmentTokenCodec());
     }
