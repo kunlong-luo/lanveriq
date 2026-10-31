@@ -1,6 +1,6 @@
 # SRV-02-EDGE — trusted Agent mTLS ingress reference and acceptance gate
 
-**Status (2026-10-31):** staged, **not approved for deployment**. The double-mTLS Caddy reference, opt-in Spring backend TLS profile and Java assertion parser are accompanied by a new **manual-only executable synthetic Caddy 2.11.7 probe**. **That probe has not been run yet.** No observed Caddy adapt/validate, real TLS handshake, actual fingerprint forwarding, actual Spring/Tomcat listener test, direct-backend negative evidence or PostgreSQL 18 runtime acceptance is available. No Agent REST controller exists; Spring still denies business routes.
+**Status (2026-10-31):** staged, **not approved for deployment**. A separate manual-only [real Spring/Tomcat upstream TLS probe](../../.github/workflows/spring-upstream-mtls-synthetic.yml) is now scripted, but **not executed**. It is independent of the existing Python-backed Caddy probe. The double-mTLS Caddy reference, opt-in Spring backend TLS profile and Java assertion parser are accompanied by a new **manual-only executable synthetic Caddy 2.11.7 probe**. **That probe has not been run yet.** No observed Caddy adapt/validate, real TLS handshake, actual fingerprint forwarding, actual Spring/Tomcat listener test, direct-backend negative evidence or PostgreSQL 18 runtime acceptance is available. No Agent REST controller exists; Spring still denies business routes.
 
 ## Trust model and hard stop
 
@@ -20,6 +20,14 @@ The script uses pinned **Caddy 2.11.7** and creates disposable **P-256 synthetic
 Positive case: a legitimate synthetic Agent client certificate reaches the synthetic backend over Caddy→backend mTLS while attacker-supplied fingerprint and forwarded-certificate headers are stripped/overwritten. Negative cases: missing and wrong-CA Agent certificates, HTTP/2 cross-host Host/SNI mismatch (expect 421), and direct localhost backend probes without the Caddy upstream TLS client certificate or with a wrong-CA certificate. Server trust is verified with `--cacert`, **never `-k` / insecure skip-verify**. The workflow records the exact Git SHA, Docker image ID/digest and per-case PASS/FAIL. Logs must not include private keys, full certificates or real employee data.
 
 **Strict evidence scope:** This probe substitutes a deliberately tiny Python TLS server for Spring on port 8443. Even a green manual Caddy run proves **Caddy + test TLS backend only**, not Spring Boot/Tomcat's `client-auth=need` connector, the servlet identity attribute, PostgreSQL revocation, Agent installation or organizational policy acceptance. These require an additional actual Spring runtime acceptance. A failed test must block enabling the Agent HTTP routes.
+
+## Real Spring/Tomcat upstream TLS acceptance (NEW, MANUAL ONLY)
+
+The separately dispatched [Spring Tomcat upstream-mTLS workflow](../../.github/workflows/spring-upstream-mtls-synthetic.yml) invokes `bash apps/server/scripts/verify-agent-upstream-tls.sh` on a dedicated GitHub-hosted Linux runner. It starts a **real Java 25 Spring Boot/Tomcat connector** with `agent-upstream-mtls-acceptance`, disposable PostgreSQL 18.6/Flyway V1–V8 and ephemeral P-256 server/proxy/wrong-CA leaves. All DB mappings stay loopback-only and the application binds only to loopback port 8443. No Caddy or actual Agent is started.
+
+Cases require a valid CA- and DNS-verified TLSv1.3 client connection to `/actuator/health`, an actual TLS failure (no HTTP response) with no client certificate, wrong client CA or forged assertion header without a certificate, a **curl certificate-validation error** for the wrong backend DNS name, a default-403 business route even over authorized upstream mTLS, and absence of a plaintext listener on 8080 or plaintext success on 8443. The SHA-256 of the short-lived upstream client leaf is pinned to the opt-in internal policy bean; that bean does not expose a controller.
+
+This isolated Spring test **does not prove** Caddy-to-real-Tomcat interoperation, the trust boundary across actual OS users/namespaces or proxy-key ACLs, per-request servlet-certificate extraction (the parser remains internal), PostgreSQL credential revocation at the HTTP edge, or deployed Agent behavior. An observed successful run must be recorded with exact SHA and image digest before closing only the specific **Tomcat upstream TLS** subgate. Failure blocks deployment and must not be bypassed by loosening client-auth, TLS verification or security routing.
 
 ## Manual-only D-07 acceptance steps
 

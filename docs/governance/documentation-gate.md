@@ -4,6 +4,8 @@
 
 **Approved technical decisions and scope:** [D0 decision package](d0-decision-package-2026-10-30.md) records D-07 PKI, D-11/D-22 V0.1 protocol, D-17/18/20 technical privacy/RBAC and D-02 pilot target. No employee data, production deployment or V0.2/V0.3 feature is authorized by D0. This is a maintainer-directed documented technical approval, not an independent cryptographic signature or completed integration audit.
 
+**Post-D0 acceptance note (2026-10-31):** A separate manual-only Spring Boot/Tomcat TLSv1.3 + PostgreSQL 18.6 synthetic acceptance script/workflow has been committed. Its presence and automatic `bash -n` check do **not** constitute an executed mTLS handshake or database acceptance; the real Caddy, real Spring and PostgreSQL security gates stay open until independently observed evidence is recorded. See [Agent ingress manual gate](../testing/agent-ingress-identity-manual.md).
+
 ## Review checklist
 - [x] Product scope, non-goals and user personas written
 - [x] Functional requirements and milestone acceptance written

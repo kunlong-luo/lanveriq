@@ -22,6 +22,10 @@ The script:
 4. Waits for **health UP**, checks successful Flyway versions V1/V2/V3/V4/V5/V6/V7/V8 and DB-generated UUIDv7, verifies **no seeded administrator account, authentication-audit row, endpoint event or raw-network-access grant**, plus both canonical-event uniqueness constraints and immutability trigger, and asserts an anonymous business GET receives HTTP 403.
 5. Removes the container, app process and temporary files on exit. Its test SQL rolls back the synthetic device-group insertion.
 
+## Isolated Spring/Tomcat mTLS smoke (manual and not run)
+
+The new [Spring Tomcat upstream-mTLS workflow](../../.github/workflows/spring-upstream-mtls-synthetic.yml) / `bash apps/server/scripts/verify-agent-upstream-tls.sh` starts a **separate disposable PG18.6 Docker container**, real Spring Boot JAR, and one-time synthetic server/client trust stores. It probes actual Java TLSv1.3 client-certificate enforcement and confirms a valid upstream proxy identity still cannot access disabled Agent business APIs. This is not a substitute for `./gradlew integrationTest`: it exercises real Flyway/startup and TLS handshake, but does **not run** all JPA concurrency, activation, inventory, or event integration cases. Nor does it run actual Caddy; both manual gates remain independent.
+
 ## Separate manual first-admin bootstrap check (NOT RUN)
 
 The basic smoke script above **deletes its disposable PostgreSQL container at exit**. For the following additional acceptance steps, prepare a **separate isolated, persistent-for-test-only PostgreSQL 18** database with Flyway V1–V8. Do not bootstrap an organization's real database until security and organizational authorization are approved.

@@ -29,6 +29,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
       - name: Validate manual PostgreSQL script syntax (do not execute integration)
         run: bash -n apps/server/scripts/verify-postgres18.sh
+      - name: Validate manual Spring upstream TLS script syntax (no TLS/Docker execution)
+        run: bash -n apps/server/scripts/verify-agent-upstream-tls.sh
       - name: Verify official Gradle Wrapper binary
         working-directory: apps/server
         run: echo '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
