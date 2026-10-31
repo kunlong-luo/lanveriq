@@ -3,7 +3,12 @@ package com.lanveriq.server.events;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.cert.X509Certificate;
+import java.util.HexFormat;
 import java.util.UUID;
+import org.mockito.Mockito;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -14,13 +19,19 @@ class AgentIngressAssertionPolicyTest {
     private static final String EMPTY_SHA256 =
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
     private final UUID deviceId = UUID.randomUUID();
+    private static final byte[] CADDY_CLIENT_DER =
+            "synthetic-verified-upstream-proxy-client-der".getBytes(StandardCharsets.UTF_8);
     private final AgentIngressAssertionPolicy policy =
-            new AgentIngressAssertionPolicy(HOST);
+            new AgentIngressAssertionPolicy(HOST, sha256(CADDY_CLIENT_DER));
 
     private MockHttpServletRequest request() {
         var request = new MockHttpServletRequest(
                 "POST", "/api/v1/devices/" + deviceId + "/activate");
         request.setRemoteAddr("127.0.0.1");
+        request.setSecure(true);
+        request.setScheme("https");
+        request.setAttribute("jakarta.servlet.request.X509Certificate",
+                new X509Certificate[]{syntheticTlsPeer(CADDY_CLIENT_DER)});
         request.addHeader("Host", HOST);
         request.addHeader(AgentIngressAssertionPolicy.FINGERPRINT_HEADER, FINGERPRINT);
         return request;
@@ -31,6 +42,23 @@ class AgentIngressAssertionPolicyTest {
         var evidence = policy.resolve(request(), deviceId, "activate");
         assertEquals(deviceId, evidence.deviceId());
         assertEquals(FINGERPRINT, evidence.sha256Fingerprint());
+    }
+
+    @Test
+    void forgedHeaderWithoutAuthenticatedProxyTlsPeerIsRejected() {
+        assertDenied(request -> request.removeAttribute(
+                "jakarta.servlet.request.X509Certificate"));
+        assertDenied(request -> request.setSecure(false));
+        assertDenied(request -> request.setScheme("http"));
+        assertDenied(request -> request.setAttribute(
+                "jakarta.servlet.request.X509Certificate",
+                new X509Certificate[]{syntheticTlsPeer(
+                        "forged-local-peer".getBytes(StandardCharsets.UTF_8))}));
+        assertDenied(request -> request.setAttribute(
+                "jakarta.servlet.request.X509Certificate",
+                new X509Certificate[0]));
+        assertDenied(request -> request.setAttribute(
+                "jakarta.servlet.request.X509Certificate", "spoofed"));
     }
 
     @Test
@@ -92,7 +120,30 @@ class AgentIngressAssertionPolicyTest {
         assertThrows(SecurityException.class,
                 () -> policy.resolve(request(), deviceId, "admin"));
         assertThrows(IllegalArgumentException.class,
-                () -> new AgentIngressAssertionPolicy("https://agent.lanveriq.internal"));
+                () -> new AgentIngressAssertionPolicy("https://agent.lanveriq.internal",
+                        sha256(CADDY_CLIENT_DER)));
+        assertThrows(IllegalArgumentException.class,
+                () -> new AgentIngressAssertionPolicy(HOST, ""));
+    }
+
+    private static X509Certificate syntheticTlsPeer(byte[] encoded) {
+        try {
+            var certificate = Mockito.mock(X509Certificate.class);
+            Mockito.when(certificate.getEncoded()).thenReturn(encoded);
+            // A mock is NOT a TLS proof. Only the actual Tomcat client-auth=need
+            // TLS connector may provide this attribute at real deployment.
+            return certificate;
+        } catch (java.security.cert.CertificateEncodingException error) {
+            throw new IllegalStateException(error);
+        }
+    }
+
+    private static String sha256(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (java.security.NoSuchAlgorithmException error) {
+            throw new IllegalStateException(error);
+        }
     }
 
     private void assertDenied(Consumer<MockHttpServletRequest> mutation) {
