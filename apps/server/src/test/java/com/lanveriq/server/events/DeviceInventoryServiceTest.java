@@ -26,7 +26,7 @@ class DeviceInventoryServiceTest {
             new VerifiedDeviceCertificate(deviceId, "a".repeat(64));
     private final DeviceInventoryRepository repository =
             Mockito.mock(DeviceInventoryRepository.class);
-    private final JsonMapper mapper = new JsonMapper();
+    private final JsonMapper mapper = JsonMapper.builder().build();
     private final DeviceInventoryService service =
             new DeviceInventoryService(repository, mapper, CLOCK);
 
