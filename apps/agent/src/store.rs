@@ -1,6 +1,7 @@
 //! SQLx WAL outbox with synthetic events and local-only typed inventory.
 //! Neither path is connected to Agent service scheduling or network I/O.
 use crate::inventory::{InventorySnapshot, RawInventory};
+use crate::inventory_schedule::InventoryScheduleCheckpoint;
 use sha2::{Digest, Sha256};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 use sqlx::{Row, SqlitePool};
@@ -358,6 +359,16 @@ impl OutboxStore {
         let semantic_digest = format!("{:x}", Sha256::digest(&semantic_json));
 
         let mut tx = self.pool.begin().await?;
+        // A pre-staged schedule checkpoint also pins this SQLite inventory
+        // to exactly one device; never mix state across re-enrollment.
+        let schedule_owner: Option<String> = sqlx::query_scalar(
+            "SELECT device_id FROM inventory_schedule_checkpoint WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        if schedule_owner.is_some_and(|owner| owner != device_id.to_string()) {
+            return Err(StoreError::InventoryConflict);
+        }
         let latest: Option<(String, String, i64, String)> = sqlx::query_as(
             "SELECT device_id,snapshot_id,inventory_revision,semantic_digest \
              FROM inventory_latest_state WHERE singleton=1",
@@ -598,6 +609,84 @@ impl OutboxStore {
         .await?
         .rows_affected()
             == 1)
+    }
+
+
+    /// INV-01-E: isolated checkpoint storage. This method NEVER turns on the
+    /// scheduler or starts the Agent service, collection or network transport.
+    /// Fail closed on a conflicting inventory or schedule device identity.
+    pub async fn save_inventory_schedule_checkpoint(
+        &self,
+        checkpoint: &InventoryScheduleCheckpoint,
+    ) -> Result<(), StoreError> {
+        checkpoint
+            .validate(checkpoint.device_id)
+            .map_err(|_| StoreError::InventoryConflict)?;
+        let json = serde_json::to_string(checkpoint)?;
+        let mut tx = self.pool.begin().await?;
+        let inventory_owner: Option<String> = sqlx::query_scalar(
+            "SELECT device_id FROM inventory_latest_state WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        if inventory_owner.is_some_and(|owner| owner != checkpoint.device_id.to_string()) {
+            return Err(StoreError::InventoryConflict);
+        }
+        let affected = sqlx::query(
+            "INSERT INTO inventory_schedule_checkpoint (singleton,device_id,state_json) \
+             VALUES(1,?,?) ON CONFLICT(singleton) DO UPDATE SET \
+             state_json=excluded.state_json WHERE device_id=excluded.device_id",
+        )
+        .bind(checkpoint.device_id.to_string())
+        .bind(json)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if affected != 1 {
+            return Err(StoreError::InventoryConflict);
+        }
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Re-read the durable state after a restart. A damaged checkpoint never
+    /// falls back to fresh retries, allowing an old identity pause to survive.
+    pub async fn load_inventory_schedule_checkpoint(
+        &self,
+        device_id: Uuid,
+    ) -> Result<Option<InventoryScheduleCheckpoint>, StoreError> {
+        if device_id.is_nil() {
+            return Err(StoreError::InventoryConflict);
+        }
+        let mut tx = self.pool.begin().await?;
+        let inventory_owner: Option<String> = sqlx::query_scalar(
+            "SELECT device_id FROM inventory_latest_state WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        if inventory_owner.is_some_and(|owner| owner != device_id.to_string()) {
+            return Err(StoreError::InventoryConflict);
+        }
+        let row: Option<(String, String)> = sqlx::query_as(
+            "SELECT device_id,state_json FROM inventory_schedule_checkpoint WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        let checkpoint = row
+            .map(|(owner, json)| {
+                if owner != device_id.to_string() {
+                    return Err(StoreError::InventoryConflict);
+                }
+                let checkpoint: InventoryScheduleCheckpoint =
+                    serde_json::from_str(&json).map_err(|_| StoreError::InventoryConflict)?;
+                checkpoint
+                    .validate(device_id)
+                    .map_err(|_| StoreError::InventoryConflict)?;
+                Ok(checkpoint)
+            })
+            .transpose()?;
+        tx.commit().await?;
+        Ok(checkpoint)
     }
 
     pub async fn settings(&self) -> Result<(String, i64, i64), StoreError> {

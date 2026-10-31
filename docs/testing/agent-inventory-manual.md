@@ -1,6 +1,6 @@
 # INV-01 — Rust local asset inventory adapter acceptance (V0.1)
 
-**Status 2026-10-31:** Rust `inventory.rs` bounded DTO/normalizer plus `inventory_platform.rs` on-demand Windows/Linux adapter are staged with locked mature dependencies. The adapter is **not called** by the Agent binary, Tokio service loop, network transport, SQLx outbox or installer. CI runs synthetic unit tests, **not an actual machine inventory run**. No employee/device data collection is authorized.
+**Status 2026-10-31:** Default-OFF pure inventory scheduling and device-bound SQLite V4 checkpoint are now staged as INV-01-E. No Agent runtime scheduling, autonomous collection or upload is enabled. Rust `inventory.rs` bounded DTO/normalizer plus `inventory_platform.rs` on-demand Windows/Linux adapter are staged with locked mature dependencies. The adapter is **not called** by the Agent binary, Tokio service loop, network transport, SQLx outbox or installer. CI runs synthetic unit tests, **not an actual machine inventory run**. No employee/device data collection is authorized.
 
 ## Architecture and reusable crates
 
@@ -28,6 +28,7 @@
 | INV-10 | Forced SQL failure restores pending snapshot + revision; preserved last content digest prevents churn after ACK | Synthetic tests; actual sudden power-loss pending |
 | INV-11 | Transport rechecks exact device/snapshot/revision, stored JSON SHA-256, canonical typed snapshot and semantic digest before any send/ACK; mutated DB row never silently sent | Synthetic local SQLx tests; OS ACL and live TLS pending |
 | INV-12 | Explicit one-attempt Rustls inventory delivery accepts only exact HTTP 200 applied/duplicate receipt; stale ignored or wrong/missing extra fields never ACK | Pure ACK classification tests; server controller and real Caddy/Spring still unverified |
+| INV-13 | Default-OFF pure startup/24h/change/30s coalescing decisions, pending-first retry with bounded exponential backoff and restart-persistent identity/quarantine pause | Synthetic no-OS policy tests plus file-backed SQLite V4 persistence; live service wiring prohibited |
 
 ## Mandatory isolated OS acceptance (NOT RUN)
 

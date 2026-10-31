@@ -3,6 +3,7 @@
 pub mod config;
 pub mod inventory;
 pub mod inventory_platform;
+pub mod inventory_schedule;
 pub mod runtime;
 pub mod store;
 pub mod transport;
