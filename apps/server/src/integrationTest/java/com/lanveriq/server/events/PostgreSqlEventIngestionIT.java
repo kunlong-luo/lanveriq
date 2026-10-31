@@ -118,15 +118,15 @@ class PostgreSqlEventIngestionIT {
     }
 
     @Test
-    void postgres18ExecutesAllSevenFlywayMigrationsAndNativeUuidv7() {
+    void postgres18ExecutesAllEightFlywayMigrationsAndNativeUuidv7() {
         int serverVersion = Integer.parseInt((String) entityManager
                 .createNativeQuery("SHOW server_version_num").getSingleResult());
         assertEquals(180006, serverVersion, "The tested server must be PostgreSQL 18.6");
         long count = ((Number) entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM flyway_schema_history
-                WHERE success AND version IN ('1','2','3','4','5','6','7')
+                WHERE success AND version IN ('1','2','3','4','5','6','7','8')
                 """).getSingleResult()).longValue();
-        assertEquals(7, count);
+        assertEquals(8, count);
         long uniqueConstraints = ((Number) entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM pg_constraint
                 WHERE conrelid = 'endpoint_events'::regclass

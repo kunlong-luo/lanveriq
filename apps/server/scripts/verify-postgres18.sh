@@ -90,8 +90,8 @@ if [[ "$HEALTH_READY" -ne 1 ]]; then
 fi
 
 MIGRATIONS="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
-    "SELECT COUNT(*) FROM flyway_schema_history WHERE success AND version IN ('1', '2', '3', '4', '5', '6', '7')")"
-[[ "$MIGRATIONS" == "7" ]] || { echo "Flyway V1–V7 migration check failed" >&2; exit 1; }
+    "SELECT COUNT(*) FROM flyway_schema_history WHERE success AND version IN ('1', '2', '3', '4', '5', '6', '7', '8')")"
+[[ "$MIGRATIONS" == "8" ]] || { echo "Flyway V1–V8 migration check failed" >&2; exit 1; }
 
 UUID_CHECK="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
     "BEGIN; INSERT INTO device_groups (name) VALUES ('synthetic_pg18_check') RETURNING uuid_extract_version(id); ROLLBACK;")"
@@ -130,6 +130,12 @@ HEARTBEAT_COUNT="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAt
     echo "Unexpected seeded device heartbeats" >&2
     exit 1
 }
+INVENTORY_COUNT="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq -XAtqc \
+    "SELECT COUNT(*) FROM device_inventory_current")"
+[[ "$INVENTORY_COUNT" == "0" ]] || {
+    echo "Unexpected seeded device inventory" >&2
+    exit 1
+}
 
 # Both dedup invariants and write-once trigger are required before accepting
 # network event ingestion. No test endpoint is exposed over HTTP.
@@ -153,5 +159,5 @@ DENIED_HTTP="$(curl --silent --output /dev/null --write-out '%{http_code}' \
     exit 1
 }
 
-echo "MANUAL PASS: PG18.6 startup, Flyway V1–V7, immutable/unseeded canonical endpoint events, zero heartbeat seeds, native UUIDv7, no default admin/audit or sensitive grants, denied business route."
+echo "MANUAL PASS: PG18.6 startup, Flyway V1–V8, immutable/unseeded canonical endpoint events, zero heartbeat seeds, native UUIDv7, no default admin/audit or sensitive grants, denied business route."
 echo "Important: this does NOT validate mTLS, an enrollment transaction, CSRF or a real endpoint."
