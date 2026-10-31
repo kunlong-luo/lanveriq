@@ -1,0 +1,31 @@
+name: Caddy Agent double-mTLS probe (manual, synthetic-only)
+
+# No push/PR trigger: all certificate/key material is generated transiently on
+# a GitHub-hosted isolated runner, never from the Lanveriq LAN or real devices.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-manual-caddy-mtls-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  synthetic-caddy-mtls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Record exact synthetic test provenance
+        run: |
+          printf 'Tested Git SHA: %s\n' "$GITHUB_SHA"
+          docker info --format 'Docker server: {{.ServerVersion}}'
+          openssl version
+          curl --version | head -n 1
+          python3 --version
+      - name: Run real Caddy 2.11.7 two-way TLS and negative ingress probes
+        run: bash deploy/caddy/tests/verify-reference.sh
