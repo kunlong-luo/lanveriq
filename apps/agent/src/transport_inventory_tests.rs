@@ -101,6 +101,23 @@ fn stale_ignored_is_never_an_exact_positive_ack() {
         .unwrap(),
         DeliveryDisposition::Quarantine
     );
+    // The Spring stale_ignored receipt contains the *server's* newer stored
+    // snapshot, which legitimately differs from the submitted old tuple.
+    let newer = PendingInventory {
+        snapshot_id: Uuid::now_v7(),
+        revision: item.revision + 1,
+        body_json: item.body_json.clone(),
+    };
+    assert_eq!(
+        classify_inventory_response(
+            200,
+            &response(device, &newer, "stale_ignored"),
+            device,
+            &item,
+            None
+        ).unwrap(),
+        DeliveryDisposition::Quarantine
+    );
     assert!(matches!(
         classify_inventory_response(
             200,
