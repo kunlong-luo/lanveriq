@@ -26,6 +26,8 @@
 | INV-08 | SQLx SQLite V3: atomic revision+UUID+JSON+semantic digest, identical/reordered NICs unchanged | Synthetic file-backed tests; real OS pending |
 | INV-09 | Offline restart retains pending wire JSON; authenticated ACK tuple cannot clear newer revision or new device | Synthetic tests; authenticated transport pending |
 | INV-10 | Forced SQL failure restores pending snapshot + revision; preserved last content digest prevents churn after ACK | Synthetic tests; actual sudden power-loss pending |
+| INV-11 | Transport rechecks exact device/snapshot/revision, stored JSON SHA-256, canonical typed snapshot and semantic digest before any send/ACK; mutated DB row never silently sent | Synthetic local SQLx tests; OS ACL and live TLS pending |
+| INV-12 | Explicit one-attempt Rustls inventory delivery accepts only exact HTTP 200 applied/duplicate receipt; stale ignored or wrong/missing extra fields never ACK | Pure ACK classification tests; server controller and real Caddy/Spring still unverified |
 
 ## Mandatory isolated OS acceptance (NOT RUN)
 
