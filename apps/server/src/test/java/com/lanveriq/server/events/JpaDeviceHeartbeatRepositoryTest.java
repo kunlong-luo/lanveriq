@@ -48,7 +48,7 @@ class JpaDeviceHeartbeatRepositoryTest {
             return snapshot;
         });
         for (Query query : List.of(auth, deviceUpdate, snapshot)) {
-            when(query.setParameter(anyString(), Mockito.any())).thenReturn(query);
+            when(query.setParameter(anyString(), Mockito.nullable(Object.class))).thenReturn(query);
         }
     }
 
