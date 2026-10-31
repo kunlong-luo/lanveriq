@@ -65,7 +65,7 @@ class JpaDeviceHeartbeatRepositoryTest {
         assertTrue(sql.getAllValues().get(0).contains("enrollment_state='active'"));
         assertTrue(sql.getAllValues().get(0).contains("client_cert_sha256_fingerprint"));
         assertTrue(sql.getAllValues().get(0).contains("expires_at>CURRENT_TIMESTAMP"));
-        assertTrue(sql.getAllValues().get(1).contains("CURRENT_TIMESTAMP"));
+        assertTrue(sql.getAllValues().get(1).contains("clock_timestamp()"));
         assertTrue(sql.getAllValues().get(2).contains("ON CONFLICT (device_id) DO UPDATE"));
         verify(auth).setParameter("fingerprint", identity.sha256Fingerprint());
         verify(deviceUpdate).executeUpdate();
