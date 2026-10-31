@@ -611,7 +611,6 @@ impl OutboxStore {
             == 1)
     }
 
-
     /// INV-01-E: isolated checkpoint storage. This method NEVER turns on the
     /// scheduler or starts the Agent service, collection or network transport.
     /// Fail closed on a conflicting inventory or schedule device identity.
@@ -624,11 +623,10 @@ impl OutboxStore {
             .map_err(|_| StoreError::InventoryConflict)?;
         let json = serde_json::to_string(checkpoint)?;
         let mut tx = self.pool.begin().await?;
-        let inventory_owner: Option<String> = sqlx::query_scalar(
-            "SELECT device_id FROM inventory_latest_state WHERE singleton=1",
-        )
-        .fetch_optional(&mut *tx)
-        .await?;
+        let inventory_owner: Option<String> =
+            sqlx::query_scalar("SELECT device_id FROM inventory_latest_state WHERE singleton=1")
+                .fetch_optional(&mut *tx)
+                .await?;
         if inventory_owner.is_some_and(|owner| owner != checkpoint.device_id.to_string()) {
             return Err(StoreError::InventoryConflict);
         }
@@ -659,11 +657,10 @@ impl OutboxStore {
             return Err(StoreError::InventoryConflict);
         }
         let mut tx = self.pool.begin().await?;
-        let inventory_owner: Option<String> = sqlx::query_scalar(
-            "SELECT device_id FROM inventory_latest_state WHERE singleton=1",
-        )
-        .fetch_optional(&mut *tx)
-        .await?;
+        let inventory_owner: Option<String> =
+            sqlx::query_scalar("SELECT device_id FROM inventory_latest_state WHERE singleton=1")
+                .fetch_optional(&mut *tx)
+                .await?;
         if inventory_owner.is_some_and(|owner| owner != device_id.to_string()) {
             return Err(StoreError::InventoryConflict);
         }

@@ -121,8 +121,11 @@ impl InventoryScheduler {
     /// Called only with an explicit synthetic/approved change notification.
     /// Coalesce repeated signals without postponing the first notification.
     pub fn note_asset_change(&mut self, now: u64) {
-        self.checkpoint.change_detected_at =
-            Some(self.checkpoint.change_detected_at.map_or(now, |first| first.min(now)));
+        self.checkpoint.change_detected_at = Some(
+            self.checkpoint
+                .change_detected_at
+                .map_or(now, |first| first.min(now)),
+        );
     }
 
     /// The pending flag must come from the verified device-bound SQLite outbox,
@@ -201,8 +204,11 @@ impl InventoryScheduler {
                 self.checkpoint.retry_not_before = None;
             }
             DeliveryDisposition::Retry { after } => {
-                self.checkpoint.failures =
-                    self.checkpoint.failures.saturating_add(1).min(MAX_FAILURE_COUNT);
+                self.checkpoint.failures = self
+                    .checkpoint
+                    .failures
+                    .saturating_add(1)
+                    .min(MAX_FAILURE_COUNT);
                 let shift = u32::from(self.checkpoint.failures - 1);
                 let exponential = BASE_RETRY_SECONDS.saturating_mul(1_u64 << shift);
                 // Stable per-device spread, not an authentication or security token.
@@ -212,8 +218,13 @@ impl InventoryScheduler {
                 let spread = u64::from_le_bytes(bytes);
                 let jitter = spread.wrapping_add(u64::from(self.checkpoint.failures))
                     % (exponential.min(480) / 4 + 1);
-                let server_delay = after.as_secs().saturating_add(u64::from(after.subsec_nanos() > 0));
-                let delay = exponential.saturating_add(jitter).max(server_delay).min(MAX_RETRY_SECONDS);
+                let server_delay = after
+                    .as_secs()
+                    .saturating_add(u64::from(after.subsec_nanos() > 0));
+                let delay = exponential
+                    .saturating_add(jitter)
+                    .max(server_delay)
+                    .min(MAX_RETRY_SECONDS);
                 self.checkpoint.retry_not_before = Some(now.saturating_add(delay));
             }
         }
@@ -253,12 +264,26 @@ mod tests {
     #[test]
     fn startup_then_24h_reconcile_without_heartbeat_upload_churn() {
         let mut scheduler = scheduler(true);
-        assert_eq!(scheduler.decide(1_000, false), ScheduleDecision::Collect(CollectionReason::Startup));
+        assert_eq!(
+            scheduler.decide(1_000, false),
+            ScheduleDecision::Collect(CollectionReason::Startup)
+        );
         scheduler.note_collection_completed(1_000).unwrap();
-        assert_eq!(scheduler.decide(1_000 + RECONCILE_SECONDS - 1, false), ScheduleDecision::Idle);
-        assert_eq!(scheduler.decide(1_000 + RECONCILE_SECONDS, false), ScheduleDecision::Collect(CollectionReason::Reconcile));
-        scheduler.note_collection_completed(1_000 + RECONCILE_SECONDS).unwrap();
-        assert_eq!(scheduler.decide(1_000 + RECONCILE_SECONDS + 30, false), ScheduleDecision::Idle);
+        assert_eq!(
+            scheduler.decide(1_000 + RECONCILE_SECONDS - 1, false),
+            ScheduleDecision::Idle
+        );
+        assert_eq!(
+            scheduler.decide(1_000 + RECONCILE_SECONDS, false),
+            ScheduleDecision::Collect(CollectionReason::Reconcile)
+        );
+        scheduler
+            .note_collection_completed(1_000 + RECONCILE_SECONDS)
+            .unwrap();
+        assert_eq!(
+            scheduler.decide(1_000 + RECONCILE_SECONDS + 30, false),
+            ScheduleDecision::Idle
+        );
     }
 
     #[test]
@@ -267,8 +292,14 @@ mod tests {
         scheduler.note_collection_completed(1_000).unwrap();
         scheduler.note_asset_change(2_000);
         scheduler.note_asset_change(2_020);
-        assert_eq!(scheduler.decide(2_029, false), ScheduleDecision::WaitUntil(2_030));
-        assert_eq!(scheduler.decide(2_030, false), ScheduleDecision::Collect(CollectionReason::AssetChange));
+        assert_eq!(
+            scheduler.decide(2_029, false),
+            ScheduleDecision::WaitUntil(2_030)
+        );
+        assert_eq!(
+            scheduler.decide(2_030, false),
+            ScheduleDecision::Collect(CollectionReason::AssetChange)
+        );
         scheduler.note_collection_completed(2_031).unwrap();
         assert_eq!(scheduler.decide(2_032, false), ScheduleDecision::Idle);
     }
@@ -276,9 +307,17 @@ mod tests {
     #[test]
     fn pending_outbox_wins_over_startup_and_never_changes_snapshot_identity() {
         let mut scheduler = scheduler(true);
-        assert_eq!(scheduler.decide(2_000, true), ScheduleDecision::DeliverPending);
-        scheduler.note_delivery_result(2_000, &DeliveryDisposition::Accepted).unwrap();
-        assert_eq!(scheduler.decide(2_001, false), ScheduleDecision::Collect(CollectionReason::Startup));
+        assert_eq!(
+            scheduler.decide(2_000, true),
+            ScheduleDecision::DeliverPending
+        );
+        scheduler
+            .note_delivery_result(2_000, &DeliveryDisposition::Accepted)
+            .unwrap();
+        assert_eq!(
+            scheduler.decide(2_001, false),
+            ScheduleDecision::Collect(CollectionReason::Startup)
+        );
         scheduler.note_collection_completed(2_002).unwrap();
     }
 
@@ -291,35 +330,62 @@ mod tests {
         let json = serde_json::to_string(scheduler.checkpoint()).unwrap();
         let restored: InventoryScheduleCheckpoint = serde_json::from_str(&json).unwrap();
         let restarted = InventoryScheduler::restore(device(), true, Some(restored)).unwrap();
-        assert_eq!(restarted.decide(2_000, true), ScheduleDecision::WaitUntil(deadline));
-        assert_eq!(restarted.decide(deadline, true), ScheduleDecision::DeliverPending);
+        assert_eq!(
+            restarted.decide(2_000, true),
+            ScheduleDecision::WaitUntil(deadline)
+        );
+        assert_eq!(
+            restarted.decide(deadline, true),
+            ScheduleDecision::DeliverPending
+        );
     }
 
     #[test]
     fn server_retry_after_is_respected_and_backoff_capped() {
         let mut scheduler = scheduler(true);
-        scheduler.note_delivery_result(20, &DeliveryDisposition::Retry { after: Duration::from_secs(300) }).unwrap();
+        scheduler
+            .note_delivery_result(
+                20,
+                &DeliveryDisposition::Retry {
+                    after: Duration::from_secs(300),
+                },
+            )
+            .unwrap();
         assert!(scheduler.checkpoint.retry_not_before.unwrap() >= 320);
         for _ in 0..15 {
             scheduler.note_transport_failure(10_000).unwrap();
         }
         assert_eq!(scheduler.checkpoint.failures, MAX_FAILURE_COUNT);
         assert!(scheduler.checkpoint.retry_not_before.unwrap() <= 10_000 + MAX_RETRY_SECONDS);
-        scheduler.note_delivery_result(11_000, &DeliveryDisposition::Accepted).unwrap();
+        scheduler
+            .note_delivery_result(11_000, &DeliveryDisposition::Accepted)
+            .unwrap();
         assert_eq!(scheduler.checkpoint.failures, 0);
         assert_eq!(scheduler.checkpoint.retry_not_before, None);
     }
 
     #[test]
     fn authentication_and_stale_receipt_halt_through_restarts() {
-        for disposition in [DeliveryDisposition::PauseIdentity, DeliveryDisposition::Quarantine] {
+        for disposition in [
+            DeliveryDisposition::PauseIdentity,
+            DeliveryDisposition::Quarantine,
+        ] {
             let mut scheduler = scheduler(true);
             scheduler.note_delivery_result(100, &disposition).unwrap();
             let saved = scheduler.checkpoint.clone();
             let restarted = InventoryScheduler::restore(device(), true, Some(saved)).unwrap();
-            assert!(matches!(restarted.decide(10_000, true), ScheduleDecision::Halted(_)));
-            assert_eq!(scheduler.note_delivery_result(10_000, &DeliveryDisposition::Accepted), Err(ScheduleError::Halted));
-            assert_eq!(scheduler.note_collection_completed(10_000), Err(ScheduleError::Halted));
+            assert!(matches!(
+                restarted.decide(10_000, true),
+                ScheduleDecision::Halted(_)
+            ));
+            assert_eq!(
+                scheduler.note_delivery_result(10_000, &DeliveryDisposition::Accepted),
+                Err(ScheduleError::Halted)
+            );
+            assert_eq!(
+                scheduler.note_collection_completed(10_000),
+                Err(ScheduleError::Halted)
+            );
         }
     }
 

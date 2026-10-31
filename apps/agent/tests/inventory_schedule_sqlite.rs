@@ -39,11 +39,7 @@ async fn retry_and_strict_pending_identity_survive_real_sqlite_restart() {
     let path = dir.path().join("schedule.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
     let pending = match store
-        .stage_inventory_snapshot(
-            device(),
-            "2026-10-31T00:00:00Z",
-            synthetic_assets(),
-        )
+        .stage_inventory_snapshot(device(), "2026-10-31T00:00:00Z", synthetic_assets())
         .await
         .unwrap()
     {
@@ -89,15 +85,19 @@ async fn retry_and_strict_pending_identity_survive_real_sqlite_restart() {
     assert_eq!(persisted.snapshot_id, pending.snapshot_id);
     assert_eq!(persisted.revision, pending.revision);
     assert_eq!(persisted.body_json, pending.body_json);
-    assert!(!store
-        .acknowledge_inventory_snapshot(device(), Uuid::now_v7(), pending.revision)
-        .await
-        .unwrap());
-    assert!(store
-        .verified_pending_inventory(device())
-        .await
-        .unwrap()
-        .is_some());
+    assert!(
+        !store
+            .acknowledge_inventory_snapshot(device(), Uuid::now_v7(), pending.revision)
+            .await
+            .unwrap()
+    );
+    assert!(
+        store
+            .verified_pending_inventory(device())
+            .await
+            .unwrap()
+            .is_some()
+    );
 }
 
 #[tokio::test]
@@ -106,7 +106,10 @@ async fn checkpoint_is_device_bound_and_invalid_rows_fail_closed() {
     let path = dir.path().join("checkpoint.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
     let own = InventoryScheduleCheckpoint::initial(device()).unwrap();
-    store.save_inventory_schedule_checkpoint(&own).await.unwrap();
+    store
+        .save_inventory_schedule_checkpoint(&own)
+        .await
+        .unwrap();
     assert!(matches!(
         store
             .load_inventory_schedule_checkpoint(Uuid::now_v7())
