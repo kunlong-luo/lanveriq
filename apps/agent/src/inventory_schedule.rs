@@ -140,10 +140,10 @@ impl InventoryScheduler {
         // Retries always reuse the original persisted UUID/revision. A restart
         // cannot evade a prior retry deadline or identity/security pause.
         if has_verified_pending {
-            if let Some(until) = self.checkpoint.retry_not_before {
-                if now < until {
-                    return ScheduleDecision::WaitUntil(until);
-                }
+            if let Some(until) = self.checkpoint.retry_not_before
+                && now < until
+            {
+                return ScheduleDecision::WaitUntil(until);
             }
             return ScheduleDecision::DeliverPending;
         }
