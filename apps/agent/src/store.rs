@@ -378,8 +378,9 @@ impl OutboxStore {
             let checked_pending = match pending {
                 Some((id, revision, json, stored_digest)) => Some(
                     verify_typed_pending(
-                        device_id, previous_id, last_revision, digest,
-                        &id, revision, &json, &stored_digest,
+                        device_id,
+                        (previous_id, last_revision, digest),
+                        (&id, revision, &json, &stored_digest),
                     )?,
                 ),
                 None => None,
@@ -600,6 +601,72 @@ impl OutboxStore {
     pub async fn close(self) {
         self.pool.close().await;
     }
+}
+
+/// SHA-256 detects accidental corruption; it is not a cryptographic MAC.
+/// OS SQLite file custody and server-authenticated transport remain separate.
+fn verify_typed_pending(
+    device_id: Uuid,
+    latest: (&str, i64, &str),
+    queued: (&str, i64, &str, &str),
+) -> Result<PendingInventory, StoreError> {
+    let (last_id, last_revision, semantic_digest) = latest;
+    let (id, revision, body_json, stored_digest) = queued;
+    if device_id.is_nil()
+        || revision < 1
+        || last_revision != revision
+        || last_id != id
+        || body_json.is_empty()
+        || body_json.len() > 128 * 1024
+        || stored_digest != format!("{:x}", Sha256::digest(body_json.as_bytes()))
+    {
+        return Err(StoreError::InventoryConflict);
+    }
+    let parsed: InventorySnapshot =
+        serde_json::from_str(body_json).map_err(|_| StoreError::InventoryConflict)?;
+    if parsed.schema_version != 1
+        || parsed.device_id != device_id
+        || parsed.snapshot_id.to_string() != id
+        || parsed.inventory_revision != revision as u64
+    {
+        return Err(StoreError::InventoryConflict);
+    }
+    // Require canonical whitelist content, even if the stored SHA-256
+    // itself was altered. Reject unapproved additional JSON fields.
+    let normalized = InventorySnapshot::from_raw(
+        parsed.device_id,
+        parsed.snapshot_id,
+        parsed.inventory_revision,
+        parsed.observed_at.clone(),
+        RawInventory {
+            hardware: parsed.hardware.clone(),
+            os: parsed.os.clone(),
+            interfaces: parsed.interfaces.clone(),
+            volumes: parsed.volumes.clone(),
+            capabilities: parsed.capabilities.clone(),
+        },
+    )
+    .map_err(|_| StoreError::InventoryConflict)?;
+    if normalized != parsed {
+        return Err(StoreError::InventoryConflict);
+    }
+    let semantics = serde_json::to_vec(&(
+        &parsed.device_id,
+        &parsed.hardware,
+        &parsed.os,
+        &parsed.interfaces,
+        &parsed.volumes,
+        &parsed.capabilities,
+    ))
+    .map_err(|_| StoreError::InventoryConflict)?;
+    if semantic_digest != format!("{:x}", Sha256::digest(&semantics)) {
+        return Err(StoreError::InventoryConflict);
+    }
+    Ok(PendingInventory {
+        snapshot_id: parsed.snapshot_id,
+        revision,
+        body_json: body_json.to_owned(),
+    })
 }
 
 fn parse_batch_rows(rows: Vec<sqlx::sqlite::SqliteRow>) -> Result<Vec<PendingEvent>, StoreError> {
