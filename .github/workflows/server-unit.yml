@@ -53,7 +53,9 @@ jobs:
           retention-days: 14
       - name: Compile opt-in PostgreSQL integration source (do not start Docker)
         working-directory: apps/server
-        run: ./gradlew compileIntegrationTestJava
+        # A previous Gradle cache contained negative Maven Central JAR lookups.
+        # Force a genuine dependency re-resolution; this still FAILS on errors.
+        run: ./gradlew --refresh-dependencies compileIntegrationTestJava
       - name: Verify runnable Boot JAR packaging (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew bootJar
