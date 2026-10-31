@@ -1,11 +1,12 @@
-package com.lanveriq.server.devices;
+package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.lanveriq.server.security.AdminAccountRepository;
-import com.lanveriq.server.security.DeviceDirectoryHttpSecurityConfiguration;
+import com.lanveriq.server.devices.DeviceDirectoryRestController;
+import com.lanveriq.server.devices.DeviceDirectoryService;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
