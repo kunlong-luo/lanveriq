@@ -515,4 +515,121 @@ class PostgreSqlEventIngestionIT {
         }
         assertEquals(0L, deviceEventCount());
     }
+
+    @Test
+    void anotherActiveDeviceCannotUseTheFirstDevicesCertificateForEventsOrHeartbeat() {
+        // Same group, different canonical device and registered leaf. Group
+        // membership by itself cannot transfer an Agent mTLS identity.
+        UUID other = new TransactionTemplate(transactionManager).execute(ignored -> {
+            UUID id = (UUID) entityManager.createNativeQuery("""
+                    INSERT INTO devices(group_id,enrollment_state)
+                    SELECT group_id,'active' FROM devices WHERE id=:original
+                    RETURNING id
+                    """).setParameter("original", deviceId).getSingleResult();
+            entityManager.createNativeQuery("""
+                    INSERT INTO device_credentials(
+                        device_id,client_cert_sha256_fingerprint,issuer_id,
+                        serial_number,csr_spki_digest,status,issued_at,expires_at)
+                    VALUES (:device,:fingerprint,'synthetic-other-device-ca',
+                        :serial,:spki,'active',
+                        clock_timestamp()-INTERVAL '1 hour',
+                        clock_timestamp()+INTERVAL '1 hour')
+                    """)
+                    .setParameter("device", id)
+                    .setParameter("fingerprint",
+                            UUID.randomUUID().toString().replace("-", "").repeat(2))
+                    .setParameter("serial", UUID.randomUUID().toString())
+                    .setParameter("spki", "c".repeat(64))
+                    .executeUpdate();
+            return id;
+        });
+        var forged = new VerifiedDeviceCertificate(other, credential.sha256Fingerprint());
+        var stolenBatch = new DeviceEventBatch(1, UUID.randomUUID(), other,
+                List.of(event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z")));
+        var stolenHeartbeat = new DeviceHeartbeat(1, other, "2026-10-30T09:00:00Z",
+                "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
+                null, null, 0, false, List.of());
+        assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceBatchRejection.class, () ->
+                        ingestion.ingest(forged, other, stolenBatch)).reason());
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeats.ingest(forged, other, stolenHeartbeat)).reason());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM endpoint_events
+                WHERE device_id IN (:first,:second)
+                """).setParameter("first", deviceId).setParameter("second", other)
+                .getSingleResult()).longValue());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_heartbeat_latest
+                WHERE device_id IN (:first,:second)
+                """).setParameter("first", deviceId).setParameter("second", other)
+                .getSingleResult()).longValue());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM devices
+                WHERE id IN (:first,:second) AND last_seen_at IS NOT NULL
+                """).setParameter("first", deviceId).setParameter("second", other)
+                .getSingleResult()).longValue());
+    }
+
+    @Test
+    void revokedCertificateCannotAcknowledgeCommittedEventReplayOrRefreshHeartbeat() {
+        var original = request(event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z"));
+        ingestion.ingest(credential, deviceId, original);
+        var firstHeartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
+                "0.1.0", 1, "running", java.util.Map.of(), 2, 100,
+                null, null, 0, false, List.of());
+        heartbeats.ingest(credential, deviceId, firstHeartbeat);
+        String previousSeen = (String) entityManager.createNativeQuery("""
+                SELECT last_seen_at::text FROM devices WHERE id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        new TransactionTemplate(transactionManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        UPDATE device_credentials
+                        SET status='revoked',revoked_at=clock_timestamp()
+                        WHERE device_id=:device
+                        """).setParameter("device", deviceId).executeUpdate());
+
+        assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceBatchRejection.class, () ->
+                        ingestion.ingest(credential, deviceId, original)).reason());
+        var laterHeartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:01:00Z",
+                "0.1.0", 1, "degraded", java.util.Map.of(), 0, 0,
+                null, null, 1, true, List.of());
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeats.ingest(credential, deviceId, laterHeartbeat)).reason());
+        assertEquals(1L, deviceEventCount());
+        assertEquals(previousSeen, entityManager.createNativeQuery("""
+                SELECT last_seen_at::text FROM devices WHERE id=:device
+                """).setParameter("device", deviceId).getSingleResult());
+        Object[] savedHeartbeat = (Object[]) entityManager.createNativeQuery("""
+                SELECT agent_status,queue_count FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        assertEquals("running", savedHeartbeat[0]);
+        assertEquals(2L, ((Number) savedHeartbeat[1]).longValue());
+    }
+
+    @Test
+    void pendingCredentialCannotWriteEventsOrHeartbeatDespiteActiveDevice() {
+        new TransactionTemplate(transactionManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        UPDATE device_credentials SET status='pending'
+                        WHERE device_id=:device
+                        """).setParameter("device", deviceId).executeUpdate());
+        var eventBatch = request(event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z"));
+        var heartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
+                "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
+                null, null, 0, false, List.of());
+        assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceBatchRejection.class, () ->
+                        ingestion.ingest(credential, deviceId, eventBatch)).reason());
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeats.ingest(credential, deviceId, heartbeat)).reason());
+        assertEquals(0L, deviceEventCount());
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult()).longValue());
+    }
 }

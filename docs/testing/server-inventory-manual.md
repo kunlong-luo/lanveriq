@@ -14,6 +14,8 @@
 
 **Credential-state negative cases (2026-10-31):** New opt-in PG18 tests use synthetic revoked, expired and not-yet-valid certificates to assert rejected inventory writes never replace a previously committed revision/NIC/IP/volume state or seed any new inventory. The same guard now serializes device writes and credential status updates across heartbeat, event and inventory. **Java CI compiles this source only; no observed PG18 execution.**
 
+**Cross-device isolation and pending-state tests (2026-10-31, source only):** An additional PostgreSQL 18.6 synthetic fixture creates two active devices within the same group with separate registered fingerprints, then attempts a second-device inventory using the first-device fingerprint. The expected denial must leave both devices' current inventory empty. A `pending` certificate with an active device likewise cannot seed a snapshot. No endpoint traffic or actual OS collection occurs. **These PostgreSQL tests are not run by automatic CI.**
+
 ## Acceptance matrix
 
 | Check | Expected | Evidence |

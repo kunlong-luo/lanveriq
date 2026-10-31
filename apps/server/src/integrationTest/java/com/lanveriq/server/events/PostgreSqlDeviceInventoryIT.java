@@ -348,4 +348,65 @@ class PostgreSqlDeviceInventoryIT {
         assertEquals(0L, count("addresses"));
         assertEquals(0L, count("volumes"));
     }
+
+    @Test
+    void certificateRegisteredToOneDeviceCannotWriteAnotherActiveDevicesInventory() {
+        UUID other = new TransactionTemplate(transactions).execute(ignored -> {
+            UUID id = (UUID) manager.createNativeQuery("""
+                    INSERT INTO devices(group_id,enrollment_state)
+                    SELECT group_id,'active' FROM devices WHERE id=:original
+                    RETURNING id
+                    """).setParameter("original", deviceId).getSingleResult();
+            manager.createNativeQuery("""
+                    INSERT INTO device_credentials(
+                        device_id,client_cert_sha256_fingerprint,issuer_id,
+                        serial_number,csr_spki_digest,status,issued_at,expires_at)
+                    VALUES (:device,:fingerprint,'synthetic-other-inventory-ca',
+                        :serial,:spki,'active',
+                        clock_timestamp()-INTERVAL '1 hour',
+                        clock_timestamp()+INTERVAL '1 hour')
+                    """)
+                    .setParameter("device", id)
+                    .setParameter("fingerprint",
+                            UUID.randomUUID().toString().replace("-", "").repeat(2))
+                    .setParameter("serial", UUID.randomUUID().toString())
+                    .setParameter("spki", "d".repeat(64))
+                    .executeUpdate();
+            return id;
+        });
+        // The payload and path both name the second device. The only forgery
+        // is the first device leaf fingerprint, which is still invalid in DB.
+        var stolen = new VerifiedDeviceCertificate(other, credential.sha256Fingerprint());
+        var candidate = new DeviceInventorySnapshot(
+                1, UUID.randomUUID(), 1, other, Instant.now().minusSeconds(60).toString(),
+                new DeviceInventorySnapshot.Hardware("Synthetic", "Untrusted", null, null),
+                new DeviceInventorySnapshot.OperatingSystem(
+                        "linux", "synthetic-linux", "1", null, null, "x86_64"),
+                List.of(), List.of(), Map.of());
+        assertEquals(DeviceInventoryRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceInventoryRejection.class, () ->
+                        inventory.ingest(stolen, other, candidate)).reason());
+        assertEquals(0L, ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_inventory_current
+                WHERE device_id IN (:first,:second)
+                """).setParameter("first", deviceId).setParameter("second", other)
+                .getSingleResult()).longValue());
+    }
+
+    @Test
+    void pendingCertificateCannotInsertInventoryForAnActiveDevice() {
+        new TransactionTemplate(transactions).executeWithoutResult(ignored ->
+                manager.createNativeQuery("""
+                        UPDATE device_credentials SET status='pending'
+                        WHERE device_id=:device
+                        """).setParameter("device", deviceId).executeUpdate());
+        assertEquals(DeviceInventoryRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceInventoryRejection.class, () ->
+                        inventory.ingest(credential, deviceId,
+                                snapshot(1, UUID.randomUUID(), true))).reason());
+        assertEquals(0L, count("current"));
+        assertEquals(0L, count("interfaces"));
+        assertEquals(0L, count("addresses"));
+        assertEquals(0L, count("volumes"));
+    }
 }

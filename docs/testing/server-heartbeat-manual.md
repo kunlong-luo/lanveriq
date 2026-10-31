@@ -4,6 +4,8 @@
 
 **Credential revocation race test (2026-10-31, opt-in source only):** The shared `JpaActiveDeviceCredentialGuard` now requires the same ordered device→credential locks for heartbeats, event batches and inventory. A staged synthetic PostgreSQL 18.6 suite checks revoked, expired and future client credentials cannot change `device_heartbeat_latest`, `devices.last_seen_at` or canonical events. This does **not** prove actual mTLS/Tomcat certificate attributes or real DB execution until the manual workflow succeeds.
 
+**Cross-device and replay checks (2026-10-31, source only):** The staged manual PG18 suite includes two same-group active devices with distinct registered certificates. A forged first-device fingerprint on the second-device heartbeat must not update either device's `last_seen_at` or heartbeat state. After a genuine heartbeat and event have been committed, revoking the certificate must prevent further heartbeat changes **and deny an otherwise-identical event replay ACK**. A `pending` certificate must also fail despite an active device. These are Testcontainers source tests, **not observed PostgreSQL execution or actual Caddy/Tomcat identity proof**.
+
 ## Scope and privacy boundary
 
 - `DeviceHeartbeatService` is internal. It must be invoked only after an independently verified Agent mTLS identity is mapped to the enrolled device. An arbitrary body `device_id` or forwarded fingerprint header does **not** authenticate the caller.
