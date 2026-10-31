@@ -50,7 +50,7 @@
 - [Dedicated Monitoring Center design](development/monitoring-center.md)
 - [Recording & Playback Center design](development/recording-playback-center.md)
 - [Frontend design system and generated REST client](development/frontend-design-system.md)
-- [Rust Agent dependency stack and service runtime](development/rust-agent-stack.md) · [AGT-01 source](../apps/agent/README.md) · [Windows/Linux manual service acceptance](testing/agent-lifecycle-manual.md)
+- [Rust Agent dependency stack and service runtime](development/rust-agent-stack.md) · [AGT-01 source](../apps/agent/README.md) · [Windows/Linux manual service acceptance](testing/agent-lifecycle-manual.md) · [SQLite WAL/outbox manual acceptance](testing/agent-sqlite-manual.md)
 - [Development roadmap](planning/roadmap.md)
 - [v0.1 implementation sequence](planning/v0.1-implementation-sequence.md)
 - [Issue-sized backlog](planning/backlog.md)

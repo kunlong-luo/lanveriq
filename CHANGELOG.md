@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-31 — AGT-02 synthetic SQLx WAL outbox
+- Added SQLx 0.9.0 and `libsqlite3-sys =0.37.0` patched bundled SQLite; committed Cargo.lock. AGT-02 standalone synthetic-only SQLite migration and single-connection WAL/FULL storage are not invoked from the Agent service.
+- Added atomic persisted event/sequence/cursor with UUIDv7, SHA-256 payload digest, durable replay, explicit sparse ACK, synthetic bounded quota-gap reporting, latest-only inventory snapshots with independent revisions, and unit tests for failure rollback and invalid fixtures.
+- Real endpoint OS, abrupt power loss, disk corruption, server-verified ACK, transport, Caddy/PostgreSQL 18 and production monitoring remain **NOT TESTED**; see [AGT-02 acceptance](docs/testing/agent-sqlite-manual.md).
+
+
 ## 2026-10-31 — AGT-01 Rust idle lifecycle and OS service adapters
 - Created Rust 1.94 workspace, committed Cargo.lock, Tokio 1.54.1 idle lifecycle with cooperative stop, strict Serde/TOML versioned config, Clap CLI, tracing, bounded 64 KiB config and negative tests. No network, enrollment, inventory, SQLite or screen capture.
 - Added experimental Linux systemd sandboxed unit with SIGTERM handling, Windows SCM dispatcher/Stop status through the maintained `windows-service` 0.8.1 crate and separate Linux/Windows unit build workflow.
