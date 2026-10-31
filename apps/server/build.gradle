@@ -57,3 +57,30 @@ tasks.named('jacocoTestReport') {
         html.required = true
     }
 }
+
+// Explicit opt-in integration suite; Gradle 'test' and 'check' remain
+// unit-only. Never substitute an in-memory database for PostgreSQL 18.
+testing {
+    suites {
+        integrationTest(JvmTestSuite) {
+            useJUnitJupiter()
+            dependencies {
+                implementation project()
+                implementation 'org.springframework.boot:spring-boot-starter-test'
+                implementation 'org.springframework.boot:spring-boot-testcontainers'
+                implementation 'org.testcontainers:testcontainers-junit-jupiter'
+                implementation 'org.testcontainers:testcontainers-postgresql'
+                runtimeOnly 'org.postgresql:postgresql'
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        description = 'Opt-in Docker/Testcontainers PostgreSQL 18 integration tests'
+                        shouldRunAfter tasks.named('test')
+                        useJUnitPlatform()
+                    }
+                }
+            }
+        }
+    }
+}
