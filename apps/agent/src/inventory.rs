@@ -176,7 +176,7 @@ impl InventorySnapshot {
         ] {
             optional(value, limit)?;
         }
-        if raw.interfaces.len() > MAX_INTERFACES
+        if raw.interfaces.len() > MAX_INTERFACES * (MAX_ADDRESSES_PER_INTERFACE + 1)
             || raw.volumes.len() > MAX_VOLUMES
             || raw.capabilities.len() > MAX_CAPABILITIES
         {
@@ -238,6 +238,9 @@ impl InventorySnapshot {
                 interfaces.insert(nic.key.clone(), nic);
             }
         }
+        if interfaces.len() > MAX_INTERFACES {
+            return Err(InventoryError::TooLarge);
+        }
         for nic in interfaces.values_mut() {
             nic.addresses.sort_by(|a, b| {
                 (&a.family, &a.ip, a.prefix_length).cmp(&(&b.family, &b.ip, b.prefix_length))
@@ -248,6 +251,13 @@ impl InventorySnapshot {
                 .map(|a| (a.ip.as_str(), a.prefix_length))
                 .collect();
             if unique.len() != nic.addresses.len() {
+                if nic.addresses.windows(2).any(|items| {
+                    items[0].ip == items[1].ip
+                        && items[0].prefix_length == items[1].prefix_length
+                        && items[0].scope != items[1].scope
+                }) {
+                    return Err(InventoryError::Conflict);
+                }
                 nic.addresses
                     .dedup_by(|a, b| a.ip == b.ip && a.prefix_length == b.prefix_length);
             }
@@ -470,7 +480,13 @@ mod tests {
     #[test]
     fn enforces_bounds_and_no_unknown_fields() {
         let mut item = raw();
-        item.interfaces = vec![item.interfaces[0].clone(); 33];
+        item.interfaces = (0..33)
+            .map(|n| {
+                let mut nic = item.interfaces[0].clone();
+                nic.key = format!("nic-{n:02}");
+                nic
+            })
+            .collect();
         assert_eq!(snapshot(item), Err(InventoryError::TooLarge));
         let mut item = raw();
         item.capabilities
