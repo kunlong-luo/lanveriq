@@ -3,6 +3,7 @@ use super::{InventoryStage, OutboxStore, PendingInventory, StoreError};
 use crate::inventory::{
     Address, Cpu, Hardware, Memory, NetworkInterface, OperatingSystem, RawInventory, Volume,
 };
+use sha2::Digest;
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
