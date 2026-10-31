@@ -459,6 +459,18 @@ impl OutboxStore {
         }))
     }
 
+    /// Only this typed inventory accessor may feed the staged HTTPS client.
+    /// The legacy synthetic inventory getter is NOT upload-safe.
+    pub async fn verified_pending_inventory(
+        &self,
+        device_id: Uuid,
+    ) -> Result<Option<PendingInventory>, StoreError> {
+        let mut tx = self.pool.begin().await?;
+        let pending = load_verified_pending(&mut tx, device_id).await?;
+        tx.commit().await?;
+        Ok(pending)
+    }
+
     /// Only an independently authenticated server ACK may invoke this API.
     /// Timeout / 5xx / guessed revision is never a valid ACK. The old ACK
     /// cannot clear a newer pending revision or a different device identity.
@@ -605,6 +617,43 @@ impl OutboxStore {
 
 /// SHA-256 detects accidental corruption; it is not a cryptographic MAC.
 /// OS SQLite file custody and server-authenticated transport remain separate.
+async fn load_verified_pending(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    device_id: Uuid,
+) -> Result<Option<PendingInventory>, StoreError> {
+    if device_id.is_nil() {
+        return Err(StoreError::InventoryConflict);
+    }
+    let latest: Option<(String, String, i64, String)> = sqlx::query_as(
+        "SELECT device_id,snapshot_id,inventory_revision,semantic_digest \
+         FROM inventory_latest_state WHERE singleton=1",
+    )
+    .fetch_optional(&mut **tx)
+    .await?;
+    let pending: Option<(String, i64, String, String)> = sqlx::query_as(
+        "SELECT snapshot_id,inventory_revision,body_json,content_digest \
+         FROM inventory_pending WHERE singleton=1",
+    )
+    .fetch_optional(&mut **tx)
+    .await?;
+    match (latest, pending) {
+        (None, None) => Ok(None),
+        (None, Some(_)) => Err(StoreError::InventoryConflict),
+        (Some((owner, _, _, _)), _) if owner != device_id.to_string() => {
+            Err(StoreError::InventoryConflict)
+        }
+        (Some(_), None) => Ok(None),
+        (Some((_, id, revision, semantic_digest)),
+         Some((pending_id, pending_rev, body, digest))) => {
+            Ok(Some(verify_typed_pending(
+                device_id,
+                (&id, revision, &semantic_digest),
+                (&pending_id, pending_rev, &body, &digest),
+            )?))
+        }
+    }
+}
+
 fn verify_typed_pending(
     device_id: Uuid,
     latest: (&str, i64, &str),
