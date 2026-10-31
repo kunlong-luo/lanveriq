@@ -35,6 +35,17 @@ jobs:
       - name: Run Testcontainers PostgreSQL 18.6 Flyway + real transaction tests
         working-directory: apps/server
         run: ./gradlew integrationTest --stacktrace
+      - name: Record synthetic PostgreSQL image and commit provenance
+        if: always()
+        run: |
+          printf 'Tested Git commit: %s\n' "$GITHUB_SHA"
+          printf 'Expected PostgreSQL image tag: postgres:18.6\n'
+          if docker image inspect postgres:18.6 \
+            --format 'Image ID: {{.Id}}; repository digests: {{json .RepoDigests}}'; then
+            :
+          else
+            echo 'PostgreSQL image unavailable; no digest evidence captured.'
+          fi
       - name: Archive short-lived synthetic JUnit evidence
         if: always()
         uses: actions/upload-artifact@v4
