@@ -350,7 +350,17 @@ impl AgentTlsTransport {
         payload: &T,
     ) -> Result<(u16, Vec<u8>, Option<String>), TransportError> {
         let body = serde_json::to_vec(payload)?;
-        if body.len() > MAX_BATCH_BYTES {
+        self.post_serialized_json(path, &body).await
+    }
+
+    /// Pass the already validated persisted inventory bytes unchanged;
+    /// serializing a JSON string again would change its wire digest.
+    async fn post_serialized_json(
+        &self,
+        path: &str,
+        body: &[u8],
+    ) -> Result<(u16, Vec<u8>, Option<String>), TransportError> {
+        if body.is_empty() || body.len() > MAX_BATCH_BYTES {
             return Err(TransportError::InvalidEvent);
         }
         // All paths are constructed below from a parsed UUID, never supplied
@@ -360,7 +370,7 @@ impl AgentTlsTransport {
             .client
             .post(url)
             .header(CONTENT_TYPE, "application/json")
-            .body(body)
+            .body(body.to_vec())
             .send()
             .await
             .map_err(TransportError::Network)?;
@@ -414,6 +424,41 @@ impl AgentTlsTransport {
             return Err(TransportError::InvalidAcknowledgement);
         }
         Ok(DeliveryDisposition::Accepted)
+    }
+
+    /// Staged opt-in inventory attempt. NEVER called by AGT-01 service.
+    /// Read only the integrity-checked, device-bound SQLite wire payload.
+    /// No internal retry loop, scheduler, OS probing, or service startup.
+    pub async fn send_next_inventory(
+        &self,
+        store: &OutboxStore,
+        device_id: Uuid,
+    ) -> Result<Option<DeliveryDisposition>, TransportError> {
+        if device_id.is_nil() {
+            return Err(TransportError::InvalidInventory);
+        }
+        let Some(pending) = store.verified_pending_inventory(device_id).await? else {
+            return Ok(None);
+        };
+        let path = format!("/api/v1/devices/{device_id}/inventory");
+        let (status, response, retry_after) = self
+            .post_serialized_json(&path, pending.body_json.as_bytes())
+            .await?;
+        let disposition = classify_inventory_response(
+            status,
+            &response,
+            device_id,
+            &pending,
+            retry_after.as_deref(),
+        )?;
+        if disposition == DeliveryDisposition::Accepted {
+            // A newer local snapshot may supersede this one in flight.
+            // Exact device+snapshot+revision CAS protects the replacement.
+            let _ = store
+                .acknowledge_inventory_snapshot(device_id, pending.snapshot_id, pending.revision)
+                .await?;
+        }
+        Ok(Some(disposition))
     }
 
     /// One explicit attempt using SQLx's durable prepared batch identity.
