@@ -1,4 +1,5 @@
 use lanveriq_agent::store::{OutboxStore, StoreError, SyntheticEvent};
+use lanveriq_agent::transport::EventBatch;
 use serde_json::json;
 use std::path::Path;
 use uuid::Uuid;
@@ -169,4 +170,21 @@ async fn prepared_batch_identity_and_membership_survive_retry_and_restart() {
     assert_eq!(next.events[0].sequence, 2);
     assert_eq!(recovered.acknowledge(&[2]).await.unwrap(), 1);
     assert!(recovered.prepare_synthetic_batch().await.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn prepared_selection_leaves_room_for_serialized_event_envelopes() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("wire-cap.sqlite")).await.unwrap();
+    for i in 0..100 {
+        let mut event = fixture(Uuid::now_v7(), i as u8);
+        event.payload = serde_json::json!({"synthetic": true, "text": "x".repeat(5100)});
+        store.append_synthetic(&event).await.unwrap();
+    }
+    let planned = store.prepare_synthetic_batch().await.unwrap().unwrap();
+    let batch = EventBatch::from_pending(
+        Uuid::now_v7(), planned.batch_id, &planned.events,
+    ).unwrap();
+    assert!(planned.events.len() < 100);
+    assert!(serde_json::to_vec(&batch).unwrap().len() <= 512 * 1024);
 }
