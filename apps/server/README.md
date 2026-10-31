@@ -4,6 +4,10 @@ D0-approved Java 25 / Gradle 9.8.2 (Groovy DSL) / Spring Boot 4.1.2 / Spring Dat
 
 **Not a usable monitoring service.** SRV-02 now contains internal 256-bit one-use token generation and a group-scoped **JPA issuance** operation, plus V2 users/roles/scopes/audit migration. SRV-02 additionally validates a PKCS#10 CSR with Bouncy Castle 1.86 (ECDSA P-256/SHA-256 proof of possession) and now performs conditional one-time token consumption plus PostgreSQL UUIDv7 pending-device/CSR inserts in a **single Spring JPA transaction**. The CSR's requested subject/SAN is never treated as authoritative identity. **No public enrollment endpoint, enabled browser login, certificate issuance/registration, network-reachable mTLS activation, uploads or dashboard REST/WSS has been implemented. An internal activation transaction is now staged but unverified on PostgreSQL.** A conditional console login/CSRF/logout slice now exists in code but is OFF by default, NOT an approved deployment feature. The service rejects business routes by default. No real workplace data is authorized.
 
+## INV-02 latest device inventory — INTERNAL, NO HTTP
+
+Flyway V8 adds a latest inventory row plus normalized multi-NIC, IPv4/IPv6 `inet` and volume tables. The internal `DeviceInventoryService` validates a bounded complete snapshot, checks package-internal verified device identity, and delegates to a Spring JPA transaction. PostgreSQL locks both active device and matching live credential; incoming higher revision atomically replaces all inventory rows, identical same-revision retries are no-op, stale lower revisions are ignored, and same-revision changed data is rejected. No event sequence, activity audit or heartbeat cursor is modified. Synthetic JVM/JPA tests and opt-in PG18 Testcontainers source exist; **real PG18 execution is still missing**. No public inventory upload/read route, actual Rust inventory collector, live Caddy/Tomcat binding or real device data is authorized. [INV-02 acceptance](../../docs/testing/server-inventory-manual.md).
+
 ## Build and run (Java 25 required)
 
 ```sh

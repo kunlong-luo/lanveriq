@@ -1,6 +1,6 @@
 # Endpoint hardware, network and operating-system inventory
 
-**Status:** v0.1 design only; not implemented. **Purpose:** help authorized IT staff locate, identify and maintain managed devices without treating a network address or hardware fingerprint as a secret identity. See [canonical device identity](device-identity.md), [data model](data-model.md), [monitoring UI](../development/monitoring-center.md), [privacy](../security/privacy-and-consent.md) and [inventory diagrams](../diagrams/device-inventory-er.md).
+**Status:** V0.1 design with an **internal INV-02 PostgreSQL V8 + JPA latest-inventory implementation**, Java unit tests and opt-in PG18 integration source. No PG18 execution, real Rust collection, network API or authorized browser read. See [INV-02 acceptance](../testing/server-inventory-manual.md). **Purpose:** help authorized IT staff locate, identify and maintain managed devices without treating a network address or hardware fingerprint as a secret identity. See [canonical device identity](device-identity.md), [data model](data-model.md), [monitoring UI](../development/monitoring-center.md), [privacy](../security/privacy-and-consent.md) and [inventory diagrams](../diagrams/device-inventory-er.md).
 
 ## One identity, many changing properties
 - **Canonical key:** server-generated PostgreSQL 18 `devices.id UUID DEFAULT uuidv7()`; JSON `device_id`. Stable across reboot, renaming, IP/MAC changes and ordinary Agent upgrades.
@@ -69,7 +69,7 @@ Example (fictional, no real device identifiers):
 ~~~
 Example `192.0.2.10` is TEST-NET-1 documentation space, not an actual LAN address. Example NIC `02:00:00:00:00:01` is synthetic. The server records **received_at** and **server_observed_remote_ip** separately; neither comes from trusting arbitrary payload fields.
 
-## Server database design (conceptual, not migrations)
+## Server database design (V8 current-state schema; additional metrics/projections remain conceptual)
 - `devices`: server-owned canonical ID, group, hostname/display/asset tag, replacement link, last seen/status.
 - `device_inventory_current`: `device_id` PK/FK, `schema_version`, `snapshot_id`, `inventory_revision`, `inventory_digest`, `observed_at`, `received_at`, typed common CPU/RAM/OS fields, optional validated versioned JSONB extension for OS-specific fields.
 - `device_network_interfaces`: PK `(device_id, interface_key)`, name, kind, **nullable** MAC, virtual flag, link state, last observed.

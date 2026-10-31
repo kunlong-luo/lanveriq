@@ -1,13 +1,13 @@
 # Manual PostgreSQL 18 and Spring Boot smoke verification
 
 **State: scripted but NOT EXECUTED in the repository authoring environment.**
-This is a strictly **manual, synthetic-only local check** for SRV-01/SRV-02/SRV-03 schema checks, including V7 latest heartbeat state. The automatic GitHub Actions workflow runs unit tests, compiles opt-in database integration-test sources and packages the Boot JAR, but does **not execute** PostgreSQL containers; no privileged employee data is used. A separate manual Testcontainers workflow can execute PostgreSQL 18 integration tests.
+This is a strictly **manual, synthetic-only local check** for SRV-01/SRV-02/SRV-03 schema checks, including V7 latest heartbeat state and V8 current inventory schema. The automatic GitHub Actions workflow runs unit tests, compiles opt-in database integration-test sources and packages the Boot JAR, but does **not execute** PostgreSQL containers; no privileged employee data is used. A separate manual Testcontainers workflow can execute PostgreSQL 18 integration tests.
 
 Requirements: JDK 25, Docker engine with a daemon you control, a free host port 55432 and 18080, curl, openssl, Bash and permission to pull the official PostgreSQL `postgres:18.6` Docker tag. The official current supported 18.x minor is 18.6 as of 2026-10-30; a production image must be independently reviewed and **pinned by digest** before deployment.
 
 ## Preferred real SQL and transaction verification (separate from the smoke script)
 
-The [SRV-03 Testcontainers suite](server-event-ingestion-manual.md), [HB-01 heartbeat suite](server-heartbeat-manual.md) and [SRV-02 activation suite](server-cert-activation-manual.md) are staged to exercise PostgreSQL 18 with Flyway/JPA, including concurrent event dedup, latest heartbeat updates and synthetic pending→active transitions. It is **not** part of the default `test` task. Run `cd apps/server && ./gradlew integrationTest` with JDK 25 and Docker, or manually dispatch **Actions → PostgreSQL 18 integration (manual, synthetic-only)** on `main`. Keep the gate open until an actual successful run is recorded, regardless of successful source compilation.
+The [SRV-03 Testcontainers suite](server-event-ingestion-manual.md), [HB-01 heartbeat suite](server-heartbeat-manual.md), [SRV-02 activation suite](server-cert-activation-manual.md) and [INV-02 latest inventory suite](server-inventory-manual.md) are staged to exercise PostgreSQL 18 with Flyway/JPA, including event dedup, latest heartbeat, certificate activation and monotonic multi-NIC inventory replacement. It is **not** part of the default `test` task. Run `cd apps/server && ./gradlew integrationTest` with JDK 25 and Docker, or manually dispatch **Actions → PostgreSQL 18 integration (manual, synthetic-only)** on `main`. Keep the gate open until an actual successful run is recorded, regardless of successful source compilation.
 
 From the project root, on a local workstation with these tools:
 
@@ -19,12 +19,12 @@ The script:
 1. Generates a temporary synthetic PostgreSQL password under a private temporary directory; does not commit the secret.
 2. Starts a disposable PostgreSQL 18.6 container reachable **only at host 127.0.0.1:55432**, not the LAN.
 3. Builds the real executable Boot JAR via `./gradlew bootJar` and starts Spring via `./gradlew bootRun` with Flyway and `ddl-auto: validate`.
-4. Waits for **health UP**, checks successful Flyway versions V1/V2/V3/V4/V5/V6 and DB-generated UUIDv7, verifies **no seeded administrator account, authentication-audit row, endpoint event or raw-network-access grant**, plus both canonical-event uniqueness constraints and immutability trigger, and asserts an anonymous business GET receives HTTP 403.
+4. Waits for **health UP**, checks successful Flyway versions V1/V2/V3/V4/V5/V6/V7/V8 and DB-generated UUIDv7, verifies **no seeded administrator account, authentication-audit row, endpoint event or raw-network-access grant**, plus both canonical-event uniqueness constraints and immutability trigger, and asserts an anonymous business GET receives HTTP 403.
 5. Removes the container, app process and temporary files on exit. Its test SQL rolls back the synthetic device-group insertion.
 
 ## Separate manual first-admin bootstrap check (NOT RUN)
 
-The basic smoke script above **deletes its disposable PostgreSQL container at exit**. For the following additional acceptance steps, prepare a **separate isolated, persistent-for-test-only PostgreSQL 18** database with Flyway V1–V7. Do not bootstrap an organization's real database until security and organizational authorization are approved.
+The basic smoke script above **deletes its disposable PostgreSQL container at exit**. For the following additional acceptance steps, prepare a **separate isolated, persistent-for-test-only PostgreSQL 18** database with Flyway V1–V8. Do not bootstrap an organization's real database until security and organizational authorization are approved.
 
 1. Verify `SELECT count(*) FROM users` is zero and `SELECT count(*) FROM user_data_grants` is zero. Keep this test DB loopback-only.
 2. With the same DB connection variables configured, launch from a genuine **local interactive terminal**, outside an IDE/CI pipe (a Java Console must exist):
