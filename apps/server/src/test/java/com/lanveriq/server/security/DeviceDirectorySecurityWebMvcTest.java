@@ -19,6 +19,8 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,7 +31,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
  * local network, Caddy or TLS handshake. Not a production security approval.
  */
 @WebMvcTest(controllers = DeviceDirectoryRestController.class)
-@Import(DeviceDirectoryHttpSecurityConfiguration.class)
+@Import({DeviceDirectoryHttpSecurityConfiguration.class,
+        DeviceDirectorySecurityWebMvcTest.EnableSecurityInMvcSlice.class})
 @TestPropertySource(properties = {
         "lanveriq.console.auth.enabled=true",
         "lanveriq.console.auth.origin=https://console.lanveriq.internal",
@@ -37,6 +40,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
         "lanveriq.device-directory.http-enabled=true"
 })
 class DeviceDirectorySecurityWebMvcTest {
+    // Spring Boot's MVC slice deliberately excludes the production security
+    // auto-configuration; enable the native HttpSecurity builder ONLY here.
+    @Configuration(proxyBeanMethods = false)
+    @EnableWebSecurity
+    static class EnableSecurityInMvcSlice {
+    }
+
     @Autowired private MockMvc mvc;
     @MockitoBean private DeviceDirectoryService directory;
     @MockitoBean private AdminAccountRepository accounts;
