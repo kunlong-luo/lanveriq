@@ -3,6 +3,7 @@ package com.lanveriq.server.events;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ public class DeviceActivationService {
     private final DeviceActivationRepository repository;
     private final Clock clock;
 
+    @Autowired
     DeviceActivationService(DeviceActivationRepository repository) {
         this(repository, Clock.systemUTC());
     }
