@@ -745,3 +745,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "store_inventory_tests.rs"]
+mod inventory_store_tests;
