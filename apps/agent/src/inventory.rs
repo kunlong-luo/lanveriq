@@ -130,15 +130,19 @@ impl InventorySnapshot {
         observed_at: String,
         raw: RawInventory,
     ) -> Result<Self, InventoryError> {
-        if device_id.is_nil() || snapshot_id.is_nil()
-            || inventory_revision == 0 || inventory_revision > i64::MAX as u64
+        if device_id.is_nil()
+            || snapshot_id.is_nil()
+            || inventory_revision == 0
+            || inventory_revision > i64::MAX as u64
         {
             return Err(InventoryError::InvalidIdentity);
         }
-        if observed_at.len() < 20 || observed_at.len() > 35
+        if observed_at.len() < 20
+            || observed_at.len() > 35
             || !observed_at.ends_with('Z')
-            || !observed_at.bytes().all(|byte| byte.is_ascii_digit()
-                || matches!(byte, b'-' | b'T' | b':' | b'.' | b'Z'))
+            || !observed_at.bytes().all(|byte| {
+                byte.is_ascii_digit() || matches!(byte, b'-' | b'T' | b':' | b'.' | b'Z')
+            })
         {
             return Err(InventoryError::InvalidField);
         }
@@ -164,8 +168,11 @@ impl InventorySnapshot {
             return Err(InventoryError::InvalidField);
         }
         for (value, limit) in [
-            (&os.name, 128), (&os.version, 128), (&os.build, 128),
-            (&os.kernel_release, 128), (&os.arch, 64),
+            (&os.name, 128),
+            (&os.version, 128),
+            (&os.build, 128),
+            (&os.kernel_release, 128),
+            (&os.arch, 64),
         ] {
             optional(value, limit)?;
         }
@@ -190,9 +197,11 @@ impl InventorySnapshot {
             }
             if let Some(mac) = nic.mac_address.take() {
                 let lowered = mac.to_ascii_lowercase();
-                let valid = lowered.len() == 17 && lowered.split(':').count() == 6
-                    && lowered.split(':').all(|part| part.len() == 2
-                        && part.bytes().all(|ch| ch.is_ascii_hexdigit()));
+                let valid = lowered.len() == 17
+                    && lowered.split(':').count() == 6
+                    && lowered.split(':').all(|part| {
+                        part.len() == 2 && part.bytes().all(|ch| ch.is_ascii_hexdigit())
+                    });
                 if !valid {
                     return Err(InventoryError::InvalidField);
                 }
@@ -206,15 +215,18 @@ impl InventorySnapshot {
                     return Err(InventoryError::InvalidField);
                 }
                 if let Some(scope) = &addr.scope {
-                    if !matches!(scope.as_str(),
-                        "global" | "private" | "link_local" | "loopback" | "unknown") {
+                    if !matches!(
+                        scope.as_str(),
+                        "global" | "private" | "link_local" | "loopback" | "unknown"
+                    ) {
                         return Err(InventoryError::InvalidField);
                     }
                 }
                 addr.ip = parsed.to_string();
             }
             if let Some(existing) = interfaces.get_mut(&nic.key) {
-                if existing.name != nic.name || existing.kind != nic.kind
+                if existing.name != nic.name
+                    || existing.kind != nic.kind
                     || existing.mac_address != nic.mac_address
                     || existing.link_state != nic.link_state
                     || existing.is_virtual != nic.is_virtual
@@ -227,13 +239,17 @@ impl InventorySnapshot {
             }
         }
         for nic in interfaces.values_mut() {
-            nic.addresses.sort_by(|a, b| (&a.family, &a.ip, a.prefix_length)
-                .cmp(&(&b.family, &b.ip, b.prefix_length)));
-            let unique: BTreeSet<_> = nic.addresses.iter()
-                .map(|a| (a.ip.as_str(), a.prefix_length)).collect();
+            nic.addresses.sort_by(|a, b| {
+                (&a.family, &a.ip, a.prefix_length).cmp(&(&b.family, &b.ip, b.prefix_length))
+            });
+            let unique: BTreeSet<_> = nic
+                .addresses
+                .iter()
+                .map(|a| (a.ip.as_str(), a.prefix_length))
+                .collect();
             if unique.len() != nic.addresses.len() {
-                nic.addresses.dedup_by(|a, b| a.ip == b.ip
-                    && a.prefix_length == b.prefix_length);
+                nic.addresses
+                    .dedup_by(|a, b| a.ip == b.ip && a.prefix_length == b.prefix_length);
             }
             if nic.addresses.len() > MAX_ADDRESSES_PER_INTERFACE {
                 return Err(InventoryError::TooLarge);
@@ -245,7 +261,10 @@ impl InventorySnapshot {
             key(&volume.key)?;
             required(&volume.mount_point, 256)?;
             optional(&volume.filesystem, 64)?;
-            if volume.free_bytes.is_some_and(|free| free > volume.total_bytes) {
+            if volume
+                .free_bytes
+                .is_some_and(|free| free > volume.total_bytes)
+            {
                 return Err(InventoryError::InvalidField);
             }
             if volumes.insert(volume.key.clone(), volume).is_some() {
@@ -254,19 +273,34 @@ impl InventorySnapshot {
         }
         for (name, state) in &raw.capabilities {
             key(name)?;
-            if !matches!(state.as_str(), "available" | "not_collected"
-                | "unsupported" | "unavailable" | "permission_denied" | "transient_error")
-            {
+            if !matches!(
+                state.as_str(),
+                "available"
+                    | "not_collected"
+                    | "unsupported"
+                    | "unavailable"
+                    | "permission_denied"
+                    | "transient_error"
+            ) {
                 return Err(InventoryError::InvalidField);
             }
         }
         let candidate = Self {
-            schema_version: 1, snapshot_id, inventory_revision, device_id,
-            observed_at, hardware, os, interfaces: interfaces.into_values().collect(),
-            volumes: volumes.into_values().collect(), capabilities: raw.capabilities,
+            schema_version: 1,
+            snapshot_id,
+            inventory_revision,
+            device_id,
+            observed_at,
+            hardware,
+            os,
+            interfaces: interfaces.into_values().collect(),
+            volumes: volumes.into_values().collect(),
+            capabilities: raw.capabilities,
         };
         if serde_json::to_vec(&candidate)
-            .map_err(|_| InventoryError::Serialization)?.len() > MAX_SNAPSHOT_BYTES
+            .map_err(|_| InventoryError::Serialization)?
+            .len()
+            > MAX_SNAPSHOT_BYTES
         {
             return Err(InventoryError::TooLarge);
         }
@@ -275,9 +309,11 @@ impl InventorySnapshot {
 }
 
 fn key(text: &str) -> Result<(), InventoryError> {
-    if text.is_empty() || text.len() > 128
-        || !text.bytes().all(|b| b.is_ascii_alphanumeric()
-            || matches!(b, b'.' | b'_' | b':' | b'-'))
+    if text.is_empty()
+        || text.len() > 128
+        || !text
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'))
     {
         return Err(InventoryError::InvalidField);
     }
@@ -292,9 +328,11 @@ fn required(text: &str, max: usize) -> Result<(), InventoryError> {
 }
 
 fn optional(text: &Option<String>, max: usize) -> Result<(), InventoryError> {
-    if let Some(text) = text { if text.len() > max || text.chars().any(char::is_control) {
-        return Err(InventoryError::InvalidField);
-    }}
+    if let Some(text) = text {
+        if text.len() > max || text.chars().any(char::is_control) {
+            return Err(InventoryError::InvalidField);
+        }
+    }
     Ok(())
 }
 
@@ -307,36 +345,74 @@ mod tests {
             hardware: Hardware {
                 manufacturer: Some("SyntheticVendor".into()),
                 model: None,
-                cpu: Some(Cpu { model: Some("Synthetic P-256".into()),
-                    arch: Some("x86_64".into()), physical_cores: Some(4),
-                    logical_cores: Some(8) }),
-                memory: Some(Memory { total_bytes: Some(16_000_000_000) }),
+                cpu: Some(Cpu {
+                    model: Some("Synthetic P-256".into()),
+                    arch: Some("x86_64".into()),
+                    physical_cores: Some(4),
+                    logical_cores: Some(8),
+                }),
+                memory: Some(Memory {
+                    total_bytes: Some(16_000_000_000),
+                }),
             },
-            os: OperatingSystem { family: "linux".into(),
-                name: Some("Synthetic Linux".into()), version: Some("24.04".into()),
-                build: None, kernel_release: None, arch: Some("x86_64".into()) },
+            os: OperatingSystem {
+                family: "linux".into(),
+                name: Some("Synthetic Linux".into()),
+                version: Some("24.04".into()),
+                build: None,
+                kernel_release: None,
+                arch: Some("x86_64".into()),
+            },
             interfaces: vec![
-                NetworkInterface { key: "nic-01".into(), name: "eth0".into(),
-                    kind: Some("ethernet".into()), mac_address: Some("02:AB:00:00:00:01".into()),
-                    link_state: Some("up".into()), is_virtual: Some(false),
-                    addresses: vec![Address { ip: "192.0.2.10".into(),
-                        prefix_length: 24, family: "ipv4".into(), scope: Some("private".into()) }] },
-                NetworkInterface { key: "nic-01".into(), name: "eth0".into(),
-                    kind: Some("ethernet".into()), mac_address: Some("02:ab:00:00:00:01".into()),
-                    link_state: Some("up".into()), is_virtual: Some(false),
-                    addresses: vec![Address { ip: "2001:db8::1".into(),
-                        prefix_length: 64, family: "ipv6".into(), scope: Some("global".into()) }] },
+                NetworkInterface {
+                    key: "nic-01".into(),
+                    name: "eth0".into(),
+                    kind: Some("ethernet".into()),
+                    mac_address: Some("02:AB:00:00:00:01".into()),
+                    link_state: Some("up".into()),
+                    is_virtual: Some(false),
+                    addresses: vec![Address {
+                        ip: "192.0.2.10".into(),
+                        prefix_length: 24,
+                        family: "ipv4".into(),
+                        scope: Some("private".into()),
+                    }],
+                },
+                NetworkInterface {
+                    key: "nic-01".into(),
+                    name: "eth0".into(),
+                    kind: Some("ethernet".into()),
+                    mac_address: Some("02:ab:00:00:00:01".into()),
+                    link_state: Some("up".into()),
+                    is_virtual: Some(false),
+                    addresses: vec![Address {
+                        ip: "2001:db8::1".into(),
+                        prefix_length: 64,
+                        family: "ipv6".into(),
+                        scope: Some("global".into()),
+                    }],
+                },
             ],
-            volumes: vec![Volume { key: "root".into(), mount_point: "/".into(),
-                filesystem: Some("ext4".into()), total_bytes: 100_000,
-                free_bytes: Some(40_000), is_system: Some(true) }],
+            volumes: vec![Volume {
+                key: "root".into(),
+                mount_point: "/".into(),
+                filesystem: Some("ext4".into()),
+                total_bytes: 100_000,
+                free_bytes: Some(40_000),
+                is_system: Some(true),
+            }],
             capabilities: BTreeMap::from([("desktop_session".into(), "unavailable".into())]),
         }
     }
 
     fn snapshot(raw: RawInventory) -> Result<InventorySnapshot, InventoryError> {
         InventorySnapshot::from_raw(
-            Uuid::now_v7(), Uuid::now_v7(), 17, "2026-10-31T09:00:00Z".into(), raw)
+            Uuid::now_v7(),
+            Uuid::now_v7(),
+            17,
+            "2026-10-31T09:00:00Z".into(),
+            raw,
+        )
     }
 
     #[test]
@@ -344,10 +420,16 @@ mod tests {
         let item = snapshot(raw()).unwrap();
         assert_eq!(item.interfaces.len(), 1);
         assert_eq!(item.interfaces[0].addresses.len(), 2);
-        assert_eq!(item.interfaces[0].mac_address.as_deref(), Some("02:ab:00:00:00:01"));
+        assert_eq!(
+            item.interfaces[0].mac_address.as_deref(),
+            Some("02:ab:00:00:00:01")
+        );
         assert_eq!(item.volumes.len(), 1);
         let json = serde_json::to_value(&item).unwrap();
-        assert_eq!(json["hardware"]["memory"]["total_bytes"], 16_000_000_000_u64);
+        assert_eq!(
+            json["hardware"]["memory"]["total_bytes"],
+            16_000_000_000_u64
+        );
         assert_eq!(json["interfaces"][0]["addresses"][0]["family"], "ipv4");
         assert_eq!(json["inventory_revision"], 17);
         assert!(json.get("user").is_none());
@@ -391,7 +473,8 @@ mod tests {
         item.interfaces = vec![item.interfaces[0].clone(); 33];
         assert_eq!(snapshot(item), Err(InventoryError::TooLarge));
         let mut item = raw();
-        item.capabilities.insert("app_activity".into(), "enabled".into());
+        item.capabilities
+            .insert("app_activity".into(), "enabled".into());
         assert_eq!(snapshot(item), Err(InventoryError::InvalidField));
         let mut item = raw();
         item.volumes[0].free_bytes = Some(100_001);
@@ -403,11 +486,25 @@ mod tests {
 
     #[test]
     fn rejects_untrusted_zero_device_and_revision_without_generating_identity() {
-        assert_eq!(InventorySnapshot::from_raw(
-            Uuid::nil(), Uuid::now_v7(), 1, "2026-10-31T09:00:00Z".into(), raw()),
-            Err(InventoryError::InvalidIdentity));
-        assert_eq!(InventorySnapshot::from_raw(
-            Uuid::now_v7(), Uuid::now_v7(), 0, "2026-10-31T09:00:00Z".into(), raw()),
-            Err(InventoryError::InvalidIdentity));
+        assert_eq!(
+            InventorySnapshot::from_raw(
+                Uuid::nil(),
+                Uuid::now_v7(),
+                1,
+                "2026-10-31T09:00:00Z".into(),
+                raw()
+            ),
+            Err(InventoryError::InvalidIdentity)
+        );
+        assert_eq!(
+            InventorySnapshot::from_raw(
+                Uuid::now_v7(),
+                Uuid::now_v7(),
+                0,
+                "2026-10-31T09:00:00Z".into(),
+                raw()
+            ),
+            Err(InventoryError::InvalidIdentity)
+        );
     }
 }
