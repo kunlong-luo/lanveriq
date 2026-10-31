@@ -68,7 +68,7 @@ class JpaEventIngestionRepositoryTest {
 
         var sql = ArgumentCaptor.forClass(String.class);
         verify(manager, Mockito.times(4)).createNativeQuery(sql.capture());
-        assertTrue(sql.getAllValues().get(0).contains("enrollment_state = 'active'"));
+        assertTrue(sql.getAllValues().get(0).contains("enrollment_state='active'"));
         assertTrue(sql.getAllValues().get(0).contains("FOR UPDATE OF d"));
         assertTrue(sql.getAllValues().get(1).contains("FOR UPDATE OF c"));
         assertTrue(sql.getAllValues().get(1).contains("client_cert_sha256_fingerprint"));
@@ -98,6 +98,7 @@ class JpaEventIngestionRepositoryTest {
         wire();
         var e = event(2);
         when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
         when(compare.getResultList()).thenReturn(Collections.singletonList(
                 new Object[]{2L, e.eventId(), "b".repeat(64)}));
         var error = assertThrows(DeviceBatchRejection.class, () ->
@@ -111,6 +112,7 @@ class JpaEventIngestionRepositoryTest {
         wire();
         var e = event(3);
         when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
         when(compare.getResultList()).thenReturn(Collections.singletonList(
                 new Object[]{99L, e.eventId(), e.digest()}));
         var error = assertThrows(DeviceBatchRejection.class, () ->
@@ -124,6 +126,7 @@ class JpaEventIngestionRepositoryTest {
         wire();
         var e = event(3);
         when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
         when(compare.getResultList()).thenReturn(List.of(
                 new Object[]{3L, UUID.randomUUID(), e.digest()},
                 new Object[]{9L, e.eventId(), e.digest()}));
