@@ -7,7 +7,7 @@ Requirements: JDK 25, Docker engine with a daemon you control, a free host port 
 
 ## Preferred real SQL and transaction verification (separate from the smoke script)
 
-The [SRV-03 Testcontainers suite](server-event-ingestion-manual.md) exercises actual PostgreSQL 18 with Flyway and JPA, including concurrent whole-batch event dedup and failures. It is **not** part of the default `test` task. Run `cd apps/server && ./gradlew integrationTest` with JDK 25 and Docker, or manually dispatch **Actions → PostgreSQL 18 integration (manual, synthetic-only)** on `main`. Keep the gate open until an actual successful run is recorded, regardless of successful source compilation.
+The [SRV-03 Testcontainers suite](server-event-ingestion-manual.md), [HB-01 heartbeat suite](server-heartbeat-manual.md) and [SRV-02 activation suite](server-cert-activation-manual.md) are staged to exercise PostgreSQL 18 with Flyway/JPA, including concurrent event dedup, latest heartbeat updates and synthetic pending→active transitions. It is **not** part of the default `test` task. Run `cd apps/server && ./gradlew integrationTest` with JDK 25 and Docker, or manually dispatch **Actions → PostgreSQL 18 integration (manual, synthetic-only)** on `main`. Keep the gate open until an actual successful run is recorded, regardless of successful source compilation.
 
 From the project root, on a local workstation with these tools:
 
