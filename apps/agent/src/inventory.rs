@@ -217,7 +217,10 @@ impl InventorySnapshot {
                     return Err(InventoryError::InvalidField);
                 }
                 if addr.scope.as_deref().is_some_and(|scope| {
-                    !matches!(scope, "global" | "private" | "link_local" | "loopback" | "unknown")
+                    !matches!(
+                        scope,
+                        "global" | "private" | "link_local" | "loopback" | "unknown"
+                    )
                 }) {
                     return Err(InventoryError::InvalidField);
                 }
@@ -337,9 +340,10 @@ fn required(text: &str, max: usize) -> Result<(), InventoryError> {
 }
 
 fn optional(text: &Option<String>, max: usize) -> Result<(), InventoryError> {
-    if text.as_ref().is_some_and(|text| {
-        text.len() > max || text.chars().any(char::is_control)
-    }) {
+    if text
+        .as_ref()
+        .is_some_and(|text| text.len() > max || text.chars().any(char::is_control))
+    {
         return Err(InventoryError::InvalidField);
     }
     Ok(())
