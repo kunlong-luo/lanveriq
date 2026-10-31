@@ -375,23 +375,18 @@ impl OutboxStore {
             if owner != &device_id.to_string() {
                 return Err(StoreError::InventoryConflict);
             }
-            if pending.as_ref().is_some_and(|(queued_id, queued_rev, _)| {
-                queued_id != previous_id || *queued_rev != last_revision
-            }) {
-                // Do not overwrite an orphaned/legacy pending payload:
-                // it might still require an explicit acknowledgement.
-                return Err(StoreError::InventoryConflict);
-            }
+            let checked_pending = match pending {
+                Some((id, revision, json, stored_digest)) => Some(
+                    verify_typed_pending(
+                        device_id, previous_id, last_revision, digest,
+                        &id, revision, &json, &stored_digest,
+                    )?,
+                ),
+                None => None,
+            };
             if digest == &semantic_digest {
-                return match pending {
-                    Some((id, revision, json)) => {
-                        Ok(InventoryStage::AlreadyPending(PendingInventory {
-                            snapshot_id: Uuid::parse_str(&id)
-                                .map_err(|_| StoreError::InventoryConflict)?,
-                            revision,
-                            body_json: json,
-                        }))
-                    }
+                return match checked_pending {
+                    Some(value) => Ok(InventoryStage::AlreadyPending(value)),
                     None => Ok(InventoryStage::Unchanged),
                 };
             }
