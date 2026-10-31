@@ -2,12 +2,16 @@ package com.lanveriq.server.events;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -175,5 +179,122 @@ class PostgreSqlDeviceInventoryIT {
                 assertThrows(DeviceInventoryRejection.class,
                         () -> inventory.ingest(credential, deviceId, snapshot)).reason());
         assertEquals(0L, count("current"));
+    }
+
+    /**
+     * Deliberately fail one native PostgreSQL child INSERT after the prior
+     * current snapshot has already been deleted inside the service transaction.
+     * A complete rollback MUST restore the prior current+all children.
+     * DDL is restricted to this disposable Testcontainers database.
+     */
+    private void assertChildFailureRollsBackEverything(String childTable) {
+        String table = switch (childTable) {
+            case "interfaces" -> "device_inventory_interfaces";
+            case "addresses" -> "device_inventory_addresses";
+            case "volumes" -> "device_inventory_volumes";
+            default -> throw new IllegalArgumentException("unapproved synthetic table");
+        };
+        var baseline = snapshot(10, UUID.randomUUID(), true);
+        assertEquals(DeviceInventoryReceipt.Outcome.applied,
+                inventory.ingest(credential, deviceId, baseline).outcome());
+        assertEquals(2L, count("interfaces"));
+        assertEquals(2L, count("addresses"));
+        assertEquals(1L, count("volumes"));
+        var tx = new TransactionTemplate(transactions);
+        tx.executeWithoutResult(ignored -> {
+            manager.createNativeQuery("""
+                    CREATE FUNCTION synthetic_inventory_child_failure()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                        RAISE EXCEPTION 'synthetic inventory child insert failure';
+                        RETURN NEW;
+                    END
+                    $$
+                    """).executeUpdate();
+            manager.createNativeQuery("""
+                    CREATE TRIGGER synthetic_inventory_child_failure
+                    BEFORE INSERT ON %s
+                    FOR EACH ROW EXECUTE FUNCTION synthetic_inventory_child_failure()
+                    """.formatted(table)).executeUpdate();
+        });
+        try {
+            var next = snapshot(11, UUID.randomUUID(), true);
+            assertThrows(RuntimeException.class,
+                    () -> inventory.ingest(credential, deviceId, next));
+            Object[] preserved = (Object[]) manager.createNativeQuery("""
+                    SELECT snapshot_id, inventory_revision
+                    FROM device_inventory_current WHERE device_id=:device
+                    """).setParameter("device", deviceId).getSingleResult();
+            assertEquals(baseline.snapshotId(), preserved[0]);
+            assertEquals(10L, ((Number) preserved[1]).longValue());
+            assertEquals(1L, count("current"));
+            assertEquals(2L, count("interfaces"));
+            assertEquals(2L, count("addresses"));
+            assertEquals(1L, count("volumes"));
+        } finally {
+            tx.executeWithoutResult(ignored -> {
+                manager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS synthetic_inventory_child_failure ON %s
+                        """.formatted(table)).executeUpdate();
+                manager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS synthetic_inventory_child_failure()
+                        """).executeUpdate();
+            });
+        }
+        // A failed transaction must not poison the JPA service or require
+        // an unsafe revision/identity reset before an authorized retry.
+        var retry = snapshot(11, UUID.randomUUID(), false);
+        assertEquals(DeviceInventoryReceipt.Outcome.applied,
+                inventory.ingest(credential, deviceId, retry).outcome());
+        assertEquals(1L, count("interfaces"));
+        assertEquals(0L, count("addresses"));
+    }
+
+    @Test
+    void postgresNicInsertFailurePreservesLastCommittedCompleteInventory() {
+        assertChildFailureRollsBackEverything("interfaces");
+    }
+
+    @Test
+    void postgresAddressInsertFailurePreservesLastCommittedCompleteInventory() {
+        assertChildFailureRollsBackEverything("addresses");
+    }
+
+    @Test
+    void postgresVolumeInsertFailurePreservesLastCommittedCompleteInventory() {
+        assertChildFailureRollsBackEverything("volumes");
+    }
+
+    @Test
+    void competingHigherAndLowerRevisionsCannotRegressCurrentInventory() throws Exception {
+        var low = snapshot(21, UUID.randomUUID(), true);
+        var high = snapshot(22, UUID.randomUUID(), false);
+        var start = new CountDownLatch(1);
+        try (var workers = Executors.newFixedThreadPool(2)) {
+            var lowResult = workers.submit(() -> {
+                start.await();
+                return inventory.ingest(credential, deviceId, low);
+            });
+            var highResult = workers.submit(() -> {
+                start.await();
+                return inventory.ingest(credential, deviceId, high);
+            });
+            start.countDown();
+            var lower = lowResult.get(30, TimeUnit.SECONDS);
+            var higher = highResult.get(30, TimeUnit.SECONDS);
+            assertEquals(DeviceInventoryReceipt.Outcome.applied, higher.outcome());
+            assertTrue(lower.outcome() == DeviceInventoryReceipt.Outcome.applied
+                    || lower.outcome() == DeviceInventoryReceipt.Outcome.stale_ignored);
+        }
+        Object[] persisted = (Object[]) manager.createNativeQuery("""
+                SELECT snapshot_id,inventory_revision
+                FROM device_inventory_current WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        assertEquals(high.snapshotId(), persisted[0]);
+        assertEquals(22L, ((Number) persisted[1]).longValue());
+        assertEquals(1L, count("current"));
+        assertEquals(1L, count("interfaces"));
+        assertEquals(0L, count("addresses"));
+        assertEquals(1L, count("volumes"));
     }
 }

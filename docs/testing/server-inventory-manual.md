@@ -22,7 +22,7 @@
 | INV-DB-04 | Late lower revision never regresses network addresses or OS asset state | Java unit + opt-in Testcontainers source |
 | INV-DB-05 | Same revision with different ID/content is rejected and current rows remain intact | Java unit + opt-in Testcontainers source |
 | INV-DB-06 | Forged/revoked/expired certificate is denied | Java unit + opt-in Testcontainers source |
-| INV-DB-07 | Injected NIC/address/volume SQL failure rolls back current and all children; true concurrent revisions | **Needs executed PG18 fault/concurrency evidence** |
+| INV-DB-07 | Injected NIC/address/volume SQL failure rolls back current and all children; true concurrent revisions | **New dedicated Testcontainers negative cases committed and compile-gated; actual PG18 execution still required** |
 | INV-AGT-01 | Real Windows 11 + Pop!_OS asset collector using maintained `sysinfo`, OS/network libraries and an updated locked Cargo dependency graph | **Not implemented** |
 | INV-HTTP-01 | Actual Caddy→Spring mTLS, scoped Administrator read, private MAC/IP and no cross-group leakage | **Not implemented / not approved** |
 
@@ -30,4 +30,4 @@ To execute **only on disposable synthetic test databases**, run `cd apps/server 
 
 ## Unclosed blockers
 
-The first genuine PostgreSQL run, actual embedded Spring/Tomcat mTLS, cert enrollment/activation, scoped asset read API, real Rust NIC collection and platform smoke still require independent acceptance. **Do not turn this internal service into a public HTTP route or collect real employee/device data.**
+The first genuine PostgreSQL run (including new `PostgreSqlDeviceInventoryIT` child-table trigger rollback and competing-revision concurrency tests), actual embedded Spring/Tomcat mTLS, cert enrollment/activation, scoped asset read API, real Rust NIC collection and platform smoke still require independent acceptance. **Do not turn this internal service into a public HTTP route or collect real employee/device data.**
