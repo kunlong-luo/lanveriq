@@ -15,6 +15,8 @@ IT operator can view assigned device health, connectivity, queue and supported s
 
 **Current implementation boundary:** a feature-flagged default-OFF internal Spring/JPA device list/detail health-only query foundation now exists with DB permission checks and immutable page summaries. It does not compute online/stale/offline, export network identifiers or serve an HTTP endpoint. The manual-only `PostgreSqlDeviceDirectoryIT` fixture is staged but PostgreSQL execution has not been observed. Do not call the source code a live monitoring endpoint.
 
+**Staged implementation (source, not live):** `GET /api/v1/monitoring/overview` now has an opt-in Spring controller and session/Host/Origin constrained security chain. SQL counts only current assigned device-group rows using one database time snapshot. Its eight JSON fields are `as_of,total,online,stale,offline,revoked,pending,retired`. The categories sum to total; devices pending certificate and retired do not inflate offline counts. Revoked trumps old heartbeats; active last authenticated server heartbeat, not Agent-supplied time, determines connectivity. Field-level API is health-only (no IP/MAC/credentials/activity). Springdoc build contract checks this operation and schema. The real PostgreSQL 18/Testcontainers and Caddy/TLS checks have not been executed.
+
 ## Initial REST and WSS contracts (draft)
 - `GET /api/v1/monitoring/overview` — server-derived counts within authorized device groups; includes `as_of`.
 - `GET /api/v1/monitoring/devices?cursor=&limit=` — bounded, scoped device-health summaries; OS/CPU/RAM/disk and a primary IP **only if the caller has `internal_operational` authorization**; do not leak the value in JSON/WSS or summaries otherwise.

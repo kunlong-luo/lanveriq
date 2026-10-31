@@ -4,6 +4,8 @@
 
 **V0.1 backend contract milestone:** The Spring Boot device-read controller now has a synthetic-only Springdoc OpenAPI generation and strict CI validation path. [Java CI #41190792718](https://github.com/kunlong-luo/lanveriq/actions/runs/41190792718) has **actually passed** Springdoc generation, JSON drift validation and contract artifact upload; that versioned `openapi.json` is suitable for a future Orval trial without opening the backend's docs endpoint. This is still not a completed React project or a production-accepted API; real PostgreSQL, HTTPS and cookie/session acceptance are separate.
 
+**MON-01-OVERVIEW backend slice:** the planned monitoring-count endpoint now has a default-OFF controller, separate security chain, Postgres aggregate and a generated-OpenAPI contract test. A passing CI artifact is prerequisite for Orval use. No React code or real device data is present; this does not clear the manual database/TLS release gates.
+
 ## Stack
 - **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, **not** an application framework.
 - **React 19 + Vite 8 + TypeScript**, React Router for the LAN Dashboard. A Next.js SSR server is unnecessary. These UI libraries are not exclusive to Next.js.

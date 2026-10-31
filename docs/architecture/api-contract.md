@@ -15,6 +15,8 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 
 **Executed synthetic contract evidence (2026-10-31):** [Server CI #41190792718](https://github.com/kunlong-luo/lanveriq/actions/runs/41190792718) passed on commit `050610d222d6125fc49ff060ea80cd69d223b7e3`. The actual Springdoc-generated `openapi.json` for `GET /devices` and `GET /devices/{deviceId}` was validated against the exact two-route/GET-only/session-cookie/response-field contract and uploaded as the 14-day artifact `lanveriq-device-openapi-050610d222d6125fc49ff060ea80cd69d223b7e3`. This validates **source-generated metadata in a synthetic Boot MVC context only**, not live database row authorization, a signed HTTPS connection, accepted production browser sessions or a finished Orval client. Swagger and API docs remain OFF in default server config.
 
+**MON-01-OVERVIEW staged API:** The backend now has an independently opt-in, administrator-session-guarded `GET /api/v1/monitoring/overview`. Server-generated JSON is `{as_of,total,online,stale,offline,revoked,pending,retired}`, with one database clock snapshot and mutually exclusive counts; it never derives total counts from a client-side paginated list or discloses unassigned groups. Pending and retired are separate. This operation is part of the source-generated Springdoc contract verification but requires a new successful CI run before accepting the expanded artifact. Actual PG/TLS/browser execution still open.
+
 ## Device API
 | Method | Path | Principal | Semantics |
 |---|---|---|---|

@@ -50,7 +50,7 @@ public class DeviceDirectoryService {
         return repository.find(requireAdmin(), deviceId);
     }
 
-    private static UUID requireAdmin() {
+    static UUID requireAdmin() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()
                 || !(auth.getPrincipal() instanceof AdminPrincipal admin)

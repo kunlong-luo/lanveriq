@@ -60,6 +60,9 @@ lanveriq:
   device-directory:
     enabled: ${LANVERIQ_DEVICE_DIRECTORY_ENABLED:false}
     http-enabled: ${LANVERIQ_DEVICE_DIRECTORY_HTTP_ENABLED:false}
+  # An independent default-OFF console-only operational summary route.
+  monitoring:
+    overview-http-enabled: ${LANVERIQ_MONITORING_OVERVIEW_HTTP_ENABLED:false}
   device-revocation:
     enabled: ${LANVERIQ_DEVICE_REVOCATION_ENABLED:false}
   console:

@@ -43,6 +43,7 @@ class PostgreSqlDeviceDirectoryIT {
             .withPassword("synthetic-test-only");
 
     @Autowired private DeviceDirectoryService directory;
+    @Autowired private MonitoringOverviewService monitoring;
     @Autowired private EntityManager manager;
     @Autowired private PlatformTransactionManager managerTx;
 
@@ -197,4 +198,68 @@ class PostgreSqlDeviceDirectoryIT {
         assertTrue(directory.find(first).isEmpty());
         assertTrue(directory.find(outsider).isEmpty());
     }
+    @Test
+    void monitoringOverviewCountsOnlyCurrentGroupsAndExcludesPendingFromOffline() {
+        new TransactionTemplate(managerTx).executeWithoutResult(ignored -> {
+            UUID group = (UUID) manager.createNativeQuery(
+                    "SELECT group_id FROM devices WHERE id=:device")
+                    .setParameter("device", first).getSingleResult();
+            UUID stale = insertDevice(group, "Synthetic stale", "active");
+            UUID old = insertDevice(group, "Synthetic offline", "active");
+            insertDevice(group, "Synthetic never-seen", "active");
+            UUID revoked = insertDevice(group, "Synthetic revoked", "revoked");
+            insertDevice(group, "Synthetic retired", "retired");
+            manager.createNativeQuery("""
+                    UPDATE devices SET revoked_at=clock_timestamp() WHERE id=:device
+                    """).setParameter("device", revoked).executeUpdate();
+            for (UUID device : List.of(stale, old)) {
+                manager.createNativeQuery("""
+                        INSERT INTO device_heartbeat_latest(
+                            device_id,received_at,agent_sent_at,agent_version,
+                            agent_status,policy_version,capabilities_json,
+                            queue_count,queue_bytes,dropped_count,integrity_degraded,
+                            collection_errors_json)
+                        VALUES(:device,
+                            clock_timestamp() - CASE WHEN :is_stale
+                                THEN INTERVAL '120 seconds'
+                                ELSE INTERVAL '400 seconds' END,
+                            clock_timestamp(),'0.1.0','running',1,
+                            CAST('{}' AS jsonb),0,0,0,false,CAST('[]' AS jsonb))
+                        """).setParameter("device", device)
+                        .setParameter("is_stale", device.equals(stale)).executeUpdate();
+            }
+        });
+        var result = monitoring.overview();
+        assertEquals(7L, result.total());
+        assertEquals(1L, result.online());
+        assertEquals(1L, result.stale());
+        assertEquals(2L, result.offline());
+        assertEquals(1L, result.pending());
+        assertEquals(1L, result.revoked());
+        assertEquals(1L, result.retired());
+        assertTrue(result.asOf().isBefore(java.time.Instant.now().plusSeconds(10)));
+
+        login(otherAdmin);
+        var other = monitoring.overview();
+        assertEquals(1L, other.total());
+        assertEquals(0L, other.online());
+        assertEquals(1L, other.offline());
+    }
+
+    @Test
+    void monitoringOverviewDisablesAllCountsAfterCurrentGrantIsRemoved() {
+        var initially = monitoring.overview();
+        assertEquals(2L, initially.total());
+        assertEquals(1L, initially.online());
+        assertEquals(1L, initially.pending());
+        new TransactionTemplate(managerTx).executeWithoutResult(ignored ->
+                manager.createNativeQuery("""
+                        DELETE FROM user_role_scopes WHERE user_id=:actor
+                        """).setParameter("actor", scopedAdmin).executeUpdate());
+        var removed = monitoring.overview();
+        assertEquals(0L, removed.total());
+        assertEquals(0L, removed.online());
+        assertEquals(0L, removed.offline());
+    }
+
 }

@@ -20,7 +20,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceInventoryIT": 11,
     "PostgreSqlCertificateRegistrationIT": 3,
     "PostgreSqlDeviceRevocationIT": 6,
-    "PostgreSqlDeviceDirectoryIT": 2,
+    "PostgreSqlDeviceDirectoryIT": 4,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -62,6 +62,8 @@ REQUIRED_CASES = {
     "PostgreSqlDeviceDirectoryIT": {
         "groupScopedKeysetAndDetailDoNotLeakOtherGroupOrPrivateNetwork",
         "disabledAdministratorLosesAllHealthScopeDespiteStalePrincipal",
+        "monitoringOverviewCountsOnlyCurrentGroupsAndExcludesPendingFromOffline",
+        "monitoringOverviewDisablesAllCountsAfterCurrentGrantIsRemoved",
     },
 }
 
@@ -123,7 +125,7 @@ def main() -> int:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
     print("PG18 synthetic JUnit evidence verified: all 6 Testcontainers classes, "
-          ">=47 passing tests, mandatory DB/lock/revocation/rollback cases; "
+          ">=49 passing tests, mandatory DB/lock/revocation/rollback cases; "
           "no failed, errored or skipped cases.")
     return 0
 

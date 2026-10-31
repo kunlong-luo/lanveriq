@@ -11,7 +11,10 @@ import sys
 from pathlib import Path
 
 
-EXPECTED_PATHS = {"/api/v1/devices", "/api/v1/devices/{deviceId}"}
+EXPECTED_PATHS = {
+    "/api/v1/devices", "/api/v1/devices/{deviceId}",
+    "/api/v1/monitoring/overview",
+}
 EXPECTED_FIELDS = {
     "device_id", "group_id", "group_name", "label", "enrollment_state",
     "last_seen_at", "heartbeat_received_at", "agent_version",
@@ -19,6 +22,9 @@ EXPECTED_FIELDS = {
     "memory_total_bytes", "inventory_received_at",
 }
 PAGE_FIELDS = {"items", "next_cursor"}
+OVERVIEW_FIELDS = {
+    "as_of", "total", "online", "stale", "offline", "revoked", "pending", "retired",
+}
 
 
 def validate(spec: object) -> list[str]:
@@ -85,6 +91,12 @@ def validate(spec: object) -> list[str]:
                 fields["next_cursor"], dict):
             errors.append("Missing typed page members")
 
+    overview = schemas.get("ScopedMonitoringOverview")
+    if not isinstance(overview, dict) or not isinstance(
+            overview.get("properties"), dict) or set(
+                overview["properties"]) != OVERVIEW_FIELDS:
+        errors.append("Monitoring overview fields drifted or leaked sensitive data")
+
     return errors
 
 
@@ -105,7 +117,7 @@ def main() -> int:
         print("OPENAPI CONTRACT BLOCKED: " + error, file=sys.stderr)
     if errors:
         return 1
-    print("Source-generated Springdoc 3.x device list/detail verified: "
+    print("Source-generated Springdoc 3.x device and monitoring overview verified: "
           "GET-only, session cookie security, strict health-only response schema.")
     return 0
 

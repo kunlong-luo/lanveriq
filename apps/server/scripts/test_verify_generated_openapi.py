@@ -28,7 +28,8 @@ def fixture():
                     },
                 }
             }
-            for path in ("/api/v1/devices", "/api/v1/devices/{deviceId}")
+            for path in ("/api/v1/devices", "/api/v1/devices/{deviceId}",
+                         "/api/v1/monitoring/overview")
         },
         "components": {
             "securitySchemes": {"consoleSession": {
@@ -39,6 +40,11 @@ def fixture():
                 "DeviceHealthSummary": {
                     "type": "object",
                     "properties": {name: {"type": "string"} for name in expected},
+                },
+                "ScopedMonitoringOverview": {
+                    "type": "object",
+                    "properties": {name: {"type": "integer"} for name in
+                                   module["OVERVIEW_FIELDS"]},
                 },
                 "ScopedDeviceDirectoryPage": {
                     "type": "object",
@@ -80,6 +86,14 @@ class ContractGateTest(unittest.TestCase):
         sample = fixture()
         del sample["components"]["schemas"]["DeviceHealthSummary"]["properties"][
             "heartbeat_received_at"]
+        self.assertTrue(validate(sample))
+
+    def test_missing_or_sensitive_monitoring_summary_blocks(self):
+        sample = fixture()
+        del sample["components"]["schemas"]["ScopedMonitoringOverview"]["properties"]["pending"]
+        self.assertTrue(validate(sample))
+        sample = fixture()
+        sample["components"]["schemas"]["ScopedMonitoringOverview"]["properties"]["employee_id"] = {"type": "string"}
         self.assertTrue(validate(sample))
 
     def test_invalid_or_empty_document_blocks(self):
