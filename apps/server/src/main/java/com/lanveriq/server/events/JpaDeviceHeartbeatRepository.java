@@ -53,7 +53,7 @@ final class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
         manager.createNativeQuery("""
                 UPDATE devices
                 SET last_seen_at = GREATEST(
-                    COALESCE(last_seen_at, '-infinity'::timestamptz), CURRENT_TIMESTAMP)
+                    COALESCE(last_seen_at, '-infinity'::timestamptz), clock_timestamp())
                 WHERE id=:device_id
                 """).setParameter("device_id", deviceId).executeUpdate();
 
@@ -64,11 +64,11 @@ final class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
                     queue_bytes, oldest_pending_at, last_successful_upload_at,
                     dropped_count, integrity_degraded, collection_errors_json)
                 VALUES (
-                    :device_id, CURRENT_TIMESTAMP, CAST(:agent_sent_at AS timestamptz),
+                    :device_id, clock_timestamp(), CAST(:agent_sent_at AS timestamptz),
                     :agent_version, :agent_status, :policy_version,
                     CAST(:capabilities AS jsonb), :queue_count, :queue_bytes,
-                    CAST(:oldest_pending AS timestamptz),
-                    CAST(:last_upload AS timestamptz), :dropped_count,
+                    CAST(NULLIF(:oldest_pending, '') AS timestamptz),
+                    CAST(NULLIF(:last_upload, '') AS timestamptz), :dropped_count,
                     :integrity_degraded, CAST(:collection_errors AS jsonb))
                 ON CONFLICT (device_id) DO UPDATE SET
                     received_at=EXCLUDED.received_at,
@@ -102,6 +102,7 @@ final class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
     }
 
     private static String nullableTimestamp(java.time.Instant value) {
-        return value == null ? null : value.toString();
+        // Avoid Hibernate null-parameter type ambiguity in native PostgreSQL SQL.
+        return value == null ? "" : value.toString();
     }
 }
