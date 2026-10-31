@@ -1,10 +1,16 @@
 # REFERENCE ONLY — DO NOT DEPLOY.
 # D-07 V0.1 single-host, isolated synthetic acceptance template.
 # No real Agent routes are implemented in Spring; default deny returns 403.
+# This is end-to-end mTLS: Agent -> Caddy (client-identity CA), and separately
+# Caddy -> Spring (dedicated upstream client certificate / backend server CA).
+# These independent trust domains MUST NOT share private keys or CAs.
 # Before even a synthetic deployment, run caddy adapt / validate AND
 # prove hostname, HTTP/2 coalescing, mTLS, direct backend and revocation negatives.
-# Caddy must own TCP/443; Spring must bind 127.0.0.1:8080 on SAME host/namespace.
-# NEVER publish that port through Docker, VPN, or reverse NAT.
+# Caddy must own TCP/443; Spring must bind TLS+mTLS 127.0.0.1:8443.
+# NEVER publish 8443 through Docker, VPN, or reverse NAT. A local process
+# without Caddy's separately approved upstream-client key must fail TLS.
+# Spring's application-agent-upstream-mtls-acceptance.yml opt-in profile
+# requires a dedicated backend TLS server identity and Caddy-client CA.
 # Mount a real approved DEDICATED PUBLIC CLIENT CA PEM at the path below;
 # do NOT use the Caddy internal *server* CA as the client-identity CA.
 {
@@ -40,7 +46,14 @@ agent.lanveriq.internal {
     # Default-deny Spring Security blocks all these paths today.
     @agentRoutes path /api/v1/devices/*/activate /api/v1/devices/*/heartbeats /api/v1/devices/*/event-batches /api/v1/devices/*/inventory
     handle @agentRoutes {
-        reverse_proxy 127.0.0.1:8080 {
+        reverse_proxy https://127.0.0.1:8443 {
+            transport http {
+                tls
+                tls_client_auth /etc/lanveriq/pki/caddy-upstream-client.crt /etc/lanveriq/pki/caddy-upstream-client.key
+                tls_trust_pool file /etc/lanveriq/pki/backend-server-ca.pem
+                tls_server_name spring-backend.lanveriq.internal
+                versions 1.1 2
+            }
             # Always strip the entire untrusted family before injecting the
             # fingerprint of the TLS peer Caddy itself has just verified.
             header_up -X-Lanveriq-Verified-Client-*
