@@ -11,7 +11,7 @@
 
 ## Real PostgreSQL 18 execution — opt-in only
 
-The [dedicated JUnit Testcontainers suite](../../apps/server/src/integrationTest/java/com/lanveriq/server/events/PostgreSqlEventIngestionIT.java) uses an **actual `postgres:18.6` container** with Spring Boot 4.1's `@ServiceConnection` and managed Flyway/JPA. It includes native UUIDv7 and V1–V6 migration checks, duplicate replay, two-key conflicts, an injected earlier-new-event transaction rollback, forged/expired/revoked credential denial, mutation-trigger denial and concurrent identical/conflicting batches. No developer-provided private keys, accounts or employee events are used.
+The [dedicated JUnit Testcontainers suite](../../apps/server/src/integrationTest/java/com/lanveriq/server/events/PostgreSqlEventIngestionIT.java) uses an **actual `postgres:18.6` container** with Spring Boot 4.1's `@ServiceConnection` and managed Flyway/JPA. It includes **exact PostgreSQL 18.6** and V1–V6 migration checks, native UUIDv7 for both device and accepted event IDs, JSONB and database-set receive time, duplicate replay, both unique keys and split-identity collisions, rollback after sequence/event-ID conflicts, forged/expired/revoked credential denial, UPDATE/DELETE mutation-trigger denial and concurrent identical/conflicting batches. No developer-provided private keys, accounts or employee events are used.
 
 A workstation with a permitted Docker daemon and JDK 25 can run it explicitly:
 
@@ -22,7 +22,7 @@ cd apps/server
 
 Or in the GitHub repository, open **Actions → PostgreSQL 18 integration (manual, synthetic-only) → Run workflow → main**. This runs `./gradlew integrationTest` on an isolated hosted runner and uploads short-lived synthetic-only JUnit XML. The workflow has **no push, pull_request or schedule trigger**. The normal `server-unit` workflow only compiles the integration sources; that successful compilation is not evidence that Docker/PostgreSQL or transactional behavior passed.
 
-For an execution to close the *database-only* acceptance gate, record the Git SHA, run URL, real Testcontainers PostgreSQL version, Flyway history, successful JUnit cases and sanitized logs. A green DB suite **still does not validate Caddy TLS, certificate custody, cross-protocol ACK or actual endpoint/OS security**.
+For an execution to close the *database-only* acceptance gate, record the Git SHA, run URL, exact PostgreSQL server version (the suite now asserts `server_version_num = 180006`), Flyway history, successful JUnit cases and sanitized logs. The manual workflow also logs the tested Git SHA and inspects the pulled `postgres:18.6` image's ID/repository digests in an always-run provenance step; **confirm a nonempty image digest in the recorded output**, rather than treating a tag as immutable. An image digest is build provenance, not proof that SQL passed. The suite still has no observed real execution. A green DB suite **still does not validate Caddy TLS, certificate custody, cross-protocol ACK or actual endpoint/OS security**.
 
 ## Manual test matrix — all real database/HTTP cases still open
 
