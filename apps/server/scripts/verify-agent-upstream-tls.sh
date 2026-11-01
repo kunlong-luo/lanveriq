@@ -289,7 +289,7 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
             -v "$TMP/pki:/etc/lanveriq/pki:ro" \
             -v "$TMP/caddy-data:/data" \
             -v "$TMP/caddy-config:/config" \
-            "$IMAGE" "$@"
+            "$IMAGE" caddy "$@"
     }
     run_caddy_command "$CADDY_REFERENCE" adapt \
         --config /etc/caddy/Caddyfile --pretty > "$TMP/caddy-adapted.json"
@@ -327,7 +327,7 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
             -v "$TMP/pki:/etc/lanveriq/pki:ro" \
             -v "$TMP/caddy-data:/data" \
             -v "$TMP/caddy-config:/config" \
-            "$IMAGE" run --config /etc/caddy/Caddyfile)"
+            "$IMAGE" caddy run --config /etc/caddy/Caddyfile)"
         local ready=0
         for _ in $(seq 1 30); do
             if (echo > /dev/tcp/127.0.0.1/443) >/dev/null 2>&1; then

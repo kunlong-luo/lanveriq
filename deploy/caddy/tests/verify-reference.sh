@@ -109,7 +109,7 @@ CADDYFILE="$TMP/Caddyfile.synthetic"
 docker run --rm -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
     -v "$TMP/pki:/etc/lanveriq/pki:ro" -v "$TMP/data:/data" \
     -v "$TMP/config:/config" "$IMAGE" \
-    adapt --config /etc/caddy/Caddyfile --pretty >"$TMP/adapted.json"
+    caddy adapt --config /etc/caddy/Caddyfile --pretty >"$TMP/adapted.json"
 jq -e '.apps.http.servers | type == "object"' "$TMP/adapted.json" >/dev/null
 # Every listener must be the explicitly isolated loopback TCP 443,
 # never 0.0.0.0, :::443, 80, UDP/h3 or another shared host interface.
@@ -125,13 +125,13 @@ jq -e '[.. | objects | select(.client_authentication?.mode? == "require_and_veri
     | length > 0' "$TMP/adapted.json" >/dev/null
 docker run --rm -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
     -v "$TMP/pki:/etc/lanveriq/pki:ro" -v "$TMP/data:/data" \
-    -v "$TMP/config:/config" "$IMAGE" validate --config /etc/caddy/Caddyfile
+    -v "$TMP/config:/config" "$IMAGE" caddy validate --config /etc/caddy/Caddyfile
 echo "PASS: real Caddy 2.11.7 adapt and validate (synthetic trust files)."
 
 CID="$(docker run -d --rm --network host \
     -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
     -v "$TMP/pki:/etc/lanveriq/pki:ro" -v "$TMP/data:/data" \
-    -v "$TMP/config:/config" "$IMAGE" run --config /etc/caddy/Caddyfile)"
+    -v "$TMP/config:/config" "$IMAGE" caddy run --config /etc/caddy/Caddyfile)"
 CA_ROOT="$TMP/data/caddy/pki/authorities/local/root.crt"
 for i in $(seq 1 45); do
     if [[ -s "$CA_ROOT" ]]; then break; fi
