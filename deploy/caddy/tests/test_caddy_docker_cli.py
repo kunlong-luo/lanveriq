@@ -20,6 +20,26 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertIn('"$IMAGE" caddy run --config /etc/caddy/Caddyfile', script)
         self.assertNotRegex(script, r'"\$IMAGE"\s*\\?\s*(?:adapt|validate|run)\b')
 
+    def test_untrusted_assertion_stripped_before_proxy_injects_identity(self):
+        config = (ROOT / "deploy/caddy/Caddyfile.reference").read_text()
+        strip = "request_header -X-Lanveriq-Verified-Client-*"
+        proxy = "reverse_proxy https://127.0.0.1:8443 {"
+        inject = (
+            "header_up X-Lanveriq-Verified-Client-Fingerprint "
+            "{http.request.tls.client.fingerprint}"
+        )
+        self.assertIn(strip, config)
+        self.assertIn(inject, config)
+        self.assertLess(config.index(strip), config.index(proxy))
+        self.assertLess(config.index(proxy), config.index(inject))
+        # Caddy HeaderOps (v2.11.7) processes Set before Delete within a
+        # single reverse_proxy. Removing the entire identity family there
+        # would erase the verified fingerprint it just inserted.
+        self.assertNotIn("header_up -X-Lanveriq-Verified-Client-*", config)
+        self.assertIn("header_up -X-Forwarded-Client-Cert", config)
+        self.assertIn("header_up -SSL-Client-Cert", config)
+        self.assertIn("mode require_and_verify", config)
+
     def test_caddy_only_private_ca_stays_in_docker_storage(self):
         script = (ROOT / "deploy/caddy/tests/verify-reference.sh").read_text()
         self.assertIn('CADDY_DATA_VOLUME="$(docker volume create)"', script)
