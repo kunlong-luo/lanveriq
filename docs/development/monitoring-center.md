@@ -1,6 +1,6 @@
 # Monitoring Center — V0.1 screen specification
 
-**Route:** `/monitoring`. **Status:** planned, not implemented. The core meaning of `监控中心` here is **fleet/device and collection health**, not undisclosed screen surveillance.
+**Route:** `/monitoring`. **Status (2026-11-01):** synthetic-only React layout and demo metrics now exist in `apps/web`, but the operational Monitoring Center is **not implemented** (no authenticated REST/WSS, real heartbeat, inventory freshness or group-scoped data). The core meaning of `监控中心` here is **fleet/device and collection health**, not undisclosed screen surveillance.
 
 ## Primary users and permissions
 IT operator can view assigned device health, connectivity, queue and supported source status. Security auditor sees only permitted groups/metadata. Details of employee application content require separately authorized **Audit Center** access (v0.2); monitoring view must not become a shortcut around RBAC.
