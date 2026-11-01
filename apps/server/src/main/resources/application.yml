@@ -1,6 +1,17 @@
 spring:
   application:
     name: lanveriq-server
+  # The shared spark-db Redis remains optional and unused unless explicitly enabled.
+  # No Redis repositories: all canonical state and access control stay in PostgreSQL.
+  data:
+    redis:
+      host: ${LANVERIQ_REDIS_HOST:127.0.0.1}
+      port: ${LANVERIQ_REDIS_PORT:6379}
+      password: ${LANVERIQ_REDIS_PASSWORD:}
+      timeout: 1s
+      connect-timeout: 1s
+      repositories:
+        enabled: false
   datasource:
     url: ${LANVERIQ_DB_URL:jdbc:postgresql://127.0.0.1:5432/lanveriq}
     username: ${LANVERIQ_DB_USER:lanveriq}
@@ -38,6 +49,10 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    # With Redis disabled, the default-deny server never needs Redis for UP.
+    redis:
+      enabled: ${LANVERIQ_REDIS_ENABLED:false}
 
 springdoc:
   api-docs:
@@ -48,6 +63,9 @@ springdoc:
 # This HTTP auth slice is NOT deployed until console TLS, Caddy/Host isolation,
 # login throttling and manual browser tests have passed. Default is deny-all.
 lanveriq:
+  redis:
+    # Optional best-effort device refresh hints, not a durable event queue.
+    enabled: ${LANVERIQ_REDIS_ENABLED:false}
   # This enables ONLY an internal parser bean, never an Agent route. DO NOT
   # enable before real Caddy mTLS, exclusive upstream and PostgreSQL gates.
   agent:
