@@ -1,7 +1,8 @@
-# Java / Gradle
+# Build products from application subprojects (repository-wide ignore)
 .gradle/
 **/build/
 !**/src/**/build/
+**/target/
 *.class
 
 # Runtime
