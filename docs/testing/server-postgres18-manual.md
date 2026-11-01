@@ -17,6 +17,38 @@ Requirements: JDK 25, Docker engine with a daemon you control, a free host port 
 
 **SRV-02-REG-ATOMIC source-only hardening:** The certificate registration repository now locks the pending device and *then* obtains a fresh current administrator/group scope snapshot with PostgreSQL `FOR SHARE OF u,s`. Certificate review, credential and allowed audit remain one transaction and registration rejects a suppressed 0-row audit. `PostgreSqlCertificateRegistrationIT` has two new synthetic cases for an observed device-row lock wait plus admin disable, and a deliberately suppressed audit trigger with rollback/retry. The manual evidence checker now demands all **six** Testcontainers classes, five certificate-registration cases and **>=51 passing JUnit cases total**. Actual PostgreSQL 18 execution is still **NOT OBSERVED**.
 
+## AUTH-01 administrator mutation audit atomicity — manual PG acceptance PENDING
+
+The internal `JpaAdminSessionRevocationRepository` now requires exactly one
+`admin.sessions.revoke` audit row after incrementing `users.session_version`.
+The offline `JpaFirstAdminBootstrapRepository` similarly requires exactly
+one group-scoped owner grant and exactly one `administrator.bootstrap`
+audit row. A PostgreSQL `BEFORE INSERT` trigger can silently suppress a
+row by returning `NULL`; each zero-row outcome must throw within the
+calling Spring `@Transactional` boundary so no mutation can commit
+unaccounted for. Mockito unit negatives cover the zero-row branches, but
+**these are not evidence of actual PostgreSQL rollback**.
+
+Separate future synthetic-only PostgreSQL verification (not included in the
+six current Testcontainers classes) must demonstrate all of the following:
+
+1. On a disposable empty V1–V8 database, suppress the first administrator
+   `user_role_scopes` insert and confirm the bootstrap transaction rolls
+   back the newly inserted user and device group, with no allowed audit.
+2. Independently suppress the `administrator.bootstrap` audit row; verify
+   that the administrator, role scope and group all roll back together.
+3. With a synthetic scoped owner and target account, suppress
+   `admin.sessions.revoke` in `admin_access_log`; verify that the target's
+   `session_version` remains unchanged and no allowed audit is committed.
+4. Remove each synthetic trigger and retry on a fresh disposable fixture;
+   verify exactly one grant/audit and one monotonic session version increment
+   on a successful operation. Also verify wrong-group/disabled issuer denial.
+5. Keep these as **independent pending gates** until executed against
+   real PostgreSQL 18.6 and bound to a tested Git SHA/JUnit evidence.
+
+No real administrator password, organization database, LAN endpoint, or
+real employee data may be used for these checks.
+
 ## Manual JUnit evidence gate — mandatory, not a database substitute
 
 The [manually dispatched workflow](../../.github/workflows/server-postgres18-integration.yml) now runs a **fail-closed post-test evidence check** using `apps/server/scripts/assert-postgres18-junit.py`. It reads Gradle's generated `build/test-results/integrationTest/TEST-*.xml`, and **fails the manual run** unless all six Testcontainers suites (event/heartbeat, activation, inventory, certificate registration, revocation and scoped device directory/monitoring) report **at least 51 successful tests in total**, with explicit mandatory checks for PostgreSQL 18.6/Flyway V1–V8, two-key event conflict rollback, immutable event trigger, cross-device identity isolation, certificate revocation/race, audited registration/activation, inventory child-table rollback and post-lock admin revocation. Every failed, errored or skipped JUnit case blocks acceptance; absent, corrupted and duplicate reports are rejected. The Git commit, image ID/digests and JUnit artifacts continue to be captured by the existing manual workflow.
