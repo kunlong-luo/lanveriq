@@ -19,7 +19,6 @@
       "vitest/globals"
     ],
     "esModuleInterop": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
