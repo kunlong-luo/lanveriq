@@ -55,7 +55,9 @@ def required_fields_errors(schema: object, name: str) -> list[str]:
     if not isinstance(schema, dict):
         return [f"Missing generated {name} schema"]
     required = schema.get("required")
-    if not isinstance(required, list) or len(required) != len(set(map(str, required))):
+    if (not isinstance(required, list)
+            or not all(isinstance(field, str) for field in required)
+            or len(required) != len(set(required))):
         return [f"Missing or duplicate required fields in {name}"]
     expected = REQUIRED_FIELDS_BY_SCHEMA[name]
     if set(required) != expected:
