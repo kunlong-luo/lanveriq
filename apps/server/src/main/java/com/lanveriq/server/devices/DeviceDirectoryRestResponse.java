@@ -16,11 +16,11 @@ public final class DeviceDirectoryRestResponse {
 
     @Schema(name = "DeviceHealthSummary")
     public record DeviceItem(
-            @JsonProperty("device_id") UUID deviceId,
-            @JsonProperty("group_id") UUID groupId,
-            @JsonProperty("group_name") String groupName,
-            @JsonProperty("label") String label,
-            @JsonProperty("enrollment_state") String enrollmentState,
+            @JsonProperty("device_id") @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID deviceId,
+            @JsonProperty("group_id") @Schema(requiredMode = Schema.RequiredMode.REQUIRED) UUID groupId,
+            @JsonProperty("group_name") @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String groupName,
+            @JsonProperty("label") @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String label,
+            @JsonProperty("enrollment_state") @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String enrollmentState,
             @JsonProperty("last_seen_at") Instant lastSeenAt,
             @JsonProperty("heartbeat_received_at") Instant heartbeatReceivedAt,
             @JsonProperty("agent_version") String agentVersion,
@@ -45,7 +45,7 @@ public final class DeviceDirectoryRestResponse {
 
     @Schema(name = "ScopedDeviceDirectoryPage")
     public record Page(
-            @JsonProperty("items") List<DeviceItem> items,
+            @JsonProperty("items") @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<DeviceItem> items,
             @JsonProperty("next_cursor") UUID nextCursor) {
 
         public Page {
