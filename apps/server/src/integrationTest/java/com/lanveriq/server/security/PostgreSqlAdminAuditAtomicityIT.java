@@ -2,9 +2,13 @@ package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.persistence.EntityManager;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -298,4 +302,75 @@ class PostgreSqlAdminAuditAtomicityIT {
         assertEquals(2L, auditCount("admin.sessions.revoke"));
         assertEquals(1L, auditCount("administrator.bootstrap"));
     }
+    @Test
+    void revokedOwnerGrantDuringTargetLockWaitDeniesWithoutSessionMutation() throws Exception {
+        var owner = firstOwner();
+        UUID target = insertSyntheticUser();
+        assign(target, owner.groupId(), "it_operator");
+
+        var holderReady = new CountDownLatch(1);
+        var releaseHolder = new CountDownLatch(1);
+        var workerStarted = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var holder = pool.submit(() ->
+                    inTransaction(() -> {
+                        manager.createNativeQuery("""
+                                SELECT id FROM users WHERE id=:target FOR UPDATE
+                                """).setParameter("target", target).getSingleResult();
+                        holderReady.countDown();
+                        try {
+                            if (!releaseHolder.await(25, TimeUnit.SECONDS)) {
+                                throw new IllegalStateException("Synthetic user row lock expired");
+                            }
+                        } catch (InterruptedException error) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(error);
+                        }
+                    }));
+            try {
+                assertTrue(holderReady.await(15, TimeUnit.SECONDS));
+                var attempt = pool.submit(() -> {
+                    workerStarted.countDown();
+                    return assertThrows(AccessDeniedException.class, () ->
+                            inTransaction(() -> sessions.rotateAllSessions(
+                                    owner.userId(), target, owner.groupId())));
+                });
+                assertTrue(workerStarted.await(15, TimeUnit.SECONDS));
+
+                // Observe a genuine PostgreSQL lock wait, not sequential
+                // grant removal before the revocation attempt even begins.
+                boolean blocked = false;
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+                while (System.nanoTime() < deadline) {
+                    long waits = ((Number) manager.createNativeQuery("""
+                            SELECT COUNT(*) FROM pg_stat_activity
+                            WHERE datname=current_database()
+                              AND wait_event_type='Lock'
+                              AND query LIKE '%ORDER BY u.id FOR UPDATE OF u%'
+                            """).getSingleResult()).longValue();
+                    if (waits > 0) {
+                        blocked = true;
+                        break;
+                    }
+                    Thread.sleep(50);
+                }
+                assertTrue(blocked, "Must observe actual PostgreSQL user-row lock wait");
+                inTransaction(() -> assertEquals(1, manager.createNativeQuery("""
+                        DELETE FROM user_role_scopes
+                        WHERE user_id=:owner AND device_group_id=:group
+                          AND role_id=(SELECT id FROM roles
+                                       WHERE code='owner_security_admin')
+                        """).setParameter("owner", owner.userId())
+                        .setParameter("group", owner.groupId()).executeUpdate()));
+                releaseHolder.countDown();
+                holder.get(25, TimeUnit.SECONDS);
+                attempt.get(25, TimeUnit.SECONDS);
+            } finally {
+                releaseHolder.countDown();
+            }
+        }
+        assertEquals(0L, sessionVersion(target));
+        assertEquals(0L, auditCount("admin.sessions.revoke"));
+    }
+
 }
