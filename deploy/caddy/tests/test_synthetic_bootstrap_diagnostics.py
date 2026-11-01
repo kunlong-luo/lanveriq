@@ -54,6 +54,7 @@ class SyntheticBootstrapDiagnosticSafetyTest(unittest.TestCase):
              "CANARY-PRIVATE", "db_connection_refused"),
             ("EntityManagerFactory invalid CANARY-ENTITY", "jpa_entity_manager_failure"),
             ("FirstAdminBootstrapRunner.run error CANARY-USER", "bootstrap_exception"),
+            ("BeanInstantiationException: Failed to instantiate [com.lanveriq.server.security.FirstAdminBootstrapRunner] No default constructor found; SECRET-CANARY", "spring_bootstrap_constructor_selection"),
         ):
             with self.subTest(expected=expected):
                 categories = diagnose.categories(exact_source)
