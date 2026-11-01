@@ -1,0 +1,46 @@
+name: Next.js isolated preview checks
+on:
+  push:
+    paths:
+      - 'apps/web-next/**'
+      - '.github/workflows/web-next-unit.yml'
+  pull_request:
+    paths:
+      - 'apps/web-next/**'
+      - '.github/workflows/web-next-unit.yml'
+permissions:
+  contents: read
+jobs:
+  next-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up pinned pnpm 12 and Node 24 (lockfile required)
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24
+          working-directory: apps/web-next
+          install: true
+          require-lockfile: true
+          cache: false
+      - name: Fail closed on dependency drift (frozen pnpm lockfile)
+        working-directory: apps/web-next
+        run: pnpm install --frozen-lockfile
+      - name: Check no API proxy or enabled credential route
+        working-directory: apps/web-next
+        run: pnpm run verify:routes
+      - name: Run synthetic-only Next.js component tests
+        working-directory: apps/web-next
+        run: pnpm test
+      - name: Typecheck and build production Next.js candidate
+        working-directory: apps/web-next
+        run: |
+          pnpm typecheck
+          pnpm build
+      - name: Smoke-test actual production Next.js preview HTTP routes
+        working-directory: apps/web-next
+        run: node scripts/verify-built-pages.mjs
