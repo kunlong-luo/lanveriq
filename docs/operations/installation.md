@@ -4,11 +4,36 @@
 
 For copyable development and synthetic-only commands, begin with the [Chinese README](../../README.zh.md) or [English README](../../README.md). They cover:
 
-1. An existing disposable PostgreSQL 18.6 + Boot smoke script: `bash apps/server/scripts/verify-postgres18.sh`. The script cleans up its temporary test DB and app process.
-2. How to run a manually started **127.0.0.1-only** PostgreSQL container and `apps/server/./gradlew bootRun` with default-deny Spring Security.
-3. The idle Rust Agent console run with an **absolute, non-secret** TOML configuration; it collects/uploads nothing.
-4. An **isolated test VM only** Linux systemd installation using `deploy/systemd/lanveriq-agent.service`, without enabling automatic startup.
-5. Matching stop/uninstall instructions limited to the named disposable development resources. Real employee/audit/PKI data must never be removed without written approval and retention review.
+1. Reuse an **already running** local `spark-db` Compose PostgreSQL container `spark-postgres` at `127.0.0.1:5432` after **creating a separate `lanveriq` database and non-superuser**. The original `iot_farm` database is never migrated or removed.
+2. Run `apps/server/./gradlew bootRun` with `LANVERIQ_DB_URL=jdbc:postgresql://127.0.0.1:5432/lanveriq`, `LANVERIQ_DB_USER=lanveriq` and an independently chosen secret, binding local Spring HTTP to `127.0.0.1:18081` (host port `18080` is used by the supplied InfluxDB Explorer).
+3. An **optional, independent, temporary** PostgreSQL 18.6 + Boot smoke script: `LANVERIQ_SMOKE_HTTP_PORT=18082 bash apps/server/scripts/verify-postgres18.sh`. It cleans up **only its own** synthetic PostgreSQL container; it does not touch `spark-postgres` or `iot_farm`.
+4. Run a default-deny Java JAR built by Gradle, or an idle Rust Agent using an absolute non-secret TOML config; neither path is a production rollout.
+5. On an **isolated test VM only**, inspect and install the optional Linux Agent systemd unit without enabling it at boot. Stop/uninstall only the reviewed Lanveriq-owned files, and separately approve any deletion of the `lanveriq` database.
+
+## Shared PostgreSQL safety boundary for `spark-db`
+
+The supplied local Compose stack already serves several unrelated applications.
+Do **not** fork a second long-lived PostgreSQL container, attach Lanveriq to
+`iot_farm`, or include Redis/InfluxDB/PostGIS in the Lanveriq runtime stack.
+Use a new database owner and **check actual** `SHOW server_version`: the
+`postgis/postgis:18-3.6` tag identifies a PostgreSQL major version but does
+not prove the tested `postgres:18.6` patch level. Dedicated manual
+Testcontainers PostgreSQL 18.6 acceptance remains independent and must never
+run destructive fixture SQL against the shared service.
+
+The existing `postgres-data`, `redis-data`, `influxdb-data` and other
+volumes, and the `spark-iot-net`/`spark-iot-internal-net` networks, belong
+to the user's existing stack and must **not** be created, removed or renamed
+by Lanveriq installers/uninstallers. Uninstalling Lanveriq must not run
+`docker compose down`, `docker compose down -v`, or
+`docker stop spark-postgres`.
+
+The provided example uses a local 256 MiB PostgreSQL container memory limit;
+review load, error logs and capacity separately before moving past synthetic
+development. The existing Kopia/R2 backup plan may dump **only `iot_farm`**;
+a newly created `lanveriq` database requires separately verified backup
+coverage or its own `pg_dump` and restore drill. Never post database passwords
+in the repository or CI.
 
 ## Components and deployment dependency boundary
 
@@ -36,7 +61,7 @@ The three **business components** are Web, Server and Agent; PostgreSQL and Cadd
 
 ## Development stop/uninstall vs. production data deletion
 
-The README's development teardown stops the foreground Java/Agent processes and the uniquely named `--rm` disposable test PostgreSQL container. Its Linux systemd snippet removes only the reviewed example unit and binary on an **isolated test VM**. No automatic deletion of `/var/lib`, SQLite WAL, persistent PostgreSQL data, keys, certificates, recordings or audit logs is provided or approved.
+The README's development teardown stops only the foreground Java/Agent processes, and (if explicitly used) the smoke script automatically removes its **own** temporary `--rm` PostgreSQL container. The shared `spark-postgres` is never stopped by Lanveriq teardown. Its Linux systemd snippet removes only the reviewed example unit and binary on an **isolated test VM**. No automatic deletion of `/var/lib`, SQLite WAL, persistent PostgreSQL data, keys, certificates, recordings or audit logs is provided or approved.
 
 Production uninstall must eventually be a reviewed process with explicit organization authorization, backup/restore evidence, record-retention decision, certificate/session revocation, Agent OS service disablement, and audit of what was removed. A generic `docker compose down -v` or recursive filesystem deletion is **not a safe uninstall policy**.
 
