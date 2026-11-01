@@ -16,7 +16,7 @@ Use a dedicated synthetic test machine or disposable VM with permission to insta
 
 ## Linux: selected Pop!_OS 24.04 / KDE KWin x86_64
 
-Use a deliberately installed **reviewed** binary at `/usr/local/bin/lanveriq-agent` and a root-managed `/etc/lanveriq-agent/agent.toml` containing only the minimal synthetic example. Review `deploy/systemd/lanveriq-agent.service` before copying it into systemd. The unit intentionally uses `DynamicUser=yes`, `StateDirectory=lanveriq-agent` and a read-only system view.
+Use a deliberately installed **reviewed** binary at `/usr/local/bin/lanveriq-agent` and a root-managed `/etc/lanveriq-agent/agent.toml` containing only the minimal synthetic example. Review `apps/agent/deploy/systemd/lanveriq-agent.service` before copying it into systemd. The unit intentionally uses `DynamicUser=yes`, `StateDirectory=lanveriq-agent` and a read-only system view.
 
 Verify: `systemd-analyze verify`, manual service start/status, `systemctl stop` sending SIGTERM, repeat start, missing-config startup and `journalctl -u lanveriq-agent` for synthetic status only. Check the transient service identity, write boundary, private temp, absence of outbound network calls and that a failed config cannot be treated as healthy. Record actual OS/kernel and **interactive** X11/Wayland session only if directly observed; do not infer from KWin. The Agent service has no screen or desktop-session dependency.
 

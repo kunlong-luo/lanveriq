@@ -243,7 +243,7 @@ Stop with `Ctrl+C`. This starts a **default-deny synthetic development process**
 
 ### Optional Linux-only idle Agent service trial
 
-**Only on an explicitly authorized isolated test VM**, after inspecting the [systemd unit](deploy/systemd/lanveriq-agent.service):
+**Only on an explicitly authorized isolated test VM**, after inspecting the [systemd unit](apps/agent/deploy/systemd/lanveriq-agent.service):
 
 ```bash
 cd apps/agent
@@ -252,7 +252,7 @@ sudo install -m 0755 target/release/lanveriq-agent /usr/local/bin/lanveriq-agent
 sudo install -d -m 0755 /etc/lanveriq-agent
 # This exact example config has no secrets; never use mode 0644 for future keys.
 sudo install -m 0644 config/agent.example.toml /etc/lanveriq-agent/agent.toml
-sudo install -m 0644 ../../deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
+sudo install -m 0644 deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
 sudo systemd-analyze verify /etc/systemd/system/lanveriq-agent.service
 sudo systemctl daemon-reload
 sudo systemctl start lanveriq-agent

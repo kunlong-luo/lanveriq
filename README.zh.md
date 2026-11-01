@@ -229,7 +229,7 @@ java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar
 
 仍连接你的 `127.0.0.1:5432/lanveriq`，仍绑定 `127.0.0.1:18081`，仍默认关闭业务功能。退出按 `Ctrl+C`。JAR 属于试验性构建物，**不是**已通过 Caddy/TLS、真实浏览器及数据库集成验收的生产服务；不要用 `nohup` 或自动开机来绕过这些门槛。
 
-Linux 的 Rust Agent 仅提供**实验性 systemd 单元** `deploy/systemd/lanveriq-agent.service`。如果你拥有一台**隔离的测试 VM**并明确允许安装一个不采集数据的空闲服务，可从仓库根目录进入 `apps/agent` 构建，再手动安装：
+Linux 的 Rust Agent 仅提供**实验性 systemd 单元** `apps/agent/deploy/systemd/lanveriq-agent.service`。如果你拥有一台**隔离的测试 VM**并明确允许安装一个不采集数据的空闲服务，可从仓库根目录进入 `apps/agent` 构建，再手动安装：
 
 ```bash
 cd apps/agent
@@ -238,7 +238,7 @@ sudo install -m 0755 target/release/lanveriq-agent /usr/local/bin/lanveriq-agent
 sudo install -d -m 0755 /etc/lanveriq-agent
 # 本例配置没有密钥；未来存放密钥的配置不能使用 0644 权限。
 sudo install -m 0644 config/agent.example.toml /etc/lanveriq-agent/agent.toml
-sudo install -m 0644 ../../deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
+sudo install -m 0644 deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
 sudo systemd-analyze verify /etc/systemd/system/lanveriq-agent.service
 sudo systemctl daemon-reload
 sudo systemctl start lanveriq-agent
