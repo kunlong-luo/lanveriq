@@ -42,6 +42,9 @@ jobs:
       # the PostgreSQL 18.6/Flyway assertion, and all critical negative cases,
       # including first-admin bootstrap and session-audit atomic rollback.
       - name: Fail closed if mandatory PostgreSQL tests were skipped or missing
+        # Also report evidence gaps after a failed integrationTest task; never
+        # mask the original Gradle failure or convert it into acceptance.
+        if: ${{ !cancelled() }}
         working-directory: apps/server
         run: python3 scripts/assert-postgres18-junit.py build/test-results/integrationTest
       - name: Record synthetic PostgreSQL image and commit provenance
