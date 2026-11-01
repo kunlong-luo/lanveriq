@@ -96,7 +96,7 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertIn("'@agentRoutes path /actuator/health '", script)
         self.assertIn('bridge_health_request() {', script)
         self.assertIn('assert_bridge_up() {', script)
-        self.assertIn('assert_bridge_up\\n    echo "PASS: Agent mTLS', script)
+        self.assertIn('echo "PASS: Agent mTLS -> Caddy -> real Spring/Tomcat mTLS -> PG18 health 200/UP."', script)
         self.assertIn("--cert \"$TMP/pki/agent.crt\"", script)
         self.assertIn("--cacert \"$ROOT_CA\"", script)
         self.assertIn('"https://agent.lanveriq.internal/actuator/health"', script)
@@ -105,7 +105,8 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertIn('[[ "$status" == 403 ]]', script)
         self.assertIn('[[ "$status" == 502 ]]', script)
         self.assertIn("assert_trusted_upstream_healthy", script)
-        self.assertIn("start_caddy \"$CADDY_REFERENCE\"\\n    assert_bridge_up", script)
+        self.assertIn('start_caddy "$CADDY_REFERENCE"', script)
+        self.assertIn("assert_bridge_up", script)
         self.assertNotIn("curl -k", script)
         self.assertNotIn("curl --insecure", script)
 
