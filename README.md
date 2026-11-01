@@ -17,7 +17,7 @@ The **three product components** are **Web**, **Server**, and **Agent**. Postgre
 | Web admin dashboard | Planned `apps/web`, React 19 / Vite / TypeScript / Tailwind / TanStack Query / Orval | **NOT IMPLEMENTED**. No React pages, Vite dev server, or frontend build exists. |
 | API and admin server | `apps/server`, Java 25 / Spring Boot 4.1.2 / Gradle / JPA / Flyway | A buildable Spring Boot process with health checks; other business routes default to denial. Real DB/security approval pending. |
 | Endpoint Agent | `apps/agent`, Rust 1.94 / Tokio / SQLx SQLite WAL / Reqwest-rustls | Builds and starts an **idle** process; **no automatic monitoring, inventory collection, or uploads**. |
-| PostgreSQL (dependency) | PostgreSQL 18.6; server Flyway V1–V8 | Run an isolated local synthetic database; full real-PG integration acceptance not yet executed. |
+| PostgreSQL (dependency) | PostgreSQL 18.x (18.6 for manual acceptance); Flyway V1–V8 | Reuse dedicated `lanveriq` database in existing `spark-postgres`; full PG18.6 integration acceptance pending. |
 | Caddy (dependency) | `deploy/caddy/Caddyfile.reference` | A **reference-only** TLS test config, not a production reverse proxy. |
 
 Intended central topology: **Caddy HTTPS + static React assets → Spring Boot → PostgreSQL**. The Rust Agent runs **natively on explicitly authorized Windows/Linux endpoints**, not as a Docker container on the central host. The future dashboard is a static SPA, not a fourth Node/Next.js production server. See [deployment architecture](docs/architecture/deployment.md).
@@ -26,7 +26,7 @@ Intended central topology: **Caddy HTTPS + static React assets → Spring Boot �
 
 - Git and **JDK 25**; the repository includes the **Gradle 9.8.2 Wrapper**, so you need neither system Gradle nor Maven.
 - **Rust 1.94.0** / Cargo from `rust-toolchain.toml`, plus your operating system's native Rust build prerequisites.
-- Docker Engine with a working daemon to create an isolated, **synthetic-only** PostgreSQL 18.6 instance.
+- Docker Engine with the existing running `spark-db` PostgreSQL container; a separate short-lived **synthetic-only** PostgreSQL 18.6 container is optional for independent acceptance.
 - Bash, curl and OpenSSL for the existing Linux/WSL/macOS local server smoke script.
 - Node/pnpm are **not required to run a frontend today**, because there is no `apps/web`. The directory `apps/server/contract-client-check` tests **generated API types**, not React pages.
 
