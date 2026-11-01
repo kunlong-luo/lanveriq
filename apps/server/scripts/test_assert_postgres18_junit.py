@@ -76,6 +76,7 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             "suppressedSessionAuditRollsBackVersionAndAllowsRetry",
             "wrongGroupAndDisabledIssuerCannotChangeSessionVersionOrAudit",
             "successfulSessionRevocationCommitsExactlyOneAuditPerIncrement",
+            "revokedOwnerGrantDuringTargetLockWaitDeniesWithoutSessionMutation",
         )
         for method in required:
             with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
