@@ -46,3 +46,30 @@ export type LoginMustUseGeneratedFormBody = ConsoleLoginBody extends {
 } ? true : never;
 
 export const loginFormShapeSatisfied: LoginMustUseGeneratedFormBody = true;
+
+
+/**
+ * Backend record components are authoritative. A generated model declaring
+ * an always-present value optional must fail the Java → Springdoc → Orval →
+ * Web type gate before a real console can be connected. No requests run here.
+ */
+type AllRequired<T, K extends keyof T> =
+  false extends { [P in K]: {} extends Pick<T, P> ? false : true }[K]
+    ? never
+    : true;
+type Optional<T, K extends keyof T> =
+  {} extends Pick<T, K> ? true : never;
+
+export const healthIdentityIsMandatory: AllRequired<DeviceHealthSummary,
+  'device_id' | 'group_id' | 'group_name' | 'label' | 'enrollment_state'> = true;
+export const directoryItemsAreMandatory: AllRequired<ScopedDeviceDirectoryPage,
+  'items'> = true;
+export const monitoringCountsAreMandatory: AllRequired<ScopedMonitoringOverview,
+  'as_of' | 'total' | 'online' | 'stale' | 'offline' | 'revoked' | 'pending' | 'retired'> = true;
+export const sessionLoginIsMandatory: AllRequired<ConsoleSessionInfo, 'login'> = true;
+export const csrfTokenIsMandatory: AllRequired<ConsoleCsrfToken, 'csrfToken'> = true;
+
+// No heartbeat/inventory or further page is legitimate; never fill nulls
+// with fabricated activity, counters, identifiers or online state.
+export const heartbeatMayBeMissing: Optional<DeviceHealthSummary, 'heartbeat_received_at'> = true;
+export const cursorMayBeMissing: Optional<ScopedDeviceDirectoryPage, 'next_cursor'> = true;
