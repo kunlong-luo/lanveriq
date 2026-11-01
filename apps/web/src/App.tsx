@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import LoginPage from './LoginPage';
+import { BackendConnection, BackendHealthCard } from './components/BackendConnection';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router';
 import * as Tabs from '@radix-ui/react-tabs';
 import { Activity, ArrowRight, Bell, Cable, CheckCircle2, ChevronRight, Clock3, Cpu, Database, HardDrive, LayoutDashboard, LockKeyhole, Menu, Monitor, Network, Plus, RefreshCcw, Search, Server, Settings2, ShieldCheck, WifiOff, type LucideIcon } from 'lucide-react';
@@ -40,8 +41,8 @@ function Shell(){
       <header className="topbar"><div className="top-left">
         <button className="menu-button" aria-label="打开菜单" onClick={()=>setOpen(true)}><Menu size={21}/></button>
         <span>工作空间</span><ChevronRight size={15}/><strong>{active}</strong>
-      </div><div className="top-right"><span className="connection"><i/>未连接后端</span><button disabled aria-label="通知尚未接入"><Bell size={18}/></button><Link to="/login" className="avatar" title="预览管理员登录界面">DEMO</Link></div></header>
-      <main className="main-content" id="main"><div className="demo-banner" role="status"><i/><strong>演示模式 · 全部为合成数据</strong><span>未连接后端、PostgreSQL、Redis 或真实终端；设备操作不可用</span></div><Outlet/></main>
+      </div><div className="top-right"><BackendConnection/><button disabled aria-label="通知尚未接入"><Bell size={18}/></button><Link to="/login" className="avatar" title="预览管理员登录界面">DEMO</Link></div></header>
+      <main className="main-content" id="main"><div className="demo-banner" role="status"><i/><strong>演示模式 · 全部为合成数据</strong><span>仅后端健康检查可读取；业务 API 未连接，未加载 PostgreSQL/Redis 或真实终端数据；设备操作不可用</span></div><Outlet/></main>
       <footer>Lanveriq V0.1 · Synthetic UI Preview · 不可用于真实设备监控</footer>
     </div>
   </div>;
@@ -72,14 +73,15 @@ function Overview(){
   return <section className="page"><div className="title-line"><Heading eyebrow="OVERVIEW / V0.1" title="设备运行概览" desc="集中查看终端连接状态与待处理事项。下方所有数字均来自本地示例。"/>
     <Link className="primary-link" to="/monitoring">查看监控中心 <ArrowRight size={16}/></Link></div>
     <Metrics/>
+    <BackendHealthCard/>
     <div className="columns">
       <section className="panel"><div className="panel-header"><div><h2>设备连接分布</h2><p>用于预览颜色和可访问的状态标签</p></div><span className="pill">合成示例</span></div>
         <div className="distribution"><div className="bars">{(['online','stale','offline','revoked'] as const).map(state=><span title={stateLabels[state]+': '+counts[state]} key={state} className={'bar-'+state} style={{flex:counts[state]||0.001}}/>)}</div>
         <div className="legend">{(['online','stale','offline','revoked'] as const).map(state=><div key={state}><i className={'bar-'+state}/><span>{stateLabels[state]}</span><strong>{counts[state]}</strong></div>)}</div></div>
         <div className="panel-note"><Clock3 size={19}/><span>心跳正常不代表库存或系统指标已更新。正式版分别显示数据新鲜度。</span></div>
       </section>
-      <section className="panel"><div className="panel-header"><div><h2>平台连接状态</h2><p>当前页面不尝试连接任何服务</p></div></div>
-        <Service icon={Server} name="Spring Boot API" text="业务接口默认关闭"/>
+      <section className="panel"><div className="panel-header"><div><h2>业务能力状态</h2><p>仅健康检查已接入；下列业务功能仍关闭</p></div></div>
+        <Service icon={Server} name="管理员 / 设备 API" text="默认关闭；健康状态不代表业务功能可用"/>
         <Service icon={Database} name="PostgreSQL / Redis" text="只能由后端访问"/>
         <Service icon={Network} name="WSS 设备状态推送" text="未完成真实浏览器与 TLS 验收"/>
         <Link to="/settings" className="panel-link">查看技术与安全验收状态 <ArrowRight size={15}/></Link>
@@ -143,7 +145,7 @@ function Enrollment(){
 }
 function Settings(){
   return <section className="page"><Heading eyebrow="SYSTEM / V0.1" title="系统设置" desc="查看工程依赖与验收门槛。此页不会修改服务器、Redis 或 PostgreSQL 配置。"/>
-    <div className="columns"><section className="panel"><div className="panel-header"><div><h2>后端依赖</h2><p>全部为架构说明，无连接检测</p></div></div><Service icon={Server} name="Spring Boot 4.1.2 / Java 25" text="业务 API 默认拒绝"/><Service icon={Database} name="PostgreSQL 18" text="权威设备、审计及事务数据"/><Service icon={Database} name="Redis 8 / Lettuce" text="非权威短期提示，默认关闭"/><Service icon={Monitor} name="Rust Agent" text="运行服务框架，尚未连接真实采集"/></section>
+    <div className="columns"><section className="panel"><div className="panel-header"><div><h2>后端依赖</h2><p>仅 Spring Boot 健康检查可以从本机读取，其他均为架构说明</p></div></div><Service icon={Server} name="Spring Boot 4.1.2 / Java 25" text="业务 API 默认拒绝"/><Service icon={Database} name="PostgreSQL 18" text="权威设备、审计及事务数据"/><Service icon={Database} name="Redis 8 / Lettuce" text="非权威短期提示，默认关闭"/><Service icon={Monitor} name="Rust Agent" text="运行服务框架，尚未连接真实采集"/></section>
     <section className="panel"><div className="panel-header"><div><h2>待完成验收</h2><p>完成代码不等于获得部署许可</p></div></div>{['PostgreSQL 18 全量集成测试','Caddy TLS、浏览器 Session 和 CSRF','设备证书与 OS 服务生命周期','React 与真实 API 的授权联调'].map(item=><div className="check" key={item}><Clock3 size={17}/><span>{item}</span><strong>待完成</strong></div>)}<div className="warning">当前未开启真实终端监控、远程命令或屏幕录制。</div></section></div>
   </section>;
 }

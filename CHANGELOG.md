@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-01 — Vite / shadcn-style UI foundation and health-only backend link
+
+- Retained React 19/Vite 8; added a shadcn/ui-compatible Card source, CLI project configuration, import aliases and Tailwind 4 semantic theme tokens without introducing new runtime dependencies.
+- Added a strictly localhost/exact-path Vite dev proxy for anonymous Spring Boot `GET /actuator/health`; TanStack Query makes one initial request and only manual retries, showing checked/healthy/unavailable states in the console. No proxy for `/api`, no credentials, no device records, no WSS/polling.
+- Added synthetic response unit tests and updated navigation SSR tests; admin login and real device operations stay intentionally disabled. This is not full PostgreSQL/Caddy/browser-session acceptance.
+
 ## 2026-11-01 — Local backend startup evidence and read-only HTTP verification
 
 - Recorded operator-observed **PostgreSQL 18.6/Flyway V1–V8/Hibernate/Tomcat 8080 local startup success** separately from the still-unpassed 58-case manual Testcontainers gate.

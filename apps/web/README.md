@@ -1,6 +1,6 @@
 # Lanveriq Web — synthetic dashboard preview (WEB-01 first slice)
 
-**Development preview only. No real login, connected API, real device, WSS, remote actions, recording, background polling or production deployment.** All five displayed devices and metrics are invented and labeled on every route.
+**Development preview only.** The UI now performs **one anonymous, read-only Spring Boot `GET /actuator/health`** through a localhost-only Vite dev proxy and supports manual recheck. **No real login, business API, device data, WSS, remote actions, recording, automatic monitoring/polling or production deployment.** All five displayed devices and metrics remain invented and labeled on every route.
 
 ## Run locally (Node.js 24 + pnpm 12)
 
@@ -16,6 +16,18 @@ pnpm dev
 
 Open **http://127.0.0.1:5173**. The server binds localhost only. Stop with Ctrl+C.
 
+### Connect the local Spring Boot health check (not business data)
+
+Start Java `LanveriqServerApplication` in IDEA first and confirm `curl -i http://127.0.0.1:8080/actuator/health` returns HTTP 200 with `{"status":"UP"}`. Start `pnpm dev` in `apps/web`; the overview page and top bar now make a **single GET** to Vite's exact-path same-origin proxy, `/actuator/health` → `http://127.0.0.1:8080/actuator/health`. Click **重新检查** for another one-time read; there is no interval polling.
+
+If Java was deliberately started with `LANVERIQ_HTTP_PORT=18081`, run `LANVERIQ_WEB_HEALTH_PORT=18081 pnpm dev` instead. The proxy host is always fixed to **127.0.0.1**, port validated as unprivileged, and it does **not** proxy `/api`, login, cookies, device data or Redis. For a quick terminal check: `curl -i http://127.0.0.1:5173/actuator/health`.
+
+**IMPORTANT:** Healthy means only the Spring Boot Actuator probe returned UP, not that Flyway transactions, user sessions or authenticated APIs are ready. If the backend is down the UI must show unavailable, while all synthetic devices stay plainly labeled; no fallback invents real status. The static production build does **not** include a Vite dev proxy, so this is only a local development step.
+
+### shadcn/ui component foundation
+
+`components.json`, the `@/` alias, Tailwind 4 semantic tokens and the first local shadcn-style Card composition are checked in. New official components can later be added from `apps/web` using `pnpm dlx shadcn@latest add <component>`, subject to version review and lockfile update; do not regenerate the entire Vite project or overwrite the reviewed styles. Existing Radix Tabs and Lucide remain in place. No new package versions or unreviewed installer scripts are introduced by this first slice.
+
 The complete dependency tree is pinned by the reviewed and committed `pnpm-lock.yaml`; CI installs with `pnpm install --frozen-lockfile` and rejects manifest/lockfile drift. Use the exact Node.js 24 and pnpm 12 toolchain from the instructions.
 
 ## Synthetic routes
@@ -28,7 +40,7 @@ The complete dependency tree is pinned by the reviewed and committed `pnpm-lock.
 - `/settings`: technology stack and outstanding security acceptance gates.
 - `/login`: designed administrator sign-in screen. Username/password inputs and submit button are **intentionally disabled**; no credentials are accepted, transmitted or persisted. Click the `DEMO` avatar to open this screen.
 
-Stack: React 19, Vite 8, TypeScript 7, Tailwind 4, Radix Tabs, Lucide, React Router, TanStack Query. **No live TanStack queries are used yet.** Never implement production DTOs manually.
+Stack: React 19, Vite 8, TypeScript 7, Tailwind 4, shadcn-style Card, Radix Tabs, Lucide, React Router, TanStack Query. **The only live TanStack Query is a public anonymous health GET; all business API hooks remain unwired.** Never implement production DTOs manually.
 
 ## Springdoc → Orval → real Web dependency typecheck (no HTTP requests)
 

@@ -5,3 +5,50 @@
 @media(max-width:1200px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.columns{grid-template-columns:1fr}.main-content{padding:24px}}
 @media(max-width:760px){.sidebar{position:fixed;left:0;top:0;transform:translateX(-105%);transition:transform .2s ease;box-shadow:0 0 35px #061b3744}.sidebar-open{transform:translateX(0)}.scrim{display:block;position:fixed;inset:0;background:#091b3a70;z-index:14;border:0}.menu-button{display:block}.topbar{height:64px;padding:0 16px}.top-left>span,.top-left>svg,.connection{display:none!important}.main-content{padding:17px}.page{gap:18px}.heading h1{font-size:24px}.metric{padding:16px}.metrics{gap:10px}.metric>strong{font-size:28px}.detail-summary{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr}.filters{padding:17px}.filter-controls{width:100%}.search{flex:1}.search input{min-width:0;width:100%}.app-main footer{padding:16px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+
+/* shadcn/ui-ready Tailwind 4 semantic design tokens. */
+:root{
+  --background:#f4f7fc;--foreground:#213751;--card:#fff;--card-foreground:#213751;
+  --border:#dfe8f3;--muted-foreground:#788da5;--primary:#2563eb;
+  --primary-foreground:#fff;--secondary:#f1f5fc;--accent:#ecf4ff;--ring:#60a5fa;
+  --radius:.75rem;
+}
+@theme inline {
+  --color-background:var(--background);
+  --color-foreground:var(--foreground);
+  --color-card:var(--card);
+  --color-card-foreground:var(--card-foreground);
+  --color-border:var(--border);
+  --color-muted-foreground:var(--muted-foreground);
+  --color-primary:var(--primary);
+  --color-primary-foreground:var(--primary-foreground);
+  --color-secondary:var(--secondary);
+  --color-accent:var(--accent);
+  --color-ring:var(--ring);
+  --radius-lg:var(--radius);
+}
+.connection-indicator{display:inline-flex;align-items:center;gap:8px;border:1px solid #e3eaf5;background:#f8faff;border-radius:999px;padding:5px 8px 5px 11px;font-size:11px;font-weight:700;color:#6c809b;white-space:nowrap}
+.connection-dot{height:8px;width:8px;flex:none;border-radius:999px;background:#dca54b}
+.connection-up{border-color:#cceade;background:#edfcf5;color:#0e8055}
+.connection-up .connection-dot{background:#19a570}
+.connection-unavailable{border-color:#f1ded4;background:#fff7f3;color:#a25b3e}
+.connection-unavailable .connection-dot{background:#e18a63}
+.connection-indicator button{display:grid;place-items:center;border:0;border-left:1px solid currentColor;background:transparent;color:inherit;padding:3px 0 3px 9px;border-radius:0}
+.connection-indicator button:disabled{opacity:.45}
+.health-card{gap:0;padding:0;border-color:#dbe8f5;box-shadow:0 8px 24px #28517a0a;overflow:hidden}
+.health-card-heading{display:flex;align-items:center;gap:14px;padding-top:20px;padding-bottom:16px}
+.health-card-icon{display:grid;place-items:center;height:44px;width:44px;flex:none;background:#ecf4ff;color:#376cc8;border-radius:12px}
+.health-card-heading>div:nth-child(2){flex:1;min-width:0}
+.health-card-heading [data-slot=card-title]{font-size:15px;color:#2a4765}
+.health-card-heading [data-slot=card-description]{font-size:11px;margin-top:5px}
+.health-tag{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#f3f6fa;color:#7788a1;font-size:11px;font-weight:750;white-space:nowrap}
+.health-tag-up{color:#087f55;background:#e6f8ef}
+.health-tag-unavailable{color:#aa6243;background:#fff2e8}
+.health-card-body{display:flex;justify-content:space-between;gap:18px;align-items:center;padding-top:12px;padding-bottom:18px}
+.health-description strong{font-size:13px;color:#2c4764}
+.health-description p{font-size:12px;color:#7891aa;line-height:1.75;max-width:900px;margin:6px 0 0}
+.health-refresh{display:inline-flex;align-items:center;gap:7px;border:1px solid #d8e4f3;background:#fff;color:#386fb7;padding:10px 13px;border-radius:10px;font-size:12px;font-weight:700;white-space:nowrap;flex:none}
+.health-refresh:hover:not(:disabled){background:#eff6ff}
+.health-security-note{display:flex;align-items:center;gap:9px;padding:12px 24px;background:#f7faff;border-top:1px solid #ebf0f7;color:#8298b1;font-size:11px}
+@media(max-width:760px){.connection-indicator>span:nth-child(2){display:none}.health-card-heading{flex-wrap:wrap}.health-tag{margin-left:auto}.health-card-body{align-items:flex-start;flex-direction:column}.health-security-note{align-items:flex-start}}
