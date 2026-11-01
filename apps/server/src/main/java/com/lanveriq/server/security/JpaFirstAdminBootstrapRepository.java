@@ -53,7 +53,7 @@ final class JpaFirstAdminBootstrapRepository implements FirstAdminBootstrapRepos
                 .setParameter("hash", passwordHash)
                 .getSingleResult();
 
-        entityManager.createNativeQuery("""
+        int assigned = entityManager.createNativeQuery("""
                 INSERT INTO user_role_scopes (user_id, role_id, device_group_id)
                 VALUES (:user_id, :role_id, :group_id)
                 """)
@@ -61,8 +61,13 @@ final class JpaFirstAdminBootstrapRepository implements FirstAdminBootstrapRepos
                 .setParameter("role_id", roleId)
                 .setParameter("group_id", groupId)
                 .executeUpdate();
+        if (assigned != 1) {
+            // An insert suppressed by a database trigger must never create
+            // an initial administrator without the required group role.
+            throw new IllegalStateException("Initial administrator grant was not persisted");
+        }
 
-        entityManager.createNativeQuery("""
+        int audited = entityManager.createNativeQuery("""
                 INSERT INTO admin_access_log
                     (principal_id, resource_id, device_group_id, action, outcome)
                 VALUES (:user_id, :user_id, :group_id, 'administrator.bootstrap', 'allowed')
@@ -70,6 +75,10 @@ final class JpaFirstAdminBootstrapRepository implements FirstAdminBootstrapRepos
                 .setParameter("user_id", adminId)
                 .setParameter("group_id", groupId)
                 .executeUpdate();
+        if (audited != 1) {
+            // A silently dropped audit must roll back user, role and group.
+            throw new IllegalStateException("Initial administrator audit was not persisted");
+        }
 
         // Never create an internal_operational grant implicitly.
         return new BootstrappedAdmin(adminId, groupId);
