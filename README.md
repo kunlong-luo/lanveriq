@@ -40,7 +40,13 @@ cd lanveriq
 
 ## Local development and testing
 
-### 1. Reuse your existing `spark-db` PostgreSQL instance
+### Import the entire repository into IntelliJ IDEA
+
+After updating to the latest `main`, choose **File → Open → `lanveriq/`**. The root contains a **Gradle 9.8.2 composite workspace** (`settings.gradle` / `gradlew`), including the existing standalone Spring Boot `apps/server` build. Use **JDK 25** for both Project SDK and **Gradle JVM** and select **Gradle Wrapper**. If the IDE does not link the build automatically, use **Gradle tool window → Link Gradle Project → `apps/server/build.gradle`**; avoid double-linking it.
+
+From the repository root, safely test the Gradle project model with `./gradlew projects` (Windows: `.\\gradlew.bat projects`). Java unit tests remain runnable from `apps/server` using the nested wrapper. React is a pnpm app, Rust a Cargo workspace, not Gradle Java modules. See the [IntelliJ IDEA import and troubleshooting guide](docs/development/intellij-idea.md). No database or real endpoint is needed merely to import or compile.
+
+## 1. Reuse your existing `spark-db` PostgreSQL instance
 
 Your local Docker Compose project is named `spark-db`, with an existing `spark-postgres` container, `iot_farm` business database, and (by default) a host-only `127.0.0.1:5432` PostgreSQL port. **Do not start a second persistent PostgreSQL instance.** Lanveriq may **optionally reuse the existing Redis** for best-effort transient hints/health, but needs neither InfluxDB nor PostGIS extensions. Keep the entire existing Compose stack and all of its volumes intact.
 
