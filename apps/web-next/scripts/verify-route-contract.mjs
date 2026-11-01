@@ -36,9 +36,9 @@ function inspectRuntimeSource(folder) {
   for (const entry of readdirSync(folder, { withFileTypes: true })) {
     const file = join(folder, entry.name);
     if (entry.isDirectory()) inspectRuntimeSource(file);
-    else if (/\\.[jt]sx?$/.test(entry.name)) {
+    else if (/\.[jt]sx?$/.test(entry.name)) {
       const source = readFileSync(file, 'utf8');
-      if (/staged-console-read|\\.generated-contract/.test(source)) {
+      if (/staged-console-read|\.generated-contract/.test(source)) {
         throw new Error('NXT-03 pending acceptance: runtime imported staged transport/model: ' + file);
       }
     }
