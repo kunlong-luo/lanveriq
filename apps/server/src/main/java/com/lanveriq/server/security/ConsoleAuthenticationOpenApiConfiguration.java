@@ -75,13 +75,13 @@ public class ConsoleAuthenticationOpenApiConfiguration {
         };
     }
 
-    private static HeaderParameter requiredOrigin() {
+    private static io.swagger.v3.oas.models.parameters.Parameter requiredOrigin() {
         return new HeaderParameter().name("Origin").required(true)
                 .description("Exact configured HTTPS console origin")
                 .schema(new StringSchema());
     }
 
-    private static HeaderParameter requiredCsrf() {
+    private static io.swagger.v3.oas.models.parameters.Parameter requiredCsrf() {
         return new HeaderParameter().name("X-CSRF-TOKEN").required(true)
                 .description("Token from GET /api/v1/auth/csrf in the same session")
                 .schema(new StringSchema());
