@@ -23,6 +23,8 @@ synthetic/unconnected by design.
 - The candidate transport and generated client are **not imported** by any Next.js page.
   Route guard rejects mounting it prior to manual approval.
 
+**Caddy-only Agent transport (separate from browser console):** [Caddy-only real 2.11.7 double-mTLS run #41293595396](https://github.com/kunlong-luo/lanveriq/actions/runs/41293595396) passed real Caddy→synthetic Python TLS. This says nothing about browser console HTTPS, session/CSRF, real Spring/Tomcat or Next.js runtime and does not relax any of the following blockers.
+
 ## Database milestone and remaining release-blocking checks
 
 **PostgreSQL 18.6 database integration gate: PASSED (2026-11-01).** [PostgreSQL 18.6 manual run #41290838250](https://github.com/kunlong-luo/lanveriq/actions/runs/41290838250) ran the *actual* seven-class Testcontainers `integrationTest` suite on Git SHA `9b78641965a6599a8267649756b974afa9003e9f`. Gradle passed, and the mandatory JUnit evidence checker accepted **58 passing tests, zero failures/errors/skips**, including the five previously failing cases, Flyway V1–V8, database locking, event immutability, inventory rollback, certificate revocation and administrator audit atomicity. Captured PostgreSQL image digest: `sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81`; JUnit archive `srv03-pg18-synthetic-junit` (artifact ID `13076977475`, archive SHA-256 `sha256:0ba4dc9ad78b217a5b764112ba7224179029e76894b547d29c908e051dd57909`, short retention through 2026-11-08). **This is not a Caddy TLS, browser Cookie/CSRF/RBAC, actual Agent REST/ACK, LAN or production approval.**
