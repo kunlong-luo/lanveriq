@@ -288,10 +288,12 @@ class PostgreSqlAdminAuditAtomicityIT {
         var owner = firstOwner();
         UUID target = insertSyntheticUser();
         assign(target, owner.groupId(), "it_operator");
-        assertEquals(1L, transaction().execute(ignored ->
-                sessions.rotateAllSessions(owner.userId(), target, owner.groupId())));
-        assertEquals(2L, transaction().execute(ignored ->
-                sessions.rotateAllSessions(owner.userId(), target, owner.groupId())));
+        long first = transaction().execute(ignored ->
+                sessions.rotateAllSessions(owner.userId(), target, owner.groupId()));
+        long second = transaction().execute(ignored ->
+                sessions.rotateAllSessions(owner.userId(), target, owner.groupId()));
+        assertEquals(1L, first);
+        assertEquals(2L, second);
         assertEquals(2L, sessionVersion(target));
         assertEquals(2L, auditCount("admin.sessions.revoke"));
         assertEquals(1L, auditCount("administrator.bootstrap"));
