@@ -30,6 +30,7 @@ class JpaAdminSessionRevocationRepositoryTest {
         });
         when(update.setParameter(anyString(), Mockito.any())).thenReturn(update);
         when(audit.setParameter(anyString(), Mockito.any())).thenReturn(audit);
+        when(audit.executeUpdate()).thenReturn(1);
         when(update.getResultList()).thenReturn(List.of(7L));
         UUID issuer = UUID.randomUUID(), target = UUID.randomUUID(), group = UUID.randomUUID();
 
@@ -65,4 +66,23 @@ class JpaAdminSessionRevocationRepositoryTest {
         verify(update, never()).executeUpdate();
         verify(em, Mockito.times(1)).createNativeQuery(anyString());
     }
+    @Test
+    void silentlySuppressedSessionAuditRejectsSuccessfulRevocation() {
+        var em = Mockito.mock(EntityManager.class);
+        var update = Mockito.mock(Query.class);
+        var audit = Mockito.mock(Query.class);
+        when(em.createNativeQuery(anyString())).thenAnswer(call ->
+                ((String) call.getArgument(0)).contains("UPDATE users") ? update : audit);
+        when(update.setParameter(anyString(), Mockito.any())).thenReturn(update);
+        when(audit.setParameter(anyString(), Mockito.any())).thenReturn(audit);
+        when(update.getResultList()).thenReturn(List.of(8L));
+        when(audit.executeUpdate()).thenReturn(0);
+
+        assertThrows(IllegalStateException.class, () ->
+                new JpaAdminSessionRevocationRepository(em)
+                        .rotateAllSessions(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
+        verify(update).getResultList();
+        verify(audit).executeUpdate();
+    }
+
 }
