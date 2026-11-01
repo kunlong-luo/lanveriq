@@ -63,6 +63,11 @@ class JpaDeviceCertificateRegistrationRepositoryTest {
         assertEquals(device, actual.deviceId());
         assertEquals(group, actual.groupId());
         assertEquals("b".repeat(64), actual.csrSpkiSha256());
+        // Hibernate rejects binding a name absent from the SQL; the admin
+        // belongs only to the fresh post-lock grant query, not the device lock.
+        verify(review).setParameter("device_id", device);
+        verify(review, never()).setParameter("admin_id", admin);
+        verify(grant).setParameter("admin_id", admin);
 
         var sql = ArgumentCaptor.forClass(String.class);
         verify(manager, Mockito.times(2)).createNativeQuery(sql.capture());
