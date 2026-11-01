@@ -21,7 +21,7 @@ import tools.jackson.databind.json.JsonMapper;
  * conflict. PostgreSQL uniqueness protects both event_id and sequence.
  */
 @Repository
-final class JpaEventIngestionRepository implements EventIngestionRepository {
+class JpaEventIngestionRepository implements EventIngestionRepository {
 
     private final EntityManager entityManager;
     private final JsonMapper mapper;

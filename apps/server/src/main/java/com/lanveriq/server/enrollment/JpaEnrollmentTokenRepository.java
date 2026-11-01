@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
  * All writes (including the access audit) join the calling Spring transaction.
  */
 @Repository
-final class JpaEnrollmentTokenRepository implements EnrollmentTokenRepository {
+class JpaEnrollmentTokenRepository implements EnrollmentTokenRepository {
 
     private final EntityManager entityManager;
 

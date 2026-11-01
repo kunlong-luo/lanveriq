@@ -12,7 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
  * No caller-supplied receive time or self-reported online status is trusted.
  */
 @Repository
-final class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
+class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
 
     private final EntityManager manager;
     private final JsonMapper mapper;

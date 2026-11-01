@@ -15,7 +15,7 @@ import org.springframework.stereotype.Repository;
  * JPA native SQL stays under Hibernate/Spring managed persistence. No JDBC.
  */
 @Repository
-final class JpaDeviceInventoryRepository implements DeviceInventoryRepository {
+class JpaDeviceInventoryRepository implements DeviceInventoryRepository {
 
     private final EntityManager manager;
 

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
  * Any later failed device/CSR INSERT must roll back the token UPDATE.
  */
 @Repository
-final class JpaPendingEnrollmentRepository implements PendingEnrollmentRepository {
+class JpaPendingEnrollmentRepository implements PendingEnrollmentRepository {
 
     private final EntityManager entityManager;
 

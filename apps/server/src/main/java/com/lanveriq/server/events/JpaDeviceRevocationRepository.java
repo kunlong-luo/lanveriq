@@ -16,7 +16,7 @@ import org.springframework.stereotype.Repository;
  * idempotent for an authorized admin, never reactivated by this path.
  */
 @Repository
-final class JpaDeviceRevocationRepository implements DeviceRevocationRepository {
+class JpaDeviceRevocationRepository implements DeviceRevocationRepository {
     private final EntityManager manager;
 
     JpaDeviceRevocationRepository(EntityManager manager) {

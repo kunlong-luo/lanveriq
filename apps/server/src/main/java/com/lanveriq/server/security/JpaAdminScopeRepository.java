@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
  * grants device-group access. SQL fragments are fixed by enum, not input.
  */
 @Repository
-final class JpaAdminScopeRepository implements AdminScopeRepository {
+class JpaAdminScopeRepository implements AdminScopeRepository {
 
     private final EntityManager entityManager;
 

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
  * No network/credentials/events or groups outside the live user scope are read.
  */
 @Repository
-final class JpaMonitoringOverviewRepository implements MonitoringOverviewRepository {
+class JpaMonitoringOverviewRepository implements MonitoringOverviewRepository {
     private static final String SQL = """
             WITH snapshot AS MATERIALIZED (
                 SELECT clock_timestamp() AS as_of

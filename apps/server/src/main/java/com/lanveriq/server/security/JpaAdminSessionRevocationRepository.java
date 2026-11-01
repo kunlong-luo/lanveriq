@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
  * accountable audit entry inside the caller's Spring transaction.
  */
 @Repository
-final class JpaAdminSessionRevocationRepository implements AdminSessionRevocationRepository {
+class JpaAdminSessionRevocationRepository implements AdminSessionRevocationRepository {
 
     private final EntityManager entityManager;
 

@@ -19,7 +19,7 @@ import org.springframework.stereotype.Repository;
  * This is not a REST endpoint. Session/CSRF/Host/TLS gates remain separate.
  */
 @Repository
-final class JpaDeviceDirectoryRepository implements DeviceDirectoryRepository {
+class JpaDeviceDirectoryRepository implements DeviceDirectoryRepository {
     private static final String SCOPED_HEALTH_QUERY = """
             SELECT d.id, d.group_id, g.name,
                    COALESCE(NULLIF(d.device_label,''), 'Unlabeled device'),

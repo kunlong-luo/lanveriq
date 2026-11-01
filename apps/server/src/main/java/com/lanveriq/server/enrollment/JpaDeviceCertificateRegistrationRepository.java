@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
  * All statements join the calling service's Spring JPA transaction.
  */
 @Repository
-final class JpaDeviceCertificateRegistrationRepository
+class JpaDeviceCertificateRegistrationRepository
         implements DeviceCertificateRegistrationRepository {
     private final EntityManager manager;
 

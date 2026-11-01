@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
  * All inserts and the audit entry roll back on any error.
  */
 @Repository
-final class JpaFirstAdminBootstrapRepository implements FirstAdminBootstrapRepository {
+class JpaFirstAdminBootstrapRepository implements FirstAdminBootstrapRepository {
 
     private final EntityManager entityManager;
 

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
  * An untrusted HTTP header must never become VerifiedDeviceCertificate.
  */
 @Repository
-final class JpaDeviceActivationRepository implements DeviceActivationRepository {
+class JpaDeviceActivationRepository implements DeviceActivationRepository {
 
     private final EntityManager entityManager;
 
