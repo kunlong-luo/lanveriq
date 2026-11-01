@@ -164,6 +164,18 @@ cd apps/server
 
 服务端目前可作为 Java 进程本地运行，但**没有**正式 Docker Compose、生产 Caddy 配置、前端构建产物或可用的管理界面。不能执行尚不存在的 `docker compose up -d` 来安装整套产品。
 
+### Java 后端构建部署包（仅隔离测试，不是生产部署）
+
+如果不想使用 `bootRun`，可以在完成上文数据库变量配置的**同一受信任终端**构建并前台运行 JAR：
+
+```bash
+cd apps/server  # 如果已经在 apps/server 中，请省略这一步
+./gradlew bootJar
+java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar
+```
+
+仍连接你的 `127.0.0.1:5432/lanveriq`，仍绑定 `127.0.0.1:18081`，仍默认关闭业务功能。退出按 `Ctrl+C`。JAR 属于试验性构建物，**不是**已通过 Caddy/TLS、真实浏览器及数据库集成验收的生产服务；不要用 `nohup` 或自动开机来绕过这些门槛。
+
 Linux 的 Rust Agent 仅提供**实验性 systemd 单元** `deploy/systemd/lanveriq-agent.service`。如果你拥有一台**隔离的测试 VM**并明确允许安装一个不采集数据的空闲服务，可在仓库根目录先构建，再手动安装：
 
 ```bash
@@ -198,7 +210,7 @@ sudo systemctl --no-pager status lanveriq-agent
 | 对象 | 停止 / 卸载方式 | 数据与安全提醒 |
 |---|---|---|
 | 本地 Spring Boot | 在 `bootRun` 终端按 `Ctrl+C` | 不会自动删除 PostgreSQL 数据 |
-| 本地一次性 PostgreSQL | `docker stop lanveriq-pg-dev` | **只对上文建立的 `--rm` 合成数据容器执行**；停止即删除 |
+| 共享 `spark-postgres` | **不停止、不卸载、不执行 Compose down** | `iot_farm`、Redis、InfluxDB 与持久卷必须保留；仅独立管理 `lanveriq` 库 |
 | 前台 Agent | `Ctrl+C` | 删除自己创建的临时 TOML 即可 |
 | Linux 实验性 Agent systemd | 见下方命令 | 只删除由本 README 示例安装的文件 |
 | Windows SCM Agent | 目前**没有**正式安装/卸载包 | 若已手动注册测试服务，须先按实际服务名停止、删除 SCM 服务，并经管理员确认后清理二进制/配置 |
@@ -218,6 +230,26 @@ sudo rmdir /etc/lanveriq-agent
 ```
 
 这里**不会自动删除**任何 SQLite WAL、服务状态目录、数据库卷、证书、审计或备份数据。真实数据的删除需要单独的授权、保留政策和审计记录；不要直接删除 `/var/lib`、数据库卷或其他路径来“彻底卸载”。
+
+### 只卸载 Lanveriq 的独立数据库（可选，破坏性操作）
+
+**停止 Lanveriq 后端不需要删除数据库。** 如果确实要彻底清除**仅供测试且不需要保留**的 `lanveriq` 数据，先确认管理员授权、保留政策和备份，再针对**唯一的 Lanveriq 数据库**操作。备份命令会把数据库导出到当前目录，请把备份置于受限、加密的存储中：
+
+```bash
+umask 077
+docker exec spark-postgres pg_dump -U root -d lanveriq -Fc > lanveriq-backup.dump
+```
+
+确认备份有效并停止所有连接 `lanveriq` 的应用后，**只能人工决定是否执行以下不可逆的 SQL**。使用 `docker exec -it spark-postgres psql -U root -d postgres` 进入与待删除库不同的 `postgres` 管理库，先运行 `\l`、`\du` 核对目标，然后：
+
+```sql
+-- 仅在确认 lanveriq 是专门创建、可删除的测试数据库后执行。
+DROP DATABASE lanveriq;
+-- 仅在此角色没有被其他数据库/服务复用时执行。
+DROP ROLE lanveriq;
+```
+
+**绝对不要删除 `iot_farm`、停止 `spark-postgres` 或清理 `postgres-data` 卷。** 你的原有 pg_dump/Kopia/R2 备份设置可能只覆盖 `iot_farm`；不要假设它已包括新建的 `lanveriq` 数据库，需单独核实。
 
 ## 六、前端进度和下一步
 
