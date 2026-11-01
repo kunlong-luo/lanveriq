@@ -15,6 +15,8 @@
 -- Intentional fail-closed behavior: an existing role OR database causes an error.
 -- Investigate an interrupted/previous installation; never auto-reown/alter/drop.
 -- Do not store actual credentials in this file or Git.
+\set ON_ERROR_STOP on
+
 DO $lanveriq_preflight$
 BEGIN
     IF current_database() <> 'postgres' THEN
