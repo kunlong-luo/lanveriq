@@ -66,3 +66,16 @@ No fixture devices are imported into runtime. Responsive styling is
 committed but manual cross-browser/keyboard/a11y checks are still
 required before NXT-02 visual parity closure; no real Spring session
 or Orval transport has been wired.
+
+**NXT-03A Next.js type-safe, default-off read adapter (2026-11-01):**
+The Next.js candidate includes a display-only validator, strict
+HTTPS canonical browser-origin test double and no-store GET transport;
+all unmounted from the actual pages. [Java CI
+#41288584413](https://github.com/kunlong-luo/lanveriq/actions/runs/41288584413)
+passed Springdoc/Orval code generation and a Next.js
+`tsconfig.contract.json` check against **actual generated models**.
+[Web Next CI #41288628345](https://github.com/kunlong-luo/lanveriq/actions/runs/41288628345)
+passed normal non-network UI tests/build. Next.js Orval hooks are not
+yet runtime dependencies and no authorized browser request has been
+made. This distinction must be preserved in docs and UI until Caddy,
+PostgreSQL, cookie/CSRF and RBAC are manually accepted.

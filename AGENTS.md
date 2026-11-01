@@ -28,6 +28,8 @@
 
 **Repository layout:** The root contains only repository-wide governance, documentation, shared infrastructure and GitHub automation. Language-specific manifests, lockfiles, toolchains and build wrappers belong to their owning app: `apps/server` (Gradle), `apps/web` (pnpm), and `apps/agent` (Cargo, lockfile and pinned toolchain). Run each component's build commands in its own directory; do not add root Gradle/Cargo/pnpm files just to improve IDE discovery.
 
+**NXT-03 staged read-only bridge (2026-11-01):** `apps/web-next/src/lib/console-device-projection.ts` and `staged-console-read.ts` are unit-tested, **unmounted** helpers only. Generated Springdoc/Orval types are compiled against the Next.js device-view projection in [Java CI #41288584413](https://github.com/kunlong-luo/lanveriq/actions/runs/41288584413); no generated REST client is published in the Next.js runtime or mounted into its routes. The Next.js build guard rejects direct imports of the staged transport by UI/runtime modules. Do not activate browser fetch, authentication, session, WSS or real endpoint data without the separate PostgreSQL 18/Caddy HTTPS/browser+RBAC acceptance and explicit runtime enabling review. [NXT-03 acceptance](docs/testing/nextjs-nxt03-manual.md).
+
 ## Workflow and verification
 1. Inspect relevant files/branch and choose the **smallest justified** change. Preserve user-approved scope.
 2. Keep PRD, ADR, API/schema, Mermaid/SVG, tests and backlog consistent **where affected**. For protocol, framework or dependency changes, synchronize canonical decisions, versioned fixtures, test cases and acceptance criteria together; do not let secondary diagrams or examples override the source of truth. No duplicate docs or empty scaffolds.

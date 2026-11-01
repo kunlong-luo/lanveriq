@@ -71,3 +71,37 @@ actual visual/mobile/keyboard review see
 [manual NXT-02 acceptance matrix](../../docs/testing/nextjs-nxt02-manual.md).
 This stage does not replace Vite, clear the PostgreSQL 18 manual
 test gate, authenticate browsers, or enable real device requests.
+
+## NXT-03A source-generated API contract stage (unmounted)
+
+This candidate now has `src/lib/console-device-projection.ts`:
+a fail-closed allowlist of displayed fields from the opt-in Spring
+device-list API (no MAC, IP, employee identifiers, raw event/credential
+fields). A verified authenticated empty list stays empty, whereas a
+missing required member, invalid UUID, non-ascending/duplicate
+page, invalid cursor or queue value blocks the entire page.
+Heartbeat absence is **unknown**, and even a present receipt time
+does **not** prove the endpoint is online.
+
+`src/lib/staged-console-read.ts` accepts a canonical HTTPS console
+origin, requires the current browser origin to match **exactly**, and
+can only construct three hardcoded read paths. It requires no-store
+JSON and same-origin fetch/cookie policies, rejects redirects and
+maps 401/403/429 to explicit no-data states. It does **not** run in
+the deployed Next.js preview: `scripts/verify-route-contract.mjs`
+rejects runtime page imports of the staged client.
+
+After server unit tests emit the *actual* Springdoc OpenAPI document,
+Orval generates typed model files and its React Query Fetch client.
+[Java CI #41288584413](https://github.com/kunlong-luo/lanveriq/actions/runs/41288584413)
+passed a **build-only Next.js generated-model type check** through
+`contract-check/typecheck.ts`. The generated model directory is copied
+temporarily to `.generated-contract/` and is gitignored; never commit
+manually duplicated or stale API DTOs. Runtime Orval hooks are **not
+yet installed or wired in Next.js**.
+
+NXT-03B is still blocked pending the [real manual browser
+acceptance](../../docs/testing/nextjs-nxt03-manual.md), 58-case
+PostgreSQL 18 gate, and server-side Caddy/TLS/session/RBAC security.
+The existing Vite app remains the default and no production
+monitoring feature is enabled.

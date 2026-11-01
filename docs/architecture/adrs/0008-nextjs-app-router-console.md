@@ -1,7 +1,7 @@
 # ADR-0008 — Next.js App Router as the future LAN console
 
 **Date:** 2026-11-01  
-**Status:** NXT-01 isolated candidate implemented and CI-verified; NXT-02/03/04, default frontend cutover and real-data gates **OPEN**  
+**Status:** NXT-01 candidate and NXT-02 core UI automated checks passed; NXT-03A type/projection staging verified, NXT-03B real runtime, browser, PostgreSQL 18 and cutover gates **OPEN**  
 **Scope:** WEB-01 / FE-02 only. No change to agent transport, backend
 authorization, database authority or consent requirements.
 
@@ -112,3 +112,19 @@ still requires actual browser/mobile viewport and keyboard/a11y
 acceptance before claiming **full visual parity**. See
 [manual NXT-02 matrix](../../testing/nextjs-nxt02-manual.md).
 NXT-03 authenticated API integration, PG18/TLS and cutover remain blocked.
+
+## NXT-03A generated-contract staging (2026-11-01)
+
+The Next.js candidate now has dedicated unmounted read-only device-page
+projection and HTTPS/canonical-origin transport with explicit 401/403/429
+failure states, strict keyset/UUID integrity and no sensitive field
+leakage or local fake data. Springdoc is still the only authoritative
+wire schema. The [Java CI #41288584413](https://github.com/kunlong-luo/lanveriq/actions/runs/41288584413)
+actually succeeded with the generated Springdoc → Orval client and
+`apps/web-next/contract-check/typecheck.ts` using the Orval-generated
+**model types** against the current Next.js view projection. The Next.js
+application does **not** yet have runtime Orval React Query hooks or
+session logic; its pages cannot make device API requests. Its source
+route guard actively prevents an accidental staged transport import.
+This is an implementation milestone, **not NXT-03B runtime acceptance**.
+See [manual NXT-03 matrix](../../testing/nextjs-nxt03-manual.md).
