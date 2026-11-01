@@ -53,3 +53,16 @@ Use [ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md) for ecosyste
 **WEB-01-AUTH-PREVIEW + Orval compilation bridge (2026-11-01):** `/login` displays a standalone administrator sign-in screen, but both fields and submit button are disabled, with no credential state or network call. In backend Java CI, the actual Springdoc-generated OpenAPI is passed to Orval 8; the generated TypeScript is copied (uncommitted) into `apps/web/.generated-contract/`, then compiled with `apps/web/tsconfig.contract.json` against the actual locked Web versions of TypeScript and TanStack Query. `apps/web/contract-check/typecheck.ts` imports typed CSRF/login/logout/session and scoped health operations. This establishes **type compatibility only**, not an enabled browser authentication sequence. No real Caddy TLS, browser Origin/CSRF/cookie, RBAC, PostgreSQL or WSS acceptance is implied.
 
 **NXT-01 isolated Next.js candidate verified (2026-11-01):** The separate `apps/web-next` package now provides a disabled-login/zero-real-data Next.js 16.4.3 App Router UI with its pnpm-generated and checked-in frozen lockfile. [CI #41287394823](https://github.com/kunlong-luo/lanveriq/actions/runs/41287394823) passed Node 24 install, unit tests, route guards, TypeScript, production build and actual preview HTTP smoke. A temporary write-capable lockfile bootstrap has been removed. The Vite `apps/web` remains the default preview; full NXT-02 route/design parity, authenticated Orval integration, manual PG18/Caddy/browser and cutover are NOT done.
+
+**NXT-02 Next.js UI port, automated portion complete (2026-11-01):**
+The isolated `apps/web-next` now contains overview/monitoring fleet
+panels with all metrics shown as **—** (unconnected, not zeros),
+read-only device list with locally filtered *supplied* authorized rows,
+detail tabs, registration flow, settings and disabled administrator
+login. Actual CI verified routes, static/interactive component
+contracts and production HTTP smoke at
+[#41288117979](https://github.com/kunlong-luo/lanveriq/actions/runs/41288117979).
+No fixture devices are imported into runtime. Responsive styling is
+committed but manual cross-browser/keyboard/a11y checks are still
+required before NXT-02 visual parity closure; no real Spring session
+or Orval transport has been wired.

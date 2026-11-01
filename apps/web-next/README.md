@@ -47,3 +47,27 @@ See [ADR-0008](../../docs/architecture/adrs/0008-nextjs-app-router-console.md)
 for migration plan and trust boundaries. This candidate deliberately
 does not yet implement full Vite visual/route parity or replace
 `apps/web`.
+
+## NXT-02 core management UI (preview only)
+
+The candidate now has the actual page structures of the V0.1 management
+console: fleet metrics (displaying **—**, never synthetic counts), a
+connectivity breakdown, inventory/heartbeat freshness, a read-only
+directory table with controlled local search and group selection,
+device detail hardware/network/health tabs, registration instructions,
+settings acceptance and the completely disabled administrator login.
+
+The default `/devices` view is **unconnected**, not an authenticated
+empty list. The table can display only authorized, caller-supplied rows
+and its unit-test fixtures are test-only; there is no network transport
+or real data in this Next.js runtime. Device IDs passing the shared
+UUID formatter are **not** authorization or proof of existence.
+Sensitive network inventory is withheld, and no mutation action is
+available.
+
+[Next.js CI #41288117979](https://github.com/kunlong-luo/lanveriq/actions/runs/41288117979)
+verified candidate build/route, safety and component behavior. For
+actual visual/mobile/keyboard review see
+[manual NXT-02 acceptance matrix](../../docs/testing/nextjs-nxt02-manual.md).
+This stage does not replace Vite, clear the PostgreSQL 18 manual
+test gate, authenticate browsers, or enable real device requests.
