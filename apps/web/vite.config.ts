@@ -21,7 +21,7 @@ export default defineConfig({
       apply: 'serve',
       configureServer(server) {
         server.middlewares.use((request, response, next) => {
-          if (/^\\/actuator\\/health(?:\\?.*)?$/.test(request.url ?? '') && request.method !== 'GET') {
+          if (/^\/actuator\/health(?:\?.*)?$/.test(request.url ?? '') && request.method !== 'GET') {
             response.writeHead(405, { Allow: 'GET', 'Cache-Control': 'no-store' });
             response.end();
             return;
