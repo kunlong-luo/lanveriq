@@ -17,7 +17,7 @@
 | 管理前端 Web | 计划 `apps/web`：React 19、Vite、TypeScript、pnpm、Tailwind、TanStack Query、Orval | **未实现**：无 React 页面、前端开发服务器或打包产物 | **目前没有** `pnpm dev`、`pnpm build` 可用 |
 | 管理后端 Server | `apps/server`：Java 25、Spring Boot 4.1.2、Gradle、JPA/Hibernate、Flyway | 可单独构建并连接**合成测试数据库**；业务接口默认拒绝，部分功能仅源码/测试状态 | `./gradlew bootRun` |
 | 终端 Agent | `apps/agent`：Rust 1.94、Tokio、SQLx/SQLite WAL、Reqwest/rustls | 可编译、启动、停止；运行时**不采集、不上传、不监控** | `cargo run --locked -p lanveriq-agent -- --config <绝对路径>` |
-| 数据库（基础设施） | PostgreSQL 18.6 | Flyway V1–V8 已编写；真实 PostgreSQL 全量集成验收待执行 | 本地 Docker 或独立 PostgreSQL |
+| 数据库（基础设施） | PostgreSQL 18.x；真实验收使用 18.6 | Flyway V1–V8 已编写；可复用 `spark-postgres` 中的专用 `lanveriq` 库 | 现有 Docker Compose，无需额外持久容器 |
 | HTTPS 代理（基础设施） | Caddy | `deploy/caddy/Caddyfile.reference` **仅为安全测试参考配置**，不能直接用于生产 | 正式部署方案待验收 |
 
 设计目标：在服务器使用 **Caddy（HTTPS/静态前端）→ Spring Boot → PostgreSQL**，在已授权的 Windows/Linux 终端原生运行 Rust Agent。**Agent 不应部署在服务器 Docker Compose 中。** 前端静态资源最终可由 Caddy 托管，不需要额外的 Next.js 服务。详细设计见 [部署架构](docs/architecture/deployment.md)。
@@ -26,7 +26,7 @@
 
 - Git；**JDK 25**；仓库自带 **Gradle 9.8.2 Wrapper**（无需 Maven，也无需单独安装 Gradle）。
 - Rust **1.94.0**（见 `rust-toolchain.toml`）、Cargo；按目标系统安装相应的 Rust 原生构建工具。
-- Docker Engine 和可用的 Docker daemon，用于**合成数据的 PostgreSQL 18.6 本地测试**。首次安装工具链与拉取依赖/镜像可能需要联网；产品的未来运行目标是离线局域网。
+- Docker Engine 和已运行的 `spark-db` PostgreSQL 可直接用于独立数据库的本地开发；只有需要**独立合成数据验收**时，才额外启动短期 PostgreSQL 18.6 容器。首次下载依赖/镜像可能需要联网；未来产品运行目标是离线局域网。
 - Bash、curl、OpenSSL，用于现有 Linux/WSL/macOS 开发环境下的服务器自检脚本。生产服务器及 Agent OS 服务还需要单独验收。
 - **当前不需要 Node/pnpm 来启动管理页面，因为前端项目尚不存在。** Orval 契约测试使用独立的 `apps/server/contract-client-check`，不能替代 UI。
 
