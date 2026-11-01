@@ -21,6 +21,14 @@ for cmd in openssl curl jq docker python3; do
 done
 docker info >/dev/null
 [[ "$(curl --version)" == *HTTP2* ]] || { echo "curl must support HTTP/2" >&2; exit 1; }
+# A shared or unrelated listener could make a broken/missing synthetic
+# backend appear healthy and could be contacted by these probes.
+for port in 443 8443; do
+    if (echo > "/dev/tcp/127.0.0.1/$port") >/dev/null 2>&1; then
+        echo "Refusing synthetic TLS test: loopback TCP $port already in use" >&2
+        exit 1
+    fi
+done
 DEVICE_ID="00000000-0000-7000-8000-000000000001"
 make_ca() {
     openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 \
@@ -72,22 +80,42 @@ export SYNTHETIC_BACKEND_KEY="$TMP/pki/backend-server.key"
 export SYNTHETIC_PROXY_CA="$TMP/pki/upstream-proxy-ca.crt"
 python3 "$ROOT/deploy/caddy/tests/synthetic-mtls-backend.py" >"$TMP/backend.log" 2>&1 &
 BACKEND_PID=$!
+backend_ready=0
 for i in $(seq 1 30); do
-    if (echo > /dev/tcp/127.0.0.1/8443) 2>/dev/null; then break; fi
+    if (echo > /dev/tcp/127.0.0.1/8443) >/dev/null 2>&1; then
+        backend_ready=1
+        break
+    fi
     kill -0 "$BACKEND_PID" || { echo "Backend failed to start" >&2; exit 1; }
     sleep 1
 done
+[[ "$backend_ready" == 1 ]] || {
+    echo "Synthetic TLS backend never bound loopback port 8443" >&2
+    exit 1
+}
 IMAGE="caddy:2.11.7"
 docker pull "$IMAGE" >/dev/null
 docker image inspect "$IMAGE" --format \
     'Synthetic Caddy image ID {{.Id}}; digests {{json .RepoDigests}}'
-# Docker runner is isolated; test CA files/keys are never written into repo.
-CADDYFILE="$ROOT/deploy/caddy/Caddyfile.reference"
+# Always derive a LOOPBACK-ONLY copy for this manual acceptance probe;
+# never serve the repository's reference file over a public listener.
+# A text substitution can fail silently: the adapted config is checked below.
+sed -e 's/servers :443 {/servers 127.0.0.1:443 {/' \
+    -e '/^console\.lanveriq\.internal {/a\    bind 127.0.0.1' \
+    -e '/^enroll\.lanveriq\.internal {/a\    bind 127.0.0.1' \
+    -e '/^agent\.lanveriq\.internal {/a\    bind 127.0.0.1' \
+    "$ROOT/deploy/caddy/Caddyfile.reference" > "$TMP/Caddyfile.synthetic"
+CADDYFILE="$TMP/Caddyfile.synthetic"
 docker run --rm -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
     -v "$TMP/pki:/etc/lanveriq/pki:ro" -v "$TMP/data:/data" \
     -v "$TMP/config:/config" "$IMAGE" \
     adapt --config /etc/caddy/Caddyfile --pretty >"$TMP/adapted.json"
 jq -e '.apps.http.servers | type == "object"' "$TMP/adapted.json" >/dev/null
+# Every listener must be the explicitly isolated loopback TCP 443,
+# never 0.0.0.0, :::443, 80, UDP/h3 or another shared host interface.
+jq -e '[.apps.http.servers[] | .listen[]] |
+    (length > 0) and all(.[]; . == "127.0.0.1:443")' \
+    "$TMP/adapted.json" >/dev/null
 jq -e '[.apps.http.servers[] | select(.strict_sni_host == true and
     ((.protocols // []) | index("h1") != null) and
     ((.protocols // []) | index("h2") != null) and
@@ -100,7 +128,7 @@ docker run --rm -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
     -v "$TMP/config:/config" "$IMAGE" validate --config /etc/caddy/Caddyfile
 echo "PASS: real Caddy 2.11.7 adapt and validate (synthetic trust files)."
 
-CID="$(docker run -d --network host \
+CID="$(docker run -d --rm --network host \
     -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
     -v "$TMP/pki:/etc/lanveriq/pki:ro" -v "$TMP/data:/data" \
     -v "$TMP/config:/config" "$IMAGE" run --config /etc/caddy/Caddyfile)"
@@ -136,16 +164,49 @@ echo "PASS: Agent TLS, Caddy->backend TLS and verified fingerprint overwrite."
 deny_agent() {
     local label="$1"
     shift
-    local code
-    code="$(curl -sS --noproxy '*' --max-time 10 --http2 \
+    local code=000
+    local rc=0
+    code="$(curl --silent --show-error --noproxy '*' --max-time 10 --http2 \
         --cacert "$CA_ROOT" --resolve agent.lanveriq.internal:443:127.0.0.1 \
-        "$@" -X POST -o "$TMP/denied.json" -w '%{http_code}' "$URL" 2>/dev/null || true)"
-    [[ "$code" != 200 ]] || { echo "FAIL: $label reached backend" >&2; exit 1; }
-    echo "PASS: $label rejected ($code)."
+        "$@" -X POST -o "$TMP/denied.json" -w '%{http_code}' "$URL" \
+        2>"$TMP/agent-denied-stderr")" || rc=$?
+    # 403/404/502, an HTTP response, or a successful connection are NOT
+    # evidence of mTLS client-certificate rejection at the TLS boundary.
+    if [[ "$rc" == 0 || "$code" != 000 ]]; then
+        echo "FAIL: $label was not rejected during TLS negotiation (HTTP $code)" >&2
+        exit 1
+    fi
+    docker inspect --format '{{.State.Running}}' "$CID" | grep -qx true || {
+        echo "FAIL: Caddy died during the negative TLS probe" >&2
+        exit 1
+    }
+    kill -0 "$BACKEND_PID" || {
+        echo "FAIL: backend died during the negative TLS probe" >&2
+        exit 1
+    }
+    echo "PASS: $label rejected at TLS boundary."
 }
 deny_agent "Agent missing client certificate"
 deny_agent "Agent signed by wrong CA" \
     --cert "$TMP/pki/untrusted-agent.crt" --key "$TMP/pki/untrusted-agent.key"
+# Show that the healthy trusted Agent path still works after negative
+# handshake probes; failures must not be mislabeled as successful denial.
+status="$(curl --silent --show-error --noproxy '*' --max-time 10 --http2 \
+    --cacert "$CA_ROOT" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+    --cert "$AGENT_CRT" --key "$AGENT_KEY" \
+    -H "X-Lanveriq-Verified-Client-Fingerprint: $FP_FORGED" \
+    -H "X-Forwarded-Client-Cert: forged" \
+    -H "SSL-Client-Cert: forged" \
+    -X POST -o "$TMP/response-again.json" -w '%{http_code}' "$URL")"
+[[ "$status" == 200 ]] || {
+    echo "FAIL: healthy Caddy/upstream route disappeared after negative probes" >&2
+    exit 1
+}
+python3 - "$TMP/response-again.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as src:
+    assert json.load(src) == {"synthetic_upstream_verified": True}
+PY
 mismatch="$(curl -sS --noproxy '*' --max-time 10 --http2 \
     --cacert "$CA_ROOT" --resolve agent.lanveriq.internal:443:127.0.0.1 \
     --cert "$AGENT_CRT" --key "$AGENT_KEY" \
@@ -178,23 +239,56 @@ status="$(curl -sS --noproxy '*' --max-time 10 --http2 \
 echo "PASS: unregistered Agent routes are denied at edge."
 
 BACKEND_URL="https://spring-backend.lanveriq.internal:8443/api/v1/devices/$DEVICE_ID/activate"
+# Prove the target service is alive with the valid independent proxy
+# identity before and after rejecting invalid credentials. Otherwise a
+# crashed backend could be mistaken for secure certificate rejection.
+assert_valid_direct() {
+    local code
+    code="$(curl --silent --show-error --noproxy '*' --max-time 10 \
+       --cacert "$TMP/pki/backend-server-ca.crt" \
+       --resolve spring-backend.lanveriq.internal:8443:127.0.0.1 \
+       --cert "$TMP/pki/caddy-upstream-client.crt" \
+       --key "$TMP/pki/caddy-upstream-client.key" \
+       -H "Host: agent.lanveriq.internal" \
+       -H "X-Lanveriq-Verified-Client-Fingerprint: $SYNTHETIC_AGENT_SHA256" \
+       -X POST -o "$TMP/direct-valid.json" -w '%{http_code}' "$BACKEND_URL")"
+    [[ "$code" == 200 ]] || {
+        echo "FAIL: valid synthetic upstream TLS connection is not healthy" >&2
+        exit 1
+    }
+    python3 - "$TMP/direct-valid.json" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as src:
+    assert json.load(src) == {"synthetic_upstream_verified": True}
+PY
+}
 deny_direct() {
     local label="$1"
     shift
-    if curl -sS --noproxy '*' --max-time 10 \
+    local code=000
+    local rc=0
+    code="$(curl --silent --show-error --noproxy '*' --max-time 10 \
        --cacert "$TMP/pki/backend-server-ca.crt" \
        --resolve spring-backend.lanveriq.internal:8443:127.0.0.1 \
        -H "Host: agent.lanveriq.internal" \
        -H "X-Lanveriq-Verified-Client-Fingerprint: $SYNTHETIC_AGENT_SHA256" \
-       "$@" -X POST -o "$TMP/direct.json" "$BACKEND_URL" >/dev/null 2>&1; then
-        echo "FAIL: direct backend accepted $label" >&2
+       "$@" -X POST -o "$TMP/direct.json" -w '%{http_code}' \
+       "$BACKEND_URL" 2>"$TMP/direct-denied-stderr")" || rc=$?
+    if [[ "$rc" == 0 || "$code" != 000 ]]; then
+        echo "FAIL: direct backend did not reject $label at TLS layer (HTTP $code)" >&2
         exit 1
     fi
+    kill -0 "$BACKEND_PID" || {
+        echo "FAIL: backend died during direct TLS denial check" >&2
+        exit 1
+    }
     echo "PASS: direct backend rejects $label at TLS layer."
 }
+assert_valid_direct
 deny_direct "no proxy client certificate"
 deny_direct "wrong-CA proxy client certificate" \
     --cert "$TMP/pki/untrusted-proxy.crt" \
     --key "$TMP/pki/untrusted-proxy.key"
+assert_valid_direct
 echo "PASS: synthetic double-mTLS gate only."
 echo "NOT PROVEN: real Spring Tomcat, PostgreSQL 18, revocation, production OS."
