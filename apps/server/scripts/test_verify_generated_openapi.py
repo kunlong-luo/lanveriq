@@ -39,19 +39,23 @@ def fixture():
                 "DeviceHealthSummary": {
                     "type": "object",
                     "properties": {name: {"type": "string"} for name in expected},
+                    "required": sorted(module["REQUIRED_HEALTH_FIELDS"]),
                 },
                 "ConsoleCsrfToken": {
                     "type": "object",
                     "properties": {"csrfToken": {"type": "string"}},
+                    "required": ["csrfToken"],
                 },
                 "ConsoleSessionInfo": {
                     "type": "object",
                     "properties": {"login": {"type": "string"}},
+                    "required": ["login"],
                 },
                 "ScopedMonitoringOverview": {
                     "type": "object",
                     "properties": {name: {"type": "integer"} for name in
                                    module["OVERVIEW_FIELDS"]},
+                    "required": sorted(module["OVERVIEW_FIELDS"]),
                 },
                 "ScopedDeviceDirectoryPage": {
                     "type": "object",
@@ -59,6 +63,7 @@ def fixture():
                         "items": {"type": "array"},
                         "next_cursor": {"type": "string"},
                     },
+                    "required": ["items"],
                 },
             },
         },
@@ -94,6 +99,26 @@ def fixture():
 class ContractGateTest(unittest.TestCase):
     def test_synthetic_complete_contract_accepts(self):
         self.assertEqual([], validate(fixture()))
+
+    def test_missing_required_wire_fields_blocks_even_if_properties_exist(self):
+        for name in module["REQUIRED_FIELDS_BY_SCHEMA"]:
+            sample = fixture()
+            sample["components"]["schemas"][name]["required"] = []
+            self.assertTrue(validate(sample), f"{name} must not become optional")
+
+            sample = fixture()
+            sample["components"]["schemas"][name]["required"].append("unknown_field")
+            self.assertTrue(validate(sample), f"{name} required list must be exact")
+
+    def test_nullable_health_evidence_and_cursor_must_remain_optional(self):
+        sample = fixture()
+        sample["components"]["schemas"]["DeviceHealthSummary"]["required"].append(
+            "heartbeat_received_at")
+        self.assertTrue(validate(sample))
+        sample = fixture()
+        sample["components"]["schemas"]["ScopedDeviceDirectoryPage"]["required"].append(
+            "next_cursor")
+        self.assertTrue(validate(sample))
 
     def test_extra_api_route_or_method_blocks(self):
         sample = fixture()
