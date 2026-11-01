@@ -163,9 +163,13 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertTrue(any("Duplicate test result" in error
                                 for error in verify_reports(Path(tmp))))
         with tempfile.TemporaryDirectory() as tmp:
-            (Path(tmp) / "TEST-corrupt.xml").write_text("<testsuite><testcase")
+            directory = Path(tmp)
+            synthetic_reports(directory)
+            cls = "PostgreSqlEventIngestionIT"
+            (directory / f"TEST-{packages[cls]}.{cls}.xml").write_text(
+                "<testsuite><testcase")
             self.assertTrue(any("Unreadable integration JUnit XML" in error
-                                for error in verify_reports(Path(tmp))))
+                                for error in verify_reports(directory)))
 
 
 if __name__ == "__main__":
