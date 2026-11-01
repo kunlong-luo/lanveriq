@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Source-only CI guard; not a browser TLS/PG18 acceptance.
@@ -28,4 +28,21 @@ const login = readFileSync('src/components/login-preview.tsx', 'utf8');
 if (/fetch\s*\(|method\s*=\s*['"]post|<form\b/i.test(login)) {
   throw new Error('NXT-01 login must not accept or submit credentials');
 }
-console.log('NXT-01 preview route and no-business-proxy source gate passed');
+// NXT-03 transport/type bridge exists only in a deliberately non-mounted
+// library until manual database/TLS/browser acceptance and a reviewed
+// runtime enablement commit. Even a correct fetch implementation must not
+// become reachable by casually importing it into a page or a client shell.
+function inspectRuntimeSource(folder) {
+  for (const entry of readdirSync(folder, { withFileTypes: true })) {
+    const file = join(folder, entry.name);
+    if (entry.isDirectory()) inspectRuntimeSource(file);
+    else if (/\\.[jt]sx?$/.test(entry.name)) {
+      const source = readFileSync(file, 'utf8');
+      if (/staged-console-read|\\.generated-contract/.test(source)) {
+        throw new Error('NXT-03 pending acceptance: runtime imported staged transport/model: ' + file);
+      }
+    }
+  }
+}
+for (const folder of ['src/app', 'src/components']) inspectRuntimeSource(join(process.cwd(),folder));
+console.log('NXT-03 staged transport stays unmounted; no business proxy, credentials or live API use');
