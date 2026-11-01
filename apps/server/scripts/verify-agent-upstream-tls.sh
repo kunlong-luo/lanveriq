@@ -82,7 +82,7 @@ if (echo > /dev/tcp/127.0.0.1/8080) >/dev/null 2>&1; then
     exit 1
 fi
 if [[ "$CONSOLE_MODE" == 1 ]]; then
-    for tool in script python3; do
+    for tool in script python3 timeout; do
         command -v "$tool" >/dev/null || {
             echo "Missing synthetic browser-auth acceptance tool: $tool" >&2
             exit 1
@@ -202,6 +202,22 @@ export LANVERIQ_DB_PASSWORD="$DB_PASS"
 # util-linux 'script' creates the attached PTY required by System.console().
 # The generated password travels only via a pipe, never CLI/env/CI logs.
 if [[ "$CONSOLE_MODE" == 1 ]]; then
+    # First distinguish a non-web Spring/JPA/Flyway context failure from a
+    # credential-prompt or first-owner transaction failure. This starts the
+    # actual Boot executable with the SAME disposable PG18 and no web
+    # listener, but explicitly without any user/password/bootstrap action.
+    # The private transcript is never copied to GitHub Actions artifacts.
+    if ! timeout --signal=TERM --kill-after=5s 75s \
+        java -jar "$ROOT/apps/server/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar" \
+        --spring.main.web-application-type=none \
+        --lanveriq.bootstrap.enabled=false \
+        >"$TMP/console-offline-context.log" 2>&1; then
+        echo "FAIL: isolated offline Spring/JPA context preflight failed" >&2
+        python3 "$ROOT/apps/server/scripts/diagnose-synthetic-bootstrap.py" \
+            "$TMP/console-offline-context.log" || true
+        exit 1
+    fi
+    echo "PASS: actual Spring non-web context and isolated PostgreSQL startup."
     SYNTHETIC_LOGIN="synthetic-owner"
     SYNTHETIC_PASSWORD="$(openssl rand -hex 24)"
     # util-linux script defaults to echoing *piped* PTY input before
