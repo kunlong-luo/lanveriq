@@ -204,11 +204,33 @@ export LANVERIQ_DB_PASSWORD="$DB_PASS"
 if [[ "$CONSOLE_MODE" == 1 ]]; then
     SYNTHETIC_LOGIN="synthetic-owner"
     SYNTHETIC_PASSWORD="$(openssl rand -hex 24)"
+    # util-linux script defaults to echoing *piped* PTY input before
+    # Console.readPassword has disabled echo. Never store the generated
+    # password in the private bootstrap transcript either.
+    script --help | grep -Fq -- '--echo' || {
+        echo "FAIL: util-linux script without private-input echo controls" >&2
+        exit 1
+    }
+    # The child must use the REAL interactive Java Console, with both
+    # passwords sent over stdin and neither password in argv/env/CI logs.
+    # --echo never ensures PTY input is not reproduced in the captured log.
     if ! (printf '%s\n%s\n' "$SYNTHETIC_PASSWORD" "$SYNTHETIC_PASSWORD" |
-        script --quiet --return --command \
+        script --quiet --return --echo never --command \
         "java -jar $ROOT/apps/server/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --lanveriq.bootstrap.enabled=true --lanveriq.bootstrap.login=$SYNTHETIC_LOGIN --lanveriq.bootstrap.group=SyntheticQA" \
         /dev/null >"$TMP/console-bootstrap.log" 2>&1); then
-        echo "FAIL: isolated offline first-admin bootstrap failed; see private runner log" >&2
+        echo "FAIL: isolated offline first-admin bootstrap failed" >&2
+        # Classify from private runner-only output using a fixed set of
+        # public labels; do not print exception text, SQL, logs or secrets.
+        python3 "$ROOT/apps/server/scripts/diagnose-synthetic-bootstrap.py" \
+            "$TMP/console-bootstrap.log" || true
+        exit 1
+    fi
+    # A zero process exit is not enough: verify the real bootstrap runner
+    # reached its post-commit success event without exposing the transcript.
+    if ! grep -Fq "Initial administrator created." "$TMP/console-bootstrap.log"; then
+        echo "FAIL: Java bootstrap exited without its commit confirmation" >&2
+        python3 "$ROOT/apps/server/scripts/diagnose-synthetic-bootstrap.py" \
+            "$TMP/console-bootstrap.log" || true
         exit 1
     fi
     [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc \
