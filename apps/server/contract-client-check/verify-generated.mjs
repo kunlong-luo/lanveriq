@@ -18,8 +18,12 @@ const required = [
   '/api/v1/devices/',
   '/api/v1/monitoring/overview',
   '/api/v1/auth/session',
+  '/api/v1/auth/csrf',
+  '/api/v1/auth/login',
+  '/api/v1/auth/logout',
   '@tanstack/react-query',
   'useQuery',
+  'useMutation',
 ];
 for (const expected of required) {
   if (!code.includes(expected)) {
@@ -31,4 +35,4 @@ for (const unsafe of ['mac_address', 'client_cert_sha256_fingerprint', 'employee
     throw new Error('Sensitive field surfaced in generated health client');
   }
 }
-console.log('Orval 8 Fetch/TanStack Query client generated from Springdoc and typechecked.');
+console.log('Orval 8 Fetch/TanStack Query client generated from Springdoc, including CSRF/login/logout mutations, and typechecked.');

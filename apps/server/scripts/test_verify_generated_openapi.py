@@ -13,7 +13,7 @@ expected = module["EXPECTED_FIELDS"]
 
 def fixture():
     """Invented JSON purely to test this validator; NOT generated API evidence."""
-    return {
+    doc = {
         "openapi": "3.1.0",
         "paths": {
             path: {
@@ -28,8 +28,7 @@ def fixture():
                     },
                 }
             }
-            for path in ("/api/v1/devices", "/api/v1/devices/{deviceId}",
-                         "/api/v1/monitoring/overview", "/api/v1/auth/session")
+            for path in module["GET_PATHS"]
         },
         "components": {
             "securitySchemes": {"consoleSession": {
@@ -40,6 +39,10 @@ def fixture():
                 "DeviceHealthSummary": {
                     "type": "object",
                     "properties": {name: {"type": "string"} for name in expected},
+                },
+                "ConsoleCsrfToken": {
+                    "type": "object",
+                    "properties": {"csrfToken": {"type": "string"}},
                 },
                 "ConsoleSessionInfo": {
                     "type": "object",
@@ -60,6 +63,32 @@ def fixture():
             },
         },
     }
+    csrf = doc["paths"]["/api/v1/auth/csrf"]["get"]
+    csrf["security"] = []
+    csrf["responses"]["200"]["content"]["application/json"]["schema"] = {
+        "$ref": "#/components/schemas/ConsoleCsrfToken",
+    }
+    header = lambda name: {"in": "header", "name": name, "required": True,
+                           "schema": {"type": "string"}}
+    form = {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {"username": {"type": "string"},
+                       "password": {"type": "string", "format": "password"}},
+    }
+    doc["paths"]["/api/v1/auth/login"] = {"post": {
+        "security": [],
+        "parameters": [header("Origin"), header("X-CSRF-TOKEN")],
+        "requestBody": {"required": True, "content": {
+            "application/x-www-form-urlencoded": {"schema": form}}},
+        "responses": {"204": {"description": "Login success"}},
+    }}
+    doc["paths"]["/api/v1/auth/logout"] = {"post": {
+        "security": [{"consoleSession": []}],
+        "parameters": [header("Origin"), header("X-CSRF-TOKEN")],
+        "responses": {"204": {"description": "Logout success"}},
+    }}
+    return doc
 
 
 class ContractGateTest(unittest.TestCase):
@@ -107,6 +136,37 @@ class ContractGateTest(unittest.TestCase):
         self.assertTrue(validate(sample))
         sample = fixture()
         del sample["components"]["schemas"]["ConsoleSessionInfo"]["properties"]["login"]
+        self.assertTrue(validate(sample))
+
+    def test_csrf_login_and_logout_drift_is_rejected(self):
+        sample = fixture()
+        sample["paths"]["/api/v1/auth/login"]["post"]["requestBody"][
+            "content"]["application/x-www-form-urlencoded"]["schema"][
+                "properties"]["extraToken"] = {"type": "string"}
+        self.assertTrue(validate(sample))
+
+        sample = fixture()
+        sample["paths"]["/api/v1/auth/logout"]["post"]["parameters"].pop()
+        self.assertTrue(validate(sample))
+
+        sample = fixture()
+        sample["paths"]["/api/v1/auth/login"]["post"]["security"] = [
+            {"consoleSession": []}]
+        self.assertTrue(validate(sample))
+
+        sample = fixture()
+        sample["paths"]["/api/v1/auth/csrf"]["get"]["security"] = [
+            {"consoleSession": []}]
+        self.assertTrue(validate(sample))
+
+        sample = fixture()
+        del sample["components"]["schemas"]["ConsoleCsrfToken"][
+            "properties"]["csrfToken"]
+        self.assertTrue(validate(sample))
+
+        sample = fixture()
+        sample["paths"]["/api/v1/auth/logout"]["post"]["requestBody"] = {
+            "content": {"application/json": {"schema": {"type": "object"}}}}
         self.assertTrue(validate(sample))
 
     def test_invalid_or_empty_document_blocks(self):

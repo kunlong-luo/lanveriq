@@ -19,7 +19,7 @@ class ConsoleCsrfControllerTest {
         req.setAttribute(CsrfToken.class.getName(), token);
         var response = controller.csrf(req);
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("synthetic-csrf-only", response.getBody().get("csrfToken"));
+        assertEquals("synthetic-csrf-only", response.getBody().csrfToken());
         assertEquals("no-store", response.getHeaders().getCacheControl());
     }
 

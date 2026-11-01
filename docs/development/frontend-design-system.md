@@ -10,6 +10,8 @@
 
 **Session bootstrap API readiness (source stage):** To avoid the React client guessing whether a stored Cookie still authenticates, the backend adds an opt-in `GET /api/v1/auth/session` with a minimal `login` response (no bearer tokens or permissions). The Springdoc-to-Orval gate is extended to include it. MockMvc tests simulate the Spring Security login/CSRF/cookie lifecycle, but actual browser, TLS and DB validation remains pending. [Java 25 CI #41261183351](https://github.com/kunlong-luo/lanveriq/actions/runs/41261183351) **passed** the full CSRF/login/session/authorization/logout MockMvc scenario, generated the four-route OpenAPI and typechecked the new Orval hooks. This remains a backend-only milestone; no frontend application has been created.
 
+**Backend auth client contract preparation:** Real Spring Security form login and logout are now described through a conditional Springdoc customizer, and the real CSRF Controller exposes a typed response, allowing Orval to generate authenticated API mutations rather than writing bespoke login API calls in React. Neither production auth nor the frontend is enabled. This source change must pass new CI; real browser/Caddy/TLS/PostgreSQL gates remain open.
+
 ## Stack
 - **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, **not** an application framework.
 - **React 19 + Vite 8 + TypeScript**, React Router for the LAN Dashboard. A Next.js SSR server is unnecessary. These UI libraries are not exclusive to Next.js.

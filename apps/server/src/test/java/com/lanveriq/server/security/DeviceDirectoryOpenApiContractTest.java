@@ -42,7 +42,7 @@ import org.springframework.test.web.servlet.MockMvc;
         properties = {
                 "springdoc.api-docs.enabled=true",
                 "springdoc.swagger-ui.enabled=false",
-                "springdoc.paths-to-match=/api/v1/devices,/api/v1/devices/*,/api/v1/monitoring/overview,/api/v1/auth/session",
+                "springdoc.paths-to-match=/api/v1/devices,/api/v1/devices/*,/api/v1/monitoring/overview,/api/v1/auth/session,/api/v1/auth/csrf",
                 "lanveriq.console.auth.enabled=true",
                 "lanveriq.console.auth.origin=https://console.lanveriq.internal",
                 "lanveriq.device-directory.enabled=true",
@@ -62,7 +62,9 @@ class DeviceDirectoryOpenApiContractTest {
             DeviceDirectoryHttpSecurityConfiguration.class,
             MonitoringOverviewRestController.class,
             MonitoringOverviewHttpSecurityConfiguration.class,
-            ConsoleSessionStatusController.class})
+            ConsoleSessionStatusController.class,
+            ConsoleCsrfController.class,
+            ConsoleAuthenticationOpenApiConfiguration.class})
     static class ContractOnlyApplication {
         // Spring Security docs permission exists ONLY in this nested test
         // application. Never relax the main application's deny-all filter.
@@ -96,6 +98,9 @@ class DeviceDirectoryOpenApiContractTest {
         assertTrue(body.contains("\"/api/v1/devices/{deviceId}\""));
         assertTrue(body.contains("\"/api/v1/monitoring/overview\""));
         assertTrue(body.contains("\"/api/v1/auth/session\""));
+        assertTrue(body.contains("\"/api/v1/auth/csrf\""));
+        assertTrue(body.contains("\"/api/v1/auth/login\""));
+        assertTrue(body.contains("\"/api/v1/auth/logout\""));
         assertTrue(body.contains("\"consoleSession\""));
 
         Path output = Path.of("build", "contracts", "openapi.json");

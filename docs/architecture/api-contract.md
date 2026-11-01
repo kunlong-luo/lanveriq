@@ -19,6 +19,8 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 
 **AUTH-01-SESSION-STATUS (source stage):** When the otherwise-default-OFF console authentication slice is enabled, `GET /api/v1/auth/session` returns `{ "login": "<normalized-login>" }` only for a currently authenticated, enabled account whose session version still matches the database. Anonymous or rotated sessions are rejected with **401**, not a browser redirect; the response uses `Cache-Control: no-store`. The Springdoc/Orval contract gate now includes this fourth GET-only path and **passed** [CI #41261183351](https://github.com/kunlong-luo/lanveriq/actions/runs/41261183351) together with synthetic Spring Security MVC lifecycle tests. It conveys authentication, **not** group authorization: device and monitoring queries independently recheck live group scopes in PostgreSQL. Actual browser-cookie, TLS, PostgreSQL and reverse-proxy acceptance remain unverified.
 
+**AUTH-01-OPENAPI-FILTERS (source-stage):** The actual console authentication endpoints are `GET /api/v1/auth/csrf` (anonymous, 200 JSON `{csrfToken}`), `POST /api/v1/auth/login` (CSRF + exact HTTPS Origin, `application/x-www-form-urlencoded` `username,password`, 204 on success), `POST /api/v1/auth/logout` (authenticated secure session cookie + fresh CSRF + exact Origin, 204 on success). Spring Security owns both POSTs: the Springdoc customizer documents the existing filters and never creates an alternate login controller. The OpenAPI verifier demands exactly seven operations (5 GET + 2 POST), no credential fields in URL and no response body from POST success. All HTTP auth remains OFF by default; test-run evidence is still pending.
+
 ## Device API
 | Method | Path | Principal | Semantics |
 |---|---|---|---|
