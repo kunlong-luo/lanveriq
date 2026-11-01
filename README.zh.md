@@ -37,52 +37,90 @@ git clone https://github.com/kunlong-luo/lanveriq.git
 cd lanveriq
 ```
 
-## 三、本地运行：推荐先使用自动清理的合成数据自检
+## 三、本地运行：直接复用已有 spark-db
 
-最安全的入门方式是在**授权的开发机**上运行仓库现有的一次性脚本：
+你提供的 Compose 工程名为 `spark-db`，其中 PostgreSQL 容器是 `spark-postgres`；默认通过 `127.0.0.1:5432` 暴露，原有业务库名为 `iot_farm`。**无需新建 PostgreSQL 容器，也无需启动 Redis、InfluxDB 或 PostGIS 扩展来运行 Lanveriq。**
 
-```bash
-bash apps/server/scripts/verify-postgres18.sh
-```
+**隔离原则：** 在同一个 PostgreSQL 实例里创建独立的 `lanveriq` 数据库与 `lanveriq` 普通登录角色；Flyway 只迁移这套新库。不要把 `iot_farm` 作为 `LANVERIQ_DB_URL`，不要使用共享的 `root` 超级用户运行 Lanveriq，也不要修改或卸载现有 `spark-db` Compose/数据卷。此流程只能在已授权、没有真实员工数据的本地开发环境操作。
 
-它会在 **127.0.0.1:55432** 启动一次性 PostgreSQL 18.6，生成临时数据库密码，编译并启动 Spring Boot（**127.0.0.1:18080**），验证 Flyway V1–V8、数据库 UUIDv7、无预置管理员/采集数据、业务 API 默认拒绝；退出时停止进程、删除临时容器和密码文件。**这是开发验证，不是生产部署，也不会启用 Agent/前端。** 运行所需端口不得被其他程序占用。该脚本在开发仓库中已有，但不代表此处已执行成功。
+### 1. 检查现有数据库，不重启 Compose
 
-### 长时间本地启动后端（仅合成数据）
-
-在 Linux/WSL/macOS Bash 开发终端，先启动一个**无持久化数据卷、仅绑定 loopback** 的测试数据库：
+在运行 Docker 的电脑上：
 
 ```bash
-docker run -d --rm --name lanveriq-pg-dev \
-  -p 127.0.0.1:55432:5432 \
-  -e POSTGRES_DB=lanveriq \
-  -e POSTGRES_USER=lanveriq \
-  -e POSTGRES_PASSWORD=synthetic-local-only \
-  postgres:18.6
+docker inspect -f '{{.State.Running}}' spark-postgres
+docker port spark-postgres 5432
+docker exec spark-postgres psql -U root -d postgres -XAtc "SHOW server_version;"
 ```
 
-此密码只允许用于一次性本地合成数据容器，**不要用于任何真实数据库**。等待 `docker exec lanveriq-pg-dev pg_isready -U lanveriq -d lanveriq` 返回成功后，在另一个终端：
+第一条应输出 `true`，第二条需要确认显示宿主机 `127.0.0.1:5432`（若你改过 `BIND_IP` / `POSTGRES_HOST_PORT`，以实际映射为准）。**镜像标签 `postgis/postgis:18-3.6` 仅表示 PostgreSQL 18 系列；是否为 18.6 必须以 `SHOW server_version` 为准。** 你的 Compose 还有 InfluxDB Explorer 占用宿主机 **18080**，所以 Lanveriq 使用 **18081**，不要覆盖它。
+
+如果 Compose 使用的超级用户名不再是 `root`，请在以上检查命令中替换为你实际配置的管理员角色。注意：**不会在这一步自动启动、停止、更新或修改现有服务。** 你提供的 Compose 示例含有弱默认数据库/Redis 密码；如果已经实际启用，建议在独立维护窗口内轮换，文档不会复制这些密码。
+
+### 2. 只为 Lanveriq 创建新账号和数据库（首次一次）
+
+使用 PostgreSQL 自带的 `psql`，经 Docker 的本地 Unix socket 进入管理控制台：
+
+```bash
+docker exec -it spark-postgres psql -U root -d postgres
+```
+
+先在 `psql` 中用 `\du`、`\l` 确认 `lanveriq` 角色和数据库尚不存在；如果已经存在，应确认所有权、历史迁移和用途，**不要盲目重建或覆盖**。对全新、未使用的名称执行：
+
+```sql
+CREATE ROLE lanveriq LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+```
+
+随后在**同一个交互式 psql 会话**输入 `\password lanveriq`，在隐藏输入提示中设置独立且强度足够的密码，避免把密码写进 Git、Compose 文件或命令历史。再创建数据库：
+
+```sql
+CREATE DATABASE lanveriq OWNER lanveriq;
+```
+
+用 `\q` 退出。**不要**对 `iot_farm` 执行 Lanveriq 的 Flyway，也不要给 `lanveriq` 用户超级用户权限。此新库不需要 `postgis`、`pg_cron`、`pg_stat_statements`、Redis 或 InfluxDB。由于你当前 PostgreSQL 内存上限较低（示例为 256 MiB），并行运行多套数据库负载可能资源不足；不要通过取消共享服务的安全限制来掩盖问题。
+
+### 3. 启动 Java 后端（本地开发）
+
+在仓库根目录进入后端；用隐藏终端输入读取**刚刚为新角色设置的**密码：
 
 ```bash
 cd apps/server
-export LANVERIQ_DB_URL='jdbc:postgresql://127.0.0.1:55432/lanveriq'
+export LANVERIQ_DB_URL='jdbc:postgresql://127.0.0.1:5432/lanveriq'
 export LANVERIQ_DB_USER='lanveriq'
-export LANVERIQ_DB_PASSWORD='synthetic-local-only'
+read -rsp 'Lanveriq PostgreSQL password: ' LANVERIQ_DB_PASSWORD
+echo
+export LANVERIQ_DB_PASSWORD
 export LANVERIQ_HTTP_BIND='127.0.0.1'
-export LANVERIQ_HTTP_PORT='18080'
-# 所有功能开关保留默认 false，不启用真实接入。
+export LANVERIQ_HTTP_PORT='18081'
+# 业务开关一律保持默认 false；不要启用真实设备接入。
 ./gradlew bootRun
 ```
 
-新开终端验证：
+以上命令适用于后端程序运行在**与 Docker 端口映射相同的宿主机**的 Bash 终端。Windows PowerShell、WSL2、远程开发机或后端在另一容器里运行时，`127.0.0.1` 所指的机器可能不同；必须先独立验证网络可达性，**不能为了方便把共享 PostgreSQL 暴露到 0.0.0.0**。宿主机环境变量在进程存活期间包含数据库密码，仅可用于受信任的本地开发会话；正式环境应使用受保护的密钥注入方式。
+
+另一个终端检查：
 
 ```bash
-curl -fsS http://127.0.0.1:18080/actuator/health
-curl -i http://127.0.0.1:18080/api/v1/devices
+curl -fsS http://127.0.0.1:18081/actuator/health
+curl -i http://127.0.0.1:18081/api/v1/devices
 ```
 
-健康检查预期是 `{"status":"UP"}`，未授权业务 API 默认应返回 **403**。若启动失败，检查 JDK 25、数据库端口、Flyway、连接信息和后端日志。这里的 HTTP **仅限 loopback 合成数据调试**；正式环境必须使用通过验收的 HTTPS/Caddy，**绝不能把端口直接开放给局域网**。
+健康检查预期 `{"status":"UP"}`，无权限业务请求预期 **403**。首次启动 Flyway 会在**专用的 `lanveriq` 数据库**创建 V1–V8 的表与约束。注意：`/actuator/health` 显示 UP **不代表**管理员网页、Agent HTTP 上传、浏览器登录或 PostgreSQL 全量集成测试通过。此开发 HTTP 只能绑定 loopback，不得直接公开给局域网。
 
-停止：后端终端按 `Ctrl+C`，然后 `docker stop lanveriq-pg-dev`。由于使用 `--rm` 且没有数据卷，该测试数据库会被删除。不要对实际生产数据库执行本节删除操作。
+停止后端：在 `bootRun` 终端按 `Ctrl+C`。**不要执行** `docker stop spark-postgres`、`docker compose down` 或 `docker compose down -v`：它们可能影响 `iot_farm`、其他数据库及 Redis/InfluxDB 的服务与数据卷。
+
+### 4. 可选：独立一次性 PostgreSQL 18.6 自检（不会触碰 spark-db）
+
+如果想跑仓库既有的自动清理脚本，而不是用共享实例，它会另启**临时** `postgres:18.6` 容器，不操作 `spark-postgres`。为避开 InfluxDB Explorer 的 18080 端口，运行：
+
+```bash
+# 先停止占用 18081 的 Lanveriq 后端；这里使用独立 HTTP 端口 18082。
+LANVERIQ_SMOKE_HTTP_PORT=18082 \
+LANVERIQ_SMOKE_DB_PORT=55432 \
+bash apps/server/scripts/verify-postgres18.sh
+```
+
+自检会生成临时数据库密码、在 `127.0.0.1:55432` 建立独立容器、运行 Spring Boot、验证 Flyway/默认拒绝，然后清理**自己创建**的容器和临时文件。这不是正式部署，也不代表全套 58 个 PostgreSQL 集成测试已通过。数据库集成测试仍必须使用隔离的 Testcontainers，并取得真实执行证据；**不得将会清空测试表或创建临时触发器的集成测试指向你的共享 `iot_farm` 或 `lanveriq` 开发库。**
 
 ### 本地运行 Rust Agent（只启动空闲循环）
 
