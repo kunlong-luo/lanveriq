@@ -1,30 +1,15 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createConsoleQueryClient } from '../lib/console-query-policy';
 
 /**
- * NXT-03B query context is safe to mount BEFORE data access approval.
- * No useQuery / generated-client import occurs in runtime; this only
- * provides the approved server-state library and conservative defaults.
- *
- * No automatic background retries, focus/reconnect fetch or persistence.
- * Authentication changes must reset the entire QueryClient before any
- * future credentialed data hooks are permitted.
+ * Mounting the context does NOT mount Orval hooks, fetch server data
+ * or activate an administrator session. The restrictive defaults and
+ * session-clearing helper are separately unit-tested.
  */
 export function PreviewQueryProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [client] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        staleTime: 0,
-        gcTime: 0,
-      },
-      mutations: { retry: false },
-    },
-  }));
+  const [client] = useState(createConsoleQueryClient);
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
