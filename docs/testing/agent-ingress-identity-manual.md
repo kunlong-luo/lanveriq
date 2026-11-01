@@ -1,5 +1,33 @@
 # SRV-02-EDGE — trusted Agent mTLS ingress reference and acceptance gate
 
+**2026-11-01 second actual Caddy-only manual attempt: FAILED AT CA ACCESS / CLEANUP, AFTER CONFIG VALIDATION.**
+[GitHub Actions #41292083164](https://github.com/kunlong-luo/lanveriq/actions/runs/41292083164)
+at SHA `50480933e72e456ae9edd448ae90227be78761ec` passed the actual
+Caddy 2.11.7 `adapt` and `validate` steps, but did not reach any
+certificate-authenticated API test: the host-side file check timed out
+at `No Caddy internal server CA`, then attempting to remove
+container-root-owned bind-mount `/data/caddy` and `/config/caddy`
+caused `Permission denied`. The Caddyfile formatting warning is
+non-fatal and is *not* a reason to loosen TLS settings. The failure
+does not establish that Caddy could not generate a root; the GitHub
+runner could not reliably traverse container-created private directories.
+
+**Fix now staged, real TLS still unaccepted:** Both synthetic Caddy
+harnesses use two **Docker-managed temporary named volumes** for
+`/data` and `/config`, then copy **only the public local CA
+`root.crt`** from the running container with `docker cp` into
+an owner-private temporary file for strict `curl --cacert` validation.
+An unverified OpenSSL ClientHello may *only* bootstrap Caddy's
+on-demand local CA creation and is never counted as successful
+verification. Caddy's private CA key is never copied, world-readably
+chmodded or deployed. The temporary Docker volumes are deleted
+on exit, avoiding host root-owned bind mount cleanup failures.
+A source-only CI regression protects these invariants; it is not
+proof of a successful real TLS run. Manually dispatch a **new**
+Caddy-only run on latest `main`, then the independent real
+Spring/Tomcat and combined bridge probes if the first turns green.
+
+
 **2026-11-01 first actual Caddy-only attempt: FAILED BEFORE TLS.**
 [GitHub Actions #41291586713](https://github.com/kunlong-luo/lanveriq/actions/runs/41291586713)
 ran on SHA `1430e6e94047bd6614330bcd4b129eca605aba58`.

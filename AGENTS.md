@@ -34,6 +34,8 @@
 
 **Caddy-only synthetic test harness hardening (2026-11-01):** The manual Caddy probe now derives a disposable loopback-only config, asserts adapted listeners match exactly `127.0.0.1:443`, refuses occupied ports, distinguishes *TLS failure with zero HTTP response* from merely non-200 status, and verifies healthy known-good Agent/proxy traffic before and after negative checks. This was only source/syntax verified; Caddy/Tomcat have NOT been manually executed for live handshake acceptance. Original `deploy/caddy/Caddyfile.reference` remains a **non-deployable** example.
 
+**Latest Caddy-only manual attempt (2026-11-01):** [#41292083164](https://github.com/kunlong-luo/lanveriq/actions/runs/41292083164) successfully adapted/validated Caddy but failed before TLS trust tests because its temporary internal CA directories were owned by the Docker container, causing host path and cleanup permission issues. Both Caddy-only and Caddy-to-Spring/Tomcat test harnesses now keep private CA keys in Docker-managed ephemeral volumes and extract only the public `root.crt` via `docker cp`; TLS probes still use strict CA verification. This source fix is **NOT live Caddy TLS acceptance**. A fresh manual run on the latest reviewed SHA is required.
+
 **Next:** Run only the explicitly dispatched isolated synthetic Caddy/Tomcat TLS workflows, checking the *actual* TLS handshake and negative certificate/SNI/Host cases. They must remain manual/default-denied, even though the database integration suite passed. No production security approval, real administrator browser API or Rust Agent telemetry is implied.
 
 ## Workflow and verification
