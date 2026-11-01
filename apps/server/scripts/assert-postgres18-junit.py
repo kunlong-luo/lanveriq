@@ -12,7 +12,19 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 
-# Minimum discovered tests in six independent Testcontainers classes.
+# Bind evidence to the exact seven Java test classes and Gradle XML paths.
+# A duplicate simple class name in another package is not database evidence.
+PACKAGES = {
+    "PostgreSqlEventIngestionIT": "com.lanveriq.server.events",
+    "PostgreSqlDeviceActivationIT": "com.lanveriq.server.events",
+    "PostgreSqlDeviceInventoryIT": "com.lanveriq.server.events",
+    "PostgreSqlCertificateRegistrationIT": "com.lanveriq.server.enrollment",
+    "PostgreSqlDeviceRevocationIT": "com.lanveriq.server.events",
+    "PostgreSqlDeviceDirectoryIT": "com.lanveriq.server.devices",
+    "PostgreSqlAdminAuditAtomicityIT": "com.lanveriq.server.security",
+}
+
+# Minimum discovered tests in seven independent Testcontainers classes.
 # Review increases when acceptance cases are added; never lower to hide skips.
 MIN_COUNTS = {
     "PostgreSqlEventIngestionIT": 20,
@@ -89,18 +101,44 @@ def verify_reports(directory: Path) -> list[str]:
     observed: dict[str, set[str]] = defaultdict(set)
     total = 0
 
+    expected_reports = {
+        f"TEST-{package}.{class_name}.xml": (package, class_name)
+        for class_name, package in PACKAGES.items()
+    }
     for report in reports:
+        expected = expected_reports.get(report.name)
+        if expected is None:
+            errors.append(f"Unknown integration test report: {report.name}")
+            continue
+        package, class_name = expected
+        expected_qualified = f"{package}.{class_name}"
         try:
             root = ElementTree.parse(report).getroot()
         except (ElementTree.ParseError, OSError):
             errors.append(f"Unreadable integration JUnit XML: {report.name}")
             continue
-        for case in root.iter("testcase"):
+        if root.tag != "testsuite" or root.get("name") != expected_qualified:
+            errors.append(f"Wrong JUnit suite identity: {report.name}")
+            continue
+
+        cases = list(root.iter("testcase"))
+        declared_tests = root.get("tests")
+        if declared_tests is not None and (
+                not declared_tests.isdecimal() or int(declared_tests) != len(cases)):
+            errors.append(f"Inconsistent JUnit test count: {report.name}")
+        for status in ("failures", "errors", "skipped"):
+            value = root.get(status)
+            if value is not None and (not value.isdecimal() or int(value) != 0):
+                errors.append(f"Nonzero or invalid JUnit {status}: {report.name}")
+
+        for case in cases:
             total += 1
             qualified = case.get("classname", "")
-            class_name = qualified.rsplit(".", 1)[-1]
             method_name = case.get("name", "").split("(", 1)[0]
-            if not qualified or not method_name:
+            if qualified != expected_qualified:
+                errors.append(f"Wrong JUnit testcase class: {report.name}")
+                continue
+            if not method_name:
                 errors.append(f"JUnit testcase without identity: {report.name}")
                 continue
             if any(case.find(status) is not None
