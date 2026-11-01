@@ -3,6 +3,7 @@ package com.lanveriq.server.security;
 import java.io.Console;
 import java.util.Arrays;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,6 +27,10 @@ public final class FirstAdminBootstrapRunner implements ApplicationRunner {
     private final Environment environment;
     private final PasswordPrompt prompt;
 
+    // Two constructors exist (production injection and a test-only prompt
+    // seam). Without an explicit injection marker, Spring cannot choose
+    // this one and attempts construction without a default constructor.
+    @Autowired
     FirstAdminBootstrapRunner(FirstAdminBootstrapService service, Environment environment) {
         this(service, environment, new LocalConsolePasswordPrompt());
     }
