@@ -4,7 +4,7 @@
 
 **LAN-first, self-hosted asset health and audit platform for workplace endpoints with lawful notice and authorization.**
 
-> **Status: V0.1 under development — NOT a production-ready monitoring product.** The Java backend builds and contains default-OFF internal services, Flyway V1–V8 and source-only PostgreSQL integration suites. The Rust Agent builds and runs an **idle lifecycle**; its inventory/SQLite/transport modules are not wired to the running process. **The React dashboard has not been created.** Real PostgreSQL 18.6, Caddy/TLS, browser-session and OS-service acceptance gates are still open. No real employee data may be collected or uploaded based on these developer instructions.
+> **Status: V0.1 under development — NOT a production-ready monitoring product.** The Java backend builds and contains default-OFF internal services, Flyway V1–V8 and source-only PostgreSQL integration suites. The Rust Agent builds and runs an **idle lifecycle**; its inventory/SQLite/transport modules are not wired to the running process. **The React dashboard now has a synthetic-only preview in `apps/web`, without live authentication, connected backend APIs or WSS.** Real PostgreSQL 18.6, Caddy/TLS, browser-session and OS-service acceptance gates are still open. No real employee data may be collected or uploaded based on these developer instructions.
 
 ![Architecture concept (not a screenshot of the product)](docs/visuals/assets/01-overview.svg)
 
@@ -14,7 +14,7 @@ The **three product components** are **Web**, **Server**, and **Agent**. Postgre
 
 | Component | Path and technology | What runs today? |
 |---|---|---|
-| Web admin dashboard | Planned `apps/web`, React 19 / Vite / TypeScript / Tailwind / TanStack Query / Orval | **NOT IMPLEMENTED**. No React pages, Vite dev server, or frontend build exists. |
+| Web admin dashboard | `apps/web`: React 19 / Vite 8 / TypeScript 7 / Tailwind 4 / Radix / Lucide | Local synthetic preview with six routes, demo search and detail tabs. NO real login/API/device operations. |
 | API and admin server | `apps/server`, Java 25 / Spring Boot 4.1.2 / Gradle / JPA / Flyway | A buildable Spring Boot process with health checks; other business routes default to denial. Real DB/security approval pending. |
 | Endpoint Agent | `apps/agent`, Rust 1.94 / Tokio / SQLx SQLite WAL / Reqwest-rustls | Builds and starts an **idle** process; **no automatic monitoring, inventory collection, or uploads**. |
 | PostgreSQL (dependency) | PostgreSQL 18.x (18.6 for manual acceptance); Flyway V1–V8 | Reuse dedicated `lanveriq` database in existing `spark-postgres`; full PG18.6 integration acceptance pending. |
@@ -29,7 +29,7 @@ Intended central topology: **Caddy HTTPS + static React assets → Spring Boot �
 - **Rust 1.94.0** / Cargo from `rust-toolchain.toml`, plus your operating system's native Rust build prerequisites.
 - Docker Engine with the existing running `spark-db` PostgreSQL container; a separate short-lived **synthetic-only** PostgreSQL 18.6 container is optional for independent acceptance.
 - Bash, curl and OpenSSL for the existing Linux/WSL/macOS local server smoke script.
-- Node/pnpm are **not required to run a frontend today**, because there is no `apps/web`. The directory `apps/server/contract-client-check` tests **generated API types**, not React pages.
+- **Node.js 24 and pnpm 12** are required for the optional local Web preview. `apps/server/contract-client-check` separately validates generated API types; the Web preview does not call those APIs.
 
 Dependencies and Docker images may require Internet access on first download; offline operation is a **future product runtime** objective, not a promise about development dependency installation.
 
@@ -208,7 +208,7 @@ Run that only against disposable, explicitly authorized Docker-backed synthetic 
 
 - **Backend:** a local development Spring process and buildable Boot JAR — **not** a reviewed production application server.
 - **Agent:** a compiled **idle** binary, plus an **experimental** Linux systemd unit. No approved automatic installation, device collection, upload or Windows installer.
-- **Frontend:** **no `apps/web`, `pnpm dev`, build, deployable SPA or UI pages**.
+- **Frontend:** a synthetic-only `apps/web` React/Vite preview now builds; this is **not** an authenticated, API-connected or deployable management console.
 - **Infrastructure:** no deployable Docker Compose file, production-ready Caddy configuration, real certificate provisioning, completed backup/restore drill, or production-ready network policy.
 
 **Do not run an invented `docker compose up -d` command: no Compose stack exists yet.**
@@ -259,7 +259,7 @@ No real device enrollment, user-activity collection, automated uploads, monitori
 | Foreground idle Agent | `Ctrl+C`; remove only your copied test TOML | Does not uninstall any OS service |
 | Linux experimental systemd Agent | Instructions below | Remove only files you installed and verified |
 | Windows test SCM service | No supported installer/uninstaller yet; if manually created, stop/delete the exact known test service using Windows SCM and review its ACLs/data | Never delete an unknown service name |
-| Web frontend | No installed component | Nothing to uninstall |
+| Local Web preview | Stop `pnpm dev` with `Ctrl+C` | Remove only generated `apps/web/node_modules` and `apps/web/dist` if needed; do not touch shared Docker volumes |
 | Production backend/DB/Caddy | **No approved one-command uninstall** | Backup, retention, key revocation and audit controls required |
 
 For a Linux Agent **installed using exactly the isolated-VM commands above**, confirm file ownership and paths first, then:
@@ -298,7 +298,7 @@ Do **not** delete `iot_farm`, stop `spark-postgres` or remove its `postgres-data
 
 ## Frontend progress
 
-**The admin frontend is not finished and has not started as a React app.** `apps/server/contract-client-check` only verifies Springdoc → Orval → generated TypeScript/TanStack Query hooks. The next useful frontend work is a **synthetic-only** React app shell with login/session UX, scoped device list and health overview; real integration depends on independent PostgreSQL and TLS/session acceptance.
+**The React app now exists as an isolated synthetic UI preview.** It includes overview, Monitoring Center, interactive demonstration device filtering, Radix detail tabs, enrollment explanation and settings. It has **no real login/session, Orval API connection, WSS, live telemetry or usable device commands**. See [Web runbook](apps/web/README.md). PostgreSQL and TLS/session acceptance remain separate gates.
 
 See [frontend design system](docs/development/frontend-design-system.md), [dashboard UX](docs/development/dashboard-ux.md), [roadmap](docs/planning/roadmap.md), and [architecture drawings](docs/diagrams/README.md).
 
