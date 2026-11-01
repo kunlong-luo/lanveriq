@@ -164,12 +164,17 @@ export LANVERIQ_HTTP_PORT='18081'
 
 以上命令适用于后端程序运行在**与 Docker 端口映射相同的宿主机**的 Bash 终端。Windows PowerShell、WSL2、远程开发机或后端在另一容器里运行时，`127.0.0.1` 所指的机器可能不同；必须先独立验证网络可达性，**不能为了方便把共享 PostgreSQL 暴露到 0.0.0.0**。宿主机环境变量在进程存活期间包含数据库密码，仅可用于受信任的本地开发会话；正式环境应使用受保护的密钥注入方式。
 
-另一个终端检查：
+在另一个**Linux 终端**，从仓库根目录运行只读本地自检：
 
 ```bash
-curl -fsS http://127.0.0.1:18081/actuator/health
-curl -i http://127.0.0.1:18081/api/v1/devices
+cd /home/spark/Projects/github/lanveriq
+# IDEA 直接运行 Java 主类、未设置 LANVERIQ_HTTP_PORT 时默认 8080
+bash apps/server/scripts/verify-local-server.sh 8080
+# 如果显式配置了 LANVERIQ_HTTP_PORT=18081，改为：
+# bash apps/server/scripts/verify-local-server.sh 18081
 ```
+
+它仅向本机 127.0.0.1 发起两个 GET 请求，要求健康检查 HTTP 200 + JSON UP，以及未授权设备列表 HTTP 403；不读取数据库密码、不连接 PostgreSQL、不修改业务数据、不启动 Agent。**必须保持 IDEA 的 Spring Boot 进程运行。** 它不能替代真实 PG18.6 Testcontainers 事务/并发验收。2026-11-01 开发者本机启动日志已经显示真实 PostgreSQL 18.6、Flyway V1–V8 校验成功、Hibernate JPA 初始化成功和 Tomcat 8080 启动；但未授权 HTTP 的自检结果仍需要执行上述命令才能确认。
 
 健康检查预期 `{"status":"UP"}`，无权限业务请求预期 **403**。首次启动 Flyway 会在**专用的 `lanveriq` 数据库**创建 V1–V8 的表与约束。注意：`/actuator/health` 显示 UP **不代表**管理员网页、Agent HTTP 上传、浏览器登录或 PostgreSQL 全量集成测试通过。此开发 HTTP 只能绑定 loopback，不得直接公开给局域网。
 

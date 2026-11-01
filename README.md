@@ -130,6 +130,8 @@ psql -h 127.0.0.1 -p 5432 -U lanveriq -d lanveriq -W \
 
 If the host lacks `psql`, use a trusted local PostgreSQL client. The database role is different from the future web administrator login. The original `iot_farm` database, shared container/volumes, Redis and backups must not be changed by this procedure. Flyway V1–V8 owns **only application-schema migrations**, not cluster-level role/database provisioning.
 
+**Read-only local readiness check:** keep the Java process running, then from the repository root invoke `bash apps/server/scripts/verify-local-server.sh 8080` for an IDE launch with the default `application.yml` port, or pass `18081` when `LANVERIQ_HTTP_PORT=18081` was actually set. The helper sends only two local GETs to `127.0.0.1`, requires health 200/UP and anonymous devices 403, and never contacts the DB directly or writes records. This is not the Docker-backed PG18 transaction acceptance.
+
 ### 3. Start Spring Boot with the existing database (development only)
 
 On the **same host** that publishes Docker's loopback PostgreSQL port, open a trusted Bash terminal:

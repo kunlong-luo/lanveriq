@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-01 — Local backend startup evidence and read-only HTTP verification
+
+- Recorded operator-observed **PostgreSQL 18.6/Flyway V1–V8/Hibernate/Tomcat 8080 local startup success** separately from the still-unpassed 58-case manual Testcontainers gate.
+- Added `apps/server/scripts/verify-local-server.sh` to perform exactly two **GET-only** loopback checks for health HTTP 200/UP and unauthenticated device listing HTTP 403; no database access, password, employee data, Agent action or remote connection.
+- Added synthetic local HTTP fixture tests and Bash syntax validation in automatic server CI. They prove only the probe behavior; independent PostgreSQL 18 and Caddy/browser acceptance remains manual.
+
 ## 2026-11-01 — One-command local PostgreSQL setup without DBeaver
 
 - Added manual-only `apps/server/scripts/setup-local-postgres.sh`, a guarded Linux wrapper around PostgreSQL's own `psql` to avoid DBeaver SQLSTATE 25001 transaction handling. It checks PostgreSQL 18/SCRAM and exact role/database state, requires human confirmation, handles narrowly scoped partial NOLOGIN-role creation, and refuses unexpected database ownership and PUBLIC grants.
