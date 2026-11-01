@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
         name = "enabled", havingValue = "true")
 public final class ConsoleSessionStatusController {
     @Schema(name = "ConsoleSessionInfo")
-    public record SessionInfo(@JsonProperty("login") String login) {
+    public record SessionInfo(@JsonProperty("login") @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String login) {
     }
 
     @Operation(summary = "Read the current authenticated administrator session",
