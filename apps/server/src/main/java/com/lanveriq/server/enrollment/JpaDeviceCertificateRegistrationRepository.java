@@ -37,7 +37,6 @@ final class JpaDeviceCertificateRegistrationRepository
                 FOR UPDATE OF d
                 """)
                 .setParameter("device_id", deviceId)
-                .setParameter("admin_id", adminId)
                 .getResultList();
         if (rows.size() != 1) {
             throw denied();
