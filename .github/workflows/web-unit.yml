@@ -33,6 +33,9 @@ jobs:
       - name: Run synthetic-only UI unit tests
         working-directory: apps/web
         run: pnpm test
+      - name: Exercise real Vite health-only proxy against synthetic local backend
+        working-directory: apps/web
+        run: node scripts/verify-health-proxy.mjs
       - name: Typecheck and compile static UI preview
         working-directory: apps/web
         run: pnpm build
