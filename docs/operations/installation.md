@@ -67,7 +67,7 @@ the Java health check.
 
 | Product component | Planned execution site | State |
 |---|---|---|
-| React/Vite admin Web | Future static assets behind same-origin Caddy | **NOT IMPLEMENTED**; `apps/web` absent |
+| React/Vite admin Web | `apps/web` local synthetic preview; future Caddy static assets | Preview UI builds only; NO live API, user session, WSS or production approval |
 | Java Spring Boot server | Server host, behind accepted HTTPS/TLS ingress | Buildable local development process; privileged business endpoints default OFF |
 | Rust endpoint Agent | Native managed Windows/Linux endpoint | Idle binary, standalone synthetic libraries and OS test-only service unit; no live enrollment/upload |
 | PostgreSQL 18 | Private server network / synthetic Docker on loopback | Database migration source written; manual integration acceptance pending |
