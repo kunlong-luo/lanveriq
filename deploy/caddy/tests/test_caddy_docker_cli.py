@@ -86,6 +86,29 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertNotIn("curl --insecure", script)
         self.assertNotIn("--no-check-certificate", script)
 
+    def test_bridge_has_positive_caddy_to_real_tomcat_health_proof(self):
+        script = (ROOT / "apps/server/scripts/verify-agent-upstream-tls.sh").read_text()
+        reference = (ROOT / "deploy/caddy/Caddyfile.reference").read_text()
+        # Never modify the deploy reference to enable Tomcat's health route
+        # on the Agent host; inject it ONLY into the synthetic throwaway copy.
+        self.assertNotIn("@agentRoutes path /actuator/health", reference)
+        self.assertIn("s|@agentRoutes path |@agentRoutes path /actuator/health |", script)
+        self.assertIn("'@agentRoutes path /actuator/health '", script)
+        self.assertIn('bridge_health_request() {', script)
+        self.assertIn('assert_bridge_up() {', script)
+        self.assertIn('assert_bridge_up\\n    echo "PASS: Agent mTLS', script)
+        self.assertIn("--cert \"$TMP/pki/agent.crt\"", script)
+        self.assertIn("--cacert \"$ROOT_CA\"", script)
+        self.assertIn('"https://agent.lanveriq.internal/actuator/health"', script)
+        self.assertIn('[[ "$code" == 200 ]]', script)
+        self.assertIn("""grep -Fq '"status":"UP"'""", script)
+        self.assertIn('[[ "$status" == 403 ]]', script)
+        self.assertIn('[[ "$status" == 502 ]]', script)
+        self.assertIn("assert_trusted_upstream_healthy", script)
+        self.assertIn("start_caddy \"$CADDY_REFERENCE\"\\n    assert_bridge_up", script)
+        self.assertNotIn("curl -k", script)
+        self.assertNotIn("curl --insecure", script)
+
     def test_real_spring_bridge_harness_always_invokes_explicit_binary(self):
         script = (ROOT / "apps/server/scripts/verify-agent-upstream-tls.sh").read_text()
         self.assertIn('"$IMAGE" caddy "$@"', script)
