@@ -35,6 +35,8 @@ jobs:
           curl --version | head -n 1
           java -version
           keytool -help >/dev/null
+      - name: Verify Caddy image exposes explicit CLI (no listener or TLS)
+        run: docker run --rm --network none caddy:2.11.7 caddy version
       - name: Validate manual TLS fixture syntax without execution
         run: bash -n apps/server/scripts/verify-agent-upstream-tls.sh
       - name: Run real Caddy to Spring/Tomcat two-way mTLS and PG18 checks

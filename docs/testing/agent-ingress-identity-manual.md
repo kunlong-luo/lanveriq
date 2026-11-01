@@ -1,5 +1,27 @@
 # SRV-02-EDGE — trusted Agent mTLS ingress reference and acceptance gate
 
+**2026-11-01 first actual Caddy-only attempt: FAILED BEFORE TLS.**
+[GitHub Actions #41291586713](https://github.com/kunlong-luo/lanveriq/actions/runs/41291586713)
+ran on SHA `1430e6e94047bd6614330bcd4b129eca605aba58`.
+The image was successfully retrieved, but the first Caddy Docker command
+used `"caddy:2.11.7" adapt`, which Docker attempted to execute directly,
+resulting in `exec: "adapt": executable file not found in $PATH` (127).
+**No Caddy config adaptation, validation, TLS handshake, fingerprint
+verification or negative certificate check was executed.**
+
+The Caddy-only test harness and the combined Caddy→Spring/Tomcat harness
+were corrected to invoke `caddy adapt`, `caddy validate`, and
+`caddy run` explicitly after the image name. A source-only unit
+regression now checks both harnesses in default Java CI, and both
+manual workflows include a no-network Caddy Docker CLI preflight before
+using synthetic PKI. **Only a new manual run on the fixed `main` SHA
+can count as actual Caddy/TLS acceptance**; rerunning the old failed
+run would check the original broken SHA and is not evidence of the fix.
+PostgreSQL 18 58/58 remains passed independently; real HTTPS console
+login/CSRF/browser RBAC, Rust Agent and production deployment remain
+unapproved.
+
+
 **Checkpoint 2026-11-01:** [PostgreSQL 18.6 manual run #41290838250](https://github.com/kunlong-luo/lanveriq/actions/runs/41290838250) passed all 58 **database** integration tests at SHA `9b78641965a6599a8267649756b974afa9003e9f`. This satisfies only the independent JPA/PG18 concurrency and rollback gate. It does **not** satisfy Caddy or real Tomcat TLS handshake, cross-origin browser authentication, installed Rust Agent certificate custody or OS permission tests. The three manual Caddy/Tomcat synthetic workflows remain unexecuted as of this checkpoint. Do not enable Agent routes or change `client-auth=need` / `require_and_verify`.
 
 **Status (2026-10-31):** staged, **not approved for deployment**. A new [manual-only joint Caddy→real Spring/Tomcat→PostgreSQL 18.6 bridge probe](../../.github/workflows/caddy-spring-postgres18-bridge.yml) is scripted but **NOT EXECUTED**; it neither enables Agent APIs nor replaces the separate Python backend verification and PG18 JPA Testcontainers suite. A separate manual-only [real Spring/Tomcat upstream TLS probe](../../.github/workflows/spring-upstream-mtls-synthetic.yml) is now scripted, but **not executed**. It is independent of the existing Python-backed Caddy probe. The double-mTLS Caddy reference, opt-in Spring backend TLS profile and Java assertion parser are accompanied by a new **manual-only executable synthetic Caddy 2.11.7 probe**. **That probe has not been run yet.** No observed Caddy adapt/validate, real TLS handshake, actual fingerprint forwarding, actual Spring/Tomcat listener test, direct-backend negative evidence or PostgreSQL 18 runtime acceptance is available. No Agent REST controller exists; Spring still denies business routes.

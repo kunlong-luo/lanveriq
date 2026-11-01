@@ -27,6 +27,8 @@ jobs:
           openssl version
           curl --version | head -n 1
           python3 --version
+      - name: Verify Caddy image exposes explicit CLI (no listener or TLS)
+        run: docker run --rm --network none caddy:2.11.7 caddy version
       - name: Check synthetic test harness syntax
         run: |
           bash -n deploy/caddy/tests/verify-reference.sh
