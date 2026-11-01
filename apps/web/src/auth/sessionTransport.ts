@@ -1,3 +1,5 @@
+import { requireConsoleOrigin } from './consoleOrigin';
+
 /**
  * WEB-01-AUTH-TRANSPORT (unit-tested but NOT wired to the UI).
  *
@@ -24,12 +26,7 @@ export type LoginResult =
 export type LogoutResult = 'signed_out' | 'forbidden' | 'unavailable';
 
 export function createSessionTransport(httpsOrigin: string, fetcher: ConsoleFetch) {
-  const base = new URL(httpsOrigin);
-  if (base.protocol !== 'https:' || base.origin !== httpsOrigin ||
-      base.pathname !== '/' || base.search || base.hash ||
-      base.username || base.password) {
-    throw new Error('Canonical HTTPS console origin required');
-  }
+  const base = requireConsoleOrigin(httpsOrigin);
 
   const request = (path: string, init: RequestInit = {}) =>
     fetcher(new URL(path, base), {
