@@ -8,7 +8,7 @@
 cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
-pnpm install --no-frozen-lockfile
+pnpm install --frozen-lockfile
 pnpm test
 pnpm build
 pnpm dev
@@ -16,7 +16,7 @@ pnpm dev
 
 Open **http://127.0.0.1:5173**. The server binds localhost only. Stop with Ctrl+C.
 
-All direct dependency versions are pinned. The first CI generated an initial pnpm lockfile artifact which still needs to be checked into the repository; only then switch to **pnpm install --frozen-lockfile**.
+The complete dependency tree is pinned by the reviewed and committed `pnpm-lock.yaml`; CI installs with `pnpm install --frozen-lockfile` and rejects manifest/lockfile drift. Use the exact Node.js 24 and pnpm 12 toolchain from the instructions.
 
 ## Synthetic routes
 

@@ -285,13 +285,13 @@ React Web 已可作为**仅有合成数据**的前端预览启动（不需要后
 cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
-pnpm install --no-frozen-lockfile
+pnpm install --frozen-lockfile
 pnpm test
 pnpm build
 pnpm dev
 ~~~
 
-浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。当前直接依赖已固定版本；首次 CI 生成的 pnpm 锁文件尚待提交，因此临时使用 `--no-frozen-lockfile`，不能声称已实现完全冻结安装。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment` 和 `/settings`。真正的注册、撤销、Agent 下发都明确禁用。详见 [Web README](apps/web/README.md)。
+浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。`apps/web/pnpm-lock.yaml` 已由 CI 生成并提交，Web CI 使用 `--frozen-lockfile` 进行可复现安装，发现锁文件与声明依赖不一致会直接失败。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment` 和 `/settings`。真正的注册、撤销、Agent 下发都明确禁用。详见 [Web README](apps/web/README.md)。
 
 ## 七、前端进度和下一步
 

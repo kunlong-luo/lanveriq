@@ -304,12 +304,12 @@ Node.js 24 + pnpm 12; no backend or Docker is contacted:
 cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
-pnpm install --no-frozen-lockfile
+pnpm install --frozen-lockfile
 pnpm test && pnpm build
 pnpm dev
 ~~~
 
-Open **http://127.0.0.1:5173**. Stop with `Ctrl+C`. Direct dependencies are pinned to exact versions; the pnpm lockfile is still awaiting repository check-in, so the bootstrap is currently *not frozen*. See [Web README](apps/web/README.md).
+Open **http://127.0.0.1:5173**. Stop with `Ctrl+C`. The generated `apps/web/pnpm-lock.yaml` is now committed; local and CI installs use `--frozen-lockfile`, rejecting dependency manifest drift. See [Web README](apps/web/README.md).
 
 ## Frontend progress
 
