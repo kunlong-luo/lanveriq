@@ -39,53 +39,88 @@ cd lanveriq
 
 ## Local development and testing
 
-### 1. One-shot synthetic PostgreSQL + backend smoke test (recommended)
+### 1. Reuse your existing `spark-db` PostgreSQL instance
 
-On an **authorized development machine**, run:
+Your local Docker Compose project is named `spark-db`, with an existing `spark-postgres` container, `iot_farm` business database, and (by default) a host-only `127.0.0.1:5432` PostgreSQL port. **Do not start a second persistent PostgreSQL instance.** Lanveriq does **not** need the existing Redis, InfluxDB or PostGIS extensions. Keep the entire existing Compose stack and all of its volumes intact.
 
-```bash
-bash apps/server/scripts/verify-postgres18.sh
-```
+The isolation boundary is a **new `lanveriq` database owned by a separate non-superuser `lanveriq` role** in the existing PostgreSQL cluster. Never run Flyway against `iot_farm` and do not run the Lanveriq application as the shared PostgreSQL superuser.
 
-This existing script generates an ephemeral PostgreSQL password, starts a `postgres:18.6` container published only on `127.0.0.1:55432`, runs Spring Boot on `127.0.0.1:18080`, checks health, Flyway V1–V8, PostgreSQL UUIDv7, absence of seeded users/events/grants and business-route default denial. On exit it cleans up its container, temporary password and app process. **It is a development check, not production deployment or acceptance evidence until actually executed.** Both ports must be available.
-
-### 2. Keep the backend running against a disposable local database
-
-From the repository root, in a Bash terminal:
+Verify the existing database **without changing or restarting Compose**:
 
 ```bash
-docker run -d --rm --name lanveriq-pg-dev \
-  -p 127.0.0.1:55432:5432 \
-  -e POSTGRES_DB=lanveriq \
-  -e POSTGRES_USER=lanveriq \
-  -e POSTGRES_PASSWORD=synthetic-local-only \
-  postgres:18.6
-docker exec lanveriq-pg-dev pg_isready -U lanveriq -d lanveriq
+docker inspect -f '{{.State.Running}}' spark-postgres
+docker port spark-postgres 5432
+docker exec spark-postgres psql -U root -d postgres -XAtc "SHOW server_version;"
 ```
 
-The literal password above is **only for a disposable localhost synthetic fixture**; never reuse it for employee data, remotely accessible databases or production. Wait until `pg_isready` succeeds, then open a separate terminal:
+Expected: `true`, a host mapping such as `127.0.0.1:5432`, and PostgreSQL **18.x**. The `postgis/postgis:18-3.6` image label does **not** prove that the running patch is 18.6; verify the actual `server_version`. If your Compose variables `POSTGRES_USER`, `BIND_IP` or `POSTGRES_HOST_PORT` differ from the supplied defaults, substitute the actual values. The supplied Redis/PostgreSQL password defaults are weak; rotate any real credentials under a separate maintenance plan. These README instructions never copy or reuse those passwords.
+
+Your existing InfluxDB Explorer maps host **port 18080**, so the local Lanveriq server uses **18081**.
+
+### 2. Create the dedicated Lanveriq database once
+
+Enter PostgreSQL's interactive console through the container's **local Unix socket**:
+
+```bash
+docker exec -it spark-postgres psql -U root -d postgres
+```
+
+First inspect existing roles/databases with `\du` and `\l`. If either `lanveriq` object already exists, inspect its owner and purpose; **do not recreate or overwrite it**. On a fresh, approved local development setup:
+
+```sql
+CREATE ROLE lanveriq LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+```
+
+At the same interactive `psql` prompt, run **`\password lanveriq`**, entering a **unique strong password** via the hidden prompt (do not store it in Git, Compose, terminal history or README). Then:
+
+```sql
+CREATE DATABASE lanveriq OWNER lanveriq;
+```
+
+Exit using `\q`. Only `lanveriq` will be migrated by the Java application; the existing `iot_farm`, cron jobs, Redis, InfluxDB and Docker volumes remain untouched. The provided Postgres memory limit (256 MiB) is small for a shared workload: measure resource pressure before increasing workload, and do not change existing service limits blindly.
+
+### 3. Start Spring Boot with the existing database (development only)
+
+On the **same host** that publishes Docker's loopback PostgreSQL port, open a trusted Bash terminal:
 
 ```bash
 cd apps/server
-export LANVERIQ_DB_URL='jdbc:postgresql://127.0.0.1:55432/lanveriq'
+export LANVERIQ_DB_URL='jdbc:postgresql://127.0.0.1:5432/lanveriq'
 export LANVERIQ_DB_USER='lanveriq'
-export LANVERIQ_DB_PASSWORD='synthetic-local-only'
+read -rsp 'Lanveriq PostgreSQL password: ' LANVERIQ_DB_PASSWORD
+echo
+export LANVERIQ_DB_PASSWORD
 export LANVERIQ_HTTP_BIND='127.0.0.1'
-export LANVERIQ_HTTP_PORT='18080'
-# Keep every LANVERIQ_* feature enablement at its default false.
+export LANVERIQ_HTTP_PORT='18081'
+# Leave all optional LANVERIQ_* business feature flags default OFF.
 ./gradlew bootRun
 ```
 
-In a third terminal:
+The hidden password prompt avoids putting credentials into the command line/history; process environments are still sensitive, so this is **for trusted local development only**. On Windows PowerShell, WSL2, remote development hosts, or from inside a container, `127.0.0.1` may refer to a different network namespace; validate connectivity rather than opening PostgreSQL to `0.0.0.0`.
+
+From another terminal:
 
 ```bash
-curl -fsS http://127.0.0.1:18080/actuator/health
-curl -i http://127.0.0.1:18080/api/v1/devices
+curl -fsS http://127.0.0.1:18081/actuator/health
+curl -i http://127.0.0.1:18081/api/v1/devices
 ```
 
-Expected: health `{"status":"UP"}`, with an unauthenticated business request denied (**403**). This HTTP mode is strictly **loopback-only for synthetic development**. Never expose the Spring connector on the LAN or disable TLS verification for a production path.
+A healthy default-deny development instance is expected to report `{"status":"UP"}` and to reject the unauthenticated business API with **403**. On first start, Flyway runs V1–V8 only against the **new, isolated `lanveriq` database**. This is **not** a working dashboard/login/Agent API or real integration acceptance. HTTP must stay **loopback-only**.
 
-To stop: press `Ctrl+C` where `bootRun` is running, then `docker stop lanveriq-pg-dev`. The `--rm` synthetic container has **no persistent volume** and is removed on stop. Do not use these teardown commands against any existing real database.
+To stop, press `Ctrl+C` in the `bootRun` terminal. **Never stop `spark-postgres`, run `docker compose down`, or run `docker compose down -v`** as part of Lanveriq teardown.
+
+### 4. Optional disposable PostgreSQL 18.6 smoke (separate from spark-db)
+
+The existing `apps/server/scripts/verify-postgres18.sh` still creates its **own short-lived** `postgres:18.6` container. It **does not connect to, stop or delete** `spark-postgres`. To avoid the InfluxDB Explorer port conflict, run this optional isolated script on **18082**, not 18080:
+
+```bash
+# Stop any prior smoke process occupying these isolated test ports.
+LANVERIQ_SMOKE_HTTP_PORT=18082 \
+LANVERIQ_SMOKE_DB_PORT=55432 \
+bash apps/server/scripts/verify-postgres18.sh
+```
+
+The script creates and removes only its own synthetic database container, secret file and Spring process. It verifies startup/health/migrations/default denial, but **does not** establish real PG18 integration or production TLS acceptance. The 7-class / >=58-case manual Testcontainers suite must remain **disposable and isolated**: never point its destructive synthetic tests at the shared `iot_farm` or the developer `lanveriq` database.
 
 ### 3. Run the idle Rust Agent
 
