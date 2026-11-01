@@ -68,7 +68,7 @@ jobs:
       - name: Validate manual Spring upstream TLS script syntax (no TLS/Docker execution)
         run: bash -n apps/server/scripts/verify-agent-upstream-tls.sh
       - name: Verify Caddy Docker command prefix (source regression only, no Docker/TLS)
-        run: python3 -m unittest discover -s deploy/caddy/tests -p 'test_caddy_docker_cli.py'
+        run: python3 -m unittest discover -s deploy/caddy/tests -p 'test_*.py'
       - name: Syntax-check manual Caddy mTLS acceptance harness only (no Docker or TLS)
         run: |
           bash -n deploy/caddy/tests/verify-reference.sh
