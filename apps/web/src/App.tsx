@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import LoginPage from './LoginPage';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router';
 import * as Tabs from '@radix-ui/react-tabs';
 import { Activity, ArrowRight, Bell, Cable, CheckCircle2, ChevronRight, Clock3, Cpu, Database, HardDrive, LayoutDashboard, LockKeyhole, Menu, Monitor, Network, Plus, RefreshCcw, Search, Server, Settings2, ShieldCheck, WifiOff, type LucideIcon } from 'lucide-react';
@@ -39,7 +40,7 @@ function Shell(){
       <header className="topbar"><div className="top-left">
         <button className="menu-button" aria-label="打开菜单" onClick={()=>setOpen(true)}><Menu size={21}/></button>
         <span>工作空间</span><ChevronRight size={15}/><strong>{active}</strong>
-      </div><div className="top-right"><span className="connection"><i/>未连接后端</span><button disabled aria-label="通知尚未接入"><Bell size={18}/></button><span className="avatar">DEMO</span></div></header>
+      </div><div className="top-right"><span className="connection"><i/>未连接后端</span><button disabled aria-label="通知尚未接入"><Bell size={18}/></button><Link to="/login" className="avatar" title="预览管理员登录界面">DEMO</Link></div></header>
       <main className="main-content" id="main"><div className="demo-banner" role="status"><i/><strong>演示模式 · 全部为合成数据</strong><span>未连接后端、PostgreSQL、Redis 或真实终端；设备操作不可用</span></div><Outlet/></main>
       <footer>Lanveriq V0.1 · Synthetic UI Preview · 不可用于真实设备监控</footer>
     </div>
@@ -147,5 +148,5 @@ function Settings(){
   </section>;
 }
 export default function App(){
-  return <Routes><Route path="/" element={<Shell/>}><Route index element={<Navigate to="/overview" replace/>}/><Route path="overview" element={<Overview/>}/><Route path="monitoring" element={<Monitoring/>}/><Route path="devices" element={<Devices/>}/><Route path="devices/:id" element={<Detail/>}/><Route path="enrollment" element={<Enrollment/>}/><Route path="settings" element={<Settings/>}/><Route path="*" element={<Navigate to="/overview" replace/>}/></Route></Routes>;
+  return <Routes><Route path="/login" element={<LoginPage/>}/><Route path="/" element={<Shell/>}><Route index element={<Navigate to="/overview" replace/>}/><Route path="overview" element={<Overview/>}/><Route path="monitoring" element={<Monitoring/>}/><Route path="devices" element={<Devices/>}/><Route path="devices/:id" element={<Detail/>}/><Route path="enrollment" element={<Enrollment/>}/><Route path="settings" element={<Settings/>}/><Route path="*" element={<Navigate to="/overview" replace/>}/></Route></Routes>;
 }
