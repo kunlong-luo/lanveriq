@@ -38,6 +38,32 @@ git clone https://github.com/kunlong-luo/lanveriq.git
 cd lanveriq
 ```
 
+## IDEA 打开整个项目（Java / Rust / Web 同仓库）
+
+从最新的 `main` 拉取代码后，使用 **File → Open** 打开仓库根目录 `lanveriq/`，而不是只选择 `apps/web`。现在根目录已有 **Gradle Composite Build**（`settings.gradle`）、与后端版本一致的 Gradle 9.8.2 Wrapper，IDEA 应能识别 `apps/server` 为包含的 Java 构建。
+
+在 **Project Structure → Project SDK** 和 **Settings → Build Tools → Gradle → Gradle JVM** 都选择 **JDK 25**，Gradle 使用 **Wrapper**。若 IDE 未自动关联，打开 **Gradle 工具窗口 → Link Gradle Project**，选择 `apps/server/build.gradle`，然后重新同步；避免重复关联同一个构建。
+
+命令行快速排查（不连接数据库、不运行监控）：
+
+```powershell
+# Windows PowerShell：在仓库根目录
+.\gradlew.bat --version
+.\gradlew.bat projects
+cd apps/server
+.\gradlew.bat test
+```
+
+```bash
+# Linux / macOS：在仓库根目录
+./gradlew --version
+./gradlew projects
+cd apps/server
+./gradlew test
+```
+
+React 使用 `apps/web/pnpm-lock.yaml` 与 pnpm，Rust 使用根目录 `Cargo.toml` 与 Cargo，它们**不是 Java Gradle 子模块**。IDEA 的 TypeScript/Rust 语言支持取决于已安装的插件与产品版本。完整的逐步排障指南：[IntelliJ IDEA 导入说明](docs/development/intellij-idea.md)。
+
 ## 三、本地运行：直接复用已有 spark-db
 
 你提供的 Compose 工程名为 `spark-db`，其中 PostgreSQL 容器是 `spark-postgres`；默认通过 `127.0.0.1:5432` 暴露，原有业务库名为 `iot_farm`。**无需新建 PostgreSQL 容器；可选择复用现有 `spark-redis`，但不依赖 InfluxDB 或 PostGIS 扩展。**
