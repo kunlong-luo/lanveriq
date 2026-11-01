@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-01 — Manual, secret-free PostgreSQL database provisioning
+- Added `apps/server/scripts/provision-lanveriq-database.sql` as an explicitly invoked psql bootstrap, **not a Flyway migration**. It fails closed if not connected to the postgres maintenance database as an authorized cluster administrator, or if the lanveriq role/database already exists.
+- Creates only a `NOLOGIN` non-superuser database owner and dedicated lanveriq database, revoking default PUBLIC database privileges. A human sets the SCRAM password via interactive `\password` and enables LOGIN only afterward.
+- Updated English/Chinese setup and installation instructions. No database/container was contacted or modified to create this script. Ordinary Java unit CI must never execute cluster provisioning.
+
 ## 2026-11-01 — Repository root boundary audit
 - Kept the repository root limited to shared README/governance/security/changelog files, `.github` automation, `apps`, shared Caddy ingress under `deploy/caddy`, and `docs`. Root `.gitignore` ignores generated build outputs across subprojects.
 - Migrated the Rust-only `Cargo.lock` and `rust-toolchain.toml` into `apps/agent`, and made its `Cargo.toml` a standalone single-crate manifest with exact edition/MSRV/license fields. The prior root Rust workspace manifest was removed.

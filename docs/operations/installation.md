@@ -4,7 +4,7 @@
 
 For copyable development and synthetic-only commands, begin with the [Chinese README](../../README.zh.md) or [English README](../../README.md). They cover:
 
-1. Reuse an **already running** local `spark-db` Compose PostgreSQL container `spark-postgres` at `127.0.0.1:5432` after **creating a separate `lanveriq` database and non-superuser**. The original `iot_farm` database is never migrated or removed.
+1. Reuse the **already running** `spark-db` / `spark-postgres` on `127.0.0.1:5432` only after creating a dedicated database and role. The reviewed one-time, **password-free** [bootstrap SQL](../../apps/server/scripts/provision-lanveriq-database.sql) must be run **manually**, against maintenance database `postgres`, only if both `lanveriq` objects do not already exist. It creates a `NOLOGIN` non-superuser owner and independent database, revokes `PUBLIC` database privileges, then requires a separate interactive `psql` `\password` step and explicit `ALTER ROLE lanveriq LOGIN`. The original `iot_farm` database is never migrated or removed.
 2. Run `apps/server/./gradlew bootRun` with `LANVERIQ_DB_URL=jdbc:postgresql://127.0.0.1:5432/lanveriq`, `LANVERIQ_DB_USER=lanveriq` and an independently chosen secret, binding local Spring HTTP to `127.0.0.1:18081` (host port `18080` is used by the supplied InfluxDB Explorer).
 3. An **optional, independent, temporary** PostgreSQL 18.6 + Boot smoke script: `LANVERIQ_SMOKE_HTTP_PORT=18082 bash apps/server/scripts/verify-postgres18.sh`. It cleans up **only its own** synthetic PostgreSQL container; it does not touch `spark-postgres` or `iot_farm`.
 4. Run a default-deny Java JAR built by Gradle, or an idle Rust Agent using an absolute non-secret TOML config; neither path is a production rollout.
