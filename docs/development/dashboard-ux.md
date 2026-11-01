@@ -1,6 +1,6 @@
 # Management dashboard UX contract (first synthetic React implementation started 2026-11-01)
 
-**Status:** `apps/web` now provides a build-tested synthetic-only UI with overview, Monitoring Center, device search/detail, enrollment explanation and settings. There is no real backend login, Orval API binding, WSS or production access. **Reference:** adopt Pagevela's feature-focused React components, cohesive design tokens and accessible shared UI; do not copy its resume-specific editor/PWA state model.
+**Status:** `apps/web` now provides a build-tested synthetic-only UI with overview, Monitoring Center, device search/detail, enrollment explanation and settings. The visual login screen at `/login` is non-operational and intentionally refuses any credentials. Generated Orval types are compiled against the Web dependency graph in backend CI, but there is no real backend login, Orval runtime API binding, WSS or production access. **Reference:** adopt Pagevela's feature-focused React components, cohesive design tokens and accessible shared UI; do not copy its resume-specific editor/PWA state model.
 
 ## Visual identity
 Follow the [unified infographic/style guide](../visuals/STYLE_GUIDE.md) for brand colors and terms, but use actual accessible React components rather than treating the SVGs as UI source. The [concept dashboard](../visuals/assets/06-dashboard-concept.svg) uses **sample data**, not a working UI screenshot. See [frontend design dependencies](frontend-design-system.md) for planned UI/icon/animation choices.

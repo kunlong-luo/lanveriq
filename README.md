@@ -313,7 +313,7 @@ Open **http://127.0.0.1:5173**. Stop with `Ctrl+C`. The generated `apps/web/pnpm
 
 ## Frontend progress
 
-**The React app now exists as an isolated synthetic UI preview.** It includes overview, Monitoring Center, interactive demonstration device filtering, Radix detail tabs, enrollment explanation and settings. It has **no real login/session, Orval API connection, WSS, live telemetry or usable device commands**. See [Web runbook](apps/web/README.md). PostgreSQL and TLS/session acceptance remain separate gates.
+**The React app now exists as an isolated synthetic UI preview.** It includes overview, Monitoring Center, interactive demonstration device filtering, Radix detail tabs, enrollment explanation, settings, and a **disabled-by-default sign-in visual preview** at `/login` (no credentials collected). The **actual Springdoc → Orval generated client is now compiled against the Web project's pinned dependencies in backend CI**, but this is build-time only. It has **no real login/session, Orval runtime network connection, WSS, live telemetry or usable device commands**. See [Web runbook](apps/web/README.md). PostgreSQL and TLS/session acceptance remain separate gates.
 
 See [frontend design system](docs/development/frontend-design-system.md), [dashboard UX](docs/development/dashboard-ux.md), [roadmap](docs/planning/roadmap.md), and [architecture drawings](docs/diagrams/README.md).
 

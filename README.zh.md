@@ -291,13 +291,13 @@ pnpm build
 pnpm dev
 ~~~
 
-浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。`apps/web/pnpm-lock.yaml` 已由 CI 生成并提交，Web CI 使用 `--frozen-lockfile` 进行可复现安装，发现锁文件与声明依赖不一致会直接失败。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment` 和 `/settings`。真正的注册、撤销、Agent 下发都明确禁用。详见 [Web README](apps/web/README.md)。
+浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。`apps/web/pnpm-lock.yaml` 已由 CI 生成并提交，Web CI 使用 `--frozen-lockfile` 进行可复现安装，发现锁文件与声明依赖不一致会直接失败。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment`、`/settings` 和 **`/login` 管理员登录预览**。登录账号/密码输入框和提交按钮均禁用，不接收真实密码。真正的注册、撤销、Agent 下发都明确禁用。详见 [Web README](apps/web/README.md)。
 
 ## 七、前端进度和下一步
 
-截至当前仓库检查：**`apps/web` 已建立并完成可构建的合成数据演示页面**，包括设备搜索、Radix 详情选项卡、监控中心与系统设置；全部示例设备均为虚构，不连接真实服务，也不能进行远程下发或设备撤销。后端 Springdoc → Orval 契约验证工程 `apps/server/contract-client-check` 尚未与前端 API 联调。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
+截至当前仓库检查：**`apps/web` 已建立并完成可构建的合成数据演示页面**，包括设备搜索、Radix 详情选项卡、监控中心与系统设置；全部示例设备均为虚构，不连接真实服务，也不能进行远程下发或设备撤销。已增加 Springdoc → Orval 生成客户端与 **Web 实际 TypeScript / TanStack Query 依赖的构建期编译校验**，但尚无真实浏览器 API、Cookie、CSRF 或会话联调。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
 
-建议的后续交付顺序是：完善 Web 的冻结依赖锁与 UI 测试，落实真实 PG18、Caddy/TLS 与浏览器会话负向验收，然后才接入经授权且默认关闭的后端 API。验收前不可对外宣布“可安装并开始监控”。
+建议的后续交付顺序是：完成真实 PG18、Caddy/TLS 和浏览器会话负向验收；随后再启用有权限范围的 Orval 实时查询、登录/登出 Cookie/CSRF 与 WSS 重新同步。构建期生成的登录客户端**不等于**安全会话可以投入使用。验收前不可对外宣布“可安装并开始监控”。
 
 ## 八、文档与许可
 
