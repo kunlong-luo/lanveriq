@@ -69,6 +69,29 @@ class PostgresEvidenceGateTest(unittest.TestCase):
                     "Missing mandatory test: PostgreSqlCertificateRegistrationIT." + required
                     in error for error in verify_reports(Path(tmp))))
 
+    def test_new_admin_audit_atomicity_suite_is_mandatory(self):
+        required = (
+            "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
+            "suppressedBootstrapAuditRollsBackUserGroupAndGrant",
+            "suppressedSessionAuditRollsBackVersionAndAllowsRetry",
+            "wrongGroupAndDisabledIssuerCannotChangeSessionVersionOrAudit",
+            "successfulSessionRevocationCommitsExactlyOneAuditPerIncrement",
+        )
+        for method in required:
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp), omit=("PostgreSqlAdminAuditAtomicityIT", method))
+                self.assertTrue(any(
+                    "Missing mandatory test: PostgreSqlAdminAuditAtomicityIT." + method
+                    in error for error in verify_reports(Path(tmp))))
+
+    def test_seventh_suite_cannot_be_replaced_by_six_old_suites(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            synthetic_reports(Path(tmp))
+            (Path(tmp) / "TEST-com.lanveriq.server.events.PostgreSqlAdminAuditAtomicityIT.xml").unlink()
+            errors = verify_reports(Path(tmp))
+            self.assertTrue(any("PostgreSqlAdminAuditAtomicityIT: only 0 passing tests"
+                                in error for error in errors))
+
     def test_skipped_and_failed_tests_fail_even_when_counts_present(self):
         with tempfile.TemporaryDirectory() as tmp:
             key = ("PostgreSqlDeviceRevocationIT",
