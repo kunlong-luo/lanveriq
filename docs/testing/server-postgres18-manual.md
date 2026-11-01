@@ -52,6 +52,15 @@ PostgreSQL container run is yet observed. The tests must demonstrate:
 No real administrator password, organization database, LAN endpoint, or
 real employee data may be used for these checks.
 
+**Source compilation checkpoint (2026-11-01):** [Server unit CI #41268054649](https://github.com/kunlong-luo/lanveriq/actions/runs/41268054649)
+completed successfully on commit `234fe37b1306c093ec5324d419d5523e23287dc8`.
+It includes Java unit tests, compilation of **all seven** opt-in PostgreSQL
+integration suites, the synthetic-XML JUnit evidence checker tests, Boot JAR
+packaging, and Orval/TypeScript validation. It starts **no PostgreSQL
+container**, so neither the 57-case database gate nor administrator
+transaction rollback acceptance has passed. Manual workflow dispatch and
+its real JUnit results remain required.
+
 ## Manual JUnit evidence gate — mandatory, not a database substitute
 
 The [manually dispatched workflow](../../.github/workflows/server-postgres18-integration.yml) now runs a **fail-closed post-test evidence check** using `apps/server/scripts/assert-postgres18-junit.py`. It reads Gradle's generated `build/test-results/integrationTest/TEST-*.xml`, and **fails the manual run** unless all seven Testcontainers suites (event/heartbeat, activation, inventory, certificate registration, revocation, scoped device directory/monitoring, and administrator audit atomicity) report **at least 57 successful tests in total**, with explicit mandatory checks for PostgreSQL 18.6/Flyway V1–V8, two-key event conflict rollback, immutable event trigger, cross-device identity isolation, certificate revocation/race, audited registration/activation, inventory child-table rollback and post-lock admin revocation, suppressed first-admin role/audit inserts and suppressed session-revocation audit. Every failed, errored or skipped JUnit case blocks acceptance; absent, corrupted and duplicate reports are rejected. The Git commit, image ID/digests and JUnit artifacts continue to be captured by the existing manual workflow.
