@@ -210,6 +210,30 @@ if [[ "$HEALTH_READY" != 1 ]]; then
 fi
 echo "PASS: actual Spring/Tomcat TLSv1.3 accepts dedicated synthetic proxy leaf."
 
+# A TLS failure is meaningful only if the SAME real Tomcat listener still
+# accepts the trusted proxy leaf immediately afterwards. Otherwise a crash,
+# unreachable service or unrelated local listener could falsely pass a
+# negative-certificate test. Do not use --insecure or synthetic HTTP stubs.
+assert_trusted_upstream_healthy() {
+    if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+        echo "FAIL: real Spring/Tomcat process stopped during TLS tests" >&2
+        exit 1
+    fi
+    local body
+    body="$(curl --silent --fail --noproxy '*' --max-time 8 \
+        --tlsv1.3 --tls-max 1.3 \
+        --cacert "$TMP/pki/backend-ca.crt" --resolve "$HOST_RESOLVE" \
+        --cert "$TMP/pki/proxy.crt" --key "$TMP/pki/proxy.key" \
+        "$URL/actuator/health")" || {
+        echo "FAIL: trusted mTLS health probe failed after negative check" >&2
+        exit 1
+    }
+    if [[ "$body" != *'"status":"UP"'* ]]; then
+        echo "FAIL: trusted mTLS health probe did not return UP" >&2
+        exit 1
+    fi
+}
+
 # A correct response requires the real client cert; never use --insecure.
 tls_denied() {
     local label="$1"
@@ -224,13 +248,19 @@ tls_denied() {
         echo "FAIL: $label was not rejected during TLS handshake (HTTP $code)" >&2
         exit 1
     fi
-    echo "PASS: $label failed TLS handshake."
+    assert_trusted_upstream_healthy
+    echo "PASS: $label failed TLS handshake; valid TLSv1.3 peer still healthy."
 }
 tls_denied "missing upstream client certificate"
 tls_denied "untrusted upstream client certificate" \
     --cert "$TMP/pki/untrusted.crt" --key "$TMP/pki/untrusted.key"
 tls_denied "forged identity header without upstream certificate" \
     -H "X-Lanveriq-Verified-Client-Fingerprint: $LANVERIQ_CADDY_UPSTREAM_CLIENT_DER_SHA256"
+# Even with an otherwise trusted client certificate, TLSv1.2 must be
+# negotiated at neither the connector nor a second fallback listener.
+tls_denied "forced TLSv1.2 despite valid proxy certificate" \
+    --tlsv1.2 --tls-max 1.2 \
+    --cert "$TMP/pki/proxy.crt" --key "$TMP/pki/proxy.key"
 
 # Wrong server DNS must fail verification even with a valid client credential.
 wrong_code=0
@@ -244,6 +274,7 @@ curl --silent --show-error --noproxy '*' --max-time 8 \
     echo "FAIL: wrong backend DNS name did not fail peer verification (curl $wrong_code)" >&2
     exit 1
 }
+assert_trusted_upstream_healthy
 echo "PASS: backend certificate DNS/SNI verification rejects wrong hostname."
 
 # A fully trusted upstream connection must still deny *all* Agent business
