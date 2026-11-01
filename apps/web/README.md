@@ -46,6 +46,14 @@ pnpm exec tsc --noEmit --project tsconfig.contract.json
 
 **Build-time compatibility is not authenticated browser integration.** Orval's fetch functions do **not** by themselves implement the cookie, Origin, CSRF refresh, session invalidation or status/permission-check choreography. Real credential handling and same-origin HTTPS must remain disabled until separate Caddy/PG18/browser acceptance passes.
 
+## Staged same-origin browser session request adapter (DEFAULT OFF)
+
+`src/auth/sessionTransport.ts` now has an **unwired, opt-in-by-code-only** `createSessionTransport` primitive for eventual browser acceptance. It is **not imported by `App.tsx` or `LoginPage.tsx`** and performs no requests in the running preview. The administrator login inputs stay disabled.
+
+The transport uses native browser `fetch` (no hand-written HTTP stack or duplicate Springdoc DTO), rejects noncanonical or non-HTTPS origins before requesting, applies `credentials: same-origin`, `mode: same-origin`, `redirect: error`, `cache: no-store` and `referrerPolicy: no-referrer`. It obtains an uncached CSRF token, submits URL-encoded credentials **only in the POST body**, requires HTTP 204, refreshes CSRF after Spring session fixation, and verifies the authenticated `GET /api/v1/auth/session` result before returning a username. Logout gets a new CSRF token. Missing/invalid token, 401/403/429/503 and unexpected redirects fail closed. It never uses localStorage, sessionStorage, an invented bearer token or JavaScript-set `Origin`; real browsers supply Origin for eligible POST requests.
+
+`src/auth/sessionTransport.test.ts` runs these scenarios with **in-memory fake fetch responses only**; it does not test actual cookie delivery, Caddy TLS, Spring/PG18 transactions, browser redirect/CORS semantics, or real session revocation. Do not wire this into a functioning login button before the independent [console session acceptance](../../docs/testing/console-session-manual.md) and [PG18 manual gate](../../docs/testing/server-postgres18-manual.md) are completed and approved.
+
 ## Stop and uninstall
 
 Stop `pnpm dev` with Ctrl+C. You may delete locally generated `apps/web/node_modules` and `apps/web/dist`; do **not** remove existing Docker Compose stacks, `spark-postgres`, `spark-redis`, PostgreSQL schemas, shared volumes, audit data or keys.
