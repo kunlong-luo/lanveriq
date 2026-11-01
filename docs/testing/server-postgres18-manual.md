@@ -1,9 +1,13 @@
 # Manual PostgreSQL 18 and Spring Boot smoke verification
 
-**Local developer startup evidence (2026-11-01, 14:45 +08:00):** The operator supplied a genuine Spring Boot startup log on Java 25.0.4 and PostgreSQL **18.6**. Hikari obtained a PostgreSQL connection to `jdbc:postgresql://127.0.0.1:5432/lanveriq`; Flyway validated **eight** migrations, confirmed public schema V8 and no pending changes; Hibernate JPA initialized and Tomcat started on **port 8080**. This closes only the **local startup/Flyway validation** subcheck, not unauthenticated endpoint probing, Caddy/TLS, real administrator browser sessions, or the **seven-class ≥58/58 Testcontainers transaction test**. The documented latest isolated run remains **53 passing / five failing**, after which source fixtures were changed but no post-fix manual run has been observed. The local operator may verify the no-write health/deny HTTP gate with `bash apps/server/scripts/verify-local-server.sh 8080` from the repository root, while their IDE process is running. It cannot substitute for the independent full PG18 acceptance.
+**PostgreSQL 18.6 database integration gate: PASSED (2026-11-01).** [PostgreSQL 18.6 manual run #41290838250](https://github.com/kunlong-luo/lanveriq/actions/runs/41290838250) ran the *actual* seven-class Testcontainers `integrationTest` suite on Git SHA `9b78641965a6599a8267649756b974afa9003e9f`. Gradle passed, and the mandatory JUnit evidence checker accepted **58 passing tests, zero failures/errors/skips**, including the five previously failing cases, Flyway V1–V8, database locking, event immutability, inventory rollback, certificate revocation and administrator audit atomicity. Captured PostgreSQL image digest: `sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81`; JUnit archive `srv03-pg18-synthetic-junit` (artifact ID `13076977475`, archive SHA-256 `sha256:0ba4dc9ad78b217a5b764112ba7224179029e76894b547d29c908e051dd57909`, short retention through 2026-11-08). **This is not a Caddy TLS, browser Cookie/CSRF/RBAC, actual Agent REST/ACK, LAN or production approval.**
 
-**State: first manual GitHub Actions run FAILED on 2026-11-01; full PostgreSQL acceptance NOT PASSED.** The [first explicitly dispatched PG18 run #41270220767](https://github.com/kunlong-luo/lanveriq/actions/runs/41270220767) on SHA `ff9fefe35e44715be04cccb518c96be1ea1de655` reached Java 25 / Gradle compilation and a live Docker/Testcontainers test task, but **all 58 tests failed during Spring context initialization** with `AopConfigException` / CGLIB `IllegalArgumentException`; the tests did **not** verify database transaction behavior. Spring `@Repository` implementation classes were `final`, preventing required class-based proxies. Source fix `f67518f28ef98e87811cf2d91b3fb817cdd7fb2d` removes `final` from 13 Spring JPA repository beans and adds a unit regression test that attempts CGLIB proxies. This is a **candidate fix, not executed PG18 acceptance evidence**. Re-run the manual workflow on the reviewed latest `main` SHA, examine Gradle JUnit XML and require all seven suites / >=58 passing cases with no failures/skips before closing the gate.
-**Second observed manual run (2026-11-01):** [PostgreSQL 18 integration #41272601418](https://github.com/kunlong-luo/lanveriq/actions/runs/41272601418) on SHA `8251059944a1ab409768f49eae07f331a9015522` successfully initialized the Testcontainers PostgreSQL 18.6 Spring contexts and executed **58 tests: 53 passed, 5 failed** (JUnit artifacts retained). This demonstrates the CGLIB repository-class fix was effective but **does not satisfy the full PG18 gate**. The five concrete defects were: one invalid *synthetic expired-CSR fixture* violating the retained Flyway V3 `csr_pending_expiration_after_request` constraint, and four assertions that expected an unwrapped Java `IllegalStateException` even though Spring `@Repository` exception translation correctly presented an `InvalidDataAccessApiUsageException` with the exact original `IllegalStateException` cause. The next commit `2d9d1d96ad51ccce9019cbc9c1fd940adaf696a7` updates only the two integration test source files: keeps expiry greater than requested_at while expired relative to database time, and verifies both the translated Spring exception and its original message while retaining every rollback/no-write assertion. **This candidate fix has not yet been confirmed by a third manual PostgreSQL integration run.** No tests have been skipped, disabled, relaxed to catch any throwable, or removed.
+**Historical notes below are retained as the failure/fix timeline and are superseded for the seven-class Testcontainers acceptance result by the successful run above.** Local Spring startup smoke and interactive bootstrap are separate gates.
+
+**Local developer startup evidence (2026-11-01, 14:45 +08:00):** The operator supplied a genuine Spring Boot startup log on Java 25.0.4 and PostgreSQL **18.6**. Hikari obtained a PostgreSQL connection to `jdbc:postgresql://127.0.0.1:5432/lanveriq`; Flyway validated **eight** migrations, confirmed public schema V8 and no pending changes; Hibernate JPA initialized and Tomcat started on **port 8080**. This closes only the **local startup/Flyway validation** subcheck, not unauthenticated endpoint probing, Caddy/TLS, real administrator browser sessions, or the **seven-class ≥58/58 Testcontainers transaction test**. An earlier isolated run had **53 passing / five failing**; the subsequent reviewed post-fix run #41290838250 passed all 58. The local operator may verify the no-write health/deny HTTP gate with `bash apps/server/scripts/verify-local-server.sh 8080` from the repository root, while their IDE process is running. It cannot substitute for the independent full PG18 acceptance.
+
+**Historical first run: FAILED on 2026-11-01 (later superseded by the successful third run #41290838250).** The [first explicitly dispatched PG18 run #41270220767](https://github.com/kunlong-luo/lanveriq/actions/runs/41270220767) on SHA `ff9fefe35e44715be04cccb518c96be1ea1de655` reached Java 25 / Gradle compilation and a live Docker/Testcontainers test task, but **all 58 tests failed during Spring context initialization** with `AopConfigException` / CGLIB `IllegalArgumentException`; the tests did **not** verify database transaction behavior. Spring `@Repository` implementation classes were `final`, preventing required class-based proxies. Source fix `f67518f28ef98e87811cf2d91b3fb817cdd7fb2d` removes `final` from 13 Spring JPA repository beans and adds a unit regression test that attempts CGLIB proxies. This is a **candidate fix, not executed PG18 acceptance evidence**. Re-run the manual workflow on the reviewed latest `main` SHA, examine Gradle JUnit XML and require all seven suites / >=58 passing cases with no failures/skips before closing the gate.
+**Second observed manual run (2026-11-01):** [PostgreSQL 18 integration #41272601418](https://github.com/kunlong-luo/lanveriq/actions/runs/41272601418) on SHA `8251059944a1ab409768f49eae07f331a9015522` successfully initialized the Testcontainers PostgreSQL 18.6 Spring contexts and executed **58 tests: 53 passed, 5 failed** (JUnit artifacts retained). This demonstrates the CGLIB repository-class fix was effective but **does not satisfy the full PG18 gate**. The five concrete defects were: one invalid *synthetic expired-CSR fixture* violating the retained Flyway V3 `csr_pending_expiration_after_request` constraint, and four assertions that expected an unwrapped Java `IllegalStateException` even though Spring `@Repository` exception translation correctly presented an `InvalidDataAccessApiUsageException` with the exact original `IllegalStateException` cause. The next commit `2d9d1d96ad51ccce9019cbc9c1fd940adaf696a7` updates only the two integration test source files: keeps expiry greater than requested_at while expired relative to database time, and verifies both the translated Spring exception and its original message while retaining every rollback/no-write assertion. **The third manual PostgreSQL integration run #41290838250 subsequently confirmed the corrected cases.** No tests have been skipped, disabled, relaxed to catch any throwable, or removed.
 
 This is a strictly **manual, synthetic-only local check** for SRV-01/SRV-02/SRV-03 schema checks, including V7 latest heartbeat state and V8 current inventory schema. The automatic GitHub Actions workflow runs unit tests, compiles opt-in database integration-test sources and packages the Boot JAR, but does **not execute** PostgreSQL containers; no privileged employee data is used. A separate manual Testcontainers workflow can execute PostgreSQL 18 integration tests.
 
@@ -103,7 +107,7 @@ The GitHub manual workflow also uses `--no-build-cache --rerun-tasks`
 so its JUnit report cannot be satisfied by cached Gradle test outputs;
 the Docker-backed suite must execute in that specific Actions run.
 
-**A manual run was observed on 2026-11-01, but it FAILED before the 58 DB security assertions could execute. No successful manual PG18 acceptance has been observed.** A passing XML evidence checker on invented fixtures proves only that the gate logic is functional; actual PostgreSQL test acceptance requires a successful explicitly dispatched manual run on the reviewed SHA.
+**Historical failed runs are superseded for these 58 database tests by successful manual run #41290838250 on 2026-11-01.** A passing XML evidence checker on invented fixtures proves only that the gate logic is functional; actual PostgreSQL test acceptance requires a successful explicitly dispatched manual run on the reviewed SHA.
 
 ## Preferred real SQL and transaction verification (separate from the smoke script)
 
@@ -163,9 +167,9 @@ Retain dated local execution evidence and the tested Docker image digest in the 
 No real employee information or real certificate secrets belong in test fixtures, CI logs or public GitHub issues.
 
 
-## PG18 regression gate review — 2026-11-01 (pending rerun)
+## PG18 regression gate review — 2026-11-01 (rerun passed)
 
-The last observed explicitly dispatched Docker-backed PostgreSQL 18.6
+The earlier failed Docker-backed PostgreSQL 18.6
 integration run was
 [Actions #41272601418](https://github.com/kunlong-luo/lanveriq/actions/runs/41272601418):
 **58 executed, five failures**. They were:
@@ -185,16 +189,15 @@ integration run was
   the exact original invariant reason, not just any thrown exception.
 
 The source fixes were committed after the failed manual run and are
-unit/compile checked, but the **full manual PG18 gate remains OPEN**.
+unit/compile checked; **the third manual PG18 gate passed as recorded at the top of this file**.
 The JUnit evidence checker now individually requires *all five*
 previously failed methods. Its synthetic unit test demonstrates each
 omission is rejected. This does not attest that any SQL operation has
 executed successfully against PostgreSQL.
 
-The next real acceptance must manually dispatch
+The successful third real acceptance dispatched
 [`server-postgres18-integration.yml`](../../.github/workflows/server-postgres18-integration.yml)
-from **current `main`**, not rerun the old failed SHA. Confirm
-all 58+ tests pass with zero failures/skips, all seven exact JUnit
-class identities and mandatory cases, and the recorded
-`postgres:18.6` image provenance. Keep HTTPS/browser/session
+on the reviewed SHA shown above, rather than rerunning the old failed SHA. It confirmed
+58 cases without failures/skips, all seven exact JUnit class identities and mandatory cases,
+plus the recorded `postgres:18.6` image provenance. Keep HTTPS/browser/session
 and Rust Agent gates independent regardless of the outcome.

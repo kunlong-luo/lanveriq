@@ -23,11 +23,15 @@ synthetic/unconnected by design.
 - The candidate transport and generated client are **not imported** by any Next.js page.
   Route guard rejects mounting it prior to manual approval.
 
-## Release-blocking manual checks
+## Database milestone and remaining release-blocking checks
+
+**PostgreSQL 18.6 database integration gate: PASSED (2026-11-01).** [PostgreSQL 18.6 manual run #41290838250](https://github.com/kunlong-luo/lanveriq/actions/runs/41290838250) ran the *actual* seven-class Testcontainers `integrationTest` suite on Git SHA `9b78641965a6599a8267649756b974afa9003e9f`. Gradle passed, and the mandatory JUnit evidence checker accepted **58 passing tests, zero failures/errors/skips**, including the five previously failing cases, Flyway V1–V8, database locking, event immutability, inventory rollback, certificate revocation and administrator audit atomicity. Captured PostgreSQL image digest: `sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81`; JUnit archive `srv03-pg18-synthetic-junit` (artifact ID `13076977475`, archive SHA-256 `sha256:0ba4dc9ad78b217a5b764112ba7224179029e76894b547d29c908e051dd57909`, short retention through 2026-11-08). **This is not a Caddy TLS, browser Cookie/CSRF/RBAC, actual Agent REST/ACK, LAN or production approval.**
+
+The remaining rows are still open unless specifically marked as passed.
 
 | Acceptance area | Required observation |
 | --- | --- |
-| PostgreSQL 18 | Rerun updated seven-class, >=58-case Testcontainers suite against real PG18; all pass with Git SHA, sanitized JUnit artifact and image provenance |
+| PostgreSQL 18 | **PASSED on reviewed SHA** — [PostgreSQL 18.6 manual run #41290838250](https://github.com/kunlong-luo/lanveriq/actions/runs/41290838250), 58/58, 7 classes, JUnit and image provenance. This does not prove HTTPS/browser operation |
 | Caddy HTTPS | Trusted CA and canonical DNS/SNI/Host isolation; no hostname/Origin bypass, forwarded host injection or TLS exceptions |
 | Administrator login | Actual browser CSRF pre-login and post-fixation refresh, secure host-only HttpOnly SameSite session cookie, 401/403/429, logout and epoch revocation |
 | Scope | A current enabled administrator only reads current authorized device groups/categories; disabled/revoked/wrong-group must show no rows |
@@ -41,5 +45,5 @@ synthetic/unconnected by design.
 
 **Do not enable Orval React Query hooks or the staged transport in
 pages before these release gates pass.** CI typechecking only is not
-evidence of an authenticated HTTPS browser, real PostgreSQL, cookie
-isolation or a connected device.
+evidence of an authenticated HTTPS browser, real PostgreSQL browser access, cookie
+isolation or a connected device. The independent database JPA gate now passed.
