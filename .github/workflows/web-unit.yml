@@ -1,0 +1,42 @@
+name: Web synthetic preview checks
+on:
+  push:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/web-unit.yml'
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/web-unit.yml'
+permissions:
+  contents: read
+jobs:
+  web-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up pinned pnpm and Node 24 (initial lockfile creation)
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24
+          working-directory: apps/web
+          install: true
+          require-lockfile: false
+          cache: false
+      - name: Run synthetic-only UI unit tests
+        working-directory: apps/web
+        run: pnpm test
+      - name: Typecheck and compile static UI preview
+        working-directory: apps/web
+        run: pnpm build
+      - name: Export pnpm lockfile for review and pinning
+        uses: actions/upload-artifact@v7
+        with:
+          name: lanveriq-web-lockfile-bootstrap
+          path: apps/web/pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 7
