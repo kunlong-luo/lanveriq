@@ -78,6 +78,15 @@ its real JUnit results remain required.
 
 The [manually dispatched workflow](../../.github/workflows/server-postgres18-integration.yml) now runs a **fail-closed post-test evidence check** using `apps/server/scripts/assert-postgres18-junit.py`. It reads Gradle's generated `build/test-results/integrationTest/TEST-*.xml`, and **fails the manual run** unless all seven Testcontainers suites (event/heartbeat, activation, inventory, certificate registration, revocation, scoped device directory/monitoring, and administrator audit atomicity) report **at least 58 successful tests in total**, with explicit mandatory checks for PostgreSQL 18.6/Flyway V1–V8, two-key event conflict rollback, immutable event trigger, cross-device identity isolation, certificate revocation/race, audited registration/activation, inventory child-table rollback and post-lock admin revocation, suppressed first-admin role/audit inserts and suppressed session-revocation audit, and observed post-lock session-grant denial. Every failed, errored or skipped JUnit case blocks acceptance; absent, corrupted and duplicate reports are rejected. The Git commit, image ID/digests and JUnit artifacts continue to be captured by the existing manual workflow.
 
+**Strict XML provenance check (source-only, 2026-11-01):** The manual
+gate now requires each Gradle `TEST-*.xml` filename, JUnit suite name
+and testcase `classname` to match the exact package of one of the seven
+reviewed Java integration test classes. Unknown reports, mismatched
+testcase identities and inconsistent/nonzero aggregate failure, error or
+skip metadata fail closed. The standard counts and mandatory methods
+remain **seven classes / 58 executed passing cases**. A passing synthetic
+XML checker in the normal CI is not proof that Docker or PostgreSQL was run.
+
 The evidence checker itself is unit-tested using **invented XML only** in automatic Java CI; it runs **no Docker container or database** there. To verify an explicitly run local integration suite, use:
 
 ```sh
