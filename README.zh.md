@@ -82,27 +82,50 @@ docker exec spark-postgres psql -U root -d postgres -XAtc "SHOW server_version;"
 
 如果 Compose 使用的超级用户名不再是 `root`，请在以上检查命令中替换为你实际配置的管理员角色。注意：**不会在这一步自动启动、停止、更新或修改现有服务。** 你提供的 Compose 示例含有弱默认数据库/Redis 密码；如果已经实际启用，建议在独立维护窗口内轮换，文档不会复制这些密码。
 
-### 2. 只为 Lanveriq 创建新账号和数据库（首次一次）
+### 2. 首次创建独立的 Lanveriq 数据库和账号
 
-使用 PostgreSQL 自带的 `psql`，经 Docker 的本地 Unix socket 进入管理控制台：
+**只在确认 `lanveriq` 数据库和角色都不存在时执行。** 先进入现有容器的 PostgreSQL 控制台检查 `\du lanveriq` 和 `\l lanveriq`：
 
-```bash
-docker exec -it spark-postgres psql -U root -d postgres
-```
+~~~bash
+docker exec -it spark-postgres psql -X -U root -d postgres
+~~~
 
-先在 `psql` 中用 `\du`、`\l` 确认 `lanveriq` 角色和数据库尚不存在；如果已经存在，应确认所有权、历史迁移和用途，**不要盲目重建或覆盖**。对全新、未使用的名称执行：
+已有对象不应重新创建；先核对所有权和历史记录。在审批确认目标实例后，从**仓库根目录**执行纳入版本管理的 [数据库初始化脚本](apps/server/scripts/provision-lanveriq-database.sql)：
 
-```sql
-CREATE ROLE lanveriq LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
-```
+~~~bash
+docker exec -i spark-postgres \
+  psql -X -v ON_ERROR_STOP=1 -U root -d postgres \
+  < apps/server/scripts/provision-lanveriq-database.sql
+~~~
 
-随后在**同一个交互式 psql 会话**输入 `\password lanveriq`，在隐藏输入提示中设置独立且强度足够的密码，避免把密码写进 Git、Compose 文件或命令历史。再创建数据库：
+脚本只执行一次性 PostgreSQL **角色/数据库初始化**，不属于 Flyway 迁移。它先校验操作者、当前连接的维护库和目标对象不存在，然后创建 `NOLOGIN`、无全局管理权限的 `lanveriq` 用户与专属数据库，撤销 `PUBLIC` 对新数据库的权限；**不包含密码、不会修改 `iot_farm`，也不会自动由 Spring Boot 或 CI 运行**。`CREATE DATABASE` 不能与创建角色一起包裹在单个事务中；若中途出错，必须人工检查可能留下的 `NOLOGIN` 角色及数据库，**不要重复运行**。
 
-```sql
-CREATE DATABASE lanveriq OWNER lanveriq;
-```
+创建成功后，在单独的交互式 `psql` 会话中为角色设置密码，并在成功设置后才启用登录：
 
-用 `\q` 退出。**不要**对 `iot_farm` 执行 Lanveriq 的 Flyway，也不要给 `lanveriq` 用户超级用户权限。此新库不需要 `postgis`、`pg_cron`、`pg_stat_statements` 或 InfluxDB；Redis 是独立的可选缓存依赖，不属于 PostgreSQL 扩展。由于你当前 PostgreSQL 内存上限较低（示例为 256 MiB），并行运行多套数据库负载可能资源不足；不要通过取消共享服务的安全限制来掩盖问题。
+~~~bash
+docker exec -it spark-postgres psql -X -U root -d postgres
+~~~
+
+在 `psql` 中执行：
+
+~~~sql
+SHOW password_encryption;
+\password lanveriq
+ALTER ROLE lanveriq LOGIN;
+\du lanveriq
+\l lanveriq
+~~~
+
+`password_encryption` 应为 `scram-sha-256`；否则先检查安全配置，不要继续启用登录。`\password` 会交互提示输入独立强密码，不会将明文写入 Git、Shell 历史或 SQL 脚本。执行 `\q` 退出。
+
+然后验证专属用户的密码连接：
+
+~~~bash
+psql -h 127.0.0.1 -p 5432 -U lanveriq -d lanveriq -W \
+  -c 'SELECT current_user, current_database();'
+~~~
+
+如果宿主机没有 `psql`，可使用其他受信任的 PostgreSQL 客户端验证。`lanveriq` 数据库账号与未来的网页管理员账号是两套独立身份。不要修改既有的 `iot_farm` 数据库、`spark-postgres` 容器、Redis 或数据卷。正式使用前还须核查该共享实例的容量和 `lanveriq` 数据库的独立备份覆盖范围。
 
 ### 3. 启动 Java 后端（本地开发）
 
