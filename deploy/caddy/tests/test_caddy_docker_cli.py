@@ -73,6 +73,19 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertNotIn('ROOT_CA="$TMP/caddy-data/', script)
         self.assertNotIn('chmod -R 777', script)
 
+    def test_real_tomcat_negative_probe_requires_live_trusted_tls13_peer(self):
+        script = (ROOT / "apps/server/scripts/verify-agent-upstream-tls.sh").read_text()
+        self.assertIn("assert_trusted_upstream_healthy() {", script)
+        self.assertIn('kill -0 "$APP_PID"', script)
+        self.assertIn("--tlsv1.3 --tls-max 1.3", script)
+        self.assertIn("--cacert \"$TMP/pki/backend-ca.crt\"", script)
+        self.assertIn('assert_trusted_upstream_healthy\n    echo "PASS: $label failed TLS handshake', script)
+        self.assertIn('tls_denied "forced TLSv1.2 despite valid proxy certificate"', script)
+        self.assertIn("--tlsv1.2 --tls-max 1.2", script)
+        self.assertIn("assert_trusted_upstream_healthy\necho \"PASS: backend certificate DNS/SNI", script)
+        self.assertNotIn("--insecure", script)
+        self.assertNotIn("--no-check-certificate", script)
+
     def test_real_spring_bridge_harness_always_invokes_explicit_binary(self):
         script = (ROOT / "apps/server/scripts/verify-agent-upstream-tls.sh").read_text()
         self.assertIn('"$IMAGE" caddy "$@"', script)
