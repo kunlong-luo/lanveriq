@@ -41,6 +41,23 @@ try {
     if (response.status !== 200) throw new Error(route + ': expected 200; got ' + response.status);
     const html = await response.text();
     if (!html.includes(label)) throw new Error(route + ': missing ' + label);
+    const requiredMarkup = {
+      '/overview': ['设备连接分布', '采集与库存覆盖', '设备数据尚未连接'],
+      '/monitoring': ['监控中心', '心跳接收状态', '连接状态'],
+      '/devices': ['搜索终端名称、系统或设备组', '设备数据尚未连接'],
+      '/devices/00000000-0000-7000-8000-000000000001': [
+        '设备资产与健康', '设备操作（暂不可用）', '撤销证书', 'disabled',
+      ],
+      '/enrollment': ['生成一次性注册凭据', '发起注册（未启用）', 'disabled'],
+      '/settings': ['发布与安全验收', 'PostgreSQL 18', '待完成'],
+    }[route] ?? [];
+    for (const marker of requiredMarkup) {
+      if (!html.includes(marker)) throw new Error(route + ': missing functional UI ' + marker);
+    }
+    if (html.includes('演示设备 A') || html.includes('合成测试设备 A')) {
+      throw new Error(route + ': fixture devices must not appear in runtime UI');
+    }
+
     if (route === '/login') {
       if (!html.includes('disabled') || !html.includes('禁止输入真实账号或密码')) {
         throw new Error('Login credentials must be disabled and unsubmitted');
