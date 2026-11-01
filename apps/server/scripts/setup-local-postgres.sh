@@ -64,8 +64,18 @@ fi
 owner="$(query "SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = 'lanveriq'")"
 [[ "$owner" == 'lanveriq' ]] || fail 'The existing database is not owned by lanveriq; do not modify it.'
 public_closed="$(query "SELECT datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(datacl) WHERE grantee = 0) FROM pg_database WHERE datname = 'lanveriq'")"
-[[ "$public_closed" == 't' ]] || fail 'The database still grants privileges to PUBLIC; an administrator must review and revoke these before LOGIN.'
 login="$(query "SELECT rolcanlogin FROM pg_roles WHERE rolname = 'lanveriq'")"
+if [[ "$public_closed" != 't' ]]; then
+    # A JDBC script may have created the database but stopped before REVOKE.
+    # Recover ONLY a known-owned database with an inactive, restricted role.
+    [[ "$login" == 'f' ]] ||
+        fail 'Existing login-enabled database grants privileges to PUBLIC; manual security review required.'
+    confirm 'The dedicated NOLOGIN database still has default PUBLIC grants. Revoke those grants ONLY on lanveriq?' 'SECURE lanveriq'
+    docker exec -i "$CONTAINER" psql -X -w -v ON_ERROR_STOP=1 \
+        -U "$ADMIN" -d postgres -c 'REVOKE ALL ON DATABASE lanveriq FROM PUBLIC;'
+    public_closed="$(query "SELECT datacl IS NOT NULL AND NOT EXISTS (SELECT 1 FROM aclexplode(datacl) WHERE grantee = 0) FROM pg_database WHERE datname = 'lanveriq'")"
+    [[ "$public_closed" == 't' ]] || fail 'PUBLIC database privilege still present; stop before enabling LOGIN.'
+fi
 if [[ "$login" == 't' ]]; then
     printf 'lanveriq already exists and can log in. No password was changed.\n'
     printf 'Use the existing password with LANVERIQ_DB_PASSWORD in your Java backend configuration.\n'
