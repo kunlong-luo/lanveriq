@@ -20,6 +20,39 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertIn('"$IMAGE" caddy run --config /etc/caddy/Caddyfile', script)
         self.assertNotRegex(script, r'"\$IMAGE"\s*\\?\s*(?:adapt|validate|run)\b')
 
+    def test_caddy_only_private_ca_stays_in_docker_storage(self):
+        script = (ROOT / "deploy/caddy/tests/verify-reference.sh").read_text()
+        self.assertIn('CADDY_DATA_VOLUME="$(docker volume create)"', script)
+        self.assertIn('CADDY_CONFIG_VOLUME="$(docker volume create)"', script)
+        self.assertIn('"$CADDY_DATA_VOLUME:/data"', script)
+        self.assertIn('"$CADDY_CONFIG_VOLUME:/config"', script)
+        self.assertIn('docker volume rm "$CADDY_DATA_VOLUME"', script)
+        self.assertIn('docker volume rm "$CADDY_CONFIG_VOLUME"', script)
+        self.assertIn(
+            'docker cp "$CID:/data/caddy/pki/authorities/local/root.crt"', script
+        )
+        self.assertIn('CA_ROOT="$TMP/public-caddy-root.crt"', script)
+        self.assertIn('--cacert "$CA_ROOT"', script)
+        self.assertNotIn('CA_ROOT="$TMP/data/caddy/', script)
+        self.assertNotIn('docker cp "$CID:/data/caddy/pki/authorities/local/root.key"', script)
+        self.assertNotIn('chmod -R 777', script)
+
+    def test_real_bridge_private_ca_stays_in_docker_storage(self):
+        script = (ROOT / "apps/server/scripts/verify-agent-upstream-tls.sh").read_text()
+        self.assertIn('CADDY_DATA_VOLUME="$(docker volume create)"', script)
+        self.assertIn('CADDY_CONFIG_VOLUME="$(docker volume create)"', script)
+        self.assertIn('"$CADDY_DATA_VOLUME:/data"', script)
+        self.assertIn('"$CADDY_CONFIG_VOLUME:/config"', script)
+        self.assertIn('docker volume rm "$CADDY_DATA_VOLUME"', script)
+        self.assertIn('docker volume rm "$CADDY_CONFIG_VOLUME"', script)
+        self.assertIn(
+            'docker cp "$CADDY_CID:/data/caddy/pki/authorities/local/root.crt"', script
+        )
+        self.assertIn('ROOT_CA="$TMP/public-caddy-root.crt"', script)
+        self.assertIn('--cacert "$ROOT_CA"', script)
+        self.assertNotIn('ROOT_CA="$TMP/caddy-data/', script)
+        self.assertNotIn('chmod -R 777', script)
+
     def test_real_spring_bridge_harness_always_invokes_explicit_binary(self):
         script = (ROOT / "apps/server/scripts/verify-agent-upstream-tls.sh").read_text()
         self.assertIn('"$IMAGE" caddy "$@"', script)
