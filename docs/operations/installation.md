@@ -10,6 +10,8 @@ For copyable development and synthetic-only commands, begin with the [Chinese RE
 4. Run a default-deny Java JAR built by Gradle, or an idle Rust Agent using an absolute non-secret TOML config; neither path is a production rollout.
 5. On an **isolated test VM only**, inspect and install the optional Linux Agent systemd unit without enabling it at boot. Stop/uninstall only the reviewed Lanveriq-owned files, and separately approve any deletion of the `lanveriq` database.
 
+**JDBC/IDE-compatible SQL bootstrap:** `apps/server/scripts/provision-lanveriq-database.sql` contains only PostgreSQL SQL, no `psql` directives. Open it against the **`postgres`** maintenance database as the authorized administrator, set **Auto-commit** and **Stop on error**, and execute statements in sequence. **Do not** wrap `CREATE DATABASE` in a transaction. If using psql, pass `-v ON_ERROR_STOP=1` on the invocation rather than adding a backslash directive to the SQL file. Passwords are not in source: configure via a GUI credential editor or the interactive psql `\\password` command, then separately enable LOGIN. Existence checks are deliberate; inspect partial states rather than rerunning.
+
 ## Shared PostgreSQL safety boundary for `spark-db`
 
 The supplied local Compose stack already serves several unrelated applications.
