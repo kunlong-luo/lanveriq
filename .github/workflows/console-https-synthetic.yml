@@ -1,0 +1,49 @@
+name: Console HTTPS Spring session (manual, synthetic-only)
+
+# Explicit opt-in: real Caddy->real Tomcat->disposable PG18, with
+# randomly generated one-time offline bootstrap in an isolated runner.
+# This is NOT browser approval, no real account, no Agent API enablement.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-manual-console-synthetic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  console-session-synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up pinned Java 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Configure official Gradle wrapper
+        uses: gradle/actions/setup-gradle@v6
+      - name: Record synthetic-only run provenance (no credentials)
+        run: |
+          printf 'Tested Git SHA: %s\n' "$GITHUB_SHA"
+          java -version
+          docker info --format 'Docker server {{.ServerVersion}}'
+          openssl version
+          curl --version | head -n 1
+          script --version
+      - name: Prove Caddy image CLI exists without network listeners
+        run: docker run --rm --network none caddy:2.11.7 caddy version
+      - name: Syntax-check both real TLS and synthetic console scripts
+        run: |
+          bash -n apps/server/scripts/verify-agent-upstream-tls.sh
+          bash -n apps/server/scripts/verify-synthetic-console-session.sh
+      - name: Run isolated Caddy->Tomcat->PG18 HTTPS session and negative checks
+        env:
+          LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
+          LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '1'
+        run: bash apps/server/scripts/verify-agent-upstream-tls.sh

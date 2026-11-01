@@ -72,6 +72,7 @@ jobs:
       - name: Syntax-check manual Caddy mTLS acceptance harness only (no Docker or TLS)
         run: |
           bash -n deploy/caddy/tests/verify-reference.sh
+          bash -n apps/server/scripts/verify-synthetic-console-session.sh
           python3 -m py_compile deploy/caddy/tests/synthetic-mtls-backend.py
       - name: Verify official Gradle Wrapper binary
         working-directory: apps/server
