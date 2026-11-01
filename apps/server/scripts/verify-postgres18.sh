@@ -10,6 +10,21 @@ for executable in docker curl openssl; do
     }
 done
 
+# Optional isolated smoke ports. Never attach to or remove a shared DB.
+# For the user's spark-db stack, port 18080 belongs to InfluxDB Explorer.
+SMOKE_DB_PORT="${LANVERIQ_SMOKE_DB_PORT:-55432}"
+SMOKE_HTTP_PORT="${LANVERIQ_SMOKE_HTTP_PORT:-18080}"
+for port in "$SMOKE_DB_PORT" "$SMOKE_HTTP_PORT"; do
+    if ! [[ "$port" =~ ^[1-9][0-9]{3,4}$ ]] || (( port > 65535 )); then
+        echo "Smoke-test ports must be unprivileged numbers 1000..65535" >&2
+        exit 1
+    fi
+done
+if [[ "$SMOKE_DB_PORT" == "$SMOKE_HTTP_PORT" ]]; then
+    echo "Smoke-test PostgreSQL and HTTP ports must differ" >&2
+    exit 1
+fi
+
 SERVER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP="$(mktemp -d)"
 chmod 700 "$TMP"
@@ -28,10 +43,10 @@ trap cleanup EXIT
 openssl rand -hex 32 > "$TMP/postgres_password"
 chmod 600 "$TMP/postgres_password"
 
-echo "Starting isolated synthetic PostgreSQL 18.6 (127.0.0.1:55432 only)..."
+echo "Starting isolated synthetic PostgreSQL 18.6 (127.0.0.1:${SMOKE_DB_PORT} only)..."
 docker run --detach --rm \
     --name "$DB_CONTAINER" \
-    --publish 127.0.0.1:55432:5432 \
+    --publish 127.0.0.1:${SMOKE_DB_PORT}:5432 \
     --env POSTGRES_USER=lanveriq \
     --env POSTGRES_DB=lanveriq \
     --env POSTGRES_PASSWORD_FILE=/run/secrets/db-password \
@@ -61,19 +76,19 @@ echo "Building runnable archive with Java 25..."
 echo "Starting Spring Boot / Flyway against isolated PostgreSQL..."
 (
     cd "$SERVER_DIR"
-    export LANVERIQ_DB_URL="jdbc:postgresql://127.0.0.1:55432/lanveriq"
+    export LANVERIQ_DB_URL="jdbc:postgresql://127.0.0.1:${SMOKE_DB_PORT}/lanveriq"
     export LANVERIQ_DB_USER="lanveriq"
     export LANVERIQ_DB_PASSWORD
     LANVERIQ_DB_PASSWORD="$(cat "$TMP/postgres_password")"
     export LANVERIQ_HTTP_BIND="127.0.0.1"
-    export LANVERIQ_HTTP_PORT="18080"
+    export LANVERIQ_HTTP_PORT="$SMOKE_HTTP_PORT"
     exec ./gradlew bootRun > "$TMP/boot.log" 2>&1
 ) &
 RUN_PID=$!
 
 HEALTH_READY=0
 for _ in $(seq 1 90); do
-    if curl --fail --silent --max-time 2 "http://127.0.0.1:18080/actuator/health" \
+    if curl --fail --silent --max-time 2 "http://127.0.0.1:${SMOKE_HTTP_PORT}/actuator/health" \
         | grep -q '"status":"UP"'; then
         HEALTH_READY=1
         break
@@ -153,7 +168,7 @@ EVENT_TRIGGER_COUNT="$(docker exec "$DB_CONTAINER" psql -U lanveriq -d lanveriq 
 }
 
 DENIED_HTTP="$(curl --silent --output /dev/null --write-out '%{http_code}' \
-    "http://127.0.0.1:18080/api/v1/devices")"
+    "http://127.0.0.1:${SMOKE_HTTP_PORT}/api/v1/devices")"
 [[ "$DENIED_HTTP" == "403" ]] || {
     echo "Protected business endpoint returned HTTP $DENIED_HTTP, expected 403" >&2
     exit 1
