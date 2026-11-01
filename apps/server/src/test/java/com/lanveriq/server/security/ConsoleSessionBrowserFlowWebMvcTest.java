@@ -46,6 +46,11 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import({
         ConsoleSessionSecurityConfiguration.class,
         DeviceDirectoryHttpSecurityConfiguration.class,
+        // @WebMvcTest can omit package-private conditional controllers during
+        // slice scanning; explicitly register real production beans here.
+        ConsoleCsrfController.class,
+        ConsoleSessionStatusController.class,
+        DeviceDirectoryRestController.class,
         ConsoleSessionBrowserFlowWebMvcTest.MvcSecurity.class
 })
 @TestPropertySource(properties = {
