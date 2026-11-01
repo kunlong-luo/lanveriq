@@ -1,10 +1,16 @@
 import { SectionHeading } from '@/components/section-heading';
-import { SafetyGate, UnconnectedDeviceState } from '@/components/preview-state';
+import { ConnectivityBreakdown, InventoryFreshness, UnconnectedMetrics } from '@/components/health-sections';
+import { DeviceDirectory } from '@/components/device-directory';
 
 export default function Monitoring() {
   return <section className="page">
-    <SectionHeading eyebrow="MONITORING CENTER / NXT-01" title="监控中心"
-      description="计划显示按组授权的健康状态、数据新鲜度和传输缺口，不包含员工屏幕画面。" />
-    <div className="content-grid"><UnconnectedDeviceState/><SafetyGate/></div>
+    <SectionHeading eyebrow="MONITORING CENTER / NXT-02" title="监控中心"
+      description="关注设备连接、待发送队列、最近心跳与库存覆盖，不展示员工屏幕画面或行为记录。" />
+    <UnconnectedMetrics />
+    <div className="content-grid">
+      <ConnectivityBreakdown />
+      <InventoryFreshness />
+    </div>
+    <DeviceDirectory state={{ kind: 'unconnected' }} />
   </section>;
 }

@@ -1,11 +1,14 @@
+import { Plus } from 'lucide-react';
 import { SectionHeading } from '@/components/section-heading';
-import { UnconnectedDeviceState } from '@/components/preview-state';
+import { DeviceDirectory } from '@/components/device-directory';
 
 export default function Devices() {
   return <section className="page">
-    <div className="title-row"><SectionHeading eyebrow="DEVICES / NXT-01" title="终端资产"
-      description="需要通过管理员会话与服务器端设备组授权后，才能取得真实设备列表。" />
-      <button disabled className="secondary-action">添加设备（未开放）</button></div>
-    <UnconnectedDeviceState />
+    <div className="title-row">
+      <SectionHeading eyebrow="DEVICES / NXT-02" title="终端资产"
+        description="可按设备名称、系统及设备组进行搜索；只有服务器授予权限后才能显示真实设备。" />
+      <button type="button" disabled className="secondary-action"><Plus size={16}/> 添加设备（未开放）</button>
+    </div>
+    <DeviceDirectory state={{ kind: 'unconnected' }} />
   </section>;
 }

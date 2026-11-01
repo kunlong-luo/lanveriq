@@ -1,18 +1,42 @@
+import { CheckCircle2, Clock3, Database, Network, Server, ShieldCheck } from 'lucide-react';
 import { SectionHeading } from '@/components/section-heading';
-import { SafetyGate } from '@/components/preview-state';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+const stack = [
+  { name: 'Next.js 16 App Router / React 19', detail: 'NXT-01 构建与路由检查通过' },
+  { name: 'Spring Boot 4 / Java 25', detail: '业务 API 未连接到此预览' },
+  { name: 'PostgreSQL 18 / Flyway', detail: '真实数据库集成验收待完成' },
+  { name: 'Caddy HTTPS / Spring Security', detail: '浏览器会话与权限验收待完成' },
+];
+const gates = [
+  { name: 'Next.js 候选项目构建', passed: true },
+  { name: '完整页面迁移与可访问性检查', passed: false },
+  { name: 'PostgreSQL 18 全量集成测试', passed: false },
+  { name: 'Caddy TLS、Cookie、CSRF、Origin', passed: false },
+  { name: '按设备组授权的真实 API 联调', passed: false },
+];
 export default function Settings() {
   return <section className="page">
-    <SectionHeading eyebrow="SETTINGS / NXT-01" title="系统设置"
-      description="技术与安全验收说明；不会更改后端配置或启用任何服务。" />
+    <SectionHeading eyebrow="SYSTEM / NXT-02" title="系统设置"
+      description="工程状态与上线门槛，只读展示。此页面不会修改 PostgreSQL、Redis 或服务器配置。" />
     <div className="content-grid">
-      <Card><CardHeader><CardTitle>候选技术栈</CardTitle></CardHeader><CardContent className="stack-list">
-        <p>Next.js 16 App Router + React 19 + TypeScript</p>
-        <p>Tailwind CSS 4 + shadcn/ui 兼容组件</p>
-        <p>Spring Boot 4 / PostgreSQL 18 / Caddy TLS（业务未连接）</p>
+      <Card><CardHeader><span className="state-icon"><Server size={22}/></span>
+        <CardTitle>技术与连接状态</CardTitle>
+        <CardDescription>这里显示工程确认信息，而不是实时探测结果。</CardDescription>
+      </CardHeader><CardContent className="stack-list">
+        {stack.map(({name,detail},i)=><div className="stack-item" key={name}>
+          {i===0?<CheckCircle2 size={19}/>:i===2?<Database size={19}/>:i===3?<Network size={19}/>:<Server size={19}/>}
+          <span><strong>{name}</strong><small>{detail}</small></span></div>)}
       </CardContent></Card>
-      <SafetyGate />
+      <Card><CardHeader><span className="state-icon"><ShieldCheck size={22}/></span>
+        <CardTitle>发布与安全验收</CardTitle>
+        <CardDescription>自动化构建通过不等于可以启用真实设备功能。</CardDescription>
+      </CardHeader><CardContent className="gate-checklist">
+        {gates.map(({name,passed})=><div key={name}>
+          {passed?<CheckCircle2 size={18}/>:<Clock3 size={18}/>}
+          <span>{name}</span><strong>{passed?'已通过':'待完成'}</strong></div>)}
+        <p className="settings-warning">真实采集、远程操作与屏幕录制均未开放。</p>
+      </CardContent></Card>
     </div>
   </section>;
 }
