@@ -3,16 +3,10 @@ name: Agent unit tests
 on:
   push:
     paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rust-toolchain.toml'
       - 'apps/agent/**'
       - '.github/workflows/agent-unit.yml'
   pull_request:
     paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rust-toolchain.toml'
       - 'apps/agent/**'
       - '.github/workflows/agent-unit.yml'
 
@@ -26,6 +20,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/agent
     steps:
       - uses: actions/checkout@v7
         with:
@@ -48,5 +45,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: agent-cargo-lockfile
-          path: Cargo.lock
+          path: apps/agent/Cargo.lock
           retention-days: 7

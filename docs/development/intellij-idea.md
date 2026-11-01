@@ -39,7 +39,7 @@ Java 25 / Gradle 9.8.2 初次同步需要访问 Gradle Plugin Portal、Maven Cen
 ## 同仓库的其他项目
 
 - **React Web**：`apps/web`，使用 Node.js 24 + pnpm 12，在该目录运行 `pnpm install --frozen-lockfile`、`pnpm dev`；启动的只是合成数据预览，不会连接实际设备。
-- **Rust Agent**：Cargo Workspace 根文件为 `Cargo.toml`，使用 `rust-toolchain.toml` 固定 Rust 1.94。根据 IDEA 的具体版本与插件支持来选择 Rust 插件，或另用 RustRover。
+- **Rust Agent**：独立 Rust 工程在 `apps/agent/Cargo.toml`，`apps/agent/Cargo.lock` 锁定依赖，`apps/agent/rust-toolchain.toml` 固定 Rust 1.94。根据 IDEA 的具体版本与插件支持来选择 Rust 插件，或另用 RustRover。
 - **Java 后端**：`apps/server` 中 Spring Boot 4.1.2、JPA/Hibernate、Flyway 均通过独立 Gradle 工程维护。导入工程不需要运行 `bootRun`，更不需要触碰共享 `spark-db`。
 
 ## 常见问题

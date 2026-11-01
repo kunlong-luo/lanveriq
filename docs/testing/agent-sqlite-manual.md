@@ -33,7 +33,10 @@
 
 ## Manual commands (on controlled test machine)
 
+从仓库根目录进入 Rust 子项目（不在根目录运行 Cargo）：
+
 ```sh
+cd apps/agent
 cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo tree --locked -i libsqlite3-sys

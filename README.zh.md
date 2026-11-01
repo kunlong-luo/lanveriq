@@ -26,7 +26,7 @@
 ## 二、准备环境
 
 - Git；**JDK 25**；仓库自带 **Gradle 9.8.2 Wrapper**（无需 Maven，也无需单独安装 Gradle）。
-- Rust **1.94.0**（见 `rust-toolchain.toml`）、Cargo；按目标系统安装相应的 Rust 原生构建工具。
+- Rust **1.94.0**（见 `apps/agent/rust-toolchain.toml`）、Cargo；按目标系统安装相应的 Rust 原生构建工具。
 - Docker Engine 和已运行的 `spark-db` PostgreSQL 可直接用于独立数据库的本地开发；只有需要**独立合成数据验收**时，才额外启动短期 PostgreSQL 18.6 容器。首次下载依赖/镜像可能需要联网；未来产品运行目标是离线局域网。
 - Bash、curl、OpenSSL，用于现有 Linux/WSL/macOS 开发环境下的服务器自检脚本。生产服务器及 Agent OS 服务还需要单独验收。
 - 本地 Web 合成预览需要 **Node.js 24 + pnpm 12**；独立的 `apps/server/contract-client-check` 仍只用于 Orval 契约验证，尚未与 Web 联调。
@@ -60,7 +60,7 @@ cd apps/server
 ./gradlew test
 ~~~
 
-React 由 `apps/web` 的 pnpm 管理；Rust 由仓库根目录 `Cargo.toml` 的 Cargo Workspace 管理。它们都不需要 Gradle。完整步骤见 [IDEA 导入指南](docs/development/intellij-idea.md)。
+React 由 `apps/web` 的 pnpm 管理；Rust 由 `apps/agent/Cargo.toml` 和本目录的 `Cargo.lock` 独立管理。它们都不需要 Gradle。完整步骤见 [IDEA 导入指南](docs/development/intellij-idea.md)。
 
 ## 三、本地运行：直接复用已有 spark-db
 
@@ -174,12 +174,13 @@ bash apps/server/scripts/verify-postgres18.sh
 
 ### 本地运行 Rust Agent（只启动空闲循环）
 
-在仓库根目录执行：
+从仓库根目录进入 Agent 工程后执行：
 
 ```bash
+cd apps/agent
 cargo test --workspace --locked
 cargo build --release --locked -p lanveriq-agent
-cp apps/agent/config/agent.example.toml /tmp/lanveriq-agent-demo.toml
+cp config/agent.example.toml /tmp/lanveriq-agent-demo.toml
 cargo run --locked -p lanveriq-agent -- \
   --config /tmp/lanveriq-agent-demo.toml
 ```
@@ -187,7 +188,8 @@ cargo run --locked -p lanveriq-agent -- \
 配置文件必须是**绝对路径**，内容是纯合成/无密钥配置。按 `Ctrl+C` 退出；结束后可手动删除你创建的 `/tmp/lanveriq-agent-demo.toml`。此程序目前**不会**向后端发送心跳、读取设备库存或执行监控。Windows 11 可在 PowerShell 中使用：
 
 ```powershell
-Copy-Item .\apps\agent\config\agent.example.toml "$env:TEMP\lanveriq-agent-demo.toml"
+cd apps\agent
+Copy-Item .\config\agent.example.toml "$env:TEMP\lanveriq-agent-demo.toml"
 cargo run --locked -p lanveriq-agent -- --config "$env:TEMP\lanveriq-agent-demo.toml"
 ```
 
@@ -196,13 +198,14 @@ cargo run --locked -p lanveriq-agent -- --config "$env:TEMP\lanveriq-agent-demo.
 ### 本地测试命令
 
 ```bash
-# 仓库根目录：Rust（真实单元测试，合成数据）
+# Rust（真实单元测试，合成数据），从仓库根目录进入子项目
+cd apps/agent
 cargo test --workspace --locked
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 
 # Java：单元测试、构建、编译 PostgreSQL 集成测试代码（不启动 Docker）
-cd apps/server
+cd ../server
 ./gradlew test bootJar compileIntegrationTestJava
 ```
 
@@ -226,15 +229,16 @@ java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar
 
 仍连接你的 `127.0.0.1:5432/lanveriq`，仍绑定 `127.0.0.1:18081`，仍默认关闭业务功能。退出按 `Ctrl+C`。JAR 属于试验性构建物，**不是**已通过 Caddy/TLS、真实浏览器及数据库集成验收的生产服务；不要用 `nohup` 或自动开机来绕过这些门槛。
 
-Linux 的 Rust Agent 仅提供**实验性 systemd 单元** `deploy/systemd/lanveriq-agent.service`。如果你拥有一台**隔离的测试 VM**并明确允许安装一个不采集数据的空闲服务，可在仓库根目录先构建，再手动安装：
+Linux 的 Rust Agent 仅提供**实验性 systemd 单元** `deploy/systemd/lanveriq-agent.service`。如果你拥有一台**隔离的测试 VM**并明确允许安装一个不采集数据的空闲服务，可从仓库根目录进入 `apps/agent` 构建，再手动安装：
 
 ```bash
+cd apps/agent
 cargo build --release --locked -p lanveriq-agent
 sudo install -m 0755 target/release/lanveriq-agent /usr/local/bin/lanveriq-agent
 sudo install -d -m 0755 /etc/lanveriq-agent
 # 本例配置没有密钥；未来存放密钥的配置不能使用 0644 权限。
-sudo install -m 0644 apps/agent/config/agent.example.toml /etc/lanveriq-agent/agent.toml
-sudo install -m 0644 deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
+sudo install -m 0644 config/agent.example.toml /etc/lanveriq-agent/agent.toml
+sudo install -m 0644 ../../deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
 sudo systemd-analyze verify /etc/systemd/system/lanveriq-agent.service
 sudo systemctl daemon-reload
 sudo systemctl start lanveriq-agent

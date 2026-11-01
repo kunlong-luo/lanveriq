@@ -26,7 +26,7 @@ Intended central topology: **Caddy HTTPS + static React assets → Spring Boot �
 ## Prerequisites
 
 - Git and **JDK 25**; the backend at `apps/server` includes the **Gradle 9.8.2 Wrapper**, so you need neither system Gradle nor Maven.
-- **Rust 1.94.0** / Cargo from `rust-toolchain.toml`, plus your operating system's native Rust build prerequisites.
+- **Rust 1.94.0** / Cargo from `apps/agent/rust-toolchain.toml`, plus your operating system's native Rust build prerequisites.
 - Docker Engine with the existing running `spark-db` PostgreSQL container; a separate short-lived **synthetic-only** PostgreSQL 18.6 container is optional for independent acceptance.
 - Bash, curl and OpenSSL for the existing Linux/WSL/macOS local server smoke script.
 - **Node.js 24 and pnpm 12** are required for the optional local Web preview. `apps/server/contract-client-check` separately validates generated API types; the Web preview does not call those APIs.
@@ -51,7 +51,7 @@ cd apps/server
 ./gradlew test
 ~~~
 
-Windows PowerShell uses `cd apps/server` followed by `.\gradlew.bat test`. React remains a standalone pnpm app under `apps/web`; the Rust workspace is controlled by root `Cargo.toml`. Neither is a Java Gradle module. See the [IDEA import guide](docs/development/intellij-idea.md); importing and unit testing do not need a running database or any device monitoring.
+Windows PowerShell uses `cd apps/server` followed by `.\gradlew.bat test`. React remains a standalone pnpm app under `apps/web`; the Rust package is controlled by `apps/agent/Cargo.toml`. Neither is a Java Gradle module. See the [IDEA import guide](docs/development/intellij-idea.md); importing and unit testing do not need a running database or any device monitoring.
 
 ## 1. Reuse your existing `spark-db` PostgreSQL instance
 
@@ -171,12 +171,13 @@ The script creates and removes only its own synthetic database container, secret
 
 ### 3. Run the idle Rust Agent
 
-From the repository root:
+From the repository root, enter the Agent project:
 
 ```bash
+cd apps/agent
 cargo test --workspace --locked
 cargo build --release --locked -p lanveriq-agent
-cp apps/agent/config/agent.example.toml /tmp/lanveriq-agent-demo.toml
+cp config/agent.example.toml /tmp/lanveriq-agent-demo.toml
 cargo run --locked -p lanveriq-agent -- \
   --config /tmp/lanveriq-agent-demo.toml
 ```
@@ -186,7 +187,8 @@ The example config is non-secret; the Agent demands an **absolute path**. Press 
 For a Windows 11 **foreground** test in PowerShell:
 
 ```powershell
-Copy-Item .\apps\agent\config\agent.example.toml "$env:TEMP\lanveriq-agent-demo.toml"
+cd apps\agent
+Copy-Item .\config\agent.example.toml "$env:TEMP\lanveriq-agent-demo.toml"
 cargo run --locked -p lanveriq-agent -- --config "$env:TEMP\lanveriq-agent-demo.toml"
 ```
 
@@ -195,13 +197,14 @@ This is not an installed Windows SCM service.
 ### 4. Local unit tests and builds
 
 ```bash
-# Repository root — Rust tests and checks
+# Rust tests and checks (from repository root)
+cd apps/agent
 cargo test --workspace --locked
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 
 # Backend — Java JUnit, JAR and *compilation only* of optional DB test sources
-cd apps/server
+cd ../server
 ./gradlew test bootJar compileIntegrationTestJava
 ```
 
@@ -243,12 +246,13 @@ Stop with `Ctrl+C`. This starts a **default-deny synthetic development process**
 **Only on an explicitly authorized isolated test VM**, after inspecting the [systemd unit](deploy/systemd/lanveriq-agent.service):
 
 ```bash
+cd apps/agent
 cargo build --release --locked -p lanveriq-agent
 sudo install -m 0755 target/release/lanveriq-agent /usr/local/bin/lanveriq-agent
 sudo install -d -m 0755 /etc/lanveriq-agent
 # This exact example config has no secrets; never use mode 0644 for future keys.
-sudo install -m 0644 apps/agent/config/agent.example.toml /etc/lanveriq-agent/agent.toml
-sudo install -m 0644 deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
+sudo install -m 0644 config/agent.example.toml /etc/lanveriq-agent/agent.toml
+sudo install -m 0644 ../../deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
 sudo systemd-analyze verify /etc/systemd/system/lanveriq-agent.service
 sudo systemctl daemon-reload
 sudo systemctl start lanveriq-agent

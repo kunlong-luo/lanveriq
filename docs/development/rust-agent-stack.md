@@ -23,6 +23,8 @@
 
 **Only install what a implemented feature needs.** One stable crate version and its transitive dependencies are pinned in `Cargo.lock` for the final Agent binary. Avoid adding `reqwest` and another HTTP client, multiple logging frameworks, or parallel ORMs.
 
+**Project-local Rust tooling:** The Agent is an independent crate under `apps/agent/`, with its own `Cargo.toml`, `Cargo.lock` and `rust-toolchain.toml`. Run Cargo commands from `apps/agent`; no Rust package configuration belongs to the multi-language repository root.
+
 ## AGT-01 implemented scope (no collection)
 
 [Agent lifecycle source](../../apps/agent/README.md) uses pinned Rust 1.94.0 and a committed `Cargo.lock`: Tokio 1.54.1, Serde/TOML, Clap, tracing and Windows `windows-service` 0.8.1. The runtime is cancellable, Linux reacts to SIGTERM, and Windows supports the SCM Stop/Running/Stopped lifecycle through the maintained crate. Configuration has no secrets, network addresses, collection options or implicit defaults. Both Windows and Linux service smoke remain **NOT TESTED ON ACTUAL DEVICES**. reqwest/rustls, os_info and sysinfo are **now installed/locked** for opt-in inventory and transport slices; SQLx 0.9.0, uuid, serde_json, sha2 and pinned bundled SQLite 3.51.3 via `libsqlite3-sys =0.37.0` are present for AGT-02 synthetic persistence; they belong to feature slices that actually use them. [AGT-01 test plan](../testing/agent-lifecycle-manual.md).

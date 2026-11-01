@@ -4,16 +4,17 @@
 
 ## Toolchain and dependencies
 
-From the repository root, install the pinned Rust 1.94.0 toolchain from rustup and run:
+From the repository root, enter `apps/agent` (where the Rust toolchain, manifest and lockfile now live) and run:
 
 ```sh
+cd apps/agent
 cargo test --workspace --locked
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo build --release --locked -p lanveriq-agent
 ```
 
-The committed root `Cargo.lock` pins transitive dependencies. Tokio supplies the async runtime/signal handling; Serde + TOML enforce the versioned schema; Clap parses the command line; tracing supplies diagnostics; Windows SCM events use `windows-service` 0.8.1. No custom async worker, service manager, TLS implementation or collector is introduced. AGT-02 adds SQLx 0.9.0, `uuid`, `serde_json`, `sha2` and a pinned bundled `libsqlite3-sys =0.37.0` with the WAL-reset fix.
+The committed `apps/agent/Cargo.lock` pins transitive dependencies. Tokio supplies the async runtime/signal handling; Serde + TOML enforce the versioned schema; Clap parses the command line; tracing supplies diagnostics; Windows SCM events use `windows-service` 0.8.1. No custom async worker, service manager, TLS implementation or collector is introduced. AGT-02 adds SQLx 0.9.0, `uuid`, `serde_json`, `sha2` and a pinned bundled `libsqlite3-sys =0.37.0` with the WAL-reset fix.
 
 ## INV-01 on-demand local inventory (NOT WIRED TO SERVICE)
 
@@ -21,7 +22,7 @@ The committed root `Cargo.lock` pins transitive dependencies. Tokio supplies the
 
 `inventory_platform.rs` adds an **explicitly invoked** local Windows/Linux source adapter using maintained and locked **`sysinfo =0.37.1`**, **`os_info =3.15.0`** and **`network-interface =2.0.5`**. Sysinfo is built only with `system` and `disk` features, omitting user/process/component/network enumeration; the adapter queries CPU/RAM, OS version, non-loopback NIC IPs/MAC and local mounted disks only. There is no automatic 30-second collection, service scheduler, network upload, serial/TPM, Wi-Fi location, username, process list, activity or screen access. An unknown metric remains null/unavailable; no fake zero or trust bypass. **A successful build is not evidence of genuine Windows 11 or Pop!_OS asset accuracy.** [INV-01 manual acceptance](../../docs/testing/agent-inventory-manual.md).
 
-The repo `Cargo.lock` was updated by Cargo itself in a **one-time repository-scoped maintenance workflow**. That temporary write-enabled workflow has been removed; normal Linux/Windows cargo tests/clippy still run with `--locked`. New dependency versions must be reviewed when changed.
+The Agent-local `Cargo.lock` was updated by Cargo itself in a **one-time repository-scoped maintenance workflow**. That temporary write-enabled workflow has been removed; normal Linux/Windows cargo tests/clippy still run with `--locked`. New dependency versions must be reviewed when changed.
 
 ## INV-01-C durable normalized SQLite inventory (NO runtime upload)
 
@@ -62,6 +63,7 @@ All tests use fabricated assets and simulated timestamps; an injected SQL trigge
 Create an independently reviewed, strictly synthetic file at an **absolute path**. The example is `apps/agent/config/agent.example.toml`. It contains no secrets and enables no data collection. For a short foreground check:
 
 ```sh
+# Run from apps/agent
 cargo run --locked -p lanveriq-agent -- --config /absolute/path/to/agent.toml
 ```
 
