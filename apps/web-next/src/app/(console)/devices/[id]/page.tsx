@@ -3,8 +3,9 @@ import { notFound } from 'next/navigation';
 import { Clock3, HardDrive, RefreshCcw } from 'lucide-react';
 import { SectionHeading } from '@/components/section-heading';
 import { DeviceDetailTabs } from '@/components/device-detail-tabs';
+import { isCanonicalUuid } from '@/lib/uuid';
 
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 
 const summary = [
   { label: '最后心跳', Icon: Clock3 },
@@ -16,7 +17,7 @@ export default async function DeviceDetail({ params }: Readonly<{ params: Promis
   const { id } = await params;
   // Reject invalid path input before rendering any detail; UUID alone never
   // grants permission, and this page deliberately does no server-side reads.
-  if (!uuid.test(id)) notFound();
+  if (!isCanonicalUuid(id)) notFound();
   return <section className="page">
     <Link href="/devices" className="text-link">← 返回终端资产</Link>
     <div className="title-row">

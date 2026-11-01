@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, LockKeyhole, Search, ShieldAlert, WifiOff, RefreshCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { isCanonicalUuid } from '../lib/uuid';
 
 /**
  * NXT-02 display-only table. No network requests, demo data or browser
@@ -25,7 +26,7 @@ export type DirectoryState =
   | Readonly<{ kind: 'unconnected' | 'loading' | 'signed_out' | 'forbidden' | 'unavailable' }>
   | Readonly<{ kind: 'ready'; rows: readonly DirectoryRow[]; hasMore: boolean }>;
 
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const statusLabel: Record<DirectoryRow['connectivity'], string> = {
   online: '在线', stale: '延迟', offline: '离线', unknown: '待确认',
 };
@@ -111,7 +112,7 @@ export function DeviceDirectory({ state }: Readonly<{ state: DirectoryState }>) 
               {statusLabel[row.connectivity]}</span></td>
             <td>{row.heartbeat ?? '尚无已接收心跳'}</td>
             <td>{row.queue === null ? '未上报' : `${row.queue} 条`}</td>
-            <td>{uuid.test(row.id)
+            <td>{isCanonicalUuid(row.id)
               ? <Link href={`/devices/${row.id}`} aria-label={`查看${row.label}的详情`}
                   className="device-detail-link"><ArrowRight size={18} /></Link>
               : <span>不可用</span>}</td>
