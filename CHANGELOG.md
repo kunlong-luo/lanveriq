@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-01 — One-command local PostgreSQL setup without DBeaver
+
+- Added manual-only `apps/server/scripts/setup-local-postgres.sh`, a guarded Linux wrapper around PostgreSQL's own `psql` to avoid DBeaver SQLSTATE 25001 transaction handling. It checks PostgreSQL 18/SCRAM and exact role/database state, requires human confirmation, handles narrowly scoped partial NOLOGIN-role creation, and refuses unexpected database ownership and PUBLIC grants.
+- Uses psql's interactive `\\password` command for a hidden strong password, enabling LOGIN only after SCRAM password storage is verified; neither scripts nor logs contain plaintext credentials. Existing credentials are not reset.
+- Kept the reviewed SQL and Flyway migrations separate. No shared database, real device or production service is accessed by GitHub CI.
+
 ## 2026-11-01 — Manual, secret-free PostgreSQL database provisioning
 - Added `apps/server/scripts/provision-lanveriq-database.sql` as an explicitly invoked psql bootstrap, **not a Flyway migration**. It fails closed if not connected to the postgres maintenance database as an authorized cluster administrator, or if the lanveriq role/database already exists.
 - Creates only a `NOLOGIN` non-superuser database owner and dedicated lanveriq database, revoking default PUBLIC database privileges. A human sets the SCRAM password via interactive `\password` and enables LOGIN only afterward.

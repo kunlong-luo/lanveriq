@@ -73,6 +73,16 @@ Your existing InfluxDB Explorer maps host **port 18080**, so the local Lanveriq 
 
 ### 2. Bootstrap a dedicated PostgreSQL database and role (manual only)
 
+**Recommended Linux path: skip DBeaver's SQL editor.** In a trusted local terminal, run the interactive, manually invoked helper from the repository root:
+
+~~~bash
+cd /home/spark/Projects/github/lanveriq
+git pull origin main
+bash apps/server/scripts/setup-local-postgres.sh
+~~~
+
+It checks the existing `spark-postgres` container, PostgreSQL 18, SCRAM settings and the current `lanveriq` role/database before any changes. Confirm **`CREATE lanveriq`** for a fresh, absent pair, or **`RECOVER lanveriq`** only for the narrowly verified NOLOGIN-role-without-database state. Confirm **`PASSWORD lanveriq`** to enter PostgreSQL's hidden password prompts (twice), then enter the chosen password once more for the TCP verification. The confirmation text is *not* your password. Existing usable logins are not reset, while unexpected ownership/privileges stop the script. No other database, container, monitoring, Flyway or production service is touched. The manual SQL steps below are an **alternative**, not additional steps to perform after this helper.
+
 First inspect the existing `spark-postgres` container through its Unix socket:
 
 ~~~bash

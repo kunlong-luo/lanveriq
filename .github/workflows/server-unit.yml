@@ -35,6 +35,8 @@ jobs:
           java-version: '25'
       - name: Configure Gradle
         uses: gradle/actions/setup-gradle@v6
+      - name: Syntax-check the manual PostgreSQL setup helper (do not execute)
+        run: bash -n apps/server/scripts/setup-local-postgres.sh
       - name: Check manual SQL bootstrap portability and safety (no DB or Docker)
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_provision_lanveriq_database.py'
       - name: Validate manual PostgreSQL script syntax (do not execute integration)

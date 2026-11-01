@@ -14,6 +14,10 @@ For copyable development and synthetic-only commands, begin with the [Chinese RE
 
 **JDBC/IDE-compatible SQL bootstrap:** `apps/server/scripts/provision-lanveriq-database.sql` contains only PostgreSQL SQL, no `psql` directives. Open it against the **`postgres`** maintenance database as the authorized administrator, set **Auto-commit** and **Stop on error**, and execute statements in sequence. **Do not** wrap `CREATE DATABASE` in a transaction. If using psql, pass `-v ON_ERROR_STOP=1` on the invocation rather than adding a backslash directive to the SQL file. Passwords are not in source: configure via a GUI credential editor or the interactive psql `\password` command, then separately enable LOGIN. Existence checks are deliberate; inspect partial states rather than rerunning.
 
+## Recommended manual PostgreSQL setup on the Linux development machine
+
+From the repository root, use `bash apps/server/scripts/setup-local-postgres.sh` rather than executing `CREATE DATABASE` through a JDBC SQL editor. The helper is manually invoked, requires an interactive terminal, a running existing `spark-postgres`, authorized `root` superuser access and PostgreSQL 18 SCRAM settings. It checks for pre-existing or interrupted `lanveriq` objects, requires exact confirmations, delegates separate statements to the container's `psql`, and uses hidden interactive password prompts. It never creates a new container, changes `iot_farm`, enables monitoring, or runs as part of Spring Boot/Flyway/CI. No password is stored in source control. The standalone bootstrap SQL remains reviewable at [`apps/server/scripts/provision-lanveriq-database.sql`](../../apps/server/scripts/provision-lanveriq-database.sql).
+
 ## Shared PostgreSQL safety boundary for `spark-db`
 
 The supplied local Compose stack already serves several unrelated applications.
