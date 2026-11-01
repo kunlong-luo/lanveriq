@@ -8,6 +8,12 @@ on:
       - 'apps/web/tsconfig.contract.json'
       - 'apps/web/package.json'
       - 'apps/web/pnpm-lock.yaml'
+      - 'apps/web-next/contract-check/**'
+      - 'apps/web-next/tsconfig.contract.json'
+      - 'apps/web-next/src/lib/console-device-projection.ts'
+      - 'apps/web-next/src/components/device-directory.tsx'
+      - 'apps/web-next/package.json'
+      - 'apps/web-next/pnpm-lock.yaml'
       - '.github/workflows/server-unit.yml'
   pull_request:
     paths:
@@ -16,6 +22,12 @@ on:
       - 'apps/web/tsconfig.contract.json'
       - 'apps/web/package.json'
       - 'apps/web/pnpm-lock.yaml'
+      - 'apps/web-next/contract-check/**'
+      - 'apps/web-next/tsconfig.contract.json'
+      - 'apps/web-next/src/lib/console-device-projection.ts'
+      - 'apps/web-next/src/components/device-directory.tsx'
+      - 'apps/web-next/package.json'
+      - 'apps/web-next/pnpm-lock.yaml'
       - '.github/workflows/server-unit.yml'
 
 permissions:
@@ -100,6 +112,15 @@ jobs:
           mkdir -p apps/web/.generated-contract
           cp -a apps/server/contract-client-check/generated/. apps/web/.generated-contract/
           cd apps/web
+          pnpm install --frozen-lockfile
+          pnpm exec tsc --noEmit --project tsconfig.contract.json
+      - name: Verify actual generated Springdoc/Orval models against Next.js display projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apps/web-next/.generated-contract/model
+          cp -a apps/server/contract-client-check/generated/model/. apps/web-next/.generated-contract/model/
+          cd apps/web-next
           pnpm install --frozen-lockfile
           pnpm exec tsc --noEmit --project tsconfig.contract.json
       - name: Upload non-deployed typechecked Orval candidate
