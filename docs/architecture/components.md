@@ -28,4 +28,4 @@ Rust async network work uses Tokio; SQLx SQLite handles its blocking work intern
 **Visual:** [component diagram](../diagrams/component-architecture.md). **Contract:** [dashboard WSS](websocket-contract.md).
 
 ## Future evolution
-Do not introduce Redis, Kafka, microservices, Kubernetes, AI or a browser PWA offline write queue unless measured requirements justify them.
+Maintainer amendment (2026-11-01): allow an **optional, default-OFF Redis 8** integration via Spring Data Redis/Lettuce for ephemeral TTL-only refresh hints and health against the existing `spark-redis`. **Do not** make it the authority for sessions, RBAC, device status, audit, ACK, distributed locks or WebSocket delivery. Do not introduce Kafka, microservices, Kubernetes, AI or a browser PWA offline write queue unless measured requirements justify them.

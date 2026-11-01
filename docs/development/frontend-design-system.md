@@ -1,4 +1,4 @@
-# Frontend design system and dependency selection — documentation only
+# Frontend design system and dependency selection — synthetic preview implemented, live integration pending
 
 **Status (2026-11-01):** A synthetic-only React/Vite preview has been implemented at `apps/web` and built in [Web CI #41274343864](https://github.com/kunlong-luo/lanveriq/actions/runs/41274343864), with working demo routes, search/filter and Radix Tabs. The frontend is **not connected to real Spring Boot APIs, Orval hooks, session, WSS or real device data**; production approval remains open. Product visuals are in [visual gallery](../visuals/README.md) and standardized by [STYLE_GUIDE](../visuals/STYLE_GUIDE.md). Visual drawings do not replace real components.
 
