@@ -38,7 +38,7 @@ function inspectRuntimeSource(folder) {
     if (entry.isDirectory()) inspectRuntimeSource(file);
     else if (/\.[jt]sx?$/.test(entry.name)) {
       const source = readFileSync(file, 'utf8');
-      if (/staged-console-read|\.generated-contract/.test(source)) {
+      if (/staged-console-read|staged-console-auth|\.generated-contract/.test(source)) {
         throw new Error('NXT-03 pending acceptance: runtime imported staged transport/model: ' + file);
       }
     }

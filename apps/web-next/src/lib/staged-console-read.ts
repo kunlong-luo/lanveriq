@@ -10,7 +10,7 @@ import type { DirectoryState } from '../components/device-directory';
  */
 export type BrowserFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-function canonicalConsoleOrigin(configured: string): string {
+export function canonicalConsoleOrigin(configured: string): string {
   let url: URL;
   try { url = new URL(configured); }
   catch { throw new Error('Canonical HTTPS console origin required'); }
