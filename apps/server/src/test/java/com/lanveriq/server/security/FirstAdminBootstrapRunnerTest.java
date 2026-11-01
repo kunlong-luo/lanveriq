@@ -1,6 +1,7 @@
 package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -11,11 +12,46 @@ import static org.mockito.ArgumentMatchers.anyString;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.MapPropertySource;
+import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class FirstAdminBootstrapRunnerTest {
 
     private final FirstAdminBootstrapService service =
             Mockito.mock(FirstAdminBootstrapService.class);
+
+    /**
+     * Constructor injection is deliberately tested through a REAL Spring
+     * context, not by calling new FirstAdminBootstrapRunner(...). The
+     * production bean has two constructors; Spring must select the marked
+     * (service, environment) constructor instead of expecting a no-arg one.
+     * No CLI runner executes, no database is created, and no password read.
+     */
+    @Test
+    void optInBootstrapRunnerIsConstructibleByActualSpringContext() {
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.getEnvironment().getPropertySources().addFirst(
+                    new MapPropertySource("synthetic-test-bootstrap",
+                            Map.of("lanveriq.bootstrap.enabled", "true")));
+            context.registerBean(FirstAdminBootstrapService.class, () -> service);
+            context.register(FirstAdminBootstrapRunner.class);
+            context.refresh();
+            assertNotNull(context.getBean(FirstAdminBootstrapRunner.class));
+            verify(service, never()).bootstrap(anyString(), anyString(), any(char[].class));
+        }
+    }
+
+    @Test
+    void bootstrapRunnerAbsentWhenDefaultOff() {
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.registerBean(FirstAdminBootstrapService.class, () -> service);
+            context.register(FirstAdminBootstrapRunner.class);
+            context.refresh();
+            assertEquals(0, context.getBeanNamesForType(FirstAdminBootstrapRunner.class).length);
+        }
+    }
 
     @Test
     void refusesBootstrapWhenWebServerWouldRunWithoutReadingSecret() {
