@@ -1,0 +1,49 @@
+name: NXT-01 isolated Next.js pnpm lockfile bootstrap (one-time)
+on:
+  push:
+    paths:
+      - 'apps/web-next/**'
+      - '.github/workflows/web-next-lockfile-bootstrap.yml'
+permissions:
+  contents: read
+jobs:
+  candidate-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up pinned pnpm 12 and Node 24 without installing unlocked deps automatically
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24
+          working-directory: apps/web-next
+          install: false
+          require-lockfile: false
+          cache: false
+      - name: Generate real pnpm lockfile only for isolated candidate
+        working-directory: apps/web-next
+        run: pnpm install --lockfile-only
+      - name: Strict frozen install from just-generated lockfile
+        working-directory: apps/web-next
+        run: pnpm install --frozen-lockfile
+      - name: Route / security check and component unit tests
+        working-directory: apps/web-next
+        run: |
+          pnpm run verify:routes
+          pnpm test
+      - name: Typecheck and compile real Next.js standalone candidate
+        working-directory: apps/web-next
+        run: |
+          pnpm typecheck
+          pnpm build
+      - name: Upload pnpm-produced lockfile for reviewed source commit
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: next01-pnpm-lockfile-${{ github.sha }}
+          path: apps/web-next/pnpm-lock.yaml
+          retention-days: 7
+          if-no-files-found: error
