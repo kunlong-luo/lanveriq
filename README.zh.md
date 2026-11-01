@@ -277,6 +277,22 @@ DROP ROLE lanveriq;
 
 **绝对不要删除 `iot_farm`、停止 `spark-postgres` 或清理 `postgres-data` 卷。** 你的原有 pg_dump/Kopia/R2 备份设置可能只覆盖 `iot_farm`；不要假设它已包括新建的 `lanveriq` 数据库，需单独核实。
 
+## 六、Web 本地预览运行
+
+React Web 已可作为**仅有合成数据**的前端预览启动（不需要后端或 Docker）。首次安装依赖需要访问包仓库：
+
+~~~bash
+cd apps/web
+corepack enable
+corepack prepare pnpm@12.0.0 --activate
+pnpm install --no-frozen-lockfile
+pnpm test
+pnpm build
+pnpm dev
+~~~
+
+浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。当前直接依赖已固定版本；首次 CI 生成的 pnpm 锁文件尚待提交，因此临时使用 `--no-frozen-lockfile`，不能声称已实现完全冻结安装。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment` 和 `/settings`。真正的注册、撤销、Agent 下发都明确禁用。详见 [Web README](apps/web/README.md)。
+
 ## 六、前端进度和下一步
 
 截至当前仓库检查：**`apps/web` 已建立并完成可构建的合成数据演示页面**，包括设备搜索、Radix 详情选项卡、监控中心与系统设置；全部示例设备均为虚构，不连接真实服务，也不能进行远程下发或设备撤销。后端 Springdoc → Orval 契约验证工程 `apps/server/contract-client-check` 尚未与前端 API 联调。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
