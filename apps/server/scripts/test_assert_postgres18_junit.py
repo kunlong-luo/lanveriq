@@ -10,20 +10,22 @@ gate = runpy.run_path(str(Path(__file__).with_name("assert-postgres18-junit.py")
 verify_reports = gate["verify_reports"]
 minimums = gate["MIN_COUNTS"]
 mandatory = gate["REQUIRED_CASES"]
+packages = gate["PACKAGES"]
 
 
 def synthetic_reports(directory: Path, *, omit=None, skipped=None,
                       failure=None, duplicate=None):
     """Generate wholly invented Gradle-shaped results, not DB evidence."""
     for cls, minimum in minimums.items():
-        suite = ElementTree.Element("testsuite", name=f"com.lanveriq.server.events.{cls}")
+        qualified = f"{packages[cls]}.{cls}"
+        suite = ElementTree.Element("testsuite", name=qualified)
         methods = sorted(mandatory[cls])
         methods += [f"syntheticExtra{i}" for i in range(minimum - len(methods))]
         for name in methods:
             if (cls, name) == omit:
                 continue
             case = ElementTree.SubElement(suite, "testcase", {
-                "classname": f"com.lanveriq.server.events.{cls}",
+                "classname": qualified,
                 "name": f"{name}()",
             })
             if (cls, name) == skipped:
@@ -32,11 +34,11 @@ def synthetic_reports(directory: Path, *, omit=None, skipped=None,
                 ElementTree.SubElement(case, "failure")
             if (cls, name) == duplicate:
                 ElementTree.SubElement(suite, "testcase", {
-                    "classname": f"com.lanveriq.server.events.{cls}",
+                    "classname": qualified,
                     "name": f"{name}()",
                 })
         ElementTree.ElementTree(suite).write(
-            directory / f"TEST-com.lanveriq.server.events.{cls}.xml",
+            directory / f"TEST-{qualified}.xml",
             encoding="utf-8", xml_declaration=True)
 
 
@@ -88,10 +90,57 @@ class PostgresEvidenceGateTest(unittest.TestCase):
     def test_seventh_suite_cannot_be_replaced_by_six_old_suites(self):
         with tempfile.TemporaryDirectory() as tmp:
             synthetic_reports(Path(tmp))
-            (Path(tmp) / "TEST-com.lanveriq.server.events.PostgreSqlAdminAuditAtomicityIT.xml").unlink()
+            (Path(tmp) / ("TEST-" + packages["PostgreSqlAdminAuditAtomicityIT"]
+                          + ".PostgreSqlAdminAuditAtomicityIT.xml")).unlink()
             errors = verify_reports(Path(tmp))
             self.assertTrue(any("PostgreSqlAdminAuditAtomicityIT: only 0 passing tests"
                                 in error for error in errors))
+
+    def test_mismatched_gradle_suite_and_case_class_are_rejected(self):
+        cls = "PostgreSqlAdminAuditAtomicityIT"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            synthetic_reports(directory)
+            path = directory / f"TEST-{packages[cls]}.{cls}.xml"
+            tree = ElementTree.parse(path)
+            tree.getroot().set("name", f"com.lanveriq.server.events.{cls}")
+            tree.write(path, encoding="utf-8")
+            self.assertTrue(any("Wrong JUnit suite identity" in error
+                                for error in verify_reports(directory)))
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            synthetic_reports(directory)
+            path = directory / f"TEST-{packages[cls]}.{cls}.xml"
+            tree = ElementTree.parse(path)
+            tree.getroot().find("testcase").set(
+                "classname", f"com.lanveriq.server.events.{cls}")
+            tree.write(path, encoding="utf-8")
+            self.assertTrue(any("Wrong JUnit testcase class" in error
+                                for error in verify_reports(directory)))
+
+    def test_unknown_report_and_inconsistent_suite_metadata_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            synthetic_reports(directory)
+            (directory / "TEST-unknown.Spoof.xml").write_text(
+                '<testsuite name="unknown.Spoof"><testcase name="other" '
+                'classname="unknown.Spoof"/></testsuite>')
+            self.assertTrue(any("Unknown integration test report" in error
+                                for error in verify_reports(directory)))
+        cls = "PostgreSqlEventIngestionIT"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            synthetic_reports(directory)
+            path = directory / f"TEST-{packages[cls]}.{cls}.xml"
+            tree = ElementTree.parse(path)
+            tree.getroot().set("tests", "999")
+            tree.getroot().set("skipped", "1")
+            tree.write(path, encoding="utf-8")
+            errors = verify_reports(directory)
+            self.assertTrue(any("Inconsistent JUnit test count" in error
+                                for error in errors))
+            self.assertTrue(any("Nonzero or invalid JUnit skipped" in error
+                                for error in errors))
 
     def test_skipped_and_failed_tests_fail_even_when_counts_present(self):
         with tempfile.TemporaryDirectory() as tmp:
