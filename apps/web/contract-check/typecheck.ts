@@ -73,3 +73,22 @@ export const csrfTokenIsMandatory: AllRequired<ConsoleCsrfToken, 'csrfToken'> = 
 // with fabricated activity, counters, identifiers or online state.
 export const heartbeatMayBeMissing: Optional<DeviceHealthSummary, 'heartbeat_received_at'> = true;
 export const cursorMayBeMissing: Optional<ScopedDeviceDirectoryPage, 'next_cursor'> = true;
+
+
+/**
+ * FE-02-C: prove the staged read-only view projection can consume the
+ * generated Springdoc/Orval response without introducing a second wire DTO.
+ * These are type-only references: never run a query in this build bridge.
+ */
+import { projectScopedDevicePage } from '../src/api/scopedDeviceProjection';
+import type { ScopedDeviceDirectoryState } from '../src/components/ScopedDeviceDirectory';
+
+export const sourceGeneratedDirectoryProjection:
+  (page: ScopedDeviceDirectoryPage) => ScopedDeviceDirectoryState =
+  projectScopedDevicePage;
+
+type SourceGeneratedItem = ScopedDeviceDirectoryPage['items'][number];
+export const generatedDeviceHasRequiredId:
+  (item: SourceGeneratedItem) => string = item => item.device_id;
+export const generatedDeviceHasRequiredGroup:
+  (item: SourceGeneratedItem) => string = item => item.group_name;
