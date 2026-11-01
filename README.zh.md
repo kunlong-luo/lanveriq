@@ -92,9 +92,9 @@ git pull origin main
 bash apps/server/scripts/setup-local-postgres.sh
 ~~~
 
-此命令仅针对当前已有的 `spark-postgres` 容器（管理员 `root`）和 PostgreSQL 18。它会检查版本、SCRAM 安全配置、`lanveriq` 角色/数据库是否存在和权限，然后让你输入 **`CREATE lanveriq`**（全新创建）或 **`RECOVER lanveriq`**（仅当已经存在符合限制的 NOLOGIN 角色而缺少数据库时），随后输入 **`PASSWORD lanveriq`** 确认进入密码设置。密码在 PostgreSQL 自带的隐藏输入界面输入两次，并在最后的连接校验中再输入一次。**这些确认词不是数据库密码**，密码不会保存在仓库或命令行里。
+此命令仅针对当前已有的 `spark-postgres` 容器（管理员 `root`）和 PostgreSQL 18。它会检查版本、SCRAM 安全配置、`lanveriq` 角色/数据库是否存在和权限，然后让你输入 **`CREATE lanveriq`**（全新创建）或 **`RECOVER lanveriq`**（仅当已经存在符合限制的 NOLOGIN 角色而缺少数据库时），如果数据库已建好但 `PUBLIC` 默认权限尚未撤销，并且角色仍是受限 `NOLOGIN`，脚本会要求输入 **`SECURE lanveriq`** 以仅撤销新库的公共权限；随后输入 **`PASSWORD lanveriq`** 确认进入密码设置。密码在 PostgreSQL 自带的隐藏输入界面输入两次，并在最后的连接校验中再输入一次。**这些确认词不是数据库密码**，密码不会保存在仓库或命令行里。
 
-已存在完整账号和数据库时不会重置密码；发现异常权限、所有权或未撤销的 `PUBLIC` 权限时直接退出并要求人工核查。脚本不会重启/删除共享容器、触碰 `iot_farm`、运行 Flyway 或启动服务器。成功之后，才通过 `LANVERIQ_DB_PASSWORD` 配置后端。**下方保留的是高级手动 SQL 操作说明，不需要同时再运行。**
+已存在完整账号和数据库时不会重置密码；发现异常集群权限、所有权，或登录已启用但仍有 `PUBLIC` 权限时直接退出，要求人工核查。脚本不会重启/删除共享容器、触碰 `iot_farm`、运行 Flyway 或启动服务器。成功之后，才通过 `LANVERIQ_DB_PASSWORD` 配置后端。**下方保留的是高级手动 SQL 操作说明，不需要同时再运行。**
 
 **只在确认 `lanveriq` 数据库和角色都不存在时执行。** 先进入现有容器的 PostgreSQL 控制台检查 `\du lanveriq` 和 `\l lanveriq`：
 
