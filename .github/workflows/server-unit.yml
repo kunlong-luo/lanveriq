@@ -35,6 +35,8 @@ jobs:
           java-version: '25'
       - name: Configure Gradle
         uses: gradle/actions/setup-gradle@v6
+      - name: Check manual SQL bootstrap portability and safety (no DB or Docker)
+        run: python3 -m unittest discover -s apps/server/scripts -p 'test_provision_lanveriq_database.py'
       - name: Validate manual PostgreSQL script syntax (do not execute integration)
         run: bash -n apps/server/scripts/verify-postgres18.sh
       - name: Validate manual Spring upstream TLS script syntax (no TLS/Docker execution)
