@@ -179,6 +179,18 @@ Run that only against disposable, explicitly authorized Docker-backed synthetic 
 
 **Do not run an invented `docker compose up -d` command: no Compose stack exists yet.**
 
+### Run a test backend JAR (not a production release)
+
+With the **same environment** already set for the dedicated `127.0.0.1:5432/lanveriq` database and `127.0.0.1:18081` listener, you may build and launch the backend as a foreground JAR instead of using `bootRun`:
+
+```bash
+cd apps/server  # Skip if already inside apps/server.
+./gradlew bootJar
+java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar
+```
+
+Stop with `Ctrl+C`. This starts a **default-deny synthetic development process**, not a reviewed publicly reachable API; it has no production Caddy/TLS/browser release approval. Do not auto-start it or enable collection to work around those gates.
+
 ### Optional Linux-only idle Agent service trial
 
 **Only on an explicitly authorized isolated test VM**, after inspecting the [systemd unit](deploy/systemd/lanveriq-agent.service):
@@ -209,7 +221,7 @@ No real device enrollment, user-activity collection, automated uploads, monitori
 | Component | Safe development teardown | Data warning |
 |---|---|---|
 | Spring Boot `bootRun` | `Ctrl+C` in its terminal | Does not delete database files |
-| Ephemeral PostgreSQL container above | `docker stop lanveriq-pg-dev` | **Only for that named `--rm` synthetic fixture**; removes its temporary DB |
+| Existing `spark-postgres` | **Do not stop, uninstall or run Compose down** | Preserve `iot_farm`, other databases, Redis/InfluxDB and all volumes |
 | Foreground idle Agent | `Ctrl+C`; remove only your copied test TOML | Does not uninstall any OS service |
 | Linux experimental systemd Agent | Instructions below | Remove only files you installed and verified |
 | Windows test SCM service | No supported installer/uninstaller yet; if manually created, stop/delete the exact known test service using Windows SCM and review its ACLs/data | Never delete an unknown service name |
@@ -229,6 +241,26 @@ sudo rmdir /etc/lanveriq-agent
 ```
 
 This intentionally does **not** delete `/var/lib` state, SQLite/WAL, database volumes, certificates, audit history or backups. Destructive real-data removal requires its own authorization, backup and retention review.
+
+### Optionally delete **only** the dedicated Lanveriq database
+
+Stopping Lanveriq does **not** require deleting `lanveriq`. If (and only if) this is a disposable, authorized test database with no retention obligations, take and verify a restricted backup before any irreversible change:
+
+```bash
+umask 077
+docker exec spark-postgres pg_dump -U root -d lanveriq -Fc > lanveriq-backup.dump
+```
+
+Store the backup securely. After **all Lanveriq applications are stopped**, separately enter the PostgreSQL admin console with `docker exec -it spark-postgres psql -U root -d postgres`; inspect `\l` and `\du` to confirm the exact targets. Only if the `lanveriq` database was expressly created for this project and approved for deletion:
+
+```sql
+-- DESTRUCTIVE: execute only against the exact dedicated Lanveriq test DB.
+DROP DATABASE lanveriq;
+-- Only if the role is unused by any other database or application.
+DROP ROLE lanveriq;
+```
+
+Do **not** delete `iot_farm`, stop `spark-postgres` or remove its `postgres-data` volume. Your existing pg_dump/Kopia/R2 backup workflow may back up only `iot_farm`; independently confirm whether the new `lanveriq` DB is covered.
 
 ## Frontend progress
 
