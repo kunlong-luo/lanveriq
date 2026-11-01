@@ -6,16 +6,26 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 TMP="$(mktemp -d)"
 CID=""
 BACKEND_PID=""
+CADDY_DATA_VOLUME=""
+CADDY_CONFIG_VOLUME=""
 cleanup() {
     if [[ -n "$CID" ]]; then docker rm -f "$CID" >/dev/null 2>&1 || true; fi
     if [[ -n "$BACKEND_PID" ]]; then
         kill "$BACKEND_PID" 2>/dev/null || true
         wait "$BACKEND_PID" 2>/dev/null || true
     fi
+    # Named volumes are owned and removed by Docker. Never chmod, read or
+    # remove Caddy's private CA key from the unprivileged host runner.
+    if [[ -n "$CADDY_DATA_VOLUME" ]]; then
+        docker volume rm "$CADDY_DATA_VOLUME" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$CADDY_CONFIG_VOLUME" ]]; then
+        docker volume rm "$CADDY_CONFIG_VOLUME" >/dev/null 2>&1 || true
+    fi
     rm -rf "$TMP"
 }
 trap cleanup EXIT
-mkdir -p "$TMP/pki" "$TMP/data" "$TMP/config"
+mkdir -p "$TMP/pki"
 for cmd in openssl curl jq docker python3; do
     command -v "$cmd" >/dev/null || { echo "Missing tool: $cmd" >&2; exit 1; }
 done
@@ -97,6 +107,14 @@ IMAGE="caddy:2.11.7"
 docker pull "$IMAGE" >/dev/null
 docker image inspect "$IMAGE" --format \
     'Synthetic Caddy image ID {{.Id}}; digests {{json .RepoDigests}}'
+# Keep Caddy's private internal CA keys in isolated Docker-managed
+# volumes. Only a PUBLIC root certificate is copied out for curl.
+CADDY_DATA_VOLUME="$(docker volume create)"
+CADDY_CONFIG_VOLUME="$(docker volume create)"
+[[ -n "$CADDY_DATA_VOLUME" && -n "$CADDY_CONFIG_VOLUME" ]] || {
+    echo "Could not allocate isolated Caddy test storage" >&2
+    exit 1
+}
 # Always derive a LOOPBACK-ONLY copy for this manual acceptance probe;
 # never serve the repository's reference file over a public listener.
 # A text substitution can fail silently: the adapted config is checked below.
@@ -107,8 +125,8 @@ sed -e 's/servers :443 {/servers 127.0.0.1:443 {/' \
     "$ROOT/deploy/caddy/Caddyfile.reference" > "$TMP/Caddyfile.synthetic"
 CADDYFILE="$TMP/Caddyfile.synthetic"
 docker run --rm -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
-    -v "$TMP/pki:/etc/lanveriq/pki:ro" -v "$TMP/data:/data" \
-    -v "$TMP/config:/config" "$IMAGE" \
+    -v "$TMP/pki:/etc/lanveriq/pki:ro" \
+    -v "$CADDY_DATA_VOLUME:/data" -v "$CADDY_CONFIG_VOLUME:/config" "$IMAGE" \
     caddy adapt --config /etc/caddy/Caddyfile --pretty >"$TMP/adapted.json"
 jq -e '.apps.http.servers | type == "object"' "$TMP/adapted.json" >/dev/null
 # Every listener must be the explicitly isolated loopback TCP 443,
@@ -124,23 +142,47 @@ jq -e '[.apps.http.servers[] | select(.strict_sni_host == true and
 jq -e '[.. | objects | select(.client_authentication?.mode? == "require_and_verify")]
     | length > 0' "$TMP/adapted.json" >/dev/null
 docker run --rm -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
-    -v "$TMP/pki:/etc/lanveriq/pki:ro" -v "$TMP/data:/data" \
-    -v "$TMP/config:/config" "$IMAGE" caddy validate --config /etc/caddy/Caddyfile
+    -v "$TMP/pki:/etc/lanveriq/pki:ro" \
+    -v "$CADDY_DATA_VOLUME:/data" -v "$CADDY_CONFIG_VOLUME:/config" \
+    "$IMAGE" caddy validate --config /etc/caddy/Caddyfile
 echo "PASS: real Caddy 2.11.7 adapt and validate (synthetic trust files)."
 
 CID="$(docker run -d --rm --network host \
     -v "$CADDYFILE:/etc/caddy/Caddyfile:ro" \
-    -v "$TMP/pki:/etc/lanveriq/pki:ro" -v "$TMP/data:/data" \
-    -v "$TMP/config:/config" "$IMAGE" caddy run --config /etc/caddy/Caddyfile)"
-CA_ROOT="$TMP/data/caddy/pki/authorities/local/root.crt"
+    -v "$TMP/pki:/etc/lanveriq/pki:ro" \
+    -v "$CADDY_DATA_VOLUME:/data" -v "$CADDY_CONFIG_VOLUME:/config" \
+    "$IMAGE" caddy run --config /etc/caddy/Caddyfile)"
+# The /data/caddy tree is owned by the Docker container and not
+# necessarily traversable by the GitHub runner user. Copy ONLY the
+# public root from the running container, never the internal CA key.
+CA_ROOT="$TMP/public-caddy-root.crt"
 for i in $(seq 1 45); do
-    if [[ -s "$CA_ROOT" ]]; then break; fi
-    docker inspect -f '{{.State.Running}}' "$CID" | grep -q true || {
-        docker logs "$CID" >&2; exit 1;
+    docker inspect -f '{{.State.Running}}' "$CID" | grep -qx true || {
+        echo "Synthetic Caddy stopped before its CA was ready" >&2
+        docker logs "$CID" >&2 || true
+        exit 1
     }
+    if docker cp "$CID:/data/caddy/pki/authorities/local/root.crt" "$CA_ROOT" \
+        >/dev/null 2>"$TMP/ca-copy-error" && [[ -s "$CA_ROOT" ]]; then
+        break
+    fi
+    # Trigger a synthetic console TLS ClientHello to initialize on-demand
+    # local CA issuance. This is NOT an accepted or trusted TLS probe:
+    # the following curl tests MUST validate the copied public CA root.
+    openssl s_client -connect 127.0.0.1:443 \
+        -servername console.lanveriq.internal </dev/null \
+        >"$TMP/ca-bootstrap" 2>&1 || true
     sleep 1
 done
-[[ -s "$CA_ROOT" ]] || { echo "No Caddy internal server CA" >&2; exit 1; }
+[[ -s "$CA_ROOT" ]] || {
+    echo "Caddy public CA unavailable after 45 checks; TLS gate BLOCKED" >&2
+    docker logs "$CID" >&2 || true
+    exit 1
+}
+openssl x509 -in "$CA_ROOT" -noout >/dev/null || {
+    echo "Copied Caddy public CA is not an X.509 certificate" >&2
+    exit 1
+}
 URL="https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/activate"
 # All curl invocations verify real synthetic server certificates; NEVER -k.
 AGENT_CRT="$TMP/pki/synthetic-agent.crt"

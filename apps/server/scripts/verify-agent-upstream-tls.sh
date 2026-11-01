@@ -9,6 +9,8 @@ TMP="$(mktemp -d)"
 DB_CID=""
 APP_PID=""
 CADDY_CID=""
+CADDY_DATA_VOLUME=""
+CADDY_CONFIG_VOLUME=""
 BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
 [[ "$BRIDGE_MODE" == 0 || "$BRIDGE_MODE" == 1 ]] || {
     echo "Synthetic bridge mode must be 0 or 1" >&2
@@ -29,6 +31,9 @@ cleanup() {
     if [[ -n "$DB_CID" ]]; then
         docker rm -f "$DB_CID" >/dev/null 2>&1 || true
     fi
+    # Do not make the container-owned private Caddy CA world-readable.
+    [[ -z "$CADDY_DATA_VOLUME" ]] || docker volume rm "$CADDY_DATA_VOLUME" >/dev/null 2>&1 || true
+    [[ -z "$CADDY_CONFIG_VOLUME" ]] || docker volume rm "$CADDY_CONFIG_VOLUME" >/dev/null 2>&1 || true
     rm -rf "$TMP"
 }
 trap cleanup EXIT
@@ -107,7 +112,7 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
     cp "$TMP/pki/untrusted-ca.crt" "$TMP/pki/wrong-backend-ca.pem"
     cp "$TMP/pki/proxy.crt" "$TMP/pki/caddy-upstream-client.crt"
     cp "$TMP/pki/proxy.key" "$TMP/pki/caddy-upstream-client.key"
-    mkdir -p "$TMP/caddy-data" "$TMP/caddy-config"
+    # Named volumes are allocated only in the opt-in bridge mode.
 fi
 openssl verify -purpose sslserver -CAfile "$TMP/pki/backend-ca.crt" \
     "$TMP/pki/backend.crt" >/dev/null
@@ -273,6 +278,12 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
     docker pull "$IMAGE" >/dev/null
     docker image inspect "$IMAGE" --format \
         'Synthetic Caddy image ID {{.Id}}; digests {{json .RepoDigests}}'
+    CADDY_DATA_VOLUME="$(docker volume create)"
+    CADDY_CONFIG_VOLUME="$(docker volume create)"
+    [[ -n "$CADDY_DATA_VOLUME" && -n "$CADDY_CONFIG_VOLUME" ]] || {
+        echo "Could not allocate isolated Caddy bridge volumes" >&2
+        exit 1
+    }
     # Make the Caddy reference loopback-only during this synthetic test.
     # The original Caddyfile is never changed or exposed on the LAN.
     sed -e 's/servers :443 {/servers 127.0.0.1:443 {/' \
@@ -287,8 +298,8 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         docker run --rm \
             -v "$config:/etc/caddy/Caddyfile:ro" \
             -v "$TMP/pki:/etc/lanveriq/pki:ro" \
-            -v "$TMP/caddy-data:/data" \
-            -v "$TMP/caddy-config:/config" \
+            -v "$CADDY_DATA_VOLUME:/data" \
+            -v "$CADDY_CONFIG_VOLUME:/config" \
             "$IMAGE" caddy "$@"
     }
     run_caddy_command "$CADDY_REFERENCE" adapt \
@@ -325,8 +336,8 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         CADDY_CID="$(docker run --detach --rm --network host \
             -v "$config:/etc/caddy/Caddyfile:ro" \
             -v "$TMP/pki:/etc/lanveriq/pki:ro" \
-            -v "$TMP/caddy-data:/data" \
-            -v "$TMP/caddy-config:/config" \
+            -v "$CADDY_DATA_VOLUME:/data" \
+            -v "$CADDY_CONFIG_VOLUME:/config" \
             "$IMAGE" caddy run --config /etc/caddy/Caddyfile)"
         local ready=0
         for _ in $(seq 1 30); do
@@ -346,13 +357,30 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         }
     }
     start_caddy "$CADDY_REFERENCE"
-    ROOT_CA="$TMP/caddy-data/caddy/pki/authorities/local/root.crt"
+    ROOT_CA="$TMP/public-caddy-root.crt"
     for _ in $(seq 1 30); do
-        [[ -s "$ROOT_CA" ]] && break
+        docker inspect -f '{{.State.Running}}' "$CADDY_CID" | grep -qx true || {
+            echo "Synthetic Caddy bridge stopped before CA readiness" >&2
+            docker logs "$CADDY_CID" >&2 || true
+            exit 1
+        }
+        if docker cp "$CADDY_CID:/data/caddy/pki/authorities/local/root.crt" \
+            "$ROOT_CA" >/dev/null 2>"$TMP/ca-copy-error" && [[ -s "$ROOT_CA" ]]; then
+            break
+        fi
+        # Bootstrap ONLY: the next real curl requests verify this public root.
+        openssl s_client -connect 127.0.0.1:443 \
+            -servername console.lanveriq.internal </dev/null \
+            >"$TMP/ca-bootstrap" 2>&1 || true
         sleep 1
     done
     [[ -s "$ROOT_CA" ]] || {
-        echo "Caddy did not publish its synthetic public trust root" >&2
+        echo "Caddy bridge public CA missing; cannot verify HTTPS" >&2
+        docker logs "$CADDY_CID" >&2 || true
+        exit 1
+    }
+    openssl x509 -in "$ROOT_CA" -noout >/dev/null || {
+        echo "Bridge root is not an X.509 certificate" >&2
         exit 1
     }
     EDGE_URL="https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/activate"
