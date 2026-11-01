@@ -56,7 +56,7 @@
 - [Issue-sized backlog](planning/backlog.md)
 - [Unit-only CI and manual checks](testing/strategy.md)
 - [Hands-on acceptance templates (no E2E CI)](testing/manual-acceptance.md)
-- [Manual synthetic PostgreSQL 18.6 / Flyway V1-V2 / startup verification — NOT RUN](testing/server-postgres18-manual.md)
+- [Manual synthetic PostgreSQL 18.6 / Flyway V1–V8 acceptance — last run 53/58 passed; gate OPEN](testing/server-postgres18-manual.md)
 - [Cross-platform and WebSocket test matrix](testing/test-matrix.md)
 - [Device inventory unit/manual acceptance cases](testing/device-inventory-checklist.md) · [Rust INV-01 on-demand asset collector acceptance](testing/agent-inventory-manual.md)
 - [Default-off console browser login/Origin/CSRF manual acceptance (not executed)](testing/console-session-manual.md)
