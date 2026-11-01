@@ -23,7 +23,7 @@ export type DirectoryRow = Readonly<{
 }>;
 
 export type DirectoryState =
-  | Readonly<{ kind: 'unconnected' | 'loading' | 'signed_out' | 'forbidden' | 'unavailable' }>
+  | Readonly<{ kind: 'unconnected' | 'loading' | 'signed_out' | 'forbidden' | 'throttled' | 'unavailable' }>
   | Readonly<{ kind: 'ready'; rows: readonly DirectoryRow[]; hasMore: boolean }>;
 
 
@@ -47,6 +47,7 @@ const feedback = {
   loading: { title: '正在加载已授权设备', message: '请以服务端权限过滤结果为准。', Icon: RefreshCcw },
   signed_out: { title: '管理员登录状态已失效', message: '请重新登录。不会展示旧设备数据或演示记录。', Icon: LockKeyhole },
   forbidden: { title: '当前账号无权查看设备', message: '设备组权限由后端验证，前端筛选不能代替授权。', Icon: ShieldAlert },
+  throttled: { title: '请求受到限制', message: '请稍后手动重试；不会自动高频请求，也不会显示缓存的设备行。', Icon: ShieldAlert },
   unavailable: { title: '设备服务暂不可用', message: '无法安全读取服务端响应，不会回退到合成数据。', Icon: WifiOff },
 } as const;
 
