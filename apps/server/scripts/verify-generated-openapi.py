@@ -35,6 +35,33 @@ OVERVIEW_FIELDS = {
     "as_of", "total", "online", "stale", "offline", "revoked", "pending", "retired",
 }
 
+# These fields are emitted on every successful response, including a truly
+# empty authorized device page. Sparse DTOs would make Orval silently mark
+# them optional and let the UI misinterpret malformed JSON as "no devices".
+# Heartbeat/inventory evidence and next_cursor may genuinely be absent/null.
+REQUIRED_HEALTH_FIELDS = {
+    "device_id", "group_id", "group_name", "label", "enrollment_state",
+}
+REQUIRED_FIELDS_BY_SCHEMA = {
+    "DeviceHealthSummary": REQUIRED_HEALTH_FIELDS,
+    "ScopedDeviceDirectoryPage": {"items"},
+    "ScopedMonitoringOverview": OVERVIEW_FIELDS,
+    "ConsoleSessionInfo": SESSION_FIELDS,
+    "ConsoleCsrfToken": CSRF_FIELDS,
+}
+
+
+def required_fields_errors(schema: object, name: str) -> list[str]:
+    if not isinstance(schema, dict):
+        return [f"Missing generated {name} schema"]
+    required = schema.get("required")
+    if not isinstance(required, list) or len(required) != len(set(map(str, required))):
+        return [f"Missing or duplicate required fields in {name}"]
+    expected = REQUIRED_FIELDS_BY_SCHEMA[name]
+    if set(required) != expected:
+        return [f"Incorrect required fields in {name}: expected {sorted(expected)}"]
+    return []
+
 
 def validate(spec: object) -> list[str]:
     errors = []
@@ -153,6 +180,9 @@ def validate(spec: object) -> list[str]:
             overview.get("properties"), dict) or set(
                 overview["properties"]) != OVERVIEW_FIELDS:
         errors.append("Monitoring overview fields drifted or leaked sensitive data")
+
+    for name in REQUIRED_FIELDS_BY_SCHEMA:
+        errors.extend(required_fields_errors(schemas.get(name), name))
 
     return errors
 
