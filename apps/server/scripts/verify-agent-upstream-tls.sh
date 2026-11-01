@@ -45,7 +45,7 @@ for cmd in java keytool openssl curl docker sha256sum; do
 done
 docker info >/dev/null
 if [[ "$BRIDGE_MODE" == 1 ]]; then
-    for tool in jq sed awk; do
+    for tool in jq sed awk grep; do
         command -v "$tool" >/dev/null || {
             echo "Missing synthetic Caddy test tool: $tool" >&2
             exit 1
@@ -316,13 +316,22 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         exit 1
     }
     # Make the Caddy reference loopback-only during this synthetic test.
-    # The original Caddyfile is never changed or exposed on the LAN.
+    # Extend ONLY this throwaway Caddyfile with a read-only Tomcat health
+    # path routed through the exact same double-mTLS reverse_proxy block.
+    # No Agent business API or real reference config is changed. A 200/UP
+    # response now positively proves a request traversed Caddy->Tomcat,
+    # whereas a 403 business denial on its own could not prove transit.
     sed -e 's/servers :443 {/servers 127.0.0.1:443 {/' \
         -e '/^console\.lanveriq\.internal {/a\    bind 127.0.0.1' \
         -e '/^enroll\.lanveriq\.internal {/a\    bind 127.0.0.1' \
         -e '/^agent\.lanveriq\.internal {/a\    bind 127.0.0.1' \
+        -e 's|@agentRoutes path |@agentRoutes path /actuator/health |' \
         "$ROOT/deploy/caddy/Caddyfile.reference" > "$TMP/Caddyfile.synthetic"
     CADDY_REFERENCE="$TMP/Caddyfile.synthetic"
+    grep -Fq '@agentRoutes path /actuator/health ' "$CADDY_REFERENCE" || {
+        echo "Synthetic bridge health route was not inserted; abort before Caddy" >&2
+        exit 1
+    }
     run_caddy_command() {
         local config="$1"
         shift
@@ -415,6 +424,31 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         exit 1
     }
     EDGE_URL="https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/activate"
+    # Test-only: this GET path is appended to @agentRoutes exclusively in
+    # $TMP/Caddyfile.synthetic. A CA-verified UP is mandatory independent
+    # proof of successful two-way TLS on BOTH proxy and real Tomcat.
+    bridge_health_request() {
+        curl --silent --show-error --noproxy '*' --http2 --max-time 12 \
+            --cacert "$ROOT_CA" \
+            --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+            -o "$TMP/bridge-health-response" -w '%{http_code}' \
+            "https://agent.lanveriq.internal/actuator/health"
+    }
+    assert_bridge_up() {
+        local code
+        code="$(bridge_health_request)" || {
+            echo "FAIL: double-mTLS bridge health TLS request failed" >&2
+            exit 1
+        }
+        [[ "$code" == 200 ]] && grep -Fq '"status":"UP"' "$TMP/bridge-health-response" || {
+            echo "FAIL: Caddy->real Spring/Tomcat did not return strict 200/UP (HTTP $code)" >&2
+            exit 1
+        }
+        assert_trusted_upstream_healthy
+    }
+    assert_bridge_up
+    echo "PASS: Agent mTLS -> Caddy -> real Spring/Tomcat mTLS -> PG18 health 200/UP."
     edge_request() {
         curl --silent --show-error --noproxy '*' --http2 --max-time 12 \
             --cacert "$ROOT_CA" \
@@ -443,7 +477,8 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
             echo "FAIL: $label was not denied at TLS boundary (HTTP $code)" >&2
             exit 1
         fi
-        echo "PASS: $label denied at Caddy TLS boundary."
+        assert_bridge_up
+        echo "PASS: $label denied at Caddy TLS boundary; trusted double-mTLS still UP."
     }
     deny_agent_handshake "no Agent client certificate"
     deny_agent_handshake "Agent client signed by untrusted CA" \
@@ -458,6 +493,7 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         echo "FAIL: cross-SNI HTTP/2 Host request not rejected (HTTP $host_mismatch)" >&2
         exit 1
     }
+    assert_bridge_up
     echo "PASS: cross-host HTTP/2 coalescing rejected with 421."
 
     cp "$CADDY_REFERENCE" "$TMP/Caddyfile.wrong-proxy"
@@ -471,7 +507,13 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         echo "FAIL: wrong Caddy upstream client certificate did not fail closed (HTTP $status)" >&2
         exit 1
     }
-    echo "PASS: real Tomcat rejects Caddy with wrong upstream client CA (edge 502)."
+    status="$(bridge_health_request)"
+    [[ "$status" == 502 ]] || {
+        echo "FAIL: wrong proxy certificate unexpectedly reached real Tomcat health (HTTP $status)" >&2
+        exit 1
+    }
+    assert_trusted_upstream_healthy
+    echo "PASS: real Tomcat rejects wrong-CA Caddy upstream leaf (edge 502), healthy Tomcat remains UP."
 
     cp "$CADDY_REFERENCE" "$TMP/Caddyfile.wrong-backend-ca"
     sed -i 's@backend-server-ca.pem@wrong-backend-ca.pem@g' \
@@ -482,18 +524,29 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         echo "FAIL: Caddy accepted wrong Spring backend CA (HTTP $status)" >&2
         exit 1
     }
-    echo "PASS: Caddy rejects wrong Spring backend CA (edge 502)."
+    status="$(bridge_health_request)"
+    [[ "$status" == 502 ]] || {
+        echo "FAIL: wrong Spring CA unexpectedly returned health through Caddy (HTTP $status)" >&2
+        exit 1
+    }
+    assert_trusted_upstream_healthy
+    echo "PASS: Caddy rejects wrong Spring backend CA (edge 502), healthy Tomcat remains UP."
 
     start_caddy "$CADDY_REFERENCE"
+    assert_bridge_up
     status="$(edge_request)"
     [[ "$status" == 403 ]] || {
         echo "FAIL: restoring authentic upstream chain did not restore default-deny (HTTP $status)" >&2
         exit 1
     }
-    echo "MANUAL SYNTHETIC BRIDGE PASS: actual Caddy->real Tomcat, PostgreSQL 18.6 Flyway."
+    echo "MANUAL SYNTHETIC BRIDGE PASS: Caddy->real Tomcat health 200/UP, business default-deny 403, PostgreSQL 18.6 Flyway."
     echo "NOT PROVEN: Agent controller/revocation, actual servlet assertion, key ACL, live OS."
 fi
 
 echo "MANUAL SYNTHETIC PASS: real Spring/Tomcat mTLS, PG18 Flyway startup, default deny."
-echo "NOT PROVEN: real Caddy-to-Tomcat handshake, path-specific policy resolution,"
+if [[ "$BRIDGE_MODE" == 0 ]]; then
+    echo "NOT PROVEN: real Caddy-to-Tomcat handshake, path-specific policy resolution,"
+else
+    echo "NOT PROVEN: enabled Agent controller or per-request servlet-assertion handling,"
+fi
 echo "per-request PostgreSQL revocation, OS key custody, or any actual Agent."
