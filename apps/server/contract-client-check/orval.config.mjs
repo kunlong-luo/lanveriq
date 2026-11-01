@@ -13,11 +13,9 @@ export default defineConfig({
       mode: 'split',
       client: 'react-query',
       httpClient: 'fetch',
-      override: {
-        query: {
-          useQuery: true,
-        },
-      },
+      // Use Orval's HTTP-method defaults: GET -> useQuery,
+      // POST -> useMutation. Forcing useQuery:true globally would
+      // incorrectly treat form login/logout POST as cached read hooks.
     },
   },
 });
