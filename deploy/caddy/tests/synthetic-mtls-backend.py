@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Synthetic-only TLS upstream for the manually dispatched Caddy ingress gate.
 
-This is NOT a Spring replacement, Agent API, or authentication service. It
-proves that Caddy presents the separately pinned upstream TLS client
-certificate, strips hostile downstream headers, and forwards the SHA-256 of a
-real synthetic Agent leaf over its HTTPS connection. Test data only.
+No real Agent API or secrets. Fail closed on every forwarded identity mismatch.
+On failure, expose only the NAMES of failed synthetic checks, never certificate
+bytes, fingerprints, header values, private keys or request bodies. The names
+let a manual GitHub run distinguish a proxy/header failure from a TLS failure.
 """
 import hashlib
 import http.server
@@ -13,24 +13,48 @@ import os
 import ssl
 
 
+def failed_synthetic_checks(tls_peer, headers, path):
+    """Return stable boolean check names, with no secret or identity values."""
+    expected_path = f"/api/v1/devices/{os.environ['SYNTHETIC_DEVICE_ID']}/activate"
+    expected_fingerprint = os.environ["SYNTHETIC_AGENT_SHA256"]
+    expected_proxy = os.environ["SYNTHETIC_PROXY_SHA256"]
+    field = "X-Lanveriq-Verified-Client-Fingerprint"
+    identities = headers.get_all(field, [])
+    # Catch other identity assertions as well, including case variants.
+    # A successful proxy must remove the whole incoming header family.
+    unexpected_family = [
+        name for name in headers.keys()
+        if name.lower().startswith("x-lanveriq-verified-client-")
+        and name.lower() != field.lower()
+    ]
+    checks = {
+        "proxy_certificate": bool(tls_peer) and
+            hashlib.sha256(tls_peer).hexdigest() == expected_proxy,
+        "fingerprint_count": len(identities) == 1,
+        "fingerprint_value": len(identities) == 1 and
+            identities[0] == expected_fingerprint,
+        "unexpected_identity_header": not unexpected_family,
+        "upstream_host": headers.get("Host") == "agent.lanveriq.internal",
+        "forwarded_cert_header": not headers.get_all("X-Forwarded-Client-Cert", []),
+        "ssl_client_cert_header": not headers.get_all("SSL-Client-Cert", []),
+        "request_path": path == expected_path,
+    }
+    return [name for name, accepted in checks.items() if not accepted]
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
-        tls_peer = self.connection.getpeercert(binary_form=True)
-        proxy_digest = hashlib.sha256(tls_peer or b"").hexdigest()
-        identity_headers = self.headers.get_all(
-            "X-Lanveriq-Verified-Client-Fingerprint", []
+        failures = failed_synthetic_checks(
+            self.connection.getpeercert(binary_form=True),
+            self.headers,
+            self.path,
         )
-        expected_path = f"/api/v1/devices/{os.environ['SYNTHETIC_DEVICE_ID']}/activate"
-        verified = (
-            proxy_digest == os.environ["SYNTHETIC_PROXY_SHA256"]
-            and len(identity_headers) == 1
-            and identity_headers[0] == os.environ["SYNTHETIC_AGENT_SHA256"]
-            and self.headers.get("Host") == "agent.lanveriq.internal"
-            and not self.headers.get_all("X-Forwarded-Client-Cert", [])
-            and not self.headers.get_all("SSL-Client-Cert", [])
-            and self.path == expected_path
-        )
-        body = json.dumps({"synthetic_upstream_verified": verified}).encode()
+        verified = not failures
+        payload = {"synthetic_upstream_verified": verified}
+        if failures:
+            # Only machine-chosen check labels; not raw request data.
+            payload["failed_checks"] = failures
+        body = json.dumps(payload).encode()
         self.send_response(200 if verified else 403)
         self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "no-store")
@@ -39,7 +63,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def log_message(self, format, *args):
-        # Do not persist headers, certs, employee data or authentication input.
+        # No certificate/header values or user/employee information in logs.
         pass
 
 
