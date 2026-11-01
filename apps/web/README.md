@@ -71,3 +71,11 @@ The transport uses native browser `fetch` (no hand-written HTTP stack or duplica
 Stop `pnpm dev` with Ctrl+C. You may delete locally generated `apps/web/node_modules` and `apps/web/dist`; do **not** remove existing Docker Compose stacks, `spark-postgres`, `spark-redis`, PostgreSQL schemas, shared volumes, audit data or keys.
 
 Building a static preview is **not** permission to deploy a monitoring console. Browser login/session, REST/WSS scope checks, TLS/CSRF, and PostgreSQL integration acceptance must pass before connecting real data.
+
+## FE-02-A read-only business API adapter (staged, DEFAULT OFF)
+
+`src/auth/consoleOrigin.ts` shares the backend's strict canonical HTTPS DNS-origin rules with the existing session adapter. `src/api/consoleReadTransport.ts` is an **unwired, read-only** GET transport for the three established console routes: device pages, an authorized device detail and the operational monitoring overview. No `/api` dev proxy, real credential entry, authenticated query, automatic polling or device operation was enabled.
+
+The adapter allows only self-constructed same-origin routes, bounded page sizes (1–100), validated UUID cursors/IDs, no-store JSON responses, and browser-managed same-origin cookies. It maps 401, 403, 404-on-detail, 429 and connection failure to explicit states **without falling back to synthetic devices**. Payloads stay `unknown` here; the eventual UI must use the backend Springdoc → Orval-generated DTOs and TanStack Query, not invent or copy a device schema.
+
+`src/api/consoleReadTransport.test.ts` tests those policies with in-memory fake fetch responses only. The operational switch remains **OFF** until PostgreSQL 18 integration, Caddy HTTPS, browser session/CSRF and authorization acceptance are completed. A successful Web unit/build CI does not clear those gates or make the local Vite demo a real console. Any later Next.js migration must preserve these invariants and receive a separate reviewed dependency/build/CI update.
