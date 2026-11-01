@@ -34,7 +34,9 @@ jobs:
         run: docker info --format 'Docker server {{.ServerVersion}}'
       - name: Run Testcontainers PostgreSQL 18.6 Flyway + real transaction tests
         working-directory: apps/server
-        run: ./gradlew integrationTest --stacktrace
+        # Always execute test methods in this dispatched run; no cached test
+        # outputs can substitute for fresh database and lock evidence.
+        run: ./gradlew --no-build-cache --rerun-tasks integrationTest --stacktrace
       # A zero-exit Gradle task alone does not prove each security gate ran.
       # Require real Gradle JUnit XML for all seven Testcontainers classes,
       # the PostgreSQL 18.6/Flyway assertion, and all critical negative cases,
