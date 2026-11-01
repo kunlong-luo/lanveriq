@@ -1,6 +1,7 @@
 package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -36,6 +37,9 @@ class JpaFirstAdminBootstrapRepositoryTest {
                 when(query.getSingleResult()).thenReturn(groupId);
             } else if (sql.contains("INSERT INTO users")) {
                 when(query.getSingleResult()).thenReturn(userId);
+            } else if (sql.contains("INSERT INTO user_role_scopes")
+                    || sql.contains("INSERT INTO admin_access_log")) {
+                when(query.executeUpdate()).thenReturn(1);
             }
             return query;
         });
@@ -76,4 +80,52 @@ class JpaFirstAdminBootstrapRepositoryTest {
                         .createFirstOwner("owner", "{argon2id}hash", "Engineering"));
         verify(em, Mockito.times(2)).createNativeQuery(anyString());
     }
+    @Test
+    void silentlySuppressedGrantRejectsBootstrapBeforeAudit() {
+        var writes = new ArrayList<String>();
+        var em = mockBootstrapWithSuppressedInsert(writes, "INSERT INTO user_role_scopes");
+        assertThrows(IllegalStateException.class, () ->
+                new JpaFirstAdminBootstrapRepository(em)
+                        .createFirstOwner("owner", "{argon2id}hash", "Engineering"));
+        assertTrue(writes.stream().anyMatch(sql -> sql.contains("INSERT INTO user_role_scopes")));
+        assertFalse(writes.stream().anyMatch(sql -> sql.contains("INSERT INTO admin_access_log")));
+    }
+
+    @Test
+    void silentlySuppressedAuditRejectsCompletedBootstrap() {
+        var writes = new ArrayList<String>();
+        var em = mockBootstrapWithSuppressedInsert(writes, "INSERT INTO admin_access_log");
+        assertThrows(IllegalStateException.class, () ->
+                new JpaFirstAdminBootstrapRepository(em)
+                        .createFirstOwner("owner", "{argon2id}hash", "Engineering"));
+        assertTrue(writes.stream().anyMatch(sql -> sql.contains("INSERT INTO user_role_scopes")));
+        assertTrue(writes.stream().anyMatch(sql -> sql.contains("INSERT INTO admin_access_log")));
+    }
+
+    private static EntityManager mockBootstrapWithSuppressedInsert(
+            List<String> statements, String suppressed) {
+        var em = Mockito.mock(EntityManager.class);
+        UUID roleId = UUID.randomUUID(), groupId = UUID.randomUUID(), userId = UUID.randomUUID();
+        when(em.createNativeQuery(anyString())).thenAnswer(call -> {
+            String sql = call.getArgument(0);
+            statements.add(sql);
+            Query query = Mockito.mock(Query.class);
+            when(query.setParameter(anyString(), Mockito.any())).thenReturn(query);
+            if (sql.contains("FROM roles")) {
+                when(query.getSingleResult()).thenReturn(roleId);
+            } else if (sql.contains("count(*) FROM users")) {
+                when(query.getSingleResult()).thenReturn(0L);
+            } else if (sql.contains("INSERT INTO device_groups")) {
+                when(query.getSingleResult()).thenReturn(groupId);
+            } else if (sql.contains("INSERT INTO users")) {
+                when(query.getSingleResult()).thenReturn(userId);
+            } else if (sql.contains("INSERT INTO user_role_scopes")
+                    || sql.contains("INSERT INTO admin_access_log")) {
+                when(query.executeUpdate()).thenReturn(sql.contains(suppressed) ? 0 : 1);
+            }
+            return query;
+        });
+        return em;
+    }
+
 }
