@@ -10,8 +10,10 @@ on:
       - 'apps/web/pnpm-lock.yaml'
       - 'apps/web-next/contract-check/**'
       - 'apps/web-next/tsconfig.contract.json'
-      - 'apps/web-next/src/lib/console-device-projection.ts'
+      - 'apps/web-next/src/lib/**'
       - 'apps/web-next/src/components/device-directory.tsx'
+      - 'apps/web-next/src/components/preview-query-provider.tsx'
+      - 'apps/web-next/src/app/(console)/layout.tsx'
       - 'apps/web-next/package.json'
       - 'apps/web-next/pnpm-lock.yaml'
       - '.github/workflows/server-unit.yml'
@@ -24,8 +26,10 @@ on:
       - 'apps/web/pnpm-lock.yaml'
       - 'apps/web-next/contract-check/**'
       - 'apps/web-next/tsconfig.contract.json'
-      - 'apps/web-next/src/lib/console-device-projection.ts'
+      - 'apps/web-next/src/lib/**'
       - 'apps/web-next/src/components/device-directory.tsx'
+      - 'apps/web-next/src/components/preview-query-provider.tsx'
+      - 'apps/web-next/src/app/(console)/layout.tsx'
       - 'apps/web-next/package.json'
       - 'apps/web-next/pnpm-lock.yaml'
       - '.github/workflows/server-unit.yml'
@@ -114,7 +118,7 @@ jobs:
           cd apps/web
           pnpm install --frozen-lockfile
           pnpm exec tsc --noEmit --project tsconfig.contract.json
-      - name: Verify actual generated Springdoc/Orval models against Next.js display projection
+      - name: Verify complete generated Orval Fetch/React Query hooks against locked Next.js dependencies
         shell: bash
         run: |
           set -euo pipefail
