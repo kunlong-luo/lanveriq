@@ -317,7 +317,7 @@ pnpm build
 pnpm dev
 ~~~
 
-浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。`apps/web/pnpm-lock.yaml` 已由 CI 生成并提交，Web CI 使用 `--frozen-lockfile` 进行可复现安装，发现锁文件与声明依赖不一致会直接失败。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment`、`/settings` 和 **`/login` 管理员登录预览**。登录账号/密码输入框和提交按钮均禁用，不接收真实密码。真正的注册、撤销、Agent 下发都明确禁用。详见 [Web README](apps/web/README.md)。
+浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。`apps/web/pnpm-lock.yaml` 已由 CI 生成并提交，Web CI 使用 `--frozen-lockfile` 进行可复现安装，发现锁文件与声明依赖不一致会直接失败。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment`、`/settings` 和 **`/login` 管理员登录预览**。登录账号/密码输入框和提交按钮均禁用，不接收真实密码。真正的注册、撤销、Agent 下发和登录都明确禁用。另已添加未接入 UI 的 HTTPS 同源、CSRF、Session 请求适配器及合成错误/令牌测试；这不是实际浏览器登录验收。详见 [Web README](apps/web/README.md)。
 
 ## 七、前端进度和下一步
 
