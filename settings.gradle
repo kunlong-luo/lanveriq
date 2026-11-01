@@ -1,0 +1,5 @@
+// IDEA-friendly root entry only. This Gradle composite preserves the
+// independently runnable Spring Boot build at apps/server; no Rust or React
+// source is imported into Gradle, and no module code is duplicated.
+rootProject.name = 'lanveriq-workspace'
+includeBuild('apps/server')
