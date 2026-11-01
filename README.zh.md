@@ -4,7 +4,7 @@
 
 **基于局域网、自托管、面向已告知且经过授权的企业终端的资产健康与审计平台。**
 
-> **当前状态：V0.1 开发中，不是可正式部署的监控产品。** Java 后端已有可构建的 Spring Boot 应用、Flyway V1–V8 和默认关闭的部分内部能力；Rust Agent 已有可运行的**空闲进程**、SQLite/传输/库存模块，但尚未接入实际服务循环；**React 前端已有合成数据预览，但尚未连接真实登录、后端 API 或设备**。PostgreSQL 18.6 真实数据库、Caddy/TLS、管理员浏览器会话及 Windows/Linux 实机验收尚未全部完成。严禁把本地演示当成真实员工数据采集授权。
+> **当前状态：V0.1 开发中，不是可正式部署的监控产品。** Java 后端已有可构建的 Spring Boot 应用、Flyway V1–V8 和默认关闭的部分内部能力；Rust Agent 已有可运行的**空闲进程**、SQLite/传输/库存模块，但尚未接入实际服务循环；**React 前端已通过 Vite 本地开发代理读取 Spring Boot 的匿名健康接口，但真实登录、业务 API 和设备仍未接入**。PostgreSQL 18.6 真实数据库、Caddy/TLS、管理员浏览器会话及 Windows/Linux 实机验收尚未全部完成。严禁把本地演示当成真实员工数据采集授权。
 
 ![Lanveriq 架构概念图](docs/visuals/assets/01-overview.svg)
 
@@ -14,7 +14,7 @@
 
 | 组件 | 仓库位置 / 技术 | 当前状态 | 运行方式 |
 |---|---|---|---|
-| 管理前端 Web | `apps/web`：React 19、Vite 8、TypeScript 7、pnpm、Tailwind 4、Radix、Lucide | **合成数据预览已实现**：概览、监控中心、终端资产/详情、注册说明、设置；真实 API 尚未接入 | `cd apps/web && pnpm dev`（本机预览） |
+| 管理前端 Web | `apps/web`：React 19、Vite 8、TypeScript 7、pnpm、Tailwind 4、Radix、Lucide | **合成数据预览已实现**，支持本地 Spring Boot 健康检查与手动重试；管理员登录、设备业务 API、采集仍未接入 | `cd apps/web && pnpm dev`（本机预览） |
 | 管理后端 Server | `apps/server`：Java 25、Spring Boot 4.1.2、Gradle、JPA/Hibernate、Flyway | 可单独构建并连接**合成测试数据库**；业务接口默认拒绝，部分功能仅源码/测试状态 | `./gradlew bootRun` |
 | 终端 Agent | `apps/agent`：Rust 1.94、Tokio、SQLx/SQLite WAL、Reqwest/rustls | 可编译、启动、停止；运行时**不采集、不上传、不监控** | `cargo run --locked -p lanveriq-agent -- --config <绝对路径>` |
 | 数据库（基础设施） | PostgreSQL 18.x；真实验收使用 18.6 | Flyway V1–V8 已编写；可复用 `spark-postgres` 中的专用 `lanveriq` 库 | 现有 Docker Compose，无需额外持久容器 |
@@ -353,7 +353,7 @@ DROP ROLE lanveriq;
 
 ## 六、Web 本地预览运行
 
-React Web 已可作为**仅有合成数据**的前端预览启动（不需要后端或 Docker）。首次安装依赖需要访问包仓库：
+React Web 可作为**全部业务数据均为合成数据**的前端预览启动；无需后端也能浏览。若要看到真实 Spring Boot 健康状态，须同时运行 IDEA 后端（默认 8080），Vite 仅代理匿名 `/actuator/health`；首次安装依赖需要访问包仓库：
 
 ~~~bash
 cd apps/web
@@ -365,11 +365,11 @@ pnpm build
 pnpm dev
 ~~~
 
-浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。`apps/web/pnpm-lock.yaml` 已由 CI 生成并提交，Web CI 使用 `--frozen-lockfile` 进行可复现安装，发现锁文件与声明依赖不一致会直接失败。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment`、`/settings` 和 **`/login` 管理员登录预览**。登录账号/密码输入框和提交按钮均禁用，不接收真实密码。真正的注册、撤销、Agent 下发和登录都明确禁用。另已添加未接入 UI 的 HTTPS 同源、CSRF、Session 请求适配器及合成错误/令牌测试；这不是实际浏览器登录验收。详见 [Web README](apps/web/README.md)。
+浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。顶栏和概览页会做一次只读后端健康检查，可手动点击“重新检查”。若 IDEA 后端监听的是 `18081`，应在运行前端时使用 `LANVERIQ_WEB_HEALTH_PORT=18081 pnpm dev`；默认使用 `8080`。健康检查通过**不代表业务登录或设备数据已接通**。`apps/web/pnpm-lock.yaml` 已由 CI 生成并提交，Web CI 使用 `--frozen-lockfile` 进行可复现安装，发现锁文件与声明依赖不一致会直接失败。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment`、`/settings` 和 **`/login` 管理员登录预览**。登录账号/密码输入框和提交按钮均禁用，不接收真实密码。真正的注册、撤销、Agent 下发和登录都明确禁用。另已添加未接入 UI 的 HTTPS 同源、CSRF、Session 请求适配器及合成错误/令牌测试；这不是实际浏览器登录验收。详见 [Web README](apps/web/README.md)。
 
 ## 七、前端进度和下一步
 
-截至当前仓库检查：**`apps/web` 已建立并完成可构建的合成数据演示页面**，包括设备搜索、Radix 详情选项卡、监控中心与系统设置；全部示例设备均为虚构，不连接真实服务，也不能进行远程下发或设备撤销。已增加 Springdoc → Orval 生成客户端与 **Web 实际 TypeScript / TanStack Query 依赖的构建期编译校验**，但尚无真实浏览器 API、Cookie、CSRF 或会话联调。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
+截至当前仓库检查：**`apps/web` 已建立并完成可构建的合成数据演示页面**，包括设备搜索、Radix 详情选项卡、监控中心与系统设置；全部示例设备均为虚构；页面仅通过 Vite 本地代理查询 Spring Boot 健康状态，不加载任何真实设备信息，也不能进行远程下发或设备撤销。已加入 shadcn/ui 卡片组件基础、Tailwind 4 主题变量和导入别名，仍保留原有 Vite/React 技术架构。已增加 Springdoc → Orval 生成客户端与 **Web 实际 TypeScript / TanStack Query 依赖的构建期编译校验**，但尚无真实浏览器 API、Cookie、CSRF 或会话联调。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
 
 建议的后续交付顺序是：完成真实 PG18、Caddy/TLS 和浏览器会话负向验收；随后再启用有权限范围的 Orval 实时查询、登录/登出 Cookie/CSRF 与 WSS 重新同步。构建期生成的登录客户端**不等于**安全会话可以投入使用。验收前不可对外宣布“可安装并开始监控”。
 

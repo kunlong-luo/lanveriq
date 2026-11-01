@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-01 — Docs synchronized after successful Web TypeScript 7 CI
+
+- Synced root English/Chinese readmes and the WEB-01 backlog status to reflect anonymous Spring Boot health-only connectivity while keeping all five demo devices explicitly synthetic and all authenticated business routes disabled.
+- The first Web CI attempt surfaced TypeScript 7's removed `baseUrl` compiler setting; removed that deprecated setting while retaining the source-relative `@/*` path mapping, and verified the subsequent Web unit + typecheck + Vite build succeeded.
+
 ## 2026-11-01 — Vite / shadcn-style UI foundation and health-only backend link
 
 - Retained React 19/Vite 8; added a shadcn/ui-compatible Card source, CLI project configuration, import aliases and Tailwind 4 semantic theme tokens without introducing new runtime dependencies.
