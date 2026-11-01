@@ -12,6 +12,15 @@ CADDY_CID=""
 CADDY_DATA_VOLUME=""
 CADDY_CONFIG_VOLUME=""
 BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
+CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
+[[ "$CONSOLE_MODE" == 0 || "$CONSOLE_MODE" == 1 ]] || {
+    echo "Synthetic console mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$CONSOLE_MODE" == 0 || "$BRIDGE_MODE" == 1 ]] || {
+    echo "Synthetic console mode requires explicitly enabled isolated Caddy bridge" >&2
+    exit 1
+}
 [[ "$BRIDGE_MODE" == 0 || "$BRIDGE_MODE" == 1 ]] || {
     echo "Synthetic bridge mode must be 0 or 1" >&2
     exit 1
@@ -71,6 +80,14 @@ fi
 if (echo > /dev/tcp/127.0.0.1/8080) >/dev/null 2>&1; then
     echo "Port 8080 is occupied; cannot prove absence of an alternate listener" >&2
     exit 1
+fi
+if [[ "$CONSOLE_MODE" == 1 ]]; then
+    for tool in script python3; do
+        command -v "$tool" >/dev/null || {
+            echo "Missing synthetic browser-auth acceptance tool: $tool" >&2
+            exit 1
+        }
+    done
 fi
 mkdir -p "$TMP/pki"
 make_ca() {
@@ -179,11 +196,36 @@ docker image inspect postgres:18.6 --format \
 export LANVERIQ_DB_URL="jdbc:postgresql://127.0.0.1:$PG_PORT/lanveriq"
 export LANVERIQ_DB_USER="lanveriq"
 export LANVERIQ_DB_PASSWORD="$DB_PASS"
+# No seeded administrator or stored credential is permitted in the default
+# application. Only the disposable manual console acceptance may run the
+# REAL local, interactive, one-time bootstrap runner against an empty PG18.
+# util-linux 'script' creates the attached PTY required by System.console().
+# The generated password travels only via a pipe, never CLI/env/CI logs.
+if [[ "$CONSOLE_MODE" == 1 ]]; then
+    SYNTHETIC_LOGIN="synthetic-owner"
+    SYNTHETIC_PASSWORD="$(openssl rand -hex 24)"
+    if ! (printf '%s\n%s\n' "$SYNTHETIC_PASSWORD" "$SYNTHETIC_PASSWORD" |
+        script --quiet --return --command \
+        "java -jar $ROOT/apps/server/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --lanveriq.bootstrap.enabled=true --lanveriq.bootstrap.login=$SYNTHETIC_LOGIN --lanveriq.bootstrap.group=SyntheticQA" \
+        /dev/null >"$TMP/console-bootstrap.log" 2>&1); then
+        echo "FAIL: isolated offline first-admin bootstrap failed; see private runner log" >&2
+        exit 1
+    fi
+    [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc \
+        "SELECT count(*) FROM users WHERE normalized_login = 'synthetic-owner'")" == 1 ]] || {
+        echo "FAIL: synthetic bootstrap did not commit exactly one administrator" >&2
+        exit 1
+    }
+fi
 # Use the real Tomcat connector. No proxy, fake servlet attributes, HTTP endpoint
 # for identity assertions or extra public listener is created.
 java -jar "$ROOT/apps/server/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar" \
     --spring.profiles.active=agent-upstream-mtls-acceptance \
-    --lanveriq.console.auth.enabled=false \
+    --lanveriq.console.auth.enabled="$CONSOLE_MODE" \
+    --lanveriq.console.auth.origin=https://console.lanveriq.internal \
+    --lanveriq.device-directory.enabled="$CONSOLE_MODE" \
+    --lanveriq.device-directory.http-enabled="$CONSOLE_MODE" \
+    --lanveriq.monitoring.overview-http-enabled="$CONSOLE_MODE" \
     >"$TMP/spring.log" 2>&1 &
 APP_PID=$!
 
@@ -328,6 +370,35 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         -e 's|@agentRoutes path |@agentRoutes path /actuator/health |' \
         "$ROOT/deploy/caddy/Caddyfile.reference" > "$TMP/Caddyfile.synthetic"
     CADDY_REFERENCE="$TMP/Caddyfile.synthetic"
+    if [[ "$CONSOLE_MODE" == 1 ]]; then
+        # Replace exactly one 503 response in the disposable config.
+        # Caddy's checked-in deploy reference is NEVER touched; enrollment
+        # and unknown Agent endpoints remain denied.
+        python3 - "$CADDY_REFERENCE" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+marker = '    respond "Console not enabled in this reference configuration" 503'
+proxy = """    # TEST-ONLY canonical console host; never copy to deployed Caddyfile.
+    reverse_proxy https://127.0.0.1:8443 {
+        transport http {
+            tls
+            tls_client_auth /etc/lanveriq/pki/caddy-upstream-client.crt /etc/lanveriq/pki/caddy-upstream-client.key
+            tls_trust_pool file /etc/lanveriq/pki/backend-server-ca.pem
+            tls_server_name spring-backend.lanveriq.internal
+            versions 1.1 2
+        }
+        header_up -X-Forwarded-Client-Cert
+        header_up -SSL-Client-Cert
+        header_up -X-Lanveriq-Verified-Client-*
+        header_up Host console.lanveriq.internal
+    }"""
+if text.count(marker) != 1 or "TEST-ONLY canonical console host" in text:
+    raise SystemExit("Refusing unexpected console Caddyfile template")
+path.write_text(text.replace(marker, proxy), encoding="utf-8")
+PY
+    fi
     grep -Fq '@agentRoutes path /actuator/health ' "$CADDY_REFERENCE" || {
         echo "Synthetic bridge health route was not inserted; abort before Caddy" >&2
         exit 1
@@ -541,6 +612,11 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
     }
     echo "MANUAL SYNTHETIC BRIDGE PASS: Caddy->real Tomcat health 200/UP, business default-deny 403, PostgreSQL 18.6 Flyway."
     echo "NOT PROVEN: Agent controller/revocation, actual servlet assertion, key ACL, live OS."
+    if [[ "$CONSOLE_MODE" == 1 ]]; then
+        bash "$ROOT/apps/server/scripts/verify-synthetic-console-session.sh" \
+            "$ROOT_CA" "$TMP" "$DB_CID" "$SYNTHETIC_LOGIN" "$SYNTHETIC_PASSWORD"
+        unset SYNTHETIC_PASSWORD
+    fi
 fi
 
 echo "MANUAL SYNTHETIC PASS: real Spring/Tomcat mTLS, PG18 Flyway startup, default deny."
