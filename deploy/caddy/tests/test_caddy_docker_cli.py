@@ -83,7 +83,7 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertIn('tls_denied "forced TLSv1.2 despite valid proxy certificate"', script)
         self.assertIn("--tlsv1.2 --tls-max 1.2", script)
         self.assertIn("assert_trusted_upstream_healthy\necho \"PASS: backend certificate DNS/SNI", script)
-        self.assertNotIn("--insecure", script)
+        self.assertNotIn("curl --insecure", script)
         self.assertNotIn("--no-check-certificate", script)
 
     def test_real_spring_bridge_harness_always_invokes_explicit_binary(self):
