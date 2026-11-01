@@ -91,9 +91,13 @@ The evidence checker itself is unit-tested using **invented XML only** in automa
 
 ```sh
 cd apps/server
-./gradlew integrationTest
+./gradlew --no-build-cache --rerun-tasks integrationTest
 python3 scripts/assert-postgres18-junit.py build/test-results/integrationTest
 ```
+
+The GitHub manual workflow also uses `--no-build-cache --rerun-tasks`
+so its JUnit report cannot be satisfied by cached Gradle test outputs;
+the Docker-backed suite must execute in that specific Actions run.
 
 **No manual run has been observed.** A passing XML evidence checker on invented fixtures proves only that the gate logic is functional; actual PostgreSQL test acceptance requires a successful explicitly dispatched manual run on the reviewed SHA.
 
