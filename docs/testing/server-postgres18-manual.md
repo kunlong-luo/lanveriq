@@ -52,6 +52,19 @@ PostgreSQL container run is yet observed. The tests must demonstrate:
 No real administrator password, organization database, LAN endpoint, or
 real employee data may be used for these checks.
 
+**AUTH-01 session-revocation race hardening (source-only):** To prevent an
+administrator's revoked grant from authorizing a session reset after a user-row
+lock wait, the repository now locks issuer and target users in stable UUID
+order, then makes a fresh PostgreSQL READ COMMITTED statement to check both
+current group memberships, retaining `FOR SHARE` on the exact grant rows.
+A new `PostgreSqlAdminAuditAtomicityIT` negative case observes an actual
+`pg_stat_activity` user-lock wait, removes the issuer's owner grant before
+release, and requires denial with **no session version increment or audit**.
+The manual evidence gate now requires **seven Testcontainers classes and at
+least 58 passing cases**. The new concurrency case has not been run against
+PostgreSQL; unit tests and integration source compilation alone cannot
+validate its lock semantics.
+
 **Source compilation checkpoint (2026-11-01):** [Server unit CI #41268054649](https://github.com/kunlong-luo/lanveriq/actions/runs/41268054649)
 completed successfully on commit `234fe37b1306c093ec5324d419d5523e23287dc8`.
 It includes Java unit tests, compilation of **all seven** opt-in PostgreSQL
@@ -63,7 +76,7 @@ its real JUnit results remain required.
 
 ## Manual JUnit evidence gate — mandatory, not a database substitute
 
-The [manually dispatched workflow](../../.github/workflows/server-postgres18-integration.yml) now runs a **fail-closed post-test evidence check** using `apps/server/scripts/assert-postgres18-junit.py`. It reads Gradle's generated `build/test-results/integrationTest/TEST-*.xml`, and **fails the manual run** unless all seven Testcontainers suites (event/heartbeat, activation, inventory, certificate registration, revocation, scoped device directory/monitoring, and administrator audit atomicity) report **at least 57 successful tests in total**, with explicit mandatory checks for PostgreSQL 18.6/Flyway V1–V8, two-key event conflict rollback, immutable event trigger, cross-device identity isolation, certificate revocation/race, audited registration/activation, inventory child-table rollback and post-lock admin revocation, suppressed first-admin role/audit inserts and suppressed session-revocation audit. Every failed, errored or skipped JUnit case blocks acceptance; absent, corrupted and duplicate reports are rejected. The Git commit, image ID/digests and JUnit artifacts continue to be captured by the existing manual workflow.
+The [manually dispatched workflow](../../.github/workflows/server-postgres18-integration.yml) now runs a **fail-closed post-test evidence check** using `apps/server/scripts/assert-postgres18-junit.py`. It reads Gradle's generated `build/test-results/integrationTest/TEST-*.xml`, and **fails the manual run** unless all seven Testcontainers suites (event/heartbeat, activation, inventory, certificate registration, revocation, scoped device directory/monitoring, and administrator audit atomicity) report **at least 58 successful tests in total**, with explicit mandatory checks for PostgreSQL 18.6/Flyway V1–V8, two-key event conflict rollback, immutable event trigger, cross-device identity isolation, certificate revocation/race, audited registration/activation, inventory child-table rollback and post-lock admin revocation, suppressed first-admin role/audit inserts and suppressed session-revocation audit, and observed post-lock session-grant denial. Every failed, errored or skipped JUnit case blocks acceptance; absent, corrupted and duplicate reports are rejected. The Git commit, image ID/digests and JUnit artifacts continue to be captured by the existing manual workflow.
 
 The evidence checker itself is unit-tested using **invented XML only** in automatic Java CI; it runs **no Docker container or database** there. To verify an explicitly run local integration suite, use:
 
