@@ -8,6 +8,12 @@
 -- to database postgres, enable AUTO-COMMIT and STOP ON ERROR, then execute the
 -- statements in their listed order. Never choose Run in a single transaction:
 -- PostgreSQL forbids CREATE DATABASE inside a transaction block.
+-- DBeaver: SQL Editor preferences > SQL Processing > Scripts:
+--   Commit type = After each query (autocommit), NOT At script end.
+-- Set Error handling to STOP on first error. This script must execute in order
+-- (Alt+X), NEVER in parallel, and without any BEGIN / single-transaction wrapper.
+-- DBeaver's toolbar Auto-commit alone may not override SCRIPT commit type.
+-- Before any retry, check pg_roles and pg_database for partial initialization.
 -- This creates NOLOGIN only; after inspection, set a strong SCRAM password
 -- using your client's protected role/password dialog, or psql's interactive
 -- backslash-password command, and only THEN enable LOGIN.

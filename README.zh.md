@@ -100,6 +100,8 @@ docker exec -i spark-postgres \
 
 脚本只执行一次性 PostgreSQL **角色/数据库初始化**，不属于 Flyway 迁移。它先校验操作者、当前连接的维护库和目标对象不存在，然后创建 `NOLOGIN`、无全局管理权限的 `lanveriq` 用户与专属数据库，撤销 `PUBLIC` 对新数据库的权限；**不包含密码、不会修改 `iot_farm`，也不会自动由 Spring Boot 或 CI 运行**。`CREATE DATABASE` 不能与创建角色一起包裹在单个事务中；若中途出错，必须人工检查可能留下的 `NOLOGIN` 角色及数据库，**不要重复运行**。
 
+**DBeaver 特别注意（SQLSTATE 25001）**：工具栏的 Auto-commit 还不够，还需要在 **Preferences → Editors → SQL Editor → SQL Processing → Scripts** 中，将 **Commit type = After each query (autocommit)**，不能是 **At script end**（后者会将整份脚本放到一个事务中，导致 `CREATE DATABASE cannot run inside a transaction block`）。选择 **Error handling = 遇错停止**，然后用 **Alt+X** 按顺序执行，不能用“在不同结果页中并行执行脚本语句”。已报错的会话先确认/结束失败的事务，再通过独立会话查询 `pg_roles`、`pg_database`，确认未发生部分创建后才可以重试。参考 [DBeaver SQL Execution 官方文档](https://dbeaver.com/docs/dbeaver/SQL-Execution/)。
+
 **如果使用 IDEA / DataGrip / DBeaver / pgAdmin 的 SQL 编辑器**：直接打开同一个 `provision-lanveriq-database.sql`，数据源必须选择管理员连接到 `postgres` 维护库；设置 **Auto-commit（自动提交）**、**遇错停止**，按文件顺序执行每条语句。不能选择“整个脚本在一个事务中执行”，因为 PostgreSQL 不允许在事务块中 `CREATE DATABASE`。旧版脚本曾错误包含 `\set ON_ERROR_STOP on`，它是 **psql 专属命令**，在 JDBC SQL 编辑器中会报 `42601`；现已删除。如果运行失败先检查是否存在 `lanveriq` 角色或数据库，别重复执行。
 
 **密码无需再写一个 SQL 脚本。** 可以使用受信任的数据库客户端的角色管理/密码设置界面完成密码配置，再执行单独的 `ALTER ROLE lanveriq LOGIN;` SQL 语句；也可以使用下方的交互式 `psql` 流程。**不要在普通 SQL 编辑器直接执行 `\password`**，因为它也是 psql 专有命令。
