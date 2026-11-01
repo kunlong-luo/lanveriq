@@ -30,6 +30,19 @@ describe('Web synthetic-only navigation', () => {
     expect(page).toContain('演示设备 A');
   });
 
+  it('renders disabled login fields and no credential submission action', () => {
+    const page = renderRoute('/login');
+    expect(page).toContain('管理员登录');
+    expect(page).toContain('演示模式');
+    expect(page).toContain('全部为合成数据');
+    expect(page).toContain('未连接后端');
+    expect(page).toContain('请勿输入真实账号或密码');
+    expect(page).toContain('安全登录（尚未开放）');
+    expect(page).toContain('type="password"');
+    expect(page).toContain('disabled');
+    expect(page).not.toContain('action="/api/v1/auth/login"');
+  });
+
   it('does not expose operational enrollment controls', () => {
     const page = renderRoute('/enrollment');
     expect(page).toContain('发起注册（未启用）');
