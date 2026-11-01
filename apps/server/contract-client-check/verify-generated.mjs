@@ -17,6 +17,7 @@ const required = [
   '/api/v1/devices',
   '/api/v1/devices/',
   '/api/v1/monitoring/overview',
+  '/api/v1/auth/session',
   '@tanstack/react-query',
   'useQuery',
 ];

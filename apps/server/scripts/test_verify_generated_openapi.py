@@ -29,7 +29,7 @@ def fixture():
                 }
             }
             for path in ("/api/v1/devices", "/api/v1/devices/{deviceId}",
-                         "/api/v1/monitoring/overview")
+                         "/api/v1/monitoring/overview", "/api/v1/auth/session")
         },
         "components": {
             "securitySchemes": {"consoleSession": {
@@ -40,6 +40,10 @@ def fixture():
                 "DeviceHealthSummary": {
                     "type": "object",
                     "properties": {name: {"type": "string"} for name in expected},
+                },
+                "ConsoleSessionInfo": {
+                    "type": "object",
+                    "properties": {"login": {"type": "string"}},
                 },
                 "ScopedMonitoringOverview": {
                     "type": "object",
@@ -94,6 +98,15 @@ class ContractGateTest(unittest.TestCase):
         self.assertTrue(validate(sample))
         sample = fixture()
         sample["components"]["schemas"]["ScopedMonitoringOverview"]["properties"]["employee_id"] = {"type": "string"}
+        self.assertTrue(validate(sample))
+
+    def test_session_schema_is_one_field_only(self):
+        sample = fixture()
+        sample["components"]["schemas"]["ConsoleSessionInfo"]["properties"][
+            "session_token"] = {"type": "string"}
+        self.assertTrue(validate(sample))
+        sample = fixture()
+        del sample["components"]["schemas"]["ConsoleSessionInfo"]["properties"]["login"]
         self.assertTrue(validate(sample))
 
     def test_invalid_or_empty_document_blocks(self):

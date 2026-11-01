@@ -13,7 +13,7 @@ from pathlib import Path
 
 EXPECTED_PATHS = {
     "/api/v1/devices", "/api/v1/devices/{deviceId}",
-    "/api/v1/monitoring/overview",
+    "/api/v1/monitoring/overview", "/api/v1/auth/session",
 }
 EXPECTED_FIELDS = {
     "device_id", "group_id", "group_name", "label", "enrollment_state",
@@ -22,6 +22,7 @@ EXPECTED_FIELDS = {
     "memory_total_bytes", "inventory_received_at",
 }
 PAGE_FIELDS = {"items", "next_cursor"}
+SESSION_FIELDS = {"login"}
 OVERVIEW_FIELDS = {
     "as_of", "total", "online", "stale", "offline", "revoked", "pending", "retired",
 }
@@ -91,6 +92,12 @@ def validate(spec: object) -> list[str]:
                 fields["next_cursor"], dict):
             errors.append("Missing typed page members")
 
+    session = schemas.get("ConsoleSessionInfo")
+    if not isinstance(session, dict) or not isinstance(
+            session.get("properties"), dict) or set(
+                session["properties"]) != SESSION_FIELDS:
+        errors.append("Session response must reveal only normalized login")
+
     overview = schemas.get("ScopedMonitoringOverview")
     if not isinstance(overview, dict) or not isinstance(
             overview.get("properties"), dict) or set(
@@ -117,7 +124,7 @@ def main() -> int:
         print("OPENAPI CONTRACT BLOCKED: " + error, file=sys.stderr)
     if errors:
         return 1
-    print("Source-generated Springdoc 3.x device and monitoring overview verified: "
+    print("Source-generated Springdoc 3.x device, monitoring and session verified: "
           "GET-only, session cookie security, strict health-only response schema.")
     return 0
 

@@ -1,5 +1,7 @@
 package com.lanveriq.server.security;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
@@ -52,11 +54,18 @@ public class ConsoleSessionSecurityConfiguration {
                 .authenticationProvider(adminAuthenticationProvider)
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/session").authenticated()
                         .anyRequest().denyAll())
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokens))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .sessionFixation(fixation -> fixation.changeSessionId()))
+                // React must get a stable 401, not an HTML login redirect.
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
+                        (request, response, error) -> {
+                            response.setHeader("Cache-Control", "no-store");
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                        }))
                 .formLogin(login -> login
                         .loginProcessingUrl("/api/v1/auth/login")
                         .successHandler(handlers.loginSuccess())

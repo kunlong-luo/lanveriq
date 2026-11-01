@@ -17,6 +17,8 @@ Rust Agent ↔ server: authenticated REST for enrollment, heartbeat and batches;
 
 **MON-01-OVERVIEW staged API:** The backend now has an independently opt-in, administrator-session-guarded `GET /api/v1/monitoring/overview`. Server-generated JSON is `{as_of,total,online,stale,offline,revoked,pending,retired}`, with one database clock snapshot and mutually exclusive counts; it never derives total counts from a client-side paginated list or discloses unassigned groups. Pending and retired are separate. This operation is part of the source-generated Springdoc contract verification but requires a new successful CI run before accepting the expanded artifact. Actual PG/TLS/browser execution still open.
 
+**AUTH-01-SESSION-STATUS (source stage):** When the otherwise-default-OFF console authentication slice is enabled, `GET /api/v1/auth/session` returns `{ "login": "<normalized-login>" }` only for a currently authenticated, enabled account whose session version still matches the database. Anonymous or rotated sessions are rejected with **401**, not a browser redirect; the response uses `Cache-Control: no-store`. The Springdoc/Orval contract gate now includes this fourth GET-only path. It conveys authentication, **not** group authorization: device and monitoring queries independently recheck live group scopes in PostgreSQL. Actual browser-cookie, TLS, PostgreSQL and reverse-proxy acceptance remain unverified.
+
 ## Device API
 | Method | Path | Principal | Semantics |
 |---|---|---|---|
