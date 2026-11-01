@@ -19,70 +19,112 @@ import org.springframework.security.access.AccessDeniedException;
 
 class JpaAdminSessionRevocationRepositoryTest {
 
+    private static final class Fixture {
+        final EntityManager em = Mockito.mock(EntityManager.class);
+        final Query userLocks = Mockito.mock(Query.class);
+        final Query currentGrants = Mockito.mock(Query.class);
+        final Query update = Mockito.mock(Query.class);
+        final Query audit = Mockito.mock(Query.class);
+        final UUID issuer = UUID.randomUUID();
+        final UUID target = UUID.randomUUID();
+        final UUID group = UUID.randomUUID();
+
+        Fixture() {
+            when(em.createNativeQuery(anyString())).thenAnswer(invocation -> {
+                String sql = invocation.getArgument(0);
+                if (sql.contains("ORDER BY u.id FOR UPDATE OF u")) return userLocks;
+                if (sql.contains("FOR SHARE OF issuer_scope, target_scope")) return currentGrants;
+                if (sql.contains("UPDATE users AS target")) return update;
+                if (sql.contains("INSERT INTO admin_access_log")) return audit;
+                throw new AssertionError("Unexpected session revocation SQL");
+            });
+            for (Query query : List.of(userLocks, currentGrants, update, audit)) {
+                when(query.setParameter(anyString(), Mockito.any())).thenReturn(query);
+            }
+            when(userLocks.getResultList()).thenReturn(List.of(issuer, target));
+            when(currentGrants.getResultList()).thenReturn(List.of(issuer));
+            when(update.getResultList()).thenReturn(List.of(7L));
+            when(audit.executeUpdate()).thenReturn(1);
+        }
+
+        long rotate() {
+            return new JpaAdminSessionRevocationRepository(em)
+                    .rotateAllSessions(issuer, target, group);
+        }
+    }
+
     @Test
-    void updateRequiresLiveOwnerGroupAndTargetGroupThenAudits() {
-        var em = Mockito.mock(EntityManager.class);
-        var update = Mockito.mock(Query.class);
-        var audit = Mockito.mock(Query.class);
-        when(em.createNativeQuery(anyString())).thenAnswer(call -> {
-            String sql = call.getArgument(0);
-            return sql.contains("UPDATE users") ? update : audit;
-        });
-        when(update.setParameter(anyString(), Mockito.any())).thenReturn(update);
-        when(audit.setParameter(anyString(), Mockito.any())).thenReturn(audit);
-        when(audit.executeUpdate()).thenReturn(1);
-        when(update.getResultList()).thenReturn(List.of(7L));
-        UUID issuer = UUID.randomUUID(), target = UUID.randomUUID(), group = UUID.randomUUID();
+    void locksBothUsersThenFreshScopeGrantsBeforeAtomicUpdateAndAudit() {
+        var fixture = new Fixture();
+        assertEquals(7L, fixture.rotate());
 
-        long version = new JpaAdminSessionRevocationRepository(em)
-                .rotateAllSessions(issuer, target, group);
-
-        assertEquals(7L, version);
         var capturedSql = ArgumentCaptor.forClass(String.class);
-        verify(em, Mockito.times(2)).createNativeQuery(capturedSql.capture());
-        String sql = capturedSql.getAllValues().getFirst();
-        assertTrue(sql.contains("session_version + 1"));
-        assertTrue(sql.contains("assigned.device_group_id = :group_id"));
-        assertTrue(sql.contains("issuer.disabled_at IS NULL"));
-        assertTrue(sql.contains("owner_security_admin"));
-        verify(update).setParameter("issuer_id", issuer);
-        verify(update).setParameter("target_id", target);
-        verify(update).setParameter("group_id", group);
-        verify(audit).executeUpdate();
+        verify(fixture.em, Mockito.times(4)).createNativeQuery(capturedSql.capture());
+        var statements = capturedSql.getAllValues();
+        assertTrue(statements.get(0).contains("ORDER BY u.id FOR UPDATE OF u"));
+        assertTrue(statements.get(1).contains("issuer.disabled_at IS NULL"));
+        assertTrue(statements.get(1).contains("owner_security_admin"));
+        assertTrue(statements.get(1).contains("issuer_scope.device_group_id=:group_id"));
+        assertTrue(statements.get(1).contains("target_scope.device_group_id=:group_id"));
+        assertTrue(statements.get(1).contains("FOR SHARE OF issuer_scope, target_scope"));
+        assertTrue(statements.get(2).contains("session_version + 1"));
+        assertTrue(statements.get(2).contains("assigned.device_group_id = :group_id"));
+        assertTrue(statements.get(3).contains("admin.sessions.revoke"));
+        verify(fixture.userLocks).setParameter("issuer_id", fixture.issuer);
+        verify(fixture.userLocks).setParameter("target_id", fixture.target);
+        verify(fixture.currentGrants).setParameter("issuer_id", fixture.issuer);
+        verify(fixture.currentGrants).setParameter("target_id", fixture.target);
+        verify(fixture.currentGrants).setParameter("group_id", fixture.group);
+        verify(fixture.update).setParameter("issuer_id", fixture.issuer);
+        verify(fixture.update).setParameter("target_id", fixture.target);
+        verify(fixture.update).setParameter("group_id", fixture.group);
+        verify(fixture.audit).executeUpdate();
     }
 
     @Test
-    void nonexistentOrWrongScopeFailsWithoutAudit() {
-        var em = Mockito.mock(EntityManager.class);
-        var update = Mockito.mock(Query.class);
-        when(em.createNativeQuery(anyString())).thenReturn(update);
-        when(update.setParameter(anyString(), Mockito.any())).thenReturn(update);
-        when(update.getResultList()).thenReturn(List.of());
-
-        assertThrows(AccessDeniedException.class, () ->
-                new JpaAdminSessionRevocationRepository(em)
-                        .rotateAllSessions(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
-
-        verify(update, never()).executeUpdate();
-        verify(em, Mockito.times(1)).createNativeQuery(anyString());
+    void unknownUserDeniedBeforeAnyGrantCheckOrMutation() {
+        var fixture = new Fixture();
+        when(fixture.userLocks.getResultList()).thenReturn(List.of(fixture.issuer));
+        assertThrows(AccessDeniedException.class, fixture::rotate);
+        verify(fixture.currentGrants, never()).getResultList();
+        verify(fixture.update, never()).getResultList();
+        verify(fixture.audit, never()).executeUpdate();
     }
+
+    @Test
+    void revokedOrDisabledGrantDeniedAfterUserLockWithoutMutation() {
+        var fixture = new Fixture();
+        when(fixture.currentGrants.getResultList()).thenReturn(List.of());
+        assertThrows(AccessDeniedException.class, fixture::rotate);
+        verify(fixture.userLocks).getResultList();
+        verify(fixture.currentGrants).getResultList();
+        verify(fixture.update, never()).getResultList();
+        verify(fixture.audit, never()).executeUpdate();
+    }
+
+    @Test
+    void missingUpdateResultDoesNotWriteAudit() {
+        var fixture = new Fixture();
+        when(fixture.update.getResultList()).thenReturn(List.of());
+        assertThrows(AccessDeniedException.class, fixture::rotate);
+        verify(fixture.audit, never()).executeUpdate();
+    }
+
     @Test
     void silentlySuppressedSessionAuditRejectsSuccessfulRevocation() {
-        var em = Mockito.mock(EntityManager.class);
-        var update = Mockito.mock(Query.class);
-        var audit = Mockito.mock(Query.class);
-        when(em.createNativeQuery(anyString())).thenAnswer(call ->
-                ((String) call.getArgument(0)).contains("UPDATE users") ? update : audit);
-        when(update.setParameter(anyString(), Mockito.any())).thenReturn(update);
-        when(audit.setParameter(anyString(), Mockito.any())).thenReturn(audit);
-        when(update.getResultList()).thenReturn(List.of(8L));
-        when(audit.executeUpdate()).thenReturn(0);
-
-        assertThrows(IllegalStateException.class, () ->
-                new JpaAdminSessionRevocationRepository(em)
-                        .rotateAllSessions(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
-        verify(update).getResultList();
-        verify(audit).executeUpdate();
+        var fixture = new Fixture();
+        when(fixture.audit.executeUpdate()).thenReturn(0);
+        assertThrows(IllegalStateException.class, fixture::rotate);
+        verify(fixture.update).getResultList();
+        verify(fixture.audit).executeUpdate();
     }
 
+    @Test
+    void issuerMayRevokeOwnSessionsWithoutDemandingTwoDistinctUserRows() {
+        var fixture = new Fixture();
+        when(fixture.userLocks.getResultList()).thenReturn(List.of(fixture.issuer));
+        assertEquals(7L, new JpaAdminSessionRevocationRepository(fixture.em)
+                .rotateAllSessions(fixture.issuer, fixture.issuer, fixture.group));
+        verify(fixture.audit).executeUpdate();
+    }
 }
