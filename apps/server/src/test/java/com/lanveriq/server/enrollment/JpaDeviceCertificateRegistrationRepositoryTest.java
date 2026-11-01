@@ -22,6 +22,7 @@ class JpaDeviceCertificateRegistrationRepositoryTest {
 
     private final EntityManager manager = Mockito.mock(EntityManager.class);
     private final Query review = Mockito.mock(Query.class);
+    private final Query grant = Mockito.mock(Query.class);
     private final Query updateCsr = Mockito.mock(Query.class);
     private final Query insert = Mockito.mock(Query.class);
     private final Query audit = Mockito.mock(Query.class);
@@ -33,13 +34,15 @@ class JpaDeviceCertificateRegistrationRepositoryTest {
         when(manager.createNativeQuery(anyString())).thenAnswer(invocation -> {
             String sql = invocation.getArgument(0);
             if (sql.contains("FOR UPDATE OF d")) return review;
+            if (sql.contains("FOR SHARE OF u, s")) return grant;
             if (sql.contains("UPDATE device_enrollment_csrs")) return updateCsr;
             if (sql.contains("INSERT INTO device_credentials")) return insert;
             return audit;
         });
-        for (Query query : List.of(review, updateCsr, insert, audit)) {
+        for (Query query : List.of(review, grant, updateCsr, insert, audit)) {
             when(query.setParameter(anyString(), Mockito.any())).thenReturn(query);
         }
+        when(audit.executeUpdate()).thenReturn(1);
     }
 
     private ClientCertificateProfileValidator.VerifiedLeaf leaf() {
@@ -54,6 +57,7 @@ class JpaDeviceCertificateRegistrationRepositoryTest {
         wire();
         when(review.getResultList()).thenReturn(List.<Object[]>of(
                 new Object[]{group, "b".repeat(64)}));
+        when(grant.getResultList()).thenReturn(List.of(admin));
         var actual = new JpaDeviceCertificateRegistrationRepository(manager)
                 .lockPendingForScopedAdmin(admin, device);
         assertEquals(device, actual.deviceId());
@@ -61,12 +65,14 @@ class JpaDeviceCertificateRegistrationRepositoryTest {
         assertEquals("b".repeat(64), actual.csrSpkiSha256());
 
         var sql = ArgumentCaptor.forClass(String.class);
-        verify(manager).createNativeQuery(sql.capture());
-        assertTrue(sql.getValue().contains("FOR UPDATE OF d"));
-        assertTrue(sql.getValue().contains("owner_security_admin"));
-        assertTrue(sql.getValue().contains("u.disabled_at IS NULL"));
-        assertTrue(sql.getValue().contains("r.pending_expires_at>clock_timestamp()"));
-        assertTrue(sql.getValue().contains("NOT EXISTS"));
+        verify(manager, Mockito.times(2)).createNativeQuery(sql.capture());
+        assertTrue(sql.getAllValues().get(0).contains("FOR UPDATE OF d"));
+        assertTrue(sql.getAllValues().get(0).contains("r.pending_expires_at>clock_timestamp()"));
+        assertTrue(sql.getAllValues().get(0).contains("NOT EXISTS"));
+        assertTrue(sql.getAllValues().get(1).contains("FOR SHARE OF u, s"));
+        assertTrue(sql.getAllValues().get(1).contains("owner_security_admin"));
+        assertTrue(sql.getAllValues().get(1).contains("u.disabled_at IS NULL"));
+        assertTrue(sql.getAllValues().get(1).contains("d.group_id=s.device_group_id"));
     }
 
     @Test
@@ -78,6 +84,21 @@ class JpaDeviceCertificateRegistrationRepositoryTest {
                         .lockPendingForScopedAdmin(admin, device));
         verify(updateCsr, never()).executeUpdate();
         verify(insert, never()).getResultList();
+    }
+
+    @Test
+    void staleAdminGrantIsDeniedAfterDeviceLockWithFreshDatabaseQuery() {
+        wire();
+        when(review.getResultList()).thenReturn(List.<Object[]>of(
+                new Object[]{group, "b".repeat(64)}));
+        when(grant.getResultList()).thenReturn(List.of());
+        assertThrows(AccessDeniedException.class, () ->
+                new JpaDeviceCertificateRegistrationRepository(manager)
+                        .lockPendingForScopedAdmin(admin, device));
+        verify(grant).getResultList();
+        verify(updateCsr, never()).executeUpdate();
+        verify(insert, never()).getResultList();
+        verify(audit, never()).executeUpdate();
     }
 
     @Test
@@ -109,6 +130,20 @@ class JpaDeviceCertificateRegistrationRepositoryTest {
                         .registerReviewed(admin, device, leaf()));
         verify(insert, never()).getResultList();
         verify(audit, never()).executeUpdate();
+    }
+
+    @Test
+    void silentlySuppressedAuditCannotClaimSuccessfulRegistration() {
+        wire();
+        when(updateCsr.executeUpdate()).thenReturn(1);
+        when(insert.getResultList()).thenReturn(List.of(UUID.randomUUID()));
+        when(audit.executeUpdate()).thenReturn(0);
+        assertThrows(AccessDeniedException.class, () ->
+                new JpaDeviceCertificateRegistrationRepository(manager)
+                        .registerReviewed(admin, device, leaf()));
+        verify(updateCsr).executeUpdate();
+        verify(insert).getResultList();
+        verify(audit).executeUpdate();
     }
 
     @Test

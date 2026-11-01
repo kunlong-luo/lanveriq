@@ -13,6 +13,8 @@
 
 **2026-10-31 fixture correctness repair (SOURCE ONLY):** `PostgreSqlCertificateRegistrationIT` previously inserted the same fixed CSR SPKI digest for each `@BeforeEach`, violating V3's cross-device unique index after the first test. It now uses a per-device random 64-hex digest consistently in the pending CSR, simulated verified leaf and assertions. The simulated leaf validity also uses a bounded rolling time window rather than fixed 2026 dates; no production certificate lifetime or offline-CA policy changes. Actual PostgreSQL execution is still unverified.
 
+**Additional default-OFF registration safety gates (source only):** The repository now follows the same device-first, fresh role/user row-lock authorization protocol as device revocation. A disabled administrator or revoked group role can no longer pass a stale pre-lock review snapshot. The allowed audit insertion must affect **exactly one row**; a PostgreSQL BEFORE INSERT trigger that `RETURN NULL` suppresses the audit causes the whole reviewed CSR and credential transaction to roll back. Java unit tests cover the two failure modes. The manually run PostgreSQL suite stages `silentlyDroppedAuditInsertRollsBackCertificateAndReview` and `disablingAdminDuringDeviceLockWaitRejectsStaleReviewAndAudit` (with observed PG lock wait). **No actual container execution evidence exists yet.** These are not proof of real CA, Caddy, PKI rotation or web security.
+
 ## Evidence matrix
 
 | Case | Expected result | Current proof |

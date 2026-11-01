@@ -18,7 +18,7 @@ MIN_COUNTS = {
     "PostgreSqlEventIngestionIT": 20,
     "PostgreSqlDeviceActivationIT": 5,
     "PostgreSqlDeviceInventoryIT": 11,
-    "PostgreSqlCertificateRegistrationIT": 3,
+    "PostgreSqlCertificateRegistrationIT": 5,
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
 }
@@ -51,6 +51,8 @@ REQUIRED_CASES = {
         "scopedOwnerReviewsAndRegistersOnlyPendingCredentialWithAudit",
         "unscopedAdminCannotReviewOrCreateCertificate",
         "failedTransactionRevertsReviewCertificateAndAuditTogether",
+        "silentlyDroppedAuditInsertRollsBackCertificateAndReview",
+        "disablingAdminDuringDeviceLockWaitRejectsStaleReviewAndAudit",
     },
     "PostgreSqlDeviceRevocationIT": {
         "scopedOwnerRevokesActiveIdentityAndCredentialsOnceAndDeniesHeartbeat",
@@ -125,7 +127,7 @@ def main() -> int:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
     print("PG18 synthetic JUnit evidence verified: all 6 Testcontainers classes, "
-          ">=49 passing tests, mandatory DB/lock/revocation/rollback cases; "
+          ">=51 passing tests, mandatory DB/lock/revocation/rollback cases; "
           "no failed, errored or skipped cases.")
     return 0
 

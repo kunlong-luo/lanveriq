@@ -34,20 +34,34 @@ final class JpaDeviceCertificateRegistrationRepository
                       SELECT 1 FROM device_credentials AS c
                       WHERE c.device_id=d.id
                   )
-                  AND EXISTS (
-                      SELECT 1 FROM users AS u
-                      JOIN user_role_scopes AS s ON s.user_id=u.id
-                      JOIN roles AS role ON role.id=s.role_id
-                      WHERE u.id=:admin_id AND u.disabled_at IS NULL
-                        AND s.device_group_id=d.group_id
-                        AND role.code='owner_security_admin'
-                  )
                 FOR UPDATE OF d
                 """)
                 .setParameter("device_id", deviceId)
                 .setParameter("admin_id", adminId)
                 .getResultList();
         if (rows.size() != 1) {
+            throw denied();
+        }
+        // READ COMMITTED may reuse a pre-wait snapshot for the original
+        // SELECT ... FOR UPDATE. Take a FRESH statement AFTER the device
+        // lock and lock both the current user and exact group-role grant.
+        // Disabling this user or deleting the grant cannot race a committed
+        // certificate review once this transaction holds these SHARE locks.
+        var grants = manager.createNativeQuery("""
+                SELECT s.user_id
+                FROM users AS u
+                JOIN user_role_scopes AS s ON s.user_id=u.id
+                JOIN roles AS role ON role.id=s.role_id
+                JOIN devices AS d ON d.group_id=s.device_group_id
+                WHERE d.id=:device_id AND u.id=:admin_id
+                  AND u.disabled_at IS NULL
+                  AND role.code='owner_security_admin'
+                FOR SHARE OF u, s
+                """)
+                .setParameter("device_id", deviceId)
+                .setParameter("admin_id", adminId)
+                .getResultList();
+        if (grants.size() != 1) {
             throw denied();
         }
         Object[] row = (Object[]) rows.getFirst();
@@ -118,7 +132,7 @@ final class JpaDeviceCertificateRegistrationRepository
             throw denied();
         }
 
-        manager.createNativeQuery("""
+        int audited = manager.createNativeQuery("""
                 INSERT INTO admin_access_log
                     (principal_id,resource_id,device_group_id,action,outcome)
                 SELECT :admin_id,d.id,d.group_id,'device_certificate.register','allowed'
@@ -127,6 +141,11 @@ final class JpaDeviceCertificateRegistrationRepository
                 .setParameter("admin_id", adminId)
                 .setParameter("device_id", deviceId)
                 .executeUpdate();
+        if (audited != 1) {
+            // A BEFORE INSERT trigger can RETURN NULL without SQL error.
+            // Refuse to commit review and credential without one audit row.
+            throw denied();
+        }
     }
 
     private static AccessDeniedException denied() {

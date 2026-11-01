@@ -36,7 +36,7 @@ jobs:
         working-directory: apps/server
         run: ./gradlew integrationTest --stacktrace
       # A zero-exit Gradle task alone does not prove each security gate ran.
-      # Require real Gradle JUnit XML for all five Testcontainers classes,
+      # Require real Gradle JUnit XML for all six Testcontainers classes,
       # the PostgreSQL 18.6/Flyway assertion and all critical negative cases.
       - name: Fail closed if mandatory PostgreSQL tests were skipped or missing
         working-directory: apps/server
@@ -54,7 +54,7 @@ jobs:
           fi
       - name: Archive short-lived synthetic JUnit evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: srv03-pg18-synthetic-junit
           path: apps/server/build/test-results/integrationTest/*.xml

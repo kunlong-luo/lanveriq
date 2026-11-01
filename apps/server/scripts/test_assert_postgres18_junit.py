@@ -59,6 +59,16 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertTrue(any("Missing mandatory test" in error
                                 for error in verify_reports(Path(tmp))))
 
+    def test_new_certificate_audit_and_lock_negatives_cannot_be_omitted(self):
+        for required in (
+                "silentlyDroppedAuditInsertRollsBackCertificateAndReview",
+                "disablingAdminDuringDeviceLockWaitRejectsStaleReviewAndAudit"):
+            with tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp), omit=("PostgreSqlCertificateRegistrationIT", required))
+                self.assertTrue(any(
+                    "Missing mandatory test: PostgreSqlCertificateRegistrationIT." + required
+                    in error for error in verify_reports(Path(tmp))))
+
     def test_skipped_and_failed_tests_fail_even_when_counts_present(self):
         with tempfile.TemporaryDirectory() as tmp:
             key = ("PostgreSqlDeviceRevocationIT",

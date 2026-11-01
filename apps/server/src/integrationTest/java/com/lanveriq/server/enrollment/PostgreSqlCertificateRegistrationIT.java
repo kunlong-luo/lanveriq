@@ -3,9 +3,13 @@ package com.lanveriq.server.enrollment;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -160,5 +164,127 @@ class PostgreSqlCertificateRegistrationIT {
                 SELECT reviewed_by FROM device_enrollment_csrs WHERE device_id=:id
                 """).setParameter("id", deviceId).getSingleResult();
         assertNull(reviewer);
+    }
+
+    @Test
+    void silentlyDroppedAuditInsertRollsBackCertificateAndReview() {
+        transaction().executeWithoutResult(ignored -> {
+            manager.createNativeQuery("""
+                    CREATE FUNCTION synthetic_registration_audit_suppress()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                      IF NEW.action = 'device_certificate.register' THEN
+                        RETURN NULL;
+                      END IF;
+                      RETURN NEW;
+                    END
+                    $$
+                    """).executeUpdate();
+            manager.createNativeQuery("""
+                    CREATE TRIGGER synthetic_registration_audit_suppress
+                    BEFORE INSERT ON admin_access_log
+                    FOR EACH ROW EXECUTE FUNCTION synthetic_registration_audit_suppress()
+                    """).executeUpdate();
+        });
+        try {
+            assertThrows(AccessDeniedException.class, () ->
+                    transaction().executeWithoutResult(ignored -> {
+                        registration.lockPendingForScopedAdmin(adminId, deviceId);
+                        registration.registerReviewed(adminId, deviceId, fakeValidatedLeaf());
+                    }));
+            assertEquals(0L, count("credentials"));
+            assertEquals(0L, count("audit"));
+            assertNull(manager.createNativeQuery("""
+                    SELECT reviewed_by FROM device_enrollment_csrs WHERE device_id=:id
+                    """).setParameter("id", deviceId).getSingleResult());
+        } finally {
+            transaction().executeWithoutResult(ignored -> {
+                manager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS synthetic_registration_audit_suppress
+                        ON admin_access_log
+                        """).executeUpdate();
+                manager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS synthetic_registration_audit_suppress()
+                        """).executeUpdate();
+            });
+        }
+        transaction().executeWithoutResult(ignored -> {
+            registration.lockPendingForScopedAdmin(adminId, deviceId);
+            registration.registerReviewed(adminId, deviceId, fakeValidatedLeaf());
+        });
+        assertEquals(1L, count("credentials"));
+        assertEquals(1L, count("audit"));
+    }
+
+    @Test
+    void disablingAdminDuringDeviceLockWaitRejectsStaleReviewAndAudit() throws Exception {
+        var holderHasLock = new CountDownLatch(1);
+        var releaseHolder = new CountDownLatch(1);
+        var workerStarted = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var holder = pool.submit(() ->
+                    transaction().executeWithoutResult(ignored -> {
+                        manager.createNativeQuery("""
+                                SELECT id FROM devices WHERE id=:device
+                                FOR UPDATE
+                                """).setParameter("device", deviceId).getSingleResult();
+                        holderHasLock.countDown();
+                        try {
+                            if (!releaseHolder.await(25, TimeUnit.SECONDS)) {
+                                throw new IllegalStateException("Synthetic device lock timed out");
+                            }
+                        } catch (InterruptedException error) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(error);
+                        }
+                    }));
+            try {
+                assertTrue(holderHasLock.await(15, TimeUnit.SECONDS));
+                var attempt = pool.submit(() -> {
+                    workerStarted.countDown();
+                    return assertThrows(AccessDeniedException.class, () ->
+                            transaction().executeWithoutResult(ignored -> {
+                                registration.lockPendingForScopedAdmin(adminId, deviceId);
+                                registration.registerReviewed(
+                                        adminId, deviceId, fakeValidatedLeaf());
+                            }));
+                });
+                assertTrue(workerStarted.await(15, TimeUnit.SECONDS));
+
+                // Require proof the worker is truly waiting inside PostgreSQL
+                // before disabling its administrator (not sequential testing).
+                boolean blocked = false;
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+                while (System.nanoTime() < deadline) {
+                    long waits = ((Number) manager.createNativeQuery("""
+                            SELECT COUNT(*) FROM pg_stat_activity
+                            WHERE datname=current_database()
+                              AND wait_event_type='Lock'
+                              AND query LIKE '%SELECT d.group_id, r.csr_spki_digest%'
+                            """).getSingleResult()).longValue();
+                    if (waits > 0) {
+                        blocked = true;
+                        break;
+                    }
+                    Thread.sleep(50);
+                }
+                assertTrue(blocked, "Must observe real PostgreSQL registration lock wait");
+                transaction().executeWithoutResult(ignored ->
+                        manager.createNativeQuery("""
+                                UPDATE users SET disabled_at=clock_timestamp()
+                                WHERE id=:admin
+                                """).setParameter("admin", adminId).executeUpdate());
+                releaseHolder.countDown();
+                holder.get(25, TimeUnit.SECONDS);
+                attempt.get(25, TimeUnit.SECONDS);
+            } finally {
+                releaseHolder.countDown();
+            }
+        }
+        assertEquals(0L, count("credentials"));
+        assertEquals(0L, count("audit"));
+        assertNull(manager.createNativeQuery("""
+                SELECT reviewed_by FROM device_enrollment_csrs WHERE device_id=:id
+                """).setParameter("id", deviceId).getSingleResult());
     }
 }

@@ -94,7 +94,13 @@ The default-OFF internal `AgentIngressAssertionConfiguration` now refuses to con
 
 **New manual executable synthetic probe (NOT RUN):** [Caddy Agent double-mTLS manual workflow](../../.github/workflows/caddy-agent-mtls-synthetic.yml) invokes [the synthetic acceptance script](../../deploy/caddy/tests/verify-reference.sh) against pinned Caddy 2.11.7 with disposable OpenSSL P-256 test CAs, a TLS client-cert-enforcing Python upstream, and curl HTTP/2 positive/negative probes. It checks **real Caddy** TLS handshakes and identity header overwriting only after the operator explicitly dispatches it; it does **not** replace actual Tomcat TLS, PostgreSQL 18 or real installed-Agent acceptance. The normal Java unit-only CI is unchanged.
 
-## SRV-02 signed certificate validation + scoped registration — DEFAULT OFF
+## SRV-02-REG-ATOMIC — certificate registration race and audit hardening
+
+The internal `JpaDeviceCertificateRegistrationRepository.lockPendingForScopedAdmin` **first locks the canonical pending device row**, then runs a **fresh PostgreSQL READ COMMITTED statement** to validate the *current* enabled owner/admin and exact device-group grant. It holds `FOR SHARE OF u, s` user/grant row locks until the surrounding `@Transactional` reviewed registration commits, so a previously disabled/revoked owner cannot authorize issuance after waiting on a device lock. This matches the existing device-revocation lock order. The credential/review write and `admin_access_log` insert remain in the same transaction, and a silently suppressed PostgreSQL audit INSERT (zero rows) now triggers **rollback**, not a false success. No CA key is stored by the server; no registration HTTP route is enabled.
+
+Java Mockito tests additionally cover the post-lock empty grant and missing audit; `PostgreSqlCertificateRegistrationIT` adds a real `pg_stat_activity`-observed lock-wait revocation test and audit-trigger `RETURN NULL` rollback + retry. These PostgreSQL cases have only been **written**, and are not claimed executed. The manual JUnit evidence gate requires 5 certificate-registration tests and at least 51 passing cases over six classes, in addition to Flyway V1–V8 evidence.
+
+
 
 The internal `ClientCertificateProfileValidator` now checks a **genuine signed** P-256 clientAuth leaf with JDK PKIX/Bouncy Castle against an **independently pinned dedicated client CA root** (not the request/OS trust store), exact server-assigned `urn:uuid:<device_id>` URI SAN, CSR SPKI digest, digitalSignature-only KeyUsage, exclusive clientAuth EKU, CA=false, and a maximum 90-day lifetime. Only a validated SHA-256 public leaf fingerprint/issuer/serial and validity metadata leave this validator. No CA private keys or custom issuance mechanisms exist.
 
