@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(prefix = "lanveriq.console.auth", name = "enabled", havingValue = "true")
 final class ConsoleCsrfController {
     @Schema(name = "ConsoleCsrfToken")
-    record CsrfResponse(@JsonProperty("csrfToken") String csrfToken) {
+    record CsrfResponse(@JsonProperty("csrfToken") @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String csrfToken) {
     }
 
     @Operation(summary = "Get the current session CSRF token",
