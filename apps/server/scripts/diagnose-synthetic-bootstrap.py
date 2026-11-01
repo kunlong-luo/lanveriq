@@ -30,6 +30,27 @@ def categories(raw: str) -> tuple[str, ...]:
     for label, markers in patterns:
         if any(marker in raw for marker in markers):
             categories.append(label)
+    # More specific Spring/bootstrap cause types. Never emit an exception's
+    # message: it can include request parameters, SQL text or credentials.
+    # Match only fully fixed class names or finite, machine-owned markers.
+    boot_causes = (
+        ("spring_missing_bean", ("NoSuchBeanDefinitionException", "UnsatisfiedDependencyException")),
+        ("spring_bean_cycle", ("BeanCurrentlyInCreationException",)),
+        ("spring_invalid_property", ("BindException", "ConfigurationPropertiesBindException", "Could not resolve placeholder")),
+        ("spring_bean_initialization", ("BeanInstantiationException", "BeanCreationException")),
+        ("spring_nonweb_security_dependency", ("No qualifying bean of type 'org.springframework.security.config.annotation.web.builders.HttpSecurity'",)),
+        ("spring_context_missing_servlet", ("No ServletContext set", "No ServletWebServerFactory bean")),
+        ("spring_context_property_missing", ("IllegalArgumentException: Could not resolve placeholder",)),
+        ("jpa_entity_manager_failure", ("EntityManagerFactory", "entityManagerFactory", "PersistenceException")),
+        ("db_authentication_failed", ("SQLSTATE 28P01", "password authentication failed for user")),
+        ("db_connection_refused", ("Connection refused", "PSQLException: Connection to")),
+        ("db_schema_validation_failed", ("SchemaManagementException", "Schema-validation", "SchemaValidationException")),
+        ("transaction_exception", ("TransactionSystemException", "CannotCreateTransactionException", "UnexpectedRollbackException")),
+        ("bootstrap_exception", ("FirstAdminBootstrapRunner.run", "FirstAdminBootstrapService.bootstrap")),
+    )
+    for label, markers in boot_causes:
+        if any(marker in raw for marker in markers):
+            categories.append(label)
     if "Initial administrator created." in raw:
         categories.append("application_reported_bootstrap_success")
     if "New administrator password:" in raw:
