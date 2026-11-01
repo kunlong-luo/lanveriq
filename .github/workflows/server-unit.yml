@@ -119,7 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p apps/web-next/.generated-contract/model
-          cp -a apps/server/contract-client-check/generated/model/. apps/web-next/.generated-contract/model/
+          cp -a apps/server/contract-client-check/generated/. apps/web-next/.generated-contract/
           cd apps/web-next
           pnpm install --frozen-lockfile
           pnpm exec tsc --noEmit --project tsconfig.contract.json
