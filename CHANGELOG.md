@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-01 — Repository root boundary audit
+- Kept the repository root limited to shared README/governance/security/changelog files, `.github` automation, `apps`, shared Caddy ingress under `deploy/caddy`, and `docs`. Root `.gitignore` ignores generated build outputs across subprojects.
+- Migrated the Rust-only `Cargo.lock` and `rust-toolchain.toml` into `apps/agent`, and made its `Cargo.toml` a standalone single-crate manifest with exact edition/MSRV/license fields. The prior root Rust workspace manifest was removed.
+- Relocated the Agent-only experimental systemd unit from `deploy/systemd/` to `apps/agent/deploy/systemd/`; the shared cross-component Caddy reference stayed under `deploy/caddy`. Updated Agent Linux/Windows CI working directories and installation/IDE docs to match.
+- Java Gradle remains exclusive to `apps/server`, React pnpm exclusive to `apps/web`; no new root build-wrapper files. This is an organizational cleanup and does **not** approve real Agent collection, an installed service or deployment.
+
 ## 2026-10-31 — Opt-in real PostgreSQL 18 Testcontainers acceptance harness
 - Introduced a separate Gradle 9.8.2 `integrationTest` suite based on Spring Boot 4.1.2 `@ServiceConnection` and managed Testcontainers 2.0.5 `postgres:18.6`, rather than H2, ad hoc JDBC or reinvented database setup.
 - Added real-Flyway V1–V6/JPA tests for UUIDv7, exact replay, both identity conflicts, whole-batch rollback, forged/expired/revoked device credentials, immutable-event trigger and concurrent duplicate/conflicting uploads.
