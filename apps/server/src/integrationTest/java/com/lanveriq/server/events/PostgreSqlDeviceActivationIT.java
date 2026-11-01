@@ -182,7 +182,12 @@ class PostgreSqlDeviceActivationIT {
         new TransactionTemplate(txManager).executeWithoutResult(ignored ->
                 entityManager.createNativeQuery("""
                         UPDATE device_enrollment_csrs
-                        SET pending_expires_at=CURRENT_TIMESTAMP - INTERVAL '1 minute'
+                        -- An expired CSR must still obey V3's constraint
+                        -- pending_expires_at > requested_at. Backdate both
+                        -- timestamps to represent a genuinely expired request,
+                        -- rather than inserting an impossible database state.
+                        SET requested_at=CURRENT_TIMESTAMP - INTERVAL '2 hours',
+                            pending_expires_at=CURRENT_TIMESTAMP - INTERVAL '1 hour'
                         WHERE device_id=:device
                         """).setParameter("device", deviceId).executeUpdate());
         assertEquals(DeviceActivationRejection.Reason.DENIED,

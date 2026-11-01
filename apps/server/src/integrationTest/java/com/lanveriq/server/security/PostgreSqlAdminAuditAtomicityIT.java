@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.junit.jupiter.api.function.Executable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -156,6 +158,19 @@ class PostgreSqlAdminAuditAtomicityIT {
         return ((Number) manager.createNativeQuery(sql).getSingleResult()).longValue();
     }
 
+    /**
+     * Repository beans are advised with Spring persistence exception translation.
+     * IllegalStateException from the repository is wrapped before it crosses
+     * the Spring proxy. Verify the precise original invariant failure as well
+     * as the rollback, never accept an unrelated SQL or authentication error.
+     */
+    private void assertRepositoryInvariantRejected(String reason, Executable attempted) {
+        var failure = assertThrows(InvalidDataAccessApiUsageException.class, attempted);
+        assertTrue(failure.getCause() instanceof IllegalStateException,
+                "The translated repository failure must preserve its original cause");
+        assertEquals(reason, failure.getCause().getMessage());
+    }
+
     private FirstAdminBootstrapRepository.BootstrappedAdmin firstOwner() {
         return transaction().execute(ignored -> bootstrap.createFirstOwner(
                 "synthetic.owner", "synthetic-not-a-login-hash", "Synthetic Engineering"));
@@ -199,7 +214,7 @@ class PostgreSqlAdminAuditAtomicityIT {
     @Test
     void suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit() {
         suppressScopeInsert();
-        assertThrows(IllegalStateException.class, this::firstOwner);
+        assertRepositoryInvariantRejected("Initial administrator grant was not persisted", this::firstOwner);
         assertEquals(0L, count("users"));
         assertEquals(0L, count("device_groups"));
         assertEquals(0L, count("user_role_scopes"));
@@ -215,7 +230,7 @@ class PostgreSqlAdminAuditAtomicityIT {
     @Test
     void suppressedBootstrapAuditRollsBackUserGroupAndGrant() {
         suppressAdminAudit("administrator.bootstrap");
-        assertThrows(IllegalStateException.class, this::firstOwner);
+        assertRepositoryInvariantRejected("Initial administrator audit was not persisted", this::firstOwner);
         assertEquals(0L, count("users"));
         assertEquals(0L, count("device_groups"));
         assertEquals(0L, count("user_role_scopes"));
@@ -242,7 +257,7 @@ class PostgreSqlAdminAuditAtomicityIT {
                   AND r.code='owner_security_admin'
                 """).setParameter("user", created.userId())
                 .setParameter("group", created.groupId()).getSingleResult()).longValue());
-        assertThrows(IllegalStateException.class, this::firstOwner);
+        assertRepositoryInvariantRejected("Initial administrator already exists", this::firstOwner);
         assertEquals(1L, count("users"));
         assertEquals(1L, auditCount("administrator.bootstrap"));
     }
@@ -253,7 +268,8 @@ class PostgreSqlAdminAuditAtomicityIT {
         UUID target = insertSyntheticUser();
         assign(target, owner.groupId(), "it_operator");
         suppressAdminAudit("admin.sessions.revoke");
-        assertThrows(IllegalStateException.class, () -> transaction().executeWithoutResult(
+        assertRepositoryInvariantRejected("Session revocation audit was not persisted",
+                () -> transaction().executeWithoutResult(
                 ignored -> sessions.rotateAllSessions(
                         owner.userId(), target, owner.groupId())));
         assertEquals(0L, sessionVersion(target));
