@@ -71,27 +71,48 @@ Expected: `true`, a host mapping such as `127.0.0.1:5432`, and PostgreSQL **18.x
 
 Your existing InfluxDB Explorer maps host **port 18080**, so the local Lanveriq server uses **18081**.
 
-### 2. Create the dedicated Lanveriq database once
+### 2. Bootstrap a dedicated PostgreSQL database and role (manual only)
 
-Enter PostgreSQL's interactive console through the container's **local Unix socket**:
+First inspect the existing `spark-postgres` container through its Unix socket:
 
-```bash
-docker exec -it spark-postgres psql -U root -d postgres
-```
+~~~bash
+docker exec -it spark-postgres psql -X -U root -d postgres
+~~~
 
-First inspect existing roles/databases with `\du` and `\l`. If either `lanveriq` object already exists, inspect its owner and purpose; **do not recreate or overwrite it**. On a fresh, approved local development setup:
+Check `\du lanveriq` and `\l lanveriq`, then exit using `\q`. **If either object exists, stop and inspect ownership/history; never recreate or overwrite it.** When the intended container is verified and both are absent, invoke the reviewed, **password-free** [one-time bootstrap SQL](apps/server/scripts/provision-lanveriq-database.sql) from the repository root:
 
-```sql
-CREATE ROLE lanveriq LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
-```
+~~~bash
+docker exec -i spark-postgres \
+  psql -X -v ON_ERROR_STOP=1 -U root -d postgres \
+  < apps/server/scripts/provision-lanveriq-database.sql
+~~~
 
-At the same interactive `psql` prompt, run **`\password lanveriq`**, entering a **unique strong password** via the hidden prompt (do not store it in Git, Compose, terminal history or README). Then:
+The script verifies the maintenance database is `postgres`, the operator is a cluster administrator, and the target objects are absent. It creates only a `NOLOGIN` non-superuser role and a separate database owned by that role, revoking default `PUBLIC` privileges on the new database. It **does not** migrate `iot_farm`, change other services, store a password, or run automatically during Spring Boot startup/CI. PostgreSQL cannot run `CREATE DATABASE` in a transaction: if anything fails partway through, investigate the partial state before any manual recovery; do **not** rerun blindly.
 
-```sql
-CREATE DATABASE lanveriq OWNER lanveriq;
-```
+After successful bootstrap, open a **separate interactive** `psql`:
 
-Exit using `\q`. Only `lanveriq` will be migrated by the Java application; the existing `iot_farm`, cron jobs, Redis, InfluxDB and Docker volumes remain untouched. The provided Postgres memory limit (256 MiB) is small for a shared workload: measure resource pressure before increasing workload, and do not change existing service limits blindly.
+~~~bash
+docker exec -it spark-postgres psql -X -U root -d postgres
+~~~
+
+Execute:
+
+~~~sql
+SHOW password_encryption;
+\password lanveriq
+ALTER ROLE lanveriq LOGIN;
+\du lanveriq
+\l lanveriq
+~~~
+
+Verify `password_encryption` is `scram-sha-256` before setting the unique strong password; enable LOGIN **only after** the password prompt succeeds. `\password` avoids putting the plaintext password in Git, command arguments or shell history. Exit with `\q`, then test the dedicated TCP credentials:
+
+~~~bash
+psql -h 127.0.0.1 -p 5432 -U lanveriq -d lanveriq -W \
+  -c 'SELECT current_user, current_database();'
+~~~
+
+If the host lacks `psql`, use a trusted local PostgreSQL client. The database role is different from the future web administrator login. The original `iot_farm` database, shared container/volumes, Redis and backups must not be changed by this procedure. Flyway V1–V8 owns **only application-schema migrations**, not cluster-level role/database provisioning.
 
 ### 3. Start Spring Boot with the existing database (development only)
 
