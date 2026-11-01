@@ -4,7 +4,7 @@
 
 **基于局域网、自托管、面向已告知且经过授权的企业终端的资产健康与审计平台。**
 
-> **当前状态：V0.1 开发中，不是可正式部署的监控产品。** Java 后端已有可构建的 Spring Boot 应用、Flyway V1–V8 和默认关闭的部分内部能力；Rust Agent 已有可运行的**空闲进程**、SQLite/传输/库存模块，但尚未接入实际服务循环；**React 管理前端尚未创建**。PostgreSQL 18.6 真实数据库、Caddy/TLS、管理员浏览器会话及 Windows/Linux 实机验收尚未全部完成。严禁把本地演示当成真实员工数据采集授权。
+> **当前状态：V0.1 开发中，不是可正式部署的监控产品。** Java 后端已有可构建的 Spring Boot 应用、Flyway V1–V8 和默认关闭的部分内部能力；Rust Agent 已有可运行的**空闲进程**、SQLite/传输/库存模块，但尚未接入实际服务循环；**React 前端已有合成数据预览，但尚未连接真实登录、后端 API 或设备**。PostgreSQL 18.6 真实数据库、Caddy/TLS、管理员浏览器会话及 Windows/Linux 实机验收尚未全部完成。严禁把本地演示当成真实员工数据采集授权。
 
 ![Lanveriq 架构概念图](docs/visuals/assets/01-overview.svg)
 
@@ -14,7 +14,7 @@
 
 | 组件 | 仓库位置 / 技术 | 当前状态 | 运行方式 |
 |---|---|---|---|
-| 管理前端 Web | 计划 `apps/web`：React 19、Vite、TypeScript、pnpm、Tailwind、TanStack Query、Orval | **未实现**：无 React 页面、前端开发服务器或打包产物 | **目前没有** `pnpm dev`、`pnpm build` 可用 |
+| 管理前端 Web | `apps/web`：React 19、Vite 8、TypeScript 7、pnpm、Tailwind 4、Radix、Lucide | **合成数据预览已实现**：概览、监控中心、终端资产/详情、注册说明、设置；真实 API 尚未接入 | `cd apps/web && pnpm dev`（本机预览） |
 | 管理后端 Server | `apps/server`：Java 25、Spring Boot 4.1.2、Gradle、JPA/Hibernate、Flyway | 可单独构建并连接**合成测试数据库**；业务接口默认拒绝，部分功能仅源码/测试状态 | `./gradlew bootRun` |
 | 终端 Agent | `apps/agent`：Rust 1.94、Tokio、SQLx/SQLite WAL、Reqwest/rustls | 可编译、启动、停止；运行时**不采集、不上传、不监控** | `cargo run --locked -p lanveriq-agent -- --config <绝对路径>` |
 | 数据库（基础设施） | PostgreSQL 18.x；真实验收使用 18.6 | Flyway V1–V8 已编写；可复用 `spark-postgres` 中的专用 `lanveriq` 库 | 现有 Docker Compose，无需额外持久容器 |
@@ -29,7 +29,7 @@
 - Rust **1.94.0**（见 `rust-toolchain.toml`）、Cargo；按目标系统安装相应的 Rust 原生构建工具。
 - Docker Engine 和已运行的 `spark-db` PostgreSQL 可直接用于独立数据库的本地开发；只有需要**独立合成数据验收**时，才额外启动短期 PostgreSQL 18.6 容器。首次下载依赖/镜像可能需要联网；未来产品运行目标是离线局域网。
 - Bash、curl、OpenSSL，用于现有 Linux/WSL/macOS 开发环境下的服务器自检脚本。生产服务器及 Agent OS 服务还需要单独验收。
-- **当前不需要 Node/pnpm 来启动管理页面，因为前端项目尚不存在。** Orval 契约测试使用独立的 `apps/server/contract-client-check`，不能替代 UI。
+- 本地 Web 合成预览需要 **Node.js 24 + pnpm 12**；独立的 `apps/server/contract-client-check` 仍只用于 Orval 契约验证，尚未与 Web 联调。
 
 克隆仓库：
 
@@ -188,7 +188,7 @@ cd apps/server
 
 ### 实验性部署（仅获授权的测试机）
 
-服务端目前可作为 Java 进程本地运行，但**没有**正式 Docker Compose、生产 Caddy 配置、前端构建产物或可用的管理界面。不能执行尚不存在的 `docker compose up -d` 来安装整套产品。
+服务端仍只能作为开发 Java 进程运行，Web 已有可构建的本地合成数据预览，但**没有**正式 Docker Compose、生产 Caddy 配置、真实登录或可操作的管理界面。不能执行尚不存在的 `docker compose up -d` 来安装整套产品。
 
 ### Java 后端构建部署包（仅隔离测试，不是生产部署）
 
@@ -240,7 +240,7 @@ sudo systemctl --no-pager status lanveriq-agent
 | 前台 Agent | `Ctrl+C` | 删除自己创建的临时 TOML 即可 |
 | Linux 实验性 Agent systemd | 见下方命令 | 只删除由本 README 示例安装的文件 |
 | Windows SCM Agent | 目前**没有**正式安装/卸载包 | 若已手动注册测试服务，须先按实际服务名停止、删除 SCM 服务，并经管理员确认后清理二进制/配置 |
-| Web 前端 | 目前无可安装产物 | 无需卸载 |
+| Web 本地预览 | 在 `pnpm dev` 终端按 `Ctrl+C` | 可清理本地生成的 `apps/web/node_modules` 与 `apps/web/dist`，不得触碰共享 Docker 数据卷 |
 | 正式中心端 | **尚未提供一键卸载** | 后续必须先备份、验明数据所有者、遵守留存/审计与密钥撤销流程 |
 
 **仅当你已在测试 VM 按上节命令安装 systemd 服务时**，执行以下卸载（先确认没有其他应用在使用这些路径）：
@@ -279,9 +279,9 @@ DROP ROLE lanveriq;
 
 ## 六、前端进度和下一步
 
-截至当前仓库检查：**前端页面没有完成，甚至还没有 `apps/web` 应用目录。** 后端已有 Springdoc → Orval → TanStack Query 的类型安全 API 契约验证工程 `apps/server/contract-client-check`，但它不能被启动为管理页面。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
+截至当前仓库检查：**`apps/web` 已建立并完成可构建的合成数据演示页面**，包括设备搜索、Radix 详情选项卡、监控中心与系统设置；全部示例设备均为虚构，不连接真实服务，也不能进行远程下发或设备撤销。后端 Springdoc → Orval 契约验证工程 `apps/server/contract-client-check` 尚未与前端 API 联调。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
 
-建议的后续交付顺序是：先落实真实 PG18、Caddy/TLS 与会话负向验收；并行搭建不连接真实员工数据的 React 前端骨架、布局和合成数据界面；随后联调经授权且默认关闭的 API。验收前不可对外宣布“可安装并开始监控”。
+建议的后续交付顺序是：完善 Web 的冻结依赖锁与 UI 测试，落实真实 PG18、Caddy/TLS 与浏览器会话负向验收，然后才接入经授权且默认关闭的后端 API。验收前不可对外宣布“可安装并开始监控”。
 
 ## 七、文档与许可
 
