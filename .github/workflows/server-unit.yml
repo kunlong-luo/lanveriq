@@ -16,6 +16,8 @@ on:
       - 'apps/web-next/src/app/(console)/layout.tsx'
       - 'apps/web-next/package.json'
       - 'apps/web-next/pnpm-lock.yaml'
+      - 'deploy/caddy/Caddyfile.reference'
+      - 'deploy/caddy/tests/**'
       - '.github/workflows/server-unit.yml'
   pull_request:
     paths:
@@ -32,6 +34,8 @@ on:
       - 'apps/web-next/src/app/(console)/layout.tsx'
       - 'apps/web-next/package.json'
       - 'apps/web-next/pnpm-lock.yaml'
+      - 'deploy/caddy/Caddyfile.reference'
+      - 'deploy/caddy/tests/**'
       - '.github/workflows/server-unit.yml'
 
 permissions:
@@ -63,6 +67,10 @@ jobs:
         run: bash -n apps/server/scripts/verify-postgres18.sh
       - name: Validate manual Spring upstream TLS script syntax (no TLS/Docker execution)
         run: bash -n apps/server/scripts/verify-agent-upstream-tls.sh
+      - name: Syntax-check manual Caddy mTLS acceptance harness only (no Docker or TLS)
+        run: |
+          bash -n deploy/caddy/tests/verify-reference.sh
+          python3 -m py_compile deploy/caddy/tests/synthetic-mtls-backend.py
       - name: Verify official Gradle Wrapper binary
         working-directory: apps/server
         run: echo '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
