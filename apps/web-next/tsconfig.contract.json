@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "contract-check/**/*.ts",
+    ".generated-contract/model/**/*.ts",
+    "src/lib/console-device-projection.ts",
+    "src/lib/uuid.ts",
+    "src/components/device-directory.tsx",
+    "src/components/ui/card.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
+}

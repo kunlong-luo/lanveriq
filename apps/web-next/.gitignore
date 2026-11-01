@@ -4,5 +4,6 @@ out/
 dist/
 coverage/
 *.tsbuildinfo
+.generated-contract/
 .env*
 !.env.example
