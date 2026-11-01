@@ -5,3 +5,6 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# CI-only Springdoc -> Orval generated client (never commit hand-edited SDK)
+.generated-contract/
