@@ -2,6 +2,8 @@
 
 **Status:** implementation and unit tests exist; the console authentication feature is **disabled by default**, and enabling it is **not yet approved for a managed-device pilot or production**. The real PostgreSQL 18 Flyway V1–V5 and first-admin bootstrapping checks, real TLS/DNS and strict Caddy host isolation, browser CSRF/session verification, throttle behavior and session revocation integration tests remain separate acceptance requirements.
 
+**Additional synthetic Web-client evidence (2026-11-01):** A non-imported `apps/web/src/auth/sessionTransport.ts` provides a staged, native-fetch HTTPS same-origin + CSRF/session sequence with in-memory fake-fetch negative tests in `apps/web/src/auth/sessionTransport.test.ts`. No credentials are accepted on the `/login` preview; none of the functions are called by runtime UI. These tests validate request construction and fail-closed response handling only, **not a browser's automatic Origin header, cookies, session fixation over actual TLS, Caddy isolation, PostgreSQL transactions or any real login**. Manual evidence in the table below is still **NOT YET COLLECTED**.
+
 ## Code and trust boundary
 
 - `ConsoleSessionSecurityConfiguration` is conditional on `lanveriq.console.auth.enabled=true` AND a Servlet web application. This is a tightly scoped `/api/v1/auth/**` security filter chain; other business endpoints continue to hit the independent **deny-all** chain even if auth is switched on.
