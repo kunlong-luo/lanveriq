@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
+import { nextTabIndex } from '../lib/tab-keyboard';
 import { Activity, Cpu, HardDrive, LockKeyhole, Network } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 
@@ -29,14 +30,28 @@ const descriptions: Record<TabId, { title: string; message: string }> = {
 
 export function DeviceDetailTabs() {
   const [active, setActive] = useState<TabId>('hardware');
+  const buttons = useRef<Record<TabId, HTMLButtonElement | null>>({
+    hardware: null, network: null, health: null,
+  });
+  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const destination = nextTabIndex(event.key, index, tabs.length);
+    if (destination === null) return;
+    event.preventDefault();
+    const id = tabs[destination].id;
+    setActive(id);
+    buttons.current[id]?.focus();
+  }
   const detail = descriptions[active];
   return <Card className="detail-tabs-card">
     <CardHeader><CardTitle>设备资产与健康</CardTitle>
       <CardDescription>这些标签页仅提供正式只读详情页的布局。</CardDescription></CardHeader>
     <div className="detail-tab-list" role="tablist" aria-label="设备详情分类">
-      {tabs.map(({ id, label, Icon }) => <button type="button" key={id} role="tab"
+      {tabs.map(({ id, label, Icon }, index) => <button type="button" key={id} role="tab"
         id={`tab-${id}`} aria-controls={`panel-${id}`}
-        aria-selected={active === id} className={active === id ? 'detail-tab selected' : 'detail-tab'}
+        aria-selected={active === id} tabIndex={active === id ? 0 : -1}
+        ref={element => { buttons.current[id] = element; }}
+        onKeyDown={event => handleTabKey(event, index)}
+        className={active === id ? 'detail-tab selected' : 'detail-tab'}
         onClick={() => setActive(id)}><Icon size={17} aria-hidden="true" />{label}</button>)}
     </div>
     <CardContent role="tabpanel" id={`panel-${active}`} aria-labelledby={`tab-${active}`}
