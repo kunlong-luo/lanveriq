@@ -50,4 +50,4 @@ jobs:
         run: ./gradlew --no-daemon --console=plain projects
       - name: Compile Java from included server build (no application startup)
         shell: bash
-        run: ./gradlew --no-daemon --console=plain :lanveriq-server:compileJava
+        run: ./gradlew --no-daemon --console=plain :server:compileJava
