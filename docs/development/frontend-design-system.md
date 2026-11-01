@@ -16,7 +16,7 @@
 
 ## Stack
 - **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, **not** an application framework.
-- **React 19 + Vite 8 + TypeScript**, React Router for the LAN Dashboard. A Next.js SSR server is unnecessary. These UI libraries are not exclusive to Next.js.
+- **Today:** React 19 + Vite 8 + TypeScript and React Router run the synthetic LAN dashboard preview. **Approved target:** Next.js App Router + React/TypeScript, with explicit Node.js self-hosting and Caddy trust-boundary review. Keep Vite working until the separately locked Next.js candidate passes CI, route parity and cutover approval; do not activate SSR authenticated-data fetching. [ADR-0008](../architecture/adrs/0008-nextjs-app-router-console.md).
 - **Tailwind CSS 4 + shadcn/ui + Radix UI** for accessible editable components; retain a modest shared UI package only once both Dashboard and Tauri require it.
 - **Lucide React** as primary stroke-based UI icon library; use explicitly approved/logos where necessary. Avoid installing multiple overlapping icon packs.
 - **Motion** as the single intentional animation library; CSS transitions for simple hover/focus, Motion for dialogs or route transitions. Respect `prefers-reduced-motion`.
