@@ -2,6 +2,16 @@
 -- This script is deliberately NOT called from bootRun, CI, Docker startup,
 -- or any application installation process.
 --
+-- PURE POSTGRESQL SQL: may be opened in IntelliJ IDEA / DataGrip / pgAdmin
+-- as well as run through psql. No psql backslash commands are executable here.
+-- For graphical SQL clients: connect as an authorized PostgreSQL administrator
+-- to database postgres, enable AUTO-COMMIT and STOP ON ERROR, then execute the
+-- statements in their listed order. Never choose Run in a single transaction:
+-- PostgreSQL forbids CREATE DATABASE inside a transaction block.
+-- This creates NOLOGIN only; after inspection, set a strong SCRAM password
+-- using your client's protected role/password dialog, or psql's interactive
+-- backslash-password command, and only THEN enable LOGIN.
+--
 -- Explicit manual invocation, after inspecting the target container:
 --   docker exec -i spark-postgres psql -X -v ON_ERROR_STOP=1 \
 --     -U root -d postgres < apps/server/scripts/provision-lanveriq-database.sql
@@ -15,8 +25,6 @@
 -- Intentional fail-closed behavior: an existing role OR database causes an error.
 -- Investigate an interrupted/previous installation; never auto-reown/alter/drop.
 -- Do not store actual credentials in this file or Git.
-\set ON_ERROR_STOP on
-
 DO $lanveriq_preflight$
 BEGIN
     IF current_database() <> 'postgres' THEN
@@ -56,7 +64,10 @@ CREATE DATABASE lanveriq OWNER lanveriq;
 -- Scope connection, temporary-object and create privileges to the owner.
 REVOKE ALL ON DATABASE lanveriq FROM PUBLIC;
 
--- After successful provisioning, open a SEPARATE interactive admin psql:
+-- After successful provisioning, set the password interactively using
+-- a trusted PostgreSQL GUI credential dialog or interactive psql.
+-- Do not paste a real password into this SQL file.
+-- For psql only (typed in its prompt, NOT in a JDBC SQL editor):
 --   \password lanveriq
 --   ALTER ROLE lanveriq LOGIN;
 -- Then verify a password-authenticated TCP connection as the dedicated role.
