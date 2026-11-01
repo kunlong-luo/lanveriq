@@ -49,7 +49,7 @@
 - [Dashboard UI/UX contract](development/dashboard-ux.md)
 - [Dedicated Monitoring Center design](development/monitoring-center.md)
 - [Recording & Playback Center design](development/recording-playback-center.md)
-- [IntelliJ IDEA project import and Gradle 9.8.2 composite workspace](development/intellij-idea.md)
+- [IntelliJ IDEA import: link the standalone Gradle backend under apps/server](development/intellij-idea.md)
 - [Frontend design system and generated REST client](development/frontend-design-system.md)
 - [Rust Agent dependency stack and service runtime](development/rust-agent-stack.md) · [AGT-01 source](../apps/agent/README.md) · [Windows/Linux manual service acceptance](testing/agent-lifecycle-manual.md) · [SQLite WAL/outbox manual acceptance](testing/agent-sqlite-manual.md) · [mTLS/heartbeat/batch-ACK manual acceptance](testing/agent-transport-manual.md) · [SRV-03 PostgreSQL event acceptance](testing/server-event-ingestion-manual.md) · [HB-01 heartbeat acceptance](testing/server-heartbeat-manual.md) · [SRV-02 certificate activation acceptance](testing/server-cert-activation-manual.md) · [SRV-02 signed certificate registration acceptance](testing/server-cert-registration-manual.md) · [SRV-02 Caddy Agent ingress identity gate](testing/agent-ingress-identity-manual.md) · [INV-02 latest inventory acceptance](testing/server-inventory-manual.md)
 - [Development roadmap](planning/roadmap.md)

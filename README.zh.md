@@ -38,31 +38,29 @@ git clone https://github.com/kunlong-luo/lanveriq.git
 cd lanveriq
 ```
 
-## IDEA 打开整个项目（Java / Rust / Web 同仓库）
+## IDEA 导入项目（Gradle 仅在 Java 后端）
 
-从最新的 `main` 拉取代码后，使用 **File → Open** 打开仓库根目录 `lanveriq/`，而不是只选择 `apps/web`。现在根目录已有 **Gradle Composite Build**（`settings.gradle`）、与后端版本一致的 Gradle 9.8.2 Wrapper，IDEA 应能识别 `apps/server` 为包含的 Java 构建。
+使用 IDEA 的 **File → Open** 打开仓库根目录 `lanveriq/`，即可统一浏览 Java、React 与 Rust 代码。**根目录不是 Gradle 工程，也不应该放 Gradle Wrapper 或 `settings.gradle`。**
 
-在 **Project Structure → Project SDK** 和 **Settings → Build Tools → Gradle → Gradle JVM** 都选择 **JDK 25**，Gradle 使用 **Wrapper**。若 IDE 未自动关联，打开 **Gradle 工具窗口 → Link Gradle Project**，选择 `apps/server/build.gradle`，然后重新同步；避免重复关联同一个构建。
+在 IDEA 的 **View → Tool Windows → Gradle** 点击 **Link Gradle Project**，选中 `apps/server/build.gradle`；如果仅开发 Java 后端，也可以直接用 IDEA 打开 `apps/server/settings.gradle`。**Project SDK、Gradle JVM 都设置为 JDK 25**，使用 `apps/server` 自带的 **Gradle 9.8.2 Wrapper**。
 
-命令行快速排查（不连接数据库、不运行监控）：
+Windows PowerShell 在仓库根目录执行：
 
-```powershell
-# Windows PowerShell：在仓库根目录
+~~~powershell
+cd apps/server
 .\gradlew.bat --version
-.\gradlew.bat projects
-cd apps/server
 .\gradlew.bat test
-```
+~~~
 
-```bash
-# Linux / macOS：在仓库根目录
-./gradlew --version
-./gradlew projects
+Linux / macOS：
+
+~~~bash
 cd apps/server
+./gradlew --version
 ./gradlew test
-```
+~~~
 
-React 使用 `apps/web/pnpm-lock.yaml` 与 pnpm，Rust 使用根目录 `Cargo.toml` 与 Cargo，它们**不是 Java Gradle 子模块**。IDEA 的 TypeScript/Rust 语言支持取决于已安装的插件与产品版本。完整的逐步排障指南：[IntelliJ IDEA 导入说明](docs/development/intellij-idea.md)。
+React 由 `apps/web` 的 pnpm 管理；Rust 由仓库根目录 `Cargo.toml` 的 Cargo Workspace 管理。它们都不需要 Gradle。完整步骤见 [IDEA 导入指南](docs/development/intellij-idea.md)。
 
 ## 三、本地运行：直接复用已有 spark-db
 

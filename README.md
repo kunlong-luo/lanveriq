@@ -25,7 +25,7 @@ Intended central topology: **Caddy HTTPS + static React assets → Spring Boot �
 
 ## Prerequisites
 
-- Git and **JDK 25**; the repository includes the **Gradle 9.8.2 Wrapper**, so you need neither system Gradle nor Maven.
+- Git and **JDK 25**; the backend at `apps/server` includes the **Gradle 9.8.2 Wrapper**, so you need neither system Gradle nor Maven.
 - **Rust 1.94.0** / Cargo from `rust-toolchain.toml`, plus your operating system's native Rust build prerequisites.
 - Docker Engine with the existing running `spark-db` PostgreSQL container; a separate short-lived **synthetic-only** PostgreSQL 18.6 container is optional for independent acceptance.
 - Bash, curl and OpenSSL for the existing Linux/WSL/macOS local server smoke script.
@@ -40,11 +40,18 @@ cd lanveriq
 
 ## Local development and testing
 
-### Import the entire repository into IntelliJ IDEA
+### Import Lanveriq into IntelliJ IDEA
 
-After updating to the latest `main`, choose **File → Open → `lanveriq/`**. The root contains a **Gradle 9.8.2 composite workspace** (`settings.gradle` / `gradlew`), including the existing standalone Spring Boot `apps/server` build. Use **JDK 25** for both Project SDK and **Gradle JVM** and select **Gradle Wrapper**. If the IDE does not link the build automatically, use **Gradle tool window → Link Gradle Project → `apps/server/build.gradle`**; avoid double-linking it.
+Open the repository root `lanveriq/` with **File → Open** to browse the full Java/Rust/React codebase. **The repository root intentionally is NOT a Gradle project.** In **View → Tool Windows → Gradle**, select **Link Gradle Project** and choose **`apps/server/build.gradle`** (or directly open `apps/server/settings.gradle` if you only work on Java). Configure **JDK 25** for both Project SDK and Gradle JVM, and use the **Gradle Wrapper** located at `apps/server/gradlew`.
 
-From the repository root, safely test the Gradle project model with `./gradlew projects` (Windows: `.\\gradlew.bat projects`). Java unit tests remain runnable from `apps/server` using the nested wrapper. React is a pnpm app, Rust a Cargo workspace, not Gradle Java modules. See the [IntelliJ IDEA import and troubleshooting guide](docs/development/intellij-idea.md). No database or real endpoint is needed merely to import or compile.
+Run backend Gradle commands **from `apps/server`**, not the repository root:
+
+~~~bash
+cd apps/server
+./gradlew test
+~~~
+
+Windows PowerShell uses `cd apps/server` followed by `.\gradlew.bat test`. React remains a standalone pnpm app under `apps/web`; the Rust workspace is controlled by root `Cargo.toml`. Neither is a Java Gradle module. See the [IDEA import guide](docs/development/intellij-idea.md); importing and unit testing do not need a running database or any device monitoring.
 
 ## 1. Reuse your existing `spark-db` PostgreSQL instance
 
