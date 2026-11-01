@@ -5,7 +5,7 @@ on:
       - 'apps/web-next/**'
       - '.github/workflows/web-next-lockfile-bootstrap.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   candidate-bootstrap:
     runs-on: ubuntu-latest
@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          persist-credentials: false
+          persist-credentials: true
       - name: Set up pinned pnpm 12 and Node 24 without installing unlocked deps automatically
         uses: pnpm/setup@v3
         with:
@@ -47,3 +47,15 @@ jobs:
           path: apps/web-next/pnpm-lock.yaml
           retention-days: 7
           if-no-files-found: error
+      - name: Commit ONLY the verified pnpm-generated candidate lockfile (temporary)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git add -- apps/web-next/pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo 'Lockfile already matches reviewed package manifests'
+          else
+            git -c user.name='github-actions[bot]' \
+                -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+                commit -m 'ci(next): pin Node24 pnpm12 verified lockfile'
+            git push origin HEAD:main
+          fi
