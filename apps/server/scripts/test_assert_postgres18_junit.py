@@ -87,6 +87,26 @@ class PostgresEvidenceGateTest(unittest.TestCase):
                     "Missing mandatory test: PostgreSqlAdminAuditAtomicityIT." + method
                     in error for error in verify_reports(Path(tmp))))
 
+    def test_all_five_historical_pg18_failures_are_mandatory(self):
+        """Omitting a previously failing negative/rollback case must block acceptance."""
+        historical_failures = (
+            ("PostgreSqlDeviceActivationIT",
+             "expiredPendingEnrollmentAndRevokedCertificateRemainDenied"),
+            ("PostgreSqlAdminAuditAtomicityIT",
+             "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit"),
+            ("PostgreSqlAdminAuditAtomicityIT",
+             "suppressedBootstrapAuditRollsBackUserGroupAndGrant"),
+            ("PostgreSqlAdminAuditAtomicityIT",
+             "successfulBootstrapHasOneScopedOwnerAndNoImplicitDataGrant"),
+            ("PostgreSqlAdminAuditAtomicityIT",
+             "suppressedSessionAuditRollsBackVersionAndAllowsRetry"),
+        )
+        for cls, method in historical_failures:
+            with self.subTest(klass=cls, method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp), omit=(cls, method))
+                errors = verify_reports(Path(tmp))
+                self.assertIn(f"Missing mandatory test: {cls}.{method}", errors)
+
     def test_seventh_suite_cannot_be_replaced_by_six_old_suites(self):
         with tempfile.TemporaryDirectory() as tmp:
             synthetic_reports(Path(tmp))

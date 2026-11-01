@@ -190,6 +190,14 @@ class PostgreSqlDeviceActivationIT {
                             pending_expires_at=CURRENT_TIMESTAMP - INTERVAL '1 hour'
                         WHERE device_id=:device
                         """).setParameter("device", deviceId).executeUpdate());
+        // Regression for the real PostgreSQL V3 check: a test fixture must
+        // represent an expired but internally valid CSR. Do not weaken the
+        // database CHECK constraint to make an impossible fixture pass.
+        assertTrue((Boolean) entityManager.createNativeQuery("""
+                SELECT requested_at < pending_expires_at
+                   AND pending_expires_at < clock_timestamp()
+                FROM device_enrollment_csrs WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult());
         assertEquals(DeviceActivationRejection.Reason.DENIED,
                 assertThrows(DeviceActivationRejection.class,
                         () -> activation.activate(credential, deviceId, request())).reason());

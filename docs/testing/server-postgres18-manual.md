@@ -161,3 +161,40 @@ The Java 25 unit tests cover first-run validation, SQL operation order, existenc
 Retain dated local execution evidence and the tested Docker image digest in the [documentation gate](../governance/documentation-gate.md). A successful run validates startup/migrations/guard rails but **not** JPA token issuance, conditional token consume or pending-device/CSR INSERT under concurrency, JPA administrator authentication, group-scoped grants, client certificate issuance, admin sessions, actual endpoint telemetry or operating-system compatibility. Those need later independent acceptance. If the script fails, capture the redacted error and leave the corresponding gate unchecked; do not disable Flyway, CSRF or security to make the smoke pass.
 
 No real employee information or real certificate secrets belong in test fixtures, CI logs or public GitHub issues.
+
+
+## PG18 regression gate review — 2026-11-01 (pending rerun)
+
+The last observed explicitly dispatched Docker-backed PostgreSQL 18.6
+integration run was
+[Actions #41272601418](https://github.com/kunlong-luo/lanveriq/actions/runs/41272601418):
+**58 executed, five failures**. They were:
+
+- `PostgreSqlDeviceActivationIT.expiredPendingEnrollmentAndRevokedCertificateRemainDenied`:
+  the old fixture put `pending_expires_at` before `requested_at`,
+  violating the V3 DB CHECK constraint rather than testing an expired
+  but valid pending CSR. The current fixture backdates *both* fields
+  and explicitly asserts their SQL ordering and expiry.
+- `PostgreSqlAdminAuditAtomicityIT.suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit`
+- `PostgreSqlAdminAuditAtomicityIT.suppressedBootstrapAuditRollsBackUserGroupAndGrant`
+- `PostgreSqlAdminAuditAtomicityIT.successfulBootstrapHasOneScopedOwnerAndNoImplicitDataGrant`
+- `PostgreSqlAdminAuditAtomicityIT.suppressedSessionAuditRollsBackVersionAndAllowsRetry`:
+  Spring's `@Repository` exception translation wraps the original
+  `IllegalStateException` in `InvalidDataAccessApiUsageException`;
+  current assertions verify **both** the translated wrapper and
+  the exact original invariant reason, not just any thrown exception.
+
+The source fixes were committed after the failed manual run and are
+unit/compile checked, but the **full manual PG18 gate remains OPEN**.
+The JUnit evidence checker now individually requires *all five*
+previously failed methods. Its synthetic unit test demonstrates each
+omission is rejected. This does not attest that any SQL operation has
+executed successfully against PostgreSQL.
+
+The next real acceptance must manually dispatch
+[`server-postgres18-integration.yml`](../../.github/workflows/server-postgres18-integration.yml)
+from **current `main`**, not rerun the old failed SHA. Confirm
+all 58+ tests pass with zero failures/skips, all seven exact JUnit
+class identities and mandatory cases, and the recorded
+`postgres:18.6` image provenance. Keep HTTPS/browser/session
+and Rust Agent gates independent regardless of the outcome.

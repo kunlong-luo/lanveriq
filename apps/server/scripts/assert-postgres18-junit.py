@@ -50,6 +50,7 @@ REQUIRED_CASES = {
     "PostgreSqlDeviceActivationIT": {
         "validActivationCommitsBothRowsAndExactSameCertificateRetryIsIdempotent",
         "pendingCredentialCannotSendHeartbeatBeforeActivation",
+        "expiredPendingEnrollmentAndRevokedCertificateRemainDenied",
         "twoConcurrentSameCertificateActivationsSerializeAndConverge",
     },
     "PostgreSqlDeviceInventoryIT": {
