@@ -4,10 +4,18 @@ on:
   push:
     paths:
       - 'apps/server/**'
+      - 'apps/web/contract-check/**'
+      - 'apps/web/tsconfig.contract.json'
+      - 'apps/web/package.json'
+      - 'apps/web/pnpm-lock.yaml'
       - '.github/workflows/server-unit.yml'
   pull_request:
     paths:
       - 'apps/server/**'
+      - 'apps/web/contract-check/**'
+      - 'apps/web/tsconfig.contract.json'
+      - 'apps/web/package.json'
+      - 'apps/web/pnpm-lock.yaml'
       - '.github/workflows/server-unit.yml'
 
 permissions:
@@ -73,6 +81,19 @@ jobs:
       - name: Generate and typecheck actual Orval Fetch/TanStack Query client
         working-directory: apps/server/contract-client-check
         run: pnpm verify
+      # This is a build-only integration between the Java-produced OpenAPI
+      # and the ACTUAL apps/web React Query / TypeScript dependency graph.
+      # Nothing is fetched or authenticated in a browser. The generated
+      # sources are never hand-edited or checked in as a stale copy.
+      - name: Verify Orval output against the actual Web TS/React Query environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apps/web/.generated-contract
+          cp -a apps/server/contract-client-check/generated/. apps/web/.generated-contract/
+          cd apps/web
+          pnpm install --frozen-lockfile
+          pnpm exec tsc --noEmit --project tsconfig.contract.json
       - name: Upload non-deployed typechecked Orval candidate
         uses: actions/upload-artifact@v7
         with:
