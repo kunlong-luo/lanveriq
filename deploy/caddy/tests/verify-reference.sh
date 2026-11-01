@@ -187,6 +187,34 @@ URL="https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/activate"
 # All curl invocations verify real synthetic server certificates; NEVER -k.
 AGENT_CRT="$TMP/pki/synthetic-agent.crt"
 AGENT_KEY="$TMP/pki/synthetic-agent.key"
+# The HTTP 403 comes from one of multiple strict synthetic backend
+# assertions. On failed positive tests, publish only predefined boolean
+# check labels, never raw certificate fingerprints/headers or CA material.
+report_synthetic_failure() {
+    local response_file="$1"
+    python3 - "$response_file" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+allowed = {
+    "proxy_certificate", "fingerprint_count", "fingerprint_value",
+    "unexpected_identity_header", "upstream_host",
+    "forwarded_cert_header", "ssl_client_cert_header", "request_path",
+}
+try:
+    payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    failed = payload.get("failed_checks")
+    if (payload.get("synthetic_upstream_verified") is not False
+            or not isinstance(failed, list) or not failed
+            or any(not isinstance(item, str) or item not in allowed for item in failed)):
+        raise ValueError("Unrecognized synthetic verdict")
+    print("Synthetic-only failed checks: " + ", ".join(failed), file=sys.stderr)
+except (OSError, UnicodeError, ValueError, TypeError, AttributeError):
+    print("No recognized synthetic backend verdict (edge vs upstream unresolved)",
+          file=sys.stderr)
+PY
+}
 FP_FORGED="$(printf '%064d' 0)"
 status="$(curl -sS --noproxy '*' --max-time 15 --retry 5 --retry-connrefused --retry-delay 1 --http2 \
     --cacert "$CA_ROOT" --resolve agent.lanveriq.internal:443:127.0.0.1 \
@@ -194,8 +222,13 @@ status="$(curl -sS --noproxy '*' --max-time 15 --retry 5 --retry-connrefused --r
     -H "X-Lanveriq-Verified-Client-Fingerprint: $FP_FORGED" \
     -H "X-Forwarded-Client-Cert: forged" \
     -H "SSL-Client-Cert: forged" \
+    -H "X-Lanveriq-Verified-Client-Alias: forged" \
     -X POST -o "$TMP/response.json" -w '%{http_code}' "$URL")"
-[[ "$status" == 200 ]] || { echo "Valid synthetic Agent route failed: $status" >&2; exit 1; }
+if [[ "$status" != 200 ]]; then
+    echo "Valid synthetic Agent route failed: HTTP $status" >&2
+    report_synthetic_failure "$TMP/response.json"
+    exit 1
+fi
 python3 - "$TMP/response.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as src:
@@ -239,11 +272,13 @@ status="$(curl --silent --show-error --noproxy '*' --max-time 10 --http2 \
     -H "X-Lanveriq-Verified-Client-Fingerprint: $FP_FORGED" \
     -H "X-Forwarded-Client-Cert: forged" \
     -H "SSL-Client-Cert: forged" \
+    -H "X-Lanveriq-Verified-Client-Alias: forged" \
     -X POST -o "$TMP/response-again.json" -w '%{http_code}' "$URL")"
-[[ "$status" == 200 ]] || {
-    echo "FAIL: healthy Caddy/upstream route disappeared after negative probes" >&2
+if [[ "$status" != 200 ]]; then
+    echo "FAIL: healthy Caddy/upstream route disappeared after negative probes (HTTP $status)" >&2
+    report_synthetic_failure "$TMP/response-again.json"
     exit 1
-}
+fi
 python3 - "$TMP/response-again.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as src:
