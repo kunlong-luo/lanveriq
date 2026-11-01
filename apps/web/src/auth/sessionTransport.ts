@@ -33,12 +33,13 @@ export function createSessionTransport(httpsOrigin: string, fetcher: ConsoleFetc
 
   const request = (path: string, init: RequestInit = {}) =>
     fetcher(new URL(path, base), {
+      ...init,
+      // These security invariants cannot be weakened by future callers.
       credentials: 'same-origin',
       mode: 'same-origin',
       cache: 'no-store',
       redirect: 'error',
       referrerPolicy: 'no-referrer',
-      ...init,
     });
 
   // Refuse an unexpected/missing token, a non-JSON body, or a cacheable
