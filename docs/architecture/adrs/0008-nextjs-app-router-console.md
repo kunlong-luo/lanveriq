@@ -128,3 +128,24 @@ session logic; its pages cannot make device API requests. Its source
 route guard actively prevents an accidental staged transport import.
 This is an implementation milestone, **not NXT-03B runtime acceptance**.
 See [manual NXT-03 matrix](../../testing/nextjs-nxt03-manual.md).
+
+## NXT-03B client compilation and offline session policy (2026-11-01)
+
+The Next.js candidate now pins **TanStack Query 5.105** using a
+pnpm-generated lockfile. The one-time temporary write-capable dependency
+bootstrap was removed. A client-side QueryClient provider is mounted
+without queries; by default retries, focus/reconnect refetch and
+automatic mount refetch are disabled. A separate helper cancels queries
+and clears their cache after a session/principal/permission change;
+synthetic tests exercise 401/403/429/503 cleanup with a fake response.
+**This is not implemented real browser authentication.**
+
+[Java CI #41289190664](https://github.com/kunlong-luo/lanveriq/actions/runs/41289190664)
+has now compiled the **full generated Orval Fetch/TanStack Query
+client** with the locked Next.js types and dependencies. [Next.js CI
+#41289252650](https://github.com/kunlong-luo/lanveriq/actions/runs/41289252650)
+has built the candidate and run in-memory session-cache tests.
+The generated client is still CI-only, never committed as stale source
+or imported by any Next.js page; it has not been exercised with
+Caddy, an authenticated browser, real PostgreSQL or live device data.
+NXT-03B runtime acceptance and cutover remain **blocked**.

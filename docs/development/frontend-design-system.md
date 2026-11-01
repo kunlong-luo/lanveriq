@@ -79,3 +79,15 @@ passed normal non-network UI tests/build. Next.js Orval hooks are not
 yet runtime dependencies and no authorized browser request has been
 made. This distinction must be preserved in docs and UI until Caddy,
 PostgreSQL, cookie/CSRF and RBAC are manually accepted.
+
+**NXT-03B Query foundation and generated client compile (2026-11-01):**
+The separate Next.js app now pins `@tanstack/react-query@5.105.0`
+with a pnpm-produced lockfile. Its QueryClientProvider carries
+conservative no-refetch, no-retry settings and a session-state clearing
+utility exercised by fake-fetch permission/outage tests.
+[Java CI #41289190664](https://github.com/kunlong-luo/lanveriq/actions/runs/41289190664)
+passed compilation of complete Orval Fetch/Query hooks against the
+**actual Next.js package**, and [Next.js CI #41289252650](https://github.com/kunlong-luo/lanveriq/actions/runs/41289252650)
+passed UI tests and the production smoke. No runtime page imports
+the generated client and no real business API has been enabled.
+PostgreSQL 18, Caddy HTTPS and session/RBAC manual tests remain open.

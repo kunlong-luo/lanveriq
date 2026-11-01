@@ -105,3 +105,31 @@ acceptance](../../docs/testing/nextjs-nxt03-manual.md), 58-case
 PostgreSQL 18 gate, and server-side Caddy/TLS/session/RBAC security.
 The existing Vite app remains the default and no production
 monitoring feature is enabled.
+
+## NXT-03B: locked Query foundation, full Orval hook compile (still no live REST)
+
+The candidate now pins `@tanstack/react-query@5.105.0` in an
+actually pnpm-generated `pnpm-lock.yaml`, with a read-only frozen CI.
+An earlier one-time write-capable dependency regeneration workflow
+was **removed immediately** after successful generation, tests and
+lockfile commit.
+
+`PreviewQueryProvider` supplies an otherwise inert `QueryClient`
+to console routes; it does **not** mount Orval hooks or make network
+requests. In `src/lib/console-query-policy.ts`, automatic retries,
+focus/reconnect/mount refetch and cache persistence are disabled.
+The `clearConsoleSessionState` helper cancels and clears all queries.
+Unit tests with **synthetic-only fake fetch** verify that permission
+denial, session expiry, throttling and service errors cannot preserve
+previous cached device data when clearing that session.
+
+[Java CI #41289190664](https://github.com/kunlong-luo/lanveriq/actions/runs/41289190664)
+generated and typechecked the *complete* Springdoc → Orval Fetch/React
+Query client with the candidate's exact dependencies and TypeScript.
+[Next.js CI #41289252650](https://github.com/kunlong-luo/lanveriq/actions/runs/41289252650)
+verified the candidate's frozen build, fake-fetch tests and production
+preview routes. All generated clients remain in ignored,
+ephemeral build-only directories; they are **not** part of the Next.js
+deployed code. The Next.js runtime **still does not log in or request
+devices**. PostgreSQL 18 manual tests, Caddy and real browser
+security acceptance must finish before a separate runtime enablement.

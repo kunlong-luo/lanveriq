@@ -1,7 +1,6 @@
 # NXT-03 — source-generated contract and live read-only browser gate
 
-**Status: NXT-03A compile/unit stage PASSED; NXT-03B runtime
-acceptance NOT EXECUTED.** This is not an endorsement of production
+**Status: NXT-03A compile/unit stage PASSED; NXT-03B generated-hook compile and offline cache tests PASSED; NXT-03B real browser/runtime acceptance NOT EXECUTED.** This is not an endorsement of production
 login, real devices or continuous monitoring. NXT-01/02 UI remains
 synthetic/unconnected by design.
 
@@ -14,7 +13,14 @@ synthetic/unconnected by design.
 - [Next.js CI #41288628345](https://github.com/kunlong-luo/lanveriq/actions/runs/41288628345):
   Node 24 / frozen pnpm 12, staged projection and fake-fetch unit
   tests, production Next.js build and synthetic route smoke only.
-- The candidate transport is **not imported** by any Next.js page.
+- [Java CI #41289190664](https://github.com/kunlong-luo/lanveriq/actions/runs/41289190664):
+  generated **complete Orval Fetch/React Query client** typechecks against
+  the locked Next.js app's TanStack Query 5.105 and TypeScript runtime
+  dependency graph (not merely the DTOs).
+- [Next.js CI #41289252650](https://github.com/kunlong-luo/lanveriq/actions/runs/41289252650):
+  real production build and synthetic fake-fetch tests show 401/403/429/503
+  transitions can erase all prior session-scoped cached data.
+- The candidate transport and generated client are **not imported** by any Next.js page.
   Route guard rejects mounting it prior to manual approval.
 
 ## Release-blocking manual checks
