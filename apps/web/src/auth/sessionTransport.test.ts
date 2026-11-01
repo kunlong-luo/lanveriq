@@ -52,7 +52,7 @@ describe('staged same-origin auth transport: no real browser networking', () => 
       });
       expect(url).not.toContain('secret');
       expect(url).not.toContain('token-');
-      expect(init?.headers).not.toHaveProperty('Origin'); // browser, not JS, supplies Origin
+      expect(new Headers(init?.headers).has('Origin')).toBe(false); // browser, not JS, supplies Origin
     }
     const form = sent[1].init!;
     expect(form.method).toBe('POST');
