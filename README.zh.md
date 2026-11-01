@@ -18,6 +18,7 @@
 | 管理后端 Server | `apps/server`：Java 25、Spring Boot 4.1.2、Gradle、JPA/Hibernate、Flyway | 可单独构建并连接**合成测试数据库**；业务接口默认拒绝，部分功能仅源码/测试状态 | `./gradlew bootRun` |
 | 终端 Agent | `apps/agent`：Rust 1.94、Tokio、SQLx/SQLite WAL、Reqwest/rustls | 可编译、启动、停止；运行时**不采集、不上传、不监控** | `cargo run --locked -p lanveriq-agent -- --config <绝对路径>` |
 | 数据库（基础设施） | PostgreSQL 18.x；真实验收使用 18.6 | Flyway V1–V8 已编写；可复用 `spark-postgres` 中的专用 `lanveriq` 库 | 现有 Docker Compose，无需额外持久容器 |
+| Redis（可选基础设施） | `spark-redis` / Redis 8 / Spring Data Redis + Lettuce | 短期非权威提示与健康检查，**默认关闭**；不存储会话、权限、审计、ACK | 复用现有 Redis，不创建新容器 |
 | HTTPS 代理（基础设施） | Caddy | `deploy/caddy/Caddyfile.reference` **仅为安全测试参考配置**，不能直接用于生产 | 正式部署方案待验收 |
 
 设计目标：在服务器使用 **Caddy（HTTPS/静态前端）→ Spring Boot → PostgreSQL**，在已授权的 Windows/Linux 终端原生运行 Rust Agent。**Agent 不应部署在服务器 Docker Compose 中。** 前端静态资源最终可由 Caddy 托管，不需要额外的 Next.js 服务。详细设计见 [部署架构](docs/architecture/deployment.md)。
@@ -39,7 +40,7 @@ cd lanveriq
 
 ## 三、本地运行：直接复用已有 spark-db
 
-你提供的 Compose 工程名为 `spark-db`，其中 PostgreSQL 容器是 `spark-postgres`；默认通过 `127.0.0.1:5432` 暴露，原有业务库名为 `iot_farm`。**无需新建 PostgreSQL 容器，也无需启动 Redis、InfluxDB 或 PostGIS 扩展来运行 Lanveriq。**
+你提供的 Compose 工程名为 `spark-db`，其中 PostgreSQL 容器是 `spark-postgres`；默认通过 `127.0.0.1:5432` 暴露，原有业务库名为 `iot_farm`。**无需新建 PostgreSQL 容器；可选择复用现有 `spark-redis`，但不依赖 InfluxDB 或 PostGIS 扩展。**
 
 **隔离原则：** 在同一个 PostgreSQL 实例里创建独立的 `lanveriq` 数据库与 `lanveriq` 普通登录角色；Flyway 只迁移这套新库。不要把 `iot_farm` 作为 `LANVERIQ_DB_URL`，不要使用共享的 `root` 超级用户运行 Lanveriq，也不要修改或卸载现有 `spark-db` Compose/数据卷。此流程只能在已授权、没有真实员工数据的本地开发环境操作。
 
@@ -77,7 +78,7 @@ CREATE ROLE lanveriq LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 CREATE DATABASE lanveriq OWNER lanveriq;
 ```
 
-用 `\q` 退出。**不要**对 `iot_farm` 执行 Lanveriq 的 Flyway，也不要给 `lanveriq` 用户超级用户权限。此新库不需要 `postgis`、`pg_cron`、`pg_stat_statements`、Redis 或 InfluxDB。由于你当前 PostgreSQL 内存上限较低（示例为 256 MiB），并行运行多套数据库负载可能资源不足；不要通过取消共享服务的安全限制来掩盖问题。
+用 `\q` 退出。**不要**对 `iot_farm` 执行 Lanveriq 的 Flyway，也不要给 `lanveriq` 用户超级用户权限。此新库不需要 `postgis`、`pg_cron`、`pg_stat_statements` 或 InfluxDB；Redis 是独立的可选缓存依赖，不属于 PostgreSQL 扩展。由于你当前 PostgreSQL 内存上限较低（示例为 256 MiB），并行运行多套数据库负载可能资源不足；不要通过取消共享服务的安全限制来掩盖问题。
 
 ### 3. 启动 Java 后端（本地开发）
 
@@ -109,7 +110,32 @@ curl -i http://127.0.0.1:18081/api/v1/devices
 
 停止后端：在 `bootRun` 终端按 `Ctrl+C`。**不要执行** `docker stop spark-postgres`、`docker compose down` 或 `docker compose down -v`：它们可能影响 `iot_farm`、其他数据库及 Redis/InfluxDB 的服务与数据卷。
 
-### 4. 可选：独立一次性 PostgreSQL 18.6 自检（不会触碰 spark-db）
+### 4. 可选：启用已有 Redis 8（不新增 Redis 容器）
+
+后端**默认不依赖 Redis**。若希望在已授权的本地合成测试环境启用它，先检查：
+
+```bash
+docker inspect -f '{{.State.Running}}' spark-redis
+docker port spark-redis 6379
+```
+
+默认应通过宿主机 `127.0.0.1:6379` 访问。保持 `spark-redis` 原有容器和数据卷不变。在**启动 Java 后端的同一个 Bash 终端**、执行 `./gradlew bootRun` **之前**，设置：
+
+```bash
+export LANVERIQ_REDIS_HOST='127.0.0.1'
+export LANVERIQ_REDIS_PORT='6379'
+read -rsp '现有 spark-redis 密码: ' LANVERIQ_REDIS_PASSWORD
+echo
+export LANVERIQ_REDIS_PASSWORD
+export LANVERIQ_REDIS_ENABLED='true'
+./gradlew bootRun
+```
+
+密码必须使用现有 Compose 的真实配置值（不要复制 README 或 Compose 示例中的弱默认密码），不得提交到仓库。启用后 Redis 可参与 `/actuator/health` 健康检查；当 Redis 不可达时，健康状态可能为 DOWN。当前仅提供内部的 **90 秒 UUID 变更提示能力，尚未接入业务调用**，不会因此启动设备采集、远程操作或新的 HTTP 接口。
+
+现有 Redis 使用 `allkeys-lru`，可能随时淘汰键，因此**不能**存储权威会话、权限、审计、设备 ACK 或分布式锁；真实数据始终以 PostgreSQL 和经授权的 REST 查询为准。停止 Lanveriq 仅结束 Java 进程，**不要停止 `spark-redis`、执行 `FLUSHALL` / `FLUSHDB`、清理 Redis 卷或执行 Compose down。**
+
+### 5. 可选：独立一次性 PostgreSQL 18.6 自检（不会触碰 spark-db）
 
 如果想跑仓库既有的自动清理脚本，而不是用共享实例，它会另启**临时** `postgres:18.6` 容器，不操作 `spark-postgres`。为避开 InfluxDB Explorer 的 18080 端口，运行：
 

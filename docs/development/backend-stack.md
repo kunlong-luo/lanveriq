@@ -45,6 +45,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | `spring-boot-starter-validation` | DTO/Bean Validation and input constraints |
 | `spring-boot-starter-data-jpa` | **Only direct application persistence starter**: Spring Data repositories + Hibernate ORM + HikariCP (transitive) |
 | `spring-boot-starter-flyway` | Versioned PostgreSQL migrations |
+| `spring-boot-starter-data-redis` | **Optional** bounded 90-second synthetic refetch hints and opt-in Redis Actuator health; Lettuce from Boot BOM, no Redis repositories or canonical persistence |
 | `org.flywaydb:flyway-database-postgresql` | PostgreSQL support in modern Flyway |
 | `org.bouncycastle:bcpkix-jdk18on:1.86` | Mature PKCS#10 parser and CSR signature verification in SRV-02; BC transitively supplies required ASN.1 crypto modules |
 | `org.postgresql:postgresql` (runtime) | PG JDBC |
@@ -64,7 +65,7 @@ See the [documentation-only Groovy DSL reference](backend-gradle-reference.md).
 | Bucket4j + Caffeine local-only login throttle | **Included for AUTH-01** | `com.bucket4j:bucket4j_jdk17-core:8.21.0` and `com.github.ben-manes.caffeine:caffeine:3.3.1`; bounded transient, per-account/peer token buckets. No Spring cache starter, no cached RBAC grants and no multi-instance guarantee |
 | OAuth2 Resource Server | **Defer** | Admin uses secured same-origin session; Agent uses separately approved device mTLS; no JWT API gateway in V0.1 |
 | Spring Data JPA / Hibernate | **Include as the single V0.1 ORM/persistence API** | Ordinary entity CRUD + targeted native PostgreSQL SQL for events/inventory within JPA transaction boundary |
-| Redis / Kafka | **Exclude** | No distributed queue/cache; SQLite already provides Agent outbox and WSS is in-process |
+| Redis / Kafka | **Redis opt-in; Kafka excluded** (maintainer update 2026-11-01) | Spring Data Redis + Lettuce managed by Boot 4.1.2; only bounded TTL transient hints and opt-in Actuator connectivity, default OFF. Reuse `spark-redis` (Redis 8), never add another container. `allkeys-lru` evicts keys, so no durable ACK/session/RBAC/lock/revocation; WSS is still in-process |
 | InfluxDB 3 | **Exclude** | PostgreSQL bounded device metrics suffice for 1–10 devices |
 | Hibernate Spatial / JTS | **Exclude** | No geospatial tracking or location analytics requirement |
 | OpenCSV | **Defer** | Export may be added to V0.2; avoid adding parser/export features before audit data exists |

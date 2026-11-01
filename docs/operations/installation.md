@@ -14,7 +14,7 @@ For copyable development and synthetic-only commands, begin with the [Chinese RE
 
 The supplied local Compose stack already serves several unrelated applications.
 Do **not** fork a second long-lived PostgreSQL container, attach Lanveriq to
-`iot_farm`, or include Redis/InfluxDB/PostGIS in the Lanveriq runtime stack.
+`iot_farm`, or create a second Redis/PostgreSQL container. Redis is an **optional** non-authoritative Spring Data Redis/Lettuce transient hint dependency and can reuse the existing `spark-redis` on `127.0.0.1:6379`. No InfluxDB/PostGIS extensions are required.
 Use a new database owner and **check actual** `SHOW server_version`: the
 `postgis/postgis:18-3.6` tag identifies a PostgreSQL major version but does
 not prove the tested `postgres:18.6` patch level. Dedicated manual
@@ -25,8 +25,8 @@ The existing `postgres-data`, `redis-data`, `influxdb-data` and other
 volumes, and the `spark-iot-net`/`spark-iot-internal-net` networks, belong
 to the user's existing stack and must **not** be created, removed or renamed
 by Lanveriq installers/uninstallers. Uninstalling Lanveriq must not run
-`docker compose down`, `docker compose down -v`, or
-`docker stop spark-postgres`.
+`docker compose down`, `docker compose down -v`,
+`docker stop spark-postgres` or `docker stop spark-redis`. Never run Redis `FLUSHALL` / `FLUSHDB` on this shared instance.
 
 The provided example uses a local 256 MiB PostgreSQL container memory limit;
 review load, error logs and capacity separately before moving past synthetic
@@ -34,6 +34,34 @@ development. The existing Kopia/R2 backup plan may dump **only `iot_farm`**;
 a newly created `lanveriq` database requires separately verified backup
 coverage or its own `pg_dump` and restore drill. Never post database passwords
 in the repository or CI.
+
+## Optional shared Redis boundary (default OFF)
+
+Spring Boot 4.1.2 manages the Spring Data Redis/Lettuce dependency. The
+`LANVERIQ_REDIS_ENABLED` flag (default `false`) controls a small
+`RedisDeviceRefreshHints` component and Redis health contribution. No
+business request, Agent event, user/session/role grant, audit, outbox, device
+credential or canonical device status is persisted in Redis. Even when enabled,
+the hint bean currently has **no production caller**, so opting in does not
+activate any monitoring, background uploads, or device management.
+
+For an explicitly authorized isolated development session, first check
+`docker inspect -f '{{.State.Running}}' spark-redis` and
+`docker port spark-redis 6379`. The default endpoint is
+`127.0.0.1:6379` (the existing Compose mapping). From the same trusted
+Bash shell used to start Java, read the configured Redis password into
+`LANVERIQ_REDIS_PASSWORD` using `read -rsp` and export it, then set
+`LANVERIQ_REDIS_ENABLED=true` before `./gradlew bootRun`. No Redis password
+must be committed, echoed in logs, or copied from public examples.
+
+The shared Redis image is configured with `allkeys-lru`. Cache misses and
+loss of hints must always trigger authorized PostgreSQL/REST reconciliation;
+Redis is **not** a trustworthy status source, a distributed lock or an
+authorization engine. The deployed Redis instance's password, memory budget
+(64 MiB in the supplied Compose environment), reachability and restore policy
+need separate operational acceptance. With Redis enabled, Actuator health may
+report DOWN if it is unavailable; with Redis disabled, it is not required for
+the Java health check.
 
 ## Components and deployment dependency boundary
 

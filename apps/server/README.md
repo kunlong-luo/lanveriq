@@ -1,6 +1,6 @@
 # Lanveriq server — SRV-01, SRV-02 and AUTH-01 internal foundations
 
-D0-approved Java 25 / Gradle 9.8.2 (Groovy DSL) / Spring Boot 4.1.2 / Spring Data JPA/Hibernate / PostgreSQL 18 / Flyway.
+D0-approved Java 25 / Gradle 9.8.2 (Groovy DSL) / Spring Boot 4.1.2 / Spring Data JPA/Hibernate / PostgreSQL 18 / Flyway. **2026-11-01 addition:** optional Spring Data Redis/Lettuce using existing `spark-redis`, OFF by default and never canonical persistence.
 
 **Not a usable monitoring service.** SRV-02 now contains internal 256-bit one-use token generation and a group-scoped **JPA issuance** operation, plus V2 users/roles/scopes/audit migration. SRV-02 additionally validates a PKCS#10 CSR with Bouncy Castle 1.86 (ECDSA P-256/SHA-256 proof of possession) and now performs conditional one-time token consumption plus PostgreSQL UUIDv7 pending-device/CSR inserts in a **single Spring JPA transaction**. The CSR's requested subject/SAN is never treated as authoritative identity. **No public enrollment endpoint, enabled browser login, certificate issuance/registration, network-reachable mTLS activation, uploads or dashboard REST/WSS has been implemented. An internal activation transaction is now staged but unverified on PostgreSQL.** A conditional console login/CSRF/logout slice now exists in code but is OFF by default, NOT an approved deployment feature. The service rejects business routes by default. No real workplace data is authorized.
 
@@ -178,3 +178,8 @@ Supply `LANVERIQ_DB_URL`, `LANVERIQ_DB_USER` and `LANVERIQ_DB_PASSWORD` through 
 
 
 Do not expose the backend directly on the LAN; the approved future deployment is behind purpose-separated Caddy TLS hosts, with Agent-only mTLS, strict SNI/Host and group-scoped authorization. No real employees/devices/recording until independent policy and security gates are satisfied. See [D0 gate](../../docs/governance/documentation-gate.md), [backend stack](../../docs/development/backend-stack.md) and [implementation sequence](../../docs/planning/v0.1-implementation-sequence.md).
+
+
+## REDIS-01 — optional transient refetch hints (DEFAULT OFF)
+
+Boot-managed `spring-boot-starter-data-redis` and Lettuce can connect to an already-running private `spark-redis` at `127.0.0.1:6379` after explicit `LANVERIQ_REDIS_ENABLED=true` and `LANVERIQ_REDIS_PASSWORD` configuration. Redis repositories are disabled. The small conditional `RedisDeviceRefreshHints` bean can hold a device UUID-only marker for 90 seconds. Redis writes/reads catch transient Spring Data connection failures and never represent authoritative online/offline state or permission checks. **There is no production caller or network endpoint yet.** Redis health is included only when explicitly enabled; existing default-deny Java + PostgreSQL startup remains possible without Redis. No OpenTelemetry or Redis-backed sessions, distributed locks, login rate limits, pub/sub, ACKs or durable queues are added. See [deployment guide](../../docs/operations/installation.md).

@@ -1,7 +1,7 @@
 # Private LAN deployment topology
 
 ## Starter host (proposed)
-Ubuntu Server 24.04 LTS (or verified compatible server), 4–8 vCPU, 8–16 GiB RAM, 100+ GB SSD for system+PostgreSQL depending on measured event rate, **separate media disk/NAS** sized to codec/retention. Initial 1–10 endpoints. No K8s/Redis/Kafka.
+Ubuntu Server 24.04 LTS (or verified compatible server), 4–8 vCPU, 8–16 GiB RAM, 100+ GB SSD for system+PostgreSQL depending on measured event rate, **separate media disk/NAS** sized to codec/retention. Initial 1–10 endpoints. No K8s/Kafka. **Optional Redis 8** may reuse the existing private `spark-redis` solely for best-effort short-lived hints and connectivity health; PostgreSQL remains authoritative.
 
 Browser services behind a **single same-origin HTTPS/WSS admin site**: Caddy (TLS + static React app) → Spring Boot REST API + **native WebSocket handler/in-process notification hub**. PostgreSQL stays on an isolated Docker network; media is a restricted mount. Browser WSS uses 443, not another public port. **An enrolled Agent mTLS site has a separate hostname/vhost on the same Caddy TCP 443 listener** so mandatory client certificates cannot block browser login or pre-enrollment pairing. This is the D0-selected design, **not a deployed or tested Caddy configuration**; h1/h2-only and strict SNI/Host are required for V0.1. Docker Compose for backend only. Rust agent runs natively on clients, not in a desktop Docker container.
 
@@ -19,7 +19,7 @@ Environment variables/secret files: public bind hostname, database connection/cr
 At 2 Mbps average, screen video ~21.6 GB/device/day; ten endpoints for 14 days ~3 TB raw before reserve and backup. Video is a separate optional milestone, not part of the first server disk budget.
 
 ## Dashboard transport
-In v0.1, the dashboard uses scoped HTTPS REST queries for state plus a **same-origin authenticated WSS /ws** connection for metadata change notifications; WS is best-effort and clients resync from REST after reconnect. Caddy forwards WebSocket Upgrade and keeps connection idle timeout above the heartbeat. The in-memory notifier assumes **one Spring Boot instance**; no Redis/broker/WebRTC is needed. See [WS contract](websocket-contract.md) and [ADR-0005](adrs/0005-rest-plus-websocket.md).
+In v0.1, the dashboard uses scoped HTTPS REST queries for state plus a **same-origin authenticated WSS /ws** connection for metadata change notifications; WS is best-effort and clients resync from REST after reconnect. Caddy forwards WebSocket Upgrade and keeps connection idle timeout above the heartbeat. The in-memory notifier assumes **one Spring Boot instance**; the optional Redis dependency is **not** a WSS broker, presence authority or substitute for after-commit scoped notifications. No Redis Pub/Sub, STOMP, Kafka or WebRTC is enabled. See [WS contract](websocket-contract.md) and [ADR-0005](adrs/0005-rest-plus-websocket.md).
 
 ## Installation and operations
 See [runbook](../operations/installation.md), [backup](../operations/backup.md) and [monitoring](../operations/monitoring.md). The one-command `docker compose up -d` experience is a **future goal**; no compose file exists yet.

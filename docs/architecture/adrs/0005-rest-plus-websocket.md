@@ -5,7 +5,7 @@
 ## Decision
 Use **HTTPS REST + WSS** for the React dashboard in the **first MVP**. REST owns initial snapshots, searches, mutations, policy, admin and event queries. A **same-origin authenticated WSS** connection sends small, scoped, best-effort status notifications and invalidates React Query cache.
 
-Retain HTTPS REST for Rust Agent enrollment, heartbeats, event batches and later media uploads. Do not transfer durable event acknowledgments to WSS. Use native Spring Boot WebSocket support and an **in-process after-commit dispatcher** for the one-server, 1–10 endpoint scope. Do not add a broker, STOMP, Redis, Kafka or microservices.
+Retain HTTPS REST for Rust Agent enrollment, heartbeats, event batches and later media uploads. Do not transfer durable event acknowledgments to WSS. Use native Spring Boot WebSocket support and an **in-process after-commit dispatcher** for the one-server, 1–10 endpoint scope. Do not add a broker, STOMP, Redis Pub/Sub, Kafka or microservices. **Maintainer addendum (2026-11-01):** an opt-in standalone Redis client is allowed for transient best-effort refetch hints and dependency health, but is **not** used for dashboard WebSocket delivery or durable event storage.
 
 ## Rationale
 The user wants an immediate LAN dashboard and WSS is manageable for a single node. It removes unnecessary polling delay, keeps endpoint fault recovery on the existing transactional HTTP path, and avoids introducing another persistent connection per endpoint.

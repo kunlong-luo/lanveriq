@@ -18,6 +18,7 @@ The **three product components** are **Web**, **Server**, and **Agent**. Postgre
 | API and admin server | `apps/server`, Java 25 / Spring Boot 4.1.2 / Gradle / JPA / Flyway | A buildable Spring Boot process with health checks; other business routes default to denial. Real DB/security approval pending. |
 | Endpoint Agent | `apps/agent`, Rust 1.94 / Tokio / SQLx SQLite WAL / Reqwest-rustls | Builds and starts an **idle** process; **no automatic monitoring, inventory collection, or uploads**. |
 | PostgreSQL (dependency) | PostgreSQL 18.x (18.6 for manual acceptance); Flyway V1–V8 | Reuse dedicated `lanveriq` database in existing `spark-postgres`; full PG18.6 integration acceptance pending. |
+| Redis (optional dependency) | Existing `spark-redis` / Redis 8 / Spring Data Redis + Lettuce | Optional **default-OFF** bounded ephemeral refetch-hint bean and Actuator health; not a queue, session, RBAC store or WSS broker. |
 | Caddy (dependency) | `deploy/caddy/Caddyfile.reference` | A **reference-only** TLS test config, not a production reverse proxy. |
 
 Intended central topology: **Caddy HTTPS + static React assets → Spring Boot → PostgreSQL**. The Rust Agent runs **natively on explicitly authorized Windows/Linux endpoints**, not as a Docker container on the central host. The future dashboard is a static SPA, not a fourth Node/Next.js production server. See [deployment architecture](docs/architecture/deployment.md).
@@ -41,7 +42,7 @@ cd lanveriq
 
 ### 1. Reuse your existing `spark-db` PostgreSQL instance
 
-Your local Docker Compose project is named `spark-db`, with an existing `spark-postgres` container, `iot_farm` business database, and (by default) a host-only `127.0.0.1:5432` PostgreSQL port. **Do not start a second persistent PostgreSQL instance.** Lanveriq does **not** need the existing Redis, InfluxDB or PostGIS extensions. Keep the entire existing Compose stack and all of its volumes intact.
+Your local Docker Compose project is named `spark-db`, with an existing `spark-postgres` container, `iot_farm` business database, and (by default) a host-only `127.0.0.1:5432` PostgreSQL port. **Do not start a second persistent PostgreSQL instance.** Lanveriq may **optionally reuse the existing Redis** for best-effort transient hints/health, but needs neither InfluxDB nor PostGIS extensions. Keep the entire existing Compose stack and all of its volumes intact.
 
 The isolation boundary is a **new `lanveriq` database owned by a separate non-superuser `lanveriq` role** in the existing PostgreSQL cluster. Never run Flyway against `iot_farm` and do not run the Lanveriq application as the shared PostgreSQL superuser.
 
@@ -109,7 +110,40 @@ A healthy default-deny development instance is expected to report `{"status":"UP
 
 To stop, press `Ctrl+C` in the `bootRun` terminal. **Never stop `spark-postgres`, run `docker compose down`, or run `docker compose down -v`** as part of Lanveriq teardown.
 
-### 4. Optional disposable PostgreSQL 18.6 smoke (separate from spark-db)
+### 4. Optional existing Redis 8 (synthetic-only, no Redis container to create)
+
+Redis is **not required** by the default-deny Java process. To opt in on a
+trusted local development host, first check that **your existing** container is
+running and still bound to loopback:
+
+```bash
+docker inspect -f '{{.State.Running}}' spark-redis
+docker port spark-redis 6379
+```
+
+From the **same Bash shell as the Spring Boot process**, before `bootRun`:
+
+```bash
+export LANVERIQ_REDIS_HOST='127.0.0.1'
+export LANVERIQ_REDIS_PORT='6379'
+read -rsp 'Existing spark-redis password: ' LANVERIQ_REDIS_PASSWORD
+echo
+export LANVERIQ_REDIS_PASSWORD
+export LANVERIQ_REDIS_ENABLED='true'
+./gradlew bootRun
+```
+
+Do not run a second Redis container or overwrite the existing Compose
+credentials. This opt-in exposes Redis availability through the existing
+`/actuator/health` check; Redis unavailable can cause health to be DOWN.
+The only code-level Redis feature is a **currently unused internal**
+90-second UUID refetch hint; it does not enable monitoring or a new API.
+PostgreSQL remains the source of truth. Your Redis uses `allkeys-lru`,
+so never store critical session/role/ACK/audit/locking data in it.
+Stop only the Java process; **do not stop `spark-redis`, flush keys, run
+Compose down, or delete Redis volumes**.
+
+### 5. Optional disposable PostgreSQL 18.6 smoke (separate from spark-db)
 
 The existing `apps/server/scripts/verify-postgres18.sh` still creates its **own short-lived** `postgres:18.6` container. It **does not connect to, stop or delete** `spark-postgres`. To avoid the InfluxDB Explorer port conflict, run this optional isolated script on **18082**, not 18080:
 
