@@ -329,10 +329,11 @@ assert_valid_direct() {
        -H "Host: agent.lanveriq.internal" \
        -H "X-Lanveriq-Verified-Client-Fingerprint: $SYNTHETIC_AGENT_SHA256" \
        -X POST -o "$TMP/direct-valid.json" -w '%{http_code}' "$BACKEND_URL")"
-    [[ "$code" == 200 ]] || {
-        echo "FAIL: valid synthetic upstream TLS connection is not healthy" >&2
+    if [[ "$code" != 200 ]]; then
+        echo "FAIL: valid synthetic upstream TLS connection is not healthy (HTTP $code)" >&2
+        report_synthetic_failure "$TMP/direct-valid.json"
         exit 1
-    }
+    fi
     python3 - "$TMP/direct-valid.json" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as src:
