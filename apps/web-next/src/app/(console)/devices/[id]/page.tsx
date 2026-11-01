@@ -4,7 +4,7 @@ import { Clock3, HardDrive, RefreshCcw } from 'lucide-react';
 import { SectionHeading } from '@/components/section-heading';
 import { DeviceDetailTabs } from '@/components/device-detail-tabs';
 
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const summary = [
   { label: '最后心跳', Icon: Clock3 },
