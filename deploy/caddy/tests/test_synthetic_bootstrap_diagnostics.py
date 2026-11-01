@@ -44,6 +44,23 @@ class SyntheticBootstrapDiagnosticSafetyTest(unittest.TestCase):
         self.assertNotIn("CANARY-SECRET", repr(result))
         self.assertNotIn("CANARY-ACCOUNT", repr(result))
 
+    def test_specific_spring_root_causes_never_reveal_source_details(self):
+        for exact_source, expected in (
+            ("org.springframework.beans.factory.UnsatisfiedDependencyException: "
+             "example.canary.secret", "spring_missing_bean"),
+            ("BeanCreationException: example.canary.secret", "spring_bean_initialization"),
+            ("No ServletContext set: CANARY-SESSION", "spring_context_missing_servlet"),
+            ("org.postgresql.util.PSQLException: Connection refused "
+             "CANARY-PRIVATE", "db_connection_refused"),
+            ("EntityManagerFactory invalid CANARY-ENTITY", "jpa_entity_manager_failure"),
+            ("FirstAdminBootstrapRunner.run error CANARY-USER", "bootstrap_exception"),
+        ):
+            with self.subTest(expected=expected):
+                categories = diagnose.categories(exact_source)
+                self.assertIn(expected, categories)
+                for canary in ("canary", "CANARY", "secret", "PRIVATE"):
+                    self.assertNotIn(canary, repr(categories))
+
     def test_success_marker_cannot_be_confused_with_exceptions(self):
         self.assertIn(
             "application_reported_bootstrap_success",
