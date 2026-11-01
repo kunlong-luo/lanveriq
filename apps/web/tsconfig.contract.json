@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "contract-check/**/*.ts",
+    ".generated-contract/**/*.ts"
+  ],
+  "exclude": []
+}
