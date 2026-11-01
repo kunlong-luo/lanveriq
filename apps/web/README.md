@@ -87,3 +87,28 @@ The adapter allows only self-constructed same-origin routes, bounded page sizes 
 The generated OpenAPI now explicitly marks always-present device identity, non-null device `items`, monitoring totals, session login and CSRF tokens as required. Nullable/missing heartbeat, inventory and pagination cursor remain optional. Both `scripts/verify-generated-openapi.py` and `contract-check/typecheck.ts` guard this wire-shape invariant in Java CI. **Only a successful post-change Java CI run** proves the Springdoc → Orval → Web compile chain; a successful Web preview run does not.
 
 Next.js App Router remains a **planned, separate migration**, not something that can be claimed from this Vite source or its tests. A migration must update the approved architecture documents, regenerate and freeze the pnpm lockfile, replace Vite-specific health proxy/testing, and pass equivalent Web CI before any switch. It must never introduce a permissive `/api` rewrite, credential-bearing server-side proxy or a real endpoint as a shortcut.
+
+## FE-02-C strict backend-to-view projection (not wired, no real requests)
+
+`src/api/scopedDeviceProjection.ts` now maps an **unknown** JSON page from the
+previously staged read-only transport into `ScopedDeviceDirectoryState`.
+It deliberately validates only the authorized display fields and page
+invariants, rather than duplicating the complete Springdoc/Orval wire DTO.
+The Java contract CI also compiles the projection against the generated
+`ScopedDeviceDirectoryPage` model; there is still no runtime query in the
+existing demo UI.
+
+A missing or invalid `items` array, required device/group identity,
+registration state, heartbeat timestamp, queue counter, ascending UUID
+order or declared keyset cursor rejects the **entire page**. Missing
+heartbeats/OS/queue are labeled *not reported*, never fabricated as
+activity/zero/online. An `active` enrollment is **not** an authoritative
+online state: the view says *连接状态待确认* until a server-derived
+connectivity field exists. Additional incoming JSON fields such as IP,
+MAC, user IDs or raw event data are not copied into display rows.
+
+`projectScopedDeviceRead` maps 401/403/429/outage into empty failure
+states; it cannot return stale previously rendered rows or invent device
+records. The synthetic Vite routes remain unchanged. Next.js adoption
+is governed by [ADR-0008](../../docs/architecture/adrs/0008-nextjs-app-router-console.md),
+and live use remains prohibited by the PG18/TLS/browser/RBAC acceptance gates.
