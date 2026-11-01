@@ -296,6 +296,21 @@ DROP ROLE lanveriq;
 
 Do **not** delete `iot_farm`, stop `spark-postgres` or remove its `postgres-data` volume. Your existing pg_dump/Kopia/R2 backup workflow may back up only `iot_farm`; independently confirm whether the new `lanveriq` DB is covered.
 
+## Local Web synthetic preview
+
+Node.js 24 + pnpm 12; no backend or Docker is contacted:
+
+~~~bash
+cd apps/web
+corepack enable
+corepack prepare pnpm@12.0.0 --activate
+pnpm install --no-frozen-lockfile
+pnpm test && pnpm build
+pnpm dev
+~~~
+
+Open **http://127.0.0.1:5173**. Stop with `Ctrl+C`. Direct dependencies are pinned to exact versions; the pnpm lockfile is still awaiting repository check-in, so the bootstrap is currently *not frozen*. See [Web README](apps/web/README.md).
+
 ## Frontend progress
 
 **The React app now exists as an isolated synthetic UI preview.** It includes overview, Monitoring Center, interactive demonstration device filtering, Radix detail tabs, enrollment explanation and settings. It has **no real login/session, Orval API connection, WSS, live telemetry or usable device commands**. See [Web runbook](apps/web/README.md). PostgreSQL and TLS/session acceptance remain separate gates.
