@@ -57,7 +57,7 @@ final class JpaAdminSessionRevocationRepository implements AdminSessionRevocatio
             // Do not reveal if the target UUID or group membership exists.
             throw new AccessDeniedException("Session revocation not authorized");
         }
-        entityManager.createNativeQuery("""
+        int audited = entityManager.createNativeQuery("""
                 INSERT INTO admin_access_log
                     (principal_id, resource_id, device_group_id, action, outcome)
                 VALUES (:issuer_id, :target_id, :group_id, 'admin.sessions.revoke', 'allowed')
@@ -66,6 +66,11 @@ final class JpaAdminSessionRevocationRepository implements AdminSessionRevocatio
                 .setParameter("target_id", targetUserId)
                 .setParameter("group_id", deviceGroupId)
                 .executeUpdate();
+        if (audited != 1) {
+            // A BEFORE INSERT trigger can silently suppress an audit row.
+            // The service transaction must roll back session_version as well.
+            throw new IllegalStateException("Session revocation audit was not persisted");
+        }
 
         return ((Number) updated.getFirst()).longValue();
     }
