@@ -1,5 +1,5 @@
 import { Activity, Clock3, HardDrive, Monitor, ShieldCheck, WifiOff } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 const metrics = [
   { name: '已授权设备总数', Icon: Monitor, description: '尚未获取授权设备列表' },

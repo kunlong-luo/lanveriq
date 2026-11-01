@@ -16,7 +16,7 @@ const links = [
 export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
   const current = links.find(item => pathname === item.href || pathname.startsWith(item.href + '/'));
-  return <div className="shell">
+  return <><a href="#main" className="skip-to-content">跳转到主要内容</a><div className="shell">
     <aside className="sidebar">
       <Link href="/overview" className="brand" aria-label="Lanveriq 概览">
         <span className="brand-mark"><Activity size={23} aria-hidden="true" /></span>
@@ -52,7 +52,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
         </div>
         {children}
       </main>
-      <footer className="footer">Lanveriq V0.1 · NXT-01 · 不可用于真实终端监控</footer>
+      <footer className="footer">Lanveriq V0.1 · NXT-02 · 不可用于真实终端监控</footer>
     </div>
-  </div>;
+  </div></>;
 }
