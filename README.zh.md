@@ -293,13 +293,13 @@ pnpm dev
 
 浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。当前直接依赖已固定版本；首次 CI 生成的 pnpm 锁文件尚待提交，因此临时使用 `--no-frozen-lockfile`，不能声称已实现完全冻结安装。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment` 和 `/settings`。真正的注册、撤销、Agent 下发都明确禁用。详见 [Web README](apps/web/README.md)。
 
-## 六、前端进度和下一步
+## 七、前端进度和下一步
 
 截至当前仓库检查：**`apps/web` 已建立并完成可构建的合成数据演示页面**，包括设备搜索、Radix 详情选项卡、监控中心与系统设置；全部示例设备均为虚构，不连接真实服务，也不能进行远程下发或设备撤销。后端 Springdoc → Orval 契约验证工程 `apps/server/contract-client-check` 尚未与前端 API 联调。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
 
 建议的后续交付顺序是：完善 Web 的冻结依赖锁与 UI 测试，落实真实 PG18、Caddy/TLS 与浏览器会话负向验收，然后才接入经授权且默认关闭的后端 API。验收前不可对外宣布“可安装并开始监控”。
 
-## 七、文档与许可
+## 八、文档与许可
 
 [文档索引](docs/README.md) · [需求](docs/product/requirements.md) · [开发路线](docs/planning/roadmap.md) · [安全](SECURITY.md) · [贡献指南](CONTRIBUTING.md) · [设计图库](docs/visuals/README.md)
 
