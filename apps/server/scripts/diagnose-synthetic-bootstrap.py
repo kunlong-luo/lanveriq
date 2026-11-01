@@ -34,6 +34,8 @@ def categories(raw: str) -> tuple[str, ...]:
     # message: it can include request parameters, SQL text or credentials.
     # Match only fully fixed class names or finite, machine-owned markers.
     boot_causes = (
+        ("spring_bootstrap_constructor_selection",
+         ("No default constructor found", "Failed to instantiate [com.lanveriq.server.security.FirstAdminBootstrapRunner]")),
         ("spring_missing_bean", ("NoSuchBeanDefinitionException", "UnsatisfiedDependencyException")),
         ("spring_bean_cycle", ("BeanCurrentlyInCreationException",)),
         ("spring_invalid_property", ("BindException", "ConfigurationPropertiesBindException", "Could not resolve placeholder")),
