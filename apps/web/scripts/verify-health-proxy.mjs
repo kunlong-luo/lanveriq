@@ -39,6 +39,10 @@ try {
   assert.deepEqual(await health.json(), { status: 'UP' });
   assert.deepEqual(requests, [{ method: 'GET', path: '/actuator/health' }]);
 
+  const rejectedWrite = await fetch(`${origin}/actuator/health`, { method: 'POST', redirect: 'manual' });
+  assert.equal(rejectedWrite.status, 405, 'even health must never forward a write method');
+  assert.deepEqual(requests, [{ method: 'GET', path: '/actuator/health' }]);
+
   // Vite may render an SPA fallback for unknown URLs; that is NOT an upstream
   // business API response. Verify nothing is forwarded to the fake backend.
   await fetch(`${origin}/api/v1/devices`, { redirect: 'manual' });

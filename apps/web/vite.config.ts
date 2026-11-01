@@ -11,7 +11,26 @@ if (!Number.isInteger(healthPort) || healthPort < 1024 || healthPort > 65535) {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // The proxy must not forward POST/PUT/DELETE even to the health endpoint.
+    // Vite's configureServer middleware executes before its internal proxy.
+    {
+      name: 'lanveriq-dev-health-get-only',
+      apply: 'serve',
+      configureServer(server) {
+        server.middlewares.use((request, response, next) => {
+          if (/^\\/actuator\\/health(?:\\?.*)?$/.test(request.url ?? '') && request.method !== 'GET') {
+            response.writeHead(405, { Allow: 'GET', 'Cache-Control': 'no-store' });
+            response.end();
+            return;
+          }
+          next();
+        });
+      },
+    },
+  ],
   resolve: { alias: { '@': fileURLToPath(new URL('./src/', import.meta.url)) } },
   server: {
     host: '127.0.0.1',

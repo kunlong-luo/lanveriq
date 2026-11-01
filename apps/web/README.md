@@ -20,7 +20,7 @@ Open **http://127.0.0.1:5173**. The server binds localhost only. Stop with Ctrl+
 
 Start Java `LanveriqServerApplication` in IDEA first and confirm `curl -i http://127.0.0.1:8080/actuator/health` returns HTTP 200 with `{"status":"UP"}`. Start `pnpm dev` in `apps/web`; the overview page and top bar now make a **single GET** to Vite's exact-path same-origin proxy, `/actuator/health` → `http://127.0.0.1:8080/actuator/health`. Click **重新检查** for another one-time read; there is no interval polling.
 
-If Java was deliberately started with `LANVERIQ_HTTP_PORT=18081`, run `LANVERIQ_WEB_HEALTH_PORT=18081 pnpm dev` instead. The proxy host is always fixed to **127.0.0.1**, port validated as unprivileged, and it does **not** proxy `/api`, login, cookies, device data or Redis. For a quick terminal check: `curl -i http://127.0.0.1:5173/actuator/health`.
+If Java was deliberately started with `LANVERIQ_HTTP_PORT=18081`, run `LANVERIQ_WEB_HEALTH_PORT=18081 pnpm dev` instead. The proxy host is always fixed to **127.0.0.1**, port validated as unprivileged, **non-GET methods are rejected with HTTP 405**, and it does **not** proxy `/api`, login, cookies, device data or Redis. For a quick terminal check: `curl -i http://127.0.0.1:5173/actuator/health`.
 
 **IMPORTANT:** Healthy means only the Spring Boot Actuator probe returned UP, not that Flyway transactions, user sessions or authenticated APIs are ready. If the backend is down the UI must show unavailable, while all synthetic devices stay plainly labeled; no fallback invents real status. The static production build does **not** include a Vite dev proxy, so this is only a local development step.
 
