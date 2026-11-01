@@ -1,6 +1,6 @@
 # Frontend design system and dependency selection — documentation only
 
-**Status:** planned, not installed. Product visuals are in [visual gallery](../visuals/README.md) and standardized by [STYLE_GUIDE](../visuals/STYLE_GUIDE.md). Visual drawings do not replace real components.
+**Status (2026-11-01):** A synthetic-only React/Vite preview has been implemented at `apps/web` and built in [Web CI #41274343864](https://github.com/kunlong-luo/lanveriq/actions/runs/41274343864), with working demo routes, search/filter and Radix Tabs. The frontend is **not connected to real Spring Boot APIs, Orval hooks, session, WSS or real device data**; production approval remains open. Product visuals are in [visual gallery](../visuals/README.md) and standardized by [STYLE_GUIDE](../visuals/STYLE_GUIDE.md). Visual drawings do not replace real components.
 
 **V0.1 backend contract milestone:** The Spring Boot device-read controller now has a synthetic-only Springdoc OpenAPI generation and strict CI validation path. [Java CI #41190792718](https://github.com/kunlong-luo/lanveriq/actions/runs/41190792718) has **actually passed** Springdoc generation, JSON drift validation and contract artifact upload; that versioned `openapi.json` is suitable for a future Orval trial without opening the backend's docs endpoint. This is still not a completed React project or a production-accepted API; real PostgreSQL, HTTPS and cookie/session acceptance are separate.
 
