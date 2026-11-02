@@ -72,6 +72,68 @@ class ConsoleRequestGuardFilterTest {
         deny(malicious);
     }
 
+    @Test
+    void acceptsExactHttpsHttp2AuthorityWithoutHttp11HostHeader() throws Exception {
+        // Tomcat HTTP/2 maps :authority onto Servlet serverName/Port,
+        // not necessarily onto getHeaders("Host"). Host still must not be
+        // guessed from Forwarded or X-Forwarded-*.
+        var request = http2Authority("console.lanveriq.internal", 443);
+        var response = new MockHttpServletResponse();
+        FilterChain next = Mockito.mock(FilterChain.class);
+        guard.doFilter(request, response, next);
+        verify(next).doFilter(request, response);
+    }
+
+    @Test
+    void http2AuthorityRequiresHttpsPort443AndMatchingAnyExplicitHost() throws Exception {
+        deny(http2Authority("agent.lanveriq.internal", 443));
+        deny(http2Authority("console.lanveriq.internal", 8443));
+
+        var insecure = http2Authority("console.lanveriq.internal", 443);
+        insecure.setSecure(false);
+        deny(insecure);
+
+        var wrongScheme = http2Authority("console.lanveriq.internal", 443);
+        wrongScheme.setScheme("http");
+        deny(wrongScheme);
+
+        var spoofed = http2Authority("agent.lanveriq.internal", 443);
+        spoofed.addHeader("Host", "console.lanveriq.internal");
+        deny(spoofed);
+
+        var mismatchedHeader = http2Authority("console.lanveriq.internal", 443);
+        mismatchedHeader.addHeader("Host", "agent.lanveriq.internal");
+        deny(mismatchedHeader);
+
+        var duplicate = http2Authority("console.lanveriq.internal", 443);
+        duplicate.addHeader("Host", "console.lanveriq.internal");
+        duplicate.addHeader("Host", "console.lanveriq.internal");
+        deny(duplicate);
+
+        var forwarded = http2Authority("agent.lanveriq.internal", 443);
+        forwarded.addHeader("X-Forwarded-Host", "console.lanveriq.internal");
+        deny(forwarded);
+    }
+
+    @Test
+    void keepsSingleExactHostForHttp11AndRejectsHttp2LookalikeProtocols() throws Exception {
+        var missingH1 = new MockHttpServletRequest("GET", "/api/v1/auth/session");
+        deny(missingH1);
+        var inventedH2 = http2Authority("console.lanveriq.internal", 443);
+        inventedH2.setProtocol("HTTP/2");
+        deny(inventedH2);
+    }
+
+    private static MockHttpServletRequest http2Authority(String host, int port) {
+        var request = new MockHttpServletRequest("GET", "/api/v1/auth/session");
+        request.setProtocol("HTTP/2.0");
+        request.setSecure(true);
+        request.setScheme("https");
+        request.setServerName(host);
+        request.setServerPort(port);
+        return request;
+    }
+
     private static MockHttpServletRequest login() {
         return loginWithHost("console.lanveriq.internal");
     }
