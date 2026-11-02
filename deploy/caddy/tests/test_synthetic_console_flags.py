@@ -110,7 +110,7 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
     def test_private_diagnostic_python_is_syntactically_valid_and_bounded(self):
         script = HARNESS.read_text(encoding="utf-8")
         match = re.search(
-            r'python3 - "\\$TMP/spring\\.log" <<\\'PY\\'\\n(.*?)\\nPY',
+            r"""python3 - "\\$TMP/spring\\.log" <<'PY'\\n(.*?)\\nPY""",
             script, re.DOTALL)
         self.assertIsNotNone(match)
         code = match.group(1)
