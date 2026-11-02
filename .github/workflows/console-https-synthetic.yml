@@ -50,7 +50,7 @@ jobs:
           set -euo pipefail
           {
             echo "## Lanveriq disposable Console acceptance"
-            printf 'Commit: \`%s\`\n' "$GITHUB_SHA"
+            printf 'Commit: %s\n' "$GITHUB_SHA"
             echo "| Gate | Requested |"
             echo "| --- | --- |"
             echo "| Caddy → real Tomcat → PostgreSQL 18 HTTPS session | yes (always) |"
