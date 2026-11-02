@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Defense in depth in addition to Spring Security CSRF; ingress must also
@@ -14,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 final class ConsoleRequestGuardFilter extends OncePerRequestFilter {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ConsoleRequestGuardFilter.class);
     private final ConsoleOriginPolicy policy;
 
     ConsoleRequestGuardFilter(ConsoleOriginPolicy policy) {
@@ -29,11 +32,20 @@ final class ConsoleRequestGuardFilter extends OncePerRequestFilter {
         String method = request.getMethod();
         boolean safe = "GET".equals(method) || "HEAD".equals(method) ||
                 "OPTIONS".equals(method);
-        boolean allowed = acceptsTransportHost(request, hosts) &&
-                origins.size() <= 1 &&
-                (origins.isEmpty() ? safe : policy.acceptsOrigin(origins.getFirst())) &&
-                fetchSites.size() <= 1 &&
+        boolean hostOk = acceptsTransportHost(request, hosts);
+        boolean originOk = origins.size() <= 1 &&
+                (origins.isEmpty() ? safe : policy.acceptsOrigin(origins.getFirst()));
+        boolean fetchOk = fetchSites.size() <= 1 &&
                 (fetchSites.isEmpty() || policy.acceptsFetchSite(fetchSites.getFirst()));
+        boolean allowed = hostOk && originOk && fetchOk;
+        // This DEBUG-only diagnostic deliberately logs NO hostnames, paths,
+        // credentials, cookies, tokens or raw request headers. The private
+        // synthetic CI runner classifies these fixed booleans and destroys
+        // its local Spring log on exit. Off under default INFO production.
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("LANVERIQ_CONSOLE_GUARD_RESULT host={} origin={} fetch={} allowed={}",
+                    hostOk, originOk, fetchOk, allowed);
+        }
         if (!allowed) {
             response.setHeader("Cache-Control", "no-store");
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
