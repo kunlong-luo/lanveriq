@@ -691,7 +691,7 @@ PY
                 --resolve "$HOST_RESOLVE" \
                 --cert "$TMP/pki/proxy.crt" --key "$TMP/pki/proxy.key" \
                 -H 'Host: console.lanveriq.internal:443' \
-                -o "$TMP/console-direct-status-body" -w '%{http_code}' \
+                -o "$TMP/console-direct-status-body" -w '%{http_code} %{http_version}' \
                 "$URL/api/v1/auth/session"
         }
         direct_h1="$(direct_console_status --http1.1)" || {
@@ -702,6 +702,10 @@ PY
             echo "FAIL: direct Tomcat synthetic console HTTP/2 TLS request" >&2
             exit 1
         }
+        direct_h1_protocol="${direct_h1##* }"
+        direct_h2_protocol="${direct_h2##* }"
+        direct_h1="${direct_h1%% *}"
+        direct_h2="${direct_h2%% *}"
         echo "SYNTHETIC CONSOLE DIAGNOSTIC: trusted direct Tomcat h1=$direct_h1, h2=$direct_h2 (expected 401/401)."
         # Inspect both endpoints even when the direct backend rejects:
         # otherwise we lose the H1/H2/Host differential evidence again.
@@ -714,7 +718,7 @@ PY
             curl --silent --show-error --noproxy '*' --max-time 10 \
                 "$protocol" --cacert "$ROOT_CA" \
                 --resolve console.lanveriq.internal:443:127.0.0.1 \
-                -o "$TMP/console-edge-status-body" -w '%{http_code}' \
+                -o "$TMP/console-edge-status-body" -w '%{http_code} %{http_version}' \
                 "https://console.lanveriq.internal/api/v1/auth/session"
         }
         edge_h1="$(edge_console_status --http1.1)" || {
@@ -723,6 +727,15 @@ PY
         }
         edge_h2="$(edge_console_status --http2)" || {
             echo "FAIL: Caddy Console HTTP/2 TLS request failed" >&2
+            exit 1
+        }
+        edge_h1_protocol="${edge_h1##* }"
+        edge_h2_protocol="${edge_h2##* }"
+        edge_h1="${edge_h1%% *}"
+        edge_h2="${edge_h2%% *}"
+        [[ "$direct_h1_protocol" == 1.1 && "$direct_h2_protocol" == 2 &&
+           "$edge_h1_protocol" == 1.1 && "$edge_h2_protocol" == 2 ]] || {
+            echo "FAIL: Console protocol differential did not negotiate the requested HTTP/1.1 and HTTP/2; no fallback accepted." >&2
             exit 1
         }
         echo "SYNTHETIC CONSOLE DIAGNOSTIC: Caddy edge h1=$edge_h1, h2=$edge_h2 (expected 401/401)."
