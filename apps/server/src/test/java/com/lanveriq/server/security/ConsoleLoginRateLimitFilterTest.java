@@ -1,6 +1,7 @@
 package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -36,6 +37,7 @@ class ConsoleLoginRateLimitFilterTest {
         filter.doFilter(request, response, chain);
 
         assertEquals(429, response.getStatus());
+        assertFalse(response.isCommitted(), "Throttle result must not route through /error");
         assertEquals("60", response.getHeader("Retry-After"));
         assertEquals("no-store", response.getHeader("Cache-Control"));
         verify(audit).loginThrottled();
@@ -49,12 +51,14 @@ class ConsoleLoginRateLimitFilterTest {
         var response = new MockHttpServletResponse();
         filter.doFilter(missingLength, response, Mockito.mock(FilterChain.class));
         assertEquals(413, response.getStatus());
+        assertFalse(response.isCommitted());
 
         var oversized = login("admin");
         oversized.setContent(new byte[8193]);
         var largeResponse = new MockHttpServletResponse();
         filter.doFilter(oversized, largeResponse, Mockito.mock(FilterChain.class));
         assertEquals(413, largeResponse.getStatus());
+        assertFalse(largeResponse.isCommitted());
         verify(audit, never()).loginThrottled();
     }
 
@@ -70,6 +74,7 @@ class ConsoleLoginRateLimitFilterTest {
 
         assertEquals(429, response.getStatus());
         assertEquals("1", response.getHeader("Retry-After"));
+        assertFalse(response.isCommitted());
         verify(audit).loginThrottled();
         verify(chain, never()).doFilter(Mockito.any(), Mockito.any());
     }
