@@ -41,6 +41,32 @@ jobs:
         run: |
           echo "FAIL: same-origin Next.js test requires an explicitly enabled real Chromium probe"
           exit 1
+      - name: Declare exact manual acceptance scope (request, not pass)
+        env:
+          BROWSER_REQUESTED: ${{ inputs.browser_probe && '1' || '0' }}
+          NEXTJS_REQUESTED: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## Lanveriq disposable Console acceptance"
+            printf 'Commit: \`%s\`\n' "$GITHUB_SHA"
+            echo "| Gate | Requested |"
+            echo "| --- | --- |"
+            echo "| Caddy → real Tomcat → PostgreSQL 18 HTTPS session | yes (always) |"
+            if [[ "$BROWSER_REQUESTED" == 1 ]]; then
+              echo "| Real Chromium: TLS/Host/Cookie/CSRF/Login | YES; result pending |"
+            else
+              echo "| Real Chromium: TLS/Host/Cookie/CSRF/Login | SKIPPED (browser_probe=false) |"
+            fi
+            if [[ "$NEXTJS_REQUESTED" == 1 ]]; then
+              echo "| Next.js + Spring same-origin Chromium | YES; result pending |"
+            else
+              echo "| Next.js + Spring same-origin Chromium | SKIPPED (nextjs_same_origin_probe=false) |"
+            fi
+            echo ""
+            echo "A green workflow only proves the requested gates. Unselected gates are not accepted."
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Set up pinned Java 25
         uses: actions/setup-java@v6
         with:
@@ -140,3 +166,18 @@ jobs:
             [[ "$ready" == 1 ]] || { echo "FAIL: isolated Next.js did not become ready"; exit 1; }
           fi
           bash apps/server/scripts/verify-agent-upstream-tls.sh
+          {
+            echo "### Verified result"
+            echo "- PASS: real Caddy/Tomcat/PostgreSQL 18 backend HTTPS session and negative checks"
+            if [[ "$LANVERIQ_SYNTHETIC_BROWSER_PROBE" == 1 ]]; then
+              echo "- PASS: real Chromium Console security, synthetic login and session checks"
+            else
+              echo "- SKIPPED: real Chromium Console security (browser_probe=false)"
+            fi
+            if [[ "$LANVERIQ_SYNTHETIC_NEXTJS_PROBE" == 1 ]]; then
+              echo "- PASS: real Next.js preview + Spring same-origin Chromium checks (UI login remains disabled)"
+            else
+              echo "- SKIPPED: Next.js + Spring same-origin Chromium (nextjs_same_origin_probe=false)"
+            fi
+            echo "- NOT PROVEN: activated Next.js login/data hooks, nonempty multi-group RBAC, real devices/Agent or production deployment"
+          } >> "$GITHUB_STEP_SUMMARY"
