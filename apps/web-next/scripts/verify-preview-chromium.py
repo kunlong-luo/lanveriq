@@ -93,6 +93,14 @@ def check_browser(page, blocked):
             "keyboard_skip_link_not_first")
     page.get_by_role("navigation", name="主导航").get_by_role(
         "link", name="终端资产").click()
+    # Next.js App Router changes location asynchronously after a client-side
+    # Link click. Chromium may return from click before navigation commits;
+    # use Playwright's built-in navigation wait, never a fixed sleep.
+    try:
+        page.wait_for_url(BASE + "/devices", wait_until="domcontentloaded",
+                          timeout=15000)
+    except Exception:
+        raise PreviewGateFailure("client_navigation_failed") from None
     require(page.url == BASE + "/devices", "client_navigation_failed")
     require(page.get_by_role("navigation", name="主导航").get_by_role(
         "link", name="终端资产").get_attribute("aria-current") == "page",
