@@ -53,6 +53,9 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn('prelogin_csrf_must_fail_after_fixation', browser)
         self.assertIn('authenticated_cookie_other_vhost', browser)
         self.assertIn('len(observed_posts) == 4', browser)
+        self.assertIn('require_browser_post_metadata(observed_posts)', browser)
+        self.assertIn('real_browser_origin_fetch_metadata_origin_post_', browser)
+        self.assertIn('real_browser_origin_fetch_metadata_fetch_site_post_', browser)
         self.assertIn('csrf_must_rotate_after_login', browser)
         self.assertIn('real_browser_origin_fetch_metadata', browser)
         self.assertIn('strict_anonymous_401(fetch("/api/v1/devices")', browser)
@@ -100,6 +103,27 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         ):
             with self.subTest(rejected=url):
                 self.assertFalse(allowed(url))
+
+    def test_actual_browser_metadata_gate_never_accepts_missing_or_wrong_headers(self):
+        spec = importlib.util.spec_from_file_location("synthetic_browser_metadata", BROWSER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        valid = [(True, True)] * 4
+        module.require_browser_post_metadata(valid)
+        for posts, expected in (
+            (valid[:3], "real_browser_origin_fetch_metadata_post_count"),
+            (valid + [(True, True)], "real_browser_origin_fetch_metadata_post_count"),
+            ([(False, True)] + valid[1:],
+             "real_browser_origin_fetch_metadata_origin_post_1"),
+            (valid[:1] + [(True, False)] + valid[2:],
+             "real_browser_origin_fetch_metadata_fetch_site_post_2"),
+            (valid[:3] + [(False, False)],
+             "real_browser_origin_fetch_metadata_origin_post_4"),
+        ):
+            with self.subTest(label=expected):
+                with self.assertRaises(module.BrowserGateFailure) as failure:
+                    module.require_browser_post_metadata(posts)
+                self.assertEqual(str(failure.exception), expected)
 
     def test_anonymous_browser_api_response_rejects_html_or_cacheable_401(self):
         spec = importlib.util.spec_from_file_location("synthetic_browser_401", BROWSER)
