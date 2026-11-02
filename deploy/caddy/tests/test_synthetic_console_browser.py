@@ -1,6 +1,11 @@
 """Source-only browser security gate tests: no Docker, TLS, browser or data."""
 from pathlib import Path
+import ast
 import importlib.util
+import re
+import subprocess
+import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -152,6 +157,50 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertNotIn("LANVERIQ_CONSOLE_AUTH_ENABLED", workflow)
         self.assertNotIn("ignore_https_errors=True", browser)
         self.assertNotIn("--ignore-certificate-errors", workflow + harness + browser)
+
+    def test_disposable_caddy_config_generation_keeps_api_and_nextjs_separate(self):
+        # Execute only the embedded Python template renderer against a COPY
+        # of the checked-in reference; no Caddy, Docker, browser or listener.
+        source = HARNESS.read_text(encoding="utf-8")
+        match = re.search(
+            r'''python3 - "\$CADDY_REFERENCE" "\$BROWSER_MODE" "\$NEXTJS_MODE" <<'PY'\n(.*?)\nPY''',
+            source, re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        renderer = match.group(1)
+        ast.parse(renderer)
+        original = REFERENCE.read_text(encoding="utf-8")
+        marker = 'respond "Console not enabled in this reference configuration" 503'
+        self.assertEqual(original.count(marker), 1)
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "Caddyfile.synthetic"
+            for browser_mode, nextjs_mode in (("0", "0"), ("1", "0"), ("1", "1")):
+                with self.subTest(browser=browser_mode, nextjs=nextjs_mode):
+                    path.write_text(original, encoding="utf-8")
+                    subprocess.run(
+                        [sys.executable, "-c", renderer, str(path),
+                         browser_mode, nextjs_mode],
+                        check=True, capture_output=True, text=True,
+                    )
+                    result = path.read_text(encoding="utf-8")
+                    self.assertNotIn(marker, result)
+                    self.assertEqual(result.count(
+                        "reverse_proxy https://127.0.0.1:8443"), 2)
+                    self.assertEqual(
+                        "handle /__synthetic_browser_probe" in result,
+                        browser_mode == "1",
+                    )
+                    self.assertEqual(
+                        "handle /api/v1/*" in result, nextjs_mode == "1")
+                    self.assertEqual(
+                        "reverse_proxy http://127.0.0.1:3100" in result,
+                        nextjs_mode == "1")
+                    self.assertIn(
+                        "header_up Host console.lanveriq.internal:443", result)
+                    self.assertIn(
+                        "respond \"Pairing not enabled in this reference configuration\" 503",
+                        result)
+        self.assertEqual(REFERENCE.read_text(encoding="utf-8"), original)
 
     def test_browser_assertions_import_without_playwright_or_network(self):
         spec = importlib.util.spec_from_file_location("synthetic_browser_gate", BROWSER)
