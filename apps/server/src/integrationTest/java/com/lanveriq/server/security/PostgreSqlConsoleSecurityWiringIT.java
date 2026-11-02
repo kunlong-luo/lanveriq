@@ -106,6 +106,37 @@ class PostgreSqlConsoleSecurityWiringIT {
                         .header("Host", "console.lanveriq.internal"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.csrfToken").isNotEmpty());
+        // Both transport variants must converge to the same Spring
+        // Security chain in the real, component-scanned application.
+        mvc.perform(get("/api/v1/auth/session").with(request -> {
+                    request.setProtocol("HTTP/2.0");
+                    request.setScheme("https");
+                    request.setSecure(true);
+                    request.setServerName("console.lanveriq.internal");
+                    request.setServerPort(443);
+                    return request;
+                }))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("Cache-Control", "no-store"));
+        mvc.perform(get("/api/v1/auth/csrf").with(request -> {
+                    request.setProtocol("HTTP/2.0");
+                    request.setScheme("https");
+                    request.setSecure(true);
+                    request.setServerName("console.lanveriq.internal");
+                    request.setServerPort(443);
+                    return request;
+                }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.csrfToken").isNotEmpty());
+        mvc.perform(get("/api/v1/auth/csrf").with(request -> {
+                    request.setProtocol("HTTP/2.0");
+                    request.setScheme("https");
+                    request.setSecure(true);
+                    request.setServerName("console.lanveriq.internal");
+                    request.setServerPort(8443);
+                    return request;
+                }))
+                .andExpect(status().isForbidden());
         mvc.perform(get("/api/v1/devices")
                         .header("Host", "console.lanveriq.internal"))
                 .andExpect(status().isUnauthorized());
