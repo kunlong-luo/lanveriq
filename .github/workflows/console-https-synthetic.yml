@@ -36,6 +36,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Reject combined browser/UI test without explicit Chromium opt-in
+        if: ${{ inputs.nextjs_same_origin_probe && !inputs.browser_probe }}
+        run: |
+          echo "FAIL: same-origin Next.js test requires an explicitly enabled real Chromium probe"
+          exit 1
       - name: Set up pinned Java 25
         uses: actions/setup-java@v6
         with:
