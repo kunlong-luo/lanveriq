@@ -1,5 +1,6 @@
 package com.lanveriq.server.security;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -138,11 +139,20 @@ class ConsoleSessionBrowserFlowWebMvcTest {
 
     @Test
     void anonymousSessionStatusReturns401NotHtmlRedirectOrLoginName() throws Exception {
-        mvc.perform(consoleGet("/api/v1/auth/session"))
+        var sessionResponse = mvc.perform(consoleGet("/api/v1/auth/session"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string("Cache-Control", "no-store"));
-        mvc.perform(consoleGet("/api/v1/devices"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andReturn().getResponse();
+        // sendError(401) would mark a servlet error for Tomcat to redispatch
+        // to /error, where denyBusinessRoutes can overwrite it as 403.
+        assertFalse(sessionResponse.isCommitted(),
+                "A direct 401 must not trigger Tomcat's /error redispatch");
+        assertTrue(sessionResponse.getContentAsString().isEmpty(),
+                "Unauthenticated session response must not disclose an error page");
+        var directoryResponse = mvc.perform(consoleGet("/api/v1/devices"))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        assertFalse(directoryResponse.isCommitted());
         verify(directory, never()).list(any(), Mockito.anyInt());
     }
 
