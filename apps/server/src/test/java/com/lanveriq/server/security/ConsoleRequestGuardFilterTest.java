@@ -5,6 +5,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
@@ -98,11 +100,14 @@ class ConsoleRequestGuardFilterTest {
 
         var spoofed = http2Authority("agent.lanveriq.internal", 443);
         spoofed.addHeader("Host", "console.lanveriq.internal");
-        deny(spoofed);
+        // Spring's Mock request rewrites serverName when addHeader("Host")
+        // runs. Keep the independent HTTP/2 :authority value visible through
+        // Servlet getServerName(), as a real HTTP/2 parser does.
+        deny(withAuthority(spoofed, "agent.lanveriq.internal"));
 
         var mismatchedHeader = http2Authority("console.lanveriq.internal", 443);
         mismatchedHeader.addHeader("Host", "agent.lanveriq.internal");
-        deny(mismatchedHeader);
+        deny(withAuthority(mismatchedHeader, "console.lanveriq.internal"));
 
         var duplicate = http2Authority("console.lanveriq.internal", 443);
         duplicate.addHeader("Host", "console.lanveriq.internal");
@@ -133,6 +138,21 @@ class ConsoleRequestGuardFilterTest {
         return request;
     }
 
+    private static HttpServletRequest withAuthority(MockHttpServletRequest request,
+                                                    String canonicalAuthority) {
+        return new HttpServletRequestWrapper(request) {
+            @Override
+            public String getServerName() {
+                return canonicalAuthority;
+            }
+
+            @Override
+            public int getServerPort() {
+                return 443;
+            }
+        };
+    }
+
     private static MockHttpServletRequest login() {
         return loginWithHost("console.lanveriq.internal");
     }
@@ -143,7 +163,7 @@ class ConsoleRequestGuardFilterTest {
         return request;
     }
 
-    private void deny(MockHttpServletRequest request) throws IOException, ServletException {
+    private void deny(HttpServletRequest request) throws IOException, ServletException {
         var response = new MockHttpServletResponse();
         FilterChain next = Mockito.mock(FilterChain.class);
         guard.doFilter(request, response, next);
