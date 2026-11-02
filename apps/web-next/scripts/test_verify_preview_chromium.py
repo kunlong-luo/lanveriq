@@ -60,6 +60,12 @@ class NextPreviewChromiumSourceTest(unittest.TestCase):
         self.assertIn("context.route(\"**/*\", restrict)", script)
         self.assertIn('page.on("websocket"', script)
         self.assertIn('preview_must_not_set_session_cookie', script)
+        # Next App Router navigation is asynchronous; checking page.url
+        # immediately after click was the observed Chromium CI failure.
+        self.assertIn('page.wait_for_url(BASE + "/devices"', script)
+        self.assertIn('client_navigation_failed', script)
+        self.assertIn('wait_until="domcontentloaded"', script)
+        self.assertNotIn('time.sleep(', script)
         self.assertNotIn("screenshot(", script)
         self.assertNotIn("tracing.start(", script)
 
