@@ -50,10 +50,47 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn('len(observed_posts) == 4', browser)
         self.assertIn('csrf_must_rotate_after_login', browser)
         self.assertIn('real_browser_origin_fetch_metadata', browser)
+        self.assertIn('context.route("**/*", restrict)', browser)
+        self.assertIn('page.on("websocket"', browser)
+        self.assertIn('browser_must_not_contact_external_origin_or_websocket', browser)
         self.assertNotIn('--ignore-certificate-errors', harness + browser)
         self.assertNotIn('ignore_https_errors=True', browser)
         self.assertNotIn('context.tracing.start(', browser)
         self.assertNotIn('page.screenshot(', browser)
+
+    def test_real_chromium_request_allowlist_never_reaches_agent_or_external_hosts(self):
+        spec = importlib.util.spec_from_file_location("synthetic_browser_origin", BROWSER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        allowed = module.is_synthetic_console_url
+        for url in (
+            "https://console.lanveriq.internal/__synthetic_browser_probe",
+            "https://console.lanveriq.internal/api/v1/auth/csrf",
+            "https://console.lanveriq.internal/api/v1/auth/session",
+            "https://console.lanveriq.internal/api/v1/devices?limit=50",
+            "https://console.lanveriq.internal:443/api/v1/auth/login",
+        ):
+            with self.subTest(allowed=url):
+                self.assertTrue(allowed(url))
+        for url in (
+            "http://console.lanveriq.internal/api/v1/auth/session",
+            "https://agent.lanveriq.internal/api/v1/devices",
+            "https://enroll.lanveriq.internal/",
+            "https://console.lanveriq.internal:8443/api/v1/auth/login",
+            "https://console.lanveriq.internal:444/",
+            "https://127.0.0.1:443/",
+            "https://console.lanveriq.internal.evil.test/",
+            "https://console.lanveriq.internal@evil.test/",
+            "https://user:password@console.lanveriq.internal/",
+            "https://console.lanveriq.internal//other",
+            "https://console.lanveriq.internal/path#fragment",
+            "https://console.lanveriq.internal:invalid/",
+            "wss://console.lanveriq.internal/api/v1/updates",
+            "file:///etc/passwd",
+            "data:text/html,hello",
+        ):
+            with self.subTest(rejected=url):
+                self.assertFalse(allowed(url))
 
     def test_browser_assertions_import_without_playwright_or_network(self):
         spec = importlib.util.spec_from_file_location("synthetic_browser_gate", BROWSER)
