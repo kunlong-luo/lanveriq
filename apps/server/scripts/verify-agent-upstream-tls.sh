@@ -14,6 +14,15 @@ CADDY_CONFIG_VOLUME=""
 BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
 BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
+NEXTJS_MODE="${LANVERIQ_SYNTHETIC_NEXTJS_PROBE:-0}"
+[[ "$NEXTJS_MODE" == 0 || "$NEXTJS_MODE" == 1 ]] || {
+    echo "Synthetic Next.js mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$NEXTJS_MODE" == 0 || "$BROWSER_MODE" == 1 ]] || {
+    echo "Same-origin Next.js test requires manually opted-in real Chromium" >&2
+    exit 1
+}
 [[ "$BROWSER_MODE" == 0 || "$BROWSER_MODE" == 1 ]] || {
     echo "Synthetic Chromium mode must be 0 or 1" >&2
     exit 1
@@ -430,7 +439,7 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         # Replace exactly one 503 response in the disposable config.
         # Caddy's checked-in deploy reference is NEVER touched; enrollment
         # and unknown Agent endpoints remain denied.
-        python3 - "$CADDY_REFERENCE" "$BROWSER_MODE" <<'PY'
+        python3 - "$CADDY_REFERENCE" "$BROWSER_MODE" "$NEXTJS_MODE" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
@@ -461,7 +470,20 @@ if sys.argv[2] == "1":
         respond "<!doctype html><html><head><title>Lanveriq synthetic browser gate</title></head><body>Isolated browser acceptance only</body></html>" 200
     }
 """
-    proxy = probe + proxy
+    if sys.argv[3] == "1":
+        # Test-only same-origin boundary: keep /api/v1/* on the real Spring
+        # mTLS backend and send all other Console pages to loopback Next.js.
+        # Never add this routing to deploy/caddy/Caddyfile.reference.
+        proxy = (probe + "    handle /api/v1/* {\n" + proxy
+                 + "\n    }\n"
+                 + """    handle {
+        reverse_proxy http://127.0.0.1:3100 {
+            header_up Host 127.0.0.1:3100
+        }
+    }
+""")
+    else:
+        proxy = probe + proxy
 if text.count(marker) != 1 or "TEST-ONLY canonical console host" in text:
     raise SystemExit("Refusing unexpected console Caddyfile template")
 path.write_text(text.replace(marker, proxy), encoding="utf-8")
