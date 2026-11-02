@@ -1,0 +1,80 @@
+name: Next.js real Chromium preview (manual, synthetic-only)
+
+# Explicit opt-in independent NXT-02 test of a production-built Next.js
+# preview on 127.0.0.1:3100. NO Spring/PostgreSQL/Agent services, real
+# credentials, monitoring or deployment. Not a console-auth approval.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-nxt02-browser-synthetic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  next-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/lanveriq-nxt02-playwright-browsers
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up locked pnpm 12 and Node 24
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24
+          working-directory: apps/web-next
+          install: true
+          require-lockfile: true
+          cache: false
+      - name: Build authentic Next.js production preview (no live APIs)
+        working-directory: apps/web-next
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run verify:routes
+          pnpm test
+          pnpm typecheck
+          pnpm build
+      - name: Install pinned Python Playwright and its Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/lanveriq-nxt02-playwright"
+          "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" -m pip install --disable-pip-version-check 'playwright==1.64.1'
+          "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" -m playwright install --with-deps chromium
+          python3 -m py_compile apps/web-next/scripts/verify-preview-chromium.py
+          python3 -m unittest discover -s apps/web-next/scripts -p 'test_verify_preview_chromium.py'
+      - name: Run true Chromium UI, keyboard and network-isolation checks
+        working-directory: apps/web-next
+        shell: bash
+        run: |
+          set -euo pipefail
+          if (echo > /dev/tcp/127.0.0.1/3100) >/dev/null 2>&1; then
+            echo "FAIL: loopback Next.js browser port already in use"
+            exit 1
+          fi
+          pnpm exec next start --hostname 127.0.0.1 --port 3100 > "$RUNNER_TEMP/nxt02-next.log" 2>&1 &
+          next_pid=$!
+          trap 'kill "$next_pid" >/dev/null 2>&1 || true; wait "$next_pid" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for _ in $(seq 1 80); do
+            kill -0 "$next_pid" >/dev/null 2>&1 || {
+              echo "FAIL: Next.js production server exited before browser test"
+              exit 1
+            }
+            status="$(curl --silent --noproxy '*' --max-time 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/overview || true)"
+            if [[ "$status" == 200 ]]; then
+              ready=1
+              break
+            fi
+            sleep 0.5
+          done
+          [[ "$ready" == 1 ]] || { echo "FAIL: isolated Next.js did not become ready"; exit 1; }
+          "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" scripts/verify-preview-chromium.py
+          echo "PASS: real Chromium Next.js preview route/keyboard/responsive checks only; no backend login approval."
