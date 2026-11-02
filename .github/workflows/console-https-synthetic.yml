@@ -52,6 +52,14 @@ jobs:
         run: |
           bash -n apps/server/scripts/verify-agent-upstream-tls.sh
           bash -n apps/server/scripts/verify-synthetic-console-session.sh
+      - name: Assert real Boot-discovered Console SecurityFilterChains on disposable PG18
+        # Opt-in manual workflow only: Testcontainers launches an isolated
+        # PostgreSQL 18.6, boots the actual application with an in-process
+        # MockMvc servlet stack and checks auth/CSRF/readonly deny semantics.
+        # This intentionally catches @WebMvcTest's manual-@Import blind spot.
+        # No exposed listener, real administrator, Agent or device collection.
+        working-directory: apps/server
+        run: ./gradlew integrationTest --tests 'com.lanveriq.server.security.PostgreSqlConsoleSecurityWiringIT'
       - name: Install isolated pinned Playwright/Chromium only for explicit browser opt-in
         if: ${{ inputs.browser_probe }}
         shell: bash
