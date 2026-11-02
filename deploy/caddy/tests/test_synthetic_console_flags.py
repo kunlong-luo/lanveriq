@@ -58,6 +58,12 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
                         script.index('verify-synthetic-console-session.sh'))
         self.assertIn('H \'Host: console.lanveriq.internal:443\'', script)
         self.assertIn('header_up Host console.lanveriq.internal:443', script)
+        self.assertEqual(script.count("-w '%{http_code} %{http_version}'"), 2)
+        self.assertIn('"$direct_h2_protocol" == 2', script)
+        self.assertIn('"$edge_h2_protocol" == 2', script)
+        self.assertIn('"$direct_h1_protocol" == 1.1', script)
+        self.assertIn('"$edge_h1_protocol" == 1.1', script)
+
         self.assertIn('TMP/pki/proxy.crt', script)
         self.assertIn('TMP/pki/backend-ca.crt', script)
         self.assertLess(script.index('direct_h1="$(direct_console_status --http1.1)"'),
