@@ -172,6 +172,17 @@ class ConsoleSessionBrowserFlowWebMvcTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.csrfToken").isNotEmpty());
 
+        mvc.perform(get("/api/v1/devices").with(request -> {
+                    request.setProtocol("HTTP/2.0");
+                    request.setScheme("https");
+                    request.setSecure(true);
+                    request.setServerName("console.lanveriq.internal");
+                    request.setServerPort(443);
+                    return request;
+                }))
+                .andExpect(status().isUnauthorized());
+        verify(directory, never()).list(any(), Mockito.anyInt());
+
         // A wrong-purpose :authority is rejected before any CSRF bootstrap
         // even with forwarded-host spoofing.
         mvc.perform(get("/api/v1/auth/csrf").with(request -> {
