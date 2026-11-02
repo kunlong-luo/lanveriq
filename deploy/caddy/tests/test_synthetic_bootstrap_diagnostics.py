@@ -78,11 +78,11 @@ class SyntheticBootstrapDiagnosticSafetyTest(unittest.TestCase):
         function = (
             "csrf_config() {"
             + shell_source.split("csrf_config() {", 1)[1]
-                .split("\\ncookie_id() {", 1)[0]
+                .split("\ncookie_id() {", 1)[0]
         )
         with tempfile.TemporaryDirectory() as directory:
-            shell = "set -Eeuo pipefail\\n" + function + (
-                '\\ncsrf_config "synthetic-csrf-only-123"\\n'
+            shell = "set -Eeuo pipefail\n" + function + (
+                '\ncsrf_config "synthetic-csrf-only-123"\n'
             )
             result = subprocess.run(
                 ["bash", "-c", shell],
@@ -92,7 +92,7 @@ class SyntheticBootstrapDiagnosticSafetyTest(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             config = Path(directory, "console-csrf.curlrc")
             self.assertEqual(
-                'header = "X-CSRF-TOKEN: synthetic-csrf-only-123"\\n',
+                'header = "X-CSRF-TOKEN: synthetic-csrf-only-123"\n',
                 config.read_text(encoding="utf-8"),
             )
             self.assertEqual(0o600, config.stat().st_mode & 0o777)
