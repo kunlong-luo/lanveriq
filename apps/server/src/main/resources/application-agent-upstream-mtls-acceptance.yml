@@ -9,6 +9,10 @@
 server:
   address: 127.0.0.1
   port: 8443
+  # Synthetic TLS-only ALPN fixture. Strict H1/H2 differential checks require
+  # actual Tomcat h2 support; this MUST NOT enable an h2c/plaintext listener.
+  http2:
+    enabled: true
   ssl:
     enabled: true
     client-auth: need
