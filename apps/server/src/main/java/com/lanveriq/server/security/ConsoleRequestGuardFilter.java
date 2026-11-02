@@ -45,6 +45,16 @@ final class ConsoleRequestGuardFilter extends OncePerRequestFilter {
         if (LOG.isDebugEnabled()) {
             LOG.debug("LANVERIQ_CONSOLE_GUARD_RESULT host={} origin={} fetch={} allowed={}",
                     hostOk, originOk, fetchOk, allowed);
+            // Additional fixed booleans distinguish HTTP/1.x duplicate/missing
+            // Host from HTTP/2 :authority and public-port mapping. Never log
+            // header contents, servlet request URI, usernames or credentials.
+            LOG.debug("LANVERIQ_CONSOLE_HOST_DETAIL h2={} one_host={} header_ok={} authority_ok={} port443={} secure={} https={}",
+                    "HTTP/2.0".equals(request.getProtocol()),
+                    hosts.size() == 1,
+                    hosts.size() == 1 && policy.acceptsHost(hosts.getFirst()),
+                    policy.acceptsHost(request.getServerName() + ":443"),
+                    request.getServerPort() == 443,
+                    request.isSecure(), "https".equals(request.getScheme()));
         }
         if (!allowed) {
             response.setHeader("Cache-Control", "no-store");
