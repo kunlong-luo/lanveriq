@@ -767,6 +767,18 @@ chain_lines = [
 print("SYNTHETIC CONSOLE CHAIN DIAGNOSTIC: "
       f"security_chains_seen={len(chain_lines) > 0}, "
       f"console_matcher_seen={any('/api/v1/auth' in line for line in chain_lines)}.")
+details = re.findall(
+    r"LANVERIQ_CONSOLE_HOST_DETAIL h2=(true|false) one_host=(true|false)"
+    r" header_ok=(true|false) authority_ok=(true|false) port443=(true|false)"
+    r" secure=(true|false) https=(true|false)", log
+)
+print("SYNTHETIC CONSOLE HOST DIAGNOSTIC: "
+      f"observed={len(details) > 0}, "
+      f"missing_or_multiple_host={any(row[1] == 'false' for row in details)}, "
+      f"header_mismatch={any(row[2] == 'false' for row in details)}, "
+      f"authority_mismatch={any(row[3] == 'false' for row in details)}, "
+      f"wrong_public_port={any(row[4] == 'false' for row in details)}, "
+      f"insecure={any(row[5] == 'false' or row[6] == 'false' for row in details)}.")
 PY
         if [[ "$direct_h1" != 401 || "$direct_h2" != 401 || "$edge_h1" != 401 || "$edge_h2" != 401 ]]; then
             echo "FAIL: isolated Console session gate denied a trusted anonymous request; inspect H1/H2 direct/edge status codes above." >&2
