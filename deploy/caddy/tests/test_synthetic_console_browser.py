@@ -62,7 +62,11 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn('strict_anonymous_401(fetch("/api/v1/monitoring/overview")', browser)
         self.assertIn('fresh_pg_scoped_overview_empty', browser)
         self.assertIn('logout_must_deny_overview', browser)
-        self.assertIn('context.route("**/*", restrict)', browser)
+        self.assertIn('context.route(DISALLOWED_NETWORK_URL, restrict)', browser)
+        self.assertNotIn('context.route("**/*", restrict)', browser)
+        self.assertNotIn('route.continue_()', browser)
+        self.assertIn('page.on("requestfinished", observe)', browser)
+        self.assertNotIn('page.on("request", observe)', browser)
         self.assertIn('page.on("websocket"', browser)
         self.assertIn('browser_must_not_contact_external_origin_or_websocket', browser)
         self.assertNotIn('--ignore-certificate-errors', harness + browser)
@@ -124,6 +128,45 @@ class SyntheticChromiumGateTest(unittest.TestCase):
                 with self.assertRaises(module.BrowserGateFailure) as failure:
                     module.require_browser_post_metadata(posts)
                 self.assertEqual(str(failure.exception), expected)
+
+    def test_browser_header_observation_does_not_intercept_trusted_origin(self):
+        # Playwright's route.continue_() can hide network-stack-owned
+        # Sec-Fetch-* headers in request.all_headers(), even when the real
+        # server actually receives them. Only non-Console URLs are routed.
+        spec = importlib.util.spec_from_file_location("synthetic_browser_route", BROWSER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        untrusted_route = module.DISALLOWED_NETWORK_URL
+        for url in (
+            "https://console.lanveriq.internal",
+            "https://console.lanveriq.internal/",
+            "https://console.lanveriq.internal/__synthetic_browser_probe",
+            "https://console.lanveriq.internal/api/v1/auth/login",
+            "https://console.lanveriq.internal/api/v1/auth/logout",
+            "https://console.lanveriq.internal:443/api/v1/auth/csrf",
+            "https://console.lanveriq.internal/api/v1/devices?limit=50",
+        ):
+            with self.subTest(not_intercepted=url):
+                self.assertTrue(module.is_synthetic_console_url(url))
+                self.assertIsNone(untrusted_route.search(url))
+        for url in (
+            "http://console.lanveriq.internal/api/v1/auth/login",
+            "https://agent.lanveriq.internal/api/v1/auth/login",
+            "https://enroll.lanveriq.internal/",
+            "https://console.lanveriq.internal:8443/api/v1/auth/login",
+            "https://console.lanveriq.internal:444/api/v1/auth/login",
+            "https://127.0.0.1:443/",
+            "https://console.lanveriq.internal.evil.test/",
+            "https://console.lanveriq.internal@evil.test/",
+            "https://user:password@console.lanveriq.internal/",
+            "https://console.lanveriq.internal//other",
+            "https://console.lanveriq.internal/path#fragment",
+            "wss://console.lanveriq.internal/api/v1/updates",
+            "file:///etc/passwd",
+        ):
+            with self.subTest(abort=url):
+                self.assertFalse(module.is_synthetic_console_url(url))
+                self.assertIsNotNone(untrusted_route.search(url))
 
     def test_anonymous_browser_api_response_rejects_html_or_cacheable_401(self):
         spec = importlib.util.spec_from_file_location("synthetic_browser_401", BROWSER)
