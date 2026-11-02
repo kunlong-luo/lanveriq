@@ -42,6 +42,20 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
                 self.assertEqual(script.count(f'--{name}="$CONSOLE_ENABLED"'), 1)
                 self.assertNotIn(f'--{name}="$CONSOLE_MODE"', script)
 
+    def test_live_console_direct_tls_diagnostics_fail_closed(self):
+        script = HARNESS.read_text(encoding="utf-8")
+        self.assertIn('direct_console_status() {', script)
+        self.assertIn('direct_h1="$(direct_console_status --http1.1)"', script)
+        self.assertIn('direct_h2="$(direct_console_status --http2)"', script)
+        self.assertIn('[[ "$direct_h1" != 401 || "$direct_h2" != 401 ]]', script)
+        self.assertIn('H \'Host: console.lanveriq.internal\'', script)
+        self.assertIn('TMP/pki/proxy.crt', script)
+        self.assertIn('TMP/pki/backend-ca.crt', script)
+        self.assertLess(script.index('direct_h1="$(direct_console_status --http1.1)"'),
+                        script.index('verify-synthetic-console-session.sh'))
+        self.assertNotIn('curl -k', script)
+        self.assertNotIn('curl --insecure', script)
+
     def test_scoped_security_chains_remain_explicit_opt_in(self):
         for name in (
             "ConsoleSessionSecurityConfiguration.java",
