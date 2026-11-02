@@ -1,6 +1,7 @@
 package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,11 +56,14 @@ class MonitoringOverviewSecurityWebMvcTest {
 
     @Test
     void anonymousAndCrossSiteCannotGetGlobalCounts() throws Exception {
-        var response = mvc.perform(read())
+        var result = mvc.perform(read())
                 .andExpect(status().isUnauthorized())
-                .andReturn().getResponse();
+                .andReturn();
+        var response = result.getResponse();
         assertFalse(response.isCommitted(),
                 "401 must not invoke Tomcat ERROR dispatch for /error");
+        assertTrue(result.getRequest().getSession(false) == null,
+                "Anonymous overview must not create a saved-request session");
         mvc.perform(read().header("Origin", "https://evil.example"))
                 .andExpect(status().isForbidden());
         mvc.perform(read().header("Sec-Fetch-Site", "cross-site"))
