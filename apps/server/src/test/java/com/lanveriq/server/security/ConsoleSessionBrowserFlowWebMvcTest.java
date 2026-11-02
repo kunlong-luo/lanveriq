@@ -147,6 +147,46 @@ class ConsoleSessionBrowserFlowWebMvcTest {
     }
 
     @Test
+    void http2CanonicalAuthorityWithoutHostReachesRealSessionSecurityChain() throws Exception {
+        // Servlet HTTP/2 exposes the canonical :authority through serverName
+        // and serverPort. It does not require an HTTP/1.1 Host header.
+        // This is MockMvc filter-chain evidence, NOT a Tomcat TLS/ALPN run.
+        mvc.perform(get("/api/v1/auth/session").with(request -> {
+                    request.setProtocol("HTTP/2.0");
+                    request.setScheme("https");
+                    request.setSecure(true);
+                    request.setServerName("console.lanveriq.internal");
+                    request.setServerPort(443);
+                    return request;
+                }))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("Cache-Control", "no-store"));
+        mvc.perform(get("/api/v1/auth/csrf").with(request -> {
+                    request.setProtocol("HTTP/2.0");
+                    request.setScheme("https");
+                    request.setSecure(true);
+                    request.setServerName("console.lanveriq.internal");
+                    request.setServerPort(443);
+                    return request;
+                }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.csrfToken").isNotEmpty());
+
+        // A wrong-purpose :authority is rejected before any CSRF bootstrap
+        // even with forwarded-host spoofing.
+        mvc.perform(get("/api/v1/auth/csrf").with(request -> {
+                    request.setProtocol("HTTP/2.0");
+                    request.setScheme("https");
+                    request.setSecure(true);
+                    request.setServerName("agent.lanveriq.internal");
+                    request.setServerPort(443);
+                    request.addHeader("X-Forwarded-Host", "console.lanveriq.internal");
+                    return request;
+                }))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void csrfLoginThenSessionAndGroupScopedReadPersistUntilVersionRotation()
             throws Exception {
         UUID actor = configureSyntheticLogin(7);
