@@ -255,10 +255,17 @@ class ConsoleSessionBrowserFlowWebMvcTest {
         when(accounts.findById(actor)).thenReturn(Optional.of(
                 new AdminAccount(actor, "synthetic-owner",
                         "synthetic-hash", null, 8)));
-        mvc.perform(consoleGet("/api/v1/auth/session").session(state.session()))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(consoleGet("/api/v1/devices").session(state.session()))
-                .andExpect(status().isUnauthorized());
+        var revokedSessionResponse = mvc.perform(
+                        consoleGet("/api/v1/auth/session").session(state.session()))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        assertFalse(revokedSessionResponse.isCommitted(),
+                "Revoked session must return a direct 401, not Tomcat /error");
+        var revokedDirectoryResponse = mvc.perform(
+                        consoleGet("/api/v1/devices").session(state.session()))
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        assertFalse(revokedDirectoryResponse.isCommitted());
         Mockito.verify(directory, Mockito.times(1)).list(null, 50);
     }
 
