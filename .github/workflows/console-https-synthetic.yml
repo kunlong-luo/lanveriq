@@ -5,6 +5,12 @@ name: Console HTTPS Spring session (manual, synthetic-only)
 # This is NOT browser approval, no real account, no Agent API enablement.
 on:
   workflow_dispatch:
+    inputs:
+      browser_probe:
+        description: 'Also check actual Chromium Cookie, Origin and CSRF (synthetic-only)'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,7 +22,7 @@ concurrency:
 jobs:
   console-session-synthetic:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@v7
         with:
@@ -42,8 +48,20 @@ jobs:
         run: |
           bash -n apps/server/scripts/verify-agent-upstream-tls.sh
           bash -n apps/server/scripts/verify-synthetic-console-session.sh
+      - name: Install isolated pinned Playwright/Chromium only for explicit browser opt-in
+        if: ${{ inputs.browser_probe }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/lanveriq-playwright"
+          "$RUNNER_TEMP/lanveriq-playwright/bin/python" -m pip install --disable-pip-version-check 'playwright==1.64.1'
+          "$RUNNER_TEMP/lanveriq-playwright/bin/python" -m playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libnss3-tools
       - name: Run isolated Caddy->Tomcat->PG18 HTTPS session and negative checks
         env:
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
           LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '1'
+          LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ inputs.browser_probe && '1' || '0' }}
+          LANVERIQ_BROWSER_PYTHON: ${{ runner.temp }}/lanveriq-playwright/bin/python
         run: bash apps/server/scripts/verify-agent-upstream-tls.sh
