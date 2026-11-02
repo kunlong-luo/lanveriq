@@ -147,6 +147,28 @@ class ConsoleSessionBrowserFlowWebMvcTest {
     }
 
     @Test
+    void http11CanonicalPublicPortReachesRealSessionChainAndWrongPortIsDenied()
+            throws Exception {
+        // Mirrors the trusted direct Tomcat H1 differential: mTLS transport
+        // and the public Console Host are independent of the backend SNI.
+        // In-process servlet simulation; not proof of the real TLS chain.
+        mvc.perform(get("/api/v1/auth/session")
+                        .secure(true)
+                        .header("Host", "console.lanveriq.internal:443"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("Cache-Control", "no-store"));
+        mvc.perform(get("/api/v1/auth/csrf")
+                        .secure(true)
+                        .header("Host", "console.lanveriq.internal:443"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.csrfToken").isNotEmpty());
+        mvc.perform(get("/api/v1/auth/csrf")
+                        .secure(true)
+                        .header("Host", "console.lanveriq.internal:8443"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void http2CanonicalAuthorityWithoutHostReachesRealSessionSecurityChain() throws Exception {
         // Servlet HTTP/2 exposes the canonical :authority through serverName
         // and serverPort. It does not require an HTTP/1.1 Host header.
