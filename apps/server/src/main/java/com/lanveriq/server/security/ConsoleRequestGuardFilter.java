@@ -29,7 +29,7 @@ final class ConsoleRequestGuardFilter extends OncePerRequestFilter {
         String method = request.getMethod();
         boolean safe = "GET".equals(method) || "HEAD".equals(method) ||
                 "OPTIONS".equals(method);
-        boolean allowed = hosts.size() == 1 && policy.acceptsHost(hosts.getFirst()) &&
+        boolean allowed = acceptsTransportHost(request, hosts) &&
                 origins.size() <= 1 &&
                 (origins.isEmpty() ? safe : policy.acceptsOrigin(origins.getFirst())) &&
                 fetchSites.size() <= 1 &&
@@ -40,5 +40,28 @@ final class ConsoleRequestGuardFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    /**
+     * HTTP/2 uses the :authority pseudo-header, which a Servlet container
+     * exposes through getServerName/getServerPort rather than necessarily
+     * repeating it as an HTTP/1.1 Host header. Require the canonical
+     * HTTPS authority (including port 443), not an inferred forwarded Host.
+     * For HTTP/1.x retain the existing exactly-one-Host rule unchanged.
+     *
+     * An explicit Host sent alongside :authority must independently match;
+     * a conflicting ordinary header can never override HTTP/2 authority.
+     */
+    private boolean acceptsTransportHost(HttpServletRequest request,
+                                         java.util.List<String> hosts) {
+        if (!"HTTP/2.0".equals(request.getProtocol())) {
+            return hosts.size() == 1 && policy.acceptsHost(hosts.getFirst());
+        }
+        return request.isSecure()
+                && "https".equals(request.getScheme())
+                && request.getServerPort() == 443
+                && policy.acceptsHost(request.getServerName() + ":443")
+                && hosts.size() <= 1
+                && (hosts.isEmpty() || policy.acceptsHost(hosts.getFirst()));
     }
 }
