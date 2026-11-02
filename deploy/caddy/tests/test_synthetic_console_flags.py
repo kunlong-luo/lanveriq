@@ -128,6 +128,30 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
         self.assertNotIn("print(log)", code)
         self.assertNotIn("print(line)", code)
 
+    def test_console_session_only_begins_at_explicit_csrf_bootstrap(self):
+        # Spring Security's default HttpSessionRequestCache saves anonymous
+        # denied requests in a session. A subsequent /csrf then does not
+        # repeat Set-Cookie, misleading the real browser acceptance.
+        for name in (
+            "ConsoleSessionSecurityConfiguration.java",
+            "DeviceDirectoryHttpSecurityConfiguration.java",
+            "MonitoringOverviewHttpSecurityConfiguration.java",
+        ):
+            with self.subTest(source=name):
+                source = (SPRING_SECURITY / name).read_text(encoding="utf-8")
+                self.assertIn("new NullRequestCache()", source)
+                self.assertIn(".requestCache(", source)
+                self.assertIn("SessionCreationPolicy.IF_REQUIRED", source)
+        flow = (ROOT / "apps/server/scripts/"
+                "verify-synthetic-console-session.sh").read_text(encoding="utf-8")
+        self.assertIn("anonymous status unexpectedly created session before CSRF", flow)
+        self.assertLess(flow.index("anonymous status unexpectedly created session"),
+                        flow.index('CSRF="$(read_csrf)"'))
+        self.assertIn("set_cookie_seen=", flow)
+        self.assertIn("default_jsessionid_seen=", flow)
+        self.assertIn("target_cookie_seen=", flow)
+        self.assertNotIn("print(headers)", flow)
+
     def test_console_api_error_statuses_never_trigger_servlet_error_redispatch(self):
         # Tomcat can dispatch response.sendError(401) to /error; the
         # immutable deny-all chain then replaces 401 with a misleading 403.
