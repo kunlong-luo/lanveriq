@@ -149,6 +149,13 @@ class ConsoleSessionBrowserFlowWebMvcTest {
                 "A direct 401 must not trigger Tomcat's /error redispatch");
         assertTrue(sessionResponse.getContentAsString().isEmpty(),
                 "Unauthenticated session response must not disclose an error page");
+        // No saved-request redirect exists for this JSON API. A hidden
+        // HttpSessionRequestCache used to make the first 401 create a session
+        // before the explicit CSRF bootstrap, hiding Set-Cookie on /csrf.
+        var anonymousRequest = mvc.perform(consoleGet("/api/v1/auth/session"))
+                .andExpect(status().isUnauthorized()).andReturn().getRequest();
+        assertTrue(anonymousRequest.getSession(false) == null,
+                "Anonymous status must not create a saved-request HttpSession");
         var directoryResponse = mvc.perform(consoleGet("/api/v1/devices"))
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse();
