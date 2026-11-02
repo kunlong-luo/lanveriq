@@ -48,6 +48,23 @@ expect_status() {
         exit 1
     }
 }
+# A sendError(401) can trigger an additional Tomcat ERROR /error dispatch.
+# The /error route must remain default-deny, so assert that every tested
+# anonymous/revoked/failed-login 401 is direct, empty and non-cacheable.
+assert_direct_401() {
+    python3 - "$HEADERS" "$BODY" <<'PY'
+from pathlib import Path
+import sys
+headers = Path(sys.argv[1]).read_text(encoding="iso-8859-1").lower()
+body = Path(sys.argv[2]).read_bytes()
+if "cache-control:" not in headers or "no-store" not in headers:
+    raise SystemExit("FAIL: direct 401 missing Cache-Control no-store")
+if body:
+    raise SystemExit("FAIL: direct 401 unexpectedly rendered an error page")
+if "content-type: text/html" in headers:
+    raise SystemExit("FAIL: direct 401 unexpectedly marked HTML")
+PY
+}
 assert_no_store_json() {
     python3 - "$HEADERS" "$BODY" <<'PY'
 from pathlib import Path
@@ -173,6 +190,7 @@ synthetic_login() {
 }
 echo "Synthetic-only console HTTPS session acceptance: starting."
 expect_status "pre-login session denied" 401 "$CONSOLE/api/v1/auth/session"
+assert_direct_401
 CSRF="$(read_csrf)"
 assert_cookie_flags
 [[ -n "$(cookie_id)" ]] || { echo "FAIL: no secure session cookie" >&2; exit 1; }
@@ -193,6 +211,7 @@ expect_status "incorrect password denied" 401 \
     -H "Origin: $CONSOLE" -H 'Sec-Fetch-Site: same-origin' \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     --data 'username=synthetic-owner&password=wrong' "$CONSOLE/api/v1/auth/login"
+assert_direct_401
 synthetic_login
 echo "PASS: real Caddy HTTPS -> Tomcat form login, session fixation, fresh CSRF and strict cookie."
 expect_status "scoped empty device page" 200 "$CONSOLE/api/v1/devices?limit=50"
@@ -214,7 +233,9 @@ expect_status "valid CSRF logout" 204 \
     --config "$TMP/console-csrf.curlrc" -H "Origin: $CONSOLE" \
     -H 'Sec-Fetch-Site: same-origin' -X POST "$CONSOLE/api/v1/auth/logout"
 expect_status "logged-out session denied" 401 "$CONSOLE/api/v1/auth/session"
+assert_direct_401
 expect_status "logged-out device read denied" 401 "$CONSOLE/api/v1/devices"
+assert_direct_401
 echo "PASS: authenticated logout removes access to scoped HTTP reads."
 # Re-login, then revoke via a direct SQL mutation of synthetic admin ONLY.
 # Never expose a revocation HTTP backdoor or modify any real account.
@@ -225,6 +246,8 @@ synthetic_login
     exit 1
 }
 expect_status "revoked synthetic session denied" 401 "$CONSOLE/api/v1/auth/session"
+assert_direct_401
 expect_status "revoked synthetic device read denied" 401 "$CONSOLE/api/v1/devices"
+assert_direct_401
 echo "MANUAL SYNTHETIC CONSOLE PASS: real Caddy/Tomcat/PG18 form login, cookie, CSRF, session revocation, scoped empty reads."
 echo "NOT PROVEN: actual browser network stack, multi-group access, Next.js runtime hooks, real users/devices or deployment."
