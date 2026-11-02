@@ -55,7 +55,7 @@ public class DeviceDirectoryHttpSecurityConfiguration {
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
                         (request, response, error) -> {
                             response.setHeader("Cache-Control", "no-store");
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         }))
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
