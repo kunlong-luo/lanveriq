@@ -133,6 +133,8 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("default: false", workflow)
         self.assertIn("inputs.nextjs_same_origin_probe", workflow)
         self.assertIn("inputs.browser_probe", workflow)
+        self.assertIn("inputs.nextjs_same_origin_probe && !inputs.browser_probe", workflow)
+        self.assertEqual(workflow.count("default: false"), 2)
         self.assertIn("pnpm install --frozen-lockfile", workflow)
         self.assertIn("pnpm run verify:routes", workflow)
         self.assertIn("next start --hostname 127.0.0.1 --port 3100", workflow)
