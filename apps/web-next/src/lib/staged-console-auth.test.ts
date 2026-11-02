@@ -44,8 +44,8 @@ describe('staged Next.js admin session transport (synthetic fetch, never mounted
     const key = ['admin', 'previous', 'devices'];
     q.setQueryData(key, [{ id: 'synthetic-previous-owner' }]);
     const { client, sent } = auth([
-      csrf('before'), new Response(null, { status: 204 }),
-      csrf('after'), json({ login: 'synthetic-owner' }),
+      csrf('before-token'), new Response(null, { status: 204 }),
+      csrf('after-token'), json({ login: 'synthetic-owner' }),
     ], () => clearConsoleSessionState(q));
     await expect(client.login('synthetic-owner', 'not-real&=password')).resolves.toEqual({
       kind: 'authenticated', login: 'synthetic-owner',
@@ -67,7 +67,7 @@ describe('staged Next.js admin session transport (synthetic fetch, never mounted
     }
     expect(sent[1].init).toMatchObject({
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': 'before' },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': 'before-token' },
     });
     expect(sent[1].init?.body).toBeInstanceOf(URLSearchParams);
     expect((sent[1].init?.body as URLSearchParams).get('password')).toBe('not-real&=password');
@@ -75,7 +75,8 @@ describe('staged Next.js admin session transport (synthetic fetch, never mounted
 
   it('never sends password if csrf is unavailable, malformed or cacheable', async () => {
     for (const r of [
-      json({}), json({ csrfToken: '' }), json({ csrfToken: 'bad' }, 200, 'public'),
+      json({}), json({ csrfToken: '' }), csrf('short7!'),
+      json({ csrfToken: 'bad' }, 200, 'public'),
       json({ csrfToken: 'bad' }, 200, 'no-store-bad'),
       new Response(null, { status: 403 }), new Error('offline'),
     ]) {
@@ -93,6 +94,23 @@ describe('staged Next.js admin session transport (synthetic fetch, never mounted
     const { client, sent } = auth([csrf(), new Response(null, { status: code })]);
     await expect(client.login('fake', 'fake')).resolves.toEqual({ kind });
     expect(sent).toHaveLength(2);
+  });
+
+  it('refuses login if the second CSRF is unchanged or malformed, without reading session', async () => {
+    for (const renewed of [
+      csrf('synthetic-csrf'), csrf('short7!'),
+      json({ csrfToken: null }), json({ csrfToken: 'rotated-token' }, 200, 'public'),
+    ]) {
+      const { client, sent } = auth([
+        csrf('synthetic-csrf'), new Response(null, { status: 204 }),
+        renewed, json({ login: 'synthetic-owner' }),
+      ]);
+      await expect(client.login('synthetic-owner', 'synthetic-only')).resolves
+        .toEqual({ kind: 'unavailable' });
+      expect(sent.map(x => new URL(x.url).pathname)).toEqual([
+        '/api/v1/auth/csrf', '/api/v1/auth/login', '/api/v1/auth/csrf',
+      ]);
+    }
   });
 
   it('204 alone cannot authenticate without post-fixation fresh csrf and session', async () => {
