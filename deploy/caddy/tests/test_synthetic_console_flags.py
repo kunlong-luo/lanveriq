@@ -56,7 +56,8 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
                         script.index('edge_h1="$(edge_console_status --http1.1)"'))
         self.assertLess(script.index('edge_h2="$(edge_console_status --http2)"'),
                         script.index('verify-synthetic-console-session.sh'))
-        self.assertIn('H \'Host: console.lanveriq.internal\'', script)
+        self.assertIn('H \'Host: console.lanveriq.internal:443\'', script)
+        self.assertIn('header_up Host console.lanveriq.internal:443', script)
         self.assertIn('TMP/pki/proxy.crt', script)
         self.assertIn('TMP/pki/backend-ca.crt', script)
         self.assertLess(script.index('direct_h1="$(direct_console_status --http1.1)"'),
