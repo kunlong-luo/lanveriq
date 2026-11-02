@@ -74,19 +74,18 @@ PY
 }
 csrf_config() {
     local token="$1"
-    # Emit the temporary curl config from standard input. Never place the
-    # CSRF token on python3's command line; argv can be read by other
-    # processes sharing the runner. The file lives only in the mode-0700
-    # synthetic fixture and is deleted at the end of this test.
+    # Supply the disposable CSRF value to Python via stdin, never argv.
+    # The mode-0600 curl config is scoped to this single ephemeral fixture.
     printf '%s' "$token" | python3 -c '
 from pathlib import Path
 import sys
 token = sys.stdin.read()
-if (not token or len(token) > 4096 or
-        any(c in token for c in "\\r\\n\\\"\\\\")):
+if not token or len(token) > 4096 or any(
+        char in token for char in (chr(10), chr(13), chr(34), chr(92))):
     raise SystemExit("FAIL: invalid synthetic CSRF token")
+quote = chr(34)
 Path(sys.argv[1]).write_text(
-    "header = \\"X-CSRF-TOKEN: " + token + "\\"\\n",
+    "header = " + quote + "X-CSRF-TOKEN: " + token + quote + chr(10),
     encoding="utf-8",
 )
 ' "$TMP/console-csrf.curlrc"
