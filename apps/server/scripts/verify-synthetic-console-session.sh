@@ -4,12 +4,17 @@
 # Requires localhost Caddy with a disposable test-only console proxy.
 set -Eeuo pipefail
 umask 077
-[[ "$#" == 5 ]] || { echo "Expected private synthetic fixture parameters" >&2; exit 1; }
+[[ "$#" == 4 ]] || { echo "Expected private synthetic fixture parameters" >&2; exit 1; }
 ROOT_CA="$1"
 TMP="$2"
 DB_CID="$3"
 LOGIN="$4"
-PASSWORD="$5"
+# The parent supplies a one-shot password via inherited FD 3. Never read a
+# password from argv, an exported environment variable, a URL or a log.
+IFS= read -r PASSWORD <&3 || {
+    echo "FAIL: synthetic password input not available" >&2
+    exit 1
+}
 [[ "$LOGIN" == synthetic-owner && -s "$ROOT_CA" && -d "$TMP" && -n "$DB_CID" ]] || {
     echo "Refusing non-synthetic console acceptance" >&2
     exit 1
@@ -69,17 +74,22 @@ PY
 }
 csrf_config() {
     local token="$1"
-    # A mode-0600 curl config avoids passing even synthetic CSRF values in
-    # process arguments. Never log the token or session cookie.
-    python3 - "$TMP/console-csrf.curlrc" "$token" <<'PY'
+    # Emit the temporary curl config from standard input. Never place the
+    # CSRF token on python3's command line; argv can be read by other
+    # processes sharing the runner. The file lives only in the mode-0700
+    # synthetic fixture and is deleted at the end of this test.
+    printf '%s' "$token" | python3 -c '
 from pathlib import Path
 import sys
-assert "\r" not in sys.argv[2] and "\n" not in sys.argv[2]
+token = sys.stdin.read()
+if (not token or len(token) > 4096 or
+        any(c in token for c in "\\r\\n\\\"\\\\")):
+    raise SystemExit("FAIL: invalid synthetic CSRF token")
 Path(sys.argv[1]).write_text(
-    'header = "X-CSRF-TOKEN: ' + sys.argv[2] + '"\n',
+    "header = \\"X-CSRF-TOKEN: " + token + "\\"\\n",
     encoding="utf-8",
 )
-PY
+' "$TMP/console-csrf.curlrc"
     chmod 600 "$TMP/console-csrf.curlrc"
 }
 cookie_id() {

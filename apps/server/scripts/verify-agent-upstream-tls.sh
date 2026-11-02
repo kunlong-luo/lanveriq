@@ -651,8 +651,12 @@ PY
     echo "MANUAL SYNTHETIC BRIDGE PASS: Caddy->real Tomcat health 200/UP, business default-deny 403, PostgreSQL 18.6 Flyway."
     echo "NOT PROVEN: Agent controller/revocation, actual servlet assertion, key ACL, live OS."
     if [[ "$CONSOLE_MODE" == 1 ]]; then
+        # Keep even disposable credentials out of the process argv and
+        # environment. FD 3 is a one-shot private stdin channel to the
+        # verifier, not an exposed CLI option or runner log.
         bash "$ROOT/apps/server/scripts/verify-synthetic-console-session.sh" \
-            "$ROOT_CA" "$TMP" "$DB_CID" "$SYNTHETIC_LOGIN" "$SYNTHETIC_PASSWORD"
+            "$ROOT_CA" "$TMP" "$DB_CID" "$SYNTHETIC_LOGIN" \
+            3<<< "$SYNTHETIC_PASSWORD"
         unset SYNTHETIC_PASSWORD
     fi
 fi

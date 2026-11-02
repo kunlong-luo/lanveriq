@@ -140,6 +140,13 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertIn('expect_status "incorrect password denied" 401', standalone)
         self.assertIn('expect_status "scoped empty device page" 200', standalone)
         self.assertIn('expect_status "valid CSRF logout" 204', standalone)
+        # Synthetic password and CSRF are never process argv values.
+        self.assertIn('3<<< "$SYNTHETIC_PASSWORD"', script)
+        self.assertNotIn('"$SYNTHETIC_LOGIN" "$SYNTHETIC_PASSWORD"', script)
+        self.assertIn('IFS= read -r PASSWORD <&3', standalone)
+        self.assertIn('token = sys.stdin.read()', standalone)
+        self.assertNotIn('PASSWORD="$5"', standalone)
+        self.assertNotIn('python3 - "$TMP/console-csrf.curlrc" "$token"', standalone)
         self.assertIn('expect_status "revoked synthetic session denied" 401', standalone)
         self.assertIn('assert_cookie_flags', standalone)
         self.assertIn("session_version = session_version + 1", standalone)
