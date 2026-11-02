@@ -50,6 +50,10 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn('len(observed_posts) == 4', browser)
         self.assertIn('csrf_must_rotate_after_login', browser)
         self.assertIn('real_browser_origin_fetch_metadata', browser)
+        self.assertIn('strict_anonymous_401(fetch("/api/v1/devices")', browser)
+        self.assertIn('strict_anonymous_401(fetch("/api/v1/monitoring/overview")', browser)
+        self.assertIn('fresh_pg_scoped_overview_empty', browser)
+        self.assertIn('logout_must_deny_overview', browser)
         self.assertIn('context.route("**/*", restrict)', browser)
         self.assertIn('page.on("websocket"', browser)
         self.assertIn('browser_must_not_contact_external_origin_or_websocket', browser)
@@ -91,6 +95,29 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         ):
             with self.subTest(rejected=url):
                 self.assertFalse(allowed(url))
+
+    def test_anonymous_browser_api_response_rejects_html_or_cacheable_401(self):
+        spec = importlib.util.spec_from_file_location("synthetic_browser_401", BROWSER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        safe = {
+            "status": 401,
+            "contentType": "",
+            "cacheControl": "private, no-store",
+            "json": None,
+        }
+        module.strict_anonymous_401(safe, "synthetic")
+        for mutated in (
+            {"status": 403},
+            {"contentType": "text/html; charset=utf-8"},
+            {"cacheControl": "public, max-age=100"},
+            {"cacheControl": "private, x-no-store"},
+            {"json": {"login": "should-not-be-here"}},
+        ):
+            with self.subTest(rejected=tuple(mutated.keys())):
+                response = {**safe, **mutated}
+                with self.assertRaises(module.BrowserGateFailure):
+                    module.strict_anonymous_401(response, "synthetic")
 
     def test_browser_assertions_import_without_playwright_or_network(self):
         spec = importlib.util.spec_from_file_location("synthetic_browser_gate", BROWSER)
