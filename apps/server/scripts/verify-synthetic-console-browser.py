@@ -170,6 +170,15 @@ def main():
             require(login["status"] == 204, "synthetic_browser_login")
             after = session_cookie(context)
             require(before != after, "session_fixation_rotation")
+            for other in ("agent.lanveriq.internal", "enroll.lanveriq.internal"):
+                require(not any(c["name"] == COOKIE for c in
+                                context.cookies(["https://" + other])),
+                        "authenticated_cookie_other_vhost")
+            # The anonymous token must lose its authority after successful
+            # session fixation and may never authorize authenticated logout.
+            stale_logout = fetch("/api/v1/auth/logout", "POST", None, csrf)
+            require(stale_logout["status"] == 403,
+                    "prelogin_csrf_must_fail_after_fixation")
             csrf_after = strict_json(
                 fetch("/api/v1/auth/csrf"), 200, "csrf_postlogin").get("csrfToken")
             require_csrf(csrf_after, "csrf_postlogin_value")
@@ -184,7 +193,7 @@ def main():
                     "logout_must_invalidate_session")
             require(fetch("/api/v1/devices")["status"] == 401,
                     "logout_must_deny_devices")
-            require(len(observed_posts) == 3 and all(
+            require(len(observed_posts) == 4 and all(
                 origin and metadata for origin, metadata in observed_posts),
                 "real_browser_origin_fetch_metadata")
             context.close()
