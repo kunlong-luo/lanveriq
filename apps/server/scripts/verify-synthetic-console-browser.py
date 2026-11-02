@@ -19,7 +19,7 @@ COOKIE = "__Host-lanveriq-session"
 # Sec-Fetch-* headers from Playwright request.all_headers(). The allowed
 # requests must reach the network stack without Playwright interception.
 DISALLOWED_NETWORK_URL = re.compile(
-    r"^(?!https://console\.lanveriq\.internal(?::443)?(?:/(?!/)|$)).+"
+    r"^(?!https://console\.lanveriq\.internal(?::443)?(?:/(?!/)|$)[^#]*$).+"
 )
 FETCH_SCRIPT = r"""async ({path, method, form, csrfToken}) => {
   const headers = {};
