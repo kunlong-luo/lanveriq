@@ -125,7 +125,9 @@ def verify_nextjs_same_origin(context):
         require(not attempted_api, "same_origin_nextjs_must_not_request_business_api")
         require(context.cookies([CONSOLE]) == [],
                 "same_origin_nextjs_must_not_create_session")
-        page.goto(CONSOLE + "/overview", wait_until="domcontentloaded", timeout=20000)
+        # Next App Router needs its client runtime hydrated before Link
+        # interaction; SSR DOMContentLoaded by itself is not sufficient.
+        page.goto(CONSOLE + "/overview", wait_until="networkidle", timeout=20000)
         page.get_by_role("navigation", name="主导航").get_by_role(
             "link", name="终端资产").click()
         page.wait_for_url(CONSOLE + "/devices", wait_until="domcontentloaded",
