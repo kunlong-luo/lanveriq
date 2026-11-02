@@ -26,7 +26,7 @@ jobs:
     env:
       # Installed browser binaries must remain visible when the test switches
       # HOME to its disposable, CA-trusted NSS profile.
-      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/lanveriq-playwright-browsers
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/lanveriq-playwright-browsers
     steps:
       - uses: actions/checkout@v7
         with:
