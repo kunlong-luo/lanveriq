@@ -53,7 +53,9 @@ export function createStagedNextConsoleAuth(
       const data: unknown = await response.json();
       if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
       const token = (data as Record<string, unknown>).csrfToken;
-      if (typeof token !== 'string' || token.length < 1 || token.length > 4096 ||
+      // Match the real isolated Chromium gate: a short or malformed token
+      // must never be accepted as proof of a Spring CSRF session.
+      if (typeof token !== 'string' || token.length < 8 || token.length > 4096 ||
           token.trim() !== token) return null;
       return token;
     } catch { return null; }
@@ -108,9 +110,11 @@ export function createStagedNextConsoleAuth(
       if (response.status === 403) return { kind: 'forbidden' };
       if (response.status === 429) return { kind: 'throttled' };
       if (response.status !== 204 || response.redirected) return { kind: 'unavailable' };
-      // Id rotation is server controlled; require a NEW token and a fresh
-      // authenticated 200 before ever describing the login as successful.
-      if (!(await freshCsrf())) return { kind: 'unavailable' };
+      // A successful login must rotate the CSRF token as well as the
+      // HttpSession identifier. Merely fetching the same token again does
+      // not establish that the browser crossed the fixation boundary.
+      const renewedToken = await freshCsrf();
+      if (!renewedToken || renewedToken === token) return { kind: 'unavailable' };
       return await session();
     } catch { return { kind: 'unavailable' }; }
   }
