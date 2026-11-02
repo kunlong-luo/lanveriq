@@ -71,6 +71,23 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
         self.assertNotIn('curl -k', script)
         self.assertNotIn('curl --insecure', script)
 
+    def test_http2_requires_explicit_tls_only_loopback_acceptance_profile(self):
+        fixture = (ROOT / "apps/server/src/main/resources/"
+                   "application-agent-upstream-mtls-acceptance.yml").read_text(encoding="utf-8")
+        production = (ROOT / "apps/server/src/main/resources/"
+                      "application.yml").read_text(encoding="utf-8")
+        self.assertIn("  address: 127.0.0.1", fixture)
+        self.assertIn("  port: 8443", fixture)
+        self.assertIn("  http2:\\n    enabled: true", fixture)
+        self.assertIn("  ssl:\\n    enabled: true", fixture)
+        self.assertIn("    client-auth: need", fixture)
+        self.assertIn("    enabled-protocols: TLSv1.3", fixture)
+        self.assertNotIn("  http2:\\n    enabled: true", production)
+        script = HARNESS.read_text(encoding="utf-8")
+        self.assertIn("--spring.profiles.active=agent-upstream-mtls-acceptance", script)
+        self.assertIn("== 1.1", script)
+        self.assertIn("== 2", script)
+
     def test_scoped_security_chains_remain_explicit_opt_in(self):
         for name in (
             "ConsoleSessionSecurityConfiguration.java",
