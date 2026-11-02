@@ -25,6 +25,13 @@ CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
     echo "Synthetic bridge mode must be 0 or 1" >&2
     exit 1
 }
+# Spring @ConditionalOnProperty(havingValue="true") requires the canonical
+# literal, not the synthetic harness 0/1 switch (which would silently leave
+# the opt-in Console/readonly SecurityFilterChains disabled).
+CONSOLE_ENABLED=false
+if [[ "$CONSOLE_MODE" == 1 ]]; then
+    CONSOLE_ENABLED=true
+fi
 stop_caddy() {
     if [[ -n "$CADDY_CID" ]]; then
         docker rm -f "$CADDY_CID" >/dev/null 2>&1 || true
@@ -259,11 +266,11 @@ fi
 # for identity assertions or extra public listener is created.
 java -jar "$ROOT/apps/server/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar" \
     --spring.profiles.active=agent-upstream-mtls-acceptance \
-    --lanveriq.console.auth.enabled="$CONSOLE_MODE" \
+    --lanveriq.console.auth.enabled="$CONSOLE_ENABLED" \
     --lanveriq.console.auth.origin=https://console.lanveriq.internal \
-    --lanveriq.device-directory.enabled="$CONSOLE_MODE" \
-    --lanveriq.device-directory.http-enabled="$CONSOLE_MODE" \
-    --lanveriq.monitoring.overview-http-enabled="$CONSOLE_MODE" \
+    --lanveriq.device-directory.enabled="$CONSOLE_ENABLED" \
+    --lanveriq.device-directory.http-enabled="$CONSOLE_ENABLED" \
+    --lanveriq.monitoring.overview-http-enabled="$CONSOLE_ENABLED" \
     >"$TMP/spring.log" 2>&1 &
 APP_PID=$!
 
