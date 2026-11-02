@@ -1,5 +1,6 @@
 package com.lanveriq.server.security;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,7 +60,11 @@ class DeviceDirectorySecurityWebMvcTest {
 
     @Test
     void noBrowserSessionCannotReadEvenWhenAllFlagsAreEnabled() throws Exception {
-        mvc.perform(consoleGet()).andExpect(status().isUnauthorized());
+        var response = mvc.perform(consoleGet())
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        assertFalse(response.isCommitted(),
+                "401 must not invoke servlet error dispatch, which risks a 403");
         verify(directory, never()).list(Mockito.any(), Mockito.anyInt());
     }
 
