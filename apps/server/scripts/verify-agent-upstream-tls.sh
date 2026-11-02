@@ -774,11 +774,13 @@ details = re.findall(
 )
 print("SYNTHETIC CONSOLE HOST DIAGNOSTIC: "
       f"observed={len(details) > 0}, "
-      f"missing_or_multiple_host={any(row[1] == 'false' for row in details)}, "
-      f"header_mismatch={any(row[2] == 'false' for row in details)}, "
-      f"authority_mismatch={any(row[3] == 'false' for row in details)}, "
-      f"wrong_public_port={any(row[4] == 'false' for row in details)}, "
-      f"insecure={any(row[5] == 'false' or row[6] == 'false' for row in details)}.")
+      f"http1_missing_or_multiple_host={any(row[0] == 'false' and row[1] == 'false' for row in details)}, "
+      f"http1_header_mismatch={any(row[0] == 'false' and row[2] == 'false' for row in details)}, "
+      f"http2_no_ordinary_host={any(row[0] == 'true' and row[1] == 'false' for row in details)}, "
+      f"http2_explicit_host_mismatch={any(row[0] == 'true' and row[1] == 'true' and row[2] == 'false' for row in details)}, "
+      f"http2_authority_mismatch={any(row[0] == 'true' and row[3] == 'false' for row in details)}, "
+      f"http2_wrong_public_port={any(row[0] == 'true' and row[4] == 'false' for row in details)}, "
+      f"http2_insecure={any(row[0] == 'true' and (row[5] == 'false' or row[6] == 'false') for row in details)}.")
 PY
         if [[ "$direct_h1" != 401 || "$direct_h2" != 401 || "$edge_h1" != 401 || "$edge_h2" != 401 ]]; then
             echo "FAIL: isolated Console session gate denied a trusted anonymous request; inspect H1/H2 direct/edge status codes above." >&2
