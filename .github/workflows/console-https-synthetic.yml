@@ -11,6 +11,11 @@ on:
         required: true
         type: boolean
         default: false
+      nextjs_same_origin_probe:
+        description: 'Also mount disposable Next.js preview under the same synthetic Console HTTPS origin (requires browser_probe=true)'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -70,10 +75,63 @@ jobs:
           "$RUNNER_TEMP/lanveriq-playwright/bin/python" -m playwright install --with-deps chromium
           sudo apt-get update -qq
           sudo apt-get install -y -qq libnss3-tools
+      - name: Set up locked Node 24/pnpm 12 only for explicit same-origin Next.js test
+        if: ${{ inputs.nextjs_same_origin_probe }}
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24
+          working-directory: apps/web-next
+          install: true
+          require-lockfile: true
+          cache: false
+      - name: Build the unchanged, disabled-login Next.js preview
+        if: ${{ inputs.nextjs_same_origin_probe }}
+        working-directory: apps/web-next
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run verify:routes
+          pnpm test
+          pnpm typecheck
+          pnpm build
       - name: Run isolated Caddy->Tomcat->PG18 HTTPS session and negative checks
         env:
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
           LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '1'
           LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ inputs.browser_probe && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
           LANVERIQ_BROWSER_PYTHON: ${{ runner.temp }}/lanveriq-playwright/bin/python
-        run: bash apps/server/scripts/verify-agent-upstream-tls.sh
+          NEXT_TELEMETRY_DISABLED: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$LANVERIQ_SYNTHETIC_NEXTJS_PROBE" == 1 ]]; then
+            [[ "$LANVERIQ_SYNTHETIC_BROWSER_PROBE" == 1 ]] || {
+              echo "FAIL: same-origin Next.js must require real Chromium opt-in"
+              exit 1
+            }
+            if (echo > /dev/tcp/127.0.0.1/3100) >/dev/null 2>&1; then
+              echo "FAIL: synthetic Next.js port already occupied"
+              exit 1
+            fi
+            (
+              cd apps/web-next
+              pnpm exec next start --hostname 127.0.0.1 --port 3100
+            ) > "$RUNNER_TEMP/lanveriq-nextjs-synthetic.log" 2>&1 &
+            next_pid=$!
+            trap 'kill "$next_pid" >/dev/null 2>&1 || true; wait "$next_pid" >/dev/null 2>&1 || true' EXIT
+            ready=0
+            for _ in $(seq 1 80); do
+              kill -0 "$next_pid" >/dev/null 2>&1 || {
+                echo "FAIL: isolated Next.js preview exited before TLS test"
+                exit 1
+              }
+              status="$(curl --silent --noproxy '*' --max-time 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/overview || true)"
+              if [[ "$status" == 200 ]]; then ready=1; break; fi
+              sleep 0.5
+            done
+            [[ "$ready" == 1 ]] || { echo "FAIL: isolated Next.js did not become ready"; exit 1; }
+          fi
+          bash apps/server/scripts/verify-agent-upstream-tls.sh
