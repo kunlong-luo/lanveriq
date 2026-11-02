@@ -118,6 +118,12 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
         self.assertIn("LANVERIQ_CONSOLE_HOST_DETAIL", code)
         self.assertIn("SYNTHETIC CONSOLE FILTER DIAGNOSTIC:", code)
         self.assertIn("SYNTHETIC CONSOLE HOST DIAGNOSTIC:", code)
+        # Valid HTTP/2 :authority need not carry an ordinary Host header.
+        # The summary must not mistake that legal case for H1 Host loss.
+        self.assertIn("http1_missing_or_multiple_host=", code)
+        self.assertIn("http2_no_ordinary_host=", code)
+        self.assertIn("http2_explicit_host_mismatch=", code)
+        self.assertIn("http2_authority_mismatch=", code)
         self.assertIn("SYNTHETIC CONSOLE CHAIN DIAGNOSTIC:", code)
         self.assertNotIn("print(log)", code)
         self.assertNotIn("print(line)", code)
