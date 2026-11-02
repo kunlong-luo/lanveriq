@@ -133,7 +133,17 @@ headers = Path(sys.argv[1]).read_text(encoding="iso-8859-1")
 matching = [line for line in headers.splitlines()
             if line.lower().startswith("set-cookie: __host-lanveriq-session=")]
 if len(matching) != 1:
-    raise SystemExit("FAIL: expected exactly one synthetic host-only session cookie")
+    # Publish only fixed booleans, never session identifiers or raw headers.
+    all_cookies = [line for line in headers.splitlines()
+                   if line.lower().startswith("set-cookie:")]
+    alternate_default = any(
+        line.lower().startswith("set-cookie: jsessionid=")
+        for line in all_cookies)
+    raise SystemExit(
+        "FAIL: expected exactly one synthetic host-only session cookie; "
+        f"set_cookie_seen={bool(all_cookies)}, "
+        f"default_jsessionid_seen={alternate_default}, "
+        f"target_cookie_seen={bool(matching)}")
 line = matching[0].lower()
 for flag in ("; secure", "; httponly", "; samesite=strict", "; path=/"):
     if flag not in line:
@@ -191,6 +201,12 @@ synthetic_login() {
 echo "Synthetic-only console HTTPS session acceptance: starting."
 expect_status "pre-login session denied" 401 "$CONSOLE/api/v1/auth/session"
 assert_direct_401
+# Request replay on anonymous 401 must NOT create a session. /csrf is the
+# intentional first session bootstrap and must send its own secure cookie.
+[[ -z "$(cookie_id)" ]] || {
+    echo "FAIL: anonymous status unexpectedly created session before CSRF" >&2
+    exit 1
+}
 CSRF="$(read_csrf)"
 assert_cookie_flags
 [[ -n "$(cookie_id)" ]] || { echo "FAIL: no secure session cookie" >&2; exit 1; }
