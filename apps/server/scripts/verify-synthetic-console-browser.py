@@ -78,15 +78,39 @@ def main():
     require(re.fullmatch(r"[0-9a-f]{48}", password) is not None,
             "synthetic_password_format_required")
 
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
+    chromium_args = [
+        "--host-resolver-rules=MAP console.lanveriq.internal 127.0.0.1",
+        "--no-proxy-server",
+    ]
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(
-            headless=True, args=[
-                "--host-resolver-rules=MAP console.lanveriq.internal 127.0.0.1",
-                "--no-proxy-server",
-            ],
+        # Genuine negative control: same disposable Caddy, without importing
+        # its private test CA. A generic network failure is NOT a valid TLS
+        # rejection. Never allow ignore_https_errors or Chromium bypass flags.
+        untrusted_home = os.path.join(home, "untrusted-browser-home")
+        os.mkdir(untrusted_home, 0o700)
+        untrusted = playwright.chromium.launch(
+            headless=True, args=chromium_args,
+            env={**os.environ, "HOME": untrusted_home},
         )
+        try:
+            negative_context = untrusted.new_context(ignore_https_errors=False)
+            try:
+                negative_page = negative_context.new_page()
+                try:
+                    negative_page.goto(PROBE, wait_until="domcontentloaded", timeout=20000)
+                except PlaywrightError as error:
+                    require("ERR_CERT_AUTHORITY_INVALID" in str(error),
+                            "untrusted_browser_must_fail_ca_validation")
+                else:
+                    raise BrowserGateFailure("untrusted_browser_accepted_private_ca")
+            finally:
+                negative_context.close()
+        finally:
+            untrusted.close()
+
+        browser = playwright.chromium.launch(headless=True, args=chromium_args)
         try:
             context = browser.new_context(
                 ignore_https_errors=False,
@@ -126,8 +150,14 @@ def main():
             csrf = strict_json(fetch("/api/v1/auth/csrf"), 200, "csrf_prelogin").get("csrfToken")
             require_csrf(csrf, "csrf_prelogin_value")
             before = session_cookie(context)
-            require(not page.evaluate("document.cookie").find(COOKIE) >= 0,
+            require(COOKIE not in page.evaluate("document.cookie"),
                     "httponly_visible_to_javascript")
+            # A __Host- cookie must never be shared with purpose-separated
+            # Agent or enrollment virtual hosts, including same-site subdomains.
+            for other in ("agent.lanveriq.internal", "enroll.lanveriq.internal"):
+                require(not any(c["name"] == COOKIE for c in
+                                context.cookies(["https://" + other])),
+                        "host_only_cookie_other_vhost")
             # A real browser form POST automatically sets Origin and Fetch Metadata;
             # never synthesize or override either header in page Javascript.
             denied = fetch("/api/v1/auth/login", "POST",
@@ -160,7 +190,7 @@ def main():
             context.close()
         finally:
             browser.close()
-    print("MANUAL SYNTHETIC CHROMIUM PASS: trusted TLS, browser Origin/Fetch-Site, "
+    print("MANUAL SYNTHETIC CHROMIUM PASS: trusted TLS with negative CA control, browser Origin/Fetch-Site, "
           "host-only HttpOnly Strict cookie, CSRF, rotation, login, scoped empty read and logout.")
     print("NOT PROVEN: actual Next.js runtime, multi-group RBAC, real people, devices or Agent.")
 
