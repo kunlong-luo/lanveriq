@@ -54,6 +54,17 @@ def strict_json(result, expected_status, label):
     return result["json"]
 
 
+def strict_anonymous_401(result, label):
+    """Require a direct uncached anonymous 401, never an HTML redirect/error."""
+    require(result["status"] == 401, label + "_status")
+    directives = result["cacheControl"].lower().split(",")
+    require(any(value.strip() == "no-store" for value in directives),
+            label + "_cache_control")
+    require("text/html" not in result["contentType"].lower(),
+            label + "_no_html_error")
+    require(result["json"] is None, label + "_no_identity_json")
+
+
 def require_csrf(value, label):
     require(isinstance(value, str) and 8 <= len(value) <= 4096, label)
 
@@ -177,8 +188,12 @@ def main():
                     {"path": path, "method": method, "form": form, "csrfToken": csrf},
                 )
 
-            require(fetch("/api/v1/auth/session")["status"] == 401,
-                    "anonymous_session_must_be_401")
+            strict_anonymous_401(fetch("/api/v1/auth/session"),
+                                 "anonymous_session")
+            strict_anonymous_401(fetch("/api/v1/devices"),
+                                 "anonymous_devices")
+            strict_anonymous_401(fetch("/api/v1/monitoring/overview"),
+                                 "anonymous_overview")
             csrf = strict_json(fetch("/api/v1/auth/csrf"), 200, "csrf_prelogin").get("csrfToken")
             require_csrf(csrf, "csrf_prelogin_value")
             before = session_cookie(context)
@@ -195,8 +210,8 @@ def main():
             denied = fetch("/api/v1/auth/login", "POST",
                            {"username": "synthetic-owner", "password": "wrong"}, None)
             require(denied["status"] == 403, "missing_csrf_must_be_403")
-            require(fetch("/api/v1/auth/session")["status"] == 401,
-                    "missing_csrf_must_remain_anonymous")
+            strict_anonymous_401(fetch("/api/v1/auth/session"),
+                                 "missing_csrf_must_remain_anonymous")
             login = fetch("/api/v1/auth/login", "POST",
                           {"username": "synthetic-owner", "password": password}, csrf)
             require(login["status"] == 204, "synthetic_browser_login")
@@ -219,12 +234,20 @@ def main():
             require(session == {"login": "synthetic-owner"}, "session_minimal_identity")
             devices = strict_json(fetch("/api/v1/devices?limit=50"), 200, "devices_scoped")
             require(devices.get("items") == [], "fresh_pg_must_have_no_devices")
+            overview = strict_json(
+                fetch("/api/v1/monitoring/overview"), 200, "overview_scoped")
+            counters = ("total", "online", "stale", "offline",
+                        "revoked", "pending", "retired")
+            require(all(type(overview.get(key)) is int and overview[key] == 0
+                        for key in counters), "fresh_pg_scoped_overview_empty")
             logout = fetch("/api/v1/auth/logout", "POST", None, csrf_after)
             require(logout["status"] == 204, "synthetic_browser_logout")
-            require(fetch("/api/v1/auth/session")["status"] == 401,
-                    "logout_must_invalidate_session")
-            require(fetch("/api/v1/devices")["status"] == 401,
-                    "logout_must_deny_devices")
+            strict_anonymous_401(fetch("/api/v1/auth/session"),
+                                 "logout_must_invalidate_session")
+            strict_anonymous_401(fetch("/api/v1/devices"),
+                                 "logout_must_deny_devices")
+            strict_anonymous_401(fetch("/api/v1/monitoring/overview"),
+                                 "logout_must_deny_overview")
             require(len(observed_posts) == 4 and all(
                 origin and metadata for origin, metadata in observed_posts),
                 "real_browser_origin_fetch_metadata")
@@ -233,7 +256,7 @@ def main():
         finally:
             browser.close()
     print("MANUAL SYNTHETIC CHROMIUM PASS: trusted TLS with negative CA control, browser Origin/Fetch-Site, "
-          "host-only HttpOnly Strict cookie, CSRF, rotation, login, scoped empty read and logout.")
+          "host-only HttpOnly Strict cookie, CSRF, rotation, login, scoped empty device/overview reads, anonymous denials and logout.")
     print("NOT PROVEN: actual Next.js runtime, multi-group RBAC, real people, devices or Agent.")
 
 
