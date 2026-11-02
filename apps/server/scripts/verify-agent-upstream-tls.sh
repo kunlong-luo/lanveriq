@@ -705,6 +705,31 @@ PY
             echo "FAIL: Spring Console security chain/Host check rejected a trusted unauthenticated direct request before Caddy." >&2
             exit 1
         fi
+        # Differential check at Caddy's public Console virtual host. A
+        # double-mTLS Agent health 200 alone does not exercise Console Host
+        # forwarding. Compare edge H1/H2 independently against the direct
+        # Tomcat H1/H2 status codes above; never capture response body in logs.
+        edge_console_status() {
+            local protocol="$1"
+            curl --silent --show-error --noproxy '*' --max-time 10 \
+                "$protocol" --cacert "$ROOT_CA" \
+                --resolve console.lanveriq.internal:443:127.0.0.1 \
+                -o "$TMP/console-edge-status-body" -w '%{http_code}' \
+                "https://console.lanveriq.internal/api/v1/auth/session"
+        }
+        edge_h1="$(edge_console_status --http1.1)" || {
+            echo "FAIL: Caddy Console HTTP/1.1 TLS request failed" >&2
+            exit 1
+        }
+        edge_h2="$(edge_console_status --http2)" || {
+            echo "FAIL: Caddy Console HTTP/2 TLS request failed" >&2
+            exit 1
+        }
+        echo "SYNTHETIC CONSOLE DIAGNOSTIC: Caddy edge h1=$edge_h1, h2=$edge_h2 (expected 401/401)."
+        if [[ "$edge_h1" != 401 || "$edge_h2" != 401 ]]; then
+            echo "FAIL: Caddy Console route/Host handling rejected a trusted unauthenticated session request." >&2
+            exit 1
+        fi
         # Keep even disposable credentials out of the process argv and
         # environment. FD 3 is a one-shot private stdin channel to the
         # verifier, not an exposed CLI option or runner log.
