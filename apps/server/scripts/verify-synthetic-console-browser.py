@@ -88,6 +88,55 @@ def is_synthetic_console_url(url):
         return False
 
 
+def verify_nextjs_same_origin(context):
+    """Read-only genuine Chromium probe of Caddy-hosted, unconnected Next.js.
+
+    No credentials are entered, and the Next.js app must issue zero API
+    requests itself. The separate synthetic browser security probe owns all
+    explicit authentication HTTP requests after these inert page checks.
+    """
+    page = context.new_page()
+    attempted_api = []
+    def inspect(request):
+        if urlsplit(request.url).path.startswith(("/api/v1/", "/actuator/")):
+            attempted_api.append("unapproved_frontend_api")
+    page.on("request", inspect)
+    try:
+        for path, heading in (
+            ("/overview", "设备运行概览"),
+            ("/devices", "终端资产"),
+            ("/monitoring", "监控中心"),
+            ("/login", "管理员登录"),
+        ):
+            response = page.goto(CONSOLE + path, wait_until="domcontentloaded",
+                                 timeout=20000)
+            require(response is not None and response.status == 200,
+                    "same_origin_nextjs_status")
+            require(page.get_by_role("heading", name=heading, level=1).count() == 1,
+                    "same_origin_nextjs_heading")
+        require(page.locator("#login-username").is_disabled(),
+                "same_origin_login_username_must_remain_disabled")
+        require(page.locator("#login-password").is_disabled(),
+                "same_origin_login_password_must_remain_disabled")
+        require(page.get_by_role("button", name="安全登录（未启用）").is_disabled(),
+                "same_origin_login_submit_must_remain_disabled")
+        require(page.locator("form").count() == 0,
+                "same_origin_nextjs_must_not_submit_credentials")
+        require(not attempted_api, "same_origin_nextjs_must_not_request_business_api")
+        require(context.cookies([CONSOLE]) == [],
+                "same_origin_nextjs_must_not_create_session")
+        page.goto(CONSOLE + "/overview", wait_until="domcontentloaded", timeout=20000)
+        page.get_by_role("navigation", name="主导航").get_by_role(
+            "link", name="终端资产").click()
+        page.wait_for_url(CONSOLE + "/devices", wait_until="domcontentloaded",
+                          timeout=15000)
+        require(page.url == CONSOLE + "/devices",
+                "same_origin_nextjs_client_navigation")
+        require(not attempted_api, "same_origin_nextjs_navigation_must_not_request_api")
+    finally:
+        page.close()
+
+
 def session_cookie(context):
     matching = [c for c in context.cookies([CONSOLE]) if c["name"] == COOKIE]
     require(len(matching) == 1, "host_cookie_count")
@@ -104,6 +153,9 @@ def main():
     require(os.environ.get("LANVERIQ_SYNTHETIC_BROWSER_PROBE") == "1", "browser_opt_in_required")
     require(os.environ.get("LANVERIQ_SYNTHETIC_CONSOLE_SESSION") == "1", "console_opt_in_required")
     require(os.environ.get("LANVERIQ_SYNTHETIC_CADDY_BRIDGE") == "1", "bridge_opt_in_required")
+    require(os.environ.get("LANVERIQ_SYNTHETIC_NEXTJS_PROBE", "0") in ("0", "1"),
+            "invalid_nextjs_probe_mode")
+    nextjs_mode = os.environ.get("LANVERIQ_SYNTHETIC_NEXTJS_PROBE", "0") == "1"
     home = os.environ.get("HOME", "")
     require(home and os.path.isdir(os.path.join(home, ".pki/nssdb")), "private_browser_trust_missing")
     with os.fdopen(3, "r", encoding="ascii") as private_input:
@@ -169,6 +221,10 @@ def main():
             require(page.title() == "Lanveriq synthetic browser gate", "probe_html_origin")
             require(page.evaluate("window.isSecureContext") is True, "browser_not_secure")
             require(page.url == PROBE, "unexpected_browser_url")
+            if nextjs_mode:
+                # The same disposable Caddy HTTPS origin serves Next.js
+                # pages and Spring API without any Next.js business proxy.
+                verify_nextjs_same_origin(context)
 
             observed_posts = []
             def observe(request):
@@ -257,7 +313,15 @@ def main():
             browser.close()
     print("MANUAL SYNTHETIC CHROMIUM PASS: trusted TLS with negative CA control, browser Origin/Fetch-Site, "
           "host-only HttpOnly Strict cookie, CSRF, rotation, login, scoped empty device/overview reads, anonymous denials and logout.")
-    print("NOT PROVEN: actual Next.js runtime, multi-group RBAC, real people, devices or Agent.")
+    if nextjs_mode:
+        print("MANUAL SYNTHETIC SAME-ORIGIN NEXT.JS PASS: real Caddy HTTPS Next.js "
+              "preview pages and client navigation; disabled login; no automatic "
+              "API or session cookie. Spring login remains isolated fixture-only.")
+        print("NOT PROVEN: activated Next.js login/data hooks, multi-group RBAC, "
+              "real people, devices, Agent or production deployment.")
+    else:
+        print("NOT PROVEN: actual Next.js runtime, multi-group RBAC, "
+              "real people, devices or Agent.")
 
 
 if __name__ == "__main__":
