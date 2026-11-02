@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 
@@ -41,6 +42,11 @@ public class MonitoringOverviewHttpSecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/v1/monitoring/overview")
                         .authenticated()
                         .anyRequest().denyAll())
+                // This JSON API never redirects to a saved URL. The default
+                // HttpSessionRequestCache creates a session on anonymous 401,
+                // which sends the cookie before explicit /auth/csrf bootstrap.
+                // Keep HttpSession auth for login; disable only request replay.
+                .requestCache(cache -> cache.requestCache(new NullRequestCache()))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
