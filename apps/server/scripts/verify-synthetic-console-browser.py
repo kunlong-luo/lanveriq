@@ -88,6 +88,23 @@ def is_synthetic_console_url(url):
         return False
 
 
+def require_browser_post_metadata(observed_posts):
+    """Fail closed with a fixed non-secret diagnostic for each POST boundary.
+
+    The observed booleans are computed from actual Chromium request headers.
+    Do not print raw request headers, URLs, payloads or session identifiers.
+    Differentiating count vs Origin vs Fetch-Site is crucial to fixing the
+    real Chromium failure without weakening the server/browser policy.
+    """
+    require(len(observed_posts) == 4,
+            "real_browser_origin_fetch_metadata_post_count")
+    for index, (valid_origin, valid_fetch_site) in enumerate(observed_posts, 1):
+        require(valid_origin is True,
+                "real_browser_origin_fetch_metadata_origin_post_" + str(index))
+        require(valid_fetch_site is True,
+                "real_browser_origin_fetch_metadata_fetch_site_post_" + str(index))
+
+
 def verify_nextjs_same_origin(context):
     """Read-only genuine Chromium probe of Caddy-hosted, unconnected Next.js.
 
@@ -310,9 +327,7 @@ def main():
                                  "logout_must_deny_devices")
             strict_anonymous_401(fetch("/api/v1/monitoring/overview"),
                                  "logout_must_deny_overview")
-            require(len(observed_posts) == 4 and all(
-                origin and metadata for origin, metadata in observed_posts),
-                "real_browser_origin_fetch_metadata")
+            require_browser_post_metadata(observed_posts)
             require(not blocked_network, "browser_must_not_contact_external_origin_or_websocket")
             context.close()
         finally:
