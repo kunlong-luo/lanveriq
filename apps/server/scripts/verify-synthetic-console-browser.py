@@ -97,10 +97,12 @@ def verify_nextjs_same_origin(context):
     """
     page = context.new_page()
     attempted_api = []
+    attempted_websocket = []
     def inspect(request):
-        if urlsplit(request.url).path.startswith(("/api/v1/", "/actuator/")):
+        if urlsplit(request.url).path.startswith(("/api/", "/actuator/")):
             attempted_api.append("unapproved_frontend_api")
     page.on("request", inspect)
+    page.on("websocket", lambda _: attempted_websocket.append("unexpected_nextjs_websocket"))
     try:
         for path, heading in (
             ("/overview", "设备运行概览"),
@@ -108,7 +110,7 @@ def verify_nextjs_same_origin(context):
             ("/monitoring", "监控中心"),
             ("/login", "管理员登录"),
         ):
-            response = page.goto(CONSOLE + path, wait_until="domcontentloaded",
+            response = page.goto(CONSOLE + path, wait_until="networkidle",
                                  timeout=20000)
             require(response is not None and response.status == 200,
                     "same_origin_nextjs_status")
@@ -123,6 +125,7 @@ def verify_nextjs_same_origin(context):
         require(page.locator("form").count() == 0,
                 "same_origin_nextjs_must_not_submit_credentials")
         require(not attempted_api, "same_origin_nextjs_must_not_request_business_api")
+        require(not attempted_websocket, "same_origin_nextjs_must_not_open_websocket")
         require(context.cookies([CONSOLE]) == [],
                 "same_origin_nextjs_must_not_create_session")
         # Next App Router needs its client runtime hydrated before Link
@@ -135,6 +138,7 @@ def verify_nextjs_same_origin(context):
         require(page.url == CONSOLE + "/devices",
                 "same_origin_nextjs_client_navigation")
         require(not attempted_api, "same_origin_nextjs_navigation_must_not_request_api")
+        require(not attempted_websocket, "same_origin_nextjs_navigation_must_not_open_websocket")
     finally:
         page.close()
 
