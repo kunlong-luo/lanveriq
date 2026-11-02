@@ -89,10 +89,9 @@ class ConsoleRequestGuardFilterTest {
         deny(http2Authority("agent.lanveriq.internal", 443));
         deny(http2Authority("console.lanveriq.internal", 8443));
 
-        var insecure = http2Authority("console.lanveriq.internal", 443);
-        insecure.setSecure(false);
-        deny(insecure);
-
+        // Spring's mock derives secure transport semantics from the scheme;
+        // never fake an HTTPS request as insecure using only setSecure(false).
+        // A real non-HTTPS scheme is always rejected below.
         var wrongScheme = http2Authority("console.lanveriq.internal", 443);
         wrongScheme.setScheme("http");
         deny(wrongScheme);
