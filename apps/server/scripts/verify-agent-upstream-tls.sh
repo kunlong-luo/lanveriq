@@ -677,6 +677,34 @@ PY
     echo "MANUAL SYNTHETIC BRIDGE PASS: Caddy->real Tomcat health 200/UP, business default-deny 403, PostgreSQL 18.6 Flyway."
     echo "NOT PROVEN: Agent controller/revocation, actual servlet assertion, key ACL, live OS."
     if [[ "$CONSOLE_MODE" == 1 ]]; then
+        # Diagnose the actual first-request 403 without exposing headers,
+        # cookies, SQL, credentials or exception messages. Use the dedicated
+        # Caddy->Tomcat client TLS certificate, never an open HTTP connector.
+        # Compare HTTP/1.1 vs HTTP/2 on the SAME authenticated backend first,
+        # then the separate Caddy-edge verifier below. Preserve the 401 gate.
+        direct_console_status() {
+            local protocol="$1"
+            curl --silent --show-error --noproxy '*' --max-time 10 \
+                "$protocol" --cacert "$TMP/pki/backend-ca.crt" \
+                --resolve "$HOST_RESOLVE" \
+                --cert "$TMP/pki/proxy.crt" --key "$TMP/pki/proxy.key" \
+                -H 'Host: console.lanveriq.internal' \
+                -o "$TMP/console-direct-status-body" -w '%{http_code}' \
+                "$URL/api/v1/auth/session"
+        }
+        direct_h1="$(direct_console_status --http1.1)" || {
+            echo "FAIL: direct Tomcat synthetic console HTTP/1.1 TLS request" >&2
+            exit 1
+        }
+        direct_h2="$(direct_console_status --http2)" || {
+            echo "FAIL: direct Tomcat synthetic console HTTP/2 TLS request" >&2
+            exit 1
+        }
+        echo "SYNTHETIC CONSOLE DIAGNOSTIC: trusted direct Tomcat h1=$direct_h1, h2=$direct_h2 (expected 401/401)."
+        if [[ "$direct_h1" != 401 || "$direct_h2" != 401 ]]; then
+            echo "FAIL: Spring Console security chain/Host check rejected a trusted unauthenticated direct request before Caddy." >&2
+            exit 1
+        fi
         # Keep even disposable credentials out of the process argv and
         # environment. FD 3 is a one-shot private stdin channel to the
         # verifier, not an exposed CLI option or runner log.
