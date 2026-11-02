@@ -88,6 +88,24 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
         self.assertIn("== 1.1", script)
         self.assertIn("== 2", script)
 
+    def test_manual_runtime_chain_diagnostics_are_private_and_fixed_boolean_only(self):
+        script = HARNESS.read_text(encoding="utf-8")
+        guard = (SPRING_SECURITY / "ConsoleRequestGuardFilter.java").read_text(
+            encoding="utf-8")
+        self.assertIn("LANVERIQ_CONSOLE_GUARD_RESULT", guard)
+        self.assertIn("LOG.isDebugEnabled()", guard)
+        self.assertIn("hostOk, originOk, fetchOk, allowed", guard)
+        self.assertNotIn('LOG.debug("Host:', guard)
+        self.assertNotIn('LOG.debug("Origin:', guard)
+        self.assertIn("DefaultSecurityFilterChain=DEBUG", script)
+        self.assertIn("ConsoleRequestGuardFilter=DEBUG", script)
+        self.assertIn('python3 - "$TMP/spring.log"', script)
+        self.assertIn('guard_seen=', script)
+        self.assertIn('console_matcher_seen=', script)
+        self.assertLess(script.index('guard_seen='),
+                        script.index('verify-synthetic-console-session.sh'))
+        self.assertNotIn('cat "$TMP/spring.log"', script)
+
     def test_scoped_security_chains_remain_explicit_opt_in(self):
         for name in (
             "ConsoleSessionSecurityConfiguration.java",
