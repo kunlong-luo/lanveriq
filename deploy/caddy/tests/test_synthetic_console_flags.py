@@ -6,6 +6,7 @@ This test never runs a server, container, agent, or network request.
 """
 
 from pathlib import Path
+import ast
 import re
 import unittest
 
@@ -105,6 +106,21 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
         self.assertLess(script.index('guard_seen='),
                         script.index('verify-synthetic-console-session.sh'))
         self.assertNotIn('cat "$TMP/spring.log"', script)
+
+    def test_private_diagnostic_python_is_syntactically_valid_and_bounded(self):
+        script = HARNESS.read_text(encoding="utf-8")
+        match = re.search(
+            r'python3 - "\\$TMP/spring\\.log" <<\\'PY\\'\\n(.*?)\\nPY',
+            script, re.DOTALL)
+        self.assertIsNotNone(match)
+        code = match.group(1)
+        ast.parse(code)
+        self.assertIn("LANVERIQ_CONSOLE_HOST_DETAIL", code)
+        self.assertIn("SYNTHETIC CONSOLE FILTER DIAGNOSTIC:", code)
+        self.assertIn("SYNTHETIC CONSOLE HOST DIAGNOSTIC:", code)
+        self.assertIn("SYNTHETIC CONSOLE CHAIN DIAGNOSTIC:", code)
+        self.assertNotIn("print(log)", code)
+        self.assertNotIn("print(line)", code)
 
     def test_scoped_security_chains_remain_explicit_opt_in(self):
         for name in (
