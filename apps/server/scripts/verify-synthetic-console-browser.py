@@ -46,7 +46,10 @@ def require(condition, label):
 def strict_json(result, expected_status, label):
     require(result["status"] == expected_status, label + "_status")
     require("application/json" in result["contentType"].lower(), label + "_content_type")
-    require("no-store" in result["cacheControl"].lower(), label + "_cache_control")
+    # Require an actual Cache-Control directive, not an arbitrary substring.
+    require(any(directive.strip().lower() == "no-store"
+                for directive in result["cacheControl"].split(",")),
+            label + "_cache_control")
     require(isinstance(result["json"], dict), label + "_json")
     return result["json"]
 
