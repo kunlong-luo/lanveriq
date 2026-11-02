@@ -39,7 +39,7 @@ final class ConsoleSessionRevalidationFilter extends OncePerRequestFilter {
                 }
                 SecurityContextHolder.clearContext();
                 response.setHeader("Cache-Control", "no-store");
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
         }
