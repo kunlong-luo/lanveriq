@@ -1,7 +1,7 @@
 # ADR-0008 — Next.js App Router as the future LAN console
 
 **Date:** 2026-11-01  
-**Status:** NXT-01 candidate and NXT-02 core UI automated checks passed; NXT-03A type/projection staging verified, NXT-03B real runtime, browser, PostgreSQL 18 and cutover gates **OPEN**  
+**Status:** NXT-02 isolated real Chromium preview passed (#41442430936); isolated Caddy/Tomcat/PostgreSQL 18 Console session passed (#41437580646); NXT-03 staged transport remains unmounted and joint Next.js/Console HTTPS browser/RBAC + cutover gates **OPEN**  
 **Scope:** WEB-01 / FE-02 only. No change to agent transport, backend
 authorization, database authority or consent requirements.
 
