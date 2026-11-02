@@ -701,10 +701,8 @@ PY
             exit 1
         }
         echo "SYNTHETIC CONSOLE DIAGNOSTIC: trusted direct Tomcat h1=$direct_h1, h2=$direct_h2 (expected 401/401)."
-        if [[ "$direct_h1" != 401 || "$direct_h2" != 401 ]]; then
-            echo "FAIL: Spring Console security chain/Host check rejected a trusted unauthenticated direct request before Caddy." >&2
-            exit 1
-        fi
+        # Inspect both endpoints even when the direct backend rejects:
+        # otherwise we lose the H1/H2/Host differential evidence again.
         # Differential check at Caddy's public Console virtual host. A
         # double-mTLS Agent health 200 alone does not exercise Console Host
         # forwarding. Compare edge H1/H2 independently against the direct
@@ -726,8 +724,8 @@ PY
             exit 1
         }
         echo "SYNTHETIC CONSOLE DIAGNOSTIC: Caddy edge h1=$edge_h1, h2=$edge_h2 (expected 401/401)."
-        if [[ "$edge_h1" != 401 || "$edge_h2" != 401 ]]; then
-            echo "FAIL: Caddy Console route/Host handling rejected a trusted unauthenticated session request." >&2
+        if [[ "$direct_h1" != 401 || "$direct_h2" != 401 || "$edge_h1" != 401 || "$edge_h2" != 401 ]]; then
+            echo "FAIL: isolated Console session gate denied a trusted anonymous request; inspect H1/H2 direct/edge status codes above." >&2
             exit 1
         fi
         # Keep even disposable credentials out of the process argv and
