@@ -45,11 +45,11 @@ final class ConsoleSessionEventHandlers {
                 audit.loginDenied();
             } catch (RuntimeException e) {
                 response.setHeader("Cache-Control", "no-store");
-                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                 return;
             }
             response.setHeader("Cache-Control", "no-store");
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         };
     }
 
@@ -61,7 +61,7 @@ final class ConsoleSessionEventHandlers {
                 } catch (RuntimeException e) {
                     // LogoutFilter has already invalidated the session.
                     response.setHeader("Cache-Control", "no-store");
-                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                    response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                     return;
                 }
             }
@@ -78,6 +78,6 @@ final class ConsoleSessionEventHandlers {
         }
         SecurityContextHolder.clearContext();
         response.setHeader("Cache-Control", "no-store");
-        response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
     }
 }
