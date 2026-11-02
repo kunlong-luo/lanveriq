@@ -9,7 +9,7 @@ The generated password arrives exclusively over inherited FD 3.
 import os
 import re
 import sys
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 
 CONSOLE = "https://console.lanveriq.internal"
 PROBE = CONSOLE + "/__synthetic_browser_probe"
@@ -56,6 +56,25 @@ def strict_json(result, expected_status, label):
 
 def require_csrf(value, label):
     require(isinstance(value, str) and 8 <= len(value) <= 4096, label)
+
+
+def is_synthetic_console_url(url):
+    """Allow the isolated Console HTTPS origin only; never browse external apps.
+
+    The test is deliberately more restrictive than the real Caddy config.
+    It accepts only the fixed synthetic host and default HTTPS port,
+    including the in-browser auth/CSRF requests and throwaway probe HTML.
+    """
+    try:
+        parts = urlsplit(url)
+        return (parts.scheme == "https"
+                and parts.hostname == "console.lanveriq.internal"
+                and parts.port in (None, 443)
+                and parts.username is None and parts.password is None
+                and not parts.path.startswith("//")
+                and not parts.fragment)
+    except ValueError:
+        return False
 
 
 def session_cookie(context):
@@ -120,7 +139,17 @@ def main():
                 accept_downloads=False,
                 service_workers="block",
             )
+            blocked_network = []
+            def restrict(route):
+                if is_synthetic_console_url(route.request.url):
+                    route.continue_()
+                else:
+                    # Never log request URL, headers, credentials or cookies.
+                    blocked_network.append("unexpected_browser_origin")
+                    route.abort()
+            context.route("**/*", restrict)
             page = context.new_page()
+            page.on("websocket", lambda _: blocked_network.append("unexpected_browser_websocket"))
             page.set_default_timeout(15000)
             # Unlike a Node API client, the page must complete full Chromium TLS
             # validation with only the disposable CA imported into private NSS.
@@ -199,6 +228,7 @@ def main():
             require(len(observed_posts) == 4 and all(
                 origin and metadata for origin, metadata in observed_posts),
                 "real_browser_origin_fetch_metadata")
+            require(not blocked_network, "browser_must_not_contact_external_origin_or_websocket")
             context.close()
         finally:
             browser.close()
