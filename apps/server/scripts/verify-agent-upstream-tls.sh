@@ -446,7 +446,9 @@ proxy = """    # TEST-ONLY canonical console host; never copy to deployed Caddyf
         header_up -X-Forwarded-Client-Cert
         header_up -SSL-Client-Cert
         header_up -X-Lanveriq-Verified-Client-*
-        header_up Host console.lanveriq.internal
+        # Preserve the exact browser Console :authority over upstream H2;
+        # the public HTTPS origin is port 443 even though Tomcat binds 8443.
+        header_up Host console.lanveriq.internal:443
     }"""
 if sys.argv[2] == "1":
     # Browser-only disposable same-origin HTML. No backend proxy, credentials,
@@ -688,7 +690,7 @@ PY
                 "$protocol" --cacert "$TMP/pki/backend-ca.crt" \
                 --resolve "$HOST_RESOLVE" \
                 --cert "$TMP/pki/proxy.crt" --key "$TMP/pki/proxy.key" \
-                -H 'Host: console.lanveriq.internal' \
+                -H 'Host: console.lanveriq.internal:443' \
                 -o "$TMP/console-direct-status-body" -w '%{http_code}' \
                 "$URL/api/v1/auth/session"
         }
