@@ -14,6 +14,13 @@ from urllib.parse import urlparse, urlsplit
 CONSOLE = "https://console.lanveriq.internal"
 PROBE = CONSOLE + "/__synthetic_browser_probe"
 COOKIE = "__Host-lanveriq-session"
+# Only intercept URLs OUTSIDE the exact disposable Console HTTPS origin.
+# Routing even an allowed request can hide Chromium network-stack-owned
+# Sec-Fetch-* headers from Playwright request.all_headers(). The allowed
+# requests must reach the network stack without Playwright interception.
+DISALLOWED_NETWORK_URL = re.compile(
+    r"^(?!https://console\.lanveriq\.internal(?::443)?(?:/(?!/)|$)).+"
+)
 FETCH_SCRIPT = r"""async ({path, method, form, csrfToken}) => {
   const headers = {};
   if (form !== null) headers['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -227,13 +234,11 @@ def main():
             )
             blocked_network = []
             def restrict(route):
-                if is_synthetic_console_url(route.request.url):
-                    route.continue_()
-                else:
-                    # Never log request URL, headers, credentials or cookies.
-                    blocked_network.append("unexpected_browser_origin")
-                    route.abort()
-            context.route("**/*", restrict)
+                # This route matches only URLs outside the exact trusted
+                # synthetic HTTPS origin. Never forward or log those requests.
+                blocked_network.append("unexpected_browser_origin")
+                route.abort()
+            context.route(DISALLOWED_NETWORK_URL, restrict)
             page = context.new_page()
             page.on("websocket", lambda _: blocked_network.append("unexpected_browser_websocket"))
             page.set_default_timeout(15000)
@@ -251,15 +256,17 @@ def main():
 
             observed_posts = []
             def observe(request):
-                # Record ONLY Origin and Fetch Metadata, NEVER bodies/credentials.
-                if urlparse(request.url).path in (
+                # Record ONLY Origin and Fetch Metadata after the real network
+                # request finishes; never log bodies, URLs or credentials.
+                # Even HTTP 403 produces requestfinished in Playwright.
+                if request.method == "POST" and urlparse(request.url).path in (
                         "/api/v1/auth/login", "/api/v1/auth/logout"):
                     headers = request.all_headers()
                     observed_posts.append((
                         headers.get("origin") == CONSOLE,
                         headers.get("sec-fetch-site") == "same-origin",
                     ))
-            page.on("request", observe)
+            page.on("requestfinished", observe)
 
             def fetch(path, method="GET", form=None, csrf=None):
                 return page.evaluate(
