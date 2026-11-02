@@ -64,7 +64,7 @@ public class ConsoleSessionSecurityConfiguration {
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
                         (request, response, error) -> {
                             response.setHeader("Cache-Control", "no-store");
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         }))
                 .formLogin(login -> login
                         .loginProcessingUrl("/api/v1/auth/login")
