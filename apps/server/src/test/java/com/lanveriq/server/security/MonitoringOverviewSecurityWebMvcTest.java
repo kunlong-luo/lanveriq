@@ -1,5 +1,6 @@
 package com.lanveriq.server.security;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,7 +55,11 @@ class MonitoringOverviewSecurityWebMvcTest {
 
     @Test
     void anonymousAndCrossSiteCannotGetGlobalCounts() throws Exception {
-        mvc.perform(read()).andExpect(status().isUnauthorized());
+        var response = mvc.perform(read())
+                .andExpect(status().isUnauthorized())
+                .andReturn().getResponse();
+        assertFalse(response.isCommitted(),
+                "401 must not invoke Tomcat ERROR dispatch for /error");
         mvc.perform(read().header("Origin", "https://evil.example"))
                 .andExpect(status().isForbidden());
         mvc.perform(read().header("Sec-Fetch-Site", "cross-site"))
