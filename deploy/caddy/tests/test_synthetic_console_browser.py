@@ -72,6 +72,12 @@ class SyntheticChromiumGateTest(unittest.TestCase):
                  "contentType": "application/json", "json": {}},
                 200, "reject_cacheable",
             )
+        with self.assertRaises(module.BrowserGateFailure):
+            module.strict_json(
+                {"status": 200, "cacheControl": "private, x-no-store",
+                 "contentType": "application/json", "json": {}},
+                200, "reject_fake_no_store",
+            )
 
 
 if __name__ == "__main__":
