@@ -128,6 +128,30 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
         self.assertNotIn("print(log)", code)
         self.assertNotIn("print(line)", code)
 
+    def test_console_api_error_statuses_never_trigger_servlet_error_redispatch(self):
+        # Tomcat can dispatch response.sendError(401) to /error; the
+        # immutable deny-all chain then replaces 401 with a misleading 403.
+        # Keep /error denied. Return intentional API status directly.
+        for name in (
+            "ConsoleSessionSecurityConfiguration.java",
+            "DeviceDirectoryHttpSecurityConfiguration.java",
+            "MonitoringOverviewHttpSecurityConfiguration.java",
+            "ConsoleSessionRevalidationFilter.java",
+            "ConsoleSessionEventHandlers.java",
+            "ConsoleLoginRateLimitFilter.java",
+        ):
+            with self.subTest(source=name):
+                source = (SPRING_SECURITY / name).read_text(encoding="utf-8")
+                self.assertIn("response.setStatus(", source)
+                self.assertNotIn("response.sendError(", source)
+        manual = (ROOT / "apps/server/scripts/"
+                  "verify-synthetic-console-session.sh").read_text(encoding="utf-8")
+        self.assertIn("assert_direct_401() {", manual)
+        self.assertEqual(manual.count("assert_direct_401"), 7)
+        self.assertIn("cache-control:", manual)
+        self.assertIn('if body:', manual)
+        self.assertNotIn("curl --insecure", manual)
+
     def test_scoped_security_chains_remain_explicit_opt_in(self):
         for name in (
             "ConsoleSessionSecurityConfiguration.java",
