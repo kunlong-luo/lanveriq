@@ -37,7 +37,7 @@ final class ConsoleLoginRateLimitFilter extends OncePerRequestFilter {
             long length = request.getContentLengthLong();
             if (length <= 0 || length > 8192) {
                 response.setHeader("Cache-Control", "no-store");
-                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+                response.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
                 return;
             }
             if (!limiter.allow(request.getParameter("username"), request.getRemoteAddr())) {
@@ -45,12 +45,12 @@ final class ConsoleLoginRateLimitFilter extends OncePerRequestFilter {
                     audit.loginThrottled();
                 } catch (RuntimeException e) {
                     response.setHeader("Cache-Control", "no-store");
-                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                    response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                     return;
                 }
                 response.setHeader("Cache-Control", "no-store");
                 response.setHeader("Retry-After", "60");
-                response.sendError(429);
+                response.setStatus(429);
                 return;
             }
             // Argon2id is intentionally memory-hard; at most two simultaneous
@@ -60,12 +60,12 @@ final class ConsoleLoginRateLimitFilter extends OncePerRequestFilter {
                     audit.loginThrottled();
                 } catch (RuntimeException e) {
                     response.setHeader("Cache-Control", "no-store");
-                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                    response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                     return;
                 }
                 response.setHeader("Cache-Control", "no-store");
                 response.setHeader("Retry-After", "1");
-                response.sendError(429);
+                response.setStatus(429);
                 return;
             }
         }
