@@ -33,6 +33,11 @@ jobs:
       - name: Check no API proxy or enabled credential route
         working-directory: apps/web-next
         run: pnpm run verify:routes
+      - name: Verify manual Chromium gate source only (NO browser or network)
+        working-directory: apps/web-next
+        run: |
+          python3 -m py_compile scripts/verify-preview-chromium.py
+          python3 -m unittest discover -s scripts -p 'test_verify_preview_chromium.py'
       - name: Run synthetic-only Next.js component tests
         working-directory: apps/web-next
         run: pnpm test
