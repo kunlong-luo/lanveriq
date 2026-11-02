@@ -1,12 +1,18 @@
 package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -51,6 +57,9 @@ class PostgreSqlConsoleSecurityWiringIT {
     @Autowired
     private MockMvc mvc;
 
+    @Autowired
+    private FilterChainProxy springSecurityFilterChain;
+
     @Test
     void bootDiscoversConditionalConsoleChainsAndBlocksAnonymousReads()
             throws Exception {
@@ -64,8 +73,33 @@ class PostgreSqlConsoleSecurityWiringIT {
             assertTrue(context.containsBean(bean),
                     "Real Boot servlet context must construct security chain " + bean);
         }
+        // Bean existence alone is insufficient: assert the actual servlet
+        // security proxy selects the Console chain before the deny-all chain
+        // for the exact route exercised by the real TLS harness.
+        SecurityFilterChain console = context.getBean(
+                "consoleAuthenticationOnly", SecurityFilterChain.class);
+        SecurityFilterChain deny = context.getBean(
+                "denyBusinessRoutes", SecurityFilterChain.class);
+        List<SecurityFilterChain> installed = springSecurityFilterChain.getFilterChains();
+        assertTrue(installed.indexOf(console) >= 0);
+        assertTrue(installed.indexOf(console) < installed.indexOf(deny));
+        var consoleRequest = new MockHttpServletRequest("GET", "/api/v1/auth/session");
+        consoleRequest.setServletPath("/api/v1/auth/session");
+        consoleRequest.setScheme("https");
+        consoleRequest.setSecure(true);
+        consoleRequest.setServerName("console.lanveriq.internal");
+        consoleRequest.setServerPort(443);
+        consoleRequest.addHeader("Host", "console.lanveriq.internal:443");
+        assertTrue(console.matches(consoleRequest));
+        assertFalse(deny.matches(consoleRequest) && installed.indexOf(deny) < installed.indexOf(console));
+        assertSame(console, installed.stream()
+                .filter(chain -> chain.matches(consoleRequest))
+                .findFirst().orElseThrow());
+        assertTrue(console.getFilters().stream()
+                .anyMatch(filter -> filter instanceof ConsoleRequestGuardFilter));
         mvc.perform(get("/api/v1/auth/session")
-                        .header("Host", "console.lanveriq.internal"))
+                        .secure(true)
+                        .header("Host", "console.lanveriq.internal:443"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("Cache-Control", "no-store"));
         mvc.perform(get("/api/v1/auth/csrf")
