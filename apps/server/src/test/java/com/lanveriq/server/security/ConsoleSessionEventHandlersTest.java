@@ -1,6 +1,7 @@
 package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +52,7 @@ class ConsoleSessionEventHandlersTest {
         handlers.loginSuccess().onAuthenticationSuccess(request, response, identity());
 
         assertEquals(503, response.getStatus());
+        assertFalse(response.isCommitted(), "503 must not become 403 via Tomcat /error");
         assertTrue(session.isInvalid());
     }
 
@@ -60,7 +62,22 @@ class ConsoleSessionEventHandlersTest {
         handlers.loginFailure().onAuthenticationFailure(new MockHttpServletRequest(), response,
                 new BadCredentialsException("generic denied"));
         assertEquals(401, response.getStatus());
+        assertFalse(response.isCommitted(), "Wrong password must stay 401 on real Tomcat");
+        assertEquals("no-store", response.getHeader("Cache-Control"));
         verify(audit).loginDenied();
+    }
+
+    @Test
+    void failedLoginAuditReturnsDirect503WithoutAnErrorPage() throws Exception {
+        Mockito.doThrow(new IllegalStateException("synthetic-db-unavailable"))
+                .when(audit).loginDenied();
+        var response = new MockHttpServletResponse();
+        handlers.loginFailure().onAuthenticationFailure(
+                new MockHttpServletRequest(), response,
+                new BadCredentialsException("generic denied"));
+        assertEquals(503, response.getStatus());
+        assertFalse(response.isCommitted(), "Audit write failure must remain 503");
+        assertEquals("no-store", response.getHeader("Cache-Control"));
     }
 
     @Test
