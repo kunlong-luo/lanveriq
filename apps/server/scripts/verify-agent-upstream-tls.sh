@@ -280,6 +280,8 @@ java -jar "$ROOT/apps/server/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar" \
     --lanveriq.device-directory.enabled="$CONSOLE_ENABLED" \
     --lanveriq.device-directory.http-enabled="$CONSOLE_ENABLED" \
     --lanveriq.monitoring.overview-http-enabled="$CONSOLE_ENABLED" \
+    --logging.level.com.lanveriq.server.security.ConsoleRequestGuardFilter=DEBUG \
+    --logging.level.org.springframework.security.web.DefaultSecurityFilterChain=DEBUG \
     >"$TMP/spring.log" 2>&1 &
 APP_PID=$!
 
@@ -739,6 +741,33 @@ PY
             exit 1
         }
         echo "SYNTHETIC CONSOLE DIAGNOSTIC: Caddy edge h1=$edge_h1, h2=$edge_h2 (expected 401/401)."
+        # The real Spring log never leaves this disposable runner. Publish
+        # only fixed booleans from its DEBUG-only guard/chain decisions,
+        # never raw URL, Host, Origin, cookies, credentials or exceptions.
+        python3 - "$TMP/spring.log" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+log = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
+results = re.findall(
+    r"LANVERIQ_CONSOLE_GUARD_RESULT host=(true|false) origin=(true|false)"
+    r" fetch=(true|false) allowed=(true|false)", log
+)
+print("SYNTHETIC CONSOLE FILTER DIAGNOSTIC: "
+      f"guard_seen={len(results) > 0}, "
+      f"host_rejected={any(row[0] == 'false' for row in results)}, "
+      f"origin_rejected={any(row[1] == 'false' for row in results)}, "
+      f"fetch_rejected={any(row[2] == 'false' for row in results)}, "
+      f"guard_allowed={any(row[3] == 'true' for row in results)}.")
+chain_lines = [
+    line for line in log.splitlines()
+    if "Will secure" in line and "DefaultSecurityFilterChain" in line
+]
+print("SYNTHETIC CONSOLE CHAIN DIAGNOSTIC: "
+      f"security_chains_seen={len(chain_lines) > 0}, "
+      f"console_matcher_seen={any('/api/v1/auth' in line for line in chain_lines)}.")
+PY
         if [[ "$direct_h1" != 401 || "$direct_h2" != 401 || "$edge_h1" != 401 || "$edge_h2" != 401 ]]; then
             echo "FAIL: isolated Console session gate denied a trusted anonymous request; inspect H1/H2 direct/edge status codes above." >&2
             exit 1
