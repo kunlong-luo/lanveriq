@@ -13,6 +13,15 @@ CADDY_DATA_VOLUME=""
 CADDY_CONFIG_VOLUME=""
 BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
+BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
+[[ "$BROWSER_MODE" == 0 || "$BROWSER_MODE" == 1 ]] || {
+    echo "Synthetic Chromium mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$BROWSER_MODE" == 0 || "$CONSOLE_MODE" == 1 ]] || {
+    echo "Synthetic Chromium mode requires isolated Console session mode" >&2
+    exit 1
+}
 [[ "$CONSOLE_MODE" == 0 || "$CONSOLE_MODE" == 1 ]] || {
     echo "Synthetic console mode must be 0 or 1" >&2
     exit 1
@@ -419,7 +428,7 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         # Replace exactly one 503 response in the disposable config.
         # Caddy's checked-in deploy reference is NEVER touched; enrollment
         # and unknown Agent endpoints remain denied.
-        python3 - "$CADDY_REFERENCE" <<'PY'
+        python3 - "$CADDY_REFERENCE" "$BROWSER_MODE" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
@@ -439,6 +448,16 @@ proxy = """    # TEST-ONLY canonical console host; never copy to deployed Caddyf
         header_up -X-Lanveriq-Verified-Client-*
         header_up Host console.lanveriq.internal
     }"""
+if sys.argv[2] == "1":
+    # Browser-only disposable same-origin HTML. No backend proxy, credentials,
+    # login JS, Next.js activation, or persistent Caddyfile change.
+    probe = """    handle /__synthetic_browser_probe {
+        header Cache-Control "no-store"
+        header Content-Type "text/html; charset=utf-8"
+        respond "<!doctype html><html><head><title>Lanveriq synthetic browser gate</title></head><body>Isolated browser acceptance only</body></html>" 200
+    }
+"""
+    proxy = probe + proxy
 if text.count(marker) != 1 or "TEST-ONLY canonical console host" in text:
     raise SystemExit("Refusing unexpected console Caddyfile template")
 path.write_text(text.replace(marker, proxy), encoding="utf-8")
@@ -664,6 +683,27 @@ PY
         bash "$ROOT/apps/server/scripts/verify-synthetic-console-session.sh" \
             "$ROOT_CA" "$TMP" "$DB_CID" "$SYNTHETIC_LOGIN" \
             3<<< "$SYNTHETIC_PASSWORD"
+        if [[ "$BROWSER_MODE" == 1 ]]; then
+            # Chromium must trust this ephemeral Caddy CA through an isolated
+            # NSS certificate DB. Never set ignoreHTTPSErrors or -k.
+            command -v certutil >/dev/null || {
+                echo "FAIL: Chromium NSS certutil prerequisite missing" >&2
+                exit 1
+            }
+            [[ -x "${LANVERIQ_BROWSER_PYTHON:-}" ]] || {
+                echo "FAIL: pinned isolated Playwright interpreter missing" >&2
+                exit 1
+            }
+            BROWSER_HOME="$TMP/chromium-private-home"
+            mkdir -p "$BROWSER_HOME/.pki/nssdb"
+            chmod 700 "$BROWSER_HOME" "$BROWSER_HOME/.pki" "$BROWSER_HOME/.pki/nssdb"
+            certutil -d "sql:$BROWSER_HOME/.pki/nssdb" -N --empty-password
+            certutil -d "sql:$BROWSER_HOME/.pki/nssdb" -A \
+                -n "Lanveriq disposable Caddy root" -t "C,," -i "$ROOT_CA"
+            HOME="$BROWSER_HOME" "$LANVERIQ_BROWSER_PYTHON" \
+                "$ROOT/apps/server/scripts/verify-synthetic-console-browser.py" \
+                3<<< "$SYNTHETIC_PASSWORD"
+        fi
         unset SYNTHETIC_PASSWORD
     fi
 fi
