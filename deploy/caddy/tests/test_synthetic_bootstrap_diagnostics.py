@@ -68,6 +68,37 @@ class SyntheticBootstrapDiagnosticSafetyTest(unittest.TestCase):
             diagnose.categories("Initial administrator created.\n"),
         )
 
+    def test_csrf_curl_config_is_syntactically_correct_and_private(self):
+        import os
+        import subprocess
+
+        shell_source = (
+            ROOT / "apps/server/scripts/verify-synthetic-console-session.sh"
+        ).read_text(encoding="utf-8")
+        function = (
+            "csrf_config() {"
+            + shell_source.split("csrf_config() {", 1)[1]
+                .split("\\ncookie_id() {", 1)[0]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            shell = "set -Eeuo pipefail\\n" + function + (
+                '\\ncsrf_config "synthetic-csrf-only-123"\\n'
+            )
+            result = subprocess.run(
+                ["bash", "-c", shell],
+                env={**os.environ, "TMP": directory},
+                text=True, capture_output=True, check=False,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            config = Path(directory, "console-csrf.curlrc")
+            self.assertEqual(
+                'header = "X-CSRF-TOKEN: synthetic-csrf-only-123"\\n',
+                config.read_text(encoding="utf-8"),
+            )
+            self.assertEqual(0o600, config.stat().st_mode & 0o777)
+            self.assertNotIn("synthetic-csrf-only-123", result.stdout)
+            self.assertNotIn("synthetic-csrf-only-123", result.stderr)
+
     def test_main_never_prints_raw_log(self):
         from contextlib import redirect_stderr
         from io import StringIO
