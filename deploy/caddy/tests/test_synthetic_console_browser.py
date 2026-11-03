@@ -65,8 +65,10 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn('context.route(DISALLOWED_NETWORK_URL, restrict)', browser)
         self.assertNotIn('context.route("**/*", restrict)', browser)
         self.assertNotIn('route.continue_()', browser)
-        self.assertIn('page.on("requestfinished", observe)', browser)
-        self.assertNotIn('page.on("request", observe)', browser)
+        self.assertIn('page.on("request", observe)', browser)
+        self.assertNotIn('page.on("requestfinished", observe)', browser)
+        self.assertIn('observed_posts.append(request)', browser)
+        self.assertIn('browser_post_metadata(request) for request in observed_posts', browser)
         self.assertIn('page.on("websocket"', browser)
         self.assertIn('browser_must_not_contact_external_origin_or_websocket', browser)
         self.assertNotIn('--ignore-certificate-errors', harness + browser)
@@ -128,6 +130,35 @@ class SyntheticChromiumGateTest(unittest.TestCase):
                 with self.assertRaises(module.BrowserGateFailure) as failure:
                     module.require_browser_post_metadata(posts)
                 self.assertEqual(str(failure.exception), expected)
+
+    def test_browser_post_headers_are_read_once_after_request_capture(self):
+        # Preserve full-header checks (never infer Origin/Fetch-Site from URL).
+        # The request event records actual POST references before any response
+        # body drains, preventing requestfinished timing from reducing count.
+        spec = importlib.util.spec_from_file_location("synthetic_browser_posts", BROWSER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        class FakeBrowserRequest:
+            def __init__(self, headers):
+                self._headers = headers
+                self.calls = 0
+
+            def all_headers(self):
+                self.calls += 1
+                return self._headers
+
+        for headers, expected in (
+            ({"origin": module.CONSOLE, "sec-fetch-site": "same-origin"}, (True, True)),
+            ({"origin": module.CONSOLE}, (True, False)),
+            ({"sec-fetch-site": "same-origin"}, (False, True)),
+            ({"origin": "https://outside.invalid", "sec-fetch-site": "cross-site"},
+             (False, False)),
+        ):
+            with self.subTest(fields=tuple(headers.keys())):
+                req = FakeBrowserRequest(headers)
+                self.assertEqual(module.browser_post_metadata(req), expected)
+                self.assertEqual(req.calls, 1)
 
     def test_browser_header_observation_does_not_intercept_trusted_origin(self):
         # Playwright's route.continue_() can hide network-stack-owned
