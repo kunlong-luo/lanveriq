@@ -112,6 +112,13 @@ def require_browser_post_metadata(observed_posts):
                 "real_browser_origin_fetch_metadata_fetch_site_post_" + str(index))
 
 
+def browser_post_metadata(request):
+    """Inspect real Chromium-generated Origin/Fetch-Site without logging data."""
+    headers = request.all_headers()
+    return (headers.get("origin") == CONSOLE,
+            headers.get("sec-fetch-site") == "same-origin")
+
+
 def verify_nextjs_same_origin(context):
     """Read-only genuine Chromium probe of Caddy-hosted, unconnected Next.js.
 
@@ -335,9 +342,7 @@ def main():
             # have returned. Strictly require Origin and Fetch-Site on every
             # observed POST; never synthesize those headers in JavaScript.
             require_browser_post_metadata([
-                (request.all_headers().get("origin") == CONSOLE,
-                 request.all_headers().get("sec-fetch-site") == "same-origin")
-                for request in observed_posts
+                browser_post_metadata(request) for request in observed_posts
             ])
             require(not blocked_network, "browser_must_not_contact_external_origin_or_websocket")
             context.close()
