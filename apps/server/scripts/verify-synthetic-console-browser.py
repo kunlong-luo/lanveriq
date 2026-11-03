@@ -256,17 +256,14 @@ def main():
 
             observed_posts = []
             def observe(request):
-                # Record ONLY Origin and Fetch Metadata after the real network
-                # request finishes; never log bodies, URLs or credentials.
-                # Even HTTP 403 produces requestfinished in Playwright.
+                # Capture Request references at issuance. requestfinished can
+                # arrive after fetch() resolves with HTTP 403/204 headers, and
+                # counting only completed responses races the final assertion.
+                # Neither the callback nor the result prints request secrets.
                 if request.method == "POST" and urlparse(request.url).path in (
                         "/api/v1/auth/login", "/api/v1/auth/logout"):
-                    headers = request.all_headers()
-                    observed_posts.append((
-                        headers.get("origin") == CONSOLE,
-                        headers.get("sec-fetch-site") == "same-origin",
-                    ))
-            page.on("requestfinished", observe)
+                    observed_posts.append(request)
+            page.on("request", observe)
 
             def fetch(path, method="GET", form=None, csrf=None):
                 return page.evaluate(
@@ -334,7 +331,14 @@ def main():
                                  "logout_must_deny_devices")
             strict_anonymous_401(fetch("/api/v1/monitoring/overview"),
                                  "logout_must_deny_overview")
-            require_browser_post_metadata(observed_posts)
+            # Read complete on-wire headers after all four browser fetches
+            # have returned. Strictly require Origin and Fetch-Site on every
+            # observed POST; never synthesize those headers in JavaScript.
+            require_browser_post_metadata([
+                (request.all_headers().get("origin") == CONSOLE,
+                 request.all_headers().get("sec-fetch-site") == "same-origin")
+                for request in observed_posts
+            ])
             require(not blocked_network, "browser_must_not_contact_external_origin_or_websocket")
             context.close()
         finally:
