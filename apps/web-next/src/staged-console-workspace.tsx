@@ -272,7 +272,8 @@ export function StagedConsoleWorkspace() {
         </div>
       </div>
       <p role="status" data-testid="candidate-principal">当前合成账号：{principal}</p>
-      <div className="top-actions" role="tablist" aria-label="已授权只读视图">
+      <div className="top-actions staged-view-tabs" role="tablist"
+        aria-label="已授权只读视图">
         {readOnlyViews.map(view => <button
           key={view.id} type="button" role="tab"
           id={`candidate-tab-${view.id}`}
