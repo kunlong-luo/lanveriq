@@ -19,7 +19,7 @@ if (!existsSync(join(root, 'src/synthetic-only-auth-probe.tsx')) ||
     !existsSync(join(root, 'src/app/(auth)/login/page.tsx'))) {
   throw new Error('Synthetic auth fixture requires unchanged Next.js preview');
 }
-const dir = join(root, 'src/app/__synthetic_auth_probe');
+const dir = join(root, 'src/app/synthetic-auth-probe');
 const target = join(dir, 'page.tsx');
 if (existsSync(dir) || existsSync(target)) {
   throw new Error('Synthetic auth route already exists; refusing overwrite');
