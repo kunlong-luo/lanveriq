@@ -319,7 +319,18 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("inputs.nextjs_same_origin_probe", workflow)
         self.assertIn("inputs.browser_probe", workflow)
         self.assertIn("inputs.nextjs_same_origin_probe && !inputs.browser_probe", workflow)
-        self.assertEqual(workflow.count("default: false"), 2)
+        self.assertEqual(workflow.count("default: false"), 3)
+        self.assertIn("synthetic_auth_ui_probe:", workflow)
+        self.assertIn(
+            "inputs.synthetic_auth_ui_probe && (!inputs.browser_probe || !inputs.nextjs_same_origin_probe)",
+            workflow)
+        self.assertIn('LANVERIQ_SYNTHETIC_AUTH_UI_PROBE', workflow)
+        self.assertIn('node scripts/install-synthetic-auth-fixture.mjs', workflow)
+        self.assertIn('verify_nextjs_synthetic_auth_ui(context, password)', browser)
+        self.assertIn('synthetic_nextjs_auth_wire_fetch_site_', browser)
+        self.assertIn('AUTH_UI_MODE="${LANVERIQ_SYNTHETIC_AUTH_UI_PROBE:-0}"', harness)
+        self.assertIn('"$AUTH_UI_MODE" == 0 || "$NEXTJS_MODE" == 1', harness)
+        self.assertNotIn('synthetic-only-auth-probe', reference)
         self.assertIn("Declare exact manual acceptance scope (request, not pass)", workflow)
         self.assertIn("Verified result", workflow)
         self.assertIn('>> "$GITHUB_STEP_SUMMARY"', workflow)
@@ -350,6 +361,39 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertNotIn("LANVERIQ_CONSOLE_AUTH_ENABLED", workflow)
         self.assertNotIn("ignore_https_errors=True", browser)
         self.assertNotIn("--ignore-certificate-errors", workflow + harness + browser)
+
+    def test_mounted_auth_fixture_is_solely_manual_and_keeps_independent_gates(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        browser = BROWSER.read_text(encoding="utf-8")
+        harness = HARNESS.read_text(encoding="utf-8")
+        installer = (ROOT / "apps/web-next/scripts/install-synthetic-auth-fixture.mjs"
+                     ).read_text(encoding="utf-8")
+        route_guard = (ROOT / "apps/web-next/scripts/verify-route-contract.mjs"
+                       ).read_text(encoding="utf-8")
+        source = (ROOT / "apps/web-next/src/synthetic-only-auth-probe.tsx"
+                  ).read_text(encoding="utf-8")
+        normal_page = (ROOT / "apps/web-next/src/app/(auth)/login/page.tsx"
+                       ).read_text(encoding="utf-8")
+
+        self.assertIn("src/app/__synthetic_auth_probe", route_guard)
+        self.assertIn("GITHUB_ACTIONS", installer)
+        self.assertIn("synthetic_auth_ui_probe:", workflow)
+        self.assertIn("verify:routes", workflow)
+        self.assertLess(workflow.index("pnpm run verify:routes"),
+                        workflow.index("node scripts/install-synthetic-auth-fixture.mjs"))
+        self.assertIn("LANVERIQ_SYNTHETIC_AUTH_UI_PROBE", installer)
+        self.assertIn('node scripts/install-synthetic-auth-fixture.mjs', workflow)
+        self.assertIn('verify_nextjs_synthetic_auth_ui(context, password)', browser)
+        self.assertIn('wire.checked_posts(expected_count=2)', browser)
+        self.assertIn('AUTH_UI_MODE="${LANVERIQ_SYNTHETIC_AUTH_UI_PROBE:-0}"', harness)
+        self.assertIn("createStagedNextConsoleAuth", source)
+        self.assertIn("createStagedConsoleReader", source)
+        self.assertNotIn("synthetic-only-auth-probe", normal_page)
+        self.assertFalse(
+            (ROOT / "apps/web-next/src/app/__synthetic_auth_probe").exists())
+        self.assertIn("LANVERIQ_SYNTHETIC_AUTH_UI_PROBE", workflow)
+        self.assertNotIn("LANVERIQ_CONSOLE_AUTH_ENABLED", workflow)
+        self.assertNotIn("ignore_https_errors=True", browser)
 
     def test_disposable_caddy_config_generation_keeps_api_and_nextjs_separate(self):
         # Execute only the embedded Python template renderer against a COPY
