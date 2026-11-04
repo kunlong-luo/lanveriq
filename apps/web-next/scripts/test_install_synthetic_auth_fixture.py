@@ -55,5 +55,57 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
             self.assertEqual(target.read_text(encoding="utf-8"), rendered)
 
 
+    def test_fourth_flag_is_explicit_and_multi_admin_route_is_never_ordinary(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "web-next"
+            (root / "src/app/(auth)/login").mkdir(parents=True)
+            (root / "src/synthetic-only-auth-probe.tsx").write_text(
+                "// source-only test", encoding="utf-8")
+            (root / "src/synthetic-only-multi-admin-probe.tsx").write_text(
+                "// source-only multi-admin test", encoding="utf-8")
+            (root / "src/app/(auth)/login/page.tsx").write_text(
+                "// disabled login", encoding="utf-8")
+            base = {**os.environ, **{flag: "1" for flag in FLAGS},
+                    "GITHUB_ACTIONS": "true"}
+            main = root / "src/app/synthetic-auth-probe/page.tsx"
+            multi = root / "src/app/synthetic-multi-admin-probe/page.tsx"
+            # Explicitly OFF: only the original one-admin temporary route.
+            off = subprocess.run(
+                ["node", str(INSTALLER)], cwd=root,
+                env={**base, "LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE": "0"},
+                capture_output=True, text=True, check=False)
+            self.assertEqual(off.returncode, 0, off.stderr)
+            self.assertTrue(main.exists())
+            self.assertFalse(multi.exists())
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "web-next"
+            (root / "src/app/(auth)/login").mkdir(parents=True)
+            (root / "src/synthetic-only-auth-probe.tsx").write_text(
+                "// source-only test", encoding="utf-8")
+            (root / "src/synthetic-only-multi-admin-probe.tsx").write_text(
+                "// source-only multi-admin test", encoding="utf-8")
+            (root / "src/app/(auth)/login/page.tsx").write_text(
+                "// disabled login", encoding="utf-8")
+            enabled = {**base, "LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE": "1"}
+            accepted = subprocess.run(
+                ["node", str(INSTALLER)], cwd=root, env=enabled,
+                capture_output=True, text=True, check=False)
+            self.assertEqual(accepted.returncode, 0, accepted.stderr)
+            self.assertIn("SyntheticMultiAdminProbe",
+                          (root / "src/app/synthetic-multi-admin-probe/page.tsx")
+                          .read_text(encoding="utf-8"))
+            self.assertNotIn("/api/v1/",
+                (root / "src/app/synthetic-multi-admin-probe/page.tsx")
+                .read_text(encoding="utf-8"))
+            self.assertNotIn("synthetic-browser-b",
+                (root / "src/app/synthetic-multi-admin-probe/page.tsx")
+                .read_text(encoding="utf-8"))
+            denied = subprocess.run(
+                ["node", str(INSTALLER)], cwd=root, env=enabled,
+                capture_output=True, text=True, check=False)
+            self.assertNotEqual(denied.returncode, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
