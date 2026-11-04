@@ -15,6 +15,15 @@ BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
 BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
 NEXTJS_MODE="${LANVERIQ_SYNTHETIC_NEXTJS_PROBE:-0}"
+AUTH_UI_MODE="${LANVERIQ_SYNTHETIC_AUTH_UI_PROBE:-0}"
+[[ "$AUTH_UI_MODE" == 0 || "$AUTH_UI_MODE" == 1 ]] || {
+    echo "Synthetic auth UI mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$AUTH_UI_MODE" == 0 || "$NEXTJS_MODE" == 1 ]] || {
+    echo "Synthetic auth UI requires explicitly opted-in Next.js and browser" >&2
+    exit 1
+}
 [[ "$NEXTJS_MODE" == 0 || "$NEXTJS_MODE" == 1 ]] || {
     echo "Synthetic Next.js mode must be 0 or 1" >&2
     exit 1
@@ -831,7 +840,9 @@ PY
             certutil -d "sql:$BROWSER_HOME/.pki/nssdb" -N --empty-password
             certutil -d "sql:$BROWSER_HOME/.pki/nssdb" -A \
                 -n "Lanveriq disposable Caddy root" -t "C,," -i "$ROOT_CA"
-            HOME="$BROWSER_HOME" "$LANVERIQ_BROWSER_PYTHON" \
+            HOME="$BROWSER_HOME" \
+                LANVERIQ_SYNTHETIC_AUTH_UI_PROBE="$AUTH_UI_MODE" \
+                "$LANVERIQ_BROWSER_PYTHON" \
                 "$ROOT/apps/server/scripts/verify-synthetic-console-browser.py" \
                 3<<< "$SYNTHETIC_PASSWORD"
         fi
