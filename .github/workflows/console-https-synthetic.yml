@@ -1,9 +1,28 @@
-name: Console HTTPS Spring session (manual, synthetic-only)
+name: Console HTTPS Spring session (synthetic-only)
 
-# Explicit opt-in: real Caddy->real Tomcat->disposable PG18, with
-# randomly generated one-time offline bootstrap in an isolated runner.
-# This is NOT browser approval, no real account, no Agent API enablement.
+# Isolated synthetic-only suite: automatically execute all four browser/RBAC
+# checks on reviewed MAIN changes affecting the security acceptance path.
+# Manual dispatch remains available with default-OFF individual probes.
+# No production secrets, real users, Agent collection or deployment.
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/console-https-synthetic.yml'
+      - 'apps/server/scripts/verify-synthetic-console-browser.py'
+      - 'apps/server/scripts/verify-agent-upstream-tls.sh'
+      - 'apps/server/scripts/verify-synthetic-console-session.sh'
+      - 'apps/server/scripts/seed-synthetic-multi-admin.sql'
+      - 'apps/server/src/main/java/com/lanveriq/server/security/**'
+      - 'apps/server/src/main/java/com/lanveriq/server/devices/**'
+      - 'apps/server/src/integrationTest/java/com/lanveriq/server/security/**'
+      - 'apps/server/src/main/resources/db/migration/**'
+      - 'apps/web-next/src/synthetic-only-auth-probe.tsx'
+      - 'apps/web-next/src/synthetic-only-multi-admin-probe.tsx'
+      - 'apps/web-next/src/lib/staged-console-auth.ts'
+      - 'apps/web-next/src/lib/staged-console-read.ts'
+      - 'apps/web-next/src/lib/console-query-policy.ts'
+      - 'apps/web-next/scripts/install-synthetic-auth-fixture.mjs'
   workflow_dispatch:
     inputs:
       browser_probe:
@@ -31,8 +50,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: lanveriq-manual-console-synthetic-${{ github.ref }}
-  cancel-in-progress: false
+  # Push builds supersede stale push builds; manual opt-ins never cancel each
+  # other. Distinct event types have separate concurrency groups.
+  group: lanveriq-console-synthetic-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   console-session-synthetic:
@@ -61,18 +82,22 @@ jobs:
         run: |
           echo "FAIL: disposable multi-admin browser test requires all three previously gated probes"
           exit 1
-      - name: Declare exact manual acceptance scope (request, not pass)
+      - name: Declare exact synthetic acceptance scope (request, not pass)
         env:
-          MULTI_REQUESTED: ${{ inputs.synthetic_multi_admin_probe && '1' || '0' }}
-          BROWSER_REQUESTED: ${{ inputs.browser_probe && '1' || '0' }}
-          NEXTJS_REQUESTED: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
-          AUTH_UI_REQUESTED: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
+          MULTI_REQUESTED: ${{ (github.event_name == 'push' || inputs.synthetic_multi_admin_probe) && '1' || '0' }}
+          BROWSER_REQUESTED: ${{ (github.event_name == 'push' || inputs.browser_probe) && '1' || '0' }}
+          NEXTJS_REQUESTED: ${{ (github.event_name == 'push' || inputs.nextjs_same_origin_probe) && '1' || '0' }}
+          AUTH_UI_REQUESTED: ${{ (github.event_name == 'push' || inputs.synthetic_auth_ui_probe) && '1' || '0' }}
         shell: bash
         run: |
           set -euo pipefail
           {
             echo "## Lanveriq disposable Console acceptance"
             printf 'Commit: %s\n' "$GITHUB_SHA"
+            printf 'Trigger: %s\n' "$GITHUB_EVENT_NAME"
+            if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+              echo "Automatic path-filtered main-branch acceptance: all four disposable probes requested."
+            fi
             echo "| Gate | Requested |"
             echo "| --- | --- |"
             echo "| Caddy → real Tomcat → PostgreSQL 18 HTTPS session | yes (always) |"
@@ -129,7 +154,7 @@ jobs:
         working-directory: apps/server
         run: ./gradlew integrationTest --tests 'com.lanveriq.server.security.PostgreSqlConsoleSecurityWiringIT'
       - name: Install isolated pinned Playwright/Chromium only for explicit browser opt-in
-        if: ${{ inputs.browser_probe }}
+        if: ${{ github.event_name == 'push' || inputs.browser_probe }}
         shell: bash
         run: |
           set -euo pipefail
@@ -139,7 +164,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq libnss3-tools
       - name: Set up locked Node 24/pnpm 12 only for explicit same-origin Next.js test
-        if: ${{ inputs.nextjs_same_origin_probe }}
+        if: ${{ github.event_name == 'push' || inputs.nextjs_same_origin_probe }}
         uses: pnpm/setup@v3
         with:
           version: '12.0.0'
@@ -149,14 +174,14 @@ jobs:
           require-lockfile: true
           cache: false
       - name: Build default disabled-login preview (optionally add disposable auth fixture)
-        if: ${{ inputs.nextjs_same_origin_probe }}
+        if: ${{ github.event_name == 'push' || inputs.nextjs_same_origin_probe }}
         working-directory: apps/web-next
         env:
           NEXT_TELEMETRY_DISABLED: '1'
-          LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ inputs.browser_probe && '1' || '0' }}
-          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
-          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
-          LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: ${{ inputs.synthetic_multi_admin_probe && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ (github.event_name == 'push' || inputs.browser_probe) && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ (github.event_name == 'push' || inputs.nextjs_same_origin_probe) && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: ${{ (github.event_name == 'push' || inputs.synthetic_auth_ui_probe) && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: ${{ (github.event_name == 'push' || inputs.synthetic_multi_admin_probe) && '1' || '0' }}
         run: |
           set -euo pipefail
           pnpm install --frozen-lockfile
@@ -173,10 +198,10 @@ jobs:
         env:
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
           LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '1'
-          LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ inputs.browser_probe && '1' || '0' }}
-          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
-          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
-          LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: ${{ inputs.synthetic_multi_admin_probe && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ (github.event_name == 'push' || inputs.browser_probe) && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ (github.event_name == 'push' || inputs.nextjs_same_origin_probe) && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: ${{ (github.event_name == 'push' || inputs.synthetic_auth_ui_probe) && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: ${{ (github.event_name == 'push' || inputs.synthetic_multi_admin_probe) && '1' || '0' }}
           LANVERIQ_BROWSER_PYTHON: ${{ runner.temp }}/lanveriq-playwright/bin/python
           NEXT_TELEMETRY_DISABLED: '1'
         shell: bash
