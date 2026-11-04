@@ -409,6 +409,78 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         require(session_cookie(contexts[0]) != second_cookie,
                 "multi_admin_new_cookie_must_not_equal_other_context")
 
+        # NXT-06-A product-shaped Console candidate: this is the ACTUAL
+        # read-only device/overview presentation proposed for future runtime,
+        # not another bare diagnostic page. It is mounted only in the
+        # ephemeral fourth-gated CI build; normal /login stays disabled.
+        stage = "candidate_console_setup"
+        candidate_context = browser.new_context(
+            ignore_https_errors=False, accept_downloads=False,
+            service_workers="block")
+        contexts.append(candidate_context)
+        candidate_context.route(DISALLOWED_NETWORK_URL, restrict)
+        candidate_page = candidate_context.new_page()
+        candidate_page.on("websocket", lambda _: blocked.append(
+            "candidate_console_forbidden_websocket"))
+        candidate_wire = ChromiumWirePostMetadata()
+        candidate_cdp = candidate_context.new_cdp_session(candidate_page)
+        candidate_cdp.on("Network.requestWillBeSent", candidate_wire.on_request)
+        candidate_cdp.on("Network.requestWillBeSentExtraInfo", candidate_wire.on_extra_info)
+        candidate_cdp.send("Network.enable")
+        candidate_response = candidate_page.goto(
+            CONSOLE + "/synthetic-console-candidate",
+            wait_until="networkidle", timeout=25000)
+        require(candidate_response is not None and candidate_response.status == 200,
+                "candidate_console_https_status")
+        require(candidate_page.get_by_role(
+            "heading", name="只读管理控制台候选").count() == 1,
+                "candidate_console_ui_title")
+        require(candidate_page.locator("main[data-candidate-status='signed_out']").count() == 1,
+                "candidate_console_no_implicit_session_or_api")
+        require(candidate_page.locator(".device-table tbody tr").count() == 0,
+                "candidate_console_no_automatic_device_rendering")
+
+        def candidate_login(login_name, expected_labels, expected_total):
+            candidate_page.locator("#candidate-username").fill(login_name)
+            candidate_page.locator("#candidate-password").fill(password)
+            candidate_page.get_by_role(
+                "button", name="安全登录并获取授权设备").click()
+            candidate_page.locator(
+                "main[data-candidate-status='ready']").wait_for(
+                state="visible", timeout=25000)
+            require(candidate_page.locator("main").get_attribute(
+                "data-candidate-principal") == login_name,
+                "candidate_console_principal")
+            labels = candidate_page.locator(
+                ".device-table tbody tr td:first-child strong").all_text_contents()
+            require(len(labels) == len(expected_labels) and
+                    len(set(labels)) == len(labels) and
+                    sorted(labels) == sorted(expected_labels),
+                    "candidate_console_exact_scoped_device_membership")
+            require(candidate_page.get_by_test_id(
+                "candidate-metric-已授权设备总数").text_content() == str(expected_total),
+                "candidate_console_server_scoped_total")
+            require(candidate_page.locator(".device-detail-link").count() == 0,
+                "candidate_console_no_inert_detail_navigation")
+
+        stage = "candidate_console_login_a"
+        candidate_login("synthetic-browser-a",
+                        ["SyntheticBrowserA-1", "SyntheticBrowserA-2"], 2)
+        require(session_cookie(candidate_context) not in (
+            first_cookie, second_cookie),
+            "candidate_console_cookie_independent")
+        candidate_page.get_by_role("button", name="登出并清除数据").click()
+        candidate_page.locator(
+            "main[data-candidate-status='signed_out']").wait_for(
+            state="visible", timeout=20000)
+        require(candidate_page.locator(".device-table tbody tr").count() == 0,
+                "candidate_console_logout_clears_rows")
+
+        stage = "candidate_console_switch_b"
+        candidate_login("synthetic-browser-b", ["SyntheticBrowserB-1"], 1)
+        require(candidate_page.get_by_text("SyntheticBrowserA-1").count() == 0,
+                "candidate_console_no_previous_principal_rows")
+
         # Actual PG18 permission removal without changing either browser
         # cookie: the two live sessions must both stop receiving group B data
         # immediately on explicitly authorized refetch.
@@ -435,6 +507,22 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             require(page.locator("#multi-admin-state").get_attribute("data-cache-count") == "0",
                     "multi_admin_revoked_grant_cache_not_cleared")
 
+        # The product-shaped candidate must likewise clear nonempty B
+        # rows and show a server-authorized ZERO, not reuse stale B metrics.
+        stage = "candidate_console_scope_revoked"
+        candidate_page.get_by_role("button", name="手动刷新").click()
+        candidate_page.locator(
+            "main[data-candidate-status='ready']").wait_for(
+            state="visible", timeout=16000)
+        require(candidate_page.get_by_test_id(
+            "candidate-metric-已授权设备总数").text_content() == "0",
+            "candidate_console_revoked_scope_total_zero")
+        require(candidate_page.get_by_text(
+            "当前授权范围没有设备").count() == 1,
+            "candidate_console_revoked_scope_clears_device_rows")
+        require(candidate_page.locator(".device-table tbody tr").count() == 0,
+                "candidate_console_revoked_scope_no_rows")
+
         stage = "disable_browser_account"
         private_synthetic_pg_sql(db_container, """
             DO $fixture$
@@ -455,10 +543,31 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 state="visible", timeout=16000)
             require(page.locator("#multi-admin-state").get_attribute("data-cache-count") == "0",
                     "multi_admin_disabled_session_cache_not_cleared")
+        # Disabled account must drop the UI's group counters, visible
+        # table and current identity before another principal can log in.
+        stage = "candidate_console_account_disabled"
+        candidate_page.get_by_role("button", name="手动刷新").click()
+        candidate_page.locator(
+            "main[data-candidate-status='signed_out']").wait_for(
+            state="visible", timeout=16000)
+        require(candidate_page.locator("main").get_attribute(
+            "data-candidate-principal") == "",
+            "candidate_console_disabled_identity_cleared")
+        require(candidate_page.locator(".device-table tbody tr").count() == 0,
+                "candidate_console_disabled_rows_cleared")
+        require(candidate_page.get_by_test_id(
+            "candidate-metric-已授权设备总数").count() == 0,
+            "candidate_console_disabled_metrics_cleared")
+        for origin_ok, fetch_site_ok in candidate_wire.checked_posts(expected_count=3):
+            require(origin_ok and fetch_site_ok,
+                    "candidate_console_real_browser_post_metadata")
         for expected_count, wire in zip((3, 1), wires):
             for origin_ok, fetch_site_ok in wire.checked_posts(expected_count=expected_count):
                 require(origin_ok and fetch_site_ok, "multi_admin_browser_post_wire_metadata")
         require(not blocked, "multi_admin_browser_must_not_contact_external_origin")
+        print("SYNTHETIC STAGED CONSOLE UI PASS: real React device table and "
+              "server-scoped overview, A/B browser login/logout, no old rows, "
+              "live grant removal, disabled-session denial; normal /login remains inert.")
     except BrowserGateFailure:
         raise
     except Exception:
