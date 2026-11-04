@@ -18,7 +18,7 @@ for (const forbidden of ['src/app/api', 'src/proxy.ts', 'src/middleware.ts',
   'src/app/(console)/api', 'src/app/(auth)/api',
   // The credentialed test page is generated only inside manual CI; it must
   // never be committed or built in the ordinary disabled-login preview.
-  'src/app/synthetic-auth-probe']) {
+  'src/app/synthetic-auth-probe', 'src/app/synthetic-multi-admin-probe']) {
   if (existsSync(join(process.cwd(), forbidden))) {
     throw new Error('NXT-01 cannot enable a business/API proxy: ' + forbidden);
   }
