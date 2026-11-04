@@ -7,7 +7,7 @@ import { Card, CardHeader, CardDescription, CardTitle } from './components/ui/ca
 import { createStagedNextConsoleAuth } from './lib/staged-console-auth';
 import { createStagedConsoleReader, type BrowserFetch } from './lib/staged-console-read';
 import { createConsoleQueryClient, clearConsoleSessionState } from './lib/console-query-policy';
-import { parseScopedConsoleOverview, type ScopedConsoleOverview } from './lib/staged-console-overview';
+import { isConsistentScopedDirectoryPage, parseScopedConsoleOverview, type ScopedConsoleOverview } from './lib/staged-console-overview';
 
 /**
  * NXT-06-A: the PRODUCT-SHAPED read-only Console candidate.
@@ -108,7 +108,7 @@ export function StagedConsoleWorkspace() {
     // Two independent HTTP reads can straddle a scope-revocation commit.
     // If the server's final total is lower than the earlier visible page,
     // fail closed rather than rendering a known-inconsistent snapshot.
-    if (!parsed || parsed.total < page.rows.length) {
+    if (!parsed || !isConsistentScopedDirectoryPage(page, parsed)) {
       await eraseAuthorizedData();
       setStatus(result.kind === 'signed_out' ? 'signed_out'
         : result.kind === 'forbidden' ? 'forbidden'
