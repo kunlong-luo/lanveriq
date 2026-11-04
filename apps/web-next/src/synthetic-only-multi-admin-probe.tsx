@@ -66,10 +66,12 @@ export function SyntheticMultiAdminProbe() {
     }
     const expectation = EXPECTED[expectedLogin as keyof typeof EXPECTED];
     const overview = await reader.overview();
-    const total = overview.kind === 'ok' &&
+    const rawTotal = overview.kind === 'ok' &&
       overview.data !== null && typeof overview.data === 'object' &&
       !Array.isArray(overview.data)
       ? (overview.data as Record<string, unknown>).total : null;
+    const total = typeof rawTotal === 'number' &&
+      Number.isSafeInteger(rawTotal) ? rawTotal : null;
     if (!expectation || total !== expectation.total ||
         list.rows.length !== expectation.total ||
         list.rows.some(row => !row.label.startsWith(expectation.prefix))) {
