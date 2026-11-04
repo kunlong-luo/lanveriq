@@ -26,7 +26,7 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
                 "// fake disposable workspace", encoding="utf-8")
             (root / "src/app/(auth)/login/page.tsx").write_text(
                 "// deliberately unconnected", encoding="utf-8")
-            target = root / "src/app/__synthetic_auth_probe/page.tsx"
+            target = root / "src/app/synthetic-auth-probe/page.tsx"
             base = {**os.environ, **{flag: "1" for flag in FLAGS},
                     "GITHUB_ACTIONS": "true"}
             for key in (*FLAGS, "GITHUB_ACTIONS"):
