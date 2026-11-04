@@ -469,15 +469,61 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         require(session_cookie(candidate_context) not in (
             first_cookie, second_cookie),
             "candidate_console_cookie_independent")
+        # Real React ARIA tabs partition the candidate's single authorized
+        # in-memory snapshot; switching views must not reveal a disabled
+        # login or display another principal's rows/counters.
+        stage = "candidate_console_scoped_view_navigation"
+        require(candidate_page.get_by_role(
+            "tablist", name="已授权只读视图").count() == 1,
+            "candidate_console_authorized_tablist")
+        candidate_page.get_by_role("tab", name="概览").focus()
+        candidate_page.keyboard.press("ArrowRight")
+        candidate_page.locator(
+            '#candidate-tab-devices[aria-selected="true"]').wait_for(
+            state="visible", timeout=8000)
+        require(candidate_page.locator(
+            '[role="tabpanel"][data-candidate-view="devices"]').count() == 1,
+            "candidate_console_devices_view_boundary")
+        require(candidate_page.locator(".device-table tbody tr").count() == 2,
+                "candidate_console_devices_view_scoped_rows")
+        require(candidate_page.get_by_test_id(
+            "candidate-metric-已授权设备总数").count() == 0,
+            "candidate_console_devices_view_hides_monitoring")
+        candidate_page.keyboard.press("ArrowRight")
+        candidate_page.locator(
+            '#candidate-tab-monitoring[aria-selected="true"]').wait_for(
+            state="visible", timeout=8000)
+        require(candidate_page.locator(
+            '[role="tabpanel"][data-candidate-view="monitoring"]').count() == 1,
+            "candidate_console_monitoring_view_boundary")
+        require(candidate_page.locator(".device-table tbody tr").count() == 0,
+                "candidate_console_monitoring_view_hides_directory")
+        require(candidate_page.get_by_test_id(
+            "candidate-metric-已授权设备总数").text_content() == "2",
+            "candidate_console_monitoring_view_server_total")
+        candidate_page.keyboard.press("Home")
+        candidate_page.locator(
+            '#candidate-tab-overview[aria-selected="true"]').wait_for(
+            state="visible", timeout=8000)
+        require(candidate_page.locator(
+            '[role="tabpanel"][data-candidate-view="overview"]').count() == 1,
+            "candidate_console_overview_view_boundary")
+        require(candidate_page.locator(".device-table tbody tr").count() == 2,
+                "candidate_console_overview_restores_only_authorized_rows")
         candidate_page.get_by_role("button", name="登出并清除数据").click()
         candidate_page.locator(
             "main[data-candidate-status='signed_out']").wait_for(
             state="visible", timeout=20000)
         require(candidate_page.locator(".device-table tbody tr").count() == 0,
                 "candidate_console_logout_clears_rows")
+        require(candidate_page.get_by_role("tab").count() == 0,
+                "candidate_console_logout_removes_authorized_navigation")
 
         stage = "candidate_console_switch_b"
         candidate_login("synthetic-browser-b", ["SyntheticBrowserB-1"], 1)
+        require(candidate_page.locator(
+            '#candidate-tab-overview[aria-selected="true"]').count() == 1,
+            "candidate_console_identity_change_resets_view")
         require(candidate_page.get_by_text("SyntheticBrowserA-1").count() == 0,
                 "candidate_console_no_previous_principal_rows")
 
@@ -654,6 +700,9 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         print("SYNTHETIC STAGED CONSOLE UI PASS: real React device table and "
               "server-scoped overview, A/B browser login/logout, no old rows, "
               "live grant removal, disabled-session denial; normal /login remains inert.")
+        print("SYNTHETIC SCOPED CONSOLE VIEWS PASS: keyboard-accessible "
+              "overview/devices/monitoring view isolation, server totals, "
+              "and authorization reset across identity changes.")
         print("SYNTHETIC CONSOLE LIFECYCLE PASS: background-tab lock erased "
               "authorized rows, identity and metrics; explicit Spring logout "
               "restored the signed-out view without background API polling.")
