@@ -12,7 +12,7 @@ describe('synthetic-only browser auth fixture is inert until human form submit',
     expect(html).toContain('id="synthetic-auth-user"');
     expect(html).toContain('id="synthetic-auth-password"');
     expect(html).toContain('type="password"');
-    expect(html).toContain('autocomplete="new-password"');
+    expect(html).toContain('autoComplete="new-password"');
     expect(html).toContain('data-state="idle"');
     expect(html).toContain('disabled');
     expect(html).not.toContain('action="/api');
