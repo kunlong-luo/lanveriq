@@ -16,6 +16,15 @@ CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
 BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
 NEXTJS_MODE="${LANVERIQ_SYNTHETIC_NEXTJS_PROBE:-0}"
 AUTH_UI_MODE="${LANVERIQ_SYNTHETIC_AUTH_UI_PROBE:-0}"
+MULTI_ADMIN_MODE="${LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE:-0}"
+[[ "$MULTI_ADMIN_MODE" == 0 || "$MULTI_ADMIN_MODE" == 1 ]] || {
+    echo "Synthetic multi-admin browser mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$MULTI_ADMIN_MODE" == 0 || ( "$AUTH_UI_MODE" == 1 && "$NEXTJS_MODE" == 1 && "$BROWSER_MODE" == 1 ) ]] || {
+    echo "Synthetic multi-admin browser fixture requires all three independent opt-ins" >&2
+    exit 1
+}
 [[ "$AUTH_UI_MODE" == 0 || "$AUTH_UI_MODE" == 1 ]] || {
     echo "Synthetic auth UI mode must be 0 or 1" >&2
     exit 1
@@ -842,6 +851,8 @@ PY
                 -n "Lanveriq disposable Caddy root" -t "C,," -i "$ROOT_CA"
             HOME="$BROWSER_HOME" \
                 LANVERIQ_SYNTHETIC_AUTH_UI_PROBE="$AUTH_UI_MODE" \
+                LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE="$MULTI_ADMIN_MODE" \
+                LANVERIQ_SYNTHETIC_MULTI_ADMIN_DB_CID="${DB_CID}" \
                 "$LANVERIQ_BROWSER_PYTHON" \
                 "$ROOT/apps/server/scripts/verify-synthetic-console-browser.py" \
                 3<<< "$SYNTHETIC_PASSWORD"
