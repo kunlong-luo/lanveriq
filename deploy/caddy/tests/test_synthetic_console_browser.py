@@ -424,6 +424,8 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertNotIn('login(page_a, "synthetic-owner",', browser)
         self.assertIn("multi_admin_synthetic_pg_mutation_failed", browser)
         self.assertIn("multi_admin_runtime_", browser)
+        self.assertIn("sorted(actual_labels) == sorted(expected_labels)", browser)
+        self.assertIn("len(set(actual_labels)) == len(actual_labels)", browser)
         self.assertIn("multi_admin_\" + label + \"_login_state_", browser)
         # Fixed diagnostic labels only: never emit raw headers/credentials.
         self.assertNotIn("print(completed.stderr)", browser)
