@@ -1,6 +1,15 @@
 # Lanveriq NXT-01 — isolated Next.js App Router preview
 
-## NXT-05-B synthetic two-admin browser acceptance (manual only; pending)
+## NXT-06-A staged product-shaped Console — automatic real-browser synthetic E2E PASSED
+
+`src/staged-console-workspace.tsx` is the actual read-only Console **candidate component**. It composes the already-tested `staged-console-auth.ts` and `staged-console-read.ts` into a React login form, server-validated read-only monitoring counters, authorized `DeviceDirectory`, explicit refresh and logout, and fail-closed session/data reset. No background polling, browser storage, fake data, recording or Agent collection is enabled. `staged-console-overview.ts` refuses contradictory counters or invalid server timestamps; API errors never display as verified zeros. The temporary candidate disables detail links to unmounted pages.
+
+**Actual proof:** [auto-triggered synthetic Caddy + Spring + PG18 + Chromium #41812852436](https://github.com/kunlong-luo/lanveriq/actions/runs/41812852436) **PASS** with the marker `SYNTHETIC STAGED CONSOLE UI PASS`. It rendered two A-group rows then one B-group row with server-scoped counts in the real React UI, changed identities without stale rows, removed visible rows after grant revocation, and removed metrics and identity after account disable. It retained the independent TLS/CSRF/CDP, multi-user cookies and 404 checks. No user needs to run the synthetic workflow manually: relevant `main` pushes trigger all gates automatically.
+
+**Not an active login product:** this file is **NOT imported by any checked-in App Router route**. The guarded installer mounts it only as `src/app/synthetic-console-candidate/page.tsx` inside a disposable GitHub Actions workspace with all four synthetic test flags. The default `verify:routes` rejects that route if checked into production. The ordinary `/login`, `/devices`, `/overview` and `/monitoring` are still static/unconnected, and real device/employee access or deployment requires separate authorization and UX/security review.
+
+
+## NXT-05-B historical test rollout (manual and automatic four-flag runs passed)
 
 The original one-admin empty-database Next.js client test has **passed real Chromium** in [#41803890599](https://github.com/kunlong-luo/lanveriq/actions/runs/41803890599). The next candidate is `src/synthetic-only-multi-admin-probe.tsx`, an **unmounted** component that is never available through normal App Router pages. The fourth `synthetic_multi_admin_probe` manual input defaults to `false` and requires **all three** earlier browser/Next.js/synthetic-auth inputs explicitly enabled. Only in that four-flag ephemeral CI job does the installer add a `/synthetic-multi-admin-probe` page alongside the single-admin temporary fixture, and the browser script seed a fresh disposable PG18 with an owner group (two devices), B group (one device), and two fresh synthetic browser-login identities. The two accounts share only the randomly generated **one-use test hash** inside the disposable database; this is not a production user-creation design.
 
