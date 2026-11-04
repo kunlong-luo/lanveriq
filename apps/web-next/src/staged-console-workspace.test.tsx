@@ -17,6 +17,12 @@ describe('NXT-06-A product-shaped Console candidate (unmounted)', () => {
     expect(html).not.toContain('SyntheticBrowserA-');
     expect(html).not.toContain('synthetic-browser-a');
     expect(html).not.toContain('已授权设备总数');
+    // All three read-only views must be behind the authenticated React
+    // branch. SSR and signed-out fallback render zero view-switch controls.
+    expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain('role="tabpanel"');
+    expect(html).not.toContain('candidate-tab-devices');
+    expect(html).not.toContain('candidate-tab-monitoring');
     expect(html).not.toContain('action="/api');
     expect(html).not.toContain('method="post"');
     expect(html).not.toContain('自动刷新');
