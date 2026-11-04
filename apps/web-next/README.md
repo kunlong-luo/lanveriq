@@ -1,5 +1,10 @@
 # Lanveriq NXT-01 — isolated Next.js App Router preview
 
+## NXT-06-B keyboard and accessible session-lock gate: synthetic Chromium PASS
+
+[Automatic Console HTTPS workflow #41814699267](https://github.com/kunlong-luo/lanveriq/actions/runs/41814699267) **passed** real browser checks for keyboard Tab order across the candidate login fields and submit, accessible form labels, a locked-screen `role=status` message and explicit logout after a **synthetically dispatched** hidden-document event. It retained nonempty A/B group isolation and no persisted rows/metrics after invalidation. This supplements, but does NOT replace, human keyboard/screen-reader/visual/contrast testing, user-role sign-off, and the still-default-disabled real Next.js routing.
+
+
 ## NXT-06-B authenticated view lifecycle: fail closed, test-only
 
 The unmounted `src/staged-console-workspace.tsx` now **locks** when Chromium reports a hidden document or pagehide and immediately erases currently rendered devices, current principal, aggregate metrics and TanStack Query cache. A locked UI does not show a credential form and requires a user-initiated Spring logout to verify return to `signed_out`. In-flight login, directory or overview network responses use an operation epoch and may **not** restore data after backgrounding, switching or unmounting. A first page with no next cursor must have exactly the number of entries reported by the separate authorized server overview; with a next cursor the total must be larger. These checks reject known torn snapshots on live scope changes, never fake zero values, and never make hidden-tab API requests. They do not replace Spring's authorization policy.
