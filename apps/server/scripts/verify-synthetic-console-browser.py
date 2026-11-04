@@ -303,6 +303,7 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
     private_synthetic_pg_sql(db_container, sql_path.read_text(encoding="utf-8"))
     contexts = []
     blocked = []
+    stage = "context_setup"
     try:
         pages = []
         wires = []
@@ -338,8 +339,24 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             page.locator("#multi-admin-user").fill(name)
             page.locator("#multi-admin-secret").fill(password)
             page.get_by_role("button", name="测试登录并读取").click()
-            page.locator("#multi-admin-state[data-state='ready']").wait_for(
-                state="visible", timeout=25000)
+            try:
+                page.locator("#multi-admin-state[data-state='ready']").wait_for(
+                    state="visible", timeout=25000)
+            except Exception:
+                # Only a small fixed UI-state enum is published; never
+                # Playwright's exception (may contain request/password data).
+                observed = "missing"
+                try:
+                    candidate = page.locator("#multi-admin-state").get_attribute(
+                        "data-state", timeout=1000)
+                    if candidate in ("idle", "working", "ready",
+                                     "signed-out", "scope-empty", "revoked", "denied"):
+                        observed = candidate
+                except Exception:
+                    pass
+                label = "synthetic_a" if name == "synthetic-browser-a" else "synthetic_b"
+                raise BrowserGateFailure(
+                    "multi_admin_" + label + "_login_state_" + observed) from None
             require(page.locator("#multi-admin-state").get_attribute("data-principal") == name,
                     "multi_admin_principal")
             require(page.locator("#multi-admin-state").get_attribute("data-cache-count") == "1",
@@ -352,8 +369,10 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                     "multi_admin_password_field_cleared")
 
         page_a, page_b = pages
+        stage = "login_a"
         login(page_a, "synthetic-browser-a",
               ["SyntheticBrowserA-1", "SyntheticBrowserA-2"], 2)
+        stage = "login_b"
         login(page_b, "synthetic-browser-b", ["SyntheticBrowserB-1"], 1)
         first_cookie = session_cookie(contexts[0])
         second_cookie = session_cookie(contexts[1])
@@ -363,6 +382,7 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         require(isinstance(first_device, str) and
                 re.fullmatch(r"[0-9a-f-]{36}", first_device) is not None,
                 "multi_admin_device_id")
+        stage = "cross_group_404"
         page_b.locator("#multi-other-device").fill(first_device)
         page_b.get_by_role("button", name="检查跨组详情").click()
         page_b.locator("#multi-admin-detail[data-state='not_found']").wait_for(
@@ -371,6 +391,7 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         # Switching A -> B in the SAME browser context must erase A's TanStack
         # Query rows before B can see its own scope. Context B remains logged
         # in independently with a different session cookie.
+        stage = "same_context_logout"
         page_a.get_by_role("button", name="测试登出").click()
         page_a.locator("#multi-admin-state[data-state='signed-out']").wait_for(
             state="visible", timeout=18000)
@@ -378,6 +399,7 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 "multi_admin_logout_rows_not_cleared")
         require(page_a.locator("#multi-admin-state").get_attribute("data-cache-count") == "0",
                 "multi_admin_logout_cache_not_cleared")
+        stage = "same_context_login_b"
         login(page_a, "synthetic-browser-b", ["SyntheticBrowserB-1"], 1)
         require(session_cookie(contexts[0]) != second_cookie,
                 "multi_admin_new_cookie_must_not_equal_other_context")
@@ -385,6 +407,7 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         # Actual PG18 permission removal without changing either browser
         # cookie: the two live sessions must both stop receiving group B data
         # immediately on explicitly authorized refetch.
+        stage = "revoke_group_scope"
         private_synthetic_pg_sql(db_container, """
             DO $fixture$
             DECLARE affected integer;
@@ -407,6 +430,7 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             require(page.locator("#multi-admin-state").get_attribute("data-cache-count") == "0",
                     "multi_admin_revoked_grant_cache_not_cleared")
 
+        stage = "disable_browser_account"
         private_synthetic_pg_sql(db_container, """
             DO $fixture$
             DECLARE affected integer;
@@ -430,6 +454,13 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             for origin_ok, fetch_site_ok in wire.checked_posts(expected_count=expected_count):
                 require(origin_ok and fetch_site_ok, "multi_admin_browser_post_wire_metadata")
         require(not blocked, "multi_admin_browser_must_not_contact_external_origin")
+    except BrowserGateFailure:
+        raise
+    except Exception:
+        # Never emit sensitive browser errors, SQL, headers or credentials.
+        # This fixed phase label makes unexpected Playwright runtime failures
+        # actionable without weakening TLS/CSRF/session verification.
+        raise BrowserGateFailure("multi_admin_runtime_" + stage) from None
     finally:
         for context in contexts:
             context.close()
