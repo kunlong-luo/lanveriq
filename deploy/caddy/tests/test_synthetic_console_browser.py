@@ -410,7 +410,11 @@ class SyntheticChromiumGateTest(unittest.TestCase):
                      ).read_text(encoding="utf-8")
         self.assertIn("operationEpoch.current += 1", candidate)
         self.assertIn("epoch !== operationEpoch.current", candidate)
-        self.assertIn("parsed.total < page.rows.length", candidate)
+        self.assertIn("isConsistentScopedDirectoryPage(page, parsed)", candidate)
+        overview = (ROOT / "apps/web-next/src/lib/staged-console-overview.ts"
+                    ).read_text(encoding="utf-8")
+        self.assertIn("overview.total < visible", overview)
+        self.assertIn("return overview.total === visible", overview)
         self.assertIn("document.addEventListener('visibilitychange'", candidate)
         self.assertIn("window.addEventListener('pagehide'", candidate)
         self.assertIn("client.clear();", candidate)
