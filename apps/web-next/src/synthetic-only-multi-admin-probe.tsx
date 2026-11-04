@@ -22,7 +22,16 @@ export function SyntheticMultiAdminProbe() {
   const username = useRef<HTMLInputElement>(null);
   const password = useRef<HTMLInputElement>(null);
   const otherDevice = useRef<HTMLInputElement>(null);
-  const [client] = useState(createConsoleQueryClient);
+  const [client] = useState(() => {
+    const query = createConsoleQueryClient();
+    // TEST ONLY: force a nonzero-lived scoped cache so this browser gate
+    // actually proves principal switching and revocation wipe old rows.
+    // The ordinary web preview keeps its separate gcTime=0 safety defaults.
+    query.setQueryDefaults(['synthetic', 'authorized-devices'], {
+      gcTime: 60_000,
+    });
+    return query;
+  });
   const [state, setState] = useState<ProbeState>('idle');
   const [principal, setPrincipal] = useState('');
   const [rows, setRows] = useState<readonly DirectoryRow[]>([]);
