@@ -27,6 +27,12 @@ const ORIGIN = 'https://console.lanveriq.internal';
 
 type Status = 'signed_out' | 'working' | 'ready' | 'locked' |
   'invalid_credentials' | 'forbidden' | 'throttled' | 'unavailable';
+type ReadOnlyView = 'overview' | 'devices' | 'monitoring';
+const readOnlyViews: readonly { id: ReadOnlyView; label: string }[] = [
+  { id: 'overview', label: '概览' },
+  { id: 'devices', label: '终端资产' },
+  { id: 'monitoring', label: '监控中心' },
+];
 
 const initialDirectory: DirectoryState = { kind: 'unconnected' };
 
@@ -41,6 +47,9 @@ export function StagedConsoleWorkspace() {
   const [principal, setPrincipal] = useState('');
   const [directory, setDirectory] = useState<DirectoryState>(initialDirectory);
   const [overview, setOverview] = useState<ScopedConsoleOverview | null>(null);
+  // Scoped view state is local to the verified session, never the URL,
+  // storage, a shared application layout or the server-rendered HTML.
+  const [activeView, setActiveView] = useState<ReadOnlyView>('overview');
 
   // DOM event handling is local-only. No automatic API request, session
   // restoration, credential submission, polling or background collection.
@@ -55,6 +64,11 @@ export function StagedConsoleWorkspace() {
       setPrincipal('');
       setDirectory(initialDirectory);
       setOverview(null);
+      setActiveView('overview');
+      // A password typed but not submitted must not survive a tab lock,
+      // BFCache pagehide or a later browser history restore.
+      if (username.current) username.current.value = '';
+      if (password.current) password.current.value = '';
       setStatus(previous =>
         previous === 'ready' || previous === 'working' ? 'locked' : previous);
     };
@@ -68,6 +82,8 @@ export function StagedConsoleWorkspace() {
       window.removeEventListener('pagehide', lockOnLeave);
       operationEpoch.current += 1;
       client.clear();
+      if (username.current) username.current.value = '';
+      if (password.current) password.current.value = '';
       void clearConsoleSessionState(client).catch(() => client.clear());
     };
   }, [client]);
@@ -79,6 +95,7 @@ export function StagedConsoleWorkspace() {
     setPrincipal('');
     setDirectory(initialDirectory);
     setOverview(null);
+    setActiveView('overview');
   }
 
   function clients() {
@@ -255,7 +272,19 @@ export function StagedConsoleWorkspace() {
         </div>
       </div>
       <p role="status" data-testid="candidate-principal">当前合成账号：{principal}</p>
-      {overview && <div className="metric-grid" aria-label="已授权监控数据">
+      <div className="top-actions" role="tablist" aria-label="已授权只读视图">
+        {readOnlyViews.map(view => <button
+          key={view.id} type="button" role="tab"
+          id={`candidate-tab-${view.id}`}
+          aria-selected={activeView === view.id}
+          aria-controls="candidate-active-panel"
+          className="secondary-action"
+          onClick={() => setActiveView(view.id)}>{view.label}</button>)}
+      </div>
+      <section id="candidate-active-panel" role="tabpanel"
+        aria-labelledby={`candidate-tab-${activeView}`}
+        data-candidate-view={activeView}>
+      {activeView !== 'devices' && overview && <div className="metric-grid" aria-label="已授权监控数据">
         {([
           ['已授权设备总数', overview.total],
           ['在线设备', overview.online],
@@ -268,9 +297,11 @@ export function StagedConsoleWorkspace() {
             </CardHeader>
           </Card>)}
       </div>}
-      <DeviceDirectory state={directory} allowDetailNavigation={false}/>
+      {activeView !== 'monitoring' && <DeviceDirectory
+        key={principal} state={directory} allowDetailNavigation={false}/>}
       <p className="freshness-note">只显示当前授权设备，连接状态必须以服务端证据为准；
         不会根据注册状态推断在线情况。</p>
+      </section>
     </section>}
   </main>;
 }
