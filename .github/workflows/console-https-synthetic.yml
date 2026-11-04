@@ -16,6 +16,11 @@ on:
         required: true
         type: boolean
         default: false
+      synthetic_auth_ui_probe:
+        description: 'Build a disposable, test-only Next.js credentialed UI route (requires both browser and Next.js probes)'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -41,10 +46,16 @@ jobs:
         run: |
           echo "FAIL: same-origin Next.js test requires an explicitly enabled real Chromium probe"
           exit 1
+      - name: Reject synthetic auth UI probe without both independent browser gates
+        if: ${{ inputs.synthetic_auth_ui_probe && (!inputs.browser_probe || !inputs.nextjs_same_origin_probe) }}
+        run: |
+          echo "FAIL: synthetic-only Next.js auth UI requires both explicit browser and same-origin Next.js opt-ins"
+          exit 1
       - name: Declare exact manual acceptance scope (request, not pass)
         env:
           BROWSER_REQUESTED: ${{ inputs.browser_probe && '1' || '0' }}
           NEXTJS_REQUESTED: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
+          AUTH_UI_REQUESTED: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -63,6 +74,11 @@ jobs:
               echo "| Next.js + Spring same-origin Chromium | YES; result pending |"
             else
               echo "| Next.js + Spring same-origin Chromium | SKIPPED (nextjs_same_origin_probe=false) |"
+            fi
+            if [[ "$AUTH_UI_REQUESTED" == 1 ]]; then
+              echo "| Disposable Next.js credentialed browser fixture (not real login UI) | YES; result pending |"
+            else
+              echo "| Disposable Next.js credentialed browser fixture | SKIPPED (synthetic_auth_ui_probe=false) |"
             fi
             echo ""
             echo "A green workflow only proves the requested gates. Unselected gates are not accepted."
@@ -116,15 +132,24 @@ jobs:
           install: true
           require-lockfile: true
           cache: false
-      - name: Build the unchanged, disabled-login Next.js preview
+      - name: Build default disabled-login preview (optionally add disposable auth fixture)
         if: ${{ inputs.nextjs_same_origin_probe }}
         working-directory: apps/web-next
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+          LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ inputs.browser_probe && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
         run: |
+          set -euo pipefail
           pnpm install --frozen-lockfile
+          # Must run before inserting the test-only App Router page. The
+          # committed preview must never expose a credential-bearing route.
           pnpm run verify:routes
           pnpm test
+          if [[ "$LANVERIQ_SYNTHETIC_AUTH_UI_PROBE" == 1 ]]; then
+            node scripts/install-synthetic-auth-fixture.mjs
+          fi
           pnpm typecheck
           pnpm build
       - name: Run isolated Caddy->Tomcat->PG18 HTTPS session and negative checks
@@ -133,6 +158,7 @@ jobs:
           LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '1'
           LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ inputs.browser_probe && '1' || '0' }}
           LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
           LANVERIQ_BROWSER_PYTHON: ${{ runner.temp }}/lanveriq-playwright/bin/python
           NEXT_TELEMETRY_DISABLED: '1'
         shell: bash
@@ -175,10 +201,15 @@ jobs:
               echo "- SKIPPED: real Chromium Console security (browser_probe=false)"
             fi
             if [[ "$LANVERIQ_SYNTHETIC_NEXTJS_PROBE" == 1 ]]; then
-              echo "- PASS: real Next.js preview + Spring same-origin Chromium checks (UI login remains disabled)"
+              echo "- PASS: real Next.js preview + Spring same-origin Chromium checks (default /login stays disabled)"
             else
               echo "- SKIPPED: Next.js + Spring same-origin Chromium (nextjs_same_origin_probe=false)"
             fi
+            if [[ "$LANVERIQ_SYNTHETIC_AUTH_UI_PROBE" == 1 ]]; then
+              echo "- PASS: disposable Next.js credentialed synthetic browser UI fixture (real browser login, authorized empty reads, logout)"
+            else
+              echo "- SKIPPED: disposable Next.js auth UI fixture (synthetic_auth_ui_probe=false)"
+            fi
             echo "- PASS: nonempty two-group Servlet/DB RBAC checks using synthetic authenticated principals on actual PG18 (separate earlier integrationTest step)"
-            echo "- NOT PROVEN: real browser-login multi-group RBAC end-to-end, activated Next.js login/data hooks, real devices/Agent or production deployment"
+            echo "- NOT PROVEN: production Next.js /login or live data hooks, multi-principal browser RBAC, real devices/Agent or deployment"
           } >> "$GITHUB_STEP_SUMMARY"
