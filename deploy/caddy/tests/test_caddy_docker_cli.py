@@ -132,7 +132,15 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertIn('TEST-ONLY canonical console host', script)
         self.assertIn('LANVERIQ_SYNTHETIC_CONSOLE_SESSION', workflow)
         self.assertIn("workflow_dispatch:", workflow)
-        self.assertNotIn("push:", workflow)
+        # Relevant main-branch pushes now run the full disposable synthetic
+        # fixture automatically. Manual probes remain default OFF and the
+        # ordinary Caddy reference must not enable authentication.
+        self.assertIn("push:", workflow)
+        self.assertIn("branches: [main]", workflow)
+        self.assertIn("paths:", workflow)
+        self.assertIn("github.event_name == 'push'", workflow)
+        self.assertIn("contents: read", workflow)
+        self.assertNotIn("actions: write", workflow)
         self.assertNotIn("pull_request:", workflow)
         self.assertIn('respond "Console not enabled in this reference configuration" 503', reference)
         self.assertNotIn('TEST-ONLY canonical console host', reference)
