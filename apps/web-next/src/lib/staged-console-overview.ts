@@ -1,3 +1,5 @@
+import type { DirectoryState } from '../components/device-directory';
+
 /** Validate the exact server-derived, group-scoped health counters.
  * Never convert disconnected/malformed responses into zero devices.
  * All values are operational health metadata, not employee activity.
@@ -38,4 +40,23 @@ export function parseScopedConsoleOverview(raw: unknown): ScopedConsoleOverview 
     pending: data.pending as number,
     retired: data.retired as number,
   };
+}
+
+/**
+ * The directory and overview are separate real HTTP reads. Reject a torn
+ * snapshot instead of showing rows from a previous authorization scope with
+ * newer zero-valued monitoring totals. With no cursor, the first page covers
+ * the entire authorized group; with a cursor, more authorized rows exist.
+ *
+ * This is a frontend safety check, not a replacement for server-side RBAC
+ * or transactionally consistent multi-endpoint snapshots.
+ */
+export function isConsistentScopedDirectoryPage(
+  directory: DirectoryState, overview: ScopedConsoleOverview,
+): boolean {
+  if (directory.kind !== 'ready') return false;
+  const visible = directory.rows.length;
+  if (!Number.isSafeInteger(visible) || overview.total < visible) return false;
+  if (directory.hasMore) return overview.total > visible;
+  return overview.total === visible;
 }
