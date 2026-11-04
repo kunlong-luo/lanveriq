@@ -18,8 +18,9 @@ import { parseScopedConsoleOverview, type ScopedConsoleOverview } from './lib/st
  * explicitly requested (or selected by filtered main-push CI). Production
  * /login, /overview, /devices and /monitoring remain disabled/inert.
  *
- * No effect hooks, session restoration, interval polling, external proxy,
- * localStorage, retry, Agent request or employee activity collection.
+ * No automatic network effects, session restoration, interval polling,
+ * external proxy, localStorage, retry, Agent request or employee collection.
+ * The only effect listens for page visibility/pagehide to clear state.
  * Every request originates from a deliberate user-like button/form action.
  */
 const ORIGIN = 'https://console.lanveriq.internal';
@@ -47,7 +48,10 @@ export function StagedConsoleWorkspace() {
   useEffect(() => {
     const lockOnLeave = () => {
       operationEpoch.current += 1;
-      void clearConsoleSessionState(client);
+      // pagehide may terminate JavaScript before an awaited query cancel.
+      // Drop the in-memory cache synchronously, then cancel as best effort.
+      client.clear();
+      void clearConsoleSessionState(client).catch(() => client.clear());
       setPrincipal('');
       setDirectory(initialDirectory);
       setOverview(null);
@@ -63,7 +67,8 @@ export function StagedConsoleWorkspace() {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', lockOnLeave);
       operationEpoch.current += 1;
-      void clearConsoleSessionState(client);
+      client.clear();
+      void clearConsoleSessionState(client).catch(() => client.clear());
     };
   }, [client]);
 
