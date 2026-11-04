@@ -1,5 +1,12 @@
 # Lanveriq NXT-01 — isolated Next.js App Router preview
 
+## NXT-06-B authenticated view lifecycle: fail closed, test-only
+
+The unmounted `src/staged-console-workspace.tsx` now **locks** when Chromium reports a hidden document or pagehide and immediately erases currently rendered devices, current principal, aggregate metrics and TanStack Query cache. A locked UI does not show a credential form and requires a user-initiated Spring logout to verify return to `signed_out`. In-flight login, directory or overview network responses use an operation epoch and may **not** restore data after backgrounding, switching or unmounting. A first page with no next cursor must have exactly the number of entries reported by the separate authorized server overview; with a next cursor the total must be larger. These checks reject known torn snapshots on live scope changes, never fake zero values, and never make hidden-tab API requests. They do not replace Spring's authorization policy.
+
+The [automatic synthetic Chromium suite #41814258021](https://github.com/kunlong-luo/lanveriq/actions/runs/41814258021) **passed** `SYNTHETIC CONSOLE LIFECYCLE PASS` after dispatching a **synthetic** hidden-page visibility event to the real Chromium React app, then verifying the clearing/explicit-logout flow against live disposable Spring/PG18. [Next.js unit/compile CI #41814315219](https://github.com/kunlong-luo/lanveriq/actions/runs/41814315219) and [Server source checks #41814337308](https://github.com/kunlong-luo/lanveriq/actions/runs/41814337308) also passed. This is an acceptance candidate, not approved live routing or production login.
+
+
 ## NXT-06-A staged product-shaped Console — automatic real-browser synthetic E2E PASSED
 
 `src/staged-console-workspace.tsx` is the actual read-only Console **candidate component**. It composes the already-tested `staged-console-auth.ts` and `staged-console-read.ts` into a React login form, server-validated read-only monitoring counters, authorized `DeviceDirectory`, explicit refresh and logout, and fail-closed session/data reset. No background polling, browser storage, fake data, recording or Agent collection is enabled. `staged-console-overview.ts` refuses contradictory counters or invalid server timestamps; API errors never display as verified zeros. The temporary candidate disables detail links to unmounted pages.
