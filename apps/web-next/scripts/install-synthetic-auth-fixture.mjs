@@ -26,10 +26,13 @@ if (!existsSync(join(root, 'src/synthetic-only-auth-probe.tsx')) ||
 const dir = join(root, 'src/app/synthetic-auth-probe');
 const target = join(dir, 'page.tsx');
 const multiDir = join(root, 'src/app/synthetic-multi-admin-probe');
+const candidateDir = join(root, 'src/app/synthetic-console-candidate');
 if (existsSync(dir) || existsSync(target) || existsSync(multiDir) ||
+    existsSync(candidateDir) ||
     (multiAdmin === '1' &&
-     !existsSync(join(root, 'src/synthetic-only-multi-admin-probe.tsx')))) {
-  throw new Error('Synthetic auth route already exists or multi-admin fixture missing');
+     (!existsSync(join(root, 'src/synthetic-only-multi-admin-probe.tsx')) ||
+      !existsSync(join(root, 'src/staged-console-workspace.tsx'))))) {
+  throw new Error('Synthetic auth routes already exist or staged source fixture missing');
 }
 mkdirSync(dir, { recursive: false, mode: 0o700 });
 writeFileSync(target, `import { SyntheticOnlyAuthProbe } from '@/synthetic-only-auth-probe';
@@ -51,4 +54,18 @@ export default function SyntheticMultiAdminPage() {
 }
 `, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
   console.log('Synthetic multi-admin browser fixture staged in disposable runner only');
+}
+
+if (multiAdmin === '1') {
+  // Product-shaped UI candidate is NEVER mounted in a committed App Router
+  // route. The fourth synthetic gate is the only way to compile/run it.
+  mkdirSync(candidateDir, { recursive: false, mode: 0o700 });
+  writeFileSync(join(candidateDir, 'page.tsx'), `import { StagedConsoleWorkspace } from '@/staged-console-workspace';
+
+export const dynamic = 'force-dynamic';
+export default function SyntheticCandidatePage() {
+  return <StagedConsoleWorkspace />;
+}
+`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  console.log('Staged product-shaped Console candidate mounted in disposable runner only');
 }
