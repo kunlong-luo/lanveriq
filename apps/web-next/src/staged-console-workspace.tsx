@@ -278,8 +278,24 @@ export function StagedConsoleWorkspace() {
           id={`candidate-tab-${view.id}`}
           aria-selected={activeView === view.id}
           aria-controls="candidate-active-panel"
+          tabIndex={activeView === view.id ? 0 : -1}
           className="secondary-action"
-          onClick={() => setActiveView(view.id)}>{view.label}</button>)}
+          onClick={() => setActiveView(view.id)}
+          onKeyDown={event => {
+            const index = readOnlyViews.findIndex(item => item.id === activeView);
+            const nextIndex = event.key === 'Home' ? 0 :
+              event.key === 'End' ? readOnlyViews.length - 1 :
+              event.key === 'ArrowRight' ? (index + 1) % readOnlyViews.length :
+              event.key === 'ArrowLeft'
+                ? (index + readOnlyViews.length - 1) % readOnlyViews.length : -1;
+            if (nextIndex < 0) return;
+            event.preventDefault();
+            const next = readOnlyViews[nextIndex];
+            setActiveView(next.id);
+            event.currentTarget.parentElement
+              ?.querySelector<HTMLButtonElement>(`#candidate-tab-${next.id}`)
+              ?.focus();
+          }}>{view.label}</button>)}
       </div>
       <section id="candidate-active-panel" role="tabpanel"
         aria-labelledby={`candidate-tab-${activeView}`}
