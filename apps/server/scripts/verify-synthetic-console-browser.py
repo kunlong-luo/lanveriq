@@ -583,6 +583,25 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             wait_until="networkidle", timeout=25000)
         require(privacy_response is not None and privacy_response.status == 200,
                 "candidate_console_lifecycle_https_status")
+        # Real keyboard tab order/accessible labels on the product-shaped
+        # form; not only CSS or string-based markup assertions.
+        require(privacy_page.get_by_role(
+            "textbox", name="合成管理员账号").count() == 1,
+            "candidate_console_username_accessible_name")
+        require(privacy_page.get_by_label(
+            "一次性合成密码").count() == 1,
+            "candidate_console_password_accessible_name")
+        privacy_page.get_by_role(
+            "textbox", name="合成管理员账号").focus()
+        privacy_page.keyboard.press("Tab")
+        require(privacy_page.evaluate(
+            "() => document.activeElement?.id") == "candidate-password",
+            "candidate_console_keyboard_password_focus")
+        privacy_page.keyboard.press("Tab")
+        require(privacy_page.get_by_role(
+            "button", name="安全登录并获取授权设备").evaluate(
+                "(button) => document.activeElement === button"),
+            "candidate_console_keyboard_submit_focus")
         privacy_page.locator("#candidate-username").fill("synthetic-browser-a")
         privacy_page.locator("#candidate-password").fill(password)
         privacy_page.get_by_role(
@@ -613,6 +632,12 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             "candidate_console_hidden_tab_erases_identity")
         require(privacy_page.locator("#candidate-password").count() == 0,
                 "candidate_console_hidden_tab_requires_logout")
+        require(privacy_page.get_by_role(
+            "status").filter(has_text="已离开当前页面或标签").count() == 1,
+            "candidate_console_locked_screen_reader_status")
+        require(privacy_page.get_by_role(
+            "button", name="验证登出后重新登录").is_enabled(),
+            "candidate_console_locked_logout_accessible")
         privacy_page.get_by_role(
             "button", name="验证登出后重新登录").click()
         privacy_page.locator(
