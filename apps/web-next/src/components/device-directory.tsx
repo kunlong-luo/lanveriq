@@ -51,7 +51,9 @@ const feedback = {
   unavailable: { title: '设备服务暂不可用', message: '无法安全读取服务端响应，不会回退到合成数据。', Icon: WifiOff },
 } as const;
 
-export function DeviceDirectory({ state }: Readonly<{ state: DirectoryState }>) {
+export function DeviceDirectory({
+  state, allowDetailNavigation = true,
+}: Readonly<{ state: DirectoryState; allowDetailNavigation?: boolean }>) {
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('');
   const isReady = state.kind === 'ready';
@@ -113,10 +115,10 @@ export function DeviceDirectory({ state }: Readonly<{ state: DirectoryState }>) 
               {statusLabel[row.connectivity]}</span></td>
             <td>{row.heartbeat ?? '尚无已接收心跳'}</td>
             <td>{row.queue === null ? '未上报' : `${row.queue} 条`}</td>
-            <td>{isCanonicalUuid(row.id)
+            <td>{isCanonicalUuid(row.id) && allowDetailNavigation
               ? <Link href={`/devices/${row.id}`} aria-label={`查看${row.label}的详情`}
                   className="device-detail-link"><ArrowRight size={18} /></Link>
-              : <span>不可用</span>}</td>
+              : <span>{isCanonicalUuid(row.id) ? '详情未开放' : '不可用'}</span>}</td>
           </tr>)}</tbody>
         </table>
       </CardContent>
