@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { verifyRuntimeIsolation } from './verify-runtime-isolation.mjs';
 
 // Source-only CI guard; not a browser TLS/PG18 acceptance.
 const required = [
@@ -49,4 +50,7 @@ function inspectRuntimeSource(folder) {
   }
 }
 for (const folder of ['src/app', 'src/components']) inspectRuntimeSource(join(process.cwd(),folder));
+const verified = verifyRuntimeIsolation(process.cwd());
+console.log('NXT-06 staged runtime dependency graph isolated:',
+  verified.checkedEntries, 'entry files /', verified.checkedModules, 'reachable modules');
 console.log('NXT-03 staged transport stays unmounted; no business proxy, credentials or live API use');
