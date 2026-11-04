@@ -9,6 +9,8 @@ The generated password arrives exclusively over inherited FD 3.
 import os
 import re
 import sys
+import subprocess
+from pathlib import Path
 from urllib.parse import urlparse, urlsplit
 
 CONSOLE = "https://console.lanveriq.internal"
@@ -275,6 +277,164 @@ def verify_nextjs_synthetic_auth_ui(context, password):
         page.close()
 
 
+def private_synthetic_pg_sql(db_container, sql):
+    """Execute fixed test SQL in the isolated PG18 container; NEVER log SQL,
+    hashes, database output or process diagnostics. No external DB URI allowed.
+    """
+    require(re.fullmatch(r"[a-f0-9]{12,64}", db_container) is not None,
+            "multi_admin_disposable_pg_container_required")
+    completed = subprocess.run(
+        ["docker", "exec", "-i", db_container, "psql",
+         "-X", "-q", "-v", "ON_ERROR_STOP=1", "-U", "lanveriq", "-d", "lanveriq"],
+        input=sql, text=True, capture_output=True, timeout=20, check=False,
+    )
+    require(completed.returncode == 0, "multi_admin_synthetic_pg_mutation_failed")
+
+
+def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
+    """Independent real Chromium contexts + real disposable PG18/JPA/Servlet.
+
+    First owner/empty-read browser gate must already have passed. All data
+    seeded here belongs exclusively to the disposable Testcontainers-style
+    manually launched PG18 database. No production account provisioning.
+    """
+    sql_path = Path(__file__).with_name("seed-synthetic-multi-admin.sql")
+    require(sql_path.is_file(), "multi_admin_fixture_sql_missing")
+    private_synthetic_pg_sql(db_container, sql_path.read_text(encoding="utf-8"))
+    contexts = []
+    blocked = []
+    try:
+        pages = []
+        wires = []
+        for _ in range(2):
+            context = browser.new_context(
+                ignore_https_errors=False,
+                accept_downloads=False, service_workers="block",
+            )
+            contexts.append(context)
+            def restrict(route):
+                blocked.append("multi_admin_forbidden_external_origin")
+                route.abort()
+            context.route(DISALLOWED_NETWORK_URL, restrict)
+            page = context.new_page()
+            page.on("websocket", lambda _: blocked.append("multi_admin_forbidden_websocket"))
+            wire = ChromiumWirePostMetadata()
+            cdp = context.new_cdp_session(page)
+            cdp.on("Network.requestWillBeSent", wire.on_request)
+            cdp.on("Network.requestWillBeSentExtraInfo", wire.on_extra_info)
+            cdp.send("Network.enable")
+            response = page.goto(CONSOLE + "/synthetic-multi-admin-probe",
+                                 wait_until="networkidle", timeout=25000)
+            require(response is not None and response.status == 200,
+                    "multi_admin_nextjs_page_status")
+            require(page.get_by_role("heading", name="双管理员合成隔离测试").count() == 1,
+                    "multi_admin_nextjs_heading")
+            require(page.locator("#multi-admin-state").get_attribute("data-state") == "idle",
+                    "multi_admin_no_implicit_auth")
+            pages.append(page)
+            wires.append(wire)
+
+        def login(page, name, expected_labels, total):
+            page.locator("#multi-admin-user").fill(name)
+            page.locator("#multi-admin-secret").fill(password)
+            page.get_by_role("button", name="测试登录并读取").click()
+            page.locator("#multi-admin-state[data-state='ready']").wait_for(
+                state="visible", timeout=25000)
+            require(page.locator("#multi-admin-state").get_attribute("data-principal") == name,
+                    "multi_admin_principal")
+            require(page.locator("#multi-admin-state").get_attribute("data-cache-count") == "1",
+                    "multi_admin_exactly_one_scoped_cache")
+            require(page.locator("#multi-admin-overview").get_attribute("data-total") == str(total),
+                    "multi_admin_overview_total")
+            require(page.locator("#multi-admin-device-list li").all_text_contents() == expected_labels,
+                    "multi_admin_scope_rows")
+            require(page.locator("#multi-admin-secret").input_value() == "",
+                    "multi_admin_password_field_cleared")
+
+        page_a, page_b = pages
+        login(page_a, "synthetic-owner",
+              ["SyntheticBrowserA-1", "SyntheticBrowserA-2"], 2)
+        login(page_b, "synthetic-browser-b", ["SyntheticBrowserB-1"], 1)
+        first_cookie = session_cookie(contexts[0])
+        second_cookie = session_cookie(contexts[1])
+        require(first_cookie != second_cookie, "multi_admin_isolated_session_cookies")
+        first_device = page_a.locator("#multi-admin-device-list li").first.get_attribute(
+            "data-device-id")
+        require(isinstance(first_device, str) and
+                re.fullmatch(r"[0-9a-f-]{36}", first_device) is not None,
+                "multi_admin_device_id")
+        page_b.locator("#multi-other-device").fill(first_device)
+        page_b.get_by_role("button", name="检查跨组详情").click()
+        page_b.locator("#multi-admin-detail[data-state='not_found']").wait_for(
+            state="visible", timeout=12000)
+
+        # Switching A -> B in the SAME browser context must erase A's TanStack
+        # Query rows before B can see its own scope. Context B remains logged
+        # in independently with a different session cookie.
+        page_a.get_by_role("button", name="测试登出").click()
+        page_a.locator("#multi-admin-state[data-state='signed-out']").wait_for(
+            state="visible", timeout=18000)
+        require(page_a.locator("#multi-admin-device-list li").count() == 0,
+                "multi_admin_logout_rows_not_cleared")
+        require(page_a.locator("#multi-admin-state").get_attribute("data-cache-count") == "0",
+                "multi_admin_logout_cache_not_cleared")
+        login(page_a, "synthetic-browser-b", ["SyntheticBrowserB-1"], 1)
+        require(session_cookie(contexts[0]) != second_cookie,
+                "multi_admin_new_cookie_must_not_equal_other_context")
+
+        # Actual PG18 permission removal without changing either browser
+        # cookie: the two live sessions must both stop receiving group B data
+        # immediately on explicitly authorized refetch.
+        private_synthetic_pg_sql(db_container, """
+            DO $fixture$
+            DECLARE affected integer;
+            BEGIN
+              DELETE FROM user_role_scopes
+               WHERE user_id=(SELECT id FROM users
+                               WHERE normalized_login='synthetic-browser-b');
+              GET DIAGNOSTICS affected = ROW_COUNT;
+              IF affected <> 1 THEN
+                RAISE EXCEPTION 'unexpected synthetic B grant count';
+              END IF;
+            END $fixture$;
+        """)
+        for page in pages:
+            page.get_by_role("button", name="刷新已授权设备").click()
+            page.locator("#multi-admin-state[data-state='scope-empty']").wait_for(
+                state="visible", timeout=16000)
+            require(page.locator("#multi-admin-device-list li").count() == 0,
+                    "multi_admin_revoked_grant_rows_not_cleared")
+            require(page.locator("#multi-admin-state").get_attribute("data-cache-count") == "0",
+                    "multi_admin_revoked_grant_cache_not_cleared")
+
+        private_synthetic_pg_sql(db_container, """
+            DO $fixture$
+            DECLARE affected integer;
+            BEGIN
+              UPDATE users SET disabled_at=clock_timestamp()
+               WHERE normalized_login='synthetic-browser-b'
+                 AND disabled_at IS NULL;
+              GET DIAGNOSTICS affected = ROW_COUNT;
+              IF affected <> 1 THEN
+                RAISE EXCEPTION 'unexpected synthetic B disabled count';
+              END IF;
+            END $fixture$;
+        """)
+        for page in pages:
+            page.get_by_role("button", name="刷新已授权设备").click()
+            page.locator("#multi-admin-state[data-state='revoked']").wait_for(
+                state="visible", timeout=16000)
+            require(page.locator("#multi-admin-state").get_attribute("data-cache-count") == "0",
+                    "multi_admin_disabled_session_cache_not_cleared")
+        for expected_count, wire in zip((3, 1), wires):
+            for origin_ok, fetch_site_ok in wire.checked_posts(expected_count=expected_count):
+                require(origin_ok and fetch_site_ok, "multi_admin_browser_post_wire_metadata")
+        require(not blocked, "multi_admin_browser_must_not_contact_external_origin")
+    finally:
+        for context in contexts:
+            context.close()
+
+
 def session_cookie(context):
     matching = [c for c in context.cookies([CONSOLE]) if c["name"] == COOKIE]
     require(len(matching) == 1, "host_cookie_count")
@@ -298,6 +458,14 @@ def main():
             "invalid_synthetic_auth_ui_mode")
     auth_ui_mode = os.environ.get("LANVERIQ_SYNTHETIC_AUTH_UI_PROBE", "0") == "1"
     require(not auth_ui_mode or nextjs_mode, "synthetic_auth_ui_requires_nextjs")
+    require(os.environ.get("LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE", "0") in ("0", "1"),
+            "invalid_synthetic_multi_admin_mode")
+    multi_admin_mode = os.environ.get("LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE", "0") == "1"
+    require(not multi_admin_mode or (auth_ui_mode and nextjs_mode),
+            "multi_admin_requires_three_explicit_browser_gates")
+    db_container = os.environ.get("LANVERIQ_SYNTHETIC_MULTI_ADMIN_DB_CID", "")
+    require(not multi_admin_mode or re.fullmatch(r"[0-9a-f]{12,64}", db_container) is not None,
+            "multi_admin_disposable_pg_container_required")
     home = os.environ.get("HOME", "")
     require(home and os.path.isdir(os.path.join(home, ".pki/nssdb")), "private_browser_trust_missing")
     with os.fdopen(3, "r", encoding="ascii") as private_input:
@@ -468,6 +636,8 @@ def main():
                 verify_nextjs_synthetic_auth_ui(context, password)
             require(not blocked_network, "browser_must_not_contact_external_origin_or_websocket")
             context.close()
+            if multi_admin_mode:
+                verify_nextjs_synthetic_multi_admin(browser, password, db_container)
         finally:
             browser.close()
     print("MANUAL SYNTHETIC CHROMIUM PASS: trusted TLS with negative CA control, browser Origin/Fetch-Site, "
@@ -480,8 +650,15 @@ def main():
             print("MANUAL SYNTHETIC NEXT.JS AUTH UI PASS: disposable browser-mounted "
                   "Next.js client used Spring CSRF/login/session, authorized empty "
                   "device/overview reads, logout and post-logout 401; real CDP POST headers.")
-            print("NOT PROVEN: production /login wiring, nonempty two-admin browser RBAC, "
-                  "real people, devices, Agent or production deployment.")
+            if multi_admin_mode:
+                print("MANUAL SYNTHETIC NEXT.JS MULTI-ADMIN RBAC PASS: separate Chromium "
+                      "cookies, real PG18 nonempty A/B scopes, 404, cache purge on "
+                      "identity switch, live grant removal and account disable.")
+                print("NOT PROVEN: production /login, real managed devices, "
+                      "human UI review or authorized deployment.")
+            else:
+                print("NOT PROVEN: production /login wiring, nonempty two-admin browser RBAC, "
+                      "real people, devices, Agent or production deployment.")
         else:
             print("NOT PROVEN: mounted Next.js browser credential UI, "
                   "multi-principal browser RBAC, real people/devices/Agent or deployment.")
