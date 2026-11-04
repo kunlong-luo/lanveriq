@@ -179,5 +179,6 @@ jobs:
             else
               echo "- SKIPPED: Next.js + Spring same-origin Chromium (nextjs_same_origin_probe=false)"
             fi
-            echo "- NOT PROVEN: activated Next.js login/data hooks, nonempty multi-group RBAC, real devices/Agent or production deployment"
+            echo "- PASS: nonempty two-group Servlet/DB RBAC checks using synthetic authenticated principals on actual PG18 (separate earlier integrationTest step)"
+            echo "- NOT PROVEN: real browser-login multi-group RBAC end-to-end, activated Next.js login/data hooks, real devices/Agent or production deployment"
           } >> "$GITHUB_STEP_SUMMARY"
