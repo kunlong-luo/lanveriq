@@ -9,6 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import jakarta.persistence.EntityManager;
+import java.util.UUID;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.web.FilterChainProxy;
@@ -30,7 +38,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  *
  * MockMvc exercises actual Spring filters and servlet routing; this remains
  * distinct from a real Tomcat TLS/ALPN, Caddy or browser acceptance.
- * No user/device is created, no credentials are supplied, no Agent APIs run.
+ * The scope test creates only disposable synthetic PostgreSQL groups/users/
+ * devices, using an authenticated test principal (no password, login UI or
+ * Agent). Full TLS and browser sessions are separately verified.
  */
 @Testcontainers
 @AutoConfigureMockMvc
@@ -59,6 +69,12 @@ class PostgreSqlConsoleSecurityWiringIT {
 
     @Autowired
     private FilterChainProxy springSecurityFilterChain;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Test
     void bootDiscoversConditionalConsoleChainsAndBlocksAnonymousReads()
@@ -150,4 +166,156 @@ class PostgreSqlConsoleSecurityWiringIT {
                         .header("Host", "agent.lanveriq.internal"))
                 .andExpect(status().isForbidden());
     }
+    // Kept in the existing manually dispatched PG18 servlet suite so the
+    // Console + Next.js acceptance workflow executes this data-bearing gate
+    // without ever starting a real user session or enabling device collection.
+    private record ScopedFixture(UUID firstAdmin, UUID secondAdmin,
+                                 UUID firstDevice, UUID secondDevice, UUID outsider) {}
+
+    private UUID syntheticGroup() {
+        return (UUID) entityManager.createNativeQuery("""
+                INSERT INTO device_groups(name) VALUES (:name) RETURNING id
+                """).setParameter("name", "http-synthetic-" + UUID.randomUUID())
+                .getSingleResult();
+    }
+
+    private UUID syntheticAdmin(UUID group, boolean duplicateReadRoles) {
+        UUID id = (UUID) entityManager.createNativeQuery("""
+                INSERT INTO users(normalized_login,password_hash)
+                VALUES (:login,'synthetic-NO-LOGIN') RETURNING id
+                """).setParameter("login", "http-synthetic-" + UUID.randomUUID())
+                .getSingleResult();
+        entityManager.createNativeQuery("""
+                INSERT INTO user_role_scopes(user_id,role_id,device_group_id)
+                SELECT :actor, r.id, :group FROM roles AS r
+                WHERE r.code IN (:roles)
+                """).setParameter("actor", id)
+                .setParameter("group", group)
+                .setParameter("roles", duplicateReadRoles
+                        ? List.of("it_operator", "security_auditor")
+                        : List.of("it_operator"))
+                .executeUpdate();
+        return id;
+    }
+
+    private UUID syntheticDevice(UUID group, String state) {
+        return (UUID) entityManager.createNativeQuery("""
+                INSERT INTO devices(group_id,device_label,enrollment_state)
+                VALUES(:group,'Synthetic scoped HTTP device',:state) RETURNING id
+                """).setParameter("group", group)
+                .setParameter("state", state)
+                .getSingleResult();
+    }
+
+    private ScopedFixture seedScopedFixture() {
+        return new TransactionTemplate(transactionManager).execute(ignored -> {
+            UUID a = syntheticGroup();
+            UUID b = syntheticGroup();
+            UUID firstAdmin = syntheticAdmin(a, true);
+            UUID secondAdmin = syntheticAdmin(b, false);
+            UUID firstDevice = syntheticDevice(a, "active");
+            UUID secondDevice = syntheticDevice(a, "pending_certificate");
+            UUID outsider = syntheticDevice(b, "active");
+            return new ScopedFixture(firstAdmin, secondAdmin, firstDevice,
+                    secondDevice, outsider);
+        });
+    }
+
+    private MockHttpServletRequestBuilder scopedGet(String url, UUID actor) {
+        // The SecurityContext is supplied only by spring-security-test.
+        // Account/session-version checks and group scope still hit actual PG18.
+        var principal = new AdminPrincipal(actor, "synthetic-http-admin",
+                "synthetic-NO-LOGIN", true, 0L);
+        var authentication = UsernamePasswordAuthenticationToken.authenticated(
+                principal, null, List.of());
+        return get(url).secure(true)
+                .header("Host", "console.lanveriq.internal:443")
+                .header("Sec-Fetch-Site", "same-origin")
+                .with(authentication(authentication));
+    }
+
+    @Test
+    void realPostgresGroupsAreIsolatedAtActualServletEndpoints() throws Exception {
+        ScopedFixture data = seedScopedFixture();
+
+        // Two roles in the same group must not duplicate health rows.
+        // The controller, real SecurityFilterChain and real JPA repository
+        // all run through Boot component scan and a disposable PG18 database.
+        mvc.perform(scopedGet("/api/v1/devices", data.firstAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[*].device_id",
+                        containsInAnyOrder(data.firstDevice().toString(),
+                                data.secondDevice().toString())))
+                .andExpect(jsonPath("$.next_cursor").value(
+                        org.hamcrest.Matchers.nullValue()));
+
+        mvc.perform(scopedGet("/api/v1/devices", data.firstAdmin())
+                        .param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.next_cursor").isNotEmpty());
+
+        mvc.perform(scopedGet("/api/v1/devices", data.secondAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].device_id")
+                        .value(data.outsider().toString()));
+
+        mvc.perform(scopedGet("/api/v1/devices/" + data.firstDevice(),
+                        data.firstAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.device_id").value(data.firstDevice().toString()));
+        mvc.perform(scopedGet("/api/v1/devices/" + data.outsider(),
+                        data.firstAdmin()))
+                .andExpect(status().isNotFound())
+                .andExpect(header().string("Cache-Control", "no-store"));
+        mvc.perform(scopedGet("/api/v1/devices/" + data.firstDevice(),
+                        data.secondAdmin()))
+                .andExpect(status().isNotFound())
+                .andExpect(header().string("Cache-Control", "no-store"));
+        mvc.perform(scopedGet("/api/v1/devices/" + UUID.randomUUID(),
+                        data.firstAdmin()))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(scopedGet("/api/v1/monitoring/overview", data.firstAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.offline").value(1))
+                .andExpect(jsonPath("$.pending").value(1));
+        mvc.perform(scopedGet("/api/v1/monitoring/overview", data.secondAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.offline").value(1))
+                .andExpect(jsonPath("$.pending").value(0));
+
+        // Even an otherwise authenticated actor cannot use a hostile Origin.
+        mvc.perform(scopedGet("/api/v1/devices", data.firstAdmin())
+                        .header("Origin", "https://untrusted.example.test"))
+                .andExpect(status().isForbidden());
+
+        // A stale in-memory principal may not retain a deleted DB grant.
+        new TransactionTemplate(transactionManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        DELETE FROM user_role_scopes WHERE user_id=:actor
+                        """).setParameter("actor", data.firstAdmin()).executeUpdate());
+        mvc.perform(scopedGet("/api/v1/devices", data.firstAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0));
+        mvc.perform(scopedGet("/api/v1/monitoring/overview", data.firstAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0));
+
+        // Disabling the other account revokes its session before repository reads.
+        new TransactionTemplate(transactionManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        UPDATE users SET disabled_at=clock_timestamp()
+                        WHERE id=:actor
+                        """).setParameter("actor", data.secondAdmin()).executeUpdate());
+        mvc.perform(scopedGet("/api/v1/devices", data.secondAdmin()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
 }
