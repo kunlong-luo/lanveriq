@@ -160,8 +160,8 @@ class ChromiumWirePostMetadata:
             fetch_site_values == ["same-origin"],
         )
 
-    def checked_posts(self):
-        require(len(self.post_ids) == 4,
+    def checked_posts(self, expected_count=4):
+        require(len(self.post_ids) == expected_count,
                 "real_browser_origin_fetch_metadata_cdp_post_count")
         checked = []
         for index, request_id in enumerate(self.post_ids, 1):
@@ -226,6 +226,55 @@ def verify_nextjs_same_origin(context):
         page.close()
 
 
+def verify_nextjs_synthetic_auth_ui(context, password):
+    """Use a real Next.js CLIENT page to exercise staged login/empty reads.
+
+    This page exists ONLY in a manually opted-in disposable Next.js build.
+    It cannot appear in the ordinary login preview or production artifact.
+    Credentials come only from the isolated runner's inherited FD3 and are
+    never logged. This does NOT test a nonempty two-admin browser fixture.
+    """
+    page = context.new_page()
+    wire = ChromiumWirePostMetadata()
+    cdp = context.new_cdp_session(page)
+    cdp.on("Network.requestWillBeSent", wire.on_request)
+    cdp.on("Network.requestWillBeSentExtraInfo", wire.on_extra_info)
+    cdp.send("Network.enable")
+    websocket_attempts = []
+    page.on("websocket", lambda _: websocket_attempts.append("unexpected_synthetic_websocket"))
+    try:
+        response = page.goto(CONSOLE + "/__synthetic_auth_probe",
+                             wait_until="networkidle", timeout=25000)
+        require(response is not None and response.status == 200,
+                "synthetic_nextjs_auth_page_status")
+        require(page.get_by_role("heading", name="合成登录浏览器联调").count() == 1,
+                "synthetic_nextjs_auth_page_heading")
+        require(page.locator("#synthetic-auth-state").get_attribute("data-state") == "idle",
+                "synthetic_nextjs_auth_initial_state")
+        page.locator("#synthetic-auth-user").fill("synthetic-owner")
+        page.locator("#synthetic-auth-password").fill(password)
+        page.get_by_role("button", name="合成登录并读取").click()
+        page.locator("#synthetic-auth-state[data-state='authenticated-empty']").wait_for(
+            state="visible", timeout=25000)
+        require(page.locator("#synthetic-auth-password").input_value() == "",
+                "synthetic_nextjs_auth_password_not_cleared")
+        require(page.locator("#synthetic-auth-user").input_value() == "",
+                "synthetic_nextjs_auth_user_not_cleared")
+        page.get_by_role("button", name="合成登出并复核").click()
+        page.locator("#synthetic-auth-state[data-state='signed-out-confirmed']").wait_for(
+            state="visible", timeout=25000)
+        page.wait_for_load_state("networkidle")
+        # Two additional form POSTs belong to the mounted synthetic client.
+        # As with the baseline browser gate, use final CDP wire headers.
+        for index, (origin_ok, fetch_site_ok) in enumerate(
+                wire.checked_posts(expected_count=2), 1):
+            require(origin_ok, "synthetic_nextjs_auth_wire_origin_" + str(index))
+            require(fetch_site_ok, "synthetic_nextjs_auth_wire_fetch_site_" + str(index))
+        require(not websocket_attempts, "synthetic_nextjs_auth_no_websocket")
+    finally:
+        page.close()
+
+
 def session_cookie(context):
     matching = [c for c in context.cookies([CONSOLE]) if c["name"] == COOKIE]
     require(len(matching) == 1, "host_cookie_count")
@@ -245,6 +294,10 @@ def main():
     require(os.environ.get("LANVERIQ_SYNTHETIC_NEXTJS_PROBE", "0") in ("0", "1"),
             "invalid_nextjs_probe_mode")
     nextjs_mode = os.environ.get("LANVERIQ_SYNTHETIC_NEXTJS_PROBE", "0") == "1"
+    require(os.environ.get("LANVERIQ_SYNTHETIC_AUTH_UI_PROBE", "0") in ("0", "1"),
+            "invalid_synthetic_auth_ui_mode")
+    auth_ui_mode = os.environ.get("LANVERIQ_SYNTHETIC_AUTH_UI_PROBE", "0") == "1"
+    require(not auth_ui_mode or nextjs_mode, "synthetic_auth_ui_requires_nextjs")
     home = os.environ.get("HOME", "")
     require(home and os.path.isdir(os.path.join(home, ".pki/nssdb")), "private_browser_trust_missing")
     with os.fdopen(3, "r", encoding="ascii") as private_input:
@@ -409,6 +462,10 @@ def main():
                 require(browser_post_metadata(request)[0],
                         "real_browser_origin_playwright_post_" + str(index))
             require_browser_post_metadata(wire_posts.checked_posts())
+            if auth_ui_mode:
+                # Only after the independent 4-POST security gate has passed.
+                # The normal /login page remains disabled and unmodified.
+                verify_nextjs_synthetic_auth_ui(context, password)
             require(not blocked_network, "browser_must_not_contact_external_origin_or_websocket")
             context.close()
         finally:
@@ -419,8 +476,15 @@ def main():
         print("MANUAL SYNTHETIC SAME-ORIGIN NEXT.JS PASS: real Caddy HTTPS Next.js "
               "preview pages and client navigation; disabled login; no automatic "
               "API or session cookie. Spring login remains isolated fixture-only.")
-        print("NOT PROVEN: activated Next.js login/data hooks, multi-group RBAC, "
-              "real people, devices, Agent or production deployment.")
+        if auth_ui_mode:
+            print("MANUAL SYNTHETIC NEXT.JS AUTH UI PASS: disposable browser-mounted "
+                  "Next.js client used Spring CSRF/login/session, authorized empty "
+                  "device/overview reads, logout and post-logout 401; real CDP POST headers.")
+            print("NOT PROVEN: production /login wiring, nonempty two-admin browser RBAC, "
+                  "real people, devices, Agent or production deployment.")
+        else:
+            print("NOT PROVEN: mounted Next.js browser credential UI, "
+                  "multi-principal browser RBAC, real people/devices/Agent or deployment.")
     else:
         print("NOT PROVEN: actual Next.js runtime, multi-group RBAC, "
               "real people, devices or Agent.")
