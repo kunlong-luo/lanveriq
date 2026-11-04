@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from 'typescript-ast';
 import { existsSync, readFileSync, realpathSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
