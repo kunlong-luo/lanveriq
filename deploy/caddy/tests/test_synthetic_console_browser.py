@@ -401,6 +401,23 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("candidate_console_exact_scoped_device_membership", browser)
         self.assertIn("candidate_console_revoked_scope_no_rows", browser)
         self.assertIn("candidate_console_disabled_metrics_cleared", browser)
+        self.assertIn("candidate_console_hidden_tab_erases_rows", browser)
+        self.assertIn("candidate_console_hidden_tab_erases_metrics", browser)
+        self.assertIn("candidate_console_hidden_tab_erases_identity", browser)
+        self.assertIn("candidate_console_hidden_tab_requires_logout", browser)
+        self.assertIn("SYNTHETIC CONSOLE LIFECYCLE PASS", browser)
+        candidate = (ROOT / "apps/web-next/src/staged-console-workspace.tsx"
+                     ).read_text(encoding="utf-8")
+        self.assertIn("operationEpoch.current += 1", candidate)
+        self.assertIn("epoch !== operationEpoch.current", candidate)
+        self.assertIn("parsed.total < page.rows.length", candidate)
+        self.assertIn("document.addEventListener('visibilitychange'", candidate)
+        self.assertIn("window.addEventListener('pagehide'", candidate)
+        self.assertIn("client.clear();", candidate)
+        self.assertIn("status === 'locked'", candidate)
+        self.assertIn("response === 'signed_out' ? 'signed_out' : 'locked'", candidate)
+        # The candidate is not activated by ordinary Next.js pages.
+        self.assertFalse((ROOT / "apps/web-next/src/app/synthetic-console-candidate").exists())
         self.assertIn("SYNTHETIC STAGED CONSOLE UI PASS", browser)
         installer = (ROOT / "apps/web-next/scripts/install-synthetic-auth-fixture.mjs"
                      ).read_text(encoding="utf-8")
