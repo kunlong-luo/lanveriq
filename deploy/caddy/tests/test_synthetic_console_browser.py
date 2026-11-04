@@ -399,6 +399,14 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         # and is exercised only after all four synthetic browser gates.
         self.assertIn("synthetic-console-candidate", browser)
         self.assertIn("candidate_console_exact_scoped_device_membership", browser)
+        self.assertIn("candidate_console_authorized_tablist", browser)
+        self.assertIn("candidate_console_devices_view_scoped_rows", browser)
+        self.assertIn("candidate_console_devices_view_hides_monitoring", browser)
+        self.assertIn("candidate_console_monitoring_view_hides_directory", browser)
+        self.assertIn("candidate_console_monitoring_view_server_total", browser)
+        self.assertIn("candidate_console_logout_removes_authorized_navigation", browser)
+        self.assertIn("candidate_console_identity_change_resets_view", browser)
+        self.assertIn("SYNTHETIC SCOPED CONSOLE VIEWS PASS", browser)
         self.assertIn("candidate_console_revoked_scope_no_rows", browser)
         self.assertIn("candidate_console_disabled_metrics_cleared", browser)
         self.assertIn("candidate_console_hidden_tab_erases_rows", browser)
@@ -409,6 +417,13 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         candidate = (ROOT / "apps/web-next/src/staged-console-workspace.tsx"
                      ).read_text(encoding="utf-8")
         self.assertIn("operationEpoch.current += 1", candidate)
+        self.assertIn('role="tablist"', candidate)
+        self.assertIn('role="tabpanel"', candidate)
+        self.assertIn('tabIndex={activeView === view.id ? 0 : -1}', candidate)
+        self.assertIn('setActiveView(\'overview\')', candidate)
+        self.assertIn("event.key === 'ArrowRight'", candidate)
+        self.assertIn("event.key === 'Home'", candidate)
+        self.assertIn("key={principal} state={directory}", candidate)
         self.assertIn("epoch !== operationEpoch.current", candidate)
         self.assertIn("isConsistentScopedDirectoryPage(page, parsed)", candidate)
         overview = (ROOT / "apps/web-next/src/lib/staged-console-overview.ts"
