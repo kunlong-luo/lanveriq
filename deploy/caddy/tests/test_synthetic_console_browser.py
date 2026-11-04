@@ -395,6 +395,21 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn('verify_nextjs_synthetic_multi_admin(browser, password, db_container)', browser)
         self.assertIn("seed-synthetic-multi-admin.sql", browser)
         self.assertIn("multi_admin_isolated_session_cookies", browser)
+        # The new product-shaped UI is unmounted in normal Next.js routes
+        # and is exercised only after all four synthetic browser gates.
+        self.assertIn("synthetic-console-candidate", browser)
+        self.assertIn("candidate_console_exact_scoped_device_membership", browser)
+        self.assertIn("candidate_console_revoked_scope_no_rows", browser)
+        self.assertIn("candidate_console_disabled_metrics_cleared", browser)
+        self.assertIn("SYNTHETIC STAGED CONSOLE UI PASS", browser)
+        installer = (ROOT / "apps/web-next/scripts/install-synthetic-auth-fixture.mjs"
+                     ).read_text(encoding="utf-8")
+        guard = (ROOT / "apps/web-next/scripts/verify-route-contract.mjs"
+                 ).read_text(encoding="utf-8")
+        self.assertIn("src/app/synthetic-console-candidate", installer)
+        self.assertIn("src/app/synthetic-console-candidate", guard)
+        self.assertIn("staged-console-workspace", guard)
+        self.assertFalse((ROOT / "apps/web-next/src/app/synthetic-console-candidate").exists())
         self.assertFalse((ROOT / "apps/web-next/src/app/synthetic-multi-admin-probe").exists())
         self.assertIn("GITHUB_ACTIONS", installer)
         self.assertIn("synthetic_auth_ui_probe:", workflow)
