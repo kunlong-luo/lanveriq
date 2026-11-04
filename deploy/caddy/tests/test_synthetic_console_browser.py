@@ -68,7 +68,12 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn('page.on("request", observe)', browser)
         self.assertNotIn('page.on("requestfinished", observe)', browser)
         self.assertIn('observed_posts.append(request)', browser)
-        self.assertIn('browser_post_metadata(request) for request in observed_posts', browser)
+        self.assertIn('browser_post_metadata(request)[0]', browser)
+        self.assertIn('require_browser_post_metadata(wire_posts.checked_posts())', browser)
+        self.assertIn('new_cdp_session(page)', browser)
+        self.assertIn('Network.requestWillBeSentExtraInfo', browser)
+        self.assertIn('Network.enable', browser)
+        self.assertNotIn('Network.setExtraHTTPHeaders', browser)
         self.assertIn('page.on("websocket"', browser)
         self.assertIn('browser_must_not_contact_external_origin_or_websocket', browser)
         self.assertNotIn('--ignore-certificate-errors', harness + browser)
@@ -130,6 +135,88 @@ class SyntheticChromiumGateTest(unittest.TestCase):
                 with self.assertRaises(module.BrowserGateFailure) as failure:
                     module.require_browser_post_metadata(posts)
                 self.assertEqual(str(failure.exception), expected)
+
+    def test_cdp_final_headers_are_checked_without_storing_secrets(self):
+        # CDP ExtraInfo is the source of network-stack Sec-Fetch-* values.
+        # Events may arrive in any order; store only bools, not raw headers.
+        spec = importlib.util.spec_from_file_location("synthetic_browser_wire", BROWSER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        login = module.CONSOLE + "/api/v1/auth/login"
+        logout = module.CONSOLE + "/api/v1/auth/logout"
+
+        recorder = module.ChromiumWirePostMetadata()
+        def wire_event(request_id, origin=module.CONSOLE,
+                       fetch_site="same-origin"):
+            return {"requestId": request_id, "headers": {
+                "Origin": origin, "Sec-Fetch-Site": fetch_site,
+                "Cookie": "DO-NOT-STORE", "X-CSRF-TOKEN": "DO-NOT-STORE",
+            }}
+        recorder.on_extra_info(wire_event("p2"))  # Before request event.
+        for i, url in enumerate((login, login, logout, logout), 1):
+            recorder.on_request({"requestId": "p" + str(i), "request": {
+                "method": "POST", "url": url, "postData": "DO-NOT-STORE",
+            }})
+        for i in (1, 3, 4):
+            recorder.on_extra_info(wire_event("p" + str(i)))
+        expected = [(True, True)] * 4
+        self.assertEqual(recorder.checked_posts(), expected)
+        self.assertEqual(set(recorder.metadata_by_id), {"p1", "p2", "p3", "p4"})
+        self.assertNotIn("DO-NOT-STORE", str(recorder.__dict__))
+        module.require_browser_post_metadata(recorder.checked_posts())
+
+        wrong = module.ChromiumWirePostMetadata()
+        for i, url in enumerate((login, login, logout, logout), 1):
+            rid = "p" + str(i)
+            wrong.on_request({"requestId": rid, "request": {
+                "method": "POST", "url": url,
+            }})
+            hdr = wire_event(rid)
+            if i == 1:
+                del hdr["headers"]["Sec-Fetch-Site"]
+            wrong.on_extra_info(hdr)
+        with self.assertRaises(module.BrowserGateFailure) as failed:
+            module.require_browser_post_metadata(wrong.checked_posts())
+        self.assertEqual(str(failed.exception),
+                         "real_browser_origin_fetch_metadata_fetch_site_post_1")
+
+        absent = module.ChromiumWirePostMetadata()
+        absent.on_request({"requestId": "missing", "request": {
+            "method": "POST", "url": login,
+        }})
+        with self.assertRaises(module.BrowserGateFailure) as failed:
+            absent.checked_posts()
+        self.assertEqual(str(failed.exception),
+                         "real_browser_origin_fetch_metadata_cdp_post_count")
+        for i, url in enumerate((login, login, logout, logout), 1):
+            absent.on_request({"requestId": str(i), "request": {
+                "method": "POST", "url": url,
+            }})
+        with self.assertRaises(module.BrowserGateFailure) as failed:
+            absent.checked_posts()
+        self.assertEqual(str(failed.exception),
+                         "real_browser_origin_fetch_metadata_cdp_post_count")
+
+        missing_extra = module.ChromiumWirePostMetadata()
+        for i, url in enumerate((login, login, logout, logout), 1):
+            rid = str(i)
+            missing_extra.on_request({"requestId": rid, "request": {
+                "method": "POST", "url": url,
+            }})
+            if i != 3:
+                missing_extra.on_extra_info(wire_event(rid))
+        with self.assertRaises(module.BrowserGateFailure) as failed:
+            missing_extra.checked_posts()
+        self.assertEqual(str(failed.exception),
+                         "real_browser_origin_fetch_metadata_wire_headers_post_3")
+
+        blocked = module.ChromiumWirePostMetadata()
+        blocked.on_request({"requestId": "outside", "request": {
+            "method": "POST", "url": "https://outside.test/api/v1/auth/login",
+        }})
+        blocked.on_extra_info(wire_event("outside"))
+        with self.assertRaises(module.BrowserGateFailure):
+            blocked.checked_posts()
 
     def test_browser_post_headers_are_read_once_after_request_capture(self):
         # Preserve full-header checks (never infer Origin/Fetch-Site from URL).
