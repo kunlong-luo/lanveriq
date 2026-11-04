@@ -119,6 +119,58 @@ def browser_post_metadata(request):
             headers.get("sec-fetch-site") == "same-origin")
 
 
+class ChromiumWirePostMetadata:
+    """Capture only fixed booleans from Chromium's final wire-header events.
+
+    Playwright routes can hide network-stack Sec-Fetch-* in Request.all_headers().
+    CDP Network.requestWillBeSentExtraInfo reports final outgoing headers.
+    Request identifiers let us match these to actual login/logout POSTs even
+    when ExtraInfo arrives before its corresponding request event. Never keep
+    cookies, credentials, token values, raw headers, or request body data.
+    """
+
+    def __init__(self):
+        self.post_ids = []
+        self.metadata_by_id = {}
+
+    def on_request(self, event):
+        request = event.get("request") or {}
+        if (request.get("method") == "POST"
+                and request.get("url") in (
+                    CONSOLE + "/api/v1/auth/login",
+                    CONSOLE + "/api/v1/auth/logout",
+                )):
+            self.post_ids.append(event.get("requestId"))
+
+    def on_extra_info(self, event):
+        request_id = event.get("requestId")
+        if not isinstance(request_id, str):
+            return
+        headers = event.get("headers") or {}
+        origin_values = []
+        fetch_site_values = []
+        for key, value in headers.items():
+            name = key.lower()
+            if name == "origin":
+                origin_values.append(value)
+            elif name == "sec-fetch-site":
+                fetch_site_values.append(value)
+        self.metadata_by_id[request_id] = (
+            origin_values == [CONSOLE],
+            fetch_site_values == ["same-origin"],
+        )
+
+    def checked_posts(self):
+        require(len(self.post_ids) == 4,
+                "real_browser_origin_fetch_metadata_cdp_post_count")
+        checked = []
+        for index, request_id in enumerate(self.post_ids, 1):
+            require(request_id in self.metadata_by_id,
+                    "real_browser_origin_fetch_metadata_wire_headers_post_" + str(index))
+            checked.append(self.metadata_by_id[request_id])
+        return checked
+
+
 def verify_nextjs_same_origin(context):
     """Read-only genuine Chromium probe of Caddy-hosted, unconnected Next.js.
 
@@ -247,6 +299,13 @@ def main():
                 route.abort()
             context.route(DISALLOWED_NETWORK_URL, restrict)
             page = context.new_page()
+            # CDP observes browser network-stack headers after interception.
+            # This does not add or override any browser request header.
+            wire_posts = ChromiumWirePostMetadata()
+            cdp = context.new_cdp_session(page)
+            cdp.on("Network.requestWillBeSent", wire_posts.on_request)
+            cdp.on("Network.requestWillBeSentExtraInfo", wire_posts.on_extra_info)
+            cdp.send("Network.enable")
             page.on("websocket", lambda _: blocked_network.append("unexpected_browser_websocket"))
             page.set_default_timeout(15000)
             # Unlike a Node API client, the page must complete full Chromium TLS
@@ -341,9 +400,15 @@ def main():
             # Read complete on-wire headers after all four browser fetches
             # have returned. Strictly require Origin and Fetch-Site on every
             # observed POST; never synthesize those headers in JavaScript.
-            require_browser_post_metadata([
-                browser_post_metadata(request) for request in observed_posts
-            ])
+            # Page request events independently prove four actual POSTs. CDP
+            # verifies their browser-produced wire headers, not the provisional
+            # headers visible to an intercepting Playwright route.
+            require(len(observed_posts) == 4,
+                    "real_browser_origin_fetch_metadata_post_count")
+            for index, request in enumerate(observed_posts, 1):
+                require(browser_post_metadata(request)[0],
+                        "real_browser_origin_playwright_post_" + str(index))
+            require_browser_post_metadata(wire_posts.checked_posts())
             require(not blocked_network, "browser_must_not_contact_external_origin_or_websocket")
             context.close()
         finally:
