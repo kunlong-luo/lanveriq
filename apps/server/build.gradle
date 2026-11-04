@@ -80,6 +80,9 @@ testing {
                 // Full Boot 4 servlet context MockMvc (not a sliced @Import):
                 // prove actual conditional SecurityFilterChain discovery on PG18.
                 implementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+                // Exercise the real component-scanned HTTP chains with synthetic
+                // authenticated principals; never mock repository scope reads.
+                implementation 'org.springframework.security:spring-security-test'
                 implementation 'org.springframework.boot:spring-boot-testcontainers'
                 implementation 'org.testcontainers:testcontainers-junit-jupiter'
                 implementation 'org.testcontainers:testcontainers-postgresql'
