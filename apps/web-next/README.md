@@ -1,5 +1,12 @@
 # Lanveriq NXT-01 — isolated Next.js App Router preview
 
+## NXT-06-C route dependency integrity — verified source gate
+
+Ordinary Next.js login, device and monitoring routes still render disconnected previews. The default `pnpm run verify:routes` now executes `scripts/verify-runtime-isolation.mjs`, which traverses **all runtime imports** from committed `src/app` and `src/components` through internal `src/lib` helpers. It refuses a transitive path to `staged-console-auth`, `staged-console-read`, `staged-console-workspace`, test-only credentialed components or Orval's generated contract. It covers TypeScript import/export declarations (including type imports and reexports), `@/` and relative aliases, literal dynamic imports and `require`; computed module loading and unresolved/escaping local paths are rejected, not silently accepted. This is a **static route isolation** control, not server authentication; actual RBAC and CSRF remain enforced by Spring.
+
+Project TypeScript **7.0.2** is retained for native production typechecking and Next.js; the safety analysis alone imports `typescript-ast`, a pinned `npm:typescript@6.0.3` JavaScript Compiler API alias, because native TypeScript 7.0 deliberately does **not** expose the old JS parser. The alias is locked in `pnpm-lock.yaml`. CI runs the AST regression in `scripts/test_runtime_isolation.mjs` before `verify:routes` and builds. [Next.js source/build CI #41824276231](https://github.com/kunlong-luo/lanveriq/actions/runs/41824276231) **passed**, including the frozen lock, AST regression and ordinary disabled-login production build. A later full disposable Caddy/Spring/PG18/Chromium run is a separate requirement; source success alone cannot authorize actual user-facing routing or employee/device access. All relevant main-branch changes continue to trigger synthetic tests automatically.
+
+
 ## NXT-06-B keyboard and accessible session-lock gate: synthetic Chromium PASS
 
 [Automatic Console HTTPS workflow #41814699267](https://github.com/kunlong-luo/lanveriq/actions/runs/41814699267) **passed** real browser checks for keyboard Tab order across the candidate login fields and submit, accessible form labels, a locked-screen `role=status` message and explicit logout after a **synthetically dispatched** hidden-document event. It retained nonempty A/B group isolation and no persisted rows/metrics after invalidation. This supplements, but does NOT replace, human keyboard/screen-reader/visual/contrast testing, user-role sign-off, and the still-default-disabled real Next.js routing.
