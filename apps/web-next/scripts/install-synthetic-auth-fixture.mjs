@@ -14,6 +14,10 @@ if (process.env.GITHUB_ACTIONS !== 'true' ||
     basename(process.cwd()) !== 'web-next') {
   throw new Error('Refusing synthetic auth fixture outside explicit isolated CI gates');
 }
+const multiAdmin = process.env.LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE ?? '0';
+if (!['0', '1'].includes(multiAdmin)) {
+  throw new Error('Unexpected multi-admin fixture gate');
+}
 const root = resolve(process.cwd());
 if (!existsSync(join(root, 'src/synthetic-only-auth-probe.tsx')) ||
     !existsSync(join(root, 'src/app/(auth)/login/page.tsx'))) {
@@ -21,8 +25,11 @@ if (!existsSync(join(root, 'src/synthetic-only-auth-probe.tsx')) ||
 }
 const dir = join(root, 'src/app/synthetic-auth-probe');
 const target = join(dir, 'page.tsx');
-if (existsSync(dir) || existsSync(target)) {
-  throw new Error('Synthetic auth route already exists; refusing overwrite');
+const multiDir = join(root, 'src/app/synthetic-multi-admin-probe');
+if (existsSync(dir) || existsSync(target) || existsSync(multiDir) ||
+    (multiAdmin === '1' &&
+     !existsSync(join(root, 'src/synthetic-only-multi-admin-probe.tsx')))) {
+  throw new Error('Synthetic auth route already exists or multi-admin fixture missing');
 }
 mkdirSync(dir, { recursive: false, mode: 0o700 });
 writeFileSync(target, `import { SyntheticOnlyAuthProbe } from '@/synthetic-only-auth-probe';
@@ -33,3 +40,15 @@ export default function SyntheticAuthPage() {
 }
 `, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
 console.log('Synthetic browser auth fixture staged in disposable runner only');
+
+if (multiAdmin === '1') {
+  mkdirSync(multiDir, { recursive: false, mode: 0o700 });
+  writeFileSync(join(multiDir, 'page.tsx'), `import { SyntheticMultiAdminProbe } from '@/synthetic-only-multi-admin-probe';
+
+export const dynamic = 'force-dynamic';
+export default function SyntheticMultiAdminPage() {
+  return <SyntheticMultiAdminProbe />;
+}
+`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  console.log('Synthetic multi-admin browser fixture staged in disposable runner only');
+}
