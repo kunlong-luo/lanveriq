@@ -375,7 +375,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         normal_page = (ROOT / "apps/web-next/src/app/(auth)/login/page.tsx"
                        ).read_text(encoding="utf-8")
 
-        self.assertIn("src/app/__synthetic_auth_probe", route_guard)
+        self.assertIn("src/app/synthetic-auth-probe", route_guard)
         self.assertIn("GITHUB_ACTIONS", installer)
         self.assertIn("synthetic_auth_ui_probe:", workflow)
         self.assertIn("verify:routes", workflow)
@@ -390,7 +390,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("createStagedConsoleReader", source)
         self.assertNotIn("synthetic-only-auth-probe", normal_page)
         self.assertFalse(
-            (ROOT / "apps/web-next/src/app/__synthetic_auth_probe").exists())
+            (ROOT / "apps/web-next/src/app/synthetic-auth-probe").exists())
         self.assertIn("LANVERIQ_SYNTHETIC_AUTH_UI_PROBE", workflow)
         self.assertNotIn("LANVERIQ_CONSOLE_AUTH_ENABLED", workflow)
         self.assertNotIn("ignore_https_errors=True", browser)
