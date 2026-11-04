@@ -11,7 +11,7 @@ import type { DirectoryRow } from './components/device-directory';
  */
 const CONSOLE = 'https://console.lanveriq.internal';
 const EXPECTED = {
-  'synthetic-owner': { prefix: 'SyntheticBrowserA-', total: 2 },
+  'synthetic-browser-a': { prefix: 'SyntheticBrowserA-', total: 2 },
   'synthetic-browser-b': { prefix: 'SyntheticBrowserB-', total: 1 },
 } as const;
 
