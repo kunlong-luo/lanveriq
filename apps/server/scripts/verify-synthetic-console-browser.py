@@ -561,6 +561,67 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         for origin_ok, fetch_site_ok in candidate_wire.checked_posts(expected_count=3):
             require(origin_ok and fetch_site_ok,
                     "candidate_console_real_browser_post_metadata")
+        # NXT-06-B: a background tab must lose all locally displayed
+        # authorized rows/counters, even while Spring's cookie is still valid.
+        # Use a DOM lifecycle event rather than unreliable headless focus.
+        stage = "candidate_console_background_lock"
+        privacy_context = browser.new_context(
+            ignore_https_errors=False, accept_downloads=False,
+            service_workers="block")
+        contexts.append(privacy_context)
+        privacy_context.route(DISALLOWED_NETWORK_URL, restrict)
+        privacy_page = privacy_context.new_page()
+        privacy_page.on("websocket", lambda _: blocked.append(
+            "candidate_console_lifecycle_forbidden_websocket"))
+        privacy_wire = ChromiumWirePostMetadata()
+        privacy_cdp = privacy_context.new_cdp_session(privacy_page)
+        privacy_cdp.on("Network.requestWillBeSent", privacy_wire.on_request)
+        privacy_cdp.on("Network.requestWillBeSentExtraInfo", privacy_wire.on_extra_info)
+        privacy_cdp.send("Network.enable")
+        privacy_response = privacy_page.goto(
+            CONSOLE + "/synthetic-console-candidate",
+            wait_until="networkidle", timeout=25000)
+        require(privacy_response is not None and privacy_response.status == 200,
+                "candidate_console_lifecycle_https_status")
+        privacy_page.locator("#candidate-username").fill("synthetic-browser-a")
+        privacy_page.locator("#candidate-password").fill(password)
+        privacy_page.get_by_role(
+            "button", name="安全登录并获取授权设备").click()
+        privacy_page.locator(
+            "main[data-candidate-status='ready']").wait_for(
+                state="visible", timeout=25000)
+        require(privacy_page.locator(".device-table tbody tr").count() == 2,
+                "candidate_console_lifecycle_initial_authorized_rows")
+        # Only in this synthetic browser, dispatch the real installed
+        # visibilitychange handler with hidden state; never fake HTTP.
+        privacy_page.evaluate("""() => {
+            Object.defineProperty(document, 'visibilityState', {
+                configurable: true, get: () => 'hidden'
+            });
+            document.dispatchEvent(new Event('visibilitychange'));
+        }""")
+        privacy_page.locator(
+            "main[data-candidate-status='locked']").wait_for(
+                state="visible", timeout=12000)
+        require(privacy_page.locator(".device-table tbody tr").count() == 0,
+                "candidate_console_hidden_tab_erases_rows")
+        require(privacy_page.get_by_test_id(
+            "candidate-metric-已授权设备总数").count() == 0,
+            "candidate_console_hidden_tab_erases_metrics")
+        require(privacy_page.locator("main").get_attribute(
+            "data-candidate-principal") == "",
+            "candidate_console_hidden_tab_erases_identity")
+        require(privacy_page.locator("#candidate-password").count() == 0,
+                "candidate_console_hidden_tab_requires_logout")
+        privacy_page.get_by_role(
+            "button", name="验证登出后重新登录").click()
+        privacy_page.locator(
+            "main[data-candidate-status='signed_out']").wait_for(
+                state="visible", timeout=16000)
+        for origin_ok, fetch_site_ok in privacy_wire.checked_posts(expected_count=2):
+            require(origin_ok and fetch_site_ok,
+                    "candidate_console_lifecycle_real_browser_post_metadata")
+
         for expected_count, wire in zip((3, 1), wires):
             for origin_ok, fetch_site_ok in wire.checked_posts(expected_count=expected_count):
                 require(origin_ok and fetch_site_ok, "multi_admin_browser_post_wire_metadata")
@@ -568,6 +629,9 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         print("SYNTHETIC STAGED CONSOLE UI PASS: real React device table and "
               "server-scoped overview, A/B browser login/logout, no old rows, "
               "live grant removal, disabled-session denial; normal /login remains inert.")
+        print("SYNTHETIC CONSOLE LIFECYCLE PASS: background-tab lock erased "
+              "authorized rows, identity and metrics; explicit Spring logout "
+              "restored the signed-out view without background API polling.")
     except BrowserGateFailure:
         raise
     except Exception:
