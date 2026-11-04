@@ -175,3 +175,10 @@ a:focus-visible,button:focus-visible,input:focus-visible {
 @media(max-width:1050px){.directory-toolbar{align-items:stretch}.directory-controls{width:100%}.directory-search{flex:1}.directory-search input{max-width:none;min-width:0;width:100%}}
 @media(max-width:750px){.directory-toolbar{padding:20px 16px}.directory-controls{align-items:stretch}.directory-select{flex:1}.directory-select select{width:100%;max-width:none}.detail-summary-grid{grid-template-columns:1fr}.disabled-actions{align-items:stretch}.disabled-actions button{width:100%;justify-content:center}.detail-tab-list{padding:0 10px}.detail-tab{padding:14px 12px}.directory-foot{padding:14px 16px}}
 @media(max-width:430px){.directory-controls{flex-direction:column}.directory-search,.directory-select{width:100%}.directory-search input{width:100%}}
+
+/* NXT-07 candidate only: distinct accessible view selection. Ordinary
+   disconnected routes still cannot mount authorized data. */
+.staged-view-tabs{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:20px 0 16px}
+.staged-view-tabs [role="tab"]{min-height:40px;transition:background-color .12s ease,color .12s ease}
+.staged-view-tabs [role="tab"][aria-selected="true"]{background:#eaf1ff;color:#244e91;border-color:#9bb8e6}
+.staged-view-tabs [role="tab"]:focus-visible{outline:2px solid #2663aa;outline-offset:3px}
