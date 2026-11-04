@@ -21,6 +21,11 @@ on:
         required: true
         type: boolean
         default: false
+      synthetic_multi_admin_probe:
+        description: 'Seed disposable two-group PG18 users/devices and check two Chromium sessions (requires all three other probes)'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -51,8 +56,14 @@ jobs:
         run: |
           echo "FAIL: synthetic-only Next.js auth UI requires both explicit browser and same-origin Next.js opt-ins"
           exit 1
+      - name: Reject multi-admin browser probe without all earlier opt-in gates
+        if: ${{ inputs.synthetic_multi_admin_probe && (!inputs.browser_probe || !inputs.nextjs_same_origin_probe || !inputs.synthetic_auth_ui_probe) }}
+        run: |
+          echo "FAIL: disposable multi-admin browser test requires all three previously gated probes"
+          exit 1
       - name: Declare exact manual acceptance scope (request, not pass)
         env:
+          MULTI_REQUESTED: ${{ inputs.synthetic_multi_admin_probe && '1' || '0' }}
           BROWSER_REQUESTED: ${{ inputs.browser_probe && '1' || '0' }}
           NEXTJS_REQUESTED: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
           AUTH_UI_REQUESTED: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
@@ -79,6 +90,11 @@ jobs:
               echo "| Disposable Next.js credentialed browser fixture (not real login UI) | YES; result pending |"
             else
               echo "| Disposable Next.js credentialed browser fixture | SKIPPED (synthetic_auth_ui_probe=false) |"
+            fi
+            if [[ "$MULTI_REQUESTED" == 1 ]]; then
+              echo "| Two-admin nonempty PG18 browser-session isolation | YES; result pending |"
+            else
+              echo "| Two-admin nonempty PG18 browser-session isolation | SKIPPED (synthetic_multi_admin_probe=false) |"
             fi
             echo ""
             echo "A green workflow only proves the requested gates. Unselected gates are not accepted."
@@ -140,6 +156,7 @@ jobs:
           LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ inputs.browser_probe && '1' || '0' }}
           LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
           LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: ${{ inputs.synthetic_multi_admin_probe && '1' || '0' }}
         run: |
           set -euo pipefail
           pnpm install --frozen-lockfile
@@ -159,6 +176,7 @@ jobs:
           LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ inputs.browser_probe && '1' || '0' }}
           LANVERIQ_SYNTHETIC_NEXTJS_PROBE: ${{ inputs.nextjs_same_origin_probe && '1' || '0' }}
           LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: ${{ inputs.synthetic_auth_ui_probe && '1' || '0' }}
+          LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: ${{ inputs.synthetic_multi_admin_probe && '1' || '0' }}
           LANVERIQ_BROWSER_PYTHON: ${{ runner.temp }}/lanveriq-playwright/bin/python
           NEXT_TELEMETRY_DISABLED: '1'
         shell: bash
@@ -210,6 +228,11 @@ jobs:
             else
               echo "- SKIPPED: disposable Next.js auth UI fixture (synthetic_auth_ui_probe=false)"
             fi
+            if [[ "$LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE" == 1 ]]; then
+              echo "- PASS: disposable nonempty PG18 two-admin Chromium contexts, scope denial, cookie separation and cache invalidation"
+            else
+              echo "- SKIPPED: nonempty PG18 two-admin browser scope probe (synthetic_multi_admin_probe=false)"
+            fi
             echo "- PASS: nonempty two-group Servlet/DB RBAC checks using synthetic authenticated principals on actual PG18 (separate earlier integrationTest step)"
-            echo "- NOT PROVEN: production Next.js /login or live data hooks, multi-principal browser RBAC, real devices/Agent or deployment"
+            echo "- NOT PROVEN: production Next.js /login or live data hooks, real users/devices/Agent, human UX review or deployment"
           } >> "$GITHUB_STEP_SUMMARY"
