@@ -243,7 +243,7 @@ def verify_nextjs_synthetic_auth_ui(context, password):
     websocket_attempts = []
     page.on("websocket", lambda _: websocket_attempts.append("unexpected_synthetic_websocket"))
     try:
-        response = page.goto(CONSOLE + "/__synthetic_auth_probe",
+        response = page.goto(CONSOLE + "/synthetic-auth-probe",
                              wait_until="networkidle", timeout=25000)
         require(response is not None and response.status == 200,
                 "synthetic_nextjs_auth_page_status")
