@@ -319,7 +319,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("inputs.nextjs_same_origin_probe", workflow)
         self.assertIn("inputs.browser_probe", workflow)
         self.assertIn("inputs.nextjs_same_origin_probe && !inputs.browser_probe", workflow)
-        self.assertEqual(workflow.count("default: false"), 3)
+        self.assertEqual(workflow.count("default: false"), 4)
         self.assertIn("synthetic_auth_ui_probe:", workflow)
         self.assertIn(
             "inputs.synthetic_auth_ui_probe && (!inputs.browser_probe || !inputs.nextjs_same_origin_probe)",
@@ -376,6 +376,14 @@ class SyntheticChromiumGateTest(unittest.TestCase):
                        ).read_text(encoding="utf-8")
 
         self.assertIn("src/app/synthetic-auth-probe", route_guard)
+        self.assertIn("src/app/synthetic-multi-admin-probe", route_guard)
+        self.assertIn("synthetic_multi_admin_probe:", workflow)
+        self.assertIn("inputs.synthetic_multi_admin_probe && (!inputs.browser_probe || !inputs.nextjs_same_origin_probe || !inputs.synthetic_auth_ui_probe)", workflow)
+        self.assertIn('MULTI_ADMIN_MODE="${LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE:-0}"', harness)
+        self.assertIn('verify_nextjs_synthetic_multi_admin(browser, password, db_container)', browser)
+        self.assertIn("seed-synthetic-multi-admin.sql", browser)
+        self.assertIn("multi_admin_isolated_session_cookies", browser)
+        self.assertFalse((ROOT / "apps/web-next/src/app/synthetic-multi-admin-probe").exists())
         self.assertIn("GITHUB_ACTIONS", installer)
         self.assertIn("synthetic_auth_ui_probe:", workflow)
         self.assertIn("verify:routes", workflow)
