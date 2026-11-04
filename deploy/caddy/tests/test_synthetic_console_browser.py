@@ -403,6 +403,32 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertNotIn("LANVERIQ_CONSOLE_AUTH_ENABLED", workflow)
         self.assertNotIn("ignore_https_errors=True", browser)
 
+    def test_nonempty_chromium_fixture_respects_real_login_rate_limit(self):
+        browser = BROWSER.read_text(encoding="utf-8")
+        sql = (ROOT / "apps/server/scripts/seed-synthetic-multi-admin.sql"
+               ).read_text(encoding="utf-8")
+        ui = (ROOT / "apps/web-next/src/synthetic-only-multi-admin-probe.tsx"
+              ).read_text(encoding="utf-8")
+        limiter = (ROOT / "apps/server/src/main/java/com/lanveriq/server/security/ConsoleLoginRateLimiter.java"
+                   ).read_text(encoding="utf-8")
+        self.assertIn("limit.capacity(5)", limiter)
+        # The baseline curl/Chromium/Next.js probes already use the owner
+        # account. The multi-admin phase must never consume more of that
+        # same owner's strict real password-check allowance.
+        self.assertIn("'synthetic-browser-a'", sql)
+        self.assertIn("'synthetic-browser-b'", sql)
+        self.assertIn("'synthetic-browser-a': {", ui)
+        self.assertNotIn("'synthetic-owner': {", ui)
+        self.assertIn('login(page_a, "synthetic-browser-a",', browser)
+        self.assertIn('login(page_b, "synthetic-browser-b",', browser)
+        self.assertNotIn('login(page_a, "synthetic-owner",', browser)
+        self.assertIn("multi_admin_synthetic_pg_mutation_failed", browser)
+        self.assertIn("multi_admin_runtime_", browser)
+        self.assertIn("multi_admin_\" + label + \"_login_state_", browser)
+        # Fixed diagnostic labels only: never emit raw headers/credentials.
+        self.assertNotIn("print(completed.stderr)", browser)
+        self.assertNotIn("print(password)", browser)
+
     def test_disposable_caddy_config_generation_keeps_api_and_nextjs_separate(self):
         # Execute only the embedded Python template renderer against a COPY
         # of the checked-in reference; no Caddy, Docker, browser or listener.
