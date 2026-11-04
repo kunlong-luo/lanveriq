@@ -9,6 +9,7 @@ DECLARE
   owner_hash text;
   other_group uuid;
   other_id uuid;
+  first_id uuid;
 BEGIN
   IF (SELECT count(*) FROM users) <> 1 OR
      (SELECT count(*) FROM devices) <> 0 OR
@@ -22,9 +23,14 @@ BEGIN
     JOIN roles r ON r.id=s.role_id
    WHERE u.normalized_login='synthetic-owner'
      AND u.disabled_at IS NULL AND r.code='owner_security_admin';
-  -- Deliberately reuse ONLY the one-time generated hash inside the throwaway
-  -- PG18 test container: two separate identities/session cookies are tested.
-  -- This is not an account-provisioning feature or production credential flow.
+  -- The earlier curl, direct Chromium and one-admin Next.js tests consume
+  -- the real owner's STRICT account bucket. Never weaken authentication
+  -- throttling for tests: create fresh synthetic A AND B login identities
+  -- in this disposable PG18 fixture, reusing only its one-use test hash.
+  INSERT INTO users(normalized_login,password_hash)
+    VALUES ('synthetic-browser-a',owner_hash) RETURNING id INTO first_id;
+  INSERT INTO user_role_scopes(user_id,role_id,device_group_id)
+    SELECT first_id,id,owner_group FROM roles WHERE code='it_operator';
   INSERT INTO device_groups (name) VALUES ('SyntheticBrowserB')
     RETURNING id INTO other_group;
   INSERT INTO users(normalized_login,password_hash)
