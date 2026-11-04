@@ -49,3 +49,18 @@ jobs:
       - name: Smoke-test actual production Next.js preview HTTP routes
         working-directory: apps/web-next
         run: node scripts/verify-built-pages.mjs
+      - name: Compile disposable auth-test App Router page only (NO runtime/browser/DB)
+        working-directory: apps/web-next
+        env:
+          LANVERIQ_SYNTHETIC_BROWSER_PROBE: '1'
+          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: '1'
+          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: '1'
+        run: |
+          set -euo pipefail
+          # These flags are source-fixture prerequisites only. This automatic
+          # CI step neither starts Spring/Caddy nor submits credentials.
+          # The untouched ordinary preview was built and checked above.
+          node scripts/install-synthetic-auth-fixture.mjs
+          trap 'rm -rf src/app/synthetic-auth-probe' EXIT
+          pnpm typecheck
+          pnpm build
