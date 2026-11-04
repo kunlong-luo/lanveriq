@@ -114,7 +114,7 @@ export function SyntheticMultiAdminProbe() {
   }
 
   async function refresh() {
-    if (state !== 'ready') return;
+    if (state !== 'ready' && state !== 'scope-empty') return;
     setState('working');
     try { await fetchScoped(principal); }
     catch { await erase(); setState('denied'); }
@@ -159,7 +159,8 @@ export function SyntheticMultiAdminProbe() {
              autoComplete="new-password"/>
       <button type="submit" disabled={state === 'working'}>测试登录并读取</button>
     </form>
-    <button type="button" onClick={refresh} disabled={state !== 'ready'}>
+    <button type="button" onClick={refresh}
+            disabled={state !== 'ready' && state !== 'scope-empty'}>
       刷新已授权设备
     </button>
     <button type="button" onClick={logout} disabled={state !== 'ready'}>
