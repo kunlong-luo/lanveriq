@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Activity, ArrowRight, LockKeyhole, LogOut, RefreshCcw } from 'lucide-react';
 import { DeviceDirectory, type DirectoryState } from './components/device-directory';
 import { Card, CardHeader, CardDescription, CardTitle } from './components/ui/card';
@@ -24,8 +24,8 @@ import { parseScopedConsoleOverview, type ScopedConsoleOverview } from './lib/st
  */
 const ORIGIN = 'https://console.lanveriq.internal';
 
-type Status = 'signed_out' | 'working' | 'ready' | 'invalid_credentials' |
-  'forbidden' | 'throttled' | 'unavailable';
+type Status = 'signed_out' | 'working' | 'ready' | 'locked' |
+  'invalid_credentials' | 'forbidden' | 'throttled' | 'unavailable';
 
 const initialDirectory: DirectoryState = { kind: 'unconnected' };
 
@@ -33,10 +33,39 @@ export function StagedConsoleWorkspace() {
   const username = useRef<HTMLInputElement>(null);
   const password = useRef<HTMLInputElement>(null);
   const [client] = useState(createConsoleQueryClient);
+  // A stale in-flight login/read must never re-populate rows after the
+  // operator navigates away or the tab goes into the background.
+  const operationEpoch = useRef(0);
   const [status, setStatus] = useState<Status>('signed_out');
   const [principal, setPrincipal] = useState('');
   const [directory, setDirectory] = useState<DirectoryState>(initialDirectory);
   const [overview, setOverview] = useState<ScopedConsoleOverview | null>(null);
+
+  // DOM event handling is local-only. No automatic API request, session
+  // restoration, credential submission, polling or background collection.
+  // A hidden/restored tab is locked until Spring confirms explicit logout.
+  useEffect(() => {
+    const lockOnLeave = () => {
+      operationEpoch.current += 1;
+      void clearConsoleSessionState(client);
+      setPrincipal('');
+      setDirectory(initialDirectory);
+      setOverview(null);
+      setStatus(previous =>
+        previous === 'ready' || previous === 'working' ? 'locked' : previous);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') lockOnLeave();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', lockOnLeave);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', lockOnLeave);
+      operationEpoch.current += 1;
+      void clearConsoleSessionState(client);
+    };
+  }, [client]);
 
   const browserFetch: BrowserFetch = (input, init) => window.fetch(input, init);
 
@@ -56,9 +85,10 @@ export function StagedConsoleWorkspace() {
     };
   }
 
-  async function fetchAuthorized(login: string): Promise<void> {
+  async function fetchAuthorized(login: string, epoch: number): Promise<void> {
     const { reader } = clients();
     const page = await reader.list();
+    if (epoch !== operationEpoch.current) return;
     if (page.kind !== 'ready') {
       await eraseAuthorizedData();
       setStatus(page.kind === 'loading' || page.kind === 'unconnected'
@@ -67,9 +97,13 @@ export function StagedConsoleWorkspace() {
       return;
     }
     const result = await reader.overview();
+    if (epoch !== operationEpoch.current) return;
     const parsed = result.kind === 'ok'
       ? parseScopedConsoleOverview(result.data) : null;
-    if (!parsed) {
+    // Two independent HTTP reads can straddle a scope-revocation commit.
+    // If the server's final total is lower than the earlier visible page,
+    // fail closed rather than rendering a known-inconsistent snapshot.
+    if (!parsed || parsed.total < page.rows.length) {
       await eraseAuthorizedData();
       setStatus(result.kind === 'signed_out' ? 'signed_out'
         : result.kind === 'forbidden' ? 'forbidden'
@@ -86,57 +120,72 @@ export function StagedConsoleWorkspace() {
 
   async function onLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (status === 'working') return;
+    if (status === 'working' || status === 'locked' || status === 'ready') return;
+    const epoch = ++operationEpoch.current;
     const loginName = username.current?.value ?? '';
     const secret = password.current?.value ?? '';
     // No credentials in React state, query cache, URL, diagnostics or logs.
     if (username.current) username.current.value = '';
     if (password.current) password.current.value = '';
     await eraseAuthorizedData();
+    if (epoch !== operationEpoch.current) return;
     setStatus('working');
     try {
       const { auth } = clients();
       const response = await auth.login(loginName, secret);
+      if (epoch !== operationEpoch.current) return;
       if (response.kind !== 'authenticated' || response.login !== loginName) {
         await eraseAuthorizedData();
+        if (epoch !== operationEpoch.current) return;
         setStatus(response.kind === 'invalid_credentials' ? 'invalid_credentials'
           : response.kind === 'forbidden' ? 'forbidden'
           : response.kind === 'throttled' ? 'throttled' : 'unavailable');
         return;
       }
-      await fetchAuthorized(loginName);
+      await fetchAuthorized(loginName, epoch);
     } catch {
+      if (epoch !== operationEpoch.current) return;
       await eraseAuthorizedData();
-      setStatus('unavailable');
+      if (epoch === operationEpoch.current) setStatus('unavailable');
     }
   }
 
   async function refresh() {
     if (status !== 'ready') return;
+    const epoch = ++operationEpoch.current;
     const login = principal;
     await eraseAuthorizedData();
+    if (epoch !== operationEpoch.current) return;
     setStatus('working');
     try {
-      await fetchAuthorized(login);
+      await fetchAuthorized(login, epoch);
     } catch {
+      if (epoch !== operationEpoch.current) return;
       await eraseAuthorizedData();
-      setStatus('unavailable');
+      if (epoch === operationEpoch.current) setStatus('unavailable');
     }
   }
 
   async function logout() {
-    if (status !== 'ready') return;
+    if (status !== 'ready' && status !== 'locked') return;
+    const epoch = ++operationEpoch.current;
+    // Erase first, without waiting for the remote CSRF/logout exchange.
+    await eraseAuthorizedData();
+    if (epoch !== operationEpoch.current) return;
     setStatus('working');
     try {
       const { auth } = clients();
       const response = await auth.logout();
+      if (epoch !== operationEpoch.current) return;
       await eraseAuthorizedData();
-      // An unavailable logout cannot be presented as a verified sign-out.
-      // Local authorized data has already been erased either way.
-      setStatus(response === 'signed_out' ? 'signed_out' : 'unavailable');
+      if (epoch !== operationEpoch.current) return;
+      // A failed/unknown logout is NOT a signed-out identity; hold the
+      // locked view until the server confirms logout, without stored rows.
+      setStatus(response === 'signed_out' ? 'signed_out' : 'locked');
     } catch {
+      if (epoch !== operationEpoch.current) return;
       await eraseAuthorizedData();
-      setStatus('unavailable');
+      if (epoch === operationEpoch.current) setStatus('locked');
     }
   }
 
@@ -145,6 +194,7 @@ export function StagedConsoleWorkspace() {
     forbidden: '当前请求被拒绝，设备和监控数据已清除。',
     throttled: '登录受到频率限制；不会自动重试。',
     unavailable: '无法安全确认会话或授权数据，未保留历史记录。',
+    locked: '已离开当前页面或标签；授权数据已清空，请先安全登出。',
   };
 
   return <main className="page" data-candidate-status={status}
@@ -164,9 +214,13 @@ export function StagedConsoleWorkspace() {
       <div className="login-brand"><span className="brand-mark">
         <Activity size={23} aria-hidden="true"/></span>
         <span><strong>Lanveriq</strong><small>STAGED CONSOLE</small></span></div>
-      <h2>受控测试登录</h2>
+      <h2>{status === 'locked' ? '会话已锁定' : '受控测试登录'}</h2>
       <p>禁止输入真实管理员凭据。</p>
-      <form onSubmit={onLogin} autoComplete="off" className="login-fields">
+      {status === 'locked' ? (
+        <button className="primary-action" type="button" onClick={logout}>
+          <LogOut size={16} aria-hidden="true"/>验证登出后重新登录
+        </button>
+      ) : <form onSubmit={onLogin} autoComplete="off" className="login-fields">
         <label htmlFor="candidate-username">合成管理员账号</label>
         <input id="candidate-username" ref={username} type="text"
           autoComplete="off" required maxLength={255}/>
@@ -177,7 +231,7 @@ export function StagedConsoleWorkspace() {
           disabled={status === 'working'}>
           安全登录并获取授权设备 <ArrowRight size={16} aria-hidden="true"/>
         </button>
-      </form>
+      </form>}
       <p role="status" data-testid="candidate-message">
         {status === 'working' ? '正在验证一次性合成会话…'
           : errorMessage[status] ?? '尚未建立合成管理员会话；不会自动发起任何业务请求。'}
