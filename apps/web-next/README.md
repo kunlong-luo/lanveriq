@@ -1,5 +1,14 @@
 # Lanveriq NXT-01 — isolated Next.js App Router preview
 
+## NXT-05-A test-only browser login bridge (manual opt-in, NOT deployed)
+
+After passing the independent Caddy/Spring/Chromium and nonempty two-group PG18 Servlet RBAC synthetic gates, the next candidate can exercise **real Next.js client-side fetch** without enabling the application's normal login route. `src/synthetic-only-auth-probe.tsx` is an **unmounted test fixture**, reusing the already unit-tested `staged-console-auth.ts`, `staged-console-read.ts`, and session cache-clearing policy. Nothing in `src/app` or `src/components` imports it on the normal build. `/login` still has disabled username/password controls, and there is no Next.js API proxy or live device collection.
+
+An operator-triggered `console-https-synthetic.yml` workflow may set `browser_probe=true`, `nextjs_same_origin_probe=true`, and the new **`synthetic_auth_ui_probe=true`** (defaults to `false`). Only when **all three** gates are explicitly selected does the runner create a **temporary** `src/app/__synthetic_auth_probe/page.tsx` *after* its normal committed-route safety check and before building its disposable Next.js preview. That route is never committed; the ordinary `pnpm run verify:routes` rejects it. The installer also refuses to execute outside a GitHub Actions runner with the three explicit test flags. It never changes `deploy/caddy/Caddyfile.reference`.
+
+Once the new manual gate is actually executed successfully, the synthetic-only Chromium test can prove that a real Next.js client page submits disposable credentials through browser-generated same-origin POST headers, receives Spring's rotated HttpSession/CSRF, reads an **authorized empty** device list and zero monitoring overview from disposable PG18, then logs out and observes post-logout 401. Synthetic credentials are passed through the existing inherited FD3 and are not printed or placed in URLs. This stage **does not** prove multiple browser principals, nonempty Next.js device/group cache isolation, production login page activation, visual accessibility sign-off or real user/Agent authorization. The source checks and manual runtime must be treated as separate evidence; **the new manual credentialed UI gate is pending**.
+
+
 **Do not use for real device management.** This is a separate candidate at
 `apps/web-next`; the existing React/Vite preview under `apps/web` is
 untouched. This candidate uses Next.js 16.4.3, React 19, TypeScript,
