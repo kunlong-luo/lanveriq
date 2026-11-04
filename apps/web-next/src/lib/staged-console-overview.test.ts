@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parseScopedConsoleOverview } from './staged-console-overview';
+import { isConsistentScopedDirectoryPage, parseScopedConsoleOverview } from './staged-console-overview';
+import type { DirectoryRow } from '../components/device-directory';
 
 const valid = {
   as_of: '2026-11-04T09:00:00.001Z',
@@ -35,6 +36,40 @@ describe('staged Console overview allowlist (source-only)', () => {
     ]) {
       expect(parseScopedConsoleOverview(invalid)).toBeNull();
     }
+  });
+
+  it('rejects torn scope reads and accepts exact or paginated authorized counts', () => {
+    const a: DirectoryRow = {
+      id: '00000000-0000-7000-8000-000000000011',
+      label: 'Synthetic A', os: null, group: 'A',
+      enrollment: 'active', connectivity: 'unknown',
+      heartbeat: null, queue: null,
+    };
+    const b: DirectoryRow = {
+      ...a, id: '00000000-0000-7000-8000-000000000012',
+      label: 'Synthetic B',
+    };
+    const fullPage = { kind: 'ready', rows: [a, b], hasMore: false } as const;
+    const partialPage = { ...fullPage, hasMore: true } as const;
+    const two = parseScopedConsoleOverview({
+      ...valid, total: 2, offline: 1,
+    })!;
+    const three = parseScopedConsoleOverview(valid)!;
+    const zero = parseScopedConsoleOverview({
+      ...valid, total: 0, offline: 0, pending: 0,
+    })!;
+    expect(isConsistentScopedDirectoryPage(fullPage, two)).toBe(true);
+    expect(isConsistentScopedDirectoryPage(fullPage, three)).toBe(false);
+    expect(isConsistentScopedDirectoryPage(fullPage, zero)).toBe(false);
+    expect(isConsistentScopedDirectoryPage(partialPage, three)).toBe(true);
+    expect(isConsistentScopedDirectoryPage(partialPage, two)).toBe(false);
+    expect(isConsistentScopedDirectoryPage(
+      { kind: 'ready', rows: [], hasMore: false }, zero,
+    )).toBe(true);
+    expect(isConsistentScopedDirectoryPage(
+      { kind: 'ready', rows: [], hasMore: true }, zero,
+    )).toBe(false);
+    expect(isConsistentScopedDirectoryPage({kind:'signed_out'}, two)).toBe(false);
   });
 
   it('ignores unapproved raw fields even if server adds them', () => {
