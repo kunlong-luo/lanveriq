@@ -363,7 +363,12 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                     "multi_admin_exactly_one_scoped_cache")
             require(page.locator("#multi-admin-overview").get_attribute("data-total") == str(total),
                     "multi_admin_overview_total")
-            require(page.locator("#multi-admin-device-list li").all_text_contents() == expected_labels,
+            actual_labels = page.locator("#multi-admin-device-list li").all_text_contents()
+            # PostgreSQL orders by UUIDv7, not by display label. Verify exact
+            # membership and uniqueness regardless of allocation order.
+            require(len(actual_labels) == len(expected_labels) and
+                    len(set(actual_labels)) == len(actual_labels) and
+                    sorted(actual_labels) == sorted(expected_labels),
                     "multi_admin_scope_rows")
             require(page.locator("#multi-admin-secret").input_value() == "",
                     "multi_admin_password_field_cleared")
