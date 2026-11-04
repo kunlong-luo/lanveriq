@@ -352,7 +352,7 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                     "multi_admin_password_field_cleared")
 
         page_a, page_b = pages
-        login(page_a, "synthetic-owner",
+        login(page_a, "synthetic-browser-a",
               ["SyntheticBrowserA-1", "SyntheticBrowserA-2"], 2)
         login(page_b, "synthetic-browser-b", ["SyntheticBrowserB-1"], 1)
         first_cookie = session_cookie(contexts[0])
