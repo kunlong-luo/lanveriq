@@ -16,14 +16,26 @@ REFERENCE = ROOT / "deploy/caddy/Caddyfile.reference"
 
 
 class SyntheticChromiumGateTest(unittest.TestCase):
-    def test_browser_probe_requires_explicit_manual_opt_in(self):
+    def test_browser_probe_is_manual_default_off_or_main_only_automatic_synthetic(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         script = HARNESS.read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", workflow)
         self.assertIn("browser_probe:", workflow)
         self.assertIn("default: false", workflow)
-        self.assertNotIn("push:", workflow)
+        # An intentional bounded main push runs all disposable gates without
+        # another human workflow dispatch. Manual inputs still default OFF.
+        self.assertIn("push:", workflow)
+        self.assertIn("branches: [main]", workflow)
+        self.assertIn("paths:", workflow)
+        self.assertIn("github.event_name == 'push' || inputs.browser_probe", workflow)
+        self.assertIn("github.event_name == 'push' || inputs.nextjs_same_origin_probe", workflow)
+        self.assertIn("github.event_name == 'push' || inputs.synthetic_auth_ui_probe", workflow)
+        self.assertIn("github.event_name == 'push' || inputs.synthetic_multi_admin_probe", workflow)
+        self.assertIn("cancel-in-progress: ${{ github.event_name == 'push' }}", workflow)
         self.assertNotIn("pull_request:", workflow)
+        self.assertIn("contents: read", workflow)
+        self.assertNotIn("actions: write", workflow)
+        self.assertNotIn("secrets.", workflow)
         self.assertIn('BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"', script)
         self.assertIn('[[ "$BROWSER_MODE" == 0 || "$CONSOLE_MODE" == 1 ]]', script)
         self.assertIn('if [[ "$BROWSER_MODE" == 1 ]]; then', script)
@@ -33,7 +45,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
                         script.index('verify-synthetic-console-browser.py'))
         self.assertIn('playwright==1.64.1', workflow)
         self.assertIn('libnss3-tools', workflow)
-        self.assertIn('if: ${{ inputs.browser_probe }}', workflow)
+        self.assertIn("if: ${{ github.event_name == 'push' || inputs.browser_probe }}", workflow)
 
     def test_ephemeral_only_caddy_probe_and_no_certificate_bypass(self):
         harness = HARNESS.read_text(encoding="utf-8")
@@ -331,7 +343,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn('AUTH_UI_MODE="${LANVERIQ_SYNTHETIC_AUTH_UI_PROBE:-0}"', harness)
         self.assertIn('"$AUTH_UI_MODE" == 0 || "$NEXTJS_MODE" == 1', harness)
         self.assertNotIn('synthetic-only-auth-probe', reference)
-        self.assertIn("Declare exact manual acceptance scope (request, not pass)", workflow)
+        self.assertIn("Declare exact synthetic acceptance scope (request, not pass)", workflow)
         self.assertIn("Verified result", workflow)
         self.assertIn('>> "$GITHUB_STEP_SUMMARY"', workflow)
         self.assertIn("SKIPPED (browser_probe=false)", workflow)
