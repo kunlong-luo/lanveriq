@@ -651,7 +651,13 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 raise BrowserGateFailure(
                     "route_boundary_login_" + label + "_state_" + observed) from None
             stage = "route_login_" + label + "_principal"
-            require(route_page.locator("main").get_attribute(
+            # The shared Console shell can contain an unrelated <main>.
+            # Assert the one authenticated candidate root, not any main.
+            candidate_root = route_page.locator(
+                "main[data-candidate-status='ready']")
+            require(candidate_root.count() == 1,
+                    "route_boundary_disposable_login_unique_root")
+            require(candidate_root.get_attribute(
                 "data-candidate-principal") == name,
                 "route_boundary_disposable_login_identity")
 
@@ -667,10 +673,12 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                     "route_boundary_authenticated_html_no_store")
             route_page.locator("main[data-route-state='ready']").wait_for(
                 state="visible", timeout=22000)
-            require(route_page.locator("main").get_attribute(
+            require(route_page.locator(
+                "main[data-route-state='ready']").get_attribute(
                 "data-route-principal") == expected_login,
                 "route_boundary_principal_after_navigation")
-            require(route_page.locator("main").get_attribute(
+            require(route_page.locator(
+                "main[data-route-state='ready']").get_attribute(
                 "data-route-view") == view,
                 "route_boundary_real_page_view")
             if view != "devices":
@@ -699,10 +707,12 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             route_page.wait_for_url(route_url + view, timeout=18000)
             route_page.locator("main[data-route-state='ready']").wait_for(
                 state="visible", timeout=22000)
-            require(route_page.locator("main").get_attribute(
+            require(route_page.locator(
+                "main[data-route-state='ready']").get_attribute(
                 "data-route-principal") == expected_login,
                 "route_boundary_principal_after_navigation")
-            require(route_page.locator("main").get_attribute(
+            require(route_page.locator(
+                "main[data-route-state='ready']").get_attribute(
                 "data-route-view") == view,
                 "route_boundary_real_page_view")
             if view != "devices":
