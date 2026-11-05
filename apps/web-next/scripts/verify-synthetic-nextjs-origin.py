@@ -18,9 +18,13 @@ PATHS = (
 )
 
 
+class OriginGateFailure(Exception):
+    """Fixed non-secret label only; never include HTTP headers or bodies."""
+
+
 def require(condition, label):
     if not condition:
-        raise RuntimeError(label)
+        raise OriginGateFailure(label)
 
 
 def probe(path, headers):
@@ -83,7 +87,7 @@ def main():
         pass
     else:
         connection.close()
-        raise RuntimeError("nextjs_nonloopback_tcp_must_be_unreachable")
+        raise OriginGateFailure("nextjs_nonloopback_tcp_must_be_unreachable")
 
     print("SYNTHETIC NEXTJS ORIGIN ISOLATION PASS: direct loopback HTML/"
           "RSC and forged Cookie/edge proof denied; nonloopback TCP closed.")
@@ -92,8 +96,13 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except OriginGateFailure as exc:
+        # require() only accepts fixed labels authored in this file.
+        # Never expose the upstream exception, response body or secret.
+        print("FAIL: disposable Next.js origin containment: " + str(exc),
+              file=sys.stderr)
+        raise SystemExit(1) from None
     except Exception:
-        # Avoid printing raw network error details, environment or secrets.
-        print("FAIL: disposable Next.js origin containment security gate",
+        print("FAIL: disposable Next.js origin runtime/connectivity",
               file=sys.stderr)
         raise SystemExit(1) from None
