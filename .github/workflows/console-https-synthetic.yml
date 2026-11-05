@@ -226,6 +226,14 @@ jobs:
               echo "FAIL: synthetic Next.js port already occupied"
               exit 1
             fi
+            # The only two holders of this ephemeral proof are the local
+            # Next process and Caddy's disposable, separately authorized
+            # upstream. No production secret, GitHub credential or account
+            # identifier is used. Never emit its value to Actions logs.
+            umask 077
+            export LANVERIQ_SYNTHETIC_EDGE_SECRET
+            LANVERIQ_SYNTHETIC_EDGE_SECRET="$(openssl rand -hex 32)"
+            [[ "$LANVERIQ_SYNTHETIC_EDGE_SECRET" =~ ^[a-f0-9]{64}$ ]] || exit 1
             (
               cd apps/web-next
               pnpm exec next start --hostname 127.0.0.1 --port 3100
@@ -243,6 +251,9 @@ jobs:
               sleep 0.5
             done
             [[ "$ready" == 1 ]] || { echo "FAIL: isolated Next.js did not become ready"; exit 1; }
+            # Direct loopback and non-loopback TCP negatives MUST run before
+            # Caddy starts: no browser business session may be created here.
+            python3 apps/web-next/scripts/verify-synthetic-nextjs-origin.py
           fi
           bash apps/server/scripts/verify-agent-upstream-tls.sh
           {
