@@ -27,11 +27,13 @@ const dir = join(root, 'src/app/synthetic-auth-probe');
 const target = join(dir, 'page.tsx');
 const multiDir = join(root, 'src/app/synthetic-multi-admin-probe');
 const candidateDir = join(root, 'src/app/synthetic-console-candidate');
+const multiRouteDir = join(root, 'src/app/synthetic-console-route');
 if (existsSync(dir) || existsSync(target) || existsSync(multiDir) ||
-    existsSync(candidateDir) ||
+    existsSync(candidateDir) || existsSync(multiRouteDir) ||
     (multiAdmin === '1' &&
      (!existsSync(join(root, 'src/synthetic-only-multi-admin-probe.tsx')) ||
-      !existsSync(join(root, 'src/staged-console-workspace.tsx'))))) {
+      !existsSync(join(root, 'src/staged-console-workspace.tsx')) ||
+      !existsSync(join(root, 'src/staged-console-route-boundary.tsx'))))) {
   throw new Error('Synthetic auth routes already exist or staged source fixture missing');
 }
 mkdirSync(dir, { recursive: false, mode: 0o700 });
@@ -68,4 +70,22 @@ export default function SyntheticCandidatePage() {
 }
 `, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
   console.log('Staged product-shaped Console candidate mounted in disposable runner only');
+}
+
+if (multiAdmin === '1') {
+  // Three ACTUAL App Router URLs, not React tabs; full-document navigation
+  // triggers a fresh synthetic Spring Session check in each isolated page.
+  mkdirSync(multiRouteDir, { recursive: false, mode: 0o700 });
+  for (const view of ['overview', 'devices', 'monitoring']) {
+    const pageDir = join(multiRouteDir, view);
+    mkdirSync(pageDir, { recursive: false, mode: 0o700 });
+    writeFileSync(join(pageDir, 'page.tsx'), `import { StagedConsoleRouteBoundary } from '@/staged-console-route-boundary';
+
+export const dynamic = 'force-dynamic';
+export default function SyntheticMultiRoutePage() {
+  return <StagedConsoleRouteBoundary view="${view}" />;
+}
+`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  }
+  console.log('Three gated synthetic multi-route session pages mounted in disposable runner only');
 }
