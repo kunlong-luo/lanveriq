@@ -612,20 +612,45 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         # login-only candidate. Protected pages themselves are not login
         # endpoints and must not present a credential form to anonymous users.
         def route_login(name):
+            nonlocal stage
+            label = "a" if name == "synthetic-browser-a" else "b"
+            stage = "route_login_" + label + "_open_disposable_candidate"
             login_response = route_page.goto(
                 CONSOLE + "/synthetic-console-candidate",
                 wait_until="networkidle", timeout=25000)
             require(login_response is not None and login_response.status == 200,
                     "route_boundary_disposable_login_entry")
+            stage = "route_login_" + label + "_wait_signed_out"
             route_page.locator("main[data-candidate-status='signed_out']").wait_for(
                 state="visible", timeout=12000)
+            stage = "route_login_" + label + "_fill_synthetic_credentials"
             route_page.locator("#candidate-username").fill(name)
             route_page.locator("#candidate-password").fill(password)
+            stage = "route_login_" + label + "_submit"
             route_page.get_by_role(
                 "button", name="安全登录并获取授权设备").click()
-            route_page.locator(
-                "main[data-candidate-status='ready']").wait_for(
+            stage = "route_login_" + label + "_await_authorized_ui"
+            try:
+                route_page.locator(
+                    "main[data-candidate-status='ready']").wait_for(
                     state="visible", timeout=25000)
+            except Exception:
+                observed = "missing"
+                try:
+                    candidate = route_page.locator(
+                        "main[data-candidate-status]").get_attribute(
+                        "data-candidate-status", timeout=1000)
+                    if candidate in ("signed_out", "working", "ready",
+                                     "invalid_credentials", "forbidden",
+                                     "throttled", "unavailable", "locked"):
+                        observed = candidate
+                except Exception:
+                    pass
+                # Safe fixed UI-state enum only; no Playwright exception,
+                # headers, request bodies, credentials or cookies.
+                raise BrowserGateFailure(
+                    "route_boundary_login_" + label + "_state_" + observed) from None
+            stage = "route_login_" + label + "_principal"
             require(route_page.locator("main").get_attribute(
                 "data-candidate-principal") == name,
                 "route_boundary_disposable_login_identity")
