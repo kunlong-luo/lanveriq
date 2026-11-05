@@ -695,16 +695,17 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                     "route_boundary_authenticated_edge_200")
             require("no-store" in response.headers.get("cache-control", "").lower(),
                     "route_boundary_authenticated_html_no_store")
-            route_page.locator("main[data-route-state='ready']").wait_for(
-                state="visible", timeout=22000)
-            require(route_page.locator(
-                "main[data-route-state='ready']").get_attribute(
-                "data-route-principal") == expected_login,
-                "route_boundary_principal_after_navigation")
-            require(route_page.locator(
-                "main[data-route-state='ready']").get_attribute(
-                "data-route-view") == view,
-                "route_boundary_real_page_view")
+            # One strict locator verifies status, principal and route at
+            # the same time. Avoid separately reading transient attributes.
+            authorized_root = route_page.locator(
+                "main[data-route-state='ready']"
+                "[data-route-principal='" + expected_login + "']"
+                "[data-route-view='" + view + "']")
+            try:
+                authorized_root.wait_for(state="visible", timeout=22000)
+            except Exception:
+                raise BrowserGateFailure(
+                    "route_boundary_principal_after_navigation") from None
             if view != "devices":
                 require(route_page.get_by_test_id(
                     "route-metric-已授权设备总数").text_content() == str(expected_total),
@@ -729,16 +730,17 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 "overview": "概览", "devices": "终端资产",
                 "monitoring": "监控中心"}[view]).click()
             route_page.wait_for_url(route_url + view, timeout=18000)
-            route_page.locator("main[data-route-state='ready']").wait_for(
-                state="visible", timeout=22000)
-            require(route_page.locator(
-                "main[data-route-state='ready']").get_attribute(
-                "data-route-principal") == expected_login,
-                "route_boundary_principal_after_navigation")
-            require(route_page.locator(
-                "main[data-route-state='ready']").get_attribute(
-                "data-route-view") == view,
-                "route_boundary_real_page_view")
+            # One strict locator verifies status, principal and route at
+            # the same time. Avoid separately reading transient attributes.
+            authorized_root = route_page.locator(
+                "main[data-route-state='ready']"
+                "[data-route-principal='" + expected_login + "']"
+                "[data-route-view='" + view + "']")
+            try:
+                authorized_root.wait_for(state="visible", timeout=22000)
+            except Exception:
+                raise BrowserGateFailure(
+                    "route_boundary_principal_after_navigation") from None
             if view != "devices":
                 require(route_page.get_by_test_id(
                     "route-metric-已授权设备总数").text_content() == str(expected_total),
