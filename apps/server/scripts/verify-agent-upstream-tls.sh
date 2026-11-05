@@ -453,6 +453,15 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
         -e 's|@agentRoutes path |@agentRoutes path /actuator/health |' \
         "$ROOT/deploy/caddy/Caddyfile.reference" > "$TMP/Caddyfile.synthetic"
     CADDY_REFERENCE="$TMP/Caddyfile.synthetic"
+    if [[ "$NEXTJS_MODE" == 1 ]]; then
+        # NXT-10: a disposable 256-bit internal edge proof must be shared
+        # only between this synthetic Caddy process and the isolated Next
+        # server. Never print it, hardcode it, or copy into the browser.
+        [[ "${LANVERIQ_SYNTHETIC_EDGE_SECRET:-}" =~ ^[a-f0-9]{64}$ ]] || {
+            echo "FAIL: synthetic Next.js edge proof is absent or malformed" >&2
+            exit 1
+        }
+    fi
     if [[ "$CONSOLE_MODE" == 1 ]]; then
         # Replace exactly one 503 response in the disposable config.
         # Caddy's checked-in deploy reference is NEVER touched; enrollment
@@ -501,6 +510,8 @@ if sys.argv[2] == "1":
         protected_pages = """    handle /synthetic-console-route/* {
         header Cache-Control "no-store"
         route {
+            # Drop any caller-supplied attestation before Spring verification.
+            request_header -X-Lanveriq-Synthetic-Edge-*
             forward_auth https://127.0.0.1:8443 {
                 uri /api/v1/auth/session
                 transport http {
@@ -513,10 +524,15 @@ if sys.argv[2] == "1":
                 header_up -X-Forwarded-Client-Cert
                 header_up -SSL-Client-Cert
                 header_up -X-Lanveriq-Verified-Client-*
+                header_up -X-Lanveriq-Synthetic-Edge-*
                 header_up Host console.lanveriq.internal:443
             }
             reverse_proxy http://127.0.0.1:3100 {
                 header_up Host 127.0.0.1:3100
+                # This per-run proof is attached only AFTER the Spring
+                # forward_auth allows the request. Direct Next access cannot
+                # forge it merely by reusing a valid browser session cookie.
+                header_up X-Lanveriq-Synthetic-Edge-Token {$LANVERIQ_SYNTHETIC_EDGE_SECRET}
             }
         }
     }
@@ -544,6 +560,7 @@ PY
         local config="$1"
         shift
         docker run --rm \
+            -e LANVERIQ_SYNTHETIC_EDGE_SECRET \
             -v "$config:/etc/caddy/Caddyfile:ro" \
             -v "$TMP/pki:/etc/lanveriq/pki:ro" \
             -v "$CADDY_DATA_VOLUME:/data" \
@@ -582,6 +599,7 @@ PY
             exit 1
         }
         CADDY_CID="$(docker run --detach --rm --network host \
+            -e LANVERIQ_SYNTHETIC_EDGE_SECRET \
             -v "$config:/etc/caddy/Caddyfile:ro" \
             -v "$TMP/pki:/etc/lanveriq/pki:ro" \
             -v "$CADDY_DATA_VOLUME:/data" \
