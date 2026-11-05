@@ -25,6 +25,7 @@ export default function Page(){return Preview()}`);
   write('src/lib/staged-console-auth.ts', `export const secret = 1`);
   write('src/lib/staged-console-read.ts', `export const read = 1`);
   write('src/staged-console-workspace.tsx', `export const Workspace = 1`);
+  write('src/staged-console-route-boundary.tsx', `export const Boundary = 1`);
   return { root, write };
 }
 
@@ -59,6 +60,13 @@ test('detects namespace reexports to the staged product-shaped UI', t => {
   const {root, write} = fixture(t);
   write('src/lib/relay.ts', `export * from '../staged-console-workspace'`);
   write('src/app/page.tsx', `export { Workspace as default } from '../lib/relay'`);
+  assert.throws(() => verifyRuntimeIsolation(root),
+    /Protected staged Console module reachable/);
+});
+
+test('blocks transitive import of new session-checked multi-route boundary', t => {
+  const {root, write} = fixture(t);
+  write('src/components/preview.tsx', `export { Boundary as Preview } from '../staged-console-route-boundary'`);
   assert.throws(() => verifyRuntimeIsolation(root),
     /Protected staged Console module reachable/);
 });
