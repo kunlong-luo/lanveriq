@@ -23,6 +23,7 @@ function protectedModule(rel) {
   return path === 'src/lib/staged-console-auth.ts' ||
     path === 'src/lib/staged-console-read.ts' ||
     path === 'src/staged-console-workspace.tsx' ||
+    path === 'src/staged-console-route-boundary.tsx' ||
     path === 'src/synthetic-only-auth-probe.tsx' ||
     path === 'src/synthetic-only-multi-admin-probe.tsx' ||
     path === 'src/synthetic-only-auth-probe.test.tsx' ||
