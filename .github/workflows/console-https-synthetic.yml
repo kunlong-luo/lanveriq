@@ -20,6 +20,7 @@ on:
       - 'apps/web-next/src/synthetic-only-auth-probe.tsx'
       - 'apps/web-next/src/synthetic-only-multi-admin-probe.tsx'
       - 'apps/web-next/src/staged-console-workspace.tsx'
+      - 'apps/web-next/src/staged-console-route-boundary.tsx'
       - 'apps/web-next/src/lib/staged-console-overview.ts'
       - 'apps/web-next/src/components/device-directory.tsx'
       - 'apps/web-next/src/app/globals.css'
