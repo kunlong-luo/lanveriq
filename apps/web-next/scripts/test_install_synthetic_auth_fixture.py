@@ -65,6 +65,8 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
                 "// source-only multi-admin test", encoding="utf-8")
             (root / "src/staged-console-workspace.tsx").write_text(
                 "// source-only unmounted Console candidate", encoding="utf-8")
+            (root / "src/staged-console-route-boundary.tsx").write_text(
+                "// source-only unmounted multi-route boundary", encoding="utf-8")
             (root / "src/app/(auth)/login/page.tsx").write_text(
                 "// disabled login", encoding="utf-8")
             base = {**os.environ, **{flag: "1" for flag in FLAGS},
@@ -72,6 +74,7 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
             main = root / "src/app/synthetic-auth-probe/page.tsx"
             multi = root / "src/app/synthetic-multi-admin-probe/page.tsx"
             candidate = root / "src/app/synthetic-console-candidate/page.tsx"
+            route_root = root / "src/app/synthetic-console-route"
             # Explicitly OFF: only the original one-admin temporary route.
             off = subprocess.run(
                 ["node", str(INSTALLER)], cwd=root,
@@ -81,6 +84,7 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
             self.assertTrue(main.exists())
             self.assertFalse(multi.exists())
             self.assertFalse(candidate.exists())
+            self.assertFalse(route_root.exists())
 
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "web-next"
@@ -91,6 +95,8 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
                 "// source-only multi-admin test", encoding="utf-8")
             (root / "src/staged-console-workspace.tsx").write_text(
                 "// source-only unmounted Console candidate", encoding="utf-8")
+            (root / "src/staged-console-route-boundary.tsx").write_text(
+                "// source-only unmounted multi-route boundary", encoding="utf-8")
             (root / "src/app/(auth)/login/page.tsx").write_text(
                 "// disabled login", encoding="utf-8")
             enabled = {**base, "LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE": "1"}
@@ -104,6 +110,14 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
             candidate_page = root / "src/app/synthetic-console-candidate/page.tsx"
             self.assertIn("StagedConsoleWorkspace",
                           candidate_page.read_text(encoding="utf-8"))
+            for view in ("overview", "devices", "monitoring"):
+                nested = root / "src/app/synthetic-console-route" / view / "page.tsx"
+                self.assertTrue(nested.is_file())
+                source = nested.read_text(encoding="utf-8")
+                self.assertIn("StagedConsoleRouteBoundary", source)
+                self.assertIn(f'view="{view}"', source)
+                self.assertNotIn("password", source)
+                self.assertNotIn("/api/v1/", source)
             self.assertNotIn("password", candidate_page.read_text(encoding="utf-8"))
             self.assertNotIn("/api/v1/", candidate_page.read_text(encoding="utf-8"))
             self.assertNotIn("/api/v1/",
