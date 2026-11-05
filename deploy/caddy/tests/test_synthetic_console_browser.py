@@ -428,6 +428,10 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("process.env.LANVERIQ_SYNTHETIC_EDGE_SECRET", installer)
         self.assertIn("x-lanveriq-synthetic-edge-token", installer)
         self.assertIn("notFound()", installer)
+        self.assertIn("export function proxy(request: NextRequest)", installer)
+        self.assertIn("matcher: ['/synthetic-console-route/:path*']", installer)
+        self.assertIn("return new NextResponse('Not found', {status: 404", installer)
+        self.assertIn("'Cache-Control': 'no-store'", installer)
         origin = (ROOT / "apps/web-next/scripts/verify-synthetic-nextjs-origin.py"
                   ).read_text(encoding="utf-8")
         self.assertIn("direct_origin_rsc_prefetch_must_404", origin)
