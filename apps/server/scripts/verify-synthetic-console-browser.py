@@ -686,17 +686,22 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             stage = "route_login_" + label + "_principal_verified"
 
         def enter_route(view, expected_login, expected_total):
+            nonlocal stage
+            stage = "edge_enter_" + view + "_prepare"
             # Full-document GET proves edge 200 only after Spring verified
             # the browser's Secure host-only cookie; Next itself also
             # rechecks Spring before rendering any authorized rows.
+            stage = "edge_enter_" + view + "_navigate"
             response = route_page.goto(
                 route_url + view, wait_until="networkidle", timeout=25000)
+            stage = "edge_enter_" + view + "_http_status"
             require(response is not None and response.status == 200,
                     "route_boundary_authenticated_edge_200")
             require("no-store" in response.headers.get("cache-control", "").lower(),
                     "route_boundary_authenticated_html_no_store")
             # One strict locator verifies status, principal and route at
             # the same time. Avoid separately reading transient attributes.
+            stage = "edge_enter_" + view + "_wait_identity"
             authorized_root = route_page.locator(
                 "main[data-route-state='ready']"
                 "[data-route-principal='" + expected_login + "']"
@@ -707,11 +712,13 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 raise BrowserGateFailure(
                     "route_boundary_principal_after_navigation") from None
             if view != "devices":
+                stage = "edge_enter_" + view + "_metrics"
                 require(route_page.get_by_test_id(
                     "route-metric-已授权设备总数").text_content() == str(expected_total),
                     "route_boundary_scoped_total")
             # Protected RSC/prefetch for a valid session traverses Caddy's
             # forward_auth and the origin's private edge-proof check.
+            stage = "edge_enter_" + view + "_rsc_prefetch"
             rsc = route_page.evaluate("""async (path) => {
                 const response = await fetch(path + '?__rsc=synthetic-authorized', {
                     headers: {'RSC':'1', 'Next-Router-Prefetch':'1'},
@@ -723,15 +730,20 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             require(rsc["status"] == 200 and
                     "no-store" in rsc["cache"].lower(),
                     "route_boundary_valid_session_rsc_200_no_store")
+            stage = "edge_enter_" + view + "_verified"
             return response
 
         def visit_route(view, expected_login, expected_total):
+            nonlocal stage
+            stage = "edge_visit_" + view + "_click"
             route_page.get_by_role("link", name={
                 "overview": "概览", "devices": "终端资产",
                 "monitoring": "监控中心"}[view]).click()
+            stage = "edge_visit_" + view + "_wait_url"
             route_page.wait_for_url(route_url + view, timeout=18000)
             # One strict locator verifies status, principal and route at
             # the same time. Avoid separately reading transient attributes.
+            stage = "edge_visit_" + view + "_wait_identity"
             authorized_root = route_page.locator(
                 "main[data-route-state='ready']"
                 "[data-route-principal='" + expected_login + "']"
@@ -742,6 +754,7 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 raise BrowserGateFailure(
                     "route_boundary_principal_after_navigation") from None
             if view != "devices":
+                stage = "edge_visit_" + view + "_metrics"
                 require(route_page.get_by_test_id(
                     "route-metric-已授权设备总数").text_content() == str(expected_total),
                     "route_boundary_scoped_total")
