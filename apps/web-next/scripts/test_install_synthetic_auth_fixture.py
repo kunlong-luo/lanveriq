@@ -85,6 +85,7 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
             self.assertFalse(multi.exists())
             self.assertFalse(candidate.exists())
             self.assertFalse(route_root.exists())
+            self.assertFalse((root / "src/proxy.ts").exists())
 
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "web-next"
@@ -110,6 +111,15 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
             candidate_page = root / "src/app/synthetic-console-candidate/page.tsx"
             self.assertIn("StagedConsoleWorkspace",
                           candidate_page.read_text(encoding="utf-8"))
+            proxy = (root / "src/proxy.ts").read_text(encoding="utf-8")
+            self.assertIn("export function proxy(", proxy)
+            self.assertIn("/synthetic-console-route/:path*", proxy)
+            self.assertIn("timingSafeEqual", proxy)
+            self.assertIn("LANVERIQ_SYNTHETIC_EDGE_SECRET", proxy)
+            self.assertIn("status: 404", proxy)
+            self.assertIn("Cache-Control", proxy)
+            self.assertNotIn("synthetic-browser-a", proxy)
+            self.assertNotIn("/api/v1/", proxy)
             for view in ("overview", "devices", "monitoring"):
                 nested = root / "src/app/synthetic-console-route" / view / "page.tsx"
                 self.assertTrue(nested.is_file())
