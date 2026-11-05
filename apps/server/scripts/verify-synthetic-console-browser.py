@@ -650,16 +650,39 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 # headers, request bodies, credentials or cookies.
                 raise BrowserGateFailure(
                     "route_boundary_login_" + label + "_state_" + observed) from None
-            stage = "route_login_" + label + "_principal"
-            # The shared Console shell can contain an unrelated <main>.
-            # Assert the one authenticated candidate root, not any main.
+            stage = "route_login_" + label + "_principal_unique_root"
+            # React can commit the status and principal DOM attributes in
+            # separate render ticks. Wait for one exact identity-bearing root
+            # instead of synchronously fetching an attribute from a node that
+            # may be replaced while the browser hydrates.
             candidate_root = route_page.locator(
                 "main[data-candidate-status='ready']")
             require(candidate_root.count() == 1,
                     "route_boundary_disposable_login_unique_root")
-            require(candidate_root.get_attribute(
-                "data-candidate-principal") == name,
-                "route_boundary_disposable_login_identity")
+            stage = "route_login_" + label + "_principal_exact_wait"
+            principal_root = route_page.locator(
+                "main[data-candidate-status='ready'][data-candidate-principal='" +
+                name + "']")
+            try:
+                principal_root.wait_for(state="visible", timeout=12000)
+            except Exception:
+                observed = "missing"
+                try:
+                    state = route_page.locator(
+                        "main[data-candidate-status]").get_attribute(
+                            "data-candidate-status", timeout=800)
+                    if state in ("signed_out", "working", "ready",
+                                 "invalid_credentials", "forbidden",
+                                 "throttled", "unavailable", "locked"):
+                        observed = state
+                except Exception:
+                    pass
+                raise BrowserGateFailure(
+                    "route_boundary_login_" + label +
+                    "_principal_identity_unavailable_" + observed) from None
+            stage = "route_login_" + label + "_principal_exact_count"
+            require(principal_root.count() == 1,
+                    "route_boundary_disposable_login_identity")
 
         def enter_route(view, expected_login, expected_total):
             # Full-document GET proves edge 200 only after Spring verified
