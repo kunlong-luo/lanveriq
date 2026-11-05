@@ -65,6 +65,6 @@ jobs:
           # CI step neither starts Spring/Caddy nor submits credentials.
           # The untouched ordinary preview was built and checked above.
           node scripts/install-synthetic-auth-fixture.mjs
-          trap 'rm -rf src/app/synthetic-auth-probe src/app/synthetic-multi-admin-probe src/app/synthetic-console-candidate' EXIT
+          trap 'rm -rf src/app/synthetic-auth-probe src/app/synthetic-multi-admin-probe src/app/synthetic-console-candidate src/app/synthetic-console-route' EXIT
           pnpm typecheck
           pnpm build
