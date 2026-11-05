@@ -80,9 +80,24 @@ if (multiAdmin === '1') {
     const pageDir = join(multiRouteDir, view);
     mkdirSync(pageDir, { recursive: false, mode: 0o700 });
     writeFileSync(join(pageDir, 'page.tsx'), `import { StagedConsoleRouteBoundary } from '@/staged-console-route-boundary';
+import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
+import { timingSafeEqual } from 'node:crypto';
 
+// ONLY this disposable CI route: an internal high-entropy per-run token
+// must be attached by Caddy AFTER it has checked the real Spring Session.
+// The token is never embedded in browser markup or bundled client JS.
+// Direct loopback access with a forged Cookie cannot bypass this check.
 export const dynamic = 'force-dynamic';
-export default function SyntheticMultiRoutePage() {
+export default async function SyntheticMultiRoutePage() {
+  const requestHeaders = await headers();
+  const supplied = requestHeaders.get('x-lanveriq-synthetic-edge-token');
+  const expected = process.env.LANVERIQ_SYNTHETIC_EDGE_SECRET;
+  if (!supplied || !expected || !/^[a-f0-9]{64}$/.test(expected) ||
+      supplied.length !== expected.length ||
+      !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) {
+    notFound();
+  }
   return <StagedConsoleRouteBoundary view="${view}" />;
 }
 `, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
