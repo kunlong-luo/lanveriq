@@ -416,6 +416,24 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("route_boundary_disabled_edge_http_401", browser)
         self.assertIn("route_boundary_authenticated_html_no_store", browser)
         self.assertIn("SYNTHETIC EDGE HTML AUTH PASS", browser)
+        self.assertIn("SYNTHETIC EDGE RSC AUTH PASS", browser)
+        self.assertIn("route_boundary_anonymous_rsc_prefetch_401", browser)
+        self.assertIn("route_boundary_valid_session_rsc_200_no_store", browser)
+        self.assertIn("route_boundary_forged_edge_header_still_spring_401", browser)
+        # The next server refuses direct HTTP without a secret generated
+        # specifically for one disposable run, not a client cookie.
+        installer = (ROOT / "apps/web-next/scripts/install-synthetic-auth-fixture.mjs"
+                     ).read_text(encoding="utf-8")
+        self.assertIn("timingSafeEqual", installer)
+        self.assertIn("process.env.LANVERIQ_SYNTHETIC_EDGE_SECRET", installer)
+        self.assertIn("x-lanveriq-synthetic-edge-token", installer)
+        self.assertIn("notFound()", installer)
+        origin = (ROOT / "apps/web-next/scripts/verify-synthetic-nextjs-origin.py"
+                  ).read_text(encoding="utf-8")
+        self.assertIn("direct_origin_rsc_prefetch_must_404", origin)
+        self.assertIn("direct_origin_forged_cookie_must_404", origin)
+        self.assertIn("nextjs_nonloopback_tcp_must_be_unreachable", origin)
+        self.assertIn("SYNTHETIC NEXTJS ORIGIN ISOLATION PASS", origin)
         self.assertIn("route_boundary_revoked_group_no_rows", browser)
         # Fail closed: the native proxy's HTML forward-auth guard is installed
         # exclusively in this disposable runner, not a deployable Caddyfile.
@@ -425,10 +443,14 @@ class SyntheticChromiumGateTest(unittest.TestCase):
                      ).read_text(encoding="utf-8")
         self.assertIn('handle /synthetic-console-route/*', tls_harness)
         self.assertIn('forward_auth https://127.0.0.1:8443', tls_harness)
+        self.assertIn('request_header -X-Lanveriq-Synthetic-Edge-*', tls_harness)
+        self.assertIn('header_up X-Lanveriq-Synthetic-Edge-Token', tls_harness)
+        self.assertIn('LANVERIQ_SYNTHETIC_EDGE_SECRET', tls_harness)
         self.assertIn('uri /api/v1/auth/session', tls_harness)
         self.assertIn('tls_client_auth /etc/lanveriq/pki/caddy-upstream-client.crt', tls_harness)
         self.assertIn('header_up Host console.lanveriq.internal:443', tls_harness)
         self.assertNotIn('forward_auth', reference)
+        self.assertNotIn('X-Lanveriq-Synthetic-Edge-Token', reference)
         self.assertNotIn('synthetic-console-route', reference)
         self.assertIn("route_boundary_real_browser_post_metadata", browser)
         staged_route = (ROOT / "apps/web-next/src/staged-console-route-boundary.tsx"
