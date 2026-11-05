@@ -30,6 +30,7 @@ const candidateDir = join(root, 'src/app/synthetic-console-candidate');
 const multiRouteDir = join(root, 'src/app/synthetic-console-route');
 if (existsSync(dir) || existsSync(target) || existsSync(multiDir) ||
     existsSync(candidateDir) || existsSync(multiRouteDir) ||
+    existsSync(join(root, 'src/proxy.ts')) ||
     (multiAdmin === '1' &&
      (!existsSync(join(root, 'src/synthetic-only-multi-admin-probe.tsx')) ||
       !existsSync(join(root, 'src/staged-console-workspace.tsx')) ||
@@ -73,6 +74,34 @@ export default function SyntheticCandidatePage() {
 }
 
 if (multiAdmin === '1') {
+  // Next 16 Proxy runs BEFORE App Router rendering. Page-level notFound()
+  // can leave an already-streaming RSC request with HTTP 200, so direct
+  // origin requests are rejected here with an unambiguous 404. This file
+  // is never in committed source or a normal production build; only the
+  // disposable four-flag runner installs it. Spring is STILL the authority
+  // at the public Caddy edge.
+  writeFileSync(join(root, 'src/proxy.ts'), `import { timingSafeEqual } from 'node:crypto';
+import { NextResponse, type NextRequest } from 'next/server';
+
+export const config = {
+  matcher: ['/synthetic-console-route/:path*'],
+};
+
+export function proxy(request: NextRequest) {
+  const supplied = request.headers.get('x-lanveriq-synthetic-edge-token');
+  const expected = process.env.LANVERIQ_SYNTHETIC_EDGE_SECRET;
+  if (!supplied || !expected || !/^[0-9a-f]{64}$/.test(expected) ||
+      supplied.length !== expected.length ||
+      !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) {
+    return new NextResponse('Not found', {status: 404, headers: {
+      'Cache-Control': 'no-store', 'Content-Type': 'text/plain; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff'
+    }});
+  }
+  return NextResponse.next();
+}
+`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+
   // Three ACTUAL App Router URLs, not React tabs; full-document navigation
   // triggers a fresh synthetic Spring Session check in each isolated page.
   mkdirSync(multiRouteDir, { recursive: false, mode: 0o700 });
