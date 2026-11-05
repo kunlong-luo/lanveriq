@@ -680,9 +680,10 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 raise BrowserGateFailure(
                     "route_boundary_login_" + label +
                     "_principal_identity_unavailable_" + observed) from None
-            stage = "route_login_" + label + "_principal_exact_count"
-            require(principal_root.count() == 1,
-                    "route_boundary_disposable_login_identity")
+            # Playwright wait_for() is already strict: it succeeds only
+            # with one matching identity-bearing root. A redundant second
+            # CDP count() after hydration can race a document transition.
+            stage = "route_login_" + label + "_principal_verified"
 
         def enter_route(view, expected_login, expected_total):
             # Full-document GET proves edge 200 only after Spring verified
