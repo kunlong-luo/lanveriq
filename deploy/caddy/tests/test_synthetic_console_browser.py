@@ -409,9 +409,27 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("SYNTHETIC SCOPED CONSOLE VIEWS PASS", browser)
         self.assertIn("SYNTHETIC MULTI-ROUTE SESSION PASS", browser)
         self.assertIn("route_boundary_each_url_rechecks_server_session", browser)
-        self.assertIn("route_boundary_anonymous_session_401", browser)
-        self.assertIn("route_boundary_disabled_must_recheck_spring_401", browser)
-        self.assertIn("route_boundary_revoked_group_has_zero_total", browser)
+        self.assertIn("route_boundary_anonymous_edge_http_401", browser)
+        self.assertIn("route_boundary_anonymous_edge_no_nextjs_html", browser)
+        self.assertIn("route_boundary_forged_session_edge_http_401", browser)
+        self.assertIn("route_boundary_logout_edge_http_401", browser)
+        self.assertIn("route_boundary_disabled_edge_http_401", browser)
+        self.assertIn("route_boundary_authenticated_html_no_store", browser)
+        self.assertIn("SYNTHETIC EDGE HTML AUTH PASS", browser)
+        self.assertIn("route_boundary_revoked_group_no_rows", browser)
+        # Fail closed: the native proxy's HTML forward-auth guard is installed
+        # exclusively in this disposable runner, not a deployable Caddyfile.
+        tls_harness = (ROOT / "apps/server/scripts/verify-agent-upstream-tls.sh"
+                       ).read_text(encoding="utf-8")
+        reference = (ROOT / "deploy/caddy/Caddyfile.reference"
+                     ).read_text(encoding="utf-8")
+        self.assertIn('handle /synthetic-console-route/*', tls_harness)
+        self.assertIn('forward_auth https://127.0.0.1:8443', tls_harness)
+        self.assertIn('uri /api/v1/auth/session', tls_harness)
+        self.assertIn('tls_client_auth /etc/lanveriq/pki/caddy-upstream-client.crt', tls_harness)
+        self.assertIn('header_up Host console.lanveriq.internal:443', tls_harness)
+        self.assertNotIn('forward_auth', reference)
+        self.assertNotIn('synthetic-console-route', reference)
         self.assertIn("route_boundary_real_browser_post_metadata", browser)
         staged_route = (ROOT / "apps/web-next/src/staged-console-route-boundary.tsx"
                         ).read_text(encoding="utf-8")
