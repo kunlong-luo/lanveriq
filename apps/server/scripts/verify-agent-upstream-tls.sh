@@ -492,8 +492,37 @@ if sys.argv[2] == "1":
         # Test-only same-origin boundary: keep /api/v1/* on the real Spring
         # mTLS backend and send all other Console pages to loopback Next.js.
         # Never add this routing to deploy/caddy/Caddyfile.reference.
+        # NXT-09: HTML route is protected AT THE EDGE before Next.js.
+        # This uses Caddy's native forward_auth over the very same trusted
+        # TLS/mTLS hop and Spring Security /auth/session endpoint. An anonymous
+        # request gets Spring's direct 401; no HTML/SSR/React route is served.
+        # The isolated synthetic login candidate remains accessible so tests
+        # can establish a valid one-time session via Spring CSRF/login.
+        protected_pages = """    handle /synthetic-console-route/* {
+        header Cache-Control "no-store"
+        route {
+            forward_auth https://127.0.0.1:8443 {
+                uri /api/v1/auth/session
+                transport http {
+                    tls
+                    tls_client_auth /etc/lanveriq/pki/caddy-upstream-client.crt /etc/lanveriq/pki/caddy-upstream-client.key
+                    tls_trust_pool file /etc/lanveriq/pki/backend-server-ca.pem
+                    tls_server_name spring-backend.lanveriq.internal
+                    versions 1.1 2
+                }
+                header_up -X-Forwarded-Client-Cert
+                header_up -SSL-Client-Cert
+                header_up -X-Lanveriq-Verified-Client-*
+                header_up Host console.lanveriq.internal:443
+            }
+            reverse_proxy http://127.0.0.1:3100 {
+                header_up Host 127.0.0.1:3100
+            }
+        }
+    }
+"""
         proxy = (probe + "    handle /api/v1/* {\n" + proxy
-                 + "\n    }\n"
+                 + "\n    }\n" + protected_pages
                  + """    handle {
         reverse_proxy http://127.0.0.1:3100 {
             header_up Host 127.0.0.1:3100
