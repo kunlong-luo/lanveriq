@@ -566,6 +566,22 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 "route_boundary_edge_never_serves_react_to_anonymous")
         require(not route_sessions,
                 "route_boundary_anonymous_denied_before_client_session_get")
+        # Next.js RSC and prefetch requests use the same page URL with
+        # special headers. They must never be an edge-auth bypass, even
+        # when a non-HTML response would escape ordinary DOM assertions.
+        for view in ("overview", "devices", "monitoring"):
+            rsc = route_page.evaluate("""async (path) => {
+                const response = await fetch(path + '?__rsc=synthetic-negative', {
+                    headers: {'RSC':'1','Next-Router-Prefetch':'1'},
+                    credentials:'same-origin', cache:'no-store',
+                    redirect:'error'
+                });
+                return { status:response.status,
+                         cache:response.headers.get('cache-control') || '',
+                         body:(await response.text()).includes('data-route-state=') };
+            }""", "/synthetic-console-route/" + view)
+            require(rsc["status"] == 401 and "no-store" in rsc["cache"].lower() and
+                    not rsc["body"], "route_boundary_anonymous_rsc_prefetch_401")
 
         # A forged client-controlled session cookie must not pass the edge.
         stage = "route_boundary_edge_forged_cookie"
@@ -580,6 +596,16 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 "route_boundary_forged_session_edge_http_401")
         require(route_page.locator("main[data-route-state]").count() == 0,
                 "route_boundary_forged_cookie_never_serves_react")
+        # Client-crafted edge headers must never authorize a public request.
+        forged_header = route_page.evaluate("""async () => {
+            const response = await fetch('/synthetic-console-route/overview', {
+                headers: {'X-Lanveriq-Synthetic-Edge-Token':'0'.repeat(64)},
+                credentials:'same-origin', cache:'no-store', redirect:'error'
+            });
+            return response.status;
+        }""")
+        require(forged_header == 401,
+                "route_boundary_forged_edge_header_still_spring_401")
         route_context.clear_cookies()
 
         # Establish synthetic A/B identities on a SEPARATE, disposable
@@ -626,6 +652,19 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 require(route_page.get_by_test_id(
                     "route-metric-已授权设备总数").text_content() == str(expected_total),
                     "route_boundary_scoped_total")
+            # Protected RSC/prefetch for a valid session traverses Caddy's
+            # forward_auth and the origin's private edge-proof check.
+            rsc = route_page.evaluate("""async (path) => {
+                const response = await fetch(path + '?__rsc=synthetic-authorized', {
+                    headers: {'RSC':'1', 'Next-Router-Prefetch':'1'},
+                    credentials:'same-origin', cache:'no-store', redirect:'error'
+                });
+                return {status:response.status,
+                        cache:response.headers.get('cache-control') || ''};
+            }""", "/synthetic-console-route/" + view)
+            require(rsc["status"] == 200 and
+                    "no-store" in rsc["cache"].lower(),
+                    "route_boundary_valid_session_rsc_200_no_store")
             return response
 
         def visit_route(view, expected_login, expected_total):
@@ -897,6 +936,9 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
               "mutual TLS directly denies anonymous, forged-cookie, "
               "post-logout and disabled-account Next.js HTML with 401; "
               "verified sessions alone receive no-store scoped pages.")
+        print("SYNTHETIC EDGE RSC AUTH PASS: protected Next.js RSC/prefetch "
+              "requires Caddy/Spring session and no-store; forged "
+              "public edge headers do not authorize requests.")
         print("SYNTHETIC CONSOLE LIFECYCLE PASS: background-tab lock erased "
               "authorized rows, identity and metrics; explicit Spring logout "
               "restored the signed-out view without background API polling.")
