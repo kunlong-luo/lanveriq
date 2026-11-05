@@ -531,7 +531,11 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         # previous client-side ARIA tab panels). Each document navigation
         # starts with an empty server-rendered shell and a fresh Spring
         # GET /auth/session before reading scoped devices or monitoring.
-        stage = "route_boundary_anonymous"
+        # NXT-09: the synthetic HTML route is now protected by Caddy's
+        # native forward_auth -> real Spring Session over the established
+        # mTLS upstream. Anonymous/forged sessions must be denied at the
+        # public edge before Next.js receives any HTML request.
+        stage = "route_boundary_edge_anonymous"
         route_context = browser.new_context(
             ignore_https_errors=False, accept_downloads=False,
             service_workers="block")
@@ -552,31 +556,79 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         route_url = CONSOLE + "/synthetic-console-route/"
         first_route = route_page.goto(route_url + "overview",
                                       wait_until="networkidle", timeout=25000)
-        require(first_route is not None and first_route.status == 200,
-                "route_boundary_anonymous_https")
-        route_page.locator("main[data-route-state='signed_out']").wait_for(
-            state="visible", timeout=13000)
-        require(route_page.get_by_role(
-            "navigation", name="受控多页面导航").count() == 0,
-            "route_boundary_anonymous_navigation_denied")
-        require(route_page.locator(".device-table tbody tr").count() == 0,
-                "route_boundary_anonymous_no_device_data")
-        require(route_sessions and route_sessions[0] == 401,
-                "route_boundary_anonymous_session_401")
+        require(first_route is not None and first_route.status == 401,
+                "route_boundary_anonymous_edge_http_401")
+        require("no-store" in first_route.headers.get("cache-control", "").lower(),
+                "route_boundary_anonymous_edge_no_store")
+        require("text/html" not in first_route.headers.get("content-type", "").lower(),
+                "route_boundary_anonymous_edge_no_nextjs_html")
+        require(route_page.locator("main[data-route-state]").count() == 0,
+                "route_boundary_edge_never_serves_react_to_anonymous")
+        require(not route_sessions,
+                "route_boundary_anonymous_denied_before_client_session_get")
 
-        def route_login(name, expected_total):
-            route_page.locator("#route-user").fill(name)
-            route_page.locator("#route-pass").fill(password)
-            route_page.get_by_role("button", name="仅在隔离环境登录").click()
-            route_page.locator("main[data-route-state='ready']").wait_for(
-                state="visible", timeout=25000)
+        # A forged client-controlled session cookie must not pass the edge.
+        stage = "route_boundary_edge_forged_cookie"
+        route_context.add_cookies([{
+            "name": COOKIE, "value": "synthetic-invalid-session",
+            "url": CONSOLE, "secure": True, "httpOnly": True,
+            "sameSite": "Strict",
+        }])
+        forged_route = route_page.goto(route_url + "devices",
+                                       wait_until="networkidle", timeout=25000)
+        require(forged_route is not None and forged_route.status == 401,
+                "route_boundary_forged_session_edge_http_401")
+        require(route_page.locator("main[data-route-state]").count() == 0,
+                "route_boundary_forged_cookie_never_serves_react")
+        route_context.clear_cookies()
+
+        # Establish synthetic A/B identities on a SEPARATE, disposable
+        # login-only candidate. Protected pages themselves are not login
+        # endpoints and must not present a credential form to anonymous users.
+        def route_login(name):
+            login_response = route_page.goto(
+                CONSOLE + "/synthetic-console-candidate",
+                wait_until="networkidle", timeout=25000)
+            require(login_response is not None and login_response.status == 200,
+                    "route_boundary_disposable_login_entry")
+            route_page.locator("main[data-candidate-status='signed_out']").wait_for(
+                state="visible", timeout=12000)
+            route_page.locator("#candidate-username").fill(name)
+            route_page.locator("#candidate-password").fill(password)
+            route_page.get_by_role(
+                "button", name="安全登录并获取授权设备").click()
+            route_page.locator(
+                "main[data-candidate-status='ready']").wait_for(
+                    state="visible", timeout=25000)
             require(route_page.locator("main").get_attribute(
-                "data-route-principal") == name, "route_boundary_identity")
-            require(route_page.get_by_test_id(
-                "route-metric-已授权设备总数").text_content() == str(expected_total),
-                "route_boundary_scoped_total")
+                "data-candidate-principal") == name,
+                "route_boundary_disposable_login_identity")
 
-        def visit_route(view, expected_login):
+        def enter_route(view, expected_login, expected_total):
+            # Full-document GET proves edge 200 only after Spring verified
+            # the browser's Secure host-only cookie; Next itself also
+            # rechecks Spring before rendering any authorized rows.
+            response = route_page.goto(
+                route_url + view, wait_until="networkidle", timeout=25000)
+            require(response is not None and response.status == 200,
+                    "route_boundary_authenticated_edge_200")
+            require("no-store" in response.headers.get("cache-control", "").lower(),
+                    "route_boundary_authenticated_html_no_store")
+            route_page.locator("main[data-route-state='ready']").wait_for(
+                state="visible", timeout=22000)
+            require(route_page.locator("main").get_attribute(
+                "data-route-principal") == expected_login,
+                "route_boundary_principal_after_navigation")
+            require(route_page.locator("main").get_attribute(
+                "data-route-view") == view,
+                "route_boundary_real_page_view")
+            if view != "devices":
+                require(route_page.get_by_test_id(
+                    "route-metric-已授权设备总数").text_content() == str(expected_total),
+                    "route_boundary_scoped_total")
+            return response
+
+        def visit_route(view, expected_login, expected_total):
             route_page.get_by_role("link", name={
                 "overview": "概览", "devices": "终端资产",
                 "monitoring": "监控中心"}[view]).click()
@@ -589,30 +641,32 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             require(route_page.locator("main").get_attribute(
                 "data-route-view") == view,
                 "route_boundary_real_page_view")
+            if view != "devices":
+                require(route_page.get_by_test_id(
+                    "route-metric-已授权设备总数").text_content() == str(expected_total),
+                    "route_boundary_scoped_total")
 
-        stage = "route_boundary_login_a"
-        route_login("synthetic-browser-a", 2)
+        stage = "route_boundary_edge_login_a"
+        route_login("synthetic-browser-a")
+        enter_route("overview", "synthetic-browser-a", 2)
         require(route_page.locator(".device-table tbody tr").count() == 2,
                 "route_boundary_a_only_rows")
-        stage = "route_boundary_navigate_a"
-        visit_route("devices", "synthetic-browser-a")
+        stage = "route_boundary_edge_navigate_a"
+        visit_route("devices", "synthetic-browser-a", 2)
         require(route_page.locator(".device-table tbody tr").count() == 2,
                 "route_boundary_a_devices_page")
         require(route_page.get_by_test_id(
             "route-metric-已授权设备总数").count() == 0,
             "route_boundary_devices_hides_metrics")
-        visit_route("monitoring", "synthetic-browser-a")
+        visit_route("monitoring", "synthetic-browser-a", 2)
         require(route_page.locator(".device-table tbody tr").count() == 0,
                 "route_boundary_monitoring_hides_rows")
-        require(route_page.get_by_test_id(
-            "route-metric-已授权设备总数").text_content() == "2",
-            "route_boundary_monitoring_a_total")
-        visit_route("overview", "synthetic-browser-a")
+        visit_route("overview", "synthetic-browser-a", 2)
         require(route_page.locator(".device-table tbody tr").count() == 2,
                 "route_boundary_overview_a_rows")
         require(route_sessions.count(200) >= 4,
                 "route_boundary_each_url_rechecks_server_session")
-        stage = "route_boundary_logout_a"
+        stage = "route_boundary_edge_logout_a"
         route_page.get_by_role("button", name="安全登出").click()
         route_page.locator("main[data-route-state='signed_out']").wait_for(
             state="visible", timeout=16000)
@@ -621,29 +675,16 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             "route_boundary_logout_clears_navigation")
         unauthenticated = route_page.goto(
             route_url + "devices", wait_until="networkidle", timeout=25000)
-        require(unauthenticated is not None and unauthenticated.status == 200,
-                "route_boundary_anonymous_subroute_https")
-        route_page.locator("main[data-route-state='signed_out']").wait_for(
-            state="visible", timeout=12000)
-        require(route_page.locator(".device-table tbody tr").count() == 0,
-                "route_boundary_anonymous_other_url_no_rows")
-        require(route_page.get_by_test_id(
-            "route-metric-已授权设备总数").count() == 0,
-            "route_boundary_anonymous_other_url_no_metrics")
-        stage = "route_boundary_login_b"
-        # Log in to a REAL /devices page, then navigate to /overview;
-        # authentication and scoped rows must belong only to B.
-        route_page.locator("#route-user").fill("synthetic-browser-b")
-        route_page.locator("#route-pass").fill(password)
-        route_page.get_by_role("button", name="仅在隔离环境登录").click()
-        route_page.locator("main[data-route-state='ready']").wait_for(
-            state="visible", timeout=25000)
+        require(unauthenticated is not None and unauthenticated.status == 401,
+                "route_boundary_logout_edge_http_401")
+        require(route_page.locator("main[data-route-state]").count() == 0,
+                "route_boundary_logout_cannot_serve_nextjs_html")
+        stage = "route_boundary_edge_login_b"
+        route_login("synthetic-browser-b")
+        enter_route("devices", "synthetic-browser-b", 1)
         require(route_page.locator(".device-table tbody tr").count() == 1,
                 "route_boundary_b_single_group_device")
-        visit_route("overview", "synthetic-browser-b")
-        require(route_page.get_by_test_id(
-            "route-metric-已授权设备总数").text_content() == "1",
-            "route_boundary_b_only_total")
+        visit_route("overview", "synthetic-browser-b", 1)
         require(route_page.get_by_text("SyntheticBrowserA-1").count() == 0,
                 "route_boundary_no_a_leak_after_b_navigation")
 
@@ -689,13 +730,10 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         require(candidate_page.locator(".device-table tbody tr").count() == 0,
                 "candidate_console_revoked_scope_no_rows")
 
-        # A fresh REAL URL must revalidate B and reflect withdrawn scope
-        # rather than carrying the earlier page's B row or summary.
-        stage = "route_boundary_scope_revoked"
-        visit_route("monitoring", "synthetic-browser-b")
-        require(route_page.get_by_test_id(
-            "route-metric-已授权设备总数").text_content() == "0",
-            "route_boundary_revoked_group_has_zero_total")
+        # Authenticated but revoked group scope: edge allows the identity,
+        # while the Next client and Spring RBAC return zero authorized rows.
+        stage = "route_boundary_edge_scope_revoked"
+        enter_route("monitoring", "synthetic-browser-b", 0)
         require(route_page.locator(".device-table tbody tr").count() == 0,
                 "route_boundary_revoked_group_no_rows")
 
@@ -737,25 +775,20 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         for origin_ok, fetch_site_ok in candidate_wire.checked_posts(expected_count=3):
             require(origin_ok and fetch_site_ok,
                     "candidate_console_real_browser_post_metadata")
-        # Disabling the B identity must make a new URL fail closed at
-        # Spring Session verification, without displaying any old metrics.
-        stage = "route_boundary_account_disabled"
+        # Disabling B: Caddy rejects GET /devices with a direct Spring 401
+        # before Next.js can generate or stream its empty SSR shell.
+        stage = "route_boundary_edge_account_disabled"
         disabled_route = route_page.goto(
             route_url + "devices", wait_until="networkidle", timeout=25000)
-        require(disabled_route is not None and disabled_route.status == 200,
-                "route_boundary_disabled_html_is_inert")
-        route_page.locator("main[data-route-state='signed_out']").wait_for(
-            state="visible", timeout=16000)
-        require(route_page.locator("main").get_attribute(
-            "data-route-principal") == "",
-            "route_boundary_disabled_principal_erased")
-        require(route_page.locator(".device-table tbody tr").count() == 0,
-                "route_boundary_disabled_rows_erased")
+        require(disabled_route is not None and disabled_route.status == 401,
+                "route_boundary_disabled_edge_http_401")
+        require("no-store" in disabled_route.headers.get("cache-control", "").lower(),
+                "route_boundary_disabled_edge_no_store")
+        require(route_page.locator("main[data-route-state]").count() == 0,
+                "route_boundary_disabled_edge_never_serves_html")
         require(route_page.get_by_role(
             "navigation", name="受控多页面导航").count() == 0,
             "route_boundary_disabled_navigation_erased")
-        require(route_sessions[-1] == 401,
-                "route_boundary_disabled_must_recheck_spring_401")
         for origin_ok, fetch_site_ok in route_wire.checked_posts(expected_count=3):
             require(origin_ok and fetch_site_ok,
                     "route_boundary_real_browser_post_metadata")
@@ -860,6 +893,10 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
               "monitoring Next.js URLs rechecked Spring Session on every "
               "document navigation; anonymous, revoked and disabled views "
               "never rendered stale authorized data.")
+        print("SYNTHETIC EDGE HTML AUTH PASS: Caddy forward_auth over "
+              "mutual TLS directly denies anonymous, forged-cookie, "
+              "post-logout and disabled-account Next.js HTML with 401; "
+              "verified sessions alone receive no-store scoped pages.")
         print("SYNTHETIC CONSOLE LIFECYCLE PASS: background-tab lock erased "
               "authorized rows, identity and metrics; explicit Spring logout "
               "restored the signed-out view without background API polling.")
