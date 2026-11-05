@@ -527,6 +527,126 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         require(candidate_page.get_by_text("SyntheticBrowserA-1").count() == 0,
                 "candidate_console_no_previous_principal_rows")
 
+        # NXT-08-A: ACTUAL, independently served Next.js URLs (not the
+        # previous client-side ARIA tab panels). Each document navigation
+        # starts with an empty server-rendered shell and a fresh Spring
+        # GET /auth/session before reading scoped devices or monitoring.
+        stage = "route_boundary_anonymous"
+        route_context = browser.new_context(
+            ignore_https_errors=False, accept_downloads=False,
+            service_workers="block")
+        contexts.append(route_context)
+        route_context.route(DISALLOWED_NETWORK_URL, restrict)
+        route_page = route_context.new_page()
+        route_page.on("websocket", lambda _: blocked.append(
+            "route_boundary_forbidden_websocket"))
+        route_sessions = []
+        route_page.on("response", lambda response:
+            route_sessions.append(response.status)
+            if response.url.endswith("/api/v1/auth/session") else None)
+        route_wire = ChromiumWirePostMetadata()
+        route_cdp = route_context.new_cdp_session(route_page)
+        route_cdp.on("Network.requestWillBeSent", route_wire.on_request)
+        route_cdp.on("Network.requestWillBeSentExtraInfo", route_wire.on_extra_info)
+        route_cdp.send("Network.enable")
+        route_url = CONSOLE + "/synthetic-console-route/"
+        first_route = route_page.goto(route_url + "overview",
+                                      wait_until="networkidle", timeout=25000)
+        require(first_route is not None and first_route.status == 200,
+                "route_boundary_anonymous_https")
+        route_page.locator("main[data-route-state='signed_out']").wait_for(
+            state="visible", timeout=13000)
+        require(route_page.get_by_role(
+            "navigation", name="受控多页面导航").count() == 0,
+            "route_boundary_anonymous_navigation_denied")
+        require(route_page.locator(".device-table tbody tr").count() == 0,
+                "route_boundary_anonymous_no_device_data")
+        require(route_sessions and route_sessions[0] == 401,
+                "route_boundary_anonymous_session_401")
+
+        def route_login(name, expected_total):
+            route_page.locator("#route-user").fill(name)
+            route_page.locator("#route-pass").fill(password)
+            route_page.get_by_role("button", name="仅在隔离环境登录").click()
+            route_page.locator("main[data-route-state='ready']").wait_for(
+                state="visible", timeout=25000)
+            require(route_page.locator("main").get_attribute(
+                "data-route-principal") == name, "route_boundary_identity")
+            require(route_page.get_by_test_id(
+                "route-metric-已授权设备总数").text_content() == str(expected_total),
+                "route_boundary_scoped_total")
+
+        def visit_route(view, expected_login):
+            route_page.get_by_role("link", name={
+                "overview": "概览", "devices": "终端资产",
+                "monitoring": "监控中心"}[view]).click()
+            route_page.wait_for_url(route_url + view, timeout=18000)
+            route_page.locator("main[data-route-state='ready']").wait_for(
+                state="visible", timeout=22000)
+            require(route_page.locator("main").get_attribute(
+                "data-route-principal") == expected_login,
+                "route_boundary_principal_after_navigation")
+            require(route_page.locator("main").get_attribute(
+                "data-route-view") == view,
+                "route_boundary_real_page_view")
+
+        stage = "route_boundary_login_a"
+        route_login("synthetic-browser-a", 2)
+        require(route_page.locator(".device-table tbody tr").count() == 2,
+                "route_boundary_a_only_rows")
+        stage = "route_boundary_navigate_a"
+        visit_route("devices", "synthetic-browser-a")
+        require(route_page.locator(".device-table tbody tr").count() == 2,
+                "route_boundary_a_devices_page")
+        require(route_page.get_by_test_id(
+            "route-metric-已授权设备总数").count() == 0,
+            "route_boundary_devices_hides_metrics")
+        visit_route("monitoring", "synthetic-browser-a")
+        require(route_page.locator(".device-table tbody tr").count() == 0,
+                "route_boundary_monitoring_hides_rows")
+        require(route_page.get_by_test_id(
+            "route-metric-已授权设备总数").text_content() == "2",
+            "route_boundary_monitoring_a_total")
+        visit_route("overview", "synthetic-browser-a")
+        require(route_page.locator(".device-table tbody tr").count() == 2,
+                "route_boundary_overview_a_rows")
+        require(route_sessions.count(200) >= 4,
+                "route_boundary_each_url_rechecks_server_session")
+        stage = "route_boundary_logout_a"
+        route_page.get_by_role("button", name="安全登出").click()
+        route_page.locator("main[data-route-state='signed_out']").wait_for(
+            state="visible", timeout=16000)
+        require(route_page.get_by_role(
+            "navigation", name="受控多页面导航").count() == 0,
+            "route_boundary_logout_clears_navigation")
+        unauthenticated = route_page.goto(
+            route_url + "devices", wait_until="networkidle", timeout=25000)
+        require(unauthenticated is not None and unauthenticated.status == 200,
+                "route_boundary_anonymous_subroute_https")
+        route_page.locator("main[data-route-state='signed_out']").wait_for(
+            state="visible", timeout=12000)
+        require(route_page.locator(".device-table tbody tr").count() == 0,
+                "route_boundary_anonymous_other_url_no_rows")
+        require(route_page.get_by_test_id(
+            "route-metric-已授权设备总数").count() == 0,
+            "route_boundary_anonymous_other_url_no_metrics")
+        stage = "route_boundary_login_b"
+        # Log in to a REAL /devices page, then navigate to /overview;
+        # authentication and scoped rows must belong only to B.
+        route_page.locator("#route-user").fill("synthetic-browser-b")
+        route_page.locator("#route-pass").fill(password)
+        route_page.get_by_role("button", name="仅在隔离环境登录").click()
+        route_page.locator("main[data-route-state='ready']").wait_for(
+            state="visible", timeout=25000)
+        require(route_page.locator(".device-table tbody tr").count() == 1,
+                "route_boundary_b_single_group_device")
+        visit_route("overview", "synthetic-browser-b")
+        require(route_page.get_by_test_id(
+            "route-metric-已授权设备总数").text_content() == "1",
+            "route_boundary_b_only_total")
+        require(route_page.get_by_text("SyntheticBrowserA-1").count() == 0,
+                "route_boundary_no_a_leak_after_b_navigation")
+
         # Actual PG18 permission removal without changing either browser
         # cookie: the two live sessions must both stop receiving group B data
         # immediately on explicitly authorized refetch.
@@ -569,6 +689,16 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         require(candidate_page.locator(".device-table tbody tr").count() == 0,
                 "candidate_console_revoked_scope_no_rows")
 
+        # A fresh REAL URL must revalidate B and reflect withdrawn scope
+        # rather than carrying the earlier page's B row or summary.
+        stage = "route_boundary_scope_revoked"
+        visit_route("monitoring", "synthetic-browser-b")
+        require(route_page.get_by_test_id(
+            "route-metric-已授权设备总数").text_content() == "0",
+            "route_boundary_revoked_group_has_zero_total")
+        require(route_page.locator(".device-table tbody tr").count() == 0,
+                "route_boundary_revoked_group_no_rows")
+
         stage = "disable_browser_account"
         private_synthetic_pg_sql(db_container, """
             DO $fixture$
@@ -607,6 +737,29 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         for origin_ok, fetch_site_ok in candidate_wire.checked_posts(expected_count=3):
             require(origin_ok and fetch_site_ok,
                     "candidate_console_real_browser_post_metadata")
+        # Disabling the B identity must make a new URL fail closed at
+        # Spring Session verification, without displaying any old metrics.
+        stage = "route_boundary_account_disabled"
+        disabled_route = route_page.goto(
+            route_url + "devices", wait_until="networkidle", timeout=25000)
+        require(disabled_route is not None and disabled_route.status == 200,
+                "route_boundary_disabled_html_is_inert")
+        route_page.locator("main[data-route-state='signed_out']").wait_for(
+            state="visible", timeout=16000)
+        require(route_page.locator("main").get_attribute(
+            "data-route-principal") == "",
+            "route_boundary_disabled_principal_erased")
+        require(route_page.locator(".device-table tbody tr").count() == 0,
+                "route_boundary_disabled_rows_erased")
+        require(route_page.get_by_role(
+            "navigation", name="受控多页面导航").count() == 0,
+            "route_boundary_disabled_navigation_erased")
+        require(route_sessions[-1] == 401,
+                "route_boundary_disabled_must_recheck_spring_401")
+        for origin_ok, fetch_site_ok in route_wire.checked_posts(expected_count=3):
+            require(origin_ok and fetch_site_ok,
+                    "route_boundary_real_browser_post_metadata")
+
         # NXT-06-B: a background tab must lose all locally displayed
         # authorized rows/counters, even while Spring's cookie is still valid.
         # Use a DOM lifecycle event rather than unreliable headless focus.
@@ -703,6 +856,10 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         print("SYNTHETIC SCOPED CONSOLE VIEWS PASS: keyboard-accessible "
               "overview/devices/monitoring view isolation, server totals, "
               "and authorization reset across identity changes.")
+        print("SYNTHETIC MULTI-ROUTE SESSION PASS: real overview/devices/"
+              "monitoring Next.js URLs rechecked Spring Session on every "
+              "document navigation; anonymous, revoked and disabled views "
+              "never rendered stale authorized data.")
         print("SYNTHETIC CONSOLE LIFECYCLE PASS: background-tab lock erased "
               "authorized rows, identity and metrics; explicit Spring logout "
               "restored the signed-out view without background API polling.")
