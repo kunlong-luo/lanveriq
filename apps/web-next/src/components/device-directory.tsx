@@ -6,6 +6,7 @@ import { ArrowRight, LockKeyhole, Search, ShieldAlert, WifiOff, RefreshCcw } fro
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Input } from './ui/input';
 import { NativeSelect } from './ui/native-select';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { isCanonicalUuid } from '../lib/uuid';
 
 /**
@@ -105,24 +106,24 @@ export function DeviceDirectory({
       </CardContent>
     ) : (
       <CardContent className="directory-table-wrap">
-        <table className="device-table">
-          <caption className="sr-only">当前管理员已授权的设备健康列表</caption>
-          <thead><tr><th scope="col">设备</th><th scope="col">设备组</th>
-            <th scope="col">注册状态</th><th scope="col">连接状态</th>
-            <th scope="col">最后心跳</th><th scope="col">队列</th><th scope="col">详情</th></tr></thead>
-          <tbody>{visible.map(row => <tr key={row.id}>
-            <td><strong>{row.label}</strong><small>{row.os ?? '操作系统未上报'}</small></td>
-            <td>{row.group}</td><td>{enrollmentLabel[row.enrollment]}</td>
-            <td><span className={`health-pill health-${row.connectivity}`}>
-              {statusLabel[row.connectivity]}</span></td>
-            <td>{row.heartbeat ?? '尚无已接收心跳'}</td>
-            <td>{row.queue === null ? '未上报' : `${row.queue} 条`}</td>
-            <td>{isCanonicalUuid(row.id) && allowDetailNavigation
+        <Table className="device-table">
+          <TableCaption className="sr-only">当前管理员已授权的设备健康列表</TableCaption>
+          <TableHeader><TableRow><TableHead scope="col">设备</TableHead><TableHead scope="col">设备组</TableHead>
+            <TableHead scope="col">注册状态</TableHead><TableHead scope="col">连接状态</TableHead>
+            <TableHead scope="col">最后心跳</TableHead><TableHead scope="col">队列</TableHead><TableHead scope="col">详情</TableHead></TableRow></TableHeader>
+          <TableBody>{visible.map(row => <TableRow key={row.id}>
+            <TableCell><strong>{row.label}</strong><small>{row.os ?? '操作系统未上报'}</small></TableCell>
+            <TableCell>{row.group}</TableCell><TableCell>{enrollmentLabel[row.enrollment]}</TableCell>
+            <TableCell><span className={`health-pill health-${row.connectivity}`}>
+              {statusLabel[row.connectivity]}</span></TableCell>
+            <TableCell>{row.heartbeat ?? '尚无已接收心跳'}</TableCell>
+            <TableCell>{row.queue === null ? '未上报' : `${row.queue} 条`}</TableCell>
+            <TableCell>{isCanonicalUuid(row.id) && allowDetailNavigation
               ? <Link href={`/devices/${row.id}`} aria-label={`查看${row.label}的详情`}
                   className="device-detail-link"><ArrowRight size={18} /></Link>
-              : <span>{isCanonicalUuid(row.id) ? '详情未开放' : '不可用'}</span>}</td>
-          </tr>)}</tbody>
-        </table>
+              : <span>{isCanonicalUuid(row.id) ? '详情未开放' : '不可用'}</span>}</TableCell>
+          </TableRow>)}</TableBody>
+        </Table>
       </CardContent>
     )}
     <div className="directory-foot">
