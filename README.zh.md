@@ -21,7 +21,7 @@
 | Redis（可选基础设施） | `spark-redis` / Redis 8 / Spring Data Redis + Lettuce | 短期非权威提示与健康检查，**默认关闭**；不存储会话、权限、审计、ACK | 复用现有 Redis，不创建新容器 |
 | HTTPS 代理（基础设施） | Caddy | `deploy/caddy/Caddyfile.reference` **仅为安全测试参考配置**，不能直接用于生产 | 正式部署方案待验收 |
 
-设计目标：在服务器使用 **Caddy（HTTPS/静态前端）→ Spring Boot → PostgreSQL**，在已授权的 Windows/Linux 终端原生运行 Rust Agent。**Agent 不应部署在服务器 Docker Compose 中。** 前端静态资源最终可由 Caddy 托管，不需要额外的 Next.js 服务。详细设计见 [部署架构](docs/architecture/deployment.md)。
+设计目标：浏览器仅通过 Caddy HTTPS 同源入口访问 Spring Boot 认证 API 与受保护的管理页面，PostgreSQL 保持私网隔离；Windows/Linux 终端独立运行原生 Rust Agent，**Agent 不应部署在服务器 Docker Compose 中**。早期 D0 图使用 Vite 静态前端，但维护者已选定 **Next.js App Router** 作为迁移目标；如采用 SSR/RSC，正式部署需要一个**仅 Caddy 可访问的私有 Next.js 运行时**，而不是只把静态文件交给 Caddy。当前只有合成 CI 证明测试环境隔离，真实网络拓扑和生产部署均未获批准。详见 [部署架构](docs/architecture/deployment.md)。
 
 ## 二、准备环境
 
@@ -295,7 +295,7 @@ sudo systemctl --no-pager status lanveriq-agent
 
 ### 正式生产部署：尚不可执行
 
-计划采用 **Caddy + Spring Boot + PostgreSQL** 的中心端部署和静态 React 前端、独立 Windows/Linux 原生 Agent。正式部署前至少需要：
+计划采用 **Caddy + 私有 Next.js App Router（SSR/RSC）+ Spring Boot + 私网 PostgreSQL** 的中心端候选拓扑，以及独立 Windows/Linux 原生 Agent。原 `apps/web` 的 Vite 静态演示仍保持不接入生产；Next.js 正式路由、Caddy 网络隔离和真实登录尚未验收。正式部署前至少需要：
 
 1. 完成 `apps/web`、构建并验证真实登录/设备列表/监控总览页面。
 2. 提供经审查的 Compose、专用数据库卷与备份/恢复、保密配置和受限网络；PostgreSQL 不对局域网发布端口。
