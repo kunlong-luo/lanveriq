@@ -1,0 +1,77 @@
+name: Public GitHub Pages preview (disconnected Next.js only)
+
+# Pages is always a PUBLIC static showcase, never a production console.
+# Only the verified ordinary, unconnected preview is exported. No secrets,
+# Spring credentials, connected APIs, database or synthetic auth fixtures.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web-next/**'
+      - '.github/workflows/pages-static-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: lanveriq-public-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      LANVERIQ_PAGES_STATIC_EXPORT: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install locked Node 24 and pnpm 12
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24
+          working-directory: apps/web-next
+          install: true
+          require-lockfile: true
+          cache: false
+      - name: Test the unmodified, disconnected App Router source
+        working-directory: apps/web-next
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          pnpm run verify:routes
+          node --test scripts/test_prepare_pages_export.mjs
+          pnpm test
+          pnpm typecheck
+      - name: Export only public static pages (no dynamic device routes)
+        working-directory: apps/web-next
+        run: |
+          set -euo pipefail
+          node scripts/prepare-pages-export.mjs
+          pnpm build
+          touch out/.nojekyll
+          node scripts/verify-pages-export.mjs
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload only the verified static export
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: apps/web-next/out
+
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish disconnected Next.js preview
+        id: deployment
+        uses: actions/deploy-pages@v4
