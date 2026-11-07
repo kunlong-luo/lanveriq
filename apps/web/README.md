@@ -1,4 +1,6 @@
-# Lanveriq Web — synthetic dashboard preview (WEB-01 first slice)
+# Lanveriq Web — legacy Vite migration reference (not the primary frontend)
+
+**Framework cutover (2026-11-07):** All new management frontend development, routes, review and static GitHub Pages deployment now use **[`apps/web-next`](../web-next/README.md)** with Next.js **16.4.5** App Router. This `apps/web` React/Vite directory is retained temporarily for historical V0.1 UI comparison, backwards-compatible tests and a reversible migration. It is not the recommended app to run for a new developer and it is not the production frontend. Do not wire real login, business APIs, employees, devices or Agent monitoring into the legacy code. The Vite-only instructions below are preserved as historical development reference and are not the current project entry point.
 
 **Development preview only.** The UI now performs **one anonymous, read-only Spring Boot `GET /actuator/health`** through a localhost-only Vite dev proxy and supports manual recheck. **No real login, business API, device data, WSS, remote actions, recording, automatic monitoring/polling or production deployment.** All five displayed devices and metrics remain invented and labeled on every route.
 
