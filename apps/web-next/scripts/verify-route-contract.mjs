@@ -8,6 +8,9 @@ const required = [
   'src/app/(console)/overview/page.tsx', 'src/app/(console)/monitoring/page.tsx',
   'src/app/(console)/devices/page.tsx', 'src/app/(console)/devices/[id]/page.tsx',
   'src/app/(console)/enrollment/page.tsx', 'src/app/(console)/settings/page.tsx',
+  'src/app/(console)/alerts/page.tsx', 'src/app/(console)/policies/page.tsx',
+  'src/app/(console)/reports/page.tsx', 'src/app/(console)/design-system/page.tsx',
+  'src/app/lanveriq-bc.css', 'src/components/planned-console-page.tsx',
   'src/app/(auth)/login/page.tsx', 'src/components/login-preview.tsx',
 ];
 for (const pathname of required) {
