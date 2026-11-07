@@ -10,12 +10,20 @@ const metrics = [
 
 export function UnconnectedMetrics() {
   return <div className="metric-grid" aria-label="未连接设备指标">
-    {metrics.map(({ name, Icon, description }) => <Card key={name} className="metric-card">
-      <CardHeader><span className="metric-icon"><Icon size={21} aria-hidden="true"/></span>
+    {metrics.map(({ name, Icon, description }, index) => <Card key={name}
+      className={`metric-card metric-card-${index + 1}`}>
+      <CardHeader className="metric-card-header">
+        <div className="metric-card-upper">
+          <span className="metric-icon"><Icon size={21} aria-hidden="true"/></span>
+          <span className="metric-card-number" aria-hidden="true">0{index + 1}</span>
+        </div>
         <CardDescription>{name}</CardDescription>
         <CardTitle className="metric-placeholder" aria-label={`${name}：未连接`}>—</CardTitle>
       </CardHeader>
-      <CardContent><span className="metric-hint">{description}</span></CardContent>
+      <CardContent className="metric-card-bottom">
+        <span className="metric-hint">{description}</span>
+        <span className="metric-card-unconnected">未连接</span>
+      </CardContent>
     </Card>)}
   </div>;
 }
