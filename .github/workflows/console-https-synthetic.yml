@@ -10,6 +10,7 @@ on:
     paths:
       - '.github/workflows/console-https-synthetic.yml'
       - 'apps/server/scripts/verify-synthetic-console-browser.py'
+      - 'apps/server/scripts/test_verify_synthetic_static_boundary.py'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
       - 'apps/server/scripts/verify-synthetic-console-session.sh'
       - 'apps/server/scripts/seed-synthetic-multi-admin.sql'
@@ -22,6 +23,9 @@ on:
       - 'apps/web-next/src/staged-console-workspace.tsx'
       - 'apps/web-next/src/staged-console-route-boundary.tsx'
       - 'apps/web-next/src/lib/staged-console-overview.ts'
+      - 'apps/web-next/src/components/console-shell.tsx'
+      - 'apps/web-next/src/lib/console-navigation.ts'
+      - 'apps/web-next/src/lib/console-navigation.test.ts'
       - 'apps/web-next/src/components/device-directory.tsx'
       - 'apps/web-next/src/app/globals.css'
       - 'apps/web-next/scripts/verify-route-contract.mjs'
@@ -158,6 +162,8 @@ jobs:
         run: |
           bash -n apps/server/scripts/verify-agent-upstream-tls.sh
           bash -n apps/server/scripts/verify-synthetic-console-session.sh
+          python3 -m py_compile apps/server/scripts/verify-synthetic-console-browser.py
+          python3 -m unittest discover -s apps/server/scripts -p 'test_verify_synthetic_static_boundary.py'
       - name: Assert real Boot-discovered Console SecurityFilterChains on disposable PG18
         # Opt-in manual workflow only: Testcontainers launches an isolated
         # PostgreSQL 18.6, boots the actual application with an in-process
