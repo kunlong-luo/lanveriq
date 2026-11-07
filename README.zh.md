@@ -4,11 +4,31 @@
 
 **基于局域网、自托管、面向已告知且经过授权的企业终端的资产健康与审计平台。**
 
-> **当前状态：V0.1 开发中，不是可正式部署的监控产品。** Java 后端已有可构建的 Spring Boot 应用、Flyway V1–V8 和默认关闭的部分内部能力；Rust Agent 已有可运行的**空闲进程**、SQLite/传输/库存模块，但尚未接入实际服务循环；**React 前端已通过 Vite 本地开发代理读取 Spring Boot 的匿名健康接口，但真实登录、业务 API 和设备仍未接入**。PostgreSQL 18.6 真实数据库、Caddy/TLS、管理员浏览器会话及 Windows/Linux 实机验收尚未全部完成。严禁把本地演示当成真实员工数据采集授权。
+> **当前状态：V0.1 开发中，不是可正式部署的监控产品。** Java 后端已有可构建的 Spring Boot 应用、Flyway V1–V8 和默认关闭的部分内部能力；Rust Agent 已有可运行的**空闲进程**、SQLite/传输/库存模块，但尚未接入实际服务循环；**正式前端技术方向已切换至 `apps/web-next` 的 Next.js 16.4.5 App Router；GitHub Pages 已发布仅展示静态页面的只读预览，真实登录、业务 API、设备和 Agent 均未接入。旧 `apps/web` Vite 项目仅保留为历史兼容代码**。PostgreSQL 18.6 真实数据库、Caddy/TLS、管理员浏览器会话及 Windows/Linux 实机验收尚未全部完成。严禁把本地演示当成真实员工数据采集授权。
 
 **Next.js 公开静态预览已部署：** [打开 GitHub Pages](https://kunlong-luo.github.io/lanveriq/)。[自动部署 #42364974627](https://github.com/kunlong-luo/lanveriq/actions/runs/42364974627) 已成功，首页、概览、登录演示页面的公开 HTTP 检查均为 200。GitHub Pages **仅展示只读、未连接数据的 UI**：登录按钮不可用，不提供 Next.js 服务端鉴权、Spring Boot、PostgreSQL、真实设备数据或 Agent 操作。它不是正式后台部署，也不允许输入真实凭据。开发中的独立 Next.js 项目在 [`apps/web-next`](apps/web-next/README.md)；实际生产网络隔离与登录体验仍需另外验收。
 
 ![Lanveriq 架构概念图](docs/visuals/assets/01-overview.svg)
+
+## 当前主前端：Next.js App Router
+
+正式前端源码统一以 [`apps/web-next`](apps/web-next/README.md) 为准，Next.js 已升级到 **16.4.5 稳定安全修复版**，并保留 Node.js 24、pnpm 12 和独立锁文件。旧的 `apps/web` React/Vite 前端退出主线，仅用于迁移对照与回归测试，不再作为新功能开发入口。
+
+本地运行（当前只有未连接数据的预览）：
+
+```bash
+cd apps/web-next
+corepack enable
+corepack prepare pnpm@12.0.0 --activate
+pnpm install --frozen-lockfile
+pnpm run verify:routes
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+浏览器访问 `http://127.0.0.1:3100`。线上 UI 预览为 [https://kunlong-luo.github.io/lanveriq/](https://kunlong-luo.github.io/lanveriq/)；GitHub Pages 只托管静态文件，**不能连接正式管理员会话、Spring Boot、PostgreSQL 或真实设备**。服务器正式部署仍需通过独立的 Caddy/Next.js/Spring 网络隔离验收。
 
 ## 一、项目包含哪些服务？
 
@@ -16,7 +36,7 @@
 
 | 组件 | 仓库位置 / 技术 | 当前状态 | 运行方式 |
 |---|---|---|---|
-| 管理前端 Web | `apps/web`：React 19、Vite 8、TypeScript 7、pnpm、Tailwind 4、Radix、Lucide | **合成数据预览已实现**，支持本地 Spring Boot 健康检查与手动重试；管理员登录、设备业务 API、采集仍未接入 | `cd apps/web && pnpm dev`（本机预览） |
+| 管理前端 Web（主项目） | `apps/web-next`：**Next.js 16.4.5 App Router**、React 19、TypeScript 7、Tailwind 4、Lucide、shadcn/ui 风格组件 | 已实现不接入真实数据的页面并发布 [GitHub Pages](https://kunlong-luo.github.io/lanveriq/)；真实登录、业务 API、终端采集和设备操作均关闭 | `cd apps/web-next && pnpm dev`（本机预览） |
 | 管理后端 Server | `apps/server`：Java 25、Spring Boot 4.1.2、Gradle、JPA/Hibernate、Flyway | 可单独构建并连接**合成测试数据库**；业务接口默认拒绝，部分功能仅源码/测试状态 | `./gradlew bootRun` |
 | 终端 Agent | `apps/agent`：Rust 1.94、Tokio、SQLx/SQLite WAL、Reqwest/rustls | 可编译、启动、停止；运行时**不采集、不上传、不监控** | `cargo run --locked -p lanveriq-agent -- --config <绝对路径>` |
 | 数据库（基础设施） | PostgreSQL 18.x；真实验收使用 18.6 | Flyway V1–V8 已编写；可复用 `spark-postgres` 中的专用 `lanveriq` 库 | 现有 Docker Compose，无需额外持久容器 |
