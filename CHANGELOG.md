@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-07 — Canonical Next.js 16.4.5 App Router frontend cutover
+
+- Made `apps/web-next` the sole forward-development management UI, upgrading from Next.js 16.4.3 to the **November security-fixed stable 16.4.5**. The actual pnpm dependency lockfile was generated, frozen-installed, typechecked and built in [automatic GitHub Actions #42366826585](https://github.com/kunlong-luo/lanveriq/actions/runs/42366826585); the temporary write-capable updater workflow was removed afterward.
+- Centralized the five Next.js workspace links in `src/lib/console-navigation.ts`, with regression tests for all main routes, nested device details and non-navigation API paths. The existing Next.js App Router pages keep **disabled credentials, unconnected business data and no real Agent/device operations**.
+- Promoted Next.js to the canonical entry point in Chinese/English READMEs, ADR-0008, front-end design system, installation runbook and agent rules. Kept `apps/web` Vite/React Router as inert legacy migration/reference only. Springdoc → Orval Java CI now verifies the **Next.js** client dependency graph, not both duplicate Vite and Next projects. [Server CI #42367306699](https://github.com/kunlong-luo/lanveriq/actions/runs/42367306699) passed after the cutover.
+- Kept [GitHub Pages](https://kunlong-luo.github.io/lanveriq/) as a **public, disconnected static Next.js export**, never a full-stack session host. [Next.js source/build #42367117962](https://github.com/kunlong-luo/lanveriq/actions/runs/42367117962) and [Pages deployment #42367117971](https://github.com/kunlong-luo/lanveriq/actions/runs/42367117971) passed; the live overview returned HTTP 200 with no-data warnings.
+- [Caddy/real Spring/PG18/Chromium #42367182217](https://github.com/kunlong-luo/lanveriq/actions/runs/42367182217) passed **after the Next.js 16.4.5 update**, including NXT-10 direct-origin/HTML/RSC protections and NXT-11 **public static JS identity neutrality** across anonymous, both synthetic administrators and post-logout fetches. Automated standalone browser UI/keyboard/responsive CI was also introduced; it has no real database or login.
+- Production Caddy/Next.js namespace, actual account login, employee/device data access, Agent collection, private cache variants and organizational/privacy approval remain **OPEN**. No real rollout or monitoring permission is implied.
+
+
 ## 2026-11-01 — Docs synchronized after successful Web TypeScript 7 CI
 
 - Synced root English/Chinese readmes and the WEB-01 backlog status to reflect anonymous Spring Boot health-only connectivity while keeping all five demo devices explicitly synthetic and all authenticated business routes disabled.
