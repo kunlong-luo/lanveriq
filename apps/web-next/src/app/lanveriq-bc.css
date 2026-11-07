@@ -1175,3 +1175,137 @@ body { background:#f8f8fc; color:var(--foreground); }
   }
   .bc-insight-grid .connectivity-empty-bar { width:115px; height:115px; border-width:14px; }
 }
+
+/*
+ * NXT-15: Base UI Dialog (mobile navigation) and Tabs visual adapters.
+ * Base UI owns accessibility, focus trap, dismiss behavior and roving focus.
+ * These selectors are presentation-only; no handwritten focus management.
+ */
+.bc-device-tabs { display:flex; flex-direction:column; min-width:0; }
+.bc-device-tabs .detail-tab[data-active] {
+  color:#6a5bff;
+  border-bottom-color:#6a5bff;
+}
+.bc-device-tabs .detail-tab:hover { color:#6a5bff; }
+.bc-base-dialog-backdrop {
+  position:fixed;
+  inset:0;
+  z-index:80;
+  background:rgba(22,17,41,.48);
+  backdrop-filter:blur(3px);
+}
+.bc-mobile-sheet {
+  position:fixed;
+  inset-block:0;
+  inset-inline-start:0;
+  z-index:81;
+  width:min(315px,86vw);
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:21px 15px 19px;
+  background:linear-gradient(172deg,#fff 0%,#faf8ff 72%,#efebff 100%);
+  box-shadow:16px 0 35px #231d441f;
+  border-inline-end:1px solid #e8e2f3;
+  color:#57536b;
+}
+.bc-mobile-sheet .bc-brand-row { display:flex; align-items:center; justify-content:space-between; }
+.bc-mobile-sheet .brand {
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:0;
+  padding:6px 1px 28px;
+  color:#1c1a2e;
+}
+.bc-mobile-sheet .brand-mark {
+  flex-shrink:0;
+  display:grid;
+  place-items:center;
+  width:41px;
+  height:41px;
+  border-radius:12px;
+  color:#fff;
+  background:linear-gradient(140deg,#786bff 7%,#5340d7 68%,#c9ff6a 70%);
+}
+.bc-mobile-sheet .brand strong { display:block; font-size:20px; color:#1c1a2e; }
+.bc-mobile-sheet .brand small { display:block; font-size:9px; color:#928bac; letter-spacing:.7px; }
+.bc-mobile-sheet .bc-close-nav {
+  display:grid;
+  place-items:center;
+  min-width:40px;
+  height:40px;
+  border:1px solid #e6def3;
+  border-radius:11px;
+  background:#fff;
+  color:#6b568c;
+  padding:0;
+}
+.bc-mobile-sheet .nav-label {
+  display:block;
+  margin:6px 0 13px;
+  padding-left:12px;
+  color:#a19ab8;
+  font-size:10px;
+  letter-spacing:1.1px;
+}
+.bc-mobile-sheet .navigation {
+  display:grid;
+  gap:5px;
+  overflow:visible;
+}
+.bc-mobile-sheet .nav-item {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-height:45px;
+  border-radius:12px;
+  padding:11px 13px;
+  color:#5c586f;
+  font-size:13px;
+  font-weight:670;
+}
+.bc-mobile-sheet .nav-item:hover { background:#f0ecff; color:#4f3ec2; }
+.bc-mobile-sheet .nav-item.selected {
+  color:#5341d3;
+  background:linear-gradient(95deg,#eeeaff,#e4ddff);
+  box-shadow:inset 3px 0 #7766ff;
+}
+.bc-mobile-sheet .nav-chevron { margin-left:auto; }
+.bc-mobile-sheet .sidebar-notice {
+  display:flex;
+  align-items:flex-start;
+  gap:11px;
+  margin-top:auto;
+  padding:15px 13px;
+  border:1px solid #e4ddfa;
+  border-radius:16px;
+  background:linear-gradient(140deg,#efebff,#faf8ff);
+  color:#6854d7;
+}
+.bc-mobile-sheet .sidebar-notice strong { display:block; color:#493c80; font-size:12px; }
+.bc-mobile-sheet .sidebar-notice small {
+  display:block;
+  margin-top:5px;
+  font-size:10px;
+  line-height:1.7;
+  color:#8e87a8;
+}
+.bc-mobile-sheet .bc-sidebar-signoff {
+  color:#a99fc2;
+  font-size:9px;
+  font-weight:750;
+  letter-spacing:.8px;
+  margin:17px 8px 0;
+}
+@media(max-width:750px) {
+  /* Hide desktop navigation entirely. Dialog owns the mobile menu surface. */
+  .bc-console .sidebar { display:none; }
+  .bc-console .bc-menu-button { display:grid; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .bc-base-dialog-backdrop,.bc-mobile-sheet { transition:none!important; animation:none!important; }
+}
