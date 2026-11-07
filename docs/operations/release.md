@@ -1,6 +1,6 @@
 # Lightweight pre-release and migration plan
 
-**Status:** planning only. During pre-release **all work commits to main**. No mandatory PR, E2E, release pipeline or full quality CI; GitHub Actions later runs **unit tests only** for real modules.
+**Status:** planning only; **no production release approval**. Pre-release changes are focused and committed to `main` (no mandatory PR), but the original unit-only CI statement is historical. Current automated path-filtered CI includes synthetic Next.js browser/route builds and, for relevant security paths, real disposable Caddy + Spring/Tomcat + PostgreSQL 18 + Chromium acceptance. Passing an isolated CI gate is not approval to activate real accounts, endpoints, employee data or Agent collection.
 
 ## Local development checkpoints
 - Changes are small, atomically committed and documented; never force-push main.
@@ -24,4 +24,4 @@ The repo initially contains only design docs; filenames, installer formats and c
 - Record installer architecture, checksums and upgrade path for Windows 11 x64 and first validated Linux configuration.
 
 ## Release readiness boundary
-Unit-only CI and no E2E are **development conveniences**. They do not justify broad production rollout. Formal v1.0 requires comprehensive integration/real-device tests, signed distribution review, privacy sign-off and exercised backup/restore.
+Passing synthetic integration/Chromium CI is **necessary but insufficient** for production rollout. NXT-10 demonstrated disposable direct-origin isolation and protected HTML/RSC; NXT-11 reviews publicly cacheable static assets, explicit Next.js network namespace/firewall topology, and real login usability separately. The production Caddy Console remains disabled and Next.js authorized routes are unmounted. Formal v1.0 still requires real deployment integration/negative tests, independent UI accessibility review, real-device tests, signed distribution review, organization/privacy sign-off and exercised backup/restore.
