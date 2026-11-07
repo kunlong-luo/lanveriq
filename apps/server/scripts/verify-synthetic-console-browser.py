@@ -719,17 +719,34 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             # Protected RSC/prefetch for a valid session traverses Caddy's
             # forward_auth and the origin's private edge-proof check.
             stage = "edge_enter_" + view + "_rsc_prefetch"
-            rsc = route_page.evaluate("""async (path) => {
-                const response = await fetch(path + '?__rsc=synthetic-authorized', {
-                    headers: {'RSC':'1', 'Next-Router-Prefetch':'1'},
-                    credentials:'same-origin', cache:'no-store', redirect:'error'
-                });
-                return {status:response.status,
-                        cache:response.headers.get('cache-control') || ''};
-            }""", "/synthetic-console-route/" + view)
-            require(rsc["status"] == 200 and
-                    "no-store" in rsc["cache"].lower(),
-                    "route_boundary_valid_session_rsc_200_no_store")
+            try:
+                rsc = route_page.evaluate("""async (path) => {
+                    try {
+                        const response = await fetch(path + '?__rsc=synthetic-authorized', {
+                            headers: {'RSC':'1', 'Next-Router-Prefetch':'1'},
+                            credentials:'same-origin', cache:'no-store',
+                            redirect:'manual'
+                        });
+                        return {status:response.status,
+                                cache:response.headers.get('cache-control') || ''};
+                    } catch {
+                        // Browser errors may include private URLs and headers.
+                        // Only return a fixed failure category to the runner.
+                        return {status:-1,cache:''};
+                    }
+                }""", "/synthetic-console-route/" + view)
+            except Exception:
+                raise BrowserGateFailure(
+                    "route_boundary_rsc_browser_context_unavailable") from None
+            status = rsc["status"]
+            if status != 200:
+                safe_codes = (0, -1, 301, 302, 303, 307, 308,
+                              400, 401, 403, 404, 405, 429, 500, 502, 503)
+                category = str(status) if status in safe_codes else "unexpected"
+                raise BrowserGateFailure(
+                    "route_boundary_authorized_rsc_http_" + category) from None
+            require("no-store" in rsc["cache"].lower(),
+                    "route_boundary_authorized_rsc_missing_no_store")
             stage = "edge_enter_" + view + "_verified"
             return response
 
