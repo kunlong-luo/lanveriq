@@ -4,8 +4,10 @@
 The random internal edge proof is read only as a presence/format condition,
 never echoed or sent. All HTTP probes must lack valid edge authority.
 """
+import hashlib
 import http.client
 import os
+from pathlib import Path
 import re
 import socket
 import sys
@@ -44,6 +46,77 @@ def probe(path, headers):
         conn.close()
 
 
+def select_public_chunk(static_root):
+    """Select an actual small immutable JS asset, not an HTML/RSC response."""
+    require(static_root.is_dir(), "nextjs_static_directory_missing")
+    candidates = sorted(
+        p for p in static_root.rglob("*.js")
+        if p.is_file() and not p.is_symlink()
+        and 0 < p.stat().st_size <= 2 * 1024 * 1024
+    )
+    require(bool(candidates), "nextjs_public_js_chunk_missing")
+    return candidates[0]
+
+
+def request_public_chunk(path, headers):
+    """Fetch a public immutable asset; never echo any response content."""
+    conn = http.client.HTTPConnection("127.0.0.1", PORT, timeout=6)
+    try:
+        conn.request("GET", path, headers={
+            "Host": "console.lanveriq.internal",
+            "Accept-Encoding": "identity",
+            **headers,
+        })
+        response = conn.getresponse()
+        body = response.read(2 * 1024 * 1024 + 1)
+        require(len(body) <= 2 * 1024 * 1024,
+                "public_js_chunk_exceeds_probe_limit")
+        return (
+            response.status,
+            response.getheader("Content-Type", "").lower(),
+            response.getheader("Cache-Control", "").lower(),
+            response.getheader("X-Content-Type-Options", "").lower(),
+            hashlib.sha256(body).digest(),
+        )
+    finally:
+        conn.close()
+
+
+def verify_public_static_boundary(secret):
+    # Unlike session-gated HTML/RSC, content-addressed Next.js JS/CSS must
+    # remain public to render the disabled login page. They must never
+    # embed the internal per-run edge proof or vary with a forged identity.
+    static_root = Path(__file__).resolve().parents[1] / ".next/static"
+    chunk = select_public_chunk(static_root)
+    secret_bytes = secret.encode("ascii")
+    for asset in static_root.rglob("*"):
+        if asset.is_file():
+            require(not asset.is_symlink(),
+                    "nextjs_static_symlink_forbidden")
+            # Inspect the built public artifact, not server-only .next files.
+            require(secret_bytes not in asset.read_bytes(),
+                    "public_static_contains_private_edge_proof")
+    url = "/_next/static/" + chunk.relative_to(static_root).as_posix()
+    expected_hash = hashlib.sha256(chunk.read_bytes()).digest()
+    anonymous = request_public_chunk(url, {})
+    forged = request_public_chunk(url, {
+        "Cookie": "__Host-lanveriq-session=synthetic-forged-session",
+        "X-Lanveriq-Synthetic-Edge-Token": "0" * 64,
+    })
+    require(anonymous[0] == 200 and forged[0] == 200,
+            "public_static_must_be_fetchable_without_session")
+    require("javascript" in anonymous[1],
+            "public_static_must_have_javascript_mime")
+    require("public" in anonymous[2] and "immutable" in anonymous[2],
+            "public_static_must_have_immutable_cache")
+    require(anonymous[3] == "nosniff",
+            "public_static_must_disable_content_sniffing")
+    require(anonymous[4] == expected_hash and forged[4] == expected_hash,
+            "public_static_must_not_vary_by_claimed_identity")
+    require(anonymous[:4] == forged[:4],
+            "public_static_headers_must_not_vary_by_claimed_identity")
+
+
 def nonloopback_address():
     # Connecting a UDP socket does not transmit or query an external service.
     # It determines the local outgoing interface address for an RFC5737
@@ -79,6 +152,8 @@ def main():
             "RSC": "1", "Next-Router-Prefetch": "1",
             "Cookie": "__Host-lanveriq-session=synthetic-forged-session",
         }) == 404, "direct_origin_rsc_prefetch_must_404")
+
+    verify_public_static_boundary(secret)
 
     address = nonloopback_address()
     try:
