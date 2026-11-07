@@ -197,37 +197,35 @@ def check_viewports(browser):
             if width <= 750:
                 page.goto(BASE + "/overview", wait_until="networkidle")
                 menu = page.get_by_role("button", name="打开导航")
-                require(menu.is_visible() and menu.get_attribute("aria-expanded") == "false",
-                        "bc_mobile_menu_missing_or_open_by_default")
-                drawer = page.locator("#console-sidebar")
-                require(drawer.get_attribute("inert") is not None,
-                        "bc_closed_drawer_must_not_be_tabbable")
+                require(menu.is_visible(), "base_ui_mobile_trigger_missing")
+                require(page.locator(".bc-mobile-sheet").count() == 0,
+                        "mobile_dialog_must_start_unmounted")
                 menu.click()
-                require(menu.get_attribute("aria-expanded") == "true" and
-                        drawer.get_attribute("inert") is None,
-                        "bc_mobile_menu_failed_to_open")
+                drawer = page.get_by_role("dialog", name="Lanveriq 移动端主导航")
+                require(drawer.is_visible() and
+                        drawer.locator(".navigation").count() == 1,
+                        "base_ui_dialog_did_not_open")
+                require(drawer.evaluate("(el) => el.contains(document.activeElement)"),
+                        "base_ui_dialog_must_capture_keyboard_focus")
                 page.keyboard.press("Escape")
-                require(menu.get_attribute("aria-expanded") == "false" and
-                        drawer.get_attribute("inert") is not None and
-                        menu.evaluate("(el) => document.activeElement === el"),
-                        "bc_mobile_escape_must_restore_trigger_focus")
+                drawer.wait_for(state="hidden", timeout=5000)
+                require(menu.evaluate("(el) => document.activeElement === el"),
+                        "base_ui_dialog_escape_must_restore_trigger_focus")
                 menu.click()
-                require(menu.get_attribute("aria-expanded") == "true",
-                        "bc_mobile_menu_reopen_failed")
-                alert_link = page.get_by_role("navigation", name="主导航").locator(
+                drawer = page.get_by_role("dialog", name="Lanveriq 移动端主导航")
+                require(drawer.is_visible(), "base_ui_dialog_failed_to_reopen")
+                alert_link = drawer.get_by_role("navigation", name="主导航").locator(
                     'a[href="/alerts"]')
-                require(alert_link.is_visible(), "bc_mobile_planned_navigation_missing")
+                require(alert_link.is_visible(), "base_ui_mobile_planned_navigation_missing")
                 alert_link.click()
                 page.wait_for_url(BASE + "/alerts", wait_until="domcontentloaded",
                                   timeout=15000)
                 require(page.get_by_role("heading", name="告警中心", level=1).count() == 1,
-                        "bc_mobile_client_navigation_failed")
-                require(not page.locator(".sidebar").evaluate(
-                    "(el) => el.classList.contains('mobile-open')"),
-                    "bc_mobile_drawer_stayed_open_after_navigation")
+                        "base_ui_mobile_client_navigation_failed")
+                drawer.wait_for(state="hidden", timeout=5000)
                 require(page.evaluate(
                     "document.documentElement.scrollWidth <= window.innerWidth + 2"),
-                    "bc_mobile_drawer_causes_horizontal_overflow")
+                    "base_ui_mobile_drawer_causes_horizontal_overflow")
             require(not blocked, "viewport_unexpected_network")
             require(context.cookies() == [], "viewport_unexpected_cookie")
         finally:
