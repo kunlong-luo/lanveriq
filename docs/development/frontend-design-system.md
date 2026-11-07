@@ -1,4 +1,8 @@
-# Frontend design system and dependency selection — synthetic preview implemented, live integration pending
+# Frontend design system — canonical Next.js App Router, live integration pending
+
+**NXT-12 framework cutover (2026-11-07):** Use `apps/web-next` **Next.js 16.4.5 stable** as the only forward-development UI app. Its Next.js App Router pages, Tailwind 4/shadcn-style components, TanStack Query, build-time Orval types and GitHub Pages static showcase have passed relevant locked-build/source gates. The original `apps/web` Vite project and its localhost-only anonymous health proxy are **legacy reference**, not a current product endpoint. Do not copy Vite-only development proxy logic into Next.js, or mount a credentialed route to replicate historical demo data. No real session, business data, Agent telemetry or production proxy deployment is authorized by this framework cutover; retain NXT-10/NXT-11 Caddy/Spring security acceptance.
+
+
 
 **WEB-01 local health-only slice (2026-11-01):** The Vite React preview now uses an exact-path localhost development proxy for anonymous Spring Boot `GET /actuator/health`, with a non-polling TanStack Query and manual refresh. It never proxies `/api` or activates login/device endpoints. The source repo contains the shadcn/ui `components.json`, local Card composition and Tailwind 4 semantic tokens; this is an incremental style foundation, not a Next.js migration. It must display unavailable if Spring is down and must not present the synthetic metrics as live. The production static build has no Vite proxy. Real browser auth/business queries remain blocked by pending PG18/TLS/session acceptance.
 
@@ -16,7 +20,7 @@
 
 ## Stack
 - **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, **not** an application framework.
-- **Today:** React 19 + Vite 8 + TypeScript and React Router run the synthetic LAN dashboard preview. **Approved target:** Next.js App Router + React/TypeScript, with explicit Node.js self-hosting and Caddy trust-boundary review. Keep Vite working until the separately locked Next.js candidate passes CI, route parity and cutover approval; do not activate SSR authenticated-data fetching. [ADR-0008](../architecture/adrs/0008-nextjs-app-router-console.md).
+- **Canonical today:** Next.js 16.4.5 App Router + React 19 + TypeScript, with Node.js 24 for local/private serving and a separate GitHub Pages static-only export. Vite/React Router are legacy migration material. Do not enable SSR authenticated-data fetching or production authorization by framework selection alone. [ADR-0008](../architecture/adrs/0008-nextjs-app-router-console.md).
 - **Tailwind CSS 4 + shadcn/ui + Radix UI** for accessible editable components; retain a modest shared UI package only once both Dashboard and Tauri require it.
 - **Lucide React** as primary stroke-based UI icon library; use explicitly approved/logos where necessary. Avoid installing multiple overlapping icon packs.
 - **Motion** as the single intentional animation library; CSS transitions for simple hover/focus, Motion for dialogs or route transitions. Respect `prefers-reduced-motion`.
