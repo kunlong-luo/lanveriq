@@ -4,7 +4,7 @@
 
 **LAN-first, self-hosted asset health and audit platform for workplace endpoints with lawful notice and authorization.**
 
-> **Status: V0.1 under development — NOT a production-ready monitoring product.** The Java backend builds and contains default-OFF internal services, Flyway V1–V8 and source-only PostgreSQL integration suites. The Rust Agent builds and runs an **idle lifecycle**; its inventory/SQLite/transport modules are not wired to the running process. **The React dashboard retains synthetic business data but can now read the anonymous Spring Boot health endpoint through the localhost-only Vite development proxy; no live authentication, business API or WSS is connected.** Real PostgreSQL 18.6, Caddy/TLS, browser-session and OS-service acceptance gates are still open. No real employee data may be collected or uploaded based on these developer instructions.
+> **Status: V0.1 under development — NOT a production-ready monitoring product.** The Java backend builds and contains default-OFF internal services, Flyway V1–V8 and source-only PostgreSQL integration suites. The Rust Agent builds and runs an **idle lifecycle**; its inventory/SQLite/transport modules are not wired to the running process. **The canonical Web UI is now the isolated Next.js 16.4.5 App Router in `apps/web-next`; its public GitHub Pages export is a disconnected static showcase, not a real login.** The original `apps/web` Vite health-only demo remains an unmaintained migration reference; no authenticated business API, real device data, or WSS is connected to the canonical Next.js preview. Real PostgreSQL 18.6, Caddy/TLS, browser-session and OS-service acceptance gates are still open. No real employee data may be collected or uploaded based on these developer instructions.
 
 ![Architecture concept (not a screenshot of the product)](docs/visuals/assets/01-overview.svg)
 
@@ -14,14 +14,32 @@ The **three product components** are **Web**, **Server**, and **Agent**. Postgre
 
 | Component | Path and technology | What runs today? |
 |---|---|---|
-| Web admin dashboard | `apps/web`: React 19 / Vite 8 / TypeScript 7 / Tailwind 4 / Radix / Lucide | Local demo with anonymous backend health probe, shadcn-style Card foundation, demo device search/detail tabs. NO real login/business API/device operations. |
+| Web admin dashboard (primary) | `apps/web-next`: Next.js **16.4.5** App Router / React 19 / TypeScript 7 / Tailwind 4 / Lucide / shadcn-style components | Verified static disconnected management preview, seven pages, disabled login and asset/device operations; [public GitHub Pages preview](https://kunlong-luo.github.io/lanveriq/). NO real login, business API, or Agent access. `apps/web` is now legacy Vite reference only. |
 | API and admin server | `apps/server`, Java 25 / Spring Boot 4.1.2 / Gradle / JPA / Flyway | A buildable Spring Boot process with health checks; other business routes default to denial. Real DB/security approval pending. |
 | Endpoint Agent | `apps/agent`, Rust 1.94 / Tokio / SQLx SQLite WAL / Reqwest-rustls | Builds and starts an **idle** process; **no automatic monitoring, inventory collection, or uploads**. |
 | PostgreSQL (dependency) | PostgreSQL 18.x (18.6 for manual acceptance); Flyway V1–V8 | Reuse dedicated `lanveriq` database in existing `spark-postgres`; full PG18.6 integration acceptance pending. |
 | Redis (optional dependency) | Existing `spark-redis` / Redis 8 / Spring Data Redis + Lettuce | Optional **default-OFF** bounded ephemeral refetch-hint bean and Actuator health; not a queue, session, RBAC store or WSS broker. |
 | Caddy (dependency) | `deploy/caddy/Caddyfile.reference` | A **reference-only** TLS test config, not a production reverse proxy. |
 
-Intended central topology: **Caddy HTTPS + static React assets → Spring Boot → PostgreSQL**. The Rust Agent runs **natively on explicitly authorized Windows/Linux endpoints**, not as a Docker container on the central host. The future dashboard is a static SPA, not a fourth Node/Next.js production server. See [deployment architecture](docs/architecture/deployment.md).
+Candidate central topology: **Caddy HTTPS → private Next.js App Router (HTML/RSC/static) and independent Spring Boot API over mTLS → private PostgreSQL**. Caddy must authorize protected HTML/RSC through Spring before proxying, with the internal Next.js origin inaccessible to LAN clients. **This is not yet a deployable production topology.** The Rust Agent runs natively on expressly authorized endpoints, not centrally in Docker. GitHub Pages hosts only an isolated public static preview. See [deployment architecture](docs/architecture/deployment.md).
+
+## Primary Next.js frontend (public preview only)
+
+Visit [Lanveriq GitHub Pages](https://kunlong-luo.github.io/lanveriq/) for the publicly deployed, read-only static showcase. For a local private Next.js preview:
+
+```bash
+cd apps/web-next
+corepack enable
+corepack prepare pnpm@12.0.0 --activate
+pnpm install --frozen-lockfile
+pnpm run verify:routes
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+The Next.js server binds `127.0.0.1:3100`; no Spring session or business data is connected. **Never submit real credentials to the disabled login screen.** The legacy Vite `apps/web` directory remains solely for historical reference and existing migration regressions, not as the recommended Web entry point.
 
 ## Prerequisites
 
@@ -29,7 +47,7 @@ Intended central topology: **Caddy HTTPS + static React assets → Spring Boot �
 - **Rust 1.94.0** / Cargo from `apps/agent/rust-toolchain.toml`, plus your operating system's native Rust build prerequisites.
 - Docker Engine with the existing running `spark-db` PostgreSQL container; a separate short-lived **synthetic-only** PostgreSQL 18.6 container is optional for independent acceptance.
 - Bash, curl and OpenSSL for the existing Linux/WSL/macOS local server smoke script.
-- **Node.js 24 and pnpm 12** are required for the optional local Web preview. `apps/server/contract-client-check` separately validates generated API types; the Web preview only calls anonymous `/actuator/health`, not those authenticated APIs.
+- **Node.js 24 and pnpm 12** are required for the primary Next.js Web preview. `apps/server/contract-client-check` generates and checks OpenAPI clients against the pinned Next.js React Query types. No authenticated API runs in the ordinary preview.
 
 Dependencies and Docker images may require Internet access on first download; offline operation is a **future product runtime** objective, not a promise about development dependency installation.
 
@@ -51,7 +69,7 @@ cd apps/server
 ./gradlew test
 ~~~
 
-Windows PowerShell uses `cd apps/server` followed by `.\gradlew.bat test`. React remains a standalone pnpm app under `apps/web`; the Rust package is controlled by `apps/agent/Cargo.toml`. Neither is a Java Gradle module. See the [IDEA import guide](docs/development/intellij-idea.md); importing and unit testing do not need a running database or any device monitoring.
+Windows PowerShell uses `cd apps/server` followed by `.\gradlew.bat test`. The primary Next.js App Router frontend is a standalone pnpm app under `apps/web-next`; the Rust package is controlled by `apps/agent/Cargo.toml`. Neither is a Java Gradle module. See the [IDEA import guide](docs/development/intellij-idea.md); importing and unit testing do not need a running database or any device monitoring.
 
 ## 1. Reuse your existing `spark-db` PostgreSQL instance
 
