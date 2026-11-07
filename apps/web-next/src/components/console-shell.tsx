@@ -3,19 +3,20 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, Bell, ChevronRight, LayoutDashboard, Monitor, Plus, Settings2, ShieldCheck } from 'lucide-react';
+import { Activity, Bell, ChevronRight, LayoutDashboard, Monitor, Plus, Settings2, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { activeConsoleRoute, consoleRoutes, type ConsoleRoute } from '@/lib/console-navigation';
 
-const links = [
-  { href: '/overview', name: '概览', icon: LayoutDashboard },
-  { href: '/monitoring', name: '监控中心', icon: Activity },
-  { href: '/devices', name: '终端资产', icon: Monitor },
-  { href: '/enrollment', name: '设备注册', icon: Plus },
-  { href: '/settings', name: '系统设置', icon: Settings2 },
-] as const;
+const routeIcons: Record<ConsoleRoute['id'], LucideIcon> = {
+  overview: LayoutDashboard,
+  monitoring: Activity,
+  devices: Monitor,
+  enrollment: Plus,
+  settings: Settings2,
+};
 
 export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
-  const current = links.find(item => pathname === item.href || pathname.startsWith(item.href + '/'));
+  const current = activeConsoleRoute(pathname);
   return <><a href="#main" className="skip-to-content">跳转到主要内容</a><div className="shell">
     <aside className="sidebar">
       <Link href="/overview" className="brand" aria-label="Lanveriq 概览">
@@ -24,12 +25,15 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
       </Link>
       <p className="nav-label">工作空间</p>
       <nav className="navigation" aria-label="主导航">
-        {links.map(({ href, name, icon: Icon }) => (
-          <Link key={href} href={href} className={`nav-item${current?.href === href ? ' selected' : ''}`}
+        {consoleRoutes.map(({ href, label, id }) => {
+          const Icon = routeIcons[id];
+          return <Link key={href} href={href}
+            className={`nav-item${current?.href === href ? ' selected' : ''}`}
             aria-current={current?.href === href ? 'page' : undefined}>
-            <Icon size={19} aria-hidden="true" /><span>{name}</span><ChevronRight size={15} className="nav-chevron" aria-hidden="true" />
-          </Link>
-        ))}
+            <Icon size={19} aria-hidden="true" /><span>{label}</span>
+            <ChevronRight size={15} className="nav-chevron" aria-hidden="true" />
+          </Link>;
+        })}
       </nav>
       <div className="sidebar-notice"><ShieldCheck size={20} aria-hidden="true" />
         <span><strong>安全默认关闭</strong><small>无真实设备采集</small></span>
@@ -38,7 +42,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
     <div className="workspace">
       <header className="topbar">
         <div className="breadcrumb"><span>工作空间</span><ChevronRight size={15} aria-hidden="true" />
-          <strong>{current?.name ?? '管理控制台'}</strong></div>
+          <strong>{current?.label ?? '管理控制台'}</strong></div>
         <div className="top-actions">
           <span className="backend-state"><span aria-hidden="true" />业务 API 未连接</span>
           <button type="button" disabled aria-label="通知尚未接入" className="icon-button"><Bell size={19}/></button>
@@ -48,11 +52,11 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
       <main id="main" className="main-content">
         <div className="warning-banner" role="status"><span aria-hidden="true" />
           <strong>独立预览 · 不含真实数据</strong>
-          <span>Next.js 候选项目；未连接 PostgreSQL、Redis、业务 API 或真实终端。</span>
+          <span>Next.js App Router 主前端预览；未连接 PostgreSQL、Redis、业务 API 或真实终端。</span>
         </div>
         {children}
       </main>
-      <footer className="footer">Lanveriq V0.1 · NXT-02 · 不可用于真实终端监控</footer>
+      <footer className="footer">Lanveriq V0.1 · Next.js App Router · 不可用于真实终端监控</footer>
     </div>
   </div></>;
 }
