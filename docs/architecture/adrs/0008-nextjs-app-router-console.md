@@ -1,4 +1,8 @@
-# ADR-0008 — Next.js App Router as the future LAN console
+# ADR-0008 — Next.js App Router as the canonical LAN frontend
+
+**Updated decision, 2026-11-07:** The maintainer requested a project-wide switch to Next.js. `apps/web-next` has become the **canonical frontend source** on Next.js **16.4.5 stable**, with a pinned regenerated pnpm lockfile, canonical five-route navigation tests, automated Next.js build/HTTP checks and a public **disconnected GitHub Pages static export**. The legacy `apps/web` React/Vite project remains only as temporary reversible source/contract-test reference. This changes the **framework and developer entry point**, not actual production activation. The normal `/login` remains disabled, and no real Spring API, private account, device or Agent is connected. Full Caddy/Next.js production topology and organization/privacy approvals are independent open gates.
+
+**Migration parity:** All publicly visible first-stage workspace routes (`overview`, `monitoring`, `devices`, `enrollment`, `settings`, `login`) render in the canonical Next app. Dynamic device details remain deliberately unconnected; GitHub Pages static export excludes the dynamic route because Pages cannot host authenticated Next.js SSR/RSC. Previous Vite fake device counts are **not** migrated as apparent live data. The Springdoc → Orval typechecking path in Server CI already checks Next.js locked dependencies.
 
 **Date:** 2026-11-01  
 **Status:** NXT-02 isolated real Chromium preview passed (#41442430936); isolated Caddy/Tomcat/PostgreSQL 18 Console session passed (#41437580646); NXT-03 staged transport remains unmounted and joint Next.js/Console HTTPS browser/RBAC + cutover gates **OPEN**  
