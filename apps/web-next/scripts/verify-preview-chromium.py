@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NXT-02 manual-only Chromium acceptance of the isolated Next.js preview.
+"""NXT-14 automatic Chromium acceptance of the isolated Next.js B+C preview.
 
 Runs against a production Next.js process on loopback with NO backend.
 Does not accept credentials, load external websites, collect screenshots,
@@ -16,7 +16,11 @@ ROUTES = {
     "/devices": "终端资产",
     DETAIL: "设备详情（未连接）",
     "/enrollment": "设备注册",
+    "/alerts": "告警中心",
+    "/policies": "策略管理",
+    "/reports": "报表分析",
     "/settings": "系统设置",
+    "/design-system": "设计系统",
     "/login": "管理员登录",
 }
 WIDTHS = (320, 390, 768, 1024, 1440)
@@ -82,6 +86,14 @@ def check_browser(page, blocked):
             require(page.get_by_role("status").filter(
                 has_text="独立预览 · 不含真实数据").count() >= 1,
                 "missing_unconnected_notice")
+        if route in ("/alerts", "/policies", "/reports"):
+            require(page.get_by_text("未连接 · 不展示假数据").count() == 1,
+                    "planned_module_must_stay_disconnected")
+            require(page.locator("main input:not([disabled])").count() == 0,
+                    "planned_module_must_not_enable_business_inputs")
+        if route == "/design-system":
+            require(page.get_by_text("#6A5BFF").count() == 1,
+                    "design_token_palette_missing")
         require(not blocked, "blocked_network_request")
     require(page.context.cookies() == [], "preview_must_not_set_session_cookie")
 
@@ -94,6 +106,15 @@ def check_browser(page, blocked):
             "designed_hero_must_keep_accessible_page_heading")
     require(page.locator(".overview-hero .hero-artwork[aria-hidden='true']").count() == 1,
             "decorative_artwork_must_be_hidden_from_screen_readers")
+    require(page.locator(".bc-insight-grid > [data-slot='card']").count() == 3,
+            "bc_dashboard_three_distinct_insight_panels")
+    require(page.locator(".bc-empty-chart").get_attribute("aria-label") ==
+            "暂无经过授权的设备活动趋势数据",
+            "bc_activity_chart_must_not_invent_time_series")
+    require(page.evaluate(
+        "getComputedStyle(document.querySelector('.overview-hero')).color") ==
+            "rgb(28, 26, 46)",
+            "bc_light_hero_stylesheet_not_loaded")
     require(page.locator(".metric-card").count() == 4,
             "designed_overview_four_unknown_metrics")
     for metric in page.locator(".metric-card").all():
@@ -173,6 +194,28 @@ def check_viewports(browser):
                 require(page.evaluate(
                     "matchMedia('(prefers-reduced-motion: reduce)').matches"),
                     "reduced_motion_not_applied")
+            if width <= 750:
+                page.goto(BASE + "/overview", wait_until="networkidle")
+                menu = page.get_by_role("button", name="打开导航")
+                require(menu.is_visible() and menu.get_attribute("aria-expanded") == "false",
+                        "bc_mobile_menu_missing_or_open_by_default")
+                menu.click()
+                require(menu.get_attribute("aria-expanded") == "true",
+                        "bc_mobile_menu_failed_to_open")
+                alert_link = page.get_by_role("navigation", name="主导航").locator(
+                    'a[href="/alerts"]')
+                require(alert_link.is_visible(), "bc_mobile_planned_navigation_missing")
+                alert_link.click()
+                page.wait_for_url(BASE + "/alerts", wait_until="domcontentloaded",
+                                  timeout=15000)
+                require(page.get_by_role("heading", name="告警中心", level=1).count() == 1,
+                        "bc_mobile_client_navigation_failed")
+                require(not page.locator(".sidebar").evaluate(
+                    "(el) => el.classList.contains('mobile-open')"),
+                    "bc_mobile_drawer_stayed_open_after_navigation")
+                require(page.evaluate(
+                    "document.documentElement.scrollWidth <= window.innerWidth + 2"),
+                    "bc_mobile_drawer_causes_horizontal_overflow")
             require(not blocked, "viewport_unexpected_network")
             require(context.cookies() == [], "viewport_unexpected_cookie")
         finally:
@@ -193,8 +236,8 @@ def main():
             finally:
                 context.close()
             check_viewports(browser)
-            print("MANUAL NXT-02 CHROMIUM PASS: 7 real Next.js routes, no API/WSS/external "
-                  "network or cookie, disabled login/operations, keyboard tab/focus, "
+            print("NXT-14 CHROMIUM PASS: 11 real Next.js routes, no API/WSS/external "
+                  "network or cookie, disabled login/operations, keyboard tabs/mobile drawer/focus, "
                   "320-1440px and reduced motion.")
             print("NOT PROVEN: screen reader/manual visual parity, Caddy HTTPS, Spring "
                   "login/CSRF/RBAC, PostgreSQL browser sessions or real device operations.")
