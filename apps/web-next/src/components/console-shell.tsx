@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Activity, BarChart3, Bell, BookOpen, ChevronRight, CircleHelp, ClipboardList,
+  Activity, BarChart3, Bell, BookOpen, ChevronRight, CircleHelp,
   LayoutDashboard, Layers3, Menu, Monitor, Plus, Search, Settings2, ShieldCheck, X,
   type LucideIcon,
 } from 'lucide-react';
