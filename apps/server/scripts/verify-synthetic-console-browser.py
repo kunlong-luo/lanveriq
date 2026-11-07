@@ -291,6 +291,68 @@ def private_synthetic_pg_sql(db_container, sql):
     require(completed.returncode == 0, "multi_admin_synthetic_pg_mutation_failed")
 
 
+# NXT-11: public immutable Next.js assets must remain identity-neutral at the
+# REAL Caddy HTTPS edge, not just at the private Next.js loopback listener.
+# This executes inside Chromium after normal browser TLS and cookie policy.
+PUBLIC_STATIC_FETCH_SCRIPT = r"""async (assetPath) => {
+  const response = await fetch(assetPath, {
+    method:'GET', credentials:'same-origin', mode:'same-origin',
+    cache:'no-store', redirect:'error', referrerPolicy:'no-referrer'
+  });
+  const content = await response.arrayBuffer();
+  const validSize = content.byteLength > 0 && content.byteLength <= 2 * 1024 * 1024;
+  const digest = validSize
+    ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', content)),
+                 b => b.toString(16).padStart(2, '0')).join('')
+    : '';
+  return {
+    status:response.status,
+    mime:response.headers.get('content-type') || '',
+    cache:response.headers.get('cache-control') || '',
+    nosniff:response.headers.get('x-content-type-options') || '',
+    digest,
+    bytes:content.byteLength
+  };
+}"""
+
+
+def canonical_public_static_path(source):
+    """Reject cross-origin, query-bearing, traversal and non-JS asset selectors."""
+    require(isinstance(source, str), "edge_static_script_source_missing")
+    url = urlsplit(source)
+    require(url.scheme in ("", "https") and
+            url.netloc in ("", "console.lanveriq.internal",
+                           "console.lanveriq.internal:443") and
+            not url.username and not url.password and
+            not url.query and not url.fragment,
+            "edge_static_script_source_origin")
+    require(bool(re.fullmatch(r"/_next/static/[a-zA-Z0-9_./-]+\\.js", url.path)) and
+            ".." not in url.path.split("/"),
+            "edge_static_script_source_path")
+    return url.path
+
+
+def strict_public_static_asset(result, label):
+    """Only SHA-256 and fixed response metadata cross the browser test boundary."""
+    require(isinstance(result, dict), label + "_metadata")
+    require(result.get("status") == 200, label + "_http_200")
+    require("javascript" in str(result.get("mime", "")).lower(),
+            label + "_javascript_mime")
+    cache = {value.strip().lower() for value in
+             str(result.get("cache", "")).split(",")}
+    require("public" in cache and "immutable" in cache and
+            "no-store" not in cache, label + "_immutable_cache")
+    require(str(result.get("nosniff", "")).lower() == "nosniff",
+            label + "_no_content_sniffing")
+    require(isinstance(result.get("bytes"), int) and
+            0 < result["bytes"] <= 2 * 1024 * 1024,
+            label + "_bounded_content")
+    require(isinstance(result.get("digest"), str) and
+            re.fullmatch(r"[0-9a-f]{64}", result["digest"]) is not None,
+            label + "_sha256_digest")
+    return result
+
+
 def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
     """Independent real Chromium contexts + real disposable PG18/JPA/Servlet.
 
@@ -335,6 +397,24 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             pages.append(page)
             wires.append(wire)
 
+        page_a, page_b = pages
+
+        # Select one actual Next.js browser chunk from the delivered page.
+        # No arbitrary path from HTTP data is trusted; only a canonical
+        # same-origin /_next/static/*.js URL may cross this boundary.
+        stage = "nxt11_edge_static_anonymous"
+        asset_src = page_a.locator(
+            "script[src*='/_next/static/']").first.get_attribute("src")
+        asset_path = canonical_public_static_path(asset_src)
+
+        def edge_public_static(page, label):
+            return strict_public_static_asset(
+                page.evaluate(PUBLIC_STATIC_FETCH_SCRIPT, asset_path), label)
+
+        anonymous_asset = edge_public_static(page_a, "edge_static_anonymous_a")
+        require(edge_public_static(page_b, "edge_static_anonymous_b") ==
+                anonymous_asset, "edge_static_anonymous_context_consistency")
+
         def login(page, name, expected_labels, total):
             page.locator("#multi-admin-user").fill(name)
             page.locator("#multi-admin-secret").fill(password)
@@ -373,7 +453,6 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             require(page.locator("#multi-admin-secret").input_value() == "",
                     "multi_admin_password_field_cleared")
 
-        page_a, page_b = pages
         stage = "login_a"
         login(page_a, "synthetic-browser-a",
               ["SyntheticBrowserA-1", "SyntheticBrowserA-2"], 2)
@@ -382,6 +461,17 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         first_cookie = session_cookie(contexts[0])
         second_cookie = session_cookie(contexts[1])
         require(first_cookie != second_cookie, "multi_admin_isolated_session_cookies")
+        # The public Caddy asset must not be personalized, revalidated via
+        # Spring, or change either administrator's HttpOnly session cookie.
+        stage = "nxt11_edge_static_two_authenticated_admins"
+        require(edge_public_static(page_a, "edge_static_logged_in_a") ==
+                anonymous_asset, "edge_static_a_must_equal_anonymous")
+        require(edge_public_static(page_b, "edge_static_logged_in_b") ==
+                anonymous_asset, "edge_static_b_must_equal_anonymous")
+        require(session_cookie(contexts[0]) == first_cookie and
+                session_cookie(contexts[1]) == second_cookie,
+                "edge_static_must_not_rotate_administrator_session")
+
         first_device = page_a.locator("#multi-admin-device-list li").first.get_attribute(
             "data-device-id")
         require(isinstance(first_device, str) and
@@ -404,6 +494,12 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 "multi_admin_logout_rows_not_cleared")
         require(page_a.locator("#multi-admin-state").get_attribute("data-cache-count") == "0",
                 "multi_admin_logout_cache_not_cleared")
+        stage = "nxt11_edge_static_after_logout"
+        require(edge_public_static(page_a, "edge_static_logged_out") ==
+                anonymous_asset, "edge_static_logout_must_equal_anonymous")
+        require(session_cookie(contexts[1]) == second_cookie,
+                "edge_static_logout_must_not_change_other_session")
+
         stage = "same_context_login_b"
         login(page_a, "synthetic-browser-b", ["SyntheticBrowserB-1"], 1)
         require(session_cookie(contexts[0]) != second_cookie,
@@ -1042,6 +1138,10 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
         print("SYNTHETIC EDGE RSC AUTH PASS: protected Next.js RSC/prefetch "
               "requires Caddy/Spring session and no-store; forged "
               "public edge headers do not authorize requests.")
+        print("SYNTHETIC EDGE STATIC IDENTITY PASS: public Next.js JS is "
+              "immutable, nosniff and byte-identical for anonymous, two "
+              "separate administrators and after logout; cookies unaffected.")
+
         print("SYNTHETIC CONSOLE LIFECYCLE PASS: background-tab lock erased "
               "authorized rows, identity and metrics; explicit Spring logout "
               "restored the signed-out view without background API polling.")
