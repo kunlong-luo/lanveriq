@@ -1,11 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background:#f3f7fc; --foreground:#223b59; --card:#fff;
-  --card-foreground:#223b59; --border:#e3eaf5; --muted-foreground:#8399ae;
-  font-family:Inter,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
-  color:var(--foreground); background:var(--background);
-  font-synthesis:none; -webkit-font-smoothing:antialiased;
+  /* B+C brand and semantic color tokens are authored only in lanveriq-bc.css. */
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
 }
 @theme inline {
   --color-background:var(--background); --color-foreground:var(--foreground);
