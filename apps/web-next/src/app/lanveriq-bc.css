@@ -21,6 +21,8 @@
   --bc-muted:#777389;
   --bc-radius:19px;
   --bc-shadow:0 7px 27px rgba(41,36,84,.044),0 1px 3px rgba(41,36,84,.035);
+  --lan-ease:cubic-bezier(.22,1,.36,1);
+  font-family:Inter,"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
   color:var(--foreground);
   background:var(--background);
 }
