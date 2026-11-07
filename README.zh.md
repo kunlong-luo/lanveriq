@@ -6,6 +6,8 @@
 
 > **当前状态：V0.1 开发中，不是可正式部署的监控产品。** Java 后端已有可构建的 Spring Boot 应用、Flyway V1–V8 和默认关闭的部分内部能力；Rust Agent 已有可运行的**空闲进程**、SQLite/传输/库存模块，但尚未接入实际服务循环；**React 前端已通过 Vite 本地开发代理读取 Spring Boot 的匿名健康接口，但真实登录、业务 API 和设备仍未接入**。PostgreSQL 18.6 真实数据库、Caddy/TLS、管理员浏览器会话及 Windows/Linux 实机验收尚未全部完成。严禁把本地演示当成真实员工数据采集授权。
 
+**Next.js 公开静态预览已部署：** [打开 GitHub Pages](https://kunlong-luo.github.io/lanveriq/)。[自动部署 #42364974627](https://github.com/kunlong-luo/lanveriq/actions/runs/42364974627) 已成功，首页、概览、登录演示页面的公开 HTTP 检查均为 200。GitHub Pages **仅展示只读、未连接数据的 UI**：登录按钮不可用，不提供 Next.js 服务端鉴权、Spring Boot、PostgreSQL、真实设备数据或 Agent 操作。它不是正式后台部署，也不允许输入真实凭据。开发中的独立 Next.js 项目在 [`apps/web-next`](apps/web-next/README.md)；实际生产网络隔离与登录体验仍需另外验收。
+
 ![Lanveriq 架构概念图](docs/visuals/assets/01-overview.svg)
 
 ## 一、项目包含哪些服务？
