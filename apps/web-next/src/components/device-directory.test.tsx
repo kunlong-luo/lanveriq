@@ -30,6 +30,7 @@ describe('NXT-02 directory display model (all records test-only)', () => {
     ['loading','正在加载已授权设备'],
     ['signed_out','管理员登录状态已失效'],
     ['forbidden','当前账号无权查看设备'],
+    ['throttled','请求受到限制'],
     ['unavailable','设备服务暂不可用'],
   ] as const)('renders %s without retaining any previous rows', (kind,title) => {
     const html = render({ kind });
@@ -59,6 +60,29 @@ describe('NXT-02 directory display model (all records test-only)', () => {
     expect(html).toContain('后续分页待授权接入');
     expect(html).not.toContain('设备操作（暂不可用）');
     expect(html).not.toContain('发起注册');
+  });
+
+  it('labels totals as counts only within the supplied authorized page and keeps native table semantics', () => {
+    const html = render({ kind: 'ready', rows, hasMore: false });
+    expect(html).toContain('仅本次授权页：匹配 2 / 2 条');
+    expect(html).toContain('本页结果已按服务端权限裁剪');
+    expect(html).toContain('搜索和设备组筛选仅作用于本页');
+    expect(html).toContain('data-slot="table-container"');
+    expect(html).toContain('当前管理员已授权的设备健康列表');
+    expect(html).toContain('<th');
+    expect(html).toContain('scope="col"');
+    expect(html).not.toContain('全部设备数');
+    expect(html).not.toContain('总设备量：2');
+  });
+
+  it('hides all table rows, authorized-page totals and filters for missing permissions', () => {
+    for (const kind of ['unconnected','signed_out','forbidden','unavailable'] as const) {
+      const html = render({ kind });
+      expect(html).not.toContain('仅本次授权页：匹配');
+      expect(html).not.toContain('合成测试设备');
+      expect(html).not.toContain('data-slot="table-container"');
+      expect(html).toContain('disabled');
+    }
   });
 
   it('never creates a navigation link from a malicious row ID', () => {
