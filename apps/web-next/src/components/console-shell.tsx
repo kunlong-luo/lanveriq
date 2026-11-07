@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -31,6 +31,26 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
   const current = activeConsoleRoute(pathname);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileViewport, setMobileViewport] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 750px)');
+    const synchronize = () => setMobileViewport(media.matches);
+    synchronize();
+    media.addEventListener('change', synchronize);
+    return () => media.removeEventListener('change', synchronize);
+  }, []);
+
+  useEffect(() => {
+    if (mobileViewport && mobileOpen) closeButtonRef.current?.focus();
+  }, [mobileViewport, mobileOpen]);
+
+  function closeMobileAndRestoreFocus() {
+    setMobileOpen(false);
+    menuButtonRef.current?.focus();
+  }
 
   useEffect(() => {
     setMobileOpen(false);
@@ -39,7 +59,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
   useEffect(() => {
     if (!mobileOpen) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setMobileOpen(false);
+      if (event.key === 'Escape') closeMobileAndRestoreFocus();
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -53,9 +73,10 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
         className={`bc-sidebar-backdrop${mobileOpen ? ' is-open' : ''}`}
         aria-label="关闭移动导航"
         tabIndex={mobileOpen ? 0 : -1}
-        onClick={() => setMobileOpen(false)}
+        onClick={closeMobileAndRestoreFocus}
       />
-      <aside id="console-sidebar" className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
+      <aside id="console-sidebar" inert={mobileViewport && !mobileOpen}
+        className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="bc-brand-row">
           <Link href="/overview" className="brand" aria-label="Lanveriq 概览"
             onClick={() => setMobileOpen(false)}>
@@ -63,7 +84,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
             <span><strong>Lanveriq</strong><small>ENTERPRISE CONSOLE</small></span>
           </Link>
           <button type="button" className="bc-close-nav" aria-label="关闭导航"
-            onClick={() => setMobileOpen(false)}><X size={20} /></button>
+            ref={closeButtonRef} onClick={closeMobileAndRestoreFocus}><X size={20} /></button>
         </div>
         <p className="nav-label">WORKSPACE / 工作空间</p>
         <nav className="navigation" aria-label="主导航">
@@ -88,7 +109,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
       <div className="workspace">
         <header className="topbar">
           <div className="bc-header-left">
-            <button type="button" className="bc-menu-button"
+            <button type="button" className="bc-menu-button" ref={menuButtonRef}
               onClick={() => setMobileOpen(true)}
               aria-label="打开导航" aria-expanded={mobileOpen}
               aria-controls="console-sidebar"><Menu size={21} /></button>
