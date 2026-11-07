@@ -1,4 +1,22 @@
-# Lanveriq NXT-01 — isolated Next.js App Router preview
+# Lanveriq Web — primary Next.js App Router frontend
+
+## NXT-12 frontend framework cutover (2026-11-07)
+
+The canonical UI development entry point is **`apps/web-next`** running the reviewed **Next.js 16.4.5 stable security patch** with React 19, Node.js 24, pnpm 12, TypeScript, Tailwind 4, Lucide and shadcn-style UI components. This project now owns all main navigation routes, the GitHub Pages static showcase, TypeScript API contract compilation and subsequent UI development. The preceding Vite project `apps/web` is a **legacy migration/reference** only. The `console-navigation.ts` module owns the five workspace destinations; corresponding unit tests verify nested routes and reject API/credential pages. Existing page/route-isolation and production HTTP smoke tests remain enforced.
+
+```bash
+cd apps/web-next
+corepack enable
+corepack prepare pnpm@12.0.0 --activate
+pnpm install --frozen-lockfile
+pnpm run verify:routes
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm dev
+```
+
+The default private Next.js server is localhost-only (`127.0.0.1:3100`). **The migration is framework/UI-only, not authorization for production:** real sessions, backend data, Agent collection, device operations and live Caddy/Node deployment remain OFF. The publicly available `https://kunlong-luo.github.io/lanveriq/` is a disconnected `output: 'export'` preview; it never receives real secrets or APIs. Historical synthetic acceptance records follow below.
 
 ## Public GitHub Pages showcase — deployed (static and disconnected)
 
