@@ -418,7 +418,11 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("SYNTHETIC EDGE HTML AUTH PASS", browser)
         self.assertIn("SYNTHETIC EDGE RSC AUTH PASS", browser)
         self.assertIn("route_boundary_anonymous_rsc_prefetch_401", browser)
-        self.assertIn("route_boundary_valid_session_rsc_200_no_store", browser)
+        self.assertIn("route_boundary_authorized_rsc_missing_no_store", browser)
+        self.assertIn("route_boundary_authorized_rsc_redirected_outside_target", browser)
+        self.assertIn("route_boundary_authorized_rsc_missing_component_mime", browser)
+        self.assertIn("redirect:'follow'", browser)
+        self.assertIn("text/x-component", browser)
         self.assertIn("route_boundary_forged_edge_header_still_spring_401", browser)
         # The next server refuses direct HTTP without a secret generated
         # specifically for one disposable run, not a client cookie.
