@@ -961,6 +961,30 @@ body { background:#f8f8fc; color:var(--foreground); }
   min-width:0;
 }
 .bc-console .directory-select select { max-width:245px; }
+.bc-console .directory-clear-filters {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:39px;
+  flex-shrink:0;
+  padding:9px 12px;
+  border:1px solid #d9d0ef;
+  border-radius:11px;
+  background:#fff;
+  color:#6553b4;
+  font-size:11px;
+  font-weight:760;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:background-color .16s var(--lan-ease);
+}
+.bc-console .directory-clear-filters:hover { background:#f2edff; }
+.bc-console .directory-clear-filters:focus-visible {
+  outline:3px solid #a79cff;
+  outline-offset:2px;
+}
+
 @media(max-width:750px) {
   .bc-console .directory-toolbar { padding:17px 15px; }
   .bc-console .directory-controls { gap:9px; }
