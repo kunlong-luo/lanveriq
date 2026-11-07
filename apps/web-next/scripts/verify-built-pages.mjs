@@ -31,7 +31,11 @@ try {
     '/devices': '终端资产',
     '/devices/00000000-0000-7000-8000-000000000001': '设备详情（未连接）',
     '/enrollment': '设备注册',
+    '/alerts': '告警中心',
+    '/policies': '策略管理',
+    '/reports': '报表分析',
     '/settings': '系统设置',
+    '/design-system': '设计系统',
     '/login': '管理员登录',
   };
   for (const [route, label] of Object.entries(pages)) {
@@ -49,6 +53,10 @@ try {
         '设备资产与健康', '设备操作（暂不可用）', '撤销证书', 'disabled',
       ],
       '/enrollment': ['生成一次性注册凭据', '发起注册（未启用）', 'disabled'],
+      '/alerts': ['规划模块', '告警数据尚未连接', '未连接 · 不展示假数据'],
+      '/policies': ['规划模块', '策略服务尚未接入', '不向终端下发规则'],
+      '/reports': ['规划模块', '尚无经过授权的报表数据', '不绘制虚构百分比'],
+      '/design-system': ['设计系统', '#6A5BFF', '组件和状态样式'],
       '/settings': ['发布与安全验收', 'PostgreSQL 18', '待完成'],
     }[route] ?? [];
     for (const marker of requiredMarkup) {
@@ -85,7 +93,7 @@ try {
       new URL(home.headers.get('location') ?? '', base).pathname !== '/overview') {
     throw new Error('Unexpected root redirect');
   }
-  console.log('NXT-01 actual Next.js production server: seven pages, disabled login, no API proxy, root redirect passed');
+  console.log('NXT-01 actual Next.js production server: eleven pages, disabled login, no API proxy, root redirect passed');
 } finally {
   if (server.pid) {
     try { process.kill(-server.pid, 'SIGTERM'); } catch { /* already stopped */ }
