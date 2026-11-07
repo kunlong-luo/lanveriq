@@ -1,4 +1,4 @@
-"""Fast source-only regression for the MANUAL NXT-02 Chromium probe.
+"""Fast source-only regression for the automated synthetic Chromium probe.
 
 Runs under normal Web CI without opening a browser or any network listener.
 """
@@ -43,12 +43,19 @@ class NextPreviewChromiumSourceTest(unittest.TestCase):
             with self.subTest(denied=value):
                 self.assertFalse(allows(value))
 
-    def test_manual_only_and_unchanged_inert_login(self):
+    def test_automatic_only_on_main_preview_changes_and_inert_login(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         login = LOGIN.read_text(encoding="utf-8")
         script = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", workflow)
-        self.assertNotIn("  push:", workflow)
+        # NXT-12: the real Chromium preview is now automatically checked
+        # ONLY on changes to canonical Next.js source on main. It never
+        # authorizes real business API, credential, device or Agent access.
+        self.assertIn("  push:", workflow)
+        self.assertIn("    branches: [main]", workflow)
+        self.assertIn("- 'apps/web-next/src/app/**'", workflow)
+        self.assertIn("- 'apps/web-next/src/components/**'", workflow)
+        self.assertIn("github.event_name == 'push'", workflow)
         self.assertNotIn("  pull_request:", workflow)
         self.assertIn("playwright==1.64.1", workflow)
         self.assertIn("pnpm install --frozen-lockfile", workflow)
