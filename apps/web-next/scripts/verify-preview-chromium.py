@@ -199,9 +199,21 @@ def check_viewports(browser):
                 menu = page.get_by_role("button", name="打开导航")
                 require(menu.is_visible() and menu.get_attribute("aria-expanded") == "false",
                         "bc_mobile_menu_missing_or_open_by_default")
+                drawer = page.locator("#console-sidebar")
+                require(drawer.get_attribute("inert") is not None,
+                        "bc_closed_drawer_must_not_be_tabbable")
+                menu.click()
+                require(menu.get_attribute("aria-expanded") == "true" and
+                        drawer.get_attribute("inert") is None,
+                        "bc_mobile_menu_failed_to_open")
+                page.keyboard.press("Escape")
+                require(menu.get_attribute("aria-expanded") == "false" and
+                        drawer.get_attribute("inert") is not None and
+                        menu.evaluate("(el) => document.activeElement === el"),
+                        "bc_mobile_escape_must_restore_trigger_focus")
                 menu.click()
                 require(menu.get_attribute("aria-expanded") == "true",
-                        "bc_mobile_menu_failed_to_open")
+                        "bc_mobile_menu_reopen_failed")
                 alert_link = page.get_by_role("navigation", name="主导航").locator(
                     'a[href="/alerts"]')
                 require(alert_link.is_visible(), "bc_mobile_planned_navigation_missing")
