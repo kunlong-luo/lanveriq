@@ -15,6 +15,7 @@ on:
       - 'apps/web-next/package.json'
       - 'apps/web-next/pnpm-lock.yaml'
       - 'apps/web-next/scripts/verify-preview-chromium.py'
+      - 'apps/web-next/scripts/test_verify_preview_chromium.py'
       - '.github/workflows/nextjs-browser-preview-synthetic.yml'
   workflow_dispatch:
 
