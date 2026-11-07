@@ -1,15 +1,18 @@
 /**
- * The canonical Next.js App Router navigation contract.
- *
- * Presentational only: no React Router, legacy Vite routing, API calls,
- * authorization claims, credentials or synthetic data fixtures.
+ * Canonical navigation for the disconnected Next.js App Router UI.
+ * Routes marked "planned" represent design-only surfaces, NOT live services,
+ * device access, authenticated scopes or approved production capabilities.
  */
 export const consoleRoutes = [
-  { href: '/overview', label: '概览', id: 'overview' },
-  { href: '/monitoring', label: '监控中心', id: 'monitoring' },
-  { href: '/devices', label: '终端资产', id: 'devices' },
-  { href: '/enrollment', label: '设备注册', id: 'enrollment' },
-  { href: '/settings', label: '系统设置', id: 'settings' },
+  { href: '/overview', label: '概览', id: 'overview', planned: false },
+  { href: '/devices', label: '终端资产', id: 'devices', planned: false },
+  { href: '/monitoring', label: '监控中心', id: 'monitoring', planned: false },
+  { href: '/alerts', label: '告警中心', id: 'alerts', planned: true },
+  { href: '/enrollment', label: '设备注册', id: 'enrollment', planned: false },
+  { href: '/policies', label: '策略管理', id: 'policies', planned: true },
+  { href: '/reports', label: '报表分析', id: 'reports', planned: true },
+  { href: '/settings', label: '系统设置', id: 'settings', planned: false },
+  { href: '/design-system', label: '设计系统', id: 'design-system', planned: true },
 ] as const;
 
 export type ConsoleRoute = (typeof consoleRoutes)[number];
