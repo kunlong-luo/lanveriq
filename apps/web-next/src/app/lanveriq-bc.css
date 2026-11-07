@@ -1131,3 +1131,47 @@ body { background:#f8f8fc; color:var(--foreground); }
   .bc-login-intro { padding:20px 19px; }
   .bc-login-form { padding:26px 19px 29px; }
 }
+
+/* Status ring is intentionally neutral: size signifies unknown, NOT an
+ * online/offline distribution. Data-colored slices require real backend. */
+.bc-insight-grid .bc-connectivity-visual {
+  display:grid;
+  grid-template-columns:minmax(108px,135px) minmax(0,1fr);
+  align-items:center;
+  gap:18px;
+  min-width:0;
+}
+.bc-insight-grid .connectivity-empty-bar {
+  width:130px;
+  height:130px;
+  max-width:100%;
+  aspect-ratio:1;
+  border:16px solid #eeebf7;
+  border-radius:50%;
+  background:#fff;
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+  box-shadow:inset 0 0 0 1px #f6f4fa;
+}
+.bc-connection-ring-center { display:grid; justify-items:center; gap:1px; color:#29243f; }
+.bc-connection-ring-center strong { font-size:27px; line-height:1; }
+.bc-connection-ring-center small { color:#9d95ae; font-size:10px; white-space:nowrap; }
+.bc-insight-grid .connectivity-legend {
+  display:grid;
+  grid-template-columns:1fr;
+  min-width:0;
+  gap:13px;
+}
+.bc-insight-grid .connectivity-legend > span { min-width:0; }
+.bc-insight-grid .connectivity-legend i { background:#b5a9f0; }
+.bc-insight-grid .connectivity-legend > span:nth-child(2) i { background:#8fb8f8; }
+.bc-insight-grid .connectivity-legend > span:nth-child(3) i { background:#d7cae5; }
+.bc-insight-grid .connectivity-legend > span:nth-child(4) i { background:#d2cdd7; }
+@media(max-width:430px) {
+  .bc-insight-grid .bc-connectivity-visual {
+    grid-template-columns:minmax(98px,120px) minmax(0,1fr);
+    gap:12px;
+  }
+  .bc-insight-grid .connectivity-empty-bar { width:115px; height:115px; border-width:14px; }
+}
