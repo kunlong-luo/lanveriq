@@ -1,63 +1,66 @@
 import Link from 'next/link';
-import { ArrowRight, ArrowUpRight, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { SectionHeading } from '@/components/section-heading';
-import { ConnectivityBreakdown, InventoryFreshness, UnconnectedMetrics } from '@/components/health-sections';
+import {
+  ActivityTrend, ConnectivityBreakdown, InventoryFreshness, UnconnectedMetrics,
+} from '@/components/health-sections';
 import { DeviceDirectory } from '@/components/device-directory';
 
 /**
- * NXT-13 visual layer: Craftwork-inspired editorial type, bento spacing and
- * abstract CSS-only art. The illustration is not a chart or live signal.
- * The page NEVER requests credentials, devices, health or monitoring data.
+ * NXT-14: B+C approved standalone prototype translated to real App Router
+ * components. Artwork is original CSS, never a chart of measured data.
+ * No dynamic fixtures, external media, credentials, API or cookies.
  */
 export default function Overview() {
-  return <section className="page overview-page">
+  return <section className="page overview-page bc-overview">
     <div className="overview-hero">
       <div className="overview-hero-content">
         <div className="hero-topline">
-          <span className="hero-kicker-icon"><Sparkles size={14} aria-hidden="true" /></span>
-          <span>LANVERIQ / WORKSPACE</span>
-          <span className="hero-preview-tag">DESIGN PREVIEW</span>
+          <span className="bc-hero-tag"><Sparkles size={14} aria-hidden="true" /> B + C 设计融合</span>
+          <span className="bc-hero-tag bc-hero-tag-lime"><ShieldCheck size={14} aria-hidden="true" /> 未连接真实数据</span>
         </div>
-        <SectionHeading eyebrow="OVERVIEW / NXT-13" title="设备运行概览"
-          description="以更清晰的视角了解终端连接、证书和库存健康。当前仍为安全隔离预览，所有指标均等待授权数据接入。" />
+        <SectionHeading eyebrow="LANVERIQ / CONTROL CENTER" title="设备运行概览"
+          description="企业终端与 IT 资产管理工作区。统一梳理连接状态、库存健康及安全边界，为未来正式数据接入建立清晰的管理体验。" />
+        <p className="bc-hero-slogan">统一监控 · 安全管理 · 高效运维</p>
         <div className="hero-actions">
-          <Link className="hero-primary-action" href="/monitoring">
-            探索监控中心 <ArrowUpRight size={17} aria-hidden="true" />
+          <Link className="hero-primary-action" href="/devices">
+            查看终端资产 <ArrowUpRight size={17} aria-hidden="true" />
           </Link>
-          <Link className="hero-text-action" href="/devices">
-            查看终端资产 <ArrowRight size={16} aria-hidden="true" />
+          <Link className="hero-text-action" href="/monitoring">
+            查看监控中心 <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       </div>
       <div className="hero-artwork" aria-hidden="true">
-        <div className="hero-art-grid" />
-        <div className="hero-art-orbit hero-art-orbit-outer" />
-        <div className="hero-art-orbit hero-art-orbit-inner" />
-        <div className="hero-art-core"><span /></div>
-        <div className="hero-art-marker hero-art-marker-a" />
-        <div className="hero-art-marker hero-art-marker-b" />
-        <div className="hero-art-note"><span>VISUAL SYSTEM</span><strong>01 / 03</strong></div>
+        <div className="bc-illustration-glow" />
+        <div className="bc-illustration-orbit" />
+        <div className="bc-illustration-platform" />
+        <div className="bc-illustration-laptop"><div className="bc-laptop-screen">
+          <span className="bc-laptop-mark" /><strong>Lanveriq</strong>
+        </div></div>
+        <div className="bc-illustration-keyboard" />
+        <div className="bc-illustration-shield"><ShieldCheck size={37} /></div>
+        <div className="bc-illustration-server"><span/><span/><span/></div>
+        <div className="bc-illustration-float"><span/><span/><span/></div>
       </div>
     </div>
-
     <div className="overview-section-title">
-      <div><span className="section-index">01 / STATUS</span><h2>工作区一览</h2></div>
-      <span className="section-aside">暂无已授权数据 · 不生成演示指标</span>
+      <div><span className="section-index">01 / OVERVIEW</span><h2>工作区概览</h2></div>
+      <span className="section-aside">指标需要真实授权数据 · 当前不显示虚构统计</span>
     </div>
     <UnconnectedMetrics />
-
     <div className="overview-section-title">
       <div><span className="section-index">02 / INSIGHTS</span><h2>连接与数据新鲜度</h2></div>
-      <span className="section-aside">分组状态仅以服务端结果为准</span>
+      <span className="section-aside">仅由服务端核实后展示分组统计和趋势</span>
     </div>
-    <div className="content-grid">
+    <div className="bc-insight-grid">
       <ConnectivityBreakdown />
+      <ActivityTrend />
       <InventoryFreshness />
     </div>
-
     <div className="overview-section-title">
       <div><span className="section-index">03 / ASSETS</span><h2>终端资产</h2></div>
-      <span className="section-aside">权限验证前不显示设备信息</span>
+      <span className="section-aside">权限验证前不展示任何设备记录</span>
     </div>
     <DeviceDirectory state={{ kind: 'unconnected' }} />
   </section>;
