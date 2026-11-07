@@ -1,17 +1,29 @@
-name: Next.js real Chromium preview (manual, synthetic-only)
+name: Next.js real Chromium UI preview (automatic, synthetic-only)
 
-# Explicit opt-in independent NXT-02 test of a production-built Next.js
-# preview on 127.0.0.1:3100. NO Spring/PostgreSQL/Agent services, real
-# credentials, monitoring or deployment. Not a console-auth approval.
+# Automated real Chromium keyboard, responsive and safe-route checks for
+# the canonical Next.js App Router. The browser sees only the production-built
+# disconnected 127.0.0.1:3100 preview. NO Spring/PG18/Agent services, real
+# credentials, monitoring or deployment. This is NOT a console-auth approval.
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web-next/src/app/**'
+      - 'apps/web-next/src/components/**'
+      - 'apps/web-next/src/lib/console-navigation.ts'
+      - 'apps/web-next/next.config.ts'
+      - 'apps/web-next/package.json'
+      - 'apps/web-next/pnpm-lock.yaml'
+      - 'apps/web-next/scripts/verify-preview-chromium.py'
+      - '.github/workflows/nextjs-browser-preview-synthetic.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: lanveriq-nxt02-browser-synthetic-${{ github.ref }}
-  cancel-in-progress: false
+  group: lanveriq-nxt02-browser-synthetic-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   next-chromium:
