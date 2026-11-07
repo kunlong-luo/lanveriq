@@ -33,10 +33,16 @@ export function ConnectivityBreakdown() {
     <CardHeader><CardTitle>设备连接分布</CardTitle>
       <CardDescription>在线、延迟、离线与注册状态须分别由后端统计。</CardDescription></CardHeader>
     <CardContent className="connectivity-content">
-      <div className="connectivity-empty-bar" role="img" aria-label="暂无连接状态统计数据" />
-      <div className="connectivity-legend">
-        {['在线', '延迟', '离线', '已撤销'].map(label => <span key={label}>
-          <i aria-hidden="true" /><span>{label}</span><strong>—</strong></span>)}
+      <div className="bc-connectivity-visual">
+        <div className="connectivity-empty-bar" role="img" aria-label="暂无连接状态统计数据">
+          <span className="bc-connection-ring-center" aria-hidden="true">
+            <strong>—</strong><small>设备总数</small>
+          </span>
+        </div>
+        <div className="connectivity-legend">
+          {['在线', '延迟', '离线', '已撤销'].map(label => <span key={label}>
+            <i aria-hidden="true" /><span>{label}</span><strong>—</strong></span>)}
+        </div>
       </div>
       <p className="freshness-note"><Clock3 size={18} aria-hidden="true"/>
         连接状态、上报时间、库存更新时间应分别展示。暂无数据时不计算健康百分比。</p>
