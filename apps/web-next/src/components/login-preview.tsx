@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Input } from './ui/input';
 import { ArrowRight, Fingerprint, Layers3, LockKeyhole, ShieldCheck } from 'lucide-react';
 
 /** Static design surface: no form, user data, credential capture or calls. */
@@ -33,9 +34,9 @@ export function LoginPreview() {
         </div>
         <div className="login-fields" aria-label="尚未启用的登录界面">
           <label htmlFor="login-username">管理员账号</label>
-          <input id="login-username" type="text" disabled placeholder="尚未开放 · 请勿输入真实账号" autoComplete="off"/>
+          <Input id="login-username" type="text" disabled placeholder="尚未开放 · 请勿输入真实账号" autoComplete="off"/>
           <label htmlFor="login-password">密码</label>
-          <input id="login-password" type="password" disabled placeholder="尚未开放 · 请勿输入真实密码" autoComplete="off"/>
+          <Input id="login-password" type="password" disabled placeholder="尚未开放 · 请勿输入真实密码" autoComplete="off"/>
           <button type="button" disabled className="primary-action">
             安全登录（未启用） <ArrowRight size={16} aria-hidden="true" />
           </button>
