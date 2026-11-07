@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DeviceDetailTabs } from './device-detail-tabs';
-import { ConnectivityBreakdown, InventoryFreshness, UnconnectedMetrics } from './health-sections';
+import { ActivityTrend, ConnectivityBreakdown, InventoryFreshness, UnconnectedMetrics } from './health-sections';
 
 describe('NXT-02 read-only monitoring and detail presentation', () => {
   it('renders all metrics as unavailable rather than as fabricated zeros', () => {
@@ -22,6 +22,14 @@ describe('NXT-02 read-only monitoring and detail presentation', () => {
     expect(inventory).toContain('心跳接收状态');
     expect(inventory).toContain('待发送队列统计');
   });
+  it('does not invent a heartbeat trend when the data source is disconnected', () => {
+    const html = renderToStaticMarkup(<ActivityTrend />);
+    expect(html).toContain('设备活动趋势');
+    expect(html).toContain('暂无经过授权的设备活动趋势数据');
+    expect(html).toContain('不绘制虚构心跳或趋势曲线');
+    expect(html).not.toContain('<svg class="recharts');
+  });
+
   it('provides accessible read-only hardware/network/health tabs', () => {
     const html = renderToStaticMarkup(<DeviceDetailTabs />);
     expect(html).toContain('role="tablist"');
