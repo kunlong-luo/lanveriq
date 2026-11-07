@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
 import './craftwork-theme.css';
+import './lanveriq-bc.css';
 
 export const metadata: Metadata = {
   title: 'Lanveriq · Console Preview',
