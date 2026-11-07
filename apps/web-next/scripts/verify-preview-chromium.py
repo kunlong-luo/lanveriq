@@ -86,6 +86,20 @@ def check_browser(page, blocked):
     require(page.context.cookies() == [], "preview_must_not_set_session_cookie")
 
     page.goto(BASE + "/overview", wait_until="networkidle")
+    # NXT-13: check actual rendered editorial overview, not just source CSS.
+    # Decorative artwork must never masquerade as network/device data.
+    require(page.locator(".overview-hero").count() == 1,
+            "designed_overview_hero_missing")
+    require(page.locator(".overview-hero h1").inner_text() == "设备运行概览",
+            "designed_hero_must_keep_accessible_page_heading")
+    require(page.locator(".overview-hero .hero-artwork[aria-hidden='true']").count() == 1,
+            "decorative_artwork_must_be_hidden_from_screen_readers")
+    require(page.locator(".metric-card").count() == 4,
+            "designed_overview_four_unknown_metrics")
+    for metric in page.locator(".metric-card").all():
+        require(metric.locator(".metric-placeholder").inner_text() == "—" and
+                metric.locator(".metric-card-unconnected").inner_text() == "未连接",
+                "visual_redesign_must_not_invent_device_metrics")
     require(page.locator(".skip-to-content[href='#main']").count() == 1,
             "missing_skip_to_main")
     page.keyboard.press("Tab")
@@ -149,6 +163,13 @@ def check_viewports(browser):
                 require(page.evaluate(
                     "document.documentElement.scrollWidth <= window.innerWidth + 2"),
                     "horizontal_page_overflow_at_" + str(width))
+                if route == "/overview":
+                    hero = page.locator(".overview-hero")
+                    require(hero.is_visible() and
+                            hero.bounding_box()["width"] <= width + 1,
+                            "designed_hero_exceeds_viewport_at_" + str(width))
+                    require(page.locator(".overview-hero h1").is_visible(),
+                            "designed_heading_hidden_at_" + str(width))
                 require(page.evaluate(
                     "matchMedia('(prefers-reduced-motion: reduce)').matches"),
                     "reduced_motion_not_applied")
