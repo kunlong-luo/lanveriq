@@ -1,9 +1,8 @@
 'use client';
 
-import { useRef, useState, type KeyboardEvent } from 'react';
-import { nextTabIndex } from '../lib/tab-keyboard';
+import { Tabs } from '@base-ui/react/tabs';
 import { Activity, Cpu, HardDrive, LockKeyhole, Network } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from './ui/card';
 
 const tabs = [
   { id: 'hardware', label: '硬件', Icon: Cpu },
@@ -11,7 +10,7 @@ const tabs = [
   { id: 'health', label: '健康', Icon: Activity },
 ] as const;
 
-type TabId = typeof tabs[number]['id'];
+type TabId = (typeof tabs)[number]['id'];
 
 const descriptions: Record<TabId, { title: string; message: string }> = {
   hardware: {
@@ -28,37 +27,34 @@ const descriptions: Record<TabId, { title: string; message: string }> = {
   },
 };
 
+/**
+ * NXT-15: Base UI owns the WAI-ARIA tabs, roving focus and arrow-key
+ * activation. Only visual classes and safe read-only messages live here.
+ * No data fetch, browser storage or inferred device health.
+ */
 export function DeviceDetailTabs() {
-  const [active, setActive] = useState<TabId>('hardware');
-  const buttons = useRef<Record<TabId, HTMLButtonElement | null>>({
-    hardware: null, network: null, health: null,
-  });
-  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    const destination = nextTabIndex(event.key, index, tabs.length);
-    if (destination === null) return;
-    event.preventDefault();
-    const id = tabs[destination].id;
-    setActive(id);
-    buttons.current[id]?.focus();
-  }
-  const detail = descriptions[active];
   return <Card className="detail-tabs-card">
-    <CardHeader><CardTitle>设备资产与健康</CardTitle>
-      <CardDescription>这些标签页仅提供正式只读详情页的布局。</CardDescription></CardHeader>
-    <div className="detail-tab-list" role="tablist" aria-label="设备详情分类">
-      {tabs.map(({ id, label, Icon }, index) => <button type="button" key={id} role="tab"
-        id={`tab-${id}`} aria-controls={`panel-${id}`}
-        aria-selected={active === id} tabIndex={active === id ? 0 : -1}
-        ref={element => { buttons.current[id] = element; }}
-        onKeyDown={event => handleTabKey(event, index)}
-        className={active === id ? 'detail-tab selected' : 'detail-tab'}
-        onClick={() => setActive(id)}><Icon size={17} aria-hidden="true" />{label}</button>)}
-    </div>
-    <CardContent role="tabpanel" id={`panel-${active}`} aria-labelledby={`tab-${active}`}
-      className="detail-tab-content">
-      <span className="state-icon">{active === 'network' ? <LockKeyhole size={22}/> :
-        active === 'hardware' ? <HardDrive size={22}/> : <Activity size={22}/>}</span>
-      <strong>{detail.title}</strong><p>{detail.message}</p>
-    </CardContent>
+    <Tabs.Root defaultValue="hardware" className="bc-device-tabs">
+      <CardHeader><CardTitle>设备资产与健康</CardTitle>
+        <CardDescription>这些标签页仅提供正式只读详情页的布局。</CardDescription>
+      </CardHeader>
+      <Tabs.List className="detail-tab-list" aria-label="设备详情分类" activateOnFocus>
+        {tabs.map(({ id, label, Icon }) =>
+          <Tabs.Tab key={id} value={id}
+            className={state => state.active ? 'detail-tab selected' : 'detail-tab'}>
+            <Icon size={17} aria-hidden="true"/>{label}
+          </Tabs.Tab>)}
+      </Tabs.List>
+      {tabs.map(({ id }) => {
+        const detail = descriptions[id];
+        return <Tabs.Panel key={id} value={id} className="detail-tab-content">
+          <span className="state-icon" aria-hidden="true">
+            {id === 'network' ? <LockKeyhole size={22}/> :
+              id === 'hardware' ? <HardDrive size={22}/> : <Activity size={22}/>}
+          </span>
+          <strong>{detail.title}</strong><p>{detail.message}</p>
+        </Tabs.Panel>;
+      })}
+    </Tabs.Root>
   </Card>;
 }
