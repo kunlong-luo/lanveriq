@@ -725,14 +725,22 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                         const response = await fetch(path + '?__rsc=synthetic-authorized', {
                             headers: {'RSC':'1', 'Next-Router-Prefetch':'1'},
                             credentials:'same-origin', cache:'no-store',
-                            redirect:'manual'
+                            // Next.js may issue an RSC normalization redirect.
+                            // Following it keeps the real browser redirect
+                            // policy; the final URL and RSC MIME are checked.
+                            redirect:'follow'
                         });
+                        const final = new URL(response.url);
                         return {status:response.status,
-                                cache:response.headers.get('cache-control') || ''};
+                                cache:response.headers.get('cache-control') || '',
+                                sameTarget:final.origin === location.origin &&
+                                    final.pathname === path,
+                                rscMime:(response.headers.get('content-type') || '')
+                                    .toLowerCase().includes('text/x-component')};
                     } catch {
                         // Browser errors may include private URLs and headers.
                         // Only return a fixed failure category to the runner.
-                        return {status:-1,cache:''};
+                        return {status:-1,cache:'',sameTarget:false,rscMime:false};
                     }
                 }""", "/synthetic-console-route/" + view)
             except Exception:
@@ -745,6 +753,10 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
                 category = str(status) if status in safe_codes else "unexpected"
                 raise BrowserGateFailure(
                     "route_boundary_authorized_rsc_http_" + category) from None
+            require(rsc["sameTarget"] is True,
+                    "route_boundary_authorized_rsc_redirected_outside_target")
+            require(rsc["rscMime"] is True,
+                    "route_boundary_authorized_rsc_missing_component_mime")
             require("no-store" in rsc["cache"].lower(),
                     "route_boundary_authorized_rsc_missing_no_store")
             stage = "edge_enter_" + view + "_verified"
