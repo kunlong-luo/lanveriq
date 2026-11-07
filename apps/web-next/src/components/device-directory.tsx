@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, LockKeyhole, Search, ShieldAlert, WifiOff, RefreshCcw } from 'lucide-react';
+import { ArrowRight, LockKeyhole, Search, ShieldAlert, WifiOff, RefreshCcw, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Input } from './ui/input';
 import { NativeSelect } from './ui/native-select';
@@ -60,15 +60,30 @@ export function DeviceDirectory({
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('');
   const isReady = state.kind === 'ready';
+
+  // Never retain the previous user's search terms or device group filter when
+  // the authorization state becomes signed out, forbidden or disconnected.
+  // Actual authorized rows are always controlled by the server-side caller.
+  useEffect(() => {
+    if (!isReady) {
+      setSearch('');
+      setGroup('');
+    }
+  }, [isReady]);
   const rows = isReady ? state.rows : [];
   const groups = useMemo(() => [...new Set(rows.map(row => row.group))].sort(), [rows]);
   const visible = useMemo(() => filterDirectoryRows(rows, search, group), [rows, search, group]);
+  const hasFilters = isReady && (search.trim().length > 0 || group !== '');
+  const resetFilters = () => { setSearch(''); setGroup(''); };
 
   return <Card className="directory-panel" aria-label="终端资产列表">
     <CardHeader className="directory-toolbar">
       <div>
         <CardTitle>设备列表</CardTitle>
-        <CardDescription>{isReady ? `当前已授权页：${visible.length} 条` : '仅支持已授权的只读设备查询'}</CardDescription>
+        <CardDescription aria-live={isReady ? 'polite' : 'off'}>
+          {isReady ? `仅本次授权页：匹配 ${visible.length} / ${rows.length} 条` :
+            '仅支持已授权的只读设备查询'}
+        </CardDescription>
       </div>
       <div className="directory-controls">
         <label className="directory-search">
@@ -86,6 +101,10 @@ export function DeviceDirectory({
             {groups.map(value => <option value={value} key={value}>{value}</option>)}
           </NativeSelect>
         </label>
+        {hasFilters && <button type="button" onClick={resetFilters}
+          className="directory-clear-filters" aria-label="清除设备搜索和设备组筛选">
+          <X size={15} aria-hidden="true"/> 清除筛选
+        </button>}
       </div>
     </CardHeader>
     {state.kind !== 'ready' ? (
@@ -127,7 +146,8 @@ export function DeviceDirectory({
       </CardContent>
     )}
     <div className="directory-foot">
-      <span>{isReady ? '数据范围由 Spring Boot 授权控制' : '等待 PostgreSQL 18 / HTTPS / 浏览器会话验收'}</span>
+      <span>{isReady ? '本页结果已按服务端权限裁剪；搜索和设备组筛选仅作用于本页' :
+        '等待 PostgreSQL 18 / HTTPS / 浏览器会话验收'}</span>
       {isReady && state.hasMore && <span>后续分页待授权接入</span>}
     </div>
   </Card>;
