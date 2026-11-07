@@ -326,7 +326,7 @@ def canonical_public_static_path(source):
             not url.username and not url.password and
             not url.query and not url.fragment,
             "edge_static_script_source_origin")
-    require(bool(re.fullmatch(r"/_next/static/[a-zA-Z0-9_./-]+\\.js", url.path)) and
+    require(bool(re.fullmatch(r"/_next/static/[a-zA-Z0-9_./-]+\.js", url.path)) and
             ".." not in url.path.split("/"),
             "edge_static_script_source_path")
     return url.path
