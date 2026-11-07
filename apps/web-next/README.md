@@ -1,5 +1,16 @@
 # Lanveriq NXT-01 — isolated Next.js App Router preview
 
+## Public GitHub Pages showcase — deployed (static and disconnected)
+
+**Live public URL:** https://kunlong-luo.github.io/lanveriq/
+
+[Automated Pages build and deployment #42364974627](https://github.com/kunlong-luo/lanveriq/actions/runs/42364974627) completed **SUCCESS** on SHA `d99b2baefc864ba958a79739e9f28f082a8c9e6f`. A subsequent uncached public HTTP check returned **200** for `/`, `/overview/` and `/login/`; the root, overview and login pages retained no-real-data disclaimers, disconnected status and disabled credential fields.
+
+The `pages-static-preview.yml` workflow runs automatically on relevant `main` changes and publishes **only** `apps/web-next/out` after frozen-lock install, route-import isolation, component tests, TypeScript checks, an opt-in Next.js `output: 'export'` build and fail-closed export assertions. Only the isolated Pages build adds `basePath: '/lanveriq'` and disables unsupported server-only Next.js headers/redirects. In the disposable Actions workspace only, the dynamic `/devices/[id]` route is omitted rather than fabricating device identities. `.nojekyll` preserves `_next` assets. The normal `output: 'standalone'` build and its NXT-11 private-origin `nosniff` guard are unchanged.
+
+**GitHub Pages is publicly accessible** and provides *no* Next.js SSR/session authorization, Spring Boot API, PostgreSQL, Redis, private Caddy edge, real login, RBAC, Agent or device data. Never place user passwords, certificates, secrets or real employee/terminal information in this static site or its build inputs. All real-data production-release, actual login UX and network-topology gates remain OPEN.
+
+
 ## NXT-11 first static asset boundary subgate — synthetic PASS; production OPEN
 
 [Automatic full Caddy + Spring/Tomcat + PostgreSQL 18 + Chromium #42362704645](https://github.com/kunlong-luo/lanveriq/actions/runs/42362704645) **passed** on code SHA `a73844ba41a96bf2df22b30c6381120b9fa41f89`, retaining NXT-10 direct-origin, HTML/RSC forward-auth, scoped multi-admin and logout/revocation checks. `scripts/verify-synthetic-nextjs-origin.py` now also inspects built public Next.js static artifacts and samples a real `/_next/static` JS response: successful anonymous access, correct JavaScript MIME, public immutable caching, `X-Content-Type-Options: nosniff`, exact served-build digest and identical content/headers despite forged identity claims; the per-run internal edge proof must not appear in any static artifact. The first full test [#42362499510](https://github.com/kunlong-luo/lanveriq/actions/runs/42362499510) revealed a missing private-origin `nosniff` header. A targeted `next.config.ts` security header repaired it without relaxing the verifier. [Next.js build/source #42362691430](https://github.com/kunlong-luo/lanveriq/actions/runs/42362691430) passed; the full rerun then succeeded.
