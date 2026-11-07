@@ -142,8 +142,16 @@ def check_browser(page, blocked):
         "navigation_aria_current_missing")
     require(page.get_by_text("设备数据尚未连接").count() >= 1,
             "device_preview_must_be_unconnected")
+    require(page.locator(".bc-assets-workspace-head").count() == 1,
+            "nxt16_compact_assets_workspace_header_missing")
+    require(page.locator(".bc-assets-art").count() == 0,
+            "nxt16_routine_assets_must_not_have_promotional_art")
     require(page.get_by_role("textbox", name="搜索终端名称、系统或设备组").is_disabled(),
             "search_must_be_disabled_without_authorized_rows")
+    require(page.get_by_role("combobox", name="筛选设备组").is_disabled(),
+            "group_filter_must_be_disabled_without_authorized_rows")
+    require(page.get_by_role("button", name="添加设备（未开放）").is_disabled(),
+            "real_device_add_must_remain_disabled")
 
     page.goto(BASE + DETAIL, wait_until="networkidle")
     hardware = page.get_by_role("tab", name="硬件")
@@ -191,6 +199,17 @@ def check_viewports(browser):
                             "designed_hero_exceeds_viewport_at_" + str(width))
                     require(page.locator(".overview-hero h1").is_visible(),
                             "designed_heading_hidden_at_" + str(width))
+                    require(page.evaluate(
+                        "getComputedStyle(document.documentElement).getPropertyValue('--background').trim()") ==
+                            "#f8f8fc", "nxt16_canonical_theme_token_missing")
+                if route == "/devices":
+                    header = page.locator(".bc-assets-workspace-head")
+                    require(header.is_visible() and header.bounding_box()["width"] <= width + 1,
+                            "nxt16_assets_header_overflows_" + str(width))
+                    if width >= 1024:
+                        directory = page.locator(".directory-panel")
+                        require(directory.bounding_box()["y"] < 750,
+                                "nxt16_device_table_must_be_visible_above_fold")
                 require(page.evaluate(
                     "matchMedia('(prefers-reduced-motion: reduce)').matches"),
                     "reduced_motion_not_applied")
