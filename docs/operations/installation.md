@@ -75,13 +75,13 @@ the Java health check.
 
 | Product component | Planned execution site | State |
 |---|---|---|
-| React/Vite admin Web | `apps/web` local synthetic preview; future Caddy static assets | Preview UI builds only; NO live API, user session, WSS or production approval |
+| Next.js App Router admin Web (primary) | `apps/web-next`, Next.js 16.4.5 standalone localhost preview; separate public disconnected GitHub Pages static export | Main UI builds and Pages preview pass CI; live API, session, WSS and real device access remain OFF. The older `apps/web` Vite code is legacy reference only |
 | Java Spring Boot server | Server host, behind accepted HTTPS/TLS ingress | Buildable local development process; privileged business endpoints default OFF |
 | Rust endpoint Agent | Native managed Windows/Linux endpoint | Idle binary, standalone synthetic libraries and OS test-only service unit; no live enrollment/upload |
 | PostgreSQL 18 | Private server network / synthetic Docker on loopback | Database migration source written; manual integration acceptance pending |
 | Caddy | LAN HTTPS entrypoint with distinct console/enroll/agent hosts | Synthetic acceptance reference only; **NOT deployable Caddy production config** |
 
-The three **business components** are Web, Server and Agent; PostgreSQL and Caddy are additional required infrastructure. The Agent should **not** be placed in the central Compose deployment. A future production build serves the React SPA as static assets; there is no requirement for a separate Node/Next.js production server. See [topology and trust boundaries](../architecture/deployment.md).
+The three **business components** are Web, Server and Agent; PostgreSQL and Caddy are additional required infrastructure. The Agent should **not** be placed in the central Compose deployment. The selected future **Next.js SSR/RSC** topology requires a **private Node.js runtime behind Caddy** with strict internal-origin isolation and Spring session checks for protected HTML/RSC. GitHub Pages can host only the separately gated **public disconnected static UI**, not the production console. Production deployment is still not approved. See [topology and trust boundaries](../architecture/deployment.md).
 
 ## Requirements for a later production deployment
 
