@@ -1,27 +1,14 @@
-name: Next.js real Chromium UI preview (automatic, synthetic-only)
+name: Next.js real Chromium UI preview (milestone, synthetic-only)
 
-# Automated real Chromium keyboard, responsive and safe-route checks for
+# Milestone-only real Chromium keyboard, responsive and safe-route checks for
 # the canonical Next.js App Router. The browser sees only the production-built
 # disconnected 127.0.0.1:3100 preview. NO Spring/PG18/Agent services, real
 # credentials, monitoring or deployment. This is NOT a console-auth approval.
 on:
+  # L3 only: avoid rebuilding/booting Chromium for each UI source commit.
   push:
-    branches: [main]
-    paths:
-      - 'apps/web-next/src/app/**'
-      - 'apps/web-next/src/components/**'
-      - 'apps/web-next/src/lib/console-navigation.ts'
-      - 'apps/web-next/next.config.ts'
-      - 'apps/web-next/package.json'
-      - 'apps/web-next/pnpm-lock.yaml'
-      - 'apps/web-next/scripts/verify-preview-chromium.py'
-      - 'apps/web-next/scripts/verify-css-structure.mjs'
-      - 'apps/web-next/scripts/capture-visual-qa-chromium.py'
-      - 'apps/web-next/scripts/test_verify_preview_chromium.py'
-      - 'apps/web-next/src/synthetic-only-directory-probe.tsx'
-      - 'apps/web-next/scripts/install-synthetic-directory-fixture.mjs'
-      - 'apps/web-next/scripts/verify-directory-fixture-chromium.py'
-      - '.github/workflows/nextjs-browser-preview-synthetic.yml'
+    tags:
+      - 'acceptance/v0.1-*'
   workflow_dispatch:
 
 permissions:
@@ -29,7 +16,7 @@ permissions:
 
 concurrency:
   group: lanveriq-nxt02-browser-synthetic-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  cancel-in-progress: false
 
 jobs:
   next-chromium:
