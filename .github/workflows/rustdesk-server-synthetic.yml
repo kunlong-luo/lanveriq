@@ -92,7 +92,7 @@ jobs:
           python -m pip install --disable-pip-version-check \
             --no-cache-dir --only-binary=:all: \
             --target "$RUNNER_TEMP/rustdesk-python-deps" \
-            "grpcio-tools==1.84.0" "protobuf==6.33.2" "grpcio==1.84.0"
+            "grpcio-tools==1.84.0" "protobuf==7.35.1" "grpcio==1.84.0"
           PYTHONPATH="$RUNNER_TEMP/rustdesk-python-deps" \
             python -m grpc_tools.protoc \
               "-I$RUNNER_TEMP/rustdesk-protobuf" \
