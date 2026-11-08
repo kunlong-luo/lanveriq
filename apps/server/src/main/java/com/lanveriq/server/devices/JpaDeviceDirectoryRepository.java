@@ -51,16 +51,30 @@ class JpaDeviceDirectoryRepository implements DeviceDirectoryRepository {
 
     @Override
     public List<DeviceDirectoryEntry> list(UUID authenticatedAdminId,
-                                           UUID afterDeviceId, int maxRows) {
+                                           UUID afterDeviceId, int maxRows,
+                                           DeviceDirectoryListQuery filters) {
         Objects.requireNonNull(authenticatedAdminId);
+        Objects.requireNonNull(filters, "Validated directory filters required");
         if (maxRows < 1 || maxRows > DeviceDirectoryService.MAX_PAGE_SIZE + 1) {
             throw new IllegalArgumentException("Invalid bounded page");
         }
+        // Filter predicates are always ANDed after DB scope checks. Never
+        // replace EXISTS or apply user-controlled sorting in raw SQL.
         String sql = SCOPED_HEALTH_QUERY
+                + (filters.groupId() == null ? "" : " AND d.group_id=:filter_group_id\n")
+                + (filters.labelPrefix() == null ? "" :
+                    " AND LOWER(COALESCE(NULLIF(d.device_label,''), 'Unlabeled device'))"
+                    + " LIKE LOWER(:label_pattern) ESCAPE '!'\n")
                 + (afterDeviceId == null ? "" : " AND d.id>:cursor\n")
                 + "ORDER BY d.id ASC";
         Query query = manager.createNativeQuery(sql);
         scope(query, authenticatedAdminId);
+        if (filters.groupId() != null) {
+            query.setParameter("filter_group_id", filters.groupId());
+        }
+        if (filters.labelPrefix() != null) {
+            query.setParameter("label_pattern", filters.labelPattern());
+        }
         if (afterDeviceId != null) {
             query.setParameter("cursor", afterDeviceId);
         }
