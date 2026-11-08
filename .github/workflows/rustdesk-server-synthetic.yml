@@ -177,11 +177,24 @@ jobs:
             --workdir /tmp \
             python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 \
             sh -eu -c '
-              timeout 45s /opt/client/rustdesk.AppImage --appimage-extract >/tmp/extract.log
-              test -x /tmp/squashfs-root/AppRun
+              if ! timeout 45s /opt/client/rustdesk.AppImage --appimage-extract >/tmp/extract.log 2>&1; then
+                tail -n 30 /tmp/extract.log
+                echo "ERROR: official AppImage extraction failed"
+                exit 1
+              fi
+              if ! test -x /tmp/squashfs-root/AppRun; then
+                ls -la /tmp /tmp/squashfs-root 2>&1 | head -n 45
+                echo "ERROR: no executable AppRun after upstream extraction"
+                exit 1
+              fi
               echo "PASS: official AppImage runtime extracted and AppRun is executable"
               # Full Flutter UI is not launched; --version returns before UI setup
-              timeout 20s /tmp/squashfs-root/AppRun --version
+              if ! timeout 20s /tmp/squashfs-root/AppRun --version > /tmp/client-version.log 2>&1; then
+                tail -n 30 /tmp/client-version.log
+                echo "ERROR: RustDesk CLI --version failed in minimal offline container"
+                exit 1
+              fi
+              cat /tmp/client-version.log
             '
 
       - name: Scope statement
