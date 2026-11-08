@@ -76,9 +76,11 @@ jobs:
             echo "FAIL: loopback Next.js browser port already in use"
             exit 1
           fi
-          pnpm exec next start --hostname 127.0.0.1 --port 3100 > "$RUNNER_TEMP/nxt02-next.log" 2>&1 &
+          # pnpm exec may spawn Next.js as a child. Start a dedicated process
+          # group so the exit trap kills BOTH the launcher and next-server.
+          setsid pnpm exec next start --hostname 127.0.0.1 --port 3100 > "$RUNNER_TEMP/nxt02-next.log" 2>&1 &
           next_pid=$!
-          trap 'kill "$next_pid" >/dev/null 2>&1 || true; wait "$next_pid" >/dev/null 2>&1 || true' EXIT
+          trap 'kill -TERM -- "-$next_pid" >/dev/null 2>&1 || true; wait "$next_pid" >/dev/null 2>&1 || true' EXIT
           ready=0
           for _ in $(seq 1 80); do
             kill -0 "$next_pid" >/dev/null 2>&1 || {
@@ -110,11 +112,11 @@ jobs:
             exit 1
           fi
           next_pid=
-          trap 'if [[ -n "${next_pid:-}" ]]; then kill "$next_pid" >/dev/null 2>&1 || true; wait "$next_pid" >/dev/null 2>&1 || true; fi; rm -rf src/app/synthetic-directory-probe' EXIT
+          trap 'if [[ -n "${next_pid:-}" ]]; then kill -TERM -- "-$next_pid" >/dev/null 2>&1 || true; wait "$next_pid" >/dev/null 2>&1 || true; fi; rm -rf src/app/synthetic-directory-probe' EXIT
           node scripts/install-synthetic-directory-fixture.mjs
           pnpm typecheck
           pnpm build
-          pnpm exec next start --hostname 127.0.0.1 --port 3100 > "$RUNNER_TEMP/nxt17-directory.log" 2>&1 &
+          setsid pnpm exec next start --hostname 127.0.0.1 --port 3100 > "$RUNNER_TEMP/nxt17-directory.log" 2>&1 &
           next_pid=$!
           ready=0
           for _ in $(seq 1 80); do
