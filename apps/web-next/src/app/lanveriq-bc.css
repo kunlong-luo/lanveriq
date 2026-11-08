@@ -1486,11 +1486,6 @@ body { background:#f8f8fc; color:var(--foreground); }
 }
 .bc-console .device-table td strong { color:#2e293e; font-size:12px; }
 .bc-console .device-table td small { margin-top:3px; font-size:10px; }
-.bc-console .device-table td:first-child strong {
-  max-width:235px;
-  overflow-wrap:anywhere;
-  white-space:normal;
-}
 .bc-console .directory-feedback {
   padding:36px 20px 42px;
   min-height:190px;
@@ -1917,4 +1912,67 @@ body { background:#f8f8fc; color:var(--foreground); }
 }
 @media(prefers-reduced-motion:reduce) {
   .bc-base-dialog-backdrop,.bc-mobile-sheet { transition:none!important; animation:none!important; }
+}
+
+/*
+ * NXT-19 / Accessible asset directory improvements.
+ * Sorting is limited to the supplied authorized page. Keep the HTML table's
+ * header associations even when its scroller is keyboard-focusable.
+ */
+.bc-console .device-table tbody th.device-row-heading {
+  min-width:180px;
+  padding:11px 13px;
+  color:#2e293e;
+  background:#fff;
+  border-color:#f0edf6;
+  font-size:12px;
+  font-weight:inherit;
+  line-height:1.5;
+  text-align:left;
+  vertical-align:middle;
+  white-space:normal;
+}
+.bc-console .device-table tbody th.device-row-heading strong {
+  color:#2e293e;
+  display:block;
+  max-width:235px;
+  overflow-wrap:anywhere;
+  font-size:12px;
+}
+.bc-console .device-table tbody th.device-row-heading small {
+  display:block;
+  margin-top:3px;
+  color:#817b8d;
+  font-size:10px;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.bc-console .device-table tbody tr:hover th.device-row-heading { background:#faf8ff; }
+.bc-console [data-slot="table-container"]:focus-visible {
+  outline:3px solid #a79cff;
+  outline-offset:-3px;
+  border-radius:9px;
+}
+.bc-console .directory-scroll-hint {
+  display:none;
+  margin:0 0 12px;
+  color:#69617f;
+  background:#f5f1ff;
+  border:1px solid #e7e0f8;
+  border-radius:9px;
+  padding:10px 12px;
+  font-size:11px;
+  line-height:1.7;
+}
+.bc-console .directory-sort select {
+  background:#faf9ff;
+  border-color:#e8e2f5;
+  max-width:245px;
+}
+.bc-console .directory-sort:focus-within { outline-color:#ab9cff; }
+@media(max-width:750px) {
+  .bc-console .directory-scroll-hint { display:block; }
+  .bc-console .directory-sort,
+  .bc-console .directory-sort [data-slot="native-select-wrapper"],
+  .bc-console .directory-sort select { width:100%; max-width:none; }
 }
