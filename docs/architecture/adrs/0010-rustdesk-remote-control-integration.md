@@ -16,6 +16,12 @@ Lanveriq 当前有三个真实代码入口：Rust 1.94 的 apps/agent（SQLx SQL
 4. **远程会话数据流与管理/浏览器 WSS 提示分离**。RustDesk 使用其自身 TCP/UDP/WebSocket 通道；Lanveriq 现有 Agent→Caddy→Spring HTTPS/mTLS+事务 ACK 不变，Next.js 的 WSS 仅为受限状态提示，视频不能经过业务事件 WSS。
 5. **不默认启用远程协助、持久化凭证、无人值守会话或录屏**。远程控制需要独立许可、用途声明、受影响终端可见提示/OS 权限、明确会话生命周期和服务端审计；主动远程协助与 v0.3 的持续屏幕录制是不同的功能/法律审批。
 
+## RustDesk 并非“所有依赖都是最新版”的判断
+
+此处选择 RustDesk 是因为**可复用成熟的协议/中继和多平台远控工程实现**，不是因为它的每个内部依赖都是最新。对官方 `rustdesk-server` **1.1.16** 的 `Cargo.toml` 实查可见 `edition = "2021"`、`clap = "2"`、`axum = "0.5"`、`sqlx = "0.6"` 和 `tokio-tungstenite = "0.17"`。这些是该上游发布版的实现依赖，**不能当作 Lanveriq 的新代码技术标准**，也不能仅凭版本较旧推断存在特定 CVE。
+
+**决策：**将未经修改的 RustDesk 作为单独部署、隔离权限的版本化组件，保持 Lanveriq 已有较新的 Rust 2024/SQLx 0.9/Tokio 等管理 Agent 代码与 Next.js、Java 25 主线；不把旧的 Cargo 依赖图复制进 Lanveriq。引入任何 RustDesk 新版本前实施 SBOM、`cargo audit`/RustSec 或等价漏洞通告检查、许可证复核、升级/回滚和跨版本连接验证。若安全漏洞无法按期限修复，先评估升级/商业支持/隔离或替代方案，**不以“Rust 写的”代替安全审计**。
+
 ## 外部 OSS 边界与授权风险
 
 - 官方 RustDesk 客户端和 rustdesk-server 仓库截至审查日均标示 **AGPL-3.0**；允许商业用途**不等于**允许不满足许可证义务的闭源改写/分发。
