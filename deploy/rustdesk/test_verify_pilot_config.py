@@ -70,6 +70,15 @@ class RustDeskPilotSecurityTests(TestCase):
         config["services"]["rustdesk-pilot"]["environment"]["RELAY"] = "relay.lanveriq.net"
         self.assertEqual(self.accepts(config, "192.168.50.10", "relay.lanveriq.net")["native_port_count"], 4)
 
+    def test_explicit_mesh_vpn_address_is_allowed_but_never_wildcard(self):
+        config = fixture()
+        for port in config["services"]["rustdesk-pilot"]["ports"]:
+            port["host_ip"] = "100.100.100.20"
+        config["services"]["rustdesk-pilot"]["environment"]["RELAY"] = "rd.lanveriq.net"
+        self.assertEqual(self.accepts(config, "100.100.100.20", "rd.lanveriq.net")["native_port_count"], 4)
+        with self.assertRaises(guard.ConfigurationRejected):
+            guard.approved_ip("100.128.0.1")  # outside RFC 6598 shared address space
+
     def test_unsafe_ip_rejected(self):
         for address in ("0.0.0.0", "::", "8.8.8.8", "169.254.1.1", "224.0.0.1", "bad-ip"):
             with self.subTest(address=address), self.assertRaises(guard.ConfigurationRejected):
