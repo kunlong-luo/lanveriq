@@ -1,6 +1,6 @@
 # R2：RustDesk 真实客户端双端会话验收（待执行，不得以模拟替代）
 
-- **状态：2026-11-08 设计就绪；客户端实际双端会话尚未执行，不能宣称 LAN/WAN/Relay 已通过。**
+- **状态：2026-11-08 R2-01 已在隔离 Docker 中通过“两份真实 Linux 客户端向官方 hbbs 注册”的验收；R2-02 真正远控会话、LAN 两台物理主机、WAN/Relay 仍未执行，不得称已通过。**
 - 依赖：[ADR-0010](../architecture/adrs/0010-rustdesk-dual-network-access.md) · [OSS Pilot](../operations/rustdesk-pilot.md) · [内外网验收](../operations/dual-network-acceptance.md)。
 - 客户端候选：RustDesk **1.5.1 稳定版**，以官方 [Release 1.5.1](https://github.com/rustdesk/rustdesk/releases/tag/1.5.1) 的受信下载、签名/哈希和各目标平台版本为准。明确不是 nightly；Linux 和 Windows 都要固定安装器/平台哈希后才实施测试。服务端继续使用已锁定的 OSS s6 **1.1.16** 镜像直至升级评审。
 - 不采集真实个人屏幕、键盘、文件和 OS 账号。**所有实际远程操作仅发生在受控且获授权的合成测试桌面。** 不向 RustDesk 公共服务器注册：客户端必须先完成自建服务器和公钥配置，并在隔离网段检查出站规则。
@@ -36,6 +36,14 @@
 
 GitHub Actions [#42475221417](https://github.com/kunlong-luo/lanveriq/actions/runs/42475221417) 已在真实 RustDesk OSS 服务端容器验证：关闭外部 WebSocket 映射、真实 hbbs 原生 relay 模式读回 `false → true → false`、宿主机未获得 loopback 管理权限、重启后模式复位且公钥摘要不变、私钥权限 `0600`，以及 30 项离线单元测试。这是**原生服务端行为与密钥安全的证明**，尚未有两台 RustDesk 客户端成功握手或远程画面的证据。
 
+## R2-01 实际自动验收证据（2026-11-08）
+
+GitHub Actions [#42480430470](https://github.com/kunlong-luo/lanveriq/actions/runs/42480430470)：**Success**。工作流独立启动 RustDesk OSS Server 1.1.16 官方摘要锁定镜像，及两个独立 Xvfb 容器中运行的 RustDesk 1.5.1 官方 Linux 客户端二进制（安装包 SHA-256 已独立匹配 GitHub Release）。两端以真实自建服务端公钥及独立容器配置注册，通过 `docker compose cp` 读取 **本次隔离服务端原生 SQLite `peer` 表**，经 SQL 检查确认为 **2 条、2 个不同 peer ID**。隔离网络使用 Docker `internal:true`，没有任何宿主机端口发布，CI 结束自动清理本次临时 Compose 项目、数据库与密钥。5 项原有 R2 静态防伪测试通过。
+
+这里发现并修复了一个纯验收工具错误：`docker compose cp` 并不接受 `-q` 参数，旧脚本复制数据库失败，却被错归因为“客户端未注册”。修复后取得成功；新增独立回归用例确保复制错误不再被当成设备缺席。
+
+**证据边界：R2-01 证明的是两份真实客户端对自托管 hbbs 的注册，且发生在同一台 GitHub Runner 内部 Docker 网络。** 未证实客户端间完整的密码握手、屏幕远端帧、键盘鼠标输入、直接 P2P/ICE、Relay 的实际承载、真实独立 LAN/WAN 网络、Windows 客户端、Spring 授权与商业化 Web Client 许可。这些项目保持 OPEN。
+
 ## 实施前置差距
 
-真正的 R2 必须具有**可运行图形会话的两台受控测试 VM / Runner、正式确认的授权范围，以及受限自建服务器 DNS/网络**。这些资源在当前 GitHub hosted 单 Runner 的配置里没有绑定。**没有这些前提，不得生成“P2P PASS / Relay PASS / WAN PASS”或自动把业务端口默认打开。** 后续可以为独立 Runner 添加由 CI 调度的完整用例，无需用户在每次提交后手工点屏幕；但必须先有可用的受控测试基础设施。
+要完成 R2-02 至 R2-08，还必须具有**可运行完整客户端图形会话及可验证远端帧/输入的两台受控测试 VM/Runner、正式确认的授权范围，以及真正独立 LAN/WAN 的网络**。这些资源在当前 GitHub hosted 单 Runner 的配置里没有绑定。**没有这些前提，不得生成“P2P PASS / Relay PASS / WAN PASS”或自动把业务端口默认打开。** 后续可以为独立 Runner 添加由 CI 调度的完整用例，无需用户在每次提交后手工点屏幕；但必须先有可用的受控测试基础设施。
