@@ -67,7 +67,7 @@ jobs:
             --volume "$RUNNER_TEMP/rustdesk-bin:/opt/rustdesk:ro" \
             --volume "$GITHUB_WORKSPACE/deploy/rustdesk-synthetic/smoke.py:/workspace/smoke.py:ro" \
             --env PYTHONDONTWRITEBYTECODE=1 \
-            python:3.13-slim \
+            python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 \
             python /workspace/smoke.py
 
       - name: Scope statement
