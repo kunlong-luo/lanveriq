@@ -2,8 +2,7 @@
 """Two REAL RustDesk 1.5.1 clients against the genuine RustDesk 1.1.16 hbbs.
 
 Run on a GitHub-hosted runner with Docker. Each upstream client is a separate
-non-root Docker process/PID/IPC/mount namespace; both join only the isolated
-server's Docker --network none namespace. No real endpoint or internet route.
+non-root Docker process/PID/IPC/mount namespace; each joins a Docker --internal bridge without outbound routes or host ports. No real endpoint or internet route.
 
 This proves parallel rendezvous registration and independent lifecycles, NOT
 desktop streaming, pairing authorization, NAT, encryption or Lanveriq RBAC.
@@ -110,8 +109,8 @@ def node() -> None:
     }
     text = (
         '[options]\n'
-        'custom-rendezvous-server = "127.0.0.1:21116"\n'
-        'relay-server = "127.0.0.1:21117"\n'
+        'custom-rendezvous-server = "rd-server:21116"\n'
+        'relay-server = "rd-server:21117"\n'
         f'key = "{pub}"\n'
     )
     for dirname in ("RustDesk", "rustdesk"):
@@ -177,6 +176,8 @@ def orchestrate() -> None:
     first = "lanveriq-rd-a-" + suffix
     second = "lanveriq-rd-b-" + suffix
     active: list[str] = []
+    network = "lanveriq-rd-net-" + suffix
+    docker("network", "create", "--driver", "bridge", "--internal", network)
     script = workspace / "deploy" / "rustdesk-synthetic" / "dual_client_registration.py"
     binaries = runner / "rustdesk-server-bin"
     appimage = runner / "rustdesk-official-client"
@@ -187,14 +188,15 @@ def orchestrate() -> None:
 
     try:
         launch(server, [
-            "--network", "none", "--read-only", "--cap-drop", "ALL",
+            "--network", network, "--network-alias", "rd-server",
+            "--read-only", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges", "--pids-limit", "64",
             "--memory", "256m", "--cpus", "1", "--user", "65534:65534",
             "--tmpfs", "/tmp:rw,nosuid,nodev,size=96m",
             "--volume", f"{binaries}:/opt/rustdesk:ro",
             "--workdir", "/tmp", BASE,
             "sh", "-ec",
-            "/opt/rustdesk/hbbs -k - -r 127.0.0.1:21117 >/tmp/hbbs.log 2>&1 & "
+            "/opt/rustdesk/hbbs -k - -r rd-server:21117 >/tmp/hbbs.log 2>&1 & "
             "for i in $(seq 1 50); do [ -s /tmp/id_ed25519.pub ] && break; sleep .1; done; "
             "test -s /tmp/id_ed25519.pub; "
             "/opt/rustdesk/hbbr -k - >/tmp/hbbr.log 2>&1 & wait",
@@ -215,11 +217,11 @@ def orchestrate() -> None:
         if not PUBLIC_KEY.fullmatch(key):
             raise AssertionError("hbbs did not generate ephemeral server key")
 
-        # Every client has its OWN mount, IPC and PID namespace. Only the
-        # server's disconnected network namespace is deliberately shared.
+        # Every client has its OWN mount, IPC and PID namespace. The
+        # Docker internal bridge is disconnected from any external routing.
         def launch_client(name: str) -> None:
             launch(name, [
-                "--network", f"container:{server}",
+                "--network", network,
                 "--read-only", "--cap-drop", "ALL",
                 "--security-opt", "no-new-privileges", "--pids-limit", "128",
                 "--memory", "1g", "--cpus", "2", "--user", "65534:65534",
@@ -253,6 +255,7 @@ def orchestrate() -> None:
     finally:
         for name in reversed(active):
             docker("rm", "-f", name, check=False, timeout=15)
+        docker("network", "rm", network, check=False, timeout=15)
 
 
 if __name__ == "__main__":
