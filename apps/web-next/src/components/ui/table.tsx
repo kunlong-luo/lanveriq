@@ -5,8 +5,20 @@ import type { ComponentProps } from 'react';
  * Table semantics intentionally remain native; data operations must be
  * server-authorized and can later use TanStack Table for sorting/pagination.
  */
-export function Table({ className = '', ...props }: ComponentProps<'table'>) {
-  return <div data-slot="table-container" className="relative w-full overflow-x-auto">
+type TableProps = ComponentProps<'table'> & Readonly<{
+  /** Optional keyboard-focusable scroll region for wide operational tables. */
+  scrollRegionLabel?: string;
+  scrollRegionDescriptionId?: string;
+}>;
+
+export function Table({
+  className = '', scrollRegionLabel, scrollRegionDescriptionId, ...props
+}: TableProps) {
+  return <div data-slot="table-container" className="relative w-full overflow-x-auto"
+    role={scrollRegionLabel ? 'region' : undefined}
+    tabIndex={scrollRegionLabel ? 0 : undefined}
+    aria-label={scrollRegionLabel}
+    aria-describedby={scrollRegionDescriptionId}>
     <table data-slot="table" className={`w-full caption-bottom text-sm ${className}`} {...props} />
   </div>;
 }
