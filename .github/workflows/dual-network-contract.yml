@@ -45,8 +45,41 @@ jobs:
         run: python3 -m unittest discover -s deploy/network -p 'test_verify_dual_access.py' -v
       - name: Compile and test RustDesk pilot safety contract
         run: |
-          python3 -m py_compile deploy/rustdesk/verify_pilot_config.py deploy/rustdesk/test_verify_pilot_config.py deploy/rustdesk/verify_native_server.py deploy/rustdesk/test_verify_native_server.py
+          python3 -m py_compile deploy/rustdesk/verify_pilot_config.py deploy/rustdesk/test_verify_pilot_config.py deploy/rustdesk/verify_native_server.py deploy/rustdesk/test_verify_native_server.py deploy/rustdesk/verify_client_release.py deploy/rustdesk/test_verify_client_release.py
           python3 -m unittest discover -s deploy/rustdesk -p 'test_verify_*.py' -v
+      - name: Verify locked RustDesk 1.5.1 stable client release metadata
+        run: python3 deploy/rustdesk/verify_client_release.py
+      - name: Execute official RustDesk 1.5.1 Linux binary version smoke (no install)
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="$RUNNER_TEMP/rustdesk-1.5.1-x86_64.deb"
+          install -d "$RUNNER_TEMP/rustdesk-client-extract"
+          curl --fail --location --silent --show-error --retry 3 --connect-timeout 12 --max-time 160 \
+            --proto '=https' --tlsv1.2 \
+            'https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.deb' \
+            --output "$asset"
+          python3 deploy/rustdesk/verify_client_release.py --asset linux-amd64-deb --file "$asset"
+          pkg="$(dpkg-deb -f "$asset" Package)"
+          ver="$(dpkg-deb -f "$asset" Version)"
+          arch="$(dpkg-deb -f "$asset" Architecture)"
+          [[ "$pkg" == "rustdesk" && "$ver" == 1.5.1* && "$arch" == "amd64" ]] ||
+            { echo "FAIL: unexpected official RustDesk Debian package metadata"; exit 1; }
+          # Extract rather than install: do not start a systemd RustDesk
+          # service or touch any registered client profile.
+          dpkg-deb -x "$asset" "$RUNNER_TEMP/rustdesk-client-extract"
+          binary="$RUNNER_TEMP/rustdesk-client-extract/usr/bin/rustdesk"
+          [[ -f "$binary" && -x "$binary" ]] || { echo "FAIL: missing real RustDesk client ELF"; exit 1; }
+          set +e
+          version="$(timeout 18s "$binary" --version 2>&1)"
+          status=$?
+          set -e
+          if [[ "$status" != 0 || "$version" != *"1.5.1"* ]]; then
+            echo "FAIL: RustDesk 1.5.1 executable did not report the expected stable version (status=$status)"
+            ldd "$binary" | grep 'not found' || true
+            exit 1
+          fi
+          echo 'PASS: official stable RustDesk Linux client SHA-256, .deb metadata and real ELF --version (no system service installed).' >> "$GITHUB_STEP_SUMMARY"
       - name: Render Docker Compose and enforce approved-only static network config
         env:
           RUSTDESK_PILOT_RELAY_HOST: localhost
@@ -92,4 +125,4 @@ jobs:
           echo 'PASS: real RustDesk OSS loopback endpoints + native relay-mode console controls + public key persistence across container restart (no keys printed).' >> "$GITHUB_STEP_SUMMARY"
       - name: Scope reminder
         run: |
-          echo 'PASS only for synthetic source/unit + Docker Compose render, actual localhost RustDesk process and native control-plane checks; no actual LAN/WAN, ICE/UDP/P2P/relay session or production reachability proven.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PASS only for verified official RustDesk client CLI, synthetic unit checks, Compose render, actual localhost RustDesk server/control-plane; no two-peer GUI session, LAN/WAN, ICE/UDP/P2P or relay session proven.' >> "$GITHUB_STEP_SUMMARY"
