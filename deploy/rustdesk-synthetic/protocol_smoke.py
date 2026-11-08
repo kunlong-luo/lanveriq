@@ -110,7 +110,7 @@ def test_tcp_nat(host: str) -> None:
     print("PASS: hbbs TCP TestNatRequest/TestNatResponse via upstream protobuf")
 
 
-def test_udp_peer_registration(host: str) -> None:
+def test_udp_peer_registration(host: str, public_key: str) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as endpoint:
         endpoint.bind((host, 0))
         endpoint.settimeout(CLIENT_TIMEOUT)
@@ -142,6 +142,50 @@ def test_udp_peer_registration(host: str) -> None:
             raise AssertionError("hbbs did not return RegisterPkResponse for invalid ID")
         if rejected.register_pk_response.result != rd.RegisterPkResponse.UUID_MISMATCH:
             raise AssertionError("hbbs did not reject invalid-length public-key registration")
+
+        # A requestor without Lanveriq identity or an authenticated admin
+        # session gets a strict RustDesk server-key rejection if the key is
+        # incorrect. Validate this before attempting the public-key case.
+        with connect(host, 21116) as outsider:
+            send_message(outsider, rd.RendezvousMessage(
+                punch_hole_request=rd.PunchHoleRequest(
+                    id=peer_id, licence_key="invalid-ci-server-key"
+                )
+            ))
+            refused = read_frame(outsider)
+            if not refused.HasField("punch_hole_response"):
+                raise AssertionError("hbbs did not respond to invalid-key punch request")
+            if refused.punch_hole_response.failure != rd.PunchHoleResponse.LICENSE_MISMATCH:
+                raise AssertionError("hbbs failed to reject an incorrect server key")
+        endpoint.settimeout(0.45)
+        try:
+            leaked, _ = endpoint.recvfrom(4096)
+        except socket.timeout:
+            pass
+        else:
+            raise AssertionError(
+                "a bad-server-key rendezvous request unexpectedly reached the peer"
+            )
+
+        # The official OSS server's long-lived *public* key is not a
+        # Lanveriq session grant. Test its actual dispatch behavior against
+        # a registered synthetic peer. This is NOT successful desktop auth.
+        with connect(host, 21116) as outsider:
+            send_message(outsider, rd.RendezvousMessage(
+                punch_hole_request=rd.PunchHoleRequest(
+                    id=peer_id, licence_key=public_key
+                )
+            ))
+            endpoint.settimeout(CLIENT_TIMEOUT)
+            forwarded, _ = endpoint.recvfrom(4096)
+            message = rd.RendezvousMessage.FromString(forwarded)
+            if not (message.HasField("fetch_local_addr") or
+                    message.HasField("punch_hole")):
+                raise AssertionError("hbbs did not forward the valid-key punch request")
+        print("PASS: incorrect key rejects outsider PunchHoleRequest before peer dispatch")
+        print("PASS: server public key alone permits rendezvous dispatch to a synthetic peer")
+        print("SCOPE: no user/admin login, Lanveriq RBAC or full desktop connection was tested")
+
     print("PASS: hbbs UDP synthetic RegisterPeer and negative RegisterPk responses")
     print("SCOPE: rendezvous registration only; not Lanveriq certificate enrollment")
 
@@ -225,7 +269,7 @@ def main() -> None:
             wait_tcp(host, 21117, hbbr)
 
             test_tcp_nat(host)
-            test_udp_peer_registration(host)
+            test_udp_peer_registration(host, public_key)
             test_relay_wrong_key(host)
             test_bidirectional_relay(host, public_key)
             if hbbs.poll() is not None or hbbr.poll() is not None:
