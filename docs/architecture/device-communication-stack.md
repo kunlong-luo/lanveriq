@@ -5,6 +5,8 @@
 **浏览器到服务端：同源 HTTPS REST 为权威状态；WSS 仅作授权后的、可丢失的变更提示（尚未上线）。**  
 本协议优先服务 **LAN 内首批 1–10 台已获授权设备**；未来达到明显吞吐/持续流需求才评估 gRPC/Protobuf。参见 [ADR-0009 评估决议](adrs/0009-agent-transport-selection.md)、[ADR-0005](adrs/0005-rest-plus-websocket.md) 与 [ADR-0006](adrs/0006-agent-rest-dashboard-ws.md)。
 
+**2026-11-08 补充（独立远程协助通道）：**远程桌面不使用本文件的业务 ACK 或管理 WSS 作为视频传输。已提出 [ADR-0010 — RustDesk 复用](adrs/0010-rustdesk-remote-control-integration.md) 和 [隔离实施计划](rustdesk-integration-plan.md)，候选使用原样部署的 RustDesk hbbs/hbbr 与客户端；目前没有集成代码或获批准的远程会话。**这不改变本文件关于 v0.1 Agent 数据管理面 REST/JSON+mTLS 的已选协议。**OSS 与 Pro 的 API/Web 客户端权限边界、AGPL 与实际连接授权均须完成评估，不得把浏览器嵌入能力视作已实现。
+
 ## 1. 代码现状：协议、工具包及执行边界
 
 | 通信层 | 实际或已选依赖 | 代码位置与状态 |
