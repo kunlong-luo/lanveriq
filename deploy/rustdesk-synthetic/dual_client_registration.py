@@ -176,8 +176,19 @@ def node() -> None:
                         )
                     if enable_dial:
                         if gui is not None and gui.poll() is not None:
+                            message = "no approved runtime error indicators"
+                            source = Path("/tmp/official-gui.log")
+                            if source.exists():
+                                raw = source.read_text(encoding="utf-8", errors="replace")
+                                keywords = ("error", "failed", "cannot", "not found",
+                                            "exception", "missing", "denied", "abort")
+                                lines = [line[:240] for line in raw.splitlines()
+                                         if any(k in line.lower() for k in keywords)]
+                                if lines:
+                                    message = " | ".join(lines[-6:])
                             raise AssertionError(
-                                "synthetic RustDesk Flutter main UI exited before dial request"
+                                f"synthetic RustDesk Flutter main UI exited early "
+                                f"(code={gui.returncode}): {message}"
                             )
                         target_file = Path("/tmp/rd-test-dial-target")
                         if target_file.exists() and not dialed:
