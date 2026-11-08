@@ -1299,8 +1299,8 @@ body { background:#f8f8fc; color:var(--foreground); }
   .bc-menu-button {
     display:grid;
     place-items:center;
-    width:39px;
-    height:39px;
+    width:44px;
+    height:44px;
     flex-shrink:0;
     border:1px solid #eae5f4;
     border-radius:11px;
@@ -1354,6 +1354,16 @@ body { background:#f8f8fc; color:var(--foreground); }
   .bc-overview .overview-section-title > div { margin-bottom:5px; }
   .bc-swatch-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .bc-demo-buttons { align-items:stretch; }
+}
+/* NXT-18: two-up mobile KPIs save scroll without sacrificing 320px readability. */
+@media (min-width:360px) and (max-width:430px) {
+  .bc-overview .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .bc-overview .metric-card { min-height:194px; }
+  .bc-overview .metric-card [data-slot="card-header"] { padding-left:13px; padding-right:13px; }
+  .bc-overview .metric-card [data-slot="card-content"] { padding-left:13px; padding-right:13px; }
+  .bc-overview .metric-card [data-slot="card-description"] { font-size:10px; }
+  .bc-overview .metric-card .metric-card-bottom { padding-bottom:12px; }
+  .bc-overview .metric-placeholder { font-size:27px; }
 }
 @media (prefers-reduced-motion:reduce) {
   .bc-console .sidebar { transition:none!important; }
@@ -1517,6 +1527,12 @@ body { background:#f8f8fc; color:var(--foreground); }
   .bc-console .directory-toolbar { padding:17px 15px; }
   .bc-console .directory-controls { gap:9px; }
   .bc-console .directory-table-wrap [data-slot="table-container"] { width:100%; }
+  .bc-console .directory-select,
+  .bc-console .directory-select [data-slot="native-select-wrapper"],
+  .bc-console .directory-select select {
+    width:100%;
+    max-width:none;
+  }
 }
 
 .bc-console .directory-toolbar [data-slot="card-title"] { color:#26223b; font-size:16px; }
@@ -1829,8 +1845,8 @@ body { background:#f8f8fc; color:var(--foreground); }
 .bc-mobile-sheet .bc-close-nav {
   display:grid;
   place-items:center;
-  min-width:40px;
-  height:40px;
+  min-width:44px;
+  height:44px;
   border:1px solid #e6def3;
   border-radius:11px;
   background:#fff;
