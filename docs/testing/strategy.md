@@ -12,7 +12,7 @@
 
 ## CI selection and reporting
 
-- The path-filtered `server-unit.yml`, `agent-unit.yml`, `web-next-unit.yml` continue on source changes. Keep unit evidence real (not echo-only), Java 25, Gradle, pinned Rust dependencies, frozen pnpm.
+- The path-filtered `server-unit.yml`, `agent-unit.yml`, `web-next-unit.yml` continue on source changes. **Portable Agent L1 uses Linux** to avoid the ~5-minute native Windows rebuild on each transport edit; **`agent-windows-targeted.yml`** still runs Windows-native unit/Clippy/fmt on SCM/config/lifecycle/dependency changes and every explicit `acceptance/v0.1-*` milestone tag or dispatch. Keep unit evidence real (not echo-only), Java 25, Gradle, pinned Rust dependencies, frozen pnpm.
 - Move `console-https-synthetic.yml` and `nextjs-browser-preview-synthetic.yml` away from automatic main push. Trigger large suites **only on milestone tags or explicit dispatch**; tag runs use the full set of synthetic probes (not the old dispatch defaults that silently skipped the browser).
 - `pages-static-preview.yml` publishes the **disconnected showcase only** on explicit dispatch or milestone; ordinary backend and UI commits should not redeploy the public site repeatedly.
 - For changes to certificates, session/RBAC, PKI, schema or digest/ACK logic, always run their **focused L1 negative suite** immediately. If the change crosses a trust boundary, complete the appropriate **L2 targeted** test before the batch is accepted. Never remove negative checks solely to speed up execution.
