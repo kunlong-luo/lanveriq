@@ -95,6 +95,14 @@
 
 **门槛依然 OPEN：**这只是两个官方客户端**注册与独立生命周期**，没有主动从 A 发起到 B 的远程桌面登录，也没有证明受控画面帧、输入、音视频、端到端会话加密、被控端明示同意、Lanveriq RBAC 不可绕过、跨公网 NAT/P2P 或 Windows/Linux 系统权限。**真实连接授权和许可审查仍然是产品上线硬阻塞**；暂不发布远控 API、嵌入 Web 客户端或开放真机控制。
 
+### 2026-11-08 RustDesk OSS 会合请求权限负面验证（已通过；揭示 RD-2 阻塞）
+
+- [RustDesk OSS 安全协议 CI #42490761041](https://github.com/kunlong-luo/lanveriq/actions/runs/42490761041) **两项作业 SUCCESS**，保持了两个官方客户端独立注册、单客户端运行、错误中继 key 和双向字节转发的既有通过结果。
+- 新增 [protocol_smoke.py](../../deploy/rustdesk-synthetic/protocol_smoke.py) **合成负面断言**，直接调用上游 RustDesk Server OSS **1.1.16**：先注册临时 peer ID 及有效 `RegisterPk`（单发 `RegisterPeer` 不能用于该判定），然后从非 loopback 的隔离测试源发送 `PunchHoleRequest`。
+- 当 `licence_key` 错误时，`hbbs` 返回 `LICENSE_MISMATCH`，目标测试端点在检查窗口内没有收到会合数据；当 `licence_key` 是生成的服务器公钥时，**不带任何 Lanveriq 管理员身份/会话/RBAC 信息的请求已被转发**，目标端点收到真实 `FetchLocalAddr` 或 `PunchHole` 数据报。以上结果为 GitHub Actions 日志打印的真实运行断言，不是根据源码推测。
+- **精确结论：**原版 OSS 的会合层只证明 server-key 校验，**不能替代** Lanveriq 针对管理员、组、设备和短期会话的授权执行。该测试**没有证明攻击者可以通过 RustDesk 密码、批准和端到端加密获取桌面控制权**，也未建立真实 A→B 画面会话。
+- **RD-2 状态：BLOCKED。** 未选定并验证实际会话层强制授权方案（包含外部原版 RustDesk 客户端直接绕开 UI、跨组、禁用账号、撤销/超时、凭证重放的拒绝与断开）前，不增加可被真实终端调用的远控 API、生产开放端口或自动启动权限。比较 RustDesk Server Pro 或经许可的其他方案，但不能假定 Pro 的管理 ACL 天然满足所有会话级要求。
+
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
 
 先记录协议契约，再实施。以下为**候选接口**，不是仓库已存在的 API：
