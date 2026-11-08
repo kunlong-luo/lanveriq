@@ -16,22 +16,25 @@ REFERENCE = ROOT / "deploy/caddy/Caddyfile.reference"
 
 
 class SyntheticChromiumGateTest(unittest.TestCase):
-    def test_browser_probe_is_manual_default_off_or_main_only_automatic_synthetic(self):
+    def test_browser_probe_is_milestone_or_manual_only_synthetic(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         script = HARNESS.read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", workflow)
         self.assertIn("browser_probe:", workflow)
         self.assertIn("default: false", workflow)
-        # An intentional bounded main push runs all disposable gates without
-        # another human workflow dispatch. Manual inputs still default OFF.
+        # Tag pushes intentionally run all four isolated gates; manual
+        # dispatch continues to default OFF to avoid accidental broad tests.
+        # A routine main commit must never launch this expensive stack.
         self.assertIn("push:", workflow)
-        self.assertIn("branches: [main]", workflow)
-        self.assertIn("paths:", workflow)
+        self.assertIn("tags:", workflow)
+        self.assertIn("'acceptance/v0.1-*'", workflow)
+        self.assertNotIn("branches: [main]", workflow)
+        self.assertNotIn("    paths:", workflow)
         self.assertIn("github.event_name == 'push' || inputs.browser_probe", workflow)
         self.assertIn("github.event_name == 'push' || inputs.nextjs_same_origin_probe", workflow)
         self.assertIn("github.event_name == 'push' || inputs.synthetic_auth_ui_probe", workflow)
         self.assertIn("github.event_name == 'push' || inputs.synthetic_multi_admin_probe", workflow)
-        self.assertIn("cancel-in-progress: ${{ github.event_name == 'push' }}", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
         self.assertNotIn("pull_request:", workflow)
         self.assertIn("contents: read", workflow)
         self.assertNotIn("actions: write", workflow)
