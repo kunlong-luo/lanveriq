@@ -1,5 +1,8 @@
 # Cross-platform and protocol verification matrix
 
+**2026-11-08 活动门禁：** 旧测试矩阵中的“manual-only / CI unit-only”描述需按受批准的 [L1/L2/L3](strategy.md) 理解：每日相关源码检查、完整业务批次结束的 synthetic PG18/Caddy/Agent 集成、明确验收 tag/dispatch 下的 Chromium/Windows/Linux。批次 A1 heartbeat HTTP 仅有 JUnit/MockMvc 和 Rust ACK 的 L1 证据，**不应标记真实 mTLS 与 PG18 已打通**；P0 增加 Agent→Caddy TLS 版本/双证书/伪造头/失效证书/跨设备/断网重复 ACK 负例，参见 [协议风险清单](../architecture/device-communication-stack.md)。
+
+
 **Status:** planned checks, **not executed**. During early v0.x, automatic GitHub Actions runs **unit tests and compilation** only; a separate explicitly manually dispatched synthetic Testcontainers PostgreSQL 18 workflow is available, but its execution must be evidenced before any database gate is marked PASS. All real OS/browser/LAN validation below is **manual** and tracked in [Manual Acceptance](manual-acceptance.md). E2E automation is postponed.
 
 ## Platform coverage
