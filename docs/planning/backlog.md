@@ -1,5 +1,8 @@
 # Issue-ready prioritized backlog
 
+> **Delivery policy updated 2026-11-08:** this large original ticket matrix includes historical snapshots (especially rows marked "not implemented" or "DB untested" from 2026-10/early 11). It is **not** a current status ledger. Read the latest source/CI and [v0.1 batched delivery plan](v0.1-batched-delivery-plan-2026-11-08.md). Priority is now **Batch A device identity→enrollment/activation→Agent mTLS heartbeat→PG18**, then B inventory/recovery, C real authorized console, D WSS/events, E controlled release. Pause extra UI polishing and all v0.2/v0.3 features until v0.1 is functional. L1 fast checks run per relevant change; heavy CI is milestone/dispatch only. No production real-data approval.
+
+
 **V0.1 development is underway after D0 approval on 2026-10-30.** SRV-01 source and Java 25 unit + bootJar CI have passed; SRV-02 internal token/CSR transaction and AUTH-01 JPA-backed auth/group scope, opt-in offline first-admin and a feature-flagged default-OFF console session skeleton are partly implemented; no real deployment login or device endpoints are open. PostgreSQL migrations, database issuance guards and mTLS runtime remain UNTESTED. Migration/runtime evidence must be verified before marking SRV-01 fully accepted. Priority P0 = first usable skeleton, P1 = pre-release capability, P2 = optional later. No real employee data without separate approval.
 
 | ID | Title | Priority | Depends on | Acceptance evidence |
