@@ -37,6 +37,17 @@ def verify(root: Path) -> list[str]:
         if re.search(r"(?m)^\s+enabled:\s*\$\{[^}]*REMOTE", source):
             problems.append("remote feature may not be enabled through environment variables")
 
+    runtime_lock = root / "apps/server/src/main/java/com/lanveriq/server/security/RemoteAccessReleaseLock.java"
+    if not runtime_lock.is_file():
+        problems.append("Spring environment-aware remote release lock missing")
+    else:
+        runtime = runtime_lock.read_text(encoding="utf-8")
+        for evidence in ("implements EnvironmentAware", "environment.getProperty(PROPERTY)",
+                         "throw new IllegalStateException"):
+            if evidence not in runtime:
+                problems.append("Spring remote release lock is missing a required fail-closed check")
+                break
+
     java = root / "apps/server/src/main"
     if not java.is_dir():
         problems.append("server source tree missing")
@@ -86,7 +97,7 @@ def main() -> None:
         for reason in issues:
             print("FAIL:", reason)
         raise SystemExit(1)
-    print("PASS: remote.enabled remains literal false")
+    print("PASS: literal remote default and Spring effective-property startup rejection present")
     print("PASS: no remote session Spring/Next.js route or Caddy RustDesk port in source")
     print("SCOPE: only repo-level negative release gate; not live RBAC/Pro/desktop evidence")
 

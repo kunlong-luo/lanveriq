@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.mock.env.MockEnvironment;
@@ -43,6 +44,28 @@ class RemoteAccessReleaseLockTest {
                 new MapPropertySource("higher-priority-override",
                         Map.of("lanveriq.remote.enabled", "true")));
         assertThrows(IllegalStateException.class, () -> lock.setEnvironment(env));
+    }
+
+    @Test
+    void realSpringContextRejectsEffectiveOverrideDuringRefresh() {
+        try (var context = new AnnotationConfigApplicationContext()) {
+            context.register(RemoteAccessReleaseLock.class);
+            context.getEnvironment().getPropertySources().addFirst(
+                    new MapPropertySource("external",
+                            Map.of("lanveriq.remote.enabled", "true")));
+            RuntimeException error = assertThrows(RuntimeException.class, context::refresh);
+            Throwable current = error;
+            boolean foundGate = false;
+            while (current != null) {
+                if (current.getMessage() != null
+                        && current.getMessage().contains("Remote control cannot be enabled")) {
+                    foundGate = true;
+                    break;
+                }
+                current = current.getCause();
+            }
+            assertTrue(foundGate, "Startup must reject a higher-priority override");
+        }
     }
 
     @Test

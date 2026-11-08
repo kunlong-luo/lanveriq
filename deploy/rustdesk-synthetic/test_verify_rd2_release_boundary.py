@@ -17,6 +17,12 @@ class RemoteReleaseBoundaryTest(unittest.TestCase):
             "apps/server/src/main/resources/application.yml",
             "lanveriq:\n  remote:\n    enabled: false\n",
         )
+        self.release_lock = self.write(
+            "apps/server/src/main/java/com/lanveriq/server/security/RemoteAccessReleaseLock.java",
+            "class RemoteAccessReleaseLock implements EnvironmentAware { "
+            "void check() { environment.getProperty(PROPERTY); "
+            "throw new IllegalStateException(); } }\\n",
+        )
         self.write(
             "apps/server/src/main/java/Synthetic.java",
             "class Synthetic { void noop() {} }\n",
@@ -47,6 +53,10 @@ class RemoteReleaseBoundaryTest(unittest.TestCase):
         self.assertTrue(any("literal false" in i for i in verify(self.root)))
         self.app.write_text("lanveriq:\n", encoding="utf-8")
         self.assertTrue(any("literal false" in i for i in verify(self.root)))
+
+    def test_deleting_spring_release_lock_is_blocked(self) -> None:
+        self.release_lock.unlink()
+        self.assertTrue(any("release lock missing" in i for i in verify(self.root)))
 
     def test_spring_mapping_for_remote_sessions_is_blocked(self) -> None:
         self.write(
