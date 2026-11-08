@@ -1,5 +1,7 @@
 # ADR-0004: Rapid main development, unit-only CI, deferred E2E
 
+> **2026-11-08 policy supersession:** direct-main early development remains accepted, but any prior blanket **unit-only CI / postpone all integration/E2E** policy is no longer current. The maintainer approved **L1 fast path-filtered tests each relevant change, L2 synthetic batch acceptance, and L3 v0.1 milestone/dispatch-only full Caddy/PG18/Chromium/Windows/Linux gates**. Security-negative unit checks remain immediate. See [current testing strategy](../../testing/strategy.md) and [v0.1 batches](../../planning/v0.1-batched-delivery-plan-2026-11-08.md). Original text below remains a historical decision record, not active CI instructions.
+
 **Status:** Accepted for pre-release MVP only | **Date:** 2026-10-30
 
 ## Context
