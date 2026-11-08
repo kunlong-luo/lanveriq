@@ -53,13 +53,22 @@ function inspectRuntimeSource(folder) {
   }
 }
 for (const folder of ['src/app', 'src/components']) inspectRuntimeSource(join(process.cwd(),folder));
-// NXT-16: semantic palette has a SINGLE authoritative source. Avoid the
-// three-layer :root drift that previously changed colors in import order.
+// NXT-17: one consolidated brand stylesheet after Tailwind baseline.
+// Reject an accidental second theme import, recreated legacy file or drift.
+const appLayout = readFileSync('src/app/layout.tsx', 'utf8');
+if (existsSync('src/app/craftwork-theme.css') ||
+    appLayout.includes('craftwork-theme.css') ||
+    !appLayout.includes("import './globals.css';") ||
+    !appLayout.includes("import './lanveriq-bc.css';")) {
+  throw new Error('NXT-17 refuses overlapping B+C theme imports and legacy stylesheets');
+}
 const canonicalStyle = readFileSync('src/app/lanveriq-bc.css', 'utf8');
-const legacyStyles = [
-  readFileSync('src/app/globals.css', 'utf8'),
-  readFileSync('src/app/craftwork-theme.css', 'utf8'),
-].join('\n');
+const legacyStyles = readFileSync('src/app/globals.css', 'utf8');
+if (!canonicalStyle.includes('NXT-17 / CONSOLIDATED LANVERIQ THEME') ||
+    !canonicalStyle.includes('NXT-13 / LANVERIQ VISUAL SYSTEM') ||
+    !canonicalStyle.includes('NXT-14 / B+C fusion implementation')) {
+  throw new Error('NXT-17 must retain the original CSS cascade order after merging');
+}
 const semanticTokens = [
   '--background', '--foreground', '--card', '--card-foreground', '--border',
   '--muted-foreground', '--lan-ink', '--lan-violet', '--lan-lime',
@@ -81,7 +90,7 @@ if (!canonicalStyle.includes('.bc-assets-workspace-head') ||
     canonicalStyle.includes('.bc-assets-art-square')) {
   throw new Error('NXT-16 asset workspace must stay operational-first and compact');
 }
-console.log('NXT-16 single-source semantic design tokens and compact asset layout passed');
+console.log('NXT-17 consolidated theme, single-source tokens and compact asset layout passed');
 
 const verified = verifyRuntimeIsolation(process.cwd());
 console.log('NXT-06 staged runtime dependency graph isolated:',
