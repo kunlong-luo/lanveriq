@@ -30,7 +30,6 @@ on:
       - 'apps/web-next/src/components/device-detail-tabs.tsx'
       - 'apps/web-next/src/components/ui/**'
       - 'apps/web-next/src/app/globals.css'
-      - 'apps/web-next/src/app/craftwork-theme.css'
       - 'apps/web-next/src/app/lanveriq-bc.css'
       - 'apps/web-next/src/app/(console)/**'
       - 'apps/web-next/src/components/planned-console-page.tsx'
