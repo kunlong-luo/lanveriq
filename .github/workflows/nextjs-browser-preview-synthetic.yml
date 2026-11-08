@@ -16,6 +16,9 @@ on:
       - 'apps/web-next/pnpm-lock.yaml'
       - 'apps/web-next/scripts/verify-preview-chromium.py'
       - 'apps/web-next/scripts/test_verify_preview_chromium.py'
+      - 'apps/web-next/src/synthetic-only-directory-probe.tsx'
+      - 'apps/web-next/scripts/install-synthetic-directory-fixture.mjs'
+      - 'apps/web-next/scripts/verify-directory-fixture-chromium.py'
       - '.github/workflows/nextjs-browser-preview-synthetic.yml'
   workflow_dispatch:
 
@@ -62,6 +65,7 @@ jobs:
           "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" -m pip install --disable-pip-version-check 'playwright==1.64.1'
           "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" -m playwright install --with-deps chromium
           python3 -m py_compile apps/web-next/scripts/verify-preview-chromium.py
+          python3 -m py_compile apps/web-next/scripts/verify-directory-fixture-chromium.py
           python3 -m unittest discover -s apps/web-next/scripts -p 'test_verify_preview_chromium.py'
       - name: Run true Chromium UI, keyboard and network-isolation checks
         working-directory: apps/web-next
@@ -91,3 +95,41 @@ jobs:
           [[ "$ready" == 1 ]] || { echo "FAIL: isolated Next.js did not become ready"; exit 1; }
           "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" scripts/verify-preview-chromium.py
           echo "PASS: real Chromium Next.js preview route/keyboard/responsive checks only; no backend login approval."
+      - name: Verify interactive local filters in a disposable CI-only directory route
+        working-directory: apps/web-next
+        shell: bash
+        env:
+          LANVERIQ_NXT17_BROWSER_FIXTURE: '1'
+        run: |
+          set -euo pipefail
+          # Verify the normal disconnected preview above FIRST. The fixture
+          # is mounted only after that separate production build and browser
+          # pass. This second build is never published and has no backend.
+          if (echo > /dev/tcp/127.0.0.1/3100) >/dev/null 2>&1; then
+            echo "FAIL: loopback port already in use before CI-only fixture"
+            exit 1
+          fi
+          next_pid=
+          trap 'if [[ -n "${next_pid:-}" ]]; then kill "$next_pid" >/dev/null 2>&1 || true; wait "$next_pid" >/dev/null 2>&1 || true; fi; rm -rf src/app/synthetic-directory-probe' EXIT
+          node scripts/install-synthetic-directory-fixture.mjs
+          pnpm typecheck
+          pnpm build
+          pnpm exec next start --hostname 127.0.0.1 --port 3100 > "$RUNNER_TEMP/nxt17-directory.log" 2>&1 &
+          next_pid=$!
+          ready=0
+          for _ in $(seq 1 80); do
+            kill -0 "$next_pid" >/dev/null 2>&1 || {
+              echo "FAIL: CI-only Next.js directory fixture exited"
+              exit 1
+            }
+            status="$(curl --silent --noproxy '*' --max-time 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/synthetic-directory-probe || true)"
+            if [[ "$status" == 200 ]]; then
+              ready=1
+              break
+            fi
+            sleep 0.5
+          done
+          [[ "$ready" == 1 ]] || { echo "FAIL: isolated directory fixture did not become ready"; exit 1; }
+          "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" scripts/verify-directory-fixture-chromium.py
+          echo "PASS: disposable authorized-directory interactions; no credentials, backend, or public fixture."
+
