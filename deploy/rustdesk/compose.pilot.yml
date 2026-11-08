@@ -9,6 +9,10 @@ services:
       - pilot
     image: ghcr.io/rustdesk/rustdesk-server-s6:1.1.16@sha256:5974cd791a5aca6fbf01a167b37e7427db1d136e95b2710c33a34fdc9fea724c
     pull_policy: missing
+    # Upstream first-run hbbs key generation relies on the process umask.
+    # Use an owner-only umask BEFORE starting s6 /init, so a new private key
+    # cannot transiently be readable by other users in the container/volume.
+    entrypoint: ["/bin/sh", "-ec", "umask 077; exec /init"]
     restart: "no"
     environment:
       RELAY: ${RUSTDESK_PILOT_RELAY_HOST:?Specify an approved real relay hostname}
