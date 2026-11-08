@@ -49,6 +49,20 @@
 - **首次 GitHub Actions 通过**：[run #42485734394](https://github.com/kunlong-luo/lanveriq/actions/runs/42485734394)。日志证明官方 ZIP 摘要校验成功、`hbbs`/`hbbr` 启动、loopback TCP 21115/21116/21117 与 UDP 21116 监听、生成测试 keypair、`hbbr` 重启恢复、21114 Pro HTTP API 未监听。运行日志打印的 Python test image registry digest `sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90` 已用于后续工作流固定基础镜像；后续运行须独立记录成功 SHA。
 - **仍未测试：**真正的 RustDesk 客户端注册、拒绝错误密钥、双端建立会话、P2P 打洞、中继传输、浏览器 SDK / Pro API、Lanveriq 权限桥及 Windows/Linux 权限。启动 smoke 成功不能关闭 RD-0 法律/授权阻塞，也不能将 RD-1 整体标记已完成。
 
+### 2026-11-08 RD-1 上游真实协议检查（合成端点；阶段性通过）
+
+在既有启动 smoke 之外新增 [protocol_smoke.py](../../deploy/rustdesk-synthetic/protocol_smoke.py)，由同一 [GitHub Actions](../../.github/workflows/rustdesk-server-synthetic.yml) 自动测试 RustDesk Server OSS 1.1.16 的真实 `hbbs`/`hbbr`。**完成的合成协议检查如下：**
+
+1. `hbbs` TCP 21115：用 **RustDesk 1.1.16 的 hbb_common 子模块提交 `83419b6549636ee39dacef7776c473f5802e08d6`** 中 `protos/rendezvous.proto` 生成的 Protobuf 消息发送 `TestNatRequest`，服务器正确返回带源端口的 `TestNatResponse`。
+2. `hbbs` UDP 21116：发送上游定义的 `RegisterPeer`，验证 `RegisterPeerResponse.request_pk=true`；带无效短 ID 的 `RegisterPk` 返回 `UUID_MISMATCH`。**注意：上游 UDP 使用原始 Protobuf 数据报，不能错误套用 TCP `BytesCodec` 长度帧；UDP 没有 `TestNatRequest` 处理分支。**
+3. `hbbr` TCP 21117：`RequestRelay.licence_key` 错误时服务器关闭连接；两个独立合成 TCP 端点使用共享测试 UUID 和服务器公钥请求中继后，服务器实际**双向转发不同的随机字节载荷并完成逐字节一致性校验**。
+4. 自动化下载未修改的官方 ZIP 并校验发布 SHA-256；固定 GitHub CI Actions 提交：`actions/checkout v7.0.1` (`3d3c42e5aac5ba805825da76410c181273ba90b1`) 和 `actions/setup-python v7.1.0` (`6d4fd22b20465ccc0f7354476588e8df7c9ca0e0`)；固定临时 Protobuf 编译工具依赖。上游 `.proto` 文件仅在 CI 临时下载，校验 Git blob SHA `b9b8ed7d4e43dd3049b299e16007915717291f5d`，**不提交 AGPL Protobuf 源码/生成代码**。
+5. 为避免命中上游 `hbbr` 的 loopback 运行时管理控制台，协议测试使用 `docker network create --internal` 创建隔离、无外网路由的私有 Docker bridge，让两个合成客户端以非 loopback 源地址访问同一临时容器。容器保持无端口映射、非 root、read-only、drop all capabilities、无生产 CA/真实设备。
+
+**CI 验收证据：**首次真实协议通过 [#42487021396](https://github.com/kunlong-luo/lanveriq/actions/runs/42487021396)；依赖与 Action 固定后的**最新全链路协议复测通过 [#42487130862](https://github.com/kunlong-luo/lanveriq/actions/runs/42487130862)**。测试代码和文档在 Draft PR #2，不在正式 `main`。
+
+**重要限制：**这些是 **RustDesk OSS 真实服务端 + 两个合成协议端点**。没有运行真正的 RustDesk 桌面客户端，也没有完整的设备会话握手、端到端加密、视频/输入/文件传输、真实 P2P/NAT、公网延迟、Windows/Linux OS 权限或者 Spring RBAC 到底层中继的授权桥。**服务器公钥并非 Lanveriq 管理员登录或设备业务授权**。所以 RD-1 的传输基础验证可标记已通过，**RD-1 真实远控客户端与 RD-2 会话授权门槛仍 OPEN**，不能对外标为已交付远程控制。
+
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
 
 先记录协议契约，再实施。以下为**候选接口**，不是仓库已存在的 API：
