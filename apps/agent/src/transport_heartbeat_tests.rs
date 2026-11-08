@@ -18,9 +18,8 @@ fn valid_server_heartbeat_receipt_accepts_only_the_exact_two_field_envelope() {
         DeliveryDisposition::Accepted
     );
     assert_eq!(
-        classify_heartbeat_response(
-            200, &receipt(id, "2026-11-08T04:25:45.012345Z"), None
-        ).unwrap(),
+        classify_heartbeat_response(200, &receipt(id, "2026-11-08T04:25:45.012345Z"), None)
+            .unwrap(),
         DeliveryDisposition::Accepted
     );
 }
@@ -38,21 +37,20 @@ fn malformed_response_must_never_count_as_delivery() {
         ));
     }
     for timestamp in [
-        "", "not-a-date", "2026-11-08T04:25:45+00:00",
-        "2026-11-08T04:25:45.abcZ", "2026-11-08 04:25:45Z",
+        "",
+        "not-a-date",
+        "2026-11-08T04:25:45+00:00",
+        "2026-11-08T04:25:45.abcZ",
+        "2026-11-08 04:25:45Z",
         "2026-11-08T04:25:45.Z",
     ] {
         assert!(matches!(
-            classify_heartbeat_response(
-                200, &receipt(Uuid::now_v7(), timestamp), None
-            ),
+            classify_heartbeat_response(200, &receipt(Uuid::now_v7(), timestamp), None),
             Err(TransportError::InvalidAcknowledgement)
         ));
     }
     assert!(matches!(
-        classify_heartbeat_response(
-            200, &receipt(Uuid::nil(), "2026-11-08T04:25:45Z"), None
-        ),
+        classify_heartbeat_response(200, &receipt(Uuid::nil(), "2026-11-08T04:25:45Z"), None),
         Err(TransportError::InvalidAcknowledgement)
     ));
     let mut extra = valid;
