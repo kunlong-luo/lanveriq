@@ -1,5 +1,8 @@
 # Component boundaries
 
+**当前组件真实性（2026-11-08）：** 表格是**领域职责划分**，不意味着每行都已有独立 crate/package 或已可运行。当前实际仓库是 `apps/agent` 单 crate、`apps/server` 一个 Gradle 模块、`apps/web-next` Next.js 主线；`agent-audit`、`server-media`、录制和正式 `server-ws` 等仍是未来业务域。Agent→Caddy→Spring 应复用受审 mTLS/REST/SQLx，Next.js 走受限 REST + 非权威 WSS。见 [设备协议](device-communication-stack.md)、[组件/技术现状](../development/technology.md)。
+
+
 | Component | Responsibilities | Must NOT |
 |---|---|---|
 | agent-core (Rust) | device identity, heartbeat scheduling, config, lifecycle | capture private content |
