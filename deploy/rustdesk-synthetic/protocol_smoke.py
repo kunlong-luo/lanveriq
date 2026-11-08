@@ -110,23 +110,13 @@ def test_tcp_nat(host: str) -> None:
     print("PASS: hbbs TCP TestNatRequest/TestNatResponse via upstream protobuf")
 
 
-def test_udp_nat_and_registration(host: str) -> None:
+def test_udp_peer_registration(host: str) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as endpoint:
         endpoint.bind((host, 0))
         endpoint.settimeout(CLIENT_TIMEOUT)
-        local_port = endpoint.getsockname()[1]
-        nat = rd.RendezvousMessage(test_nat_request=rd.TestNatRequest(serial=0))
-        endpoint.sendto(nat.SerializeToString(), (host, 21116))
-        data, _ = endpoint.recvfrom(4096)
-        # Upstream udp.rs uses tokio_util::codec::BytesCodec, which sends
-        # RAW Protobuf in each UDP datagram (unlike TCP FramedStream).
-        reply = rd.RendezvousMessage.FromString(data)
-        if not reply.HasField("test_nat_response"):
-            raise AssertionError("hbbs did not return UDP TestNatResponse")
-        if reply.test_nat_response.port != local_port:
-            raise AssertionError("UDP NAT response port mismatch")
-
-        # RegisterPeer is RENDEZVOUS registration, not Lanveriq enrollment.
+        # Upstream udp.rs uses tokio_util::codec::BytesCodec, meaning raw
+        # Protobuf per datagram. TestNatRequest is NOT an hbbs UDP handler;
+        # it is supported by TCP 21115 / the main TCP listener.
         peer_id = "lanveriq-ci-" + secrets.token_hex(8)
         register = rd.RendezvousMessage(
             register_peer=rd.RegisterPeer(id=peer_id, serial=0)
@@ -135,11 +125,25 @@ def test_udp_nat_and_registration(host: str) -> None:
         data, _ = endpoint.recvfrom(4096)
         response = rd.RendezvousMessage.FromString(data)
         if not response.HasField("register_peer_response"):
-            raise AssertionError("hbbs did not process synthetic RegisterPeer")
+            raise AssertionError("hbbs did not process synthetic UDP RegisterPeer")
         if not response.register_peer_response.request_pk:
             raise AssertionError("unknown rendezvous peer must be asked for its public key")
-    print("PASS: hbbs UDP NAT and synthetic rendezvous RegisterPeer response")
-    print("SCOPE: not device certificate enrollment or real RustDesk client identity")
+
+        # An invalid/short peer identifier cannot register a public key.
+        bad = rd.RendezvousMessage(
+            register_pk=rd.RegisterPk(
+                id="x", uuid=secrets.token_bytes(16), pk=secrets.token_bytes(32)
+            )
+        )
+        endpoint.sendto(bad.SerializeToString(), (host, 21116))
+        data, _ = endpoint.recvfrom(4096)
+        rejected = rd.RendezvousMessage.FromString(data)
+        if not rejected.HasField("register_pk_response"):
+            raise AssertionError("hbbs did not return RegisterPkResponse for invalid ID")
+        if rejected.register_pk_response.result != rd.RegisterPkResponse.UUID_MISMATCH:
+            raise AssertionError("hbbs did not reject invalid-length public-key registration")
+    print("PASS: hbbs UDP synthetic RegisterPeer and negative RegisterPk responses")
+    print("SCOPE: rendezvous registration only; not Lanveriq certificate enrollment")
 
 
 def test_relay_wrong_key(host: str) -> None:
@@ -221,7 +225,7 @@ def main() -> None:
             wait_tcp(host, 21117, hbbr)
 
             test_tcp_nat(host)
-            test_udp_nat_and_registration(host)
+            test_udp_peer_registration(host)
             test_relay_wrong_key(host)
             test_bidirectional_relay(host, public_key)
             if hbbs.poll() is not None or hbbr.poll() is not None:
