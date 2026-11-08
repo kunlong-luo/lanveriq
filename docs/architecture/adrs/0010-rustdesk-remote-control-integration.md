@@ -54,6 +54,19 @@ Lanveriq 当前有三个真实代码入口：Rust 1.94 的 apps/agent（SQLx SQL
 - hbbs/hbbr 的信任根、客户端密钥和 Lanveriq mTLS CA 不共享；不记录私钥；隔离容器网络、持久密钥权限、日志可观测性与带宽限额。
 - 默认禁止在公开静态 Pages 演示站暴露会话入口、服务器端口、API 令牌和真实设备状态。不能把默认服务密钥/peer ID 当作强授权。
 
+## 已验证的授权边界：OSS 会合服务器不是 Lanveriq RBAC 执行点
+
+2026-11-08 的 [RustDesk 合成安全验收 #42490761041](https://github.com/kunlong-luo/lanveriq/actions/runs/42490761041) 在原版 RustDesk Server OSS **1.1.16** 上实际证明：对于先经 `RegisterPeer` + `RegisterPk` 注册的**临时合成端点**，不具备任何 Lanveriq 管理员登录、Session 或 RBAC 权限的测试请求者，携带错误 `PunchHoleRequest.licence_key` 会收到 `LICENSE_MISMATCH`、目标端点不会收到请求；但携带匹配**RustDesk 服务器公钥**时，`hbbs` 会向该端点发送 `FetchLocalAddr` / `PunchHole` 会合消息。
+
+此验证**只证明会合消息转发行为**。没有绕过 RustDesk 原生远控密码、被控端同意、端到端加密，也没有建立画面会话。不能说“拿到公钥就能远程操纵屏幕”；同样不能把公钥校验、RustDesk peer ID 或 Next.js 页面按钮当成 Lanveriq 的管理员授权。
+
+**硬性决定：**
+
+- **RD-2/发布默认关闭。** Lanveriq 尚未拥有能限制实际 RustDesk 底层会话的授权执行点。不得开放生产 `hbbs/hbbr`、远控 API、持久密码或浏览器调用仅凭设备 ID 连接的功能。
+- 选择方案时必须证明**未授权管理员、跨组管理员、权限已撤销的管理员、外部原版 RustDesk 客户端**均不能通过直接连接服务器、知道 peer ID/服务器公钥、使用旧的授权材料绕过 Lanveriq 规则。仅服务端发放一个“前端可用的 URL”不合格；实际连接/会话持续性及撤权必须受强制约束。
+- 可比较有合规和可验证 ACL/会话控制能力的 **RustDesk Server Pro 商业能力**，或经合法授权、能在传输层执行策略的独立授权网关/替代方案；**不能预设 Pro 已满足所有会话级授权、动态撤销和统一身份要求**，必须做真实双客户端正负向验证和法律审查。
+- 未取得上述证据前，隔离 CI 可继续验证官方客户端注册、数据中继、握手和模拟视频，但结果只能作为底层兼容性证据，**不提升产品远控发布状态**。
+
 ## 技术方案对照
 
 | 子系统 | 现有实现 | 复用/处理 |
