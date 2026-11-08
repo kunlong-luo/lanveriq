@@ -5,7 +5,9 @@ import importlib.util
 import pathlib
 import sqlite3
 import tempfile
-from unittest import TestCase, main
+from unittest import TestCase, main, mock
+from types import SimpleNamespace
+import run as lab_run
 
 
 module_path = pathlib.Path(__file__).with_name("verify.py")
@@ -89,6 +91,21 @@ class RealPeerProofUnitTests(TestCase):
                 db.commit()
             with self.assertRaises(verify.EvidenceRejected):
                 verify.check_registered_db(dbfile)
+
+    def test_sqlite_snapshot_uses_supported_compose_cp_without_quiet_flag(self):
+        with mock.patch.object(lab_run.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as call:
+            lab_run.registration_snapshot(pathlib.Path("synthetic-registrations.sqlite3"))
+        self.assertEqual(call.call_count, 3)
+        for invocation in call.call_args_list:
+            args = invocation.args[0]
+            self.assertEqual(args[len(lab_run.CMD)], "cp")
+            self.assertNotIn("-q", args)
+            self.assertTrue(args[len(lab_run.CMD) + 1].startswith("rd-server:/data/db_v2.sqlite3"))
+
+    def test_failed_sqlite_copy_never_masquerades_as_no_peers(self):
+        with mock.patch.object(lab_run.subprocess, "run", return_value=SimpleNamespace(returncode=2)):
+            with self.assertRaisesRegex(verify.EvidenceRejected, "snapshot copy failed"):
+                lab_run.registration_snapshot(pathlib.Path("synthetic-registrations.sqlite3"))
 
     def test_registration_rejects_missing_or_untrusted_files(self):
         with tempfile.TemporaryDirectory() as tmp:
