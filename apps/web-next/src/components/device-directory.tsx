@@ -45,6 +45,13 @@ export function filterDirectoryRows(rows: readonly DirectoryRow[], search: strin
       value => value.toLocaleLowerCase().includes(needle))));
 }
 
+/** A selection is meaningful only within this server-authorized page's groups. */
+export function normalizeAuthorizedGroupSelection(
+  availableGroups: readonly string[], selected: string,
+): string {
+  return selected !== '' && availableGroups.includes(selected) ? selected : '';
+}
+
 const feedback = {
   unconnected: { title: '设备数据尚未连接', message: '未建立安全管理员会话，不代表数据库中没有设备。', Icon: WifiOff },
   loading: { title: '正在加载已授权设备', message: '请以服务端权限过滤结果为准。', Icon: RefreshCcw },
@@ -76,7 +83,7 @@ export function DeviceDirectory({
 
   // A refreshed authorized page may no longer contain the previously selected
   // group. Never hide new authorized rows behind an invalid stale selection.
-  const activeGroup = groups.includes(group) ? group : '';
+  const activeGroup = normalizeAuthorizedGroupSelection(groups, group);
   useEffect(() => {
     if (group !== '' && activeGroup === '') setGroup('');
   }, [group, activeGroup]);
