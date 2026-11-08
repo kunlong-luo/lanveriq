@@ -41,6 +41,14 @@
 
 **RD-1 退出条件：**可重复的合成实验、明确端口表、误配置负例和失败恢复证据。环境不可用时只标记未执行。
 
+### 2026-11-08 RD-1 最小启动验证（已执行；不是远程会话验收）
+
+- 版本：RustDesk Server OSS **1.1.16**（GitHub Releases 2026-07-20）。Linux AMD64 发布包 SHA-256：`0565c41affe6c3f409b0bddfaf5a24ccbf3f64f5f8e3fec250b69a0d5f6bdbcf`（官方 release API asset digest）。
+- 复用方式：未修改的上游 `hbbs`/`hbbr` 可执行文件；Lanveriq 仓库不复制、编译或静态链接上游 AGPL 源码。
+- 测试工具：[deploy/rustdesk-synthetic/smoke.py](../../deploy/rustdesk-synthetic/smoke.py) + [RustDesk OSS synthetic workflow](../../.github/workflows/rustdesk-server-synthetic.yml)，GitHub-hosted runner 的临时 Docker 容器：`--network none`、没有端口映射、非 root、删除 capabilities、只读根文件系统，临时磁盘测试密钥，无业务/员工设备或生产 CA。
+- **首次 GitHub Actions 通过**：[run #42485734394](https://github.com/kunlong-luo/lanveriq/actions/runs/42485734394)。日志证明官方 ZIP 摘要校验成功、`hbbs`/`hbbr` 启动、loopback TCP 21115/21116/21117 与 UDP 21116 监听、生成测试 keypair、`hbbr` 重启恢复、21114 Pro HTTP API 未监听。运行日志打印的 Python test image registry digest `sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90` 已用于后续工作流固定基础镜像；后续运行须独立记录成功 SHA。
+- **仍未测试：**真正的 RustDesk 客户端注册、拒绝错误密钥、双端建立会话、P2P 打洞、中继传输、浏览器 SDK / Pro API、Lanveriq 权限桥及 Windows/Linux 权限。启动 smoke 成功不能关闭 RD-0 法律/授权阻塞，也不能将 RD-1 整体标记已完成。
+
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
 
 先记录协议契约，再实施。以下为**候选接口**，不是仓库已存在的 API：
