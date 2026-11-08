@@ -76,6 +76,8 @@ def check_contract(document: dict, bind_ip: str, relay_host: str) -> dict:
     service = services[SERVICE]
     if service.get("image") != PILOT_IMAGE:
         raise ConfigurationRejected("RustDesk must be digest-pinned to the reviewed OSS pilot image")
+    if service.get("entrypoint") != ["/bin/sh", "-ec", "umask 077; exec /init"]:
+        raise ConfigurationRejected("Strict owner-only umask must run before upstream s6 startup")
     if service.get("restart", "no") not in ("no", "none"):
         raise ConfigurationRejected("Pilot service cannot auto-restart on reboot")
     if set(service.get("profiles", [])) != {"pilot"}:
