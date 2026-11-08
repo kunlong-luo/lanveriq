@@ -143,6 +143,25 @@ def test_udp_peer_registration(host: str, public_key: str) -> None:
         if rejected.register_pk_response.result != rd.RegisterPkResponse.UUID_MISMATCH:
             raise AssertionError("hbbs did not reject invalid-length public-key registration")
 
+        # Only a peer with a valid, persisted RegisterPk is eligible for
+        # rendezvous dispatch in upstream OSS. The initial RegisterPeer alone
+        # does not complete enrollment. Keys here are random disposable CI
+        # bytes; they are NOT client identity or Lanveriq device certificates.
+        valid = rd.RendezvousMessage(
+            register_pk=rd.RegisterPk(
+                id=peer_id, uuid=secrets.token_bytes(16),
+                pk=secrets.token_bytes(32),
+            )
+        )
+        endpoint.sendto(valid.SerializeToString(), (host, 21116))
+        response_data, _ = endpoint.recvfrom(4096)
+        registered = rd.RendezvousMessage.FromString(response_data)
+        if not registered.HasField("register_pk_response"):
+            raise AssertionError("hbbs did not process valid synthetic RegisterPk")
+        if registered.register_pk_response.result != rd.RegisterPkResponse.OK:
+            raise AssertionError("hbbs did not accept synthetic ephemeral peer key")
+
+
         # A requestor without Lanveriq identity or an authenticated admin
         # session gets a strict RustDesk server-key rejection if the key is
         # incorrect. Validate this before attempting the public-key case.
