@@ -547,8 +547,10 @@ def verify_nextjs_synthetic_multi_admin(browser, password, db_container):
             require(candidate_page.locator("main").get_attribute(
                 "data-candidate-principal") == login_name,
                 "candidate_console_principal")
+            # NXT-19: device identity is a semantic row header (th scope=row).
+            # Keep the exact A/B membership comparison; do not loosen RBAC.
             labels = candidate_page.locator(
-                ".device-table tbody tr td:first-child strong").all_text_contents()
+                ".device-table tbody th[scope='row'] strong").all_text_contents()
             require(len(labels) == len(expected_labels) and
                     len(set(labels)) == len(labels) and
                     sorted(labels) == sorted(expected_labels),
