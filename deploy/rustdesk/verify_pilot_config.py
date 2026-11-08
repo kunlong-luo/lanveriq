@@ -32,8 +32,12 @@ def approved_ip(raw: str) -> str:
         ip = ipaddress.ip_address(raw)
     except ValueError as exc:
         raise ConfigurationRejected("Bind must be a literal IPv4 address") from exc
-    if ip.version != 4 or not (ip.is_loopback or (ip.is_private and not ip.is_link_local)):
-        raise ConfigurationRejected("Bind must be an explicit loopback or private IPv4 address, never public/wildcard")
+    # RFC 6598 shared address space is used by some approved mesh VPNs
+    # (e.g. 100.64.0.0/10). It is not publicly routable, but an operator
+    # still must verify that it is an actual bound host interface with ACLs.
+    overlay_address = ip in ipaddress.ip_network("100.64.0.0/10")
+    if ip.version != 4 or not (ip.is_loopback or (ip.is_private and not ip.is_link_local) or overlay_address):
+        raise ConfigurationRejected("Bind must be approved loopback/private/CGNAT-overlay IPv4, never public/wildcard")
     if ip.is_unspecified or ip.is_multicast or ip.is_reserved:
         raise ConfigurationRejected("Unsafe bind IP")
     return str(ip)
