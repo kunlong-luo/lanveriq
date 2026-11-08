@@ -104,8 +104,15 @@ def check_contract(document: dict, bind_ip: str, relay_host: str) -> dict:
         and entrypoint[2].rstrip("\n") == PILOT_ENTRYPOINT.rstrip("\n")
     ):
         actual = entrypoint[2] if isinstance(entrypoint, list) and len(entrypoint) == 3 and isinstance(entrypoint[2], str) else ""
+        first = next((i for i, (a, b) in enumerate(zip(actual, PILOT_ENTRYPOINT)) if a != b),
+                     min(len(actual), len(PILOT_ENTRYPOINT)))
+        # Entrypoint source contains NO passwords or device material, only static
+        # reviewed shell text. Report a bounded discrepancy for CI debugging.
         raise ConfigurationRejected(
-            f"Only the reviewed official key bootstrap is allowed (rendered script length={len(actual)}, expected={len(PILOT_ENTRYPOINT)})"
+            f"Reviewed key bootstrap mismatch at offset={first}; "
+            f"rendered length={len(actual)}, expected={len(PILOT_ENTRYPOINT)}; "
+            f"actual={actual[max(0, first-8):first+18]!r}; "
+            f"expected={PILOT_ENTRYPOINT[max(0, first-8):first+18]!r}"
         )
     if service.get("restart", "no") not in ("no", "none"):
         raise ConfigurationRejected("Pilot service cannot auto-restart on reboot")
