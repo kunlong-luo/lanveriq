@@ -43,7 +43,7 @@ jobs:
             deploy/rustdesk/lab/verify_remote_frame.py \
             deploy/rustdesk/lab/run.py \
             deploy/rustdesk/lab/verify.py
-          python3 -m unittest discover -s deploy/rustdesk/lab -p 'test_verify.py' -v
+          python3 -m unittest discover -s deploy/rustdesk/lab -p 'test_verify*.py' -v
       - name: Cache the official immutable upstream client release package
         id: cache
         uses: actions/cache@v4
