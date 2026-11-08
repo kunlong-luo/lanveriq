@@ -43,19 +43,19 @@ class NextPreviewChromiumSourceTest(unittest.TestCase):
             with self.subTest(denied=value):
                 self.assertFalse(allows(value))
 
-    def test_automatic_only_on_main_preview_changes_and_inert_login(self):
+    def test_browser_only_on_explicit_milestone_or_dispatch_and_inert_login(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         login = LOGIN.read_text(encoding="utf-8")
         script = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", workflow)
-        # NXT-12: the real Chromium preview is now automatically checked
-        # ONLY on changes to canonical Next.js source on main. It never
-        # authorizes real business API, credential, device or Agent access.
+        # Owner-approved L3 v0.1 checks run on explicit acceptance tags
+        # or workflow dispatch, not on every stylesheet/React source commit.
         self.assertIn("  push:", workflow)
-        self.assertIn("    branches: [main]", workflow)
-        self.assertIn("- 'apps/web-next/src/app/**'", workflow)
-        self.assertIn("- 'apps/web-next/src/components/**'", workflow)
-        self.assertIn("github.event_name == 'push'", workflow)
+        self.assertIn("    tags:", workflow)
+        self.assertIn("'acceptance/v0.1-*'", workflow)
+        self.assertNotIn("    branches: [main]", workflow)
+        self.assertNotIn("    paths:", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
         self.assertNotIn("  pull_request:", workflow)
         self.assertIn("playwright==1.64.1", workflow)
         self.assertIn("pnpm install --frozen-lockfile", workflow)
