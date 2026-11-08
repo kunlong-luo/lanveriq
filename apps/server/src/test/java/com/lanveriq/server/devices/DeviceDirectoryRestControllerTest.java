@@ -37,7 +37,7 @@ class DeviceDirectoryRestControllerTest {
     void listUsesSnakeCaseBoundedCursorAndNoStoreWithoutSensitiveFields()
             throws Exception {
         UUID next = UUID.randomUUID();
-        when(directory.list(null, 2)).thenReturn(
+        when(directory.list(null, 2, DeviceDirectoryListQuery.unfiltered())).thenReturn(
                 new DeviceDirectoryPage(List.of(summary()), next));
         var mvc = MockMvcBuilders.standaloneSetup(controller).build();
         var response = mvc.perform(get("/api/v1/devices").param("limit", "2"))
@@ -55,13 +55,45 @@ class DeviceDirectoryRestControllerTest {
         assertFalse(response.contains("credential"));
         assertFalse(response.contains("client_cert"));
         assertFalse(response.contains("event_payload"));
-        verify(directory).list(null, 2);
+        verify(directory).list(null, 2, DeviceDirectoryListQuery.unfiltered());
 
-        when(directory.list(next, 10)).thenReturn(new DeviceDirectoryPage(List.of(), null));
+        when(directory.list(next, 10, DeviceDirectoryListQuery.unfiltered()))
+                .thenReturn(new DeviceDirectoryPage(List.of(), null));
         mvc.perform(get("/api/v1/devices").param("cursor", next.toString())
                         .param("limit", "10"))
                 .andExpect(status().isOk());
-        verify(directory).list(next, 10);
+        verify(directory).list(next, 10, DeviceDirectoryListQuery.unfiltered());
+    }
+
+    @Test
+    void additiveGroupAndLiteralPrefixFiltersRemainStrictlyScoped() throws Exception {
+        UUID filterGroup = UUID.randomUUID();
+        var filter = new DeviceDirectoryListQuery(filterGroup, "Synthetic%", "device_id_asc");
+        when(directory.list(null, 10, filter))
+                .thenReturn(new DeviceDirectoryPage(List.of(summary()), null));
+        var mvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mvc.perform(get("/api/v1/devices")
+                        .param("group_id", filterGroup.toString())
+                        .param("label_prefix", "Synthetic%")
+                        .param("limit", "10")
+                        .param("sort", "device_id_asc"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.items[0].device_id").value(deviceId.toString()));
+        verify(directory).list(null, 10, filter);
+    }
+
+    @Test
+    void malformedPrefixAndUnsupportedGlobalSortFailClosedWithoutLeaks() throws Exception {
+        var mvc = MockMvcBuilders.standaloneSetup(controller).build();
+        for (var prefix : List.of("   ", "a".repeat(65), "a\\nadmin")) {
+            mvc.perform(get("/api/v1/devices").param("label_prefix", prefix))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(header().string("Cache-Control", "no-store"));
+        }
+        mvc.perform(get("/api/v1/devices").param("sort", "label_asc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(header().string("Cache-Control", "no-store"));
     }
 
     @Test
@@ -88,7 +120,7 @@ class DeviceDirectoryRestControllerTest {
 
     @Test
     void invalidBoundedPageHasStable400WithoutLeakingException() throws Exception {
-        when(directory.list(null, 101)).thenThrow(
+        when(directory.list(null, 101, DeviceDirectoryListQuery.unfiltered())).thenThrow(
                 new IllegalArgumentException("synthetic sensitive debugging detail"));
         var mvc = MockMvcBuilders.standaloneSetup(controller).build();
         var response = mvc.perform(get("/api/v1/devices").param("limit", "101"))
