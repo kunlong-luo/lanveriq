@@ -1,6 +1,6 @@
 # Product functional closure and milestone acceptance
 
-**Status:** Architecture review only. **No working system exists.** The product has three separate business loops; calling v0.1 a complete surveillance/recording platform would be misleading.
+**Status as of 2026-11-08:** **部分源代码与合成验收已实现**：Spring Boot/PostgreSQL、Rust SQLx/Reqwest、Next.js 断开式 B+C 控制台及默认 OFF 心跳入口；**没有一条真实 Agent→Caddy→PG18→授权前端业务链路完全闭环**。D0 技术设计已批准，真实员工数据、证书保管与生产发布仍待独立审批。三个独立业务循环中 **仅 Loop A 是 v0.1 P0**；Loop B/C 不得阻塞首次设备管理上线。见 [v0.1 A–E 交付计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md)。
 
 ## Loop A — Device management and health (v0.1)
 `Admin approves policy → pairs device → Agent authenticates → heartbeats/health/SQLite backlog → server stores → WebSocket status hint → Monitoring Center fetches REST → alert or diagnosis → recover/revoke → audit admin action`
@@ -23,13 +23,13 @@ A live screen-preview/stream is **different** from heartbeat monitoring and diff
 ## Milestone status matrix
 | Capability | Planned in | As of documentation review |
 |---|---|---|
-| Identity, registration, heartbeat, online/offline, Monitoring Center | v0.1 | **Designed, not implemented** |
-| Offline replay and event ingestion | v0.1 | **Designed, not implemented** |
+| Identity, registration, heartbeat, online/offline, Monitoring Center | v0.1 | **已具内部身份、证书/心跳服务与默认关闭的 heartbeat HTTP 源码；Next.js 有断开式页面；真实设备完整链路未闭环** |
+| Offline replay and event ingestion | v0.1 | **Rust SQLx outbox/ACK 和 Java JPA 事件事务已有合成源代码；还未接入实际 Agent service 到服务端 HTTP 入口** |
 | Audit sources, timeline, searches and retention | v0.2 | **Designed, not implemented** |
 | Recording permission, segmented upload | v0.3 | **Designed, not implemented** |
 | Recording catalog, approval, indexed playback, deletion | v0.3 | **Needs center/UI/API contract implementation and real-device manual verification** |
 | Live screen streaming | Not scheduled | **Out of current scope; separate authorization design required** |
-| Full security/production hardening | v1.0 | **Deferred; unit-only CI insufficient** |
+| Full security/production hardening | v1.0 | **L1/L2/L3 已建立分级验证；合成 CI 与真实 Windows/Linux、PKI/隐私/生产验收仍是不同门槛** |
 
 ## Gate against overstated completeness
 A `100% connected` KPI cannot replace collector coverage. A successful recording upload cannot replace playback authorization, segment integrity or deletion. Any screenshot in [visual gallery](../visuals/README.md) is a **concept illustration with fictitious data**, not a shipped UI.
