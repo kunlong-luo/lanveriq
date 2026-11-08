@@ -116,14 +116,11 @@ def test_udp_nat_and_registration(host: str) -> None:
         endpoint.settimeout(CLIENT_TIMEOUT)
         local_port = endpoint.getsockname()[1]
         nat = rd.RendezvousMessage(test_nat_request=rd.TestNatRequest(serial=0))
-        endpoint.sendto(framed(nat.SerializeToString()), (host, 21116))
+        endpoint.sendto(nat.SerializeToString(), (host, 21116))
         data, _ = endpoint.recvfrom(4096)
-        # One UDP datagram contains a complete BytesCodec frame.
-        payload_size = int.from_bytes(data[: (data[0] & 3) + 1], "little") >> 2
-        header_size = (data[0] & 3) + 1
-        if payload_size != len(data) - header_size:
-            raise AssertionError("malformed UDP BytesCodec frame")
-        reply = rd.RendezvousMessage.FromString(data[header_size:])
+        # Upstream udp.rs uses tokio_util::codec::BytesCodec, which sends
+        # RAW Protobuf in each UDP datagram (unlike TCP FramedStream).
+        reply = rd.RendezvousMessage.FromString(data)
         if not reply.HasField("test_nat_response"):
             raise AssertionError("hbbs did not return UDP TestNatResponse")
         if reply.test_nat_response.port != local_port:
@@ -134,13 +131,9 @@ def test_udp_nat_and_registration(host: str) -> None:
         register = rd.RendezvousMessage(
             register_peer=rd.RegisterPeer(id=peer_id, serial=0)
         )
-        endpoint.sendto(framed(register.SerializeToString()), (host, 21116))
+        endpoint.sendto(register.SerializeToString(), (host, 21116))
         data, _ = endpoint.recvfrom(4096)
-        header_size = (data[0] & 3) + 1
-        expected = int.from_bytes(data[:header_size], "little") >> 2
-        if expected != len(data) - header_size:
-            raise AssertionError("bad UDP registration response framing")
-        response = rd.RendezvousMessage.FromString(data[header_size:])
+        response = rd.RendezvousMessage.FromString(data)
         if not response.HasField("register_peer_response"):
             raise AssertionError("hbbs did not process synthetic RegisterPeer")
         if not response.register_peer_response.request_pk:
