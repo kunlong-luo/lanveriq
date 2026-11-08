@@ -218,7 +218,8 @@ def main() -> None:
         while time.monotonic() < deadline:
             if client2.poll() is not None:
                 raise AssertionError(
-                    "secondary upstream client exited before identity-isolation check: "
+                    f"secondary upstream client exited before identity-isolation check "
+                    f"(exit={client2.returncode}): "
                     + read_safe_diagnostics(ROOT / "official-client-secondary.log")
                 )
             if client.poll() is not None or hbbs.poll() is not None or hbbr.poll() is not None:
