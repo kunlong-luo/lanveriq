@@ -209,6 +209,41 @@ def test_udp_peer_registration(host: str, public_key: str) -> None:
     print("SCOPE: rendezvous registration only; not Lanveriq certificate enrollment")
 
 
+def test_hbbs_punch_hole_security(host: str, public_key: str) -> None:
+    """Check actual hbbs 1.1.16 TCP request routing never grants bad keys.
+
+    This is RustDesk rendezvous-server key checking, NOT administrator RBAC.
+    Both requests target a synthetic peer ID absent from the fresh server.
+    """
+    missing_peer = "lanveriq-ghost-" + secrets.token_hex(10)
+
+    def request(key: str) -> rd.RendezvousMessage:
+        with connect(host, 21116) as endpoint:
+            endpoint.settimeout(CLIENT_TIMEOUT)
+            send_message(endpoint, rd.RendezvousMessage(
+                punch_hole_request=rd.PunchHoleRequest(
+                    id=missing_peer, licence_key=key,
+                )
+            ))
+            return read_frame(endpoint)
+
+    wrong_key = request("invalid-lanveriq-ci-key")
+    if not wrong_key.HasField("punch_hole_response"):
+        raise AssertionError("hbbs failed to respond to bad-key PunchHoleRequest")
+    if wrong_key.punch_hole_response.failure != rd.PunchHoleResponse.LICENSE_MISMATCH:
+        raise AssertionError("hbbs did not reject bad-key TCP rendezvous before peer lookup")
+
+    unknown_peer = request(public_key)
+    if not unknown_peer.HasField("punch_hole_response"):
+        raise AssertionError("hbbs failed to respond to missing-peer PunchHoleRequest")
+    if unknown_peer.punch_hole_response.failure != rd.PunchHoleResponse.ID_NOT_EXIST:
+        raise AssertionError("hbbs did not reject unknown peer even with valid server key")
+
+    print("PASS: genuine hbbs TCP PunchHoleRequest rejects invalid server key")
+    print("PASS: genuine hbbs TCP PunchHoleRequest rejects non-existent device ID")
+    print("SCOPE: server key and target existence checks are NOT Lanveriq session authorization")
+
+
 def test_relay_wrong_key(host: str) -> None:
     with connect(host, 21117) as endpoint:
         probe = rd.RendezvousMessage(
@@ -289,6 +324,7 @@ def main() -> None:
 
             test_tcp_nat(host)
             test_udp_peer_registration(host, public_key)
+            test_hbbs_punch_hole_security(host, public_key)
             test_relay_wrong_key(host)
             test_bidirectional_relay(host, public_key)
             if hbbs.poll() is not None or hbbr.poll() is not None:
