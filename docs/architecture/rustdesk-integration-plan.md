@@ -126,7 +126,7 @@
 
 **2026-11-08：状态 BLOCKED。** 原版 OSS 已在隔离 CI 证明公钥持有者无需 Lanveriq 管理员身份便可请求目标设备会合。Pro 的 Access Control（连接准入）与 Control Role（连接后权限）属于不同机制，分组 grant 可能累加放行，不能默认 Pro 支持短期逐会话强制授权和立即撤销。先按 [AUTH-01～AUTH-16](rustdesk-rd2-security-acceptance.md) 真实验证，不能用 Next.js 页面限制、Spring 返回 200 或配置管理 API Token 冒充底层会话执行点。
 
-**已落地但不是远控功能：**Spring `application.yml` 内的 `lanveriq.remote.enabled: false` 为不可通过环境变量启用的字面量发布锁；[fast source release guard](../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) 加入 GitHub CI，对意外出现的 Spring/Next.js 远控路由及 Caddy 端口进行负例回归检查。此检查只证明源码关闭，不证明生产网络权限或 RustDesk Pro 的能力。
+**已落地但不是远控功能：**Spring `application.yml` 中的 `lanveriq.remote.enabled: false` 只是默认拒绝配置；即使是字面量，Spring 高优先级环境变量/系统属性仍可覆盖它，因此 [RemoteAccessReleaseLock](../../apps/server/src/main/java/com/lanveriq/server/security/RemoteAccessReleaseLock.java) 会在 Spring 初始化时检查**最终生效属性**，任何非 false 值都拒绝启动；[fast source release guard](../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) 加入 GitHub CI，对意外出现的 Spring/Next.js 远控路由及 Caddy 端口进行负例回归检查。此检查只证明源码关闭，不证明生产网络权限或 RustDesk Pro 的能力。
 
 先记录协议契约，再实施。以下为**候选接口**，不是仓库已存在的 API：
 - POST /api/v1/devices/{deviceId}/remote-sessions：验证管理员会话、CSRF、RBAC/组织与设备范围、被控端能力/许可状态和用途，创建短时会话请求，默认拒绝。

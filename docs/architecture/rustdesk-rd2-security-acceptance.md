@@ -67,6 +67,6 @@
 ## 5. 当前自动保护与退出条件
 
 - [RustDesk OSS synthetic CI](../../.github/workflows/rustdesk-server-synthetic.yml) 只验证官方未修改的 OSS/客户端及信令/中继行为；它并**不**证明上述 Pro/服务端授权用例通过。
-- 新增 [RD-2 源码发布保护](../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py)：校验 Spring `lanveriq.remote.enabled: false` 是字面量且不可通过环境变量翻转；当前不存在激活的远控 Spring HTTP 映射、Next.js 远控路由或 Caddy RustDesk 端口；通过 Python 单元负例自动验证失败分支。**这是快速源代码回归保护，不是 Spring 运行时路由安全测试、网络准入证明或法律认可。**
+- 新增 [RD-2 源码发布保护](../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py)：校验 Spring `lanveriq.remote.enabled: false` 是不可用的默认设置，并由 [Spring 启动期硬拒绝机制](../../apps/server/src/main/java/com/lanveriq/server/security/RemoteAccessReleaseLock.java) 对**最终生效属性**进行强制检查：由于系统属性、环境变量等能够覆盖 YAML，任何非 false 值都会使应用无法完成初始化；当前不存在激活的远控 Spring HTTP 映射、Next.js 远控路由或 Caddy RustDesk 端口；通过 Python 单元负例自动验证失败分支。**这是快速源代码回归保护，不是 Spring 运行时路由安全测试、网络准入证明或法律认可。**
 - **禁止**在 AUTH-01～AUTH-16 必需门槛及许可/SBOM/安全审查完成前，把远控状态从 `BLOCKED` 更新为 `READY`。所需上游 Pro 商业测试环境必须明确许可/授权后再安排；当前没有该环境，也不尝试下载未授权软件。
 - 在服务端强制执行方案尚不确定时，**不实现可发放凭据的远控 API 或可连接真实设备的按钮**；保持 Draft PR，不修改生产 `main`。

@@ -73,7 +73,7 @@ Lanveriq 当前有三个真实代码入口：Rust 1.94 的 apps/agent（SQLx SQL
 
 因此：不能假定购买 Pro、配置单一设备组或禁用 Not Logged 角色就已经证明 Lanveriq 管理员 RBAC 对原生客户端、P2P/Relay、权限撤销和已有会话不可绕过。具体的 **AUTH-01～AUTH-16 双客户端正负向验收**和官方版本/许可前提，见 [RD-2 会话强制授权与防绕过验收契约](../rustdesk-rd2-security-acceptance.md)。
 
-在准入适配层仍未有验证证据时，仅允许 [源码级默认拒绝保护](../../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py)：`application.yml` 中固定 `lanveriq.remote.enabled: false`，不新增远控 REST/Next.js 路由或生产 Caddy RustDesk 端口。它能避免误发布，**不能**把静态源代码检查当作生产网络层的权限执行证明。RD-2 保持 **BLOCKED**。
+在准入适配层仍未有验证证据时，同时实施 [源码级默认拒绝保护](../../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) 与 [Spring 启动期强制拒绝](../../../apps/server/src/main/java/com/lanveriq/server/security/RemoteAccessReleaseLock.java)：`application.yml` 中固定 `lanveriq.remote.enabled: false`，但高优先级环境变量/系统属性**仍可覆盖 YAML**；启动期检查最终生效属性，任何非 false 值均导致应用初始化失败。不得新增远控 REST/Next.js 路由或生产 Caddy RustDesk 端口。这些保护防止误启用，**不能**代替生产网络层权限执行证明。RD-2 保持 **BLOCKED**。
 
 ## 技术方案对照
 
