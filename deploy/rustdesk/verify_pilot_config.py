@@ -20,24 +20,23 @@ PILOT_IMAGE = (
     "sha256:5974cd791a5aca6fbf01a167b37e7427db1d136e95b2710c33a34fdc9fea724c"
 )
 EXPECTED_PORTS = {(21115, "tcp"), (21116, "tcp"), (21116, "udp"), (21117, "tcp")}
-PILOT_ENTRYPOINT = (
-    "umask 077\\n"
-    "if [ ! -e /data/id_ed25519 ] && [ ! -e /data/id_ed25519.pub ]; then\\n"
-    "  /usr/bin/rustdesk-utils genkeypair | awk '\\n"
-    "    /^Public Key:/ { pub=$3 }\\n"
-    "    /^Secret Key:/ { priv=$3 }\\n"
-    "    END {\\n"
-    "      if (pub == \\"\\" || priv == \\"\\") exit 1\\n"
-    "      print pub > \\"/data/id_ed25519.pub\\"\\n"
-    "      print priv > \\"/data/id_ed25519\\"\\n"
-    "    }\\n"
-    "  '\\n"
-    "fi\\n"
-    "test -s /data/id_ed25519\\n"
-    "test -s /data/id_ed25519.pub\\n"
-    "chmod 0600 /data/id_ed25519 /data/id_ed25519.pub\\n"
-    "exec /init\\n"
-)
+PILOT_ENTRYPOINT = """umask 077
+if [ ! -e /data/id_ed25519 ] && [ ! -e /data/id_ed25519.pub ]; then
+  /usr/bin/rustdesk-utils genkeypair | awk '
+    /^Public Key:/ { pub=$3 }
+    /^Secret Key:/ { priv=$3 }
+    END {
+      if (pub == "" || priv == "") exit 1
+      print pub > "/data/id_ed25519.pub"
+      print priv > "/data/id_ed25519"
+    }
+  '
+fi
+test -s /data/id_ed25519
+test -s /data/id_ed25519.pub
+chmod 0600 /data/id_ed25519 /data/id_ed25519.pub
+exec /init
+"""
 SERVICE = "rustdesk-pilot"
 
 
