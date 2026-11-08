@@ -126,6 +126,9 @@ def check_browser(page, blocked):
     page.keyboard.press("Tab")
     require(page.evaluate("document.activeElement?.classList.contains('skip-to-content')"),
             "keyboard_skip_link_not_first")
+    page.keyboard.press("Enter")
+    require(page.evaluate("document.activeElement?.id === 'main'"),
+            "nxt19_skip_link_must_focus_main_landmark")
     page.get_by_role("navigation", name="主导航").get_by_role(
         "link", name="终端资产").click()
     # Next.js App Router changes location asynchronously after a client-side
@@ -237,6 +240,10 @@ def check_viewports(browser):
                 require(drawer.is_visible() and
                         drawer.locator(".navigation").count() == 1,
                         "base_ui_dialog_did_not_open")
+                close = drawer.get_by_role("button", name="关闭导航")
+                require(close.bounding_box()["width"] >= 44 and
+                        close.bounding_box()["height"] >= 44,
+                        "nxt19_mobile_dialog_close_touch_target_too_small")
                 require(drawer.evaluate("(el) => el.contains(document.activeElement)"),
                         "base_ui_dialog_must_capture_keyboard_focus")
                 page.keyboard.press("Escape")
