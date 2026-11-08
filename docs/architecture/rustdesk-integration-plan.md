@@ -111,6 +111,17 @@
 - **自动证据：**[GitHub Actions #42491484680](https://github.com/kunlong-luo/lanveriq/actions/runs/42491484680) 的官方客户端与服务端两个作业 **SUCCESS**；官方客户端日志明确打印 `PASS: genuine RustDesk client A requested a rendezvous with client B`。之前的 SHA-256 校验、双客户端 UUID/公钥注册、退出隔离、Protobuf/错误密钥拒绝及双向 relay bytes 同批复测通过。
 - **严格限制：**该结果仅验证两台真实客户端间**已触发会合信令**。没有证据证明 RustDesk 的 `LoginRequest` 已被 B 授权，更未证明端到端加密、屏幕图像/视频帧、鼠标键盘输入、远控会话审计、撤销/禁用后的断连、跨公网 NAT/P2P 或 Lanveriq RBAC。因此**远程桌面会话未验收，RD-2 继续 BLOCKED**。下一次批次测试必须分别验证有效/无效远程密码与被控端明确批准、画面/输入、会话断开以及绕过 Lanveriq 的外部原版客户端被实际拒绝，且符合许可证方案。
 
+### 2026-11-08 RustDesk hbbs 错误密钥与不存在设备的 TCP 会合拒绝（已通过）
+
+新的 [协议自动验收](../../deploy/rustdesk-synthetic/protocol_smoke.py) 已直接使用固定上游版本的 Protobuf 消息在**真实 hbbs 1.1.16 的 TCP 21116** 上执行两种不同拒绝分支：
+
+- 针对不存在的临时设备 ID，先提交错误的 `licence_key`：服务端实际返回 `PunchHoleResponse.failure=LICENSE_MISMATCH`，验证密钥检查发生在设备查找之前。
+- 对同一个不存在的 ID，使用本轮生成的有效服务器公钥：服务端实际返回 `PunchHoleResponse.failure=ID_NOT_EXIST`，证明合法服务器密钥**不会**把不存在的设备自动变成可连接设备。
+
+**自动证据：**[GitHub Actions #42492172171](https://github.com/kunlong-luo/lanveriq/actions/runs/42492172171) 两个作业 **SUCCESS**；日志分别报告 `PASS: genuine hbbs TCP PunchHoleRequest rejects invalid server key` 和 `PASS: genuine hbbs TCP PunchHoleRequest rejects non-existent device ID`。既有两个原版客户端 A→B 会合信令、客户端注册、隔离退出及中继双向字节转发也继续通过。
+
+**不能混淆：**这只是 RustDesk 的**服务器密钥和设备存在性**验证。此前同一套自动测试已证明：如果目标是已经注册的设备，拥有服务器公钥但**没有 Lanveriq 管理员凭据**的外部请求仍可进入 OSS 会合转发阶段。它尚未通过桌面访问密码或用户同意，更**没有** Lanveriq 的设备级、会话级、跨组、撤权不可绕过保证。RD-2 **依然 BLOCKED**，不能以这组正负向协议结果批准生产部署。
+
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
 
 先记录协议契约，再实施。以下为**候选接口**，不是仓库已存在的 API：
