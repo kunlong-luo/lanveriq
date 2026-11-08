@@ -1,6 +1,6 @@
 # Lanveriq — documentation index
 
-**Baseline:** V0.1 technical D0 **approved 2026-10-30**. The [SRV-01 Java/Gradle source foundation](../apps/server/README.md) and unit-only GitHub Actions workflow now exist; this is **not** a working monitoring product or proof of a PostgreSQL/PKI/OS integration test. English technical documents are canonical; see [中文介绍](../README.zh.md).
+**Current baseline (2026-11-08):** D0 technical design approved; implemented Java 25/Spring Boot/PG18 unit & synthetic integration slices, Rust SQLx/reqwest + Linux/Windows tests, and canonical Next.js B+C disconnected preview. Batch A1 has a default-OFF Agent heartbeat POST source/strict Rust ACK, **but device registration→Agent runtime→Caddy→PG18→authorized UI is not yet an integrated product**. Full synthetic and real-device legal/operational releases are separate. Active [batch plan](planning/v0.1-batched-delivery-plan-2026-11-08.md), [actual stack](development/technology.md) and [2026-11-08 doc audit](governance/documentation-audit-2026-11-08.md). Historical runbook statuses must be read as timestamped evidence, not the most recent result. See [中文介绍](../README.zh.md).
 
 ## Product
 - [Requirements and scope](product/requirements.md)
@@ -18,6 +18,7 @@
 - [Event delivery and idempotency contract](architecture/event-delivery.md)
 - [Configuration and collection policy](architecture/policy-configuration.md)
 - [Independent health and coverage semantics](architecture/health-and-gap-semantics.md)
+- **[Canonical device communication protocol / TLS/ACK review](architecture/device-communication-stack.md)** — implemented reqwest/rustls + Caddy + Spring/PG18, TLS1.2-minimum gap, gRPC/MQTT comparison and release gates.
 - [REST and event API contract](architecture/api-contract.md)
 - [Dashboard WebSocket protocol](architecture/websocket-contract.md)
 - [LAN bootstrap and device enrollment](architecture/enrollment-bootstrap.md)
@@ -27,10 +28,12 @@
 - [ADR 0001: Monorepo and modular monolith](architecture/adrs/0001-monorepo.md)
 - [ADR 0002: PostgreSQL and SQLite](architecture/adrs/0002-postgres-sqlite.md)
 - [ADR 0003: Authorized recording](architecture/adrs/0003-disclosed-capture.md)
-- [ADR 0004: Direct main, minimal CI, delayed E2E](architecture/adrs/0004-rapid-main-development.md)
+- [ADR 0004: Historical direct-main CI policy (L1/L2/L3 supersedes test cadence)](architecture/adrs/0004-rapid-main-development.md)
 - [ADR 0005: REST + WebSocket from v0.1](architecture/adrs/0005-rest-plus-websocket.md)
 - [ADR 0006: Agent REST vs dashboard WS responsibilities](architecture/adrs/0006-agent-rest-dashboard-ws.md)
-- [ADR 0007: Mature open-source ecosystem before custom infrastructure](architecture/adrs/0007-mature-ecosystem-first.md)
+- [ADR 0007: Mature ecosystem before custom infrastructure](architecture/adrs/0007-mature-ecosystem-first.md)
+- [ADR 0008: Canonical Next.js App Router decision (supersedes old Vite)](architecture/adrs/0008-nextjs-app-router-console.md)
+- [ADR 0009: Device protocol stack recommendation (REST/mTLS vs gRPC/MQTT)](architecture/adrs/0009-agent-transport-selection.md)
 
 ## Product infographics / 产品彩图
 - [Eight coordinated editable SVG posters](visuals/README.md) for non-technical audiences, including overview, flow, stack, features, enrollment, dashboard, recovery and privacy.
@@ -57,9 +60,9 @@
 - [Development roadmap](planning/roadmap.md)
 - [v0.1 implementation sequence](planning/v0.1-implementation-sequence.md)
 - [Issue-sized backlog](planning/backlog.md)
-- [Unit-only CI and manual checks](testing/strategy.md)
-- [Hands-on acceptance templates (no E2E CI)](testing/manual-acceptance.md)
-- [Manual synthetic PostgreSQL 18.6 / Flyway V1–V8 acceptance — last run 53/58 passed; gate OPEN](testing/server-postgres18-manual.md)
+- **[L1/L2/L3 active testing and milestone acceptance](testing/strategy.md)**
+- [Hands-on real-device manual acceptance](testing/manual-acceptance.md)
+- [Real disposable PostgreSQL 18.6 Testcontainers acceptance (historical failures superseded by #41290838250; new Batch A heartbeat route NOT yet E2E)](testing/server-postgres18-manual.md)
 - [Cross-platform and WebSocket test matrix](testing/test-matrix.md)
 - [Device inventory unit/manual acceptance cases](testing/device-inventory-checklist.md) · [Rust INV-01 on-demand asset collector acceptance](testing/agent-inventory-manual.md)
 - [Default-off console browser login/Origin/CSRF manual acceptance (not executed)](testing/console-session-manual.md)
@@ -81,9 +84,10 @@
 ## Governance
 - [D0 technical decision/sign-off package — **approved for V0.1 coding**](governance/d0-decision-package-2026-10-30.md): four selected technical baselines, negative tests and dated Git owner approval record.
 - [Final documentation closure review: conceptual closure vs D0 blockers (2026-10-30)](governance/final-closure-review-2026-10-30.md)
-- [Cross-document / diagram / SVG consistency review — 2026-10-30](governance/documentation-review-2026-10-30.md)
+- [Cross-document / diagram / SVG consistency review — historical 2026-10-30](governance/documentation-review-2026-10-30.md)
+- **[Document consistency/security audit — 2026-11-08](governance/documentation-audit-2026-11-08.md)**
 - [Open decisions](governance/open-decisions.md)
 - [Docs-before-code gate](governance/documentation-gate.md)
 - [Contributing](../CONTRIBUTING.md) · [Security reporting](../SECURITY.md) · [Changelog](../CHANGELOG.md)
 
-**Working rule:** D0 technical approval is recorded; **V0.1 software development may now begin** directly on main with real tests, unit-only early CI and no PR requirement. No E2E suite in early CI yet. No real employee data or live monitoring without separate employer/legal approval and passed actual PKI/OS/DB/RBAC/manual safety tests. V0.2 audit and V0.3 recording remain gated. Privacy/security controls cannot be deferred for speed.
+**Working rule (2026-11-08):** v0.1 P0 development in batches A–E; path-filtered quick L1 on every relevant source commit, scoped L2 integration at module boundary, complete L3 Chromium/PG18/Windows/Linux on explicit acceptance tag/dispatch. Historical unit-only/direct-main ADRs are not active instructions. Do not enable real employee/device collection or production enrollment without explicit legal/organization approval, approved key custody and actual PKI/OS/RBAC/restore/performance acceptance. v0.2 audit and v0.3 recording remain independently gated.
