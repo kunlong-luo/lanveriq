@@ -56,8 +56,7 @@ export function findDuplicateRules(css) {
         else if (c === '}') depth -= 1;
       }
       if (depth !== 0) throw new Error('NXT-18 malformed/unbalanced CSS declaration blocks');
-      if (selector.startsWith('@media ') || selector.startsWith('@supports ') ||
-          selector.startsWith('@container ')) {
+      if (/^@(media|supports|container)\b/.test(selector)) {
         walk(i + 1, j - 1, context + ' > ' + selector);
       } else if (selector && !selector.startsWith('@')) {
         // This intentionally treats grouped selectors as one authored unit
