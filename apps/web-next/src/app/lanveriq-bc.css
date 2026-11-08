@@ -1975,4 +1975,8 @@ body { background:#f8f8fc; color:var(--foreground); }
   .bc-console .directory-sort,
   .bc-console .directory-sort [data-slot="native-select-wrapper"],
   .bc-console .directory-sort select { width:100%; max-width:none; }
+  .bc-console .directory-search input,
+  .bc-console .directory-select select,
+  .bc-console .directory-sort select,
+  .bc-console .directory-clear-filters { min-height:44px; }
 }
