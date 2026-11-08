@@ -102,6 +102,37 @@ def launch_connect(target_id: str) -> None:
     background("peer-a", f"exec rustdesk --connect {target_id} >/tmp/r2-connect.log 2>&1")
 
 
+def count_real_hbbs_punch_requests() -> int:
+    # Official RustDesk OSS hbbs 1.1.16 exposes a loopback-only native
+    # 'pr' console. Count records INSIDE the server so no peer IDs/IPs
+    # enter GitHub logs. Actual request > 0 does NOT prove authentication.
+    script = (
+        "printf 'pr' | nc -w 2 127.0.0.1 21115 | "
+        "awk 'NF {n++} END {print n+0}'"
+    )
+    count = lab.compose("exec", "-T", "rd-server", "sh", "-ec", script, timeout=6)
+    if not count.isdigit() or not (0 <= int(count) <= 100000):
+        raise EvidenceRejected("Unexpected native RustDesk hbbs punch telemetry")
+    return int(count)
+
+
+def await_real_connection_request() -> int:
+    # Short circuit expensive GUI polling when RustDesk never asks hbbs to
+    # connect two peers. Avoid treating an open GUI as connection evidence.
+    for _ in range(12):
+        try:
+            count = count_real_hbbs_punch_requests()
+            if count > 0:
+                return count
+        except EvidenceRejected:
+            pass
+        time.sleep(1)
+    raise EvidenceRejected(
+        "No actual hbbs peer punch request despite two registered upstream peers; "
+        "R2-02 GUI was opened but connection was not initiated by native client"
+    )
+
+
 def try_operator_accept() -> bool:
     # The only operator is the isolated receiving client. Match the actual
     # upstream 'rustdesk --cm' PROCESS, then only windows owned by that PID.
@@ -228,6 +259,7 @@ def run_session() -> dict[str, Any]:
             raise EvidenceRejected("Client-local IDs not equal to two distinct server registrations")
         start_synthetic_scene()
         launch_connect(second_id)
+        real_punch_requests = await_real_connection_request()
         approval_clicked = False
         frame: dict[str, Any] | None = None
         for step in range(35):
@@ -263,6 +295,7 @@ def run_session() -> dict[str, Any]:
                     "independent_client_containers": 2,
                     "server_db_registered_distinct_peers": count,
                     "native_gui_operator_approved": approval_clicked,
+                    "native_hbbs_punch_requests_observed": real_punch_requests,
                     "remote_only_frame_observed_on_controller": True,
                     "remote_application_received_controller_input": True,
                     "synthetic_only": True,
