@@ -93,8 +93,20 @@ def check_contract(document: dict, bind_ip: str, relay_host: str) -> dict:
     service = services[SERVICE]
     if service.get("image") != PILOT_IMAGE:
         raise ConfigurationRejected("RustDesk must be digest-pinned to the reviewed OSS pilot image")
-    if service.get("entrypoint") != ["/bin/sh", "-ec", PILOT_ENTRYPOINT]:
-        raise ConfigurationRejected("Only the reviewed upstream utility key bootstrap with chmod 0600 is allowed")
+    entrypoint = service.get("entrypoint")
+    # Compose may normalize a YAML literal's terminal newline. Only that
+    # non-executable formatting difference is tolerated, not shell changes.
+    if not (
+        isinstance(entrypoint, list)
+        and len(entrypoint) == 3
+        and entrypoint[:2] == ["/bin/sh", "-ec"]
+        and isinstance(entrypoint[2], str)
+        and entrypoint[2].rstrip("\\n") == PILOT_ENTRYPOINT.rstrip("\\n")
+    ):
+        actual = entrypoint[2] if isinstance(entrypoint, list) and len(entrypoint) == 3 and isinstance(entrypoint[2], str) else ""
+        raise ConfigurationRejected(
+            f"Only the reviewed official key bootstrap is allowed (rendered script length={len(actual)}, expected={len(PILOT_ENTRYPOINT)})"
+        )
     if service.get("restart", "no") not in ("no", "none"):
         raise ConfigurationRejected("Pilot service cannot auto-restart on reboot")
     if set(service.get("profiles", [])) != {"pilot"}:
