@@ -1,6 +1,18 @@
 # Lightweight pre-release and migration plan
 
-**Status:** planning only; **no production release approval**. Pre-release changes are focused and committed to `main` (no mandatory PR), but the original unit-only CI statement is historical. Current automated path-filtered CI includes synthetic Next.js browser/route builds and, for relevant security paths, real disposable Caddy + Spring/Tomcat + PostgreSQL 18 + Chromium acceptance. Passing an isolated CI gate is not approval to activate real accounts, endpoints, employee data or Agent collection.
+**Status 2026-11-08:** **no production release approval**. Following owner authorization, v0.1 is being developed in **cohesive business batches**; L1 relevant fast checks continue on push, expensive synthetic Caddy/Spring/PG18/Chromium and browser visual checks run on explicitly intended milestone tags or workflow dispatch. Public Pages is a disconnected design preview and no longer auto-deploys for each source edit. See [approved plan](../planning/v0.1-batched-delivery-plan-2026-11-08.md) and [three-tier tests](../testing/strategy.md). Previously successful CI runs provide historical evidence, not permission for real accounts/endpoints/Agent data.
+
+## Milestone gates — development versus production
+
+| State | Who/what can approve it | Required evidence |
+| --- | --- | --- |
+| Source change | Automated L1 on matching paths | Gradle/Cargo/pnpm source checks and focused safety negatives |
+| Business batch A/B/C/D complete | Synthetic-only L2 workflow dispatch | Genuine disposable PG18, Caddy/TLS/Agent test path, negative RBAC and error/recovery proof; log run ID/SHA |
+| v0.1 release candidate | L3 `acceptance/v0.1-*` milestone tag or explicit dispatch | Full Chromium, origin/session/RBAC, integration suites, packaging, restore and platform checklist |
+| Authorized pilot | Organizational/legal/data-owner approval plus operator | Actual Windows 11 and approved Linux lab devices, notice/data minimization/retention, CA/key custody, enrollment/revoke/stop, restore |
+| Production release | Explicit separate release sign-off | Real deployment topology/security assessment, upgrade/rollback/restore, patch/installer/signed artifact, privacy and observability |
+
+No tag or synthetic green check alone authorizes real deployment; the default-OFF feature flags must remain closed until independent approval.
 
 ## Local development checkpoints
 - Changes are small, atomically committed and documented; never force-push main.
