@@ -119,7 +119,8 @@ if [ -z "$ids" ]; then
 fi
 if [ -z "$ids" ]; then
   # Upstream Linux native runner sets GTK title to lowercase "rustdesk".
-  ids="$(xdotool search --onlyvisible --name '^rustdesk
+  ids="$(xdotool search --onlyvisible --name rustdesk 2>/dev/null || true)"
+fi
 best_id=""
 best_area=0
 best_width=0
@@ -195,7 +196,7 @@ if [ -n "$cm_pid" ]; then xdotool search --onlyvisible --pid "$cm_pid" 2>/dev/nu
 printf 'upstream_gtk_windows='
 xdotool search --onlyvisible --class 'com[.]carriez[.]flutter_hbb' 2>/dev/null | wc -l
 printf 'upstream_titled_windows='
-xdotool search --onlyvisible --name '^rustdesk
+xdotool search --onlyvisible --name rustdesk 2>/dev/null | wc -l
 printf 'rustdesk_processes='
 ps -e -o comm= | grep -cx rustdesk || true
 printf 'scene='
