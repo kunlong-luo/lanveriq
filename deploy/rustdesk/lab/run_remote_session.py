@@ -99,7 +99,8 @@ def launch_connect(target_id: str) -> None:
 
 def try_operator_accept() -> bool:
     # Only the receiving synthetic peer is allowed to approve. It has
-    # [options] approve-mode="click" and never an unattended password.
+    # RustDesk defaults to password-click; NO password is supplied here.
+    # Only a real CM approval button can authorize this experiment.
     # The only legitimate upstream RustDesk window on peer-b is its CM popup;
     # the remote-only marker has a distinct, excluded title.
     click = r"""
@@ -181,7 +182,7 @@ def run_session() -> dict[str, Any]:
         lab.compose("up", "-d", "--pull", "missing", timeout=140)
         pub_key = lab.wait_for_public_key()
         lab.start_peer("peer-a", pub_key)
-        lab.start_peer("peer-b", pub_key, operator_approval=True)
+        lab.start_peer("peer-b", pub_key)  # default upstream Both mode still requires GUI consent for this test
         with tempfile.TemporaryDirectory(prefix="lvq-r2-remote-") as path:
             count = lab.await_two_registrations(pathlib.Path(path))
             actual_server_ids = registered_ids(pathlib.Path(path))
