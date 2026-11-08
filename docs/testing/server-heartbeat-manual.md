@@ -1,6 +1,6 @@
 # HB-01 — internal device heartbeat and latest-state acceptance
 
-**State:** V0.1 Java JPA/Flyway V7 implementation committed, Java unit and transactional-proxy coverage; opt-in real PostgreSQL integration assertions staged. **No PostgreSQL 18 execution observed, no HTTP heartbeat route or trusted Caddy mTLS bridge exists. No real endpoint monitoring authorized.**
+**CURRENT UPDATE 2026-11-08 (supersedes the 2026-10-31 test-stage statements below):** V0.1 Java JPA/Flyway latest-heartbeat implementation and synthetic PostgreSQL tests exist; Caddy/Tomcat/PG18 have *historical* combined TLS/RBAC synthetic success. **Batch A1** introduced a `POST /api/v1/devices/{deviceId}/heartbeats` HTTP controller and its exact stateless Spring Security chain behind **two default-OFF flags**; [Java MockMvc/negative L1 #42448164511](https://github.com/kunlong-luo/lanveriq/actions/runs/42448164511) passed. However **this new endpoint has NOT been exercised through a real Rust Agent→Caddy→Tomcat→PG18 L2 chain**. The Agent binary remains idle. Do not treat earlier successful synthetic Console TLS tests as new heartbeat route acceptance; no real employee/device monitoring is authorized. [Batch A record](../development/batch-a-first-heartbeat-implementation.md) · [full protocol/security gate](../architecture/device-communication-stack.md).
 
 **Credential revocation race test (2026-10-31, opt-in source only):** The shared `JpaActiveDeviceCredentialGuard` now requires the same ordered device→credential locks for heartbeats, event batches and inventory. A staged synthetic PostgreSQL 18.6 suite checks revoked, expired and future client credentials cannot change `device_heartbeat_latest`, `devices.last_seen_at` or canonical events. This does **not** prove actual mTLS/Tomcat certificate attributes or real DB execution until the manual workflow succeeds.
 
@@ -8,7 +8,7 @@
 
 ## Scope and privacy boundary
 
-- `DeviceHeartbeatService` is internal. It must be invoked only after an independently verified Agent mTLS identity is mapped to the enrolled device. An arbitrary body `device_id` or forwarded fingerprint header does **not** authenticate the caller.
+- `DeviceHeartbeatService` retains an internal, transactional contract, now called by a **default-OFF, trust-gated HTTP source** only when both Agent ingress and heartbeat flags are enabled; the normal runtime has neither production Agent host nor registered device keys. It must be invoked only after an independently verified Agent mTLS identity is mapped to the enrolled device. An arbitrary body `device_id` or forwarded fingerprint header does **not** authenticate the caller.
 - The service validates `schema_version=1`, device/path/credential ID equality, version, status, bounded machine-code capability/error states, nonnegative queue counters, and UTC timestamps **before SQL**. Raw free-text error messages, IP/MAC, file paths, process/window activity, employee names or recording status are not accepted.
 - Inside **one Spring-managed transaction**, the JPA repository first locks the currently active device row and then the exact registered credential row with `FOR UPDATE`, verifying its fingerprint, validity window and nonrevoked state after the lock (using `clock_timestamp()`); it then updates `devices.last_seen_at` and upserts one `device_heartbeat_latest` row. `received_at` is database-owned. The Agent's clock must not determine online/stale/offline.
 - Capabilities `not_collected`, `unsupported`, `permission_denied` and `degraded` retain their distinct meanings. Successful heartbeats do **not** establish collector coverage or authorize future device telemetry.
@@ -25,7 +25,7 @@ Open [manual PostgreSQL 18 integration workflow](../../.github/workflows/server-
 | HB-DB-04 | Unknown, forged, expired or revoked fingerprint cannot change `last_seen_at` or add heartbeat rows |
 | HB-DB-05 | Missing, malformed, oversized, untrusted-device, free-form error or unsupported schema input is rejected before database writes |
 | HB-DB-06 | A failed write rolls back the complete latest-state transaction, with no successful response before commit |
-| HB-HTTP-01 | Real Caddy verified mTLS, Host/SNI and independent Agent trust bridge reject header-spoofed/direct-backend heartbeats — **NOT IMPLEMENTED** |
+| HB-HTTP-01 | Default-OFF heartbeat POST + exact-route chain **SOURCE IMPLEMENTED/L1 PASS**. Actual Rust mTLS→Caddy→Tomcat→PG18 and Host/SNI/header-spoofing/expired/revoked/wrong-ID checks **NOT EXECUTED on the new route**; L2 batch A acceptance required |
 | HB-OS-01 | Installed Windows/Pop!_OS Agent schedules authentic heartbeats and UI derives online/stale/offline from DB server receipts — **NOT IMPLEMENTED** |
 
 **Acceptance boundary:** A successful synthetic PostgreSQL run may establish HB-DB evidence only. It does not close Agent transport, certificate issuance, session login, REST/WSS permissions, OS service tests, organizational privacy approval or real-data authorization. Record tested Git SHA, run URL, actual DB version, sanitized JUnit artifacts and image digest; never upload real device data, certificates or passwords.
