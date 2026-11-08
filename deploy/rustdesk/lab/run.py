@@ -104,6 +104,29 @@ def registration_snapshot(destination: pathlib.Path) -> None:
             pathlib.Path(dst).unlink()
 
 
+def peer_diagnostic(name: str) -> str:
+    # Return only boolean categories, no raw client logs/IDs/public keys.
+    test = (
+        "printf 'rustdesk='; "
+        "if ps -e -o comm= | grep -qx rustdesk; then echo running; else echo absent; fi; "
+        "printf 'xvfb='; "
+        "if ps -e -o comm= | grep -qx Xvfb; then echo running; else echo absent; fi; "
+        "printf 'log='; "
+        "if test -s /tmp/rustdesk.log; then echo nonempty; else echo empty; fi; "
+        "printf 'missing_lib='; "
+        "if grep -qi 'error while loading shared libraries' /tmp/rustdesk.log 2>/dev/null; "
+        "then echo yes; else echo no; fi; "
+        "printf 'display_error='; "
+        "if grep -Eqi 'cannot open display|Unable to open display|XOpenDisplay|Gtk-WARNING' "
+        "/tmp/rustdesk.log 2>/dev/null; then echo yes; else echo no; fi"
+    )
+    try:
+        result = compose("exec", "-T", name, "sh", "-ec", test, timeout=8)
+        return result.replace("\n", ",")
+    except EvidenceRejected:
+        return "unavailable"
+
+
 def await_two_registrations(folder: pathlib.Path) -> int:
     db = folder / "registered.sqlite3"
     for _ in range(45):
@@ -112,7 +135,14 @@ def await_two_registrations(folder: pathlib.Path) -> int:
             return check_registered_db(db)
         except (EvidenceRejected, sqlite3.Error):
             time.sleep(2)
-    raise EvidenceRejected("No evidence of two unique registered RustDesk peers on isolated hbbs")
+    diagnostics = [f"{name}:{peer_diagnostic(name)}" for name in ("peer-a", "peer-b")]
+    try:
+        db_ok = compose("exec", "-T", "rd-server", "sh", "-ec",
+                        "if test -s /data/db_v2.sqlite3; then echo present; else echo absent; fi", timeout=8)
+    except EvidenceRejected:
+        db_ok = "unavailable"
+    raise EvidenceRejected("No evidence of two unique registered RustDesk peers; "
+                           + " | ".join(diagnostics) + f" | hbbs_sqlite={db_ok}")
 
 
 def run_lab() -> dict:
