@@ -1,0 +1,91 @@
+name: RustDesk 1.5.1 official client binary (R2 preflight)
+
+# Isolated binary authenticity + executable version check only.
+# No package installation, service registration, client pairing, screen
+# capture, real device connections or external management endpoints.
+on:
+  pull_request:
+    paths:
+      - 'deploy/rustdesk/client-release-lock.json'
+      - 'deploy/rustdesk/verify_client_release.py'
+      - 'deploy/rustdesk/test_verify_client_release.py'
+      - '.github/workflows/rustdesk-client-release.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/rustdesk/client-release-lock.json'
+      - 'deploy/rustdesk/verify_client_release.py'
+      - 'deploy/rustdesk/test_verify_client_release.py'
+      - '.github/workflows/rustdesk-client-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rustdesk-client-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  official-linux-client-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Confirm reviewed stable release lock and reject modified manifests
+        run: |
+          python3 -m unittest discover -s deploy/rustdesk -p 'test_verify_client_release.py' -v
+          python3 deploy/rustdesk/verify_client_release.py
+      - name: Reuse official immutable client package bytes if previously verified
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/rustdesk-1.5.1-x86_64.deb
+          key: rustdesk-1.5.1-linux-amd64-b5d682ad90cb7571ecbdbf26eef58d3c4514e726a74ef6d08ce3f0b114ef0bd9
+      - name: Download official GitHub stable asset, pinned to SHA-256
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 2 --connect-timeout 12 --max-time 150 \
+            --proto '=https' --tlsv1.2 \
+            'https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.deb' \
+            --output "$RUNNER_TEMP/rustdesk-1.5.1-x86_64.deb"
+      - name: Verify real bytes and extract official release without installing system service
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="$RUNNER_TEMP/rustdesk-1.5.1-x86_64.deb"
+          extracted="$RUNNER_TEMP/rustdesk-client-extract"
+          python3 deploy/rustdesk/verify_client_release.py --asset linux-amd64-deb --file "$asset"
+          pkg="$(dpkg-deb -f "$asset" Package)"
+          ver="$(dpkg-deb -f "$asset" Version)"
+          arch="$(dpkg-deb -f "$asset" Architecture)"
+          [[ "$pkg" == rustdesk && "$ver" == 1.5.1* && "$arch" == amd64 ]] ||
+            { echo "FAIL: unexpected RustDesk package metadata"; exit 1; }
+          install -d "$extracted"
+          dpkg-deb -x "$asset" "$extracted"
+          # The upstream package layout is not guaranteed to place the binary
+          # under /usr/bin; locate by name and require a unique real ELF.
+          mapfile -t candidates < <(find "$extracted" -type f -name rustdesk -perm /111)
+          if [[ "${#candidates[@]}" != 1 ]]; then
+            echo "FAIL: expected exactly one executable RustDesk ELF; found ${#candidates[@]}"
+            find "$extracted" -maxdepth 6 -name '*rustdesk*' -type f | sed "s|^$extracted/||" | head -25
+            exit 1
+          fi
+          binary="${candidates[0]}"
+          format="$(file -b "$binary")"
+          [[ "$format" == *"ELF 64-bit"* ]] ||
+            { echo "FAIL: candidate is not a 64-bit Linux ELF"; exit 1; }
+          set +e
+          version_output="$(timeout 18s "$binary" --version 2>&1)"
+          status=$?
+          set -e
+          if [[ "$status" != 0 || "$version_output" != *"1.5.1"* ]]; then
+            echo "FAIL: official RustDesk 1.5.1 client failed its own version command (exit=$status)"
+            ldd "$binary" | grep 'not found' || true
+            exit 1
+          fi
+          echo 'PASS: real official RustDesk 1.5.1 .deb SHA-256 + metadata + extracted ELF version. Package not installed; no peer session or WAN claim.' >> "$GITHUB_STEP_SUMMARY"
