@@ -1,0 +1,52 @@
+name: Agent Windows native checks (targeted and milestone)
+
+# Windows SCM, lifecycle/config and dependency changes are checked immediately.
+# Routine portable Rust transport/SQLite edits use the faster Linux L1 gate,
+# with native Windows regression retained at every v0.1 acceptance milestone.
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'acceptance/v0.1-*'
+    paths:
+      - 'apps/agent/src/windows_service.rs'
+      - 'apps/agent/src/main.rs'
+      - 'apps/agent/src/config.rs'
+      - 'apps/agent/src/runtime.rs'
+      - 'apps/agent/src/lib.rs'
+      - 'apps/agent/Cargo.toml'
+      - 'apps/agent/Cargo.lock'
+      - '.github/workflows/agent-windows-targeted.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-agent-windows-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+jobs:
+  windows-unit:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/agent
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy
+      - name: Check committed dependency graph
+        shell: bash
+        run: |
+          test -f Cargo.lock
+          cargo +1.94.0 metadata --locked --no-deps --format-version 1 > /dev/null
+      - name: Rustfmt
+        run: cargo +1.94.0 fmt --all -- --check
+      - name: Native Windows unit tests without actual collection or service install
+        run: cargo +1.94.0 test --workspace --locked
+      - name: Windows Clippy without privileged/device operations
+        run: cargo +1.94.0 clippy --workspace --all-targets --locked -- -D warnings
