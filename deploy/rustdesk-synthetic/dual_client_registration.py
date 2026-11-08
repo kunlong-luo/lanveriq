@@ -100,6 +100,7 @@ def node() -> None:
     home = Path("/tmp/rd-client-home")
     runtime = Path("/tmp/rd-client-runtime")
     runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
+    enable_dial = os.environ.get("RD_DIAL_GUI") == "1"
     env = {
         **os.environ, "HOME": str(home),
         "XDG_CONFIG_HOME": str(home / ".config"),
@@ -140,6 +141,20 @@ def node() -> None:
             time.sleep(0.2)
         if not Path("/tmp/.X11-unix/X91").exists():
             raise AssertionError("virtual display socket not created")
+        gui = None
+        gui_log = None
+        dial_log = None
+        if enable_dial:
+            bus = subprocess.run(
+                ["dbus-daemon", "--session", "--fork", "--print-address"],
+                env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                check=True, timeout=8,
+            )
+            address = bus.stdout.strip().splitlines()[0]
+            if not address.startswith("unix:"):
+                raise AssertionError("private D-Bus session address is invalid")
+            env["DBUS_SESSION_BUS_ADDRESS"] = address
+
         with open("/tmp/official-client.log", "wb") as output:
             peer = subprocess.Popen(
                 [binary, "--server"], env=env, cwd="/tmp",
@@ -147,13 +162,47 @@ def node() -> None:
                 start_new_session=True,
             )
             try:
+                if enable_dial:
+                    gui_log = open("/tmp/official-gui.log", "wb")
+                    gui = subprocess.Popen(
+                        [binary, "--no-server"], env=env, cwd="/tmp",
+                        stdout=gui_log, stderr=subprocess.STDOUT, start_new_session=True,
+                    )
+                dialed = False
                 for _ in range(90):
                     if peer.poll() is not None:
                         raise AssertionError(
                             f"official upstream --server exited early ({peer.returncode})"
                         )
+                    if enable_dial:
+                        if gui is not None and gui.poll() is not None:
+                            raise AssertionError(
+                                "synthetic RustDesk Flutter main UI exited before dial request"
+                            )
+                        target_file = Path("/tmp/rd-test-dial-target")
+                        if target_file.exists() and not dialed:
+                            target = target_file.read_text(encoding="ascii").strip()
+                            if not re.fullmatch(r"[A-Za-z0-9_-]{6,64}", target):
+                                raise AssertionError("invalid synthetic peer ID for GUI dial")
+                            dial_log = open("/tmp/official-dial.log", "wb")
+                            subprocess.Popen(
+                                [binary, "--connect", target], env=env, cwd="/tmp",
+                                stdout=dial_log, stderr=subprocess.STDOUT,
+                                start_new_session=True,
+                            )
+                            dialed = True
                     time.sleep(1)
             finally:
+                for item in (gui_log, dial_log):
+                    if item is not None:
+                        item.close()
+                if gui is not None and gui.poll() is None:
+                    os.killpg(gui.pid, signal.SIGTERM)
+                    try:
+                        gui.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(gui.pid, signal.SIGKILL)
+                        gui.wait(timeout=3)
                 if peer.poll() is None:
                     os.killpg(peer.pid, signal.SIGTERM)
                     try:
@@ -219,7 +268,7 @@ def orchestrate() -> None:
 
         # Every client has its OWN mount, IPC and PID namespace. The
         # Docker internal bridge is disconnected from any external routing.
-        def launch_client(name: str) -> None:
+        def launch_client(name: str, allow_gui_dial: bool = False) -> None:
             launch(name, [
                 "--network", network,
                 "--read-only", "--cap-drop", "ALL",
@@ -229,13 +278,14 @@ def orchestrate() -> None:
                 "--volume", f"{appimage}:/opt/client:ro",
                 "--volume", f"{script}:/workspace/dual_client_registration.py:ro",
                 "--env", "RD_TEST_PUBLIC_KEY=" + key,
+                "--env", "RD_DIAL_GUI=" + ("1" if allow_gui_dial else "0"),
                 "--workdir", "/tmp", client_image,
                 "python", "/workspace/dual_client_registration.py", "--node",
             ])
 
         if rows(server):
             raise AssertionError("new hbbs must have zero peers")
-        launch_client(first)
+        launch_client(first, allow_gui_dial=True)
         initial = wait_rows(server, [first], 1, CLIENT_TIMEOUT_S)
         launch_client(second)
         current = wait_rows(server, [first, second], 2, CLIENT_TIMEOUT_S)
@@ -244,6 +294,45 @@ def orchestrate() -> None:
         print("PASS: two unmodified RustDesk 1.5.1 clients registered distinct IDs")
         print("PASS: genuine RustDesk Server 1.1.16 SQLite has two valid UUID/PK rows")
         print("PASS: each official client has its own PID/IPC/filesystem namespace")
+
+        # Dial probe: an official RustDesk GUI client (A) sends an actual
+        # connection request to registered client B. No remote password or
+        # consent is provided, so do NOT expect a successful desktop login.
+        # The only acceptance evidence is hbbs's own recorded rendezvous
+        # dispatch, verified through its loopback-only administrative socket.
+        command = (
+            "import socket,sys; "
+            "s=socket.create_connection(('127.0.0.1',21116),timeout=3); "
+            "s.settimeout(3); s.sendall(b'pr 0 10'); "
+            "print(s.recv(8192).decode('utf-8','replace'))"
+        )
+        def request_report() -> str:
+            return docker("exec", server, "python", "-c", command, timeout=8).stdout
+        if request_report().strip():
+            raise AssertionError("isolated hbbs has unexpected preexisting punch requests")
+        destination = next(item[0] for item in current if item[0] != initial[0][0])
+        if not re.fullmatch(r"[A-Za-z0-9_-]{6,64}", destination):
+            raise AssertionError("registered test peer identifier has unsafe characters")
+        docker("exec", first, "python", "-c",
+               "from pathlib import Path; import sys; "
+               "Path('/tmp/rd-test-dial-target').write_text(sys.argv[1],encoding='ascii')",
+               destination, timeout=8)
+        received = False
+        for _ in range(24):
+            if not is_running(first) or not is_running(second) or not is_running(server):
+                raise AssertionError("official RustDesk client or server exited during dial probe")
+            report = request_report()
+            if ("-> " + destination + "@") in report:
+                received = True
+                break
+            time.sleep(1)
+        if not received:
+            raise AssertionError(
+                "official Flutter CLI --connect did not produce a server-recorded "
+                "A-to-B rendezvous request within the isolated test window"
+            )
+        print("PASS: genuine RustDesk client A requested a rendezvous with client B")
+        print("SCOPE: signaling only; B did not grant desktop password/consent")
         docker("rm", "-f", second, timeout=10)
         active.remove(second)
         if not is_running(first) or not is_running(server):
