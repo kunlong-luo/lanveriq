@@ -40,6 +40,13 @@ The **disposable NXT-17 synthetic-directory Chromium route**, generated only in 
 
 The public production-preview Chromium test also checks disabled sort without data, the skip-to-main focus target and the Base UI mobile modal's 44px close button. Existing visual screenshot capture continues to run against the **ordinary, disconnected routes before any temporary fixture is mounted**.
 
+### Acceptance status and security-test contract
+
+- [NXT-19 Next.js build, TypeScript and unit tests #42444319842](https://github.com/kunlong-luo/lanveriq/actions/runs/42444319842): **SUCCESS**.
+- [NXT-19 real Chromium, 11 disconnected routes, 15 screenshots and authorized-directory fixture #42444319741](https://github.com/kunlong-luo/lanveriq/actions/runs/42444319741): **SUCCESS**. Log includes `NXT-19 SYNTHETIC DIRECTORY CHROMIUM PASS` (sorting/row headings/horizontal keyboard scrolling/revocation).
+- [Disconnected Pages #42444319706](https://github.com/kunlong-luo/lanveriq/actions/runs/42444319706): **SUCCESS**, with no synthetic device fixture published.
+- The first [Caddy/Spring/PG18 synthetic gate #42444298037](https://github.com/kunlong-luo/lanveriq/actions/runs/42444298037) failed at the existing **exact-scoped-membership** assertion. Analysis found that this test still selected `td:first-child strong`, while the canonical device identity is now correctly rendered as `th[scope='row'] strong`. It did not establish a data leakage, although it could not prove the membership until fixed. `apps/server/scripts/verify-synthetic-console-browser.py` now targets that semantic row header and **retains every existing A/B exact-membership/count/uniqueness assertion**. [New safety re-run #42444502902](https://github.com/kunlong-luo/lanveriq/actions/runs/42444502902) was triggered automatically by the test update and needs its final result recorded before release claims.
+
 ### Non-goals and future work
 
 This does not add authenticated server-side sorting or pagination, global device totals, remote device actions, real-time monitoring, production login or database integration. Once the separate server-side pagination/RBAC contract has been explicitly accepted, a mature TanStack Table model may help connect these local presentation primitives to server-scoped paging.
