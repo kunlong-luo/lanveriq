@@ -1,8 +1,8 @@
 # Lanveriq × RustDesk 隔离集成实施计划（RD-0 至 RD-3）
 
-**日期：2026-11-08 | 计划状态：候选/待验收；尚无远控代码、运行服务或已批准的真实设备会话。**
+**日期：2026-11-08 | 计划状态：隔离 CI 已实测原版客户端注册、会合及中继；尚无可对真实终端执行的受授权远程桌面会话，RD-2 BLOCKED。**
 
-决策见 [ADR-0010](adrs/0010-rustdesk-remote-control-integration.md)。本计划为远程控制能力另开项目轨道；**不替代** [v0.1 设备身份/心跳/库存/授权前端批次 A–E](../planning/v0.1-batched-delivery-plan-2026-11-08.md)，也不允许在完成该批次之前将“远程控制”记为已交付。
+决策见 [ADR-0010](adrs/0010-rustdesk-remote-control-integration.md)，服务器强制授权的 [RD-2 16 项防绕过验收契约](rustdesk-rd2-security-acceptance.md)。本计划为远程控制能力另开项目轨道；**不替代** [v0.1 设备身份/心跳/库存/授权前端批次 A–E](../planning/v0.1-batched-delivery-plan-2026-11-08.md)，也不允许在完成该批次之前将“远程控制”记为已交付。
 
 ## 1. 本次代码库盘点
 
@@ -123,6 +123,10 @@
 **不能混淆：**这只是 RustDesk 的**服务器密钥和设备存在性**验证。此前同一套自动测试已证明：如果目标是已经注册的设备，拥有服务器公钥但**没有 Lanveriq 管理员凭据**的外部请求仍可进入 OSS 会合转发阶段。它尚未通过桌面访问密码或用户同意，更**没有** Lanveriq 的设备级、会话级、跨组、撤权不可绕过保证。RD-2 **依然 BLOCKED**，不能以这组正负向协议结果批准生产部署。
 
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
+
+**2026-11-08：状态 BLOCKED。** 原版 OSS 已在隔离 CI 证明公钥持有者无需 Lanveriq 管理员身份便可请求目标设备会合。Pro 的 Access Control（连接准入）与 Control Role（连接后权限）属于不同机制，分组 grant 可能累加放行，不能默认 Pro 支持短期逐会话强制授权和立即撤销。先按 [AUTH-01～AUTH-16](rustdesk-rd2-security-acceptance.md) 真实验证，不能用 Next.js 页面限制、Spring 返回 200 或配置管理 API Token 冒充底层会话执行点。
+
+**已落地但不是远控功能：**Spring `application.yml` 内的 `lanveriq.remote.enabled: false` 为不可通过环境变量启用的字面量发布锁；[fast source release guard](../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) 加入 GitHub CI，对意外出现的 Spring/Next.js 远控路由及 Caddy 端口进行负例回归检查。此检查只证明源码关闭，不证明生产网络权限或 RustDesk Pro 的能力。
 
 先记录协议契约，再实施。以下为**候选接口**，不是仓库已存在的 API：
 - POST /api/v1/devices/{deviceId}/remote-sessions：验证管理员会话、CSRF、RBAC/组织与设备范围、被控端能力/许可状态和用途，创建短时会话请求，默认拒绝。
