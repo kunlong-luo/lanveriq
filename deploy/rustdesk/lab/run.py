@@ -64,18 +64,21 @@ def wait_for_public_key() -> str:
     raise EvidenceRejected("Official OSS server did not prepare public key")
 
 
-def config_for_peer(key: str) -> str:
+def config_for_peer(key: str, *, operator_approval: bool = False) -> str:
+    # Never use an unattended password in this R2 test. On the receiving
+    # synthetic client require an explicit click in its own visible GUI.
+    approval = 'approve-mode = "click"\\n' if operator_approval else ""
     return f"""# Synthetic isolated R2; no public RustDesk rendezvous server.
 [options]
 custom-rendezvous-server = "rd-server:21116"
 relay-server = "rd-server:21117"
 key = {json.dumps(key)}
 allow-always-software-render = "Y"
-"""
+{approval}"""
 
 
-def start_peer(name: str, pub_key: str) -> None:
-    cfg = config_for_peer(pub_key)
+def start_peer(name: str, pub_key: str, *, operator_approval: bool = False) -> None:
+    cfg = config_for_peer(pub_key, operator_approval=operator_approval)
     compose("exec", "-T", name, "sh", "-ec",
             "umask 077; mkdir -p \"$HOME/.config/rustdesk\"; "
             "cat > \"$HOME/.config/rustdesk/RustDesk2.toml\"",
