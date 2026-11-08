@@ -4,11 +4,11 @@ name: Public GitHub Pages preview (disconnected Next.js only)
 # Only the verified ordinary, unconnected preview is exported. No secrets,
 # Spring credentials, connected APIs, database or synthetic auth fixtures.
 on:
+  # Public static showcase publishes only at explicit demo/acceptance,
+  # never on a background code push or a server/Agent implementation edit.
   push:
-    branches: [main]
-    paths:
-      - 'apps/web-next/**'
-      - '.github/workflows/pages-static-preview.yml'
+    tags:
+      - 'acceptance/v0.1-*'
   workflow_dispatch:
 
 permissions:
