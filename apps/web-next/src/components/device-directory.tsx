@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, LockKeyhole, Search, ShieldAlert, WifiOff, RefreshCcw, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -52,6 +52,22 @@ export function normalizeAuthorizedGroupSelection(
   return selected !== '' && availableGroups.includes(selected) ? selected : '';
 }
 
+/** Sorting is *only* over the single server-authorized page in memory. */
+export type DirectorySort = 'server' | 'label-asc' | 'label-desc' | 'group-asc';
+
+export function sortAuthorizedDirectoryPage(
+  rows: readonly DirectoryRow[], sort: DirectorySort,
+): DirectoryRow[] {
+  if (sort === 'server') return [...rows];
+  const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
+  return rows.map((row, index) => ({ row, index })).sort((a, b) => {
+    const left = sort === 'group-asc' ? a.row.group : a.row.label;
+    const right = sort === 'group-asc' ? b.row.group : b.row.label;
+    const direction = sort === 'label-desc' ? -1 : 1;
+    return direction * collator.compare(left, right) || a.index - b.index;
+  }).map(item => item.row);
+}
+
 const feedback = {
   unconnected: { title: '设备数据尚未连接', message: '未建立安全管理员会话，不代表数据库中没有设备。', Icon: WifiOff },
   loading: { title: '正在加载已授权设备', message: '请以服务端权限过滤结果为准。', Icon: RefreshCcw },
@@ -66,7 +82,9 @@ export function DeviceDirectory({
 }: Readonly<{ state: DirectoryState; allowDetailNavigation?: boolean }>) {
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('');
+  const [sortMode, setSortMode] = useState<DirectorySort>('server');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const scrollHintId = useId();
   const isReady = state.kind === 'ready';
 
   // Never retain the previous user's search terms or device group filter when
@@ -76,6 +94,7 @@ export function DeviceDirectory({
     if (!isReady) {
       setSearch('');
       setGroup('');
+      setSortMode('server');
     }
   }, [isReady]);
   const rows = isReady ? state.rows : [];
@@ -89,8 +108,10 @@ export function DeviceDirectory({
   }, [group, activeGroup]);
 
   const visible = useMemo(
-    () => filterDirectoryRows(rows, search, activeGroup),
-    [rows, search, activeGroup],
+    () => sortAuthorizedDirectoryPage(
+      filterDirectoryRows(rows, search, activeGroup), sortMode,
+    ),
+    [rows, search, activeGroup, sortMode],
   );
   const hasFilters = isReady && (search.trim().length > 0 || activeGroup !== '');
   function resetFilters() {
@@ -125,6 +146,17 @@ export function DeviceDirectory({
             {groups.map(value => <option value={value} key={value}>{value}</option>)}
           </NativeSelect>
         </label>
+        <label className="directory-sort">
+          <span className="sr-only">排序当前授权页</span>
+          <NativeSelect aria-label="排序当前授权页" disabled={!isReady}
+            value={sortMode}
+            onChange={event => setSortMode(event.target.value as DirectorySort)}>
+            <option value="server">服务器返回顺序</option>
+            <option value="label-asc">设备名称 A–Z</option>
+            <option value="label-desc">设备名称 Z–A</option>
+            <option value="group-asc">设备组 A–Z</option>
+          </NativeSelect>
+        </label>
         {hasFilters && <button type="button" onClick={resetFilters}
           className="directory-clear-filters" aria-label="清除设备搜索和设备组筛选">
           <X size={15} aria-hidden="true"/> 清除筛选
@@ -149,13 +181,20 @@ export function DeviceDirectory({
       </CardContent>
     ) : (
       <CardContent className="directory-table-wrap">
-        <Table className="device-table">
+        <p id={scrollHintId} className="directory-scroll-hint">
+          表格有七列。窄屏可横向滑动；键盘用户可聚焦表格区域，按左右方向键浏览。
+        </p>
+        <Table className="device-table"
+          scrollRegionLabel="设备目录表格（可横向滚动）"
+          scrollRegionDescriptionId={scrollHintId}>
           <TableCaption className="sr-only">当前管理员已授权的设备健康列表</TableCaption>
           <TableHeader><TableRow><TableHead scope="col">设备</TableHead><TableHead scope="col">设备组</TableHead>
             <TableHead scope="col">注册状态</TableHead><TableHead scope="col">连接状态</TableHead>
             <TableHead scope="col">最后心跳</TableHead><TableHead scope="col">队列</TableHead><TableHead scope="col">详情</TableHead></TableRow></TableHeader>
           <TableBody>{visible.map(row => <TableRow key={row.id}>
-            <TableCell><strong>{row.label}</strong><small>{row.os ?? '操作系统未上报'}</small></TableCell>
+            <TableHead scope="row" className="device-row-heading">
+              <strong>{row.label}</strong><small>{row.os ?? '操作系统未上报'}</small>
+            </TableHead>
             <TableCell>{row.group}</TableCell><TableCell>{enrollmentLabel[row.enrollment]}</TableCell>
             <TableCell><span className={`health-pill health-${row.connectivity}`}>
               {statusLabel[row.connectivity]}</span></TableCell>
@@ -170,7 +209,7 @@ export function DeviceDirectory({
       </CardContent>
     )}
     <div className="directory-foot">
-      <span>{isReady ? '本页结果已按服务端权限裁剪；搜索和设备组筛选仅作用于本页' :
+      <span>{isReady ? '仅本次已授权页面：搜索、设备组筛选与排序不会查询或推断其他页面' :
         '等待 PostgreSQL 18 / HTTPS / 浏览器会话验收'}</span>
       {isReady && state.hasMore && <span>后续分页待授权接入</span>}
     </div>
