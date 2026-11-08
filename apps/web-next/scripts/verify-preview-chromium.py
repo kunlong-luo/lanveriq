@@ -202,10 +202,20 @@ def check_viewports(browser):
                     require(page.evaluate(
                         "getComputedStyle(document.documentElement).getPropertyValue('--background').trim()") ==
                             "#f8f8fc", "nxt16_canonical_theme_token_missing")
+                    if width in (320, 390):
+                        columns = page.locator(".bc-overview .metric-grid").evaluate(
+                            "(el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\\s+/).length")
+                        require(columns == (1 if width == 320 else 2),
+                                "nxt18_mobile_metric_density_at_" + str(width))
                 if route == "/devices":
                     header = page.locator(".bc-assets-workspace-head")
                     require(header.is_visible() and header.bounding_box()["width"] <= width + 1,
                             "nxt16_assets_header_overflows_" + str(width))
+                    if width <= 390:
+                        search_width = page.locator(".directory-search").bounding_box()["width"]
+                        group_width = page.locator(".directory-select select").bounding_box()["width"]
+                        require(group_width + 14 >= search_width,
+                                "nxt18_mobile_group_selector_not_full_width")
                     if width >= 1024:
                         directory = page.locator(".directory-panel")
                         require(directory.bounding_box()["y"] < 750,
@@ -217,6 +227,9 @@ def check_viewports(browser):
                 page.goto(BASE + "/overview", wait_until="networkidle")
                 menu = page.get_by_role("button", name="打开导航")
                 require(menu.is_visible(), "base_ui_mobile_trigger_missing")
+                require(menu.bounding_box()["width"] >= 44 and
+                        menu.bounding_box()["height"] >= 44,
+                        "nxt18_mobile_menu_touch_target_below_44px")
                 require(page.locator(".bc-mobile-sheet").count() == 0,
                         "mobile_dialog_must_start_unmounted")
                 menu.click()
