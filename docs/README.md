@@ -19,6 +19,7 @@
 - [Configuration and collection policy](architecture/policy-configuration.md)
 - [Independent health and coverage semantics](architecture/health-and-gap-semantics.md)
 - **[Canonical device communication protocol / TLS/ACK review](architecture/device-communication-stack.md)** — implemented reqwest/rustls + Caddy + Spring/PG18, TLS1.2-minimum gap, gRPC/MQTT comparison and release gates.
+- **[ADR-0010: RustDesk remote session reuse (proposed)](architecture/adrs/0010-rustdesk-remote-control-integration.md)** and [isolated feasibility / acceptance plan](architecture/rustdesk-integration-plan.md) — separate remote-control plane, OSS/Pro and AGPL boundaries, default-OFF authorization gates; **no running integration yet**.
 - [REST and event API contract](architecture/api-contract.md)
 - [Dashboard WebSocket protocol](architecture/websocket-contract.md)
 - [LAN bootstrap and device enrollment](architecture/enrollment-bootstrap.md)
