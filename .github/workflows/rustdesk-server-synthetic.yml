@@ -138,7 +138,7 @@ jobs:
           echo "Not tested: true RustDesk client authentication, E2E desktop/video, real NAT/P2P, browser integration, Lanveriq RBAC or production safety."
 
   official-client-cli:
-    name: Verify official RustDesk 1.5.1 Linux client (offline CLI)
+    name: Official RustDesk 1.5.1 clients, registration and A-to-B signaling
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -273,17 +273,18 @@ jobs:
               python /workspace/client_registration.py
             '
 
-      - name: Register two official clients in separate offline PID/IPC namespaces
+      - name: Verify distinct real clients and actual A-to-B rendezvous signaling
         shell: bash
         run: |
           set -euo pipefail
-          # A real concurrent two-client test, NOT a desktop session.
-          # Both containers share only the disconnected server network namespace;
-          # they do not share PID, IPC, home, private keys or X11 sockets.
+          # Genuine two-client rendezvous test, NOT desktop login or input.
+          # Independent client network/PID/IPC/roots/X11, linked only by a
+          # Docker --internal bridge without external routes or published ports.
           python3 deploy/rustdesk-synthetic/dual_client_registration.py
 
       - name: Scope statement
         if: success()
         run: |
           echo "PASS: official RustDesk client binary integrity, AppImage extraction and CLI version."
-          echo "Single-client and two isolated real-client registration checked in hbbs SQLite; NOT tested: full remote desktop session, E2EE, video, input or Lanveriq authorization."
+          echo "PASS: two separate genuine clients registered; upstream hbbs recorded actual A-to-B rendezvous from original Flutter CLI."
+          echo "NOT tested: authorized desktop login, E2EE media, video, input, consent, revocation or Lanveriq session RBAC."
