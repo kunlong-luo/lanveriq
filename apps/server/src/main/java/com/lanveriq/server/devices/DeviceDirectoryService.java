@@ -27,6 +27,13 @@ public class DeviceDirectoryService {
 
     @Transactional(readOnly = true)
     public DeviceDirectoryPage list(UUID afterDeviceId, int limit) {
+        return list(afterDeviceId, limit, DeviceDirectoryListQuery.unfiltered());
+    }
+
+    @Transactional(readOnly = true)
+    public DeviceDirectoryPage list(
+            UUID afterDeviceId, int limit, DeviceDirectoryListQuery query) {
+        Objects.requireNonNull(query, "Validated query contract required");
         if (limit < 1 || limit > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("Device page limit must be between 1 and 100");
         }
@@ -34,7 +41,7 @@ public class DeviceDirectoryService {
             throw new IllegalArgumentException("Invalid cursor");
         }
         UUID actor = requireAdmin();
-        var fetched = repository.list(actor, afterDeviceId, limit + 1);
+        var fetched = repository.list(actor, afterDeviceId, limit + 1, query);
         if (fetched.size() <= limit) {
             return new DeviceDirectoryPage(fetched, null);
         }
