@@ -19,11 +19,9 @@ concurrency:
 
 jobs:
   agent-unit:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    # L1: one fast portable Linux Rust runner per source change. Windows
+    # is retained in agent-windows-targeted.yml for SCM/deps and milestones.
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: apps/agent
@@ -45,7 +43,6 @@ jobs:
       - name: Clippy static checks
         run: cargo +1.94.0 clippy --workspace --all-targets --locked -- -D warnings
       - name: Preserve committed Cargo.lock
-        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
           name: agent-cargo-lockfile
