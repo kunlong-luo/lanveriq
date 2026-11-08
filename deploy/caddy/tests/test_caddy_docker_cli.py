@@ -132,12 +132,14 @@ class DockerCaddyEntrypointTest(unittest.TestCase):
         self.assertIn('TEST-ONLY canonical console host', script)
         self.assertIn('LANVERIQ_SYNTHETIC_CONSOLE_SESSION', workflow)
         self.assertIn("workflow_dispatch:", workflow)
-        # Relevant main-branch pushes now run the full disposable synthetic
-        # fixture automatically. Manual probes remain default OFF and the
-        # ordinary Caddy reference must not enable authentication.
+        # Owner-approved v0.1 policy: synthetic E2E runs only when a
+        # release engineer creates a milestone tag or explicitly dispatches.
+        # Ordinary main source pushes must never start the full TLS/PG18 suite.
         self.assertIn("push:", workflow)
-        self.assertIn("branches: [main]", workflow)
-        self.assertIn("paths:", workflow)
+        self.assertIn("tags:", workflow)
+        self.assertIn("'acceptance/v0.1-*'", workflow)
+        self.assertNotIn("branches: [main]", workflow)
+        self.assertNotIn("    paths:", workflow)
         self.assertIn("github.event_name == 'push'", workflow)
         self.assertIn("contents: read", workflow)
         self.assertNotIn("actions: write", workflow)
