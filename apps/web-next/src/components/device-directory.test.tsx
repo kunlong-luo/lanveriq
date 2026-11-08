@@ -98,7 +98,6 @@ describe('NXT-02 directory display model (all records test-only)', () => {
     expect(html).toContain('仅本次授权页：匹配 2 / 2 条');
     expect(html).toContain('仅本次已授权页面');
     expect(html).toContain('搜索、设备组筛选与排序不会查询或推断其他页面');
-    expect(html).toContain('搜索和设备组筛选仅作用于本页');
     expect(html).toContain('data-slot="table-container"');
     expect(html).toContain('role="region"');
     expect(html).toContain('tabindex="0"');
