@@ -212,6 +212,8 @@ jobs:
                 exit 1
               fi
               cat /tmp/client-version.log
+              grep -Fxq "1.5.1" /tmp/client-version.log
+              echo "PASS: upstream RustDesk executable reports exactly 1.5.1"
             '
 
       - name: Scope statement
