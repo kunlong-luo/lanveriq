@@ -87,6 +87,12 @@ lanveriq:
     overview-http-enabled: ${LANVERIQ_MONITORING_OVERVIEW_HTTP_ENABLED:false}
   device-revocation:
     enabled: ${LANVERIQ_DEVICE_REVOCATION_ENABLED:false}
+  # RD-2 release lock, not an enableable feature flag. RustDesk OSS is a
+  # synthetic CI-only dependency; no verified server-enforced per-session RBAC.
+  # This literal false MUST NOT become env-configurable until a tested
+  # data-plane enforcement adapter, user consent and revocation are approved.
+  remote:
+    enabled: false
   console:
     auth:
       enabled: ${LANVERIQ_CONSOLE_AUTH_ENABLED:false}
