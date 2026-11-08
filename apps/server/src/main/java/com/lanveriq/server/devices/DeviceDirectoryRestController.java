@@ -45,18 +45,27 @@ public class DeviceDirectoryRestController {
     }
 
     @Operation(summary = "List current group-authorized device health summaries",
-            description = "Bounded UUID keyset pagination; no network identifiers or raw events")
+            description = "UUID ascending keyset only; optional group_id and literal label_prefix are"
+                    + " intersected with live role/group scope. No global name sort or totals.")
     @ApiResponse(responseCode = "200", description = "Scoped device page")
     @ApiResponse(responseCode = "401", description = "Authentication required or revoked session")
     @ApiResponse(responseCode = "403", description = "Invalid console origin/host")
     @GetMapping(path = "/api/v1/devices", produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<DeviceDirectoryRestResponse.Page> list(
-            @Parameter(description = "Last returned device ID, for keyset pagination")
+            @Parameter(description = "Last returned device ID, for UUID keyset pagination")
             @RequestParam(name = "cursor", required = false) UUID cursor,
-            @Parameter(description = "Maximum number of results, 1 to 100")
-            @RequestParam(name = "limit", defaultValue = "50") int limit) {
+            @Parameter(description = "Maximum results per page, 1 to 100")
+            @RequestParam(name = "limit", defaultValue = "50") int limit,
+            @Parameter(description = "Optional additional group intersection, never a grant")
+            @RequestParam(name = "group_id", required = false) UUID groupId,
+            @Parameter(description = "Optional literal case-insensitive device label prefix, 1-64 characters")
+            @RequestParam(name = "label_prefix", required = false) String labelPrefix,
+            @Parameter(description = "Only device_id_asc is supported with UUID cursor")
+            @RequestParam(name = "sort", defaultValue = "device_id_asc") String sort) {
+        var query = new DeviceDirectoryListQuery(groupId, labelPrefix, sort);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(DeviceDirectoryRestResponse.Page.from(directory.list(cursor, limit)));
+                .body(DeviceDirectoryRestResponse.Page.from(
+                        directory.list(cursor, limit, query)));
     }
 
     @Operation(summary = "Read one group-authorized device health summary",
