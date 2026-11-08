@@ -95,6 +95,11 @@ class DeviceDirectoryOpenApiContractTest {
         String body = response.getContentAsString(StandardCharsets.UTF_8);
         assertTrue(body.contains("\"openapi\""));
         assertTrue(body.contains("\"/api/v1/devices\""));
+        // NXT-20 filters are generated from the actual default-off controller,
+        // not hand-maintained TypeScript types or an alternate public route.
+        assertTrue(body.contains("\"group_id\""));
+        assertTrue(body.contains("\"label_prefix\""));
+        assertTrue(body.contains("\"device_id_asc\""));
         assertTrue(body.contains("\"/api/v1/devices/{deviceId}\""));
         assertTrue(body.contains("\"/api/v1/monitoring/overview\""));
         assertTrue(body.contains("\"/api/v1/auth/session\""));
