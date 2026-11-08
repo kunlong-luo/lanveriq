@@ -1,54 +1,16 @@
 name: Console HTTPS Spring session (synthetic-only)
 
-# Isolated synthetic-only suite: automatically execute all four browser/RBAC
-# checks on reviewed MAIN changes affecting the security acceptance path.
-# Manual dispatch remains available with default-OFF individual probes.
+# Isolated synthetic-only suite: full four-gate acceptance ONLY on an
+# explicit acceptance/v0.1-* milestone tag, or manual L2 dispatch.
+# Never auto-run on each main source edit.
 # No production secrets, real users, Agent collection or deployment.
 on:
+  # L3 full isolated E2E only at an explicitly created v0.1 acceptance tag.
+  # Routine main pushes, including auth/schema/front-end changes, use targeted
+  # L1 unit/negative tests; L2 can be invoked through workflow_dispatch.
   push:
-    branches: [main]
-    paths:
-      - '.github/workflows/console-https-synthetic.yml'
-      - 'apps/server/scripts/verify-synthetic-console-browser.py'
-      - 'apps/server/scripts/test_verify_synthetic_static_boundary.py'
-      - 'apps/server/scripts/verify-agent-upstream-tls.sh'
-      - 'apps/server/scripts/verify-synthetic-console-session.sh'
-      - 'apps/server/scripts/seed-synthetic-multi-admin.sql'
-      - 'apps/server/src/main/java/com/lanveriq/server/security/**'
-      - 'apps/server/src/main/java/com/lanveriq/server/devices/**'
-      - 'apps/server/src/integrationTest/java/com/lanveriq/server/security/**'
-      - 'apps/server/src/main/resources/db/migration/**'
-      - 'apps/web-next/src/synthetic-only-auth-probe.tsx'
-      - 'apps/web-next/src/synthetic-only-multi-admin-probe.tsx'
-      - 'apps/web-next/src/staged-console-workspace.tsx'
-      - 'apps/web-next/src/staged-console-route-boundary.tsx'
-      - 'apps/web-next/src/lib/staged-console-overview.ts'
-      - 'apps/web-next/src/components/console-shell.tsx'
-      - 'apps/web-next/src/lib/console-navigation.ts'
-      - 'apps/web-next/src/lib/console-navigation.test.ts'
-      - 'apps/web-next/src/components/device-directory.tsx'
-      - 'apps/web-next/src/components/device-detail-tabs.tsx'
-      - 'apps/web-next/src/components/ui/**'
-      - 'apps/web-next/src/app/globals.css'
-      - 'apps/web-next/src/app/lanveriq-bc.css'
-      - 'apps/web-next/src/app/(console)/**'
-      - 'apps/web-next/src/components/planned-console-page.tsx'
-      - 'apps/web-next/src/components/login-preview.tsx'
-      - 'apps/web-next/src/app/layout.tsx'
-      - 'apps/web-next/src/app/(console)/overview/page.tsx'
-      - 'apps/web-next/src/components/health-sections.tsx'
-      - 'apps/web-next/scripts/verify-route-contract.mjs'
-      - 'apps/web-next/next.config.ts'
-      - 'apps/web-next/scripts/test_verify_synthetic_nextjs_origin.py'
-      - 'apps/web-next/scripts/verify-synthetic-nextjs-origin.py'
-      - 'apps/web-next/scripts/verify-runtime-isolation.mjs'
-      - 'apps/web-next/scripts/test_runtime_isolation.mjs'
-      - 'apps/web-next/package.json'
-      - 'apps/web-next/pnpm-lock.yaml'
-      - 'apps/web-next/src/lib/staged-console-auth.ts'
-      - 'apps/web-next/src/lib/staged-console-read.ts'
-      - 'apps/web-next/src/lib/console-query-policy.ts'
-      - 'apps/web-next/scripts/install-synthetic-auth-fixture.mjs'
+    tags:
+      - 'acceptance/v0.1-*'
   workflow_dispatch:
     inputs:
       browser_probe:
@@ -76,10 +38,10 @@ permissions:
   contents: read
 
 concurrency:
-  # Push builds supersede stale push builds; manual opt-ins never cancel each
-  # other. Distinct event types have separate concurrency groups.
+  # Milestone tag and manual acceptance run independently. Don't silently
+  # cancel a running expensive security acceptance from a later source push.
   group: lanveriq-console-synthetic-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  cancel-in-progress: false
 
 jobs:
   console-session-synthetic:
