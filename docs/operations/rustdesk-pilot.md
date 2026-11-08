@@ -8,7 +8,7 @@
 - 使用官方 **RustDesk Server OSS s6 1.1.16**（2026-11-08 可验证的已发布容器，而不是源代码 `Cargo.toml` 中尚未同步发布的 1.1.17），多架构索引精确锁定为 `sha256:5974cd791a5aca6fbf01a167b37e7427db1d136e95b2710c33a34fdc9fea724c`；从 [GitHub 官方 Package](https://github.com/rustdesk/rustdesk-server/pkgs/container/rustdesk-server-s6) 交叉确认。**禁止随意替换 `latest`；更新时重做许可证、发布来源、平台和 CI 验收。**
 - s6 镜像统一启动 `hbbs` 与 `hbbr`；`ENCRYPTED_ONLY=1` 要求二者使用共享密钥验证模式，`/data` 存于**独立命名 Docker 卷**。私钥 `id_ed25519` 不进入 Git、CI 日志、前端或 Spring API；远端客户端仅配置相应公钥。
 - 单服务、独立项目 `lanveriq-rustdesk-pilot`，不连接 `spark-db` / Lanveriq 业务 Docker 网络。仅原生 `21115/TCP`、`21116/TCP+UDP`、`21117/TCP`；**不发布** 21114、21118、21119。Docker 容器内部启动 WebSocket 监听不等于对宿主机开放，仍需验证 Docker 规则和可达性。
-- `restart: "no"`、`profiles: [pilot]`，没有任何自动启动的生产服务。默认绑定 `127.0.0.1`。仅获批准的隔离主机在完成网络/端口审查后才可以指定私网或 VPN 专用绑定 IP。不要在主机修改公共 DNS、VPN、NAT、防火墙或真实设备。
+- `restart: "no"`、`profiles: [pilot]`，没有任何自动启动的生产服务。默认绑定 `127.0.0.1`。仅获批准的隔离主机在完成网络/端口审查后才可以指定私网或 VPN 专用绑定 IP（包括某些 mesh VPN 使用的 RFC 6598 共享地址 `100.64.0.0/10`；必须确认该 IP 实际存在于本机接口、路由和 ACL 均已批准，不能因为地址不是公网就默认安全）。不要在主机修改公共 DNS、VPN、NAT、防火墙或真实设备。
 - **产品集成暂不启动**：RustDesk Client/Server 使用 AGPL-3.0；Pro 管理 API、Web Client、商业再分发需独立许可审查。无合法的会话启动授权之前，不给 Next.js 添加可以访问实际设备的“远程控制”链接。
 
 ## A. 当前 CI 的自动化进程检查（无需用户手动操作）
