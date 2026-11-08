@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, LockKeyhole, Search, ShieldAlert, WifiOff, RefreshCcw, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -59,6 +59,7 @@ export function DeviceDirectory({
 }: Readonly<{ state: DirectoryState; allowDetailNavigation?: boolean }>) {
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const isReady = state.kind === 'ready';
 
   // Never retain the previous user's search terms or device group filter when
@@ -72,9 +73,25 @@ export function DeviceDirectory({
   }, [isReady]);
   const rows = isReady ? state.rows : [];
   const groups = useMemo(() => [...new Set(rows.map(row => row.group))].sort(), [rows]);
-  const visible = useMemo(() => filterDirectoryRows(rows, search, group), [rows, search, group]);
-  const hasFilters = isReady && (search.trim().length > 0 || group !== '');
-  const resetFilters = () => { setSearch(''); setGroup(''); };
+
+  // A refreshed authorized page may no longer contain the previously selected
+  // group. Never hide new authorized rows behind an invalid stale selection.
+  const activeGroup = groups.includes(group) ? group : '';
+  useEffect(() => {
+    if (group !== '' && activeGroup === '') setGroup('');
+  }, [group, activeGroup]);
+
+  const visible = useMemo(
+    () => filterDirectoryRows(rows, search, activeGroup),
+    [rows, search, activeGroup],
+  );
+  const hasFilters = isReady && (search.trim().length > 0 || activeGroup !== '');
+  function resetFilters() {
+    setSearch('');
+    setGroup('');
+    // The clear button is removed after reset; focus a stable enabled field.
+    searchInputRef.current?.focus();
+  }
 
   return <Card className="directory-panel" aria-label="终端资产列表">
     <CardHeader className="directory-toolbar">
@@ -89,14 +106,14 @@ export function DeviceDirectory({
         <label className="directory-search">
           <Search size={16} aria-hidden="true" />
           <span className="sr-only">搜索终端名称、系统或设备组</span>
-          <Input aria-label="搜索终端名称、系统或设备组"
+          <Input aria-label="搜索终端名称、系统或设备组" ref={searchInputRef}
             value={search} onChange={event => setSearch(event.target.value)}
             placeholder="搜索设备或系统" disabled={!isReady} />
         </label>
         <label className="directory-select">
           <span className="sr-only">筛选设备组</span>
           <NativeSelect aria-label="筛选设备组" disabled={!isReady}
-            value={group} onChange={event => setGroup(event.target.value)}>
+            value={activeGroup} onChange={event => setGroup(event.target.value)}>
             <option value="">全部授权设备组</option>
             {groups.map(value => <option value={value} key={value}>{value}</option>)}
           </NativeSelect>
