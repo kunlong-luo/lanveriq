@@ -83,6 +83,18 @@
 
 **当前通过的界限是“实际客户端注册”，不是完整远程协助。** 尚未证明第二个官方客户端建立会话、屏幕帧/鼠标键盘交互、E2E 身份验证/密钥交换、NAT/P2P、授权同意、权限撤销与 Lanveriq Spring RBAC 到 RustDesk 真实连接层的不可绕过性。不能根据在 OSS 注册成功就启用生产远控，也不能暗示会话已经得到 Lanveriq 管理员授权。
 
+### 2026-11-08 双真实客户端独立注册与生命周期验收（已通过）
+
+经核对，上游 RustDesk 1.5.1 的 `--server` 包含操作系统托盘、Xvfb、D-Bus 与进程级单实例行为；**两台端点不能共用一个容器/网络命名空间当作互相独立的计算机**。此前单容器实验遇到托盘依赖和客户端冲突，随后共用网络命名空间的双容器实验触发了 Xvfb 的抽象 Unix 套接字冲突。这是测试环境错误，不能把失败解释成 RustDesk 远控协议不兼容。
+
+最新 [dual_client_registration.py](../../deploy/rustdesk-synthetic/dual_client_registration.py) 在 GitHub runner 中使用 `docker network create --internal` 创建**无公网路由的临时私有桥接网络**，启动官方 1.1.16 `hbbs/hbbr` 独立服务端，再运行两个各自拥有网络、进程、IPC、挂载命名空间和虚拟显示器的原版 1.5.1 客户端。仅服务器所在容器可以读 SQLite 测试数据，客户端只有临时公钥、私有配置、非 root 权限和测试内网；无真实终端、生产 CA、共享密码或宿主机端口映射。
+
+自动验收包含：测试前 `peer` 表为空；客户端 A 注册后服务器数据库恰有 1 条有效 ID/UUID/32 字节公钥记录；客户端 B 加入后存在**两个不同真实 peer ID**，两个官方客户端进程及服务端保持在线；强制移除 B 不会终止 A，SQLite 两条注册记录保留。测试仅核对必要的 ID 唯一性、元数据长度与存活状态，不向 CI 输出完整身份/密钥。
+
+**经验证的 CI 证据：**[GitHub Actions #42489961328](https://github.com/kunlong-luo/lanveriq/actions/runs/42489961328)，服务器协议与官方客户端的两项作业 **SUCCESS**；日志包含 `PASS: two unmodified RustDesk 1.5.1 clients registered distinct IDs`、`PASS: genuine RustDesk Server 1.1.16 SQLite has two valid UUID/PK rows` 和 `PASS: disconnecting one client does not stop another and DB rows persist`。相关服务端 Protobuf / 密钥拒绝 / 中继双向字节传输测试继续通过。
+
+**门槛依然 OPEN：**这只是两个官方客户端**注册与独立生命周期**，没有主动从 A 发起到 B 的远程桌面登录，也没有证明受控画面帧、输入、音视频、端到端会话加密、被控端明示同意、Lanveriq RBAC 不可绕过、跨公网 NAT/P2P 或 Windows/Linux 系统权限。**真实连接授权和许可审查仍然是产品上线硬阻塞**；暂不发布远控 API、嵌入 Web 客户端或开放真机控制。
+
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
 
 先记录协议契约，再实施。以下为**候选接口**，不是仓库已存在的 API：
