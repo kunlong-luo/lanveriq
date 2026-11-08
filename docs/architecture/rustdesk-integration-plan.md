@@ -69,7 +69,19 @@
 - [RustDesk OSS synthetic workflow](../../.github/workflows/rustdesk-server-synthetic.yml) 新增 `official-client-cli` 作业：在临时测试环境中解包**未修改的官方 AppImage**，检查 `AppRun`，然后真实执行 `AppRun --version` 并验证命令退出码。执行日志正确输出 `1.5.1`。
 - AppImage 二进制验证环境：官方下载只发生在 GitHub runner；运行时 Docker `--network none`，非 root、只读根目录、临时可执行 tmpfs、禁所有 Linux capabilities、无主机端口映射/显示服务器/生产密钥/真实设备。为了满足 Flutter 桌面程序的系统动态库依赖，在另一阶段临时构建基于 SHA 固定的 Python 镜像并安装测试用 Linux GTK/X11 库。**没有部署或启动正式被控端 Agent。**
 - **本次已通过 CI：**[GitHub Actions #42488022687](https://github.com/kunlong-luo/lanveriq/actions/runs/42488022687)，两项作业（原 RustDesk Server OSS 协议中继测试、官方客户端离线 CLI 测试）均 SUCCESS。
-- **验收界限：**真实 RustDesk 客户端已经在隔离容器中成功执行了离线 `--version`，但**没有连接 `hbbs/hbbr`**、注册 peer、建立远程控制会话、验证视频或用户同意。它与服务端 1.1.16 的端到端兼容性**仍未经验证**。下一个必需的实验是通过显式配置的隔离测试 ID/自托管会合服务器 + 虚拟显示会话建立真实客户端连接，并验证最小权限及退出回收；同时在服务端证实访问不能绕过 Lanveriq RBAC，不能只测试屏幕能显示。
+- **验收界限：**真实 RustDesk 客户端已经在隔离容器中成功执行了离线 `--version`，但**当时尚未连接 `hbbs/hbbr`**（已由后述客户端注册实验补足）、注册 peer、建立远程控制会话、验证视频或用户同意。它与服务端 1.1.16 的端到端兼容性**仍未经验证**。下一个必需的实验是通过显式配置的隔离测试 ID/自托管会合服务器 + 虚拟显示会话建立真实客户端连接，并验证最小权限及退出回收；同时在服务端证实访问不能绕过 Lanveriq RBAC，不能只测试屏幕能显示。
+
+### 2026-11-08 RD-1 官方客户端 ↔ 自托管 hbbs 实际注册（已通过）
+
+本阶段从官方客户端“可以运行”推进到了**真实协议端点注册**，测试入口是 [real_client_registration.py](../../deploy/rustdesk-synthetic/real_client_registration.py)，由同一 [GitHub Actions 工作流](../../.github/workflows/rustdesk-server-synthetic.yml) 的 `official-client-cli` 作业自动执行。
+
+- **真实上游版本：**RustDesk 原版 Linux x86_64 AppImage **1.5.1**；RustDesk Server OSS 原版 `hbbs`/`hbbr` **1.1.16**。下载前后执行官方 Release SHA-256 校验；无修改/复制上游 AGPL 客户端源码。
+- **运行环境：**测试时由 CI runner 构建临时 Linux GUI 依赖镜像，容器采用 `--network none`、无端口映射、非 root、read-only rootfs、drop capabilities、仅临时存储且不含生产设备/证书。使用 Xvfb 创建模拟屏幕，客户端 `AppRun --server` 在此隔离容器中真正运行。
+- **只连接本地测试服务器：**测试为客户端 `RustDesk2.toml` 提供一次性的 `custom-rendezvous-server=127.0.0.1:21116`、`relay-server=127.0.0.1:21117` 及临时服务器公钥。Docker 网络被禁用，故无法连接 RustDesk 官方公网基础设施或用户真实设备。
+- **证明链：**在启动官方客户端前，确认全新 `hbbs` 的 SQLite `peer` 表没有记录；在客户端运行期间等待真实 RustDesk `RegisterPk` 产生的记录，断言**恰有一个 peer**，包含有效的 ID、UUID 和 32 字节公钥，且 `hbbs/hbbr` 与官方客户端仍存活。该测试没有向服务端发送自制 `RegisterPeer`/`RegisterPk` 消息，因此不会把“模拟的 peer 注册”冒充真实官方客户端。
+- **自动测试证据：**[GitHub Actions #42488766986](https://github.com/kunlong-luo/lanveriq/actions/runs/42488766986) 两项作业均 SUCCESS；日志打印 `PASS: official RustDesk 1.5.1 --server registered its real key and UUID` 和 `PASS: upstream hbbs 1.1.16 durably stored the peer in a fresh SQLite DB`。现有服务端 Protobuf、错误密钥及双向中继负载测试也在本次同一工作流复测成功。
+
+**当前通过的界限是“实际客户端注册”，不是完整远程协助。** 尚未证明第二个官方客户端建立会话、屏幕帧/鼠标键盘交互、E2E 身份验证/密钥交换、NAT/P2P、授权同意、权限撤销与 Lanveriq Spring RBAC 到 RustDesk 真实连接层的不可绕过性。不能根据在 OSS 注册成功就启用生产远控，也不能暗示会话已经得到 Lanveriq 管理员授权。
 
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
 
