@@ -1,34 +1,25 @@
 name: Server unit tests
 
+# Fast, path-scoped L1 source and security-negative unit feedback only.
+# The expensive OpenAPI/Orval/PG-source/Boot packaging gate moved to
+# server-contract-milestone.yml, automatic only for acceptance/v0.1-* tags.
 on:
   push:
     paths:
       - 'apps/server/**'
-      - 'apps/web-next/contract-check/**'
-      - 'apps/web-next/tsconfig.contract.json'
-      - 'apps/web-next/src/lib/**'
-      - 'apps/web-next/src/components/device-directory.tsx'
-      - 'apps/web-next/src/components/preview-query-provider.tsx'
-      - 'apps/web-next/src/app/(console)/layout.tsx'
-      - 'apps/web-next/package.json'
-      - 'apps/web-next/pnpm-lock.yaml'
       - 'deploy/caddy/Caddyfile.reference'
       - 'deploy/caddy/tests/**'
       - '.github/workflows/server-unit.yml'
   pull_request:
     paths:
       - 'apps/server/**'
-      - 'apps/web-next/contract-check/**'
-      - 'apps/web-next/tsconfig.contract.json'
-      - 'apps/web-next/src/lib/**'
-      - 'apps/web-next/src/components/device-directory.tsx'
-      - 'apps/web-next/src/components/preview-query-provider.tsx'
-      - 'apps/web-next/src/app/(console)/layout.tsx'
-      - 'apps/web-next/package.json'
-      - 'apps/web-next/pnpm-lock.yaml'
       - 'deploy/caddy/Caddyfile.reference'
       - 'deploy/caddy/tests/**'
       - '.github/workflows/server-unit.yml'
+
+concurrency:
+  group: lanveriq-server-unit-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -76,53 +67,3 @@ jobs:
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test
-      - name: Verify REAL Springdoc-generated device contract (no DB, Docker or TLS)
-        working-directory: apps/server
-        run: python3 scripts/verify-generated-openapi.py build/contracts/openapi.json
-      - name: Publish reviewed source-generated OpenAPI as CI artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: lanveriq-device-openapi-${{ github.sha }}
-          path: apps/server/build/contracts/openapi.json
-          if-no-files-found: error
-          retention-days: 14
-      - name: Compile opt-in PostgreSQL integration source (do not start Docker)
-        working-directory: apps/server
-        # A previous Gradle cache contained negative Maven Central JAR lookups.
-        # Force a genuine dependency re-resolution; this still FAILS on errors.
-        run: ./gradlew --refresh-dependencies compileIntegrationTestJava
-      - name: Verify runnable Boot JAR packaging (no integration/E2E)
-        working-directory: apps/server
-        run: ./gradlew bootJar
-      # Node/pnpm is used ONLY for typed API contract verification; no UI
-      # app is deployed, and PostgreSQL/manual TLS gates stay independent.
-      - name: Set up pnpm and Node 24 for Orval contract smoke
-        uses: pnpm/setup@v3
-        with:
-          version: '12.0.0'
-          runtime: node@24
-          working-directory: apps/server/contract-client-check
-          install: true
-          require-lockfile: true
-          cache: false
-      - name: Generate and typecheck actual Orval Fetch/TanStack Query client
-        working-directory: apps/server/contract-client-check
-        run: pnpm verify
-      # The canonical Next.js frontend is the only maintained Web client.
-      # The Vite harness is retained as legacy reference, not in this gate.
-      - name: Verify complete generated Orval Fetch/React Query hooks against locked Next.js dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p apps/web-next/.generated-contract/model
-          cp -a apps/server/contract-client-check/generated/. apps/web-next/.generated-contract/
-          cd apps/web-next
-          pnpm install --frozen-lockfile
-          pnpm exec tsc --noEmit --project tsconfig.contract.json
-      - name: Upload non-deployed typechecked Orval candidate
-        uses: actions/upload-artifact@v7
-        with:
-          name: lanveriq-orval-contract-${{ github.sha }}
-          path: apps/server/contract-client-check/generated/
-          if-no-files-found: error
-          retention-days: 14
