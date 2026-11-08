@@ -1,5 +1,8 @@
 # Frontend design system — canonical Next.js App Router, live integration pending
 
+**当前规范覆盖旧提案（2026-11-08）：** 正式维护的 UI 只有 `apps/web-next`：Next.js 16.4.5 / React 19 / Tailwind 4 / **Base UI React** 和项目内 shadcn-style 组件。当前获选 **B+C 浅色主题**（`#F8F8FC` 背景、`#6A5BFF` 紫色主品牌、`#3882F6` 蓝、`#C9FF6A` 青柠点缀、`#1C1A2E` 深色文本）；以下 2026-10/早期 11 的 **蓝色 Vite/Radix 配色和功能清单是迁移历史，不再具有实施优先级**。真正受授权的登录/设备查询依旧默认关闭，公开 Pages 仅断开预览。按 [v0.1 批次计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md) 暂缓非必要视觉微调；新增依赖以 [实际 manifest](../../apps/web-next/package.json) 为准。
+
+
 **NXT-12 framework cutover (2026-11-07):** Use `apps/web-next` **Next.js 16.4.5 stable** as the only forward-development UI app. Its Next.js App Router pages, Tailwind 4/shadcn-style components, TanStack Query, build-time Orval types and GitHub Pages static showcase have passed relevant locked-build/source gates. The original `apps/web` Vite project and its localhost-only anonymous health proxy are **legacy reference**, not a current product endpoint. Do not copy Vite-only development proxy logic into Next.js, or mount a credentialed route to replicate historical demo data. No real session, business data, Agent telemetry or production proxy deployment is authorized by this framework cutover; retain NXT-10/NXT-11 Caddy/Spring security acceptance.
 
 
