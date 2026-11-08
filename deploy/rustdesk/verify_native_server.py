@@ -8,7 +8,6 @@ Never run this script on a deployed LAN/WAN or production server.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -123,7 +122,6 @@ def check_isolated_ci_only() -> None:
 
 
 def main() -> int:
-    changed_mode = False
     before: str | None = None
     failures: list[str] = []
     try:
@@ -133,7 +131,6 @@ def main() -> int:
         await_mode(False)
         host_forwarded_console_is_denied()
         console("aur Y")
-        changed_mode = True
         await_mode(True)
         console("aur N")
         await_mode(False)
@@ -169,7 +166,7 @@ def main() -> int:
     print(json.dumps({
         "result": "PASS_NATIVE_HBBS_CONTROL_AND_KEY_PERSISTENCE",
         "image_digest_pinned": True,
-        "external_admin_console_denied": True,
+        "host_forwarded_admin_command_denied": True,
         "relay_mode_readback": ["false", "true", "false", "false_after_restart"],
         "public_key_unchanged_across_restart": True,
         "private_key_permissions_checked": True,
