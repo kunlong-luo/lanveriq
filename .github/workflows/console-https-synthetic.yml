@@ -181,6 +181,12 @@ jobs:
         # No exposed listener, real administrator, Agent or device collection.
         working-directory: apps/server
         run: ./gradlew integrationTest --tests 'com.lanveriq.server.security.PostgreSqlConsoleSecurityWiringIT'
+      - name: Verify NXT-20 filtered UUID keyset against real disposable PostgreSQL 18
+        # This is a narrow, automatic synthetic integration class inside the
+        # already PG18-enabled HTTPS security workflow. The separate full
+        # PostgreSQL integration suite remains manually dispatched.
+        working-directory: apps/server
+        run: ./gradlew integrationTest --tests 'com.lanveriq.server.devices.PostgreSqlDeviceDirectoryIT'
       - name: Install isolated pinned Playwright/Chromium only for explicit browser opt-in
         if: ${{ github.event_name == 'push' || inputs.browser_probe }}
         shell: bash
