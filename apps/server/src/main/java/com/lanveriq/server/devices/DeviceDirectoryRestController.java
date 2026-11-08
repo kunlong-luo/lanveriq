@@ -63,9 +63,14 @@ public class DeviceDirectoryRestController {
             @Parameter(description = "Only device_id_asc is supported with UUID cursor")
             @RequestParam(name = "sort", defaultValue = "device_id_asc") String sort) {
         var query = new DeviceDirectoryListQuery(groupId, labelPrefix, sort);
+        // Preserve the already accepted no-filter controller/service contract
+        // for existing session and browser tests; both paths use the same
+        // scoped JPA implementation. Invalid sort never reaches this branch.
+        DeviceDirectoryPage page = query.hasFilters()
+                ? directory.list(cursor, limit, query)
+                : directory.list(cursor, limit);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(DeviceDirectoryRestResponse.Page.from(
-                        directory.list(cursor, limit, query)));
+                .body(DeviceDirectoryRestResponse.Page.from(page));
     }
 
     @Operation(summary = "Read one group-authorized device health summary",
