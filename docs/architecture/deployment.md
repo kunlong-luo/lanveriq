@@ -1,5 +1,8 @@
 # Private LAN deployment topology
 
+**2026-11-08 部署状态更新：** 正式发布方案仍只是候选；`apps/web-next` 是主 Next.js，GitHub Pages 是断开式静态预览，Caddy 参考模板不授权直接部署。完整 Caddy/Tomcat/PG18/Chromium 有以前的**合成安全成功记录**，但新 Batch A1 heartbeat POST **未进行真正 Agent 网络 L2**。代理服务器到 Spring 的 TLSv1.3-only **不能证明** Agent→Caddy 也只协商 TLSv1.3（Rust 客户端目前 min TLS1.2，Caddy 外部版本策略待验收）；上线前要经受控 CA/网络隔离、双向握手/降级、撤销/重放、真实设备/隐私和恢复演练。具体见 [设备协议与 P0 差距](device-communication-stack.md) 与 [v0.1 发布门槛](../operations/release.md)。
+
+
 ## Starter host (proposed)
 Ubuntu Server 24.04 LTS (or verified compatible server), 4–8 vCPU, 8–16 GiB RAM, 100+ GB SSD for system+PostgreSQL depending on measured event rate, **separate media disk/NAS** sized to codec/retention. Initial 1–10 endpoints. No K8s/Kafka. **Optional Redis 8** may reuse the existing private `spark-redis` solely for best-effort short-lived hints and connectivity health; PostgreSQL remains authoritative.
 
