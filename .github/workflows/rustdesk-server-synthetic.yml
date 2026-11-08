@@ -272,8 +272,17 @@ jobs:
               python /workspace/client_registration.py
             '
 
+      - name: Register two official clients in separate offline PID/IPC namespaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A real concurrent two-client test, NOT a desktop session.
+          # Both containers share only the disconnected server network namespace;
+          # they do not share PID, IPC, home, private keys or X11 sockets.
+          python3 deploy/rustdesk-synthetic/dual_client_registration.py
+
       - name: Scope statement
         if: success()
         run: |
           echo "PASS: official RustDesk client binary integrity, AppImage extraction and CLI version."
-          echo "Peer registration is checked in real upstream hbbs SQLite; NOT tested: full remote desktop session, E2EE, video, OS input, user permissions, or Lanveriq authorization."
+          echo "Single-client and two isolated real-client registration checked in hbbs SQLite; NOT tested: full remote desktop session, E2EE, video, input or Lanveriq authorization."
