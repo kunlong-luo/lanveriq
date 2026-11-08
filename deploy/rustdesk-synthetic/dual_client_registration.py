@@ -63,7 +63,20 @@ def wait_rows(server: str, clients: list[str], expected: int, seconds: int) -> l
     while time.monotonic() < deadline:
         for name in [server, *clients]:
             if not is_running(name):
-                raise AssertionError(f"isolated upstream container exited: {name.split('-')[-1]}")
+                role = "server" if name == server else ("first-client" if name == clients[0] else "second-client")
+                diagnostic = docker("logs", "--tail", "28", name, timeout=6, check=False)
+                # Never echo peer IDs or generated key material into CI logs.
+                markers = ("Traceback", "AssertionError", "ImportError",
+                           "ModuleNotFoundError", "error while loading shared libraries",
+                           "No such file or directory", "Error:", "exited early")
+                safe = [
+                    line[:220] for line in (diagnostic.stdout + diagnostic.stderr).splitlines()
+                    if any(marker in line for marker in markers)
+                ]
+                raise AssertionError(
+                    f"isolated upstream {role} stopped: "
+                    + (" | ".join(safe[-8:]) if safe else "no allowlisted diagnostics")
+                )
         result = rows(server)
         if len(result) == expected:
             if len({record[0] for record in result}) != expected:
