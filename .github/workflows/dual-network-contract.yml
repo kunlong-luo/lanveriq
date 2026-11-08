@@ -1,0 +1,43 @@
+name: Dual-network access contract (synthetic L1)
+
+# No network calls, secrets, credentials, real devices, DNS, VPN or deployment.
+# This intentionally does not claim WAN or actual RustDesk acceptance.
+on:
+  pull_request:
+    paths:
+      - 'deploy/network/**'
+      - 'docs/architecture/adrs/0010-rustdesk-dual-network-access.md'
+      - 'docs/operations/dual-network-acceptance.md'
+      - '.github/workflows/dual-network-contract.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'deploy/network/**'
+      - 'docs/architecture/adrs/0010-rustdesk-dual-network-access.md'
+      - 'docs/operations/dual-network-acceptance.md'
+      - '.github/workflows/dual-network-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-network-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  read-only-network-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Compile read-only network probe
+        run: python3 -m py_compile deploy/network/verify_dual_access.py deploy/network/test_verify_dual_access.py
+      - name: Assert TLS, network routing and anonymous API fail-closed contracts
+        run: python3 -m unittest discover -s deploy/network -p 'test_verify_dual_access.py' -v
+      - name: Scope reminder
+        run: |
+          echo 'PASS only for synthetic source/unit checks; not actual LAN, WAN, VPN, RustDesk or production reachability.' >> "$GITHUB_STEP_SUMMARY"
