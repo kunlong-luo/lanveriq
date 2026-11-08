@@ -72,6 +72,10 @@ lanveriq:
     ingress:
       assertions-enabled: ${LANVERIQ_AGENT_INGRESS_ASSERTIONS_ENABLED:false}
       expected-host: ${LANVERIQ_AGENT_INGRESS_EXPECTED_HOST:}
+    # Batch A: explicitly default-OFF Agent heartbeat POST, even if the
+    # assertion parser was independently configured for a synthetic test.
+    heartbeat:
+      http-enabled: ${LANVERIQ_AGENT_HEARTBEAT_HTTP_ENABLED:false}
   # This internal-only service has no HTTP route. Keep OFF until reviewed
   # admin/Caddy/CSRF, PostgreSQL and organizational acceptance.
   # WEB-01 health-only scoped JPA reads; DEFAULT OFF and NO HTTP endpoint.
