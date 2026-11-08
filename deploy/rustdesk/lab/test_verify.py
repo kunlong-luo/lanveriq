@@ -107,6 +107,14 @@ class RealPeerProofUnitTests(TestCase):
             with self.assertRaisesRegex(lab_run.EvidenceRejected, "snapshot copy failed"):
                 lab_run.registration_snapshot(pathlib.Path("synthetic-registrations.sqlite3"))
 
+    def test_timed_out_docker_command_never_leaks_its_original_arguments(self):
+        incident = lab_run.subprocess.TimeoutExpired(cmd=["docker", "SECRET_PASSPHRASE"], timeout=1)
+        with mock.patch.object(lab_run.subprocess, "run", side_effect=incident):
+            with self.assertRaises(lab_run.EvidenceRejected) as ctx:
+                lab_run.invoke(["docker", "compose", "exec", "SECRET_PASSPHRASE"], timeout=1)
+        self.assertIn("timed out", str(ctx.exception))
+        self.assertNotIn("SECRET_PASSPHRASE", str(ctx.exception))
+
     def test_registration_rejects_missing_or_untrusted_files(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = pathlib.Path(tmp) / "missing.sqlite"
