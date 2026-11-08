@@ -1,5 +1,8 @@
 # Rust Agent: SQLite outbox, persistence and crash recovery
 
+**2026-11-08 当前状态校正：** `apps/agent/src/store.rs` 与 `transport.rs` 已包含 durable upload batch、inventory 完整性/严格 ACK 分类和 Batch A 心跳 typed ACK 的部分实现与单元测试。下文“upload batches / ACK / inventory / integrity diagnostics 尚未实现”的 AGT-02 记录属于**历史阶段快照**，不得作为当前源码清单。**真正缺口**是 Agent 服务的密钥/审批注册、持续调度/网络桥接、跨端真实 TLS/PG18 联调和设备 OS 试点。详见 [Batch A](../development/batch-a-first-heartbeat-implementation.md) 与 [设备协议栈](device-communication-stack.md)。
+
+
 **Status:** D0 design with partial AGT-02 SQLx synthetic persistence source; production and real OS evidence remain open. **Selected:** **SQLx 0.9 SQLite** + patched bundled SQLite WAL + one serialized write connection; supersedes the rusqlite blocking-worker proposal under [ADR-0007](adrs/0007-mature-ecosystem-first.md). Inspired by Pagevela's single ordered persistence coordinator, but backend is SQLite, not browser IndexedDB. Canonical acknowledgment semantics are specified in [Event Delivery](event-delivery.md).
 
 ## AGT-03 durable in-flight batch state (synthetic-only)
