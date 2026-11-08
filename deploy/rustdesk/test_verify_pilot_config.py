@@ -107,7 +107,7 @@ class RustDeskPilotSecurityTests(TestCase):
 
     def test_compose_config_escapes_awk_field_dollars_only(self):
         config = fixture()
-        config["services"]["rustdesk-pilot"]["entrypoint"][2] = guard.PILOT_ENTRYPOINT.replace("$3", "$3")
+        config["services"]["rustdesk-pilot"]["entrypoint"][2] = guard.PILOT_ENTRYPOINT.replace("$3", "$$3")
         self.assertEqual(self.accepts(config)["result"], "PASS_STATIC_CONFIG_ONLY")
         config["services"]["rustdesk-pilot"]["entrypoint"][2] = guard.PILOT_ENTRYPOINT.replace("$3", "$9")
         with self.assertRaises(guard.ConfigurationRejected):
