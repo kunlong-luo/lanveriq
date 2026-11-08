@@ -117,13 +117,13 @@ def main() -> None:
     processes: list[subprocess.Popen[bytes]] = []
     logs = []
 
-    def start(command: list[str], name: str, **kwargs: object) -> subprocess.Popen[bytes]:
+    def start(command: list[str], name: str,
+              custom_env: dict[str, str] | None = None) -> subprocess.Popen[bytes]:
         log_file = (ROOT / f"{name}.log").open("wb")
         logs.append(log_file)
         p = subprocess.Popen(
-            command, cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
+            command, cwd=ROOT, env=custom_env or env, stdin=subprocess.DEVNULL,
             stdout=log_file, stderr=subprocess.STDOUT, start_new_session=True,
-            **kwargs,
         )
         processes.append(p)
         return p
@@ -187,6 +187,61 @@ def main() -> None:
             raise AssertionError("registered RustDesk peer has invalid ID/UUID/public key")
         if client.poll() is not None:
             raise AssertionError("official client exited immediately after registration")
+        # A second REAL upstream client must not inherit the first client's
+        # logical ID simply because the same CI container hosts both. Each
+        # process has a dedicated XDG config/runtime and virtual X11 display.
+        home2 = ROOT / "home-secondary"
+        home2.mkdir(mode=0o700, exist_ok=True)
+        runtime2 = ROOT / "runtime-secondary"
+        runtime2.mkdir(mode=0o700, exist_ok=True)
+        env2 = {
+            **env,
+            "HOME": str(home2),
+            "XDG_CONFIG_HOME": str(home2 / ".config"),
+            "XDG_CACHE_HOME": str(home2 / ".cache"),
+            "XDG_RUNTIME_DIR": str(runtime2),
+            "DISPLAY": ":92",
+        }
+        xvfb2 = start(["Xvfb", ":92", "-screen", "0", "1024x768x24",
+                       "-nolisten", "tcp", "-ac"], "xvfb-secondary", custom_env=env2)
+        deadline = time.monotonic() + 10
+        while not Path("/tmp/.X11-unix/X92").exists() and time.monotonic() < deadline:
+            if xvfb2.poll() is not None:
+                raise AssertionError("secondary synthetic Xvfb exited")
+            time.sleep(0.15)
+        if not Path("/tmp/.X11-unix/X92").exists():
+            raise AssertionError("secondary virtual display socket not ready")
+        write_client_config(home2, server_key)
+        client2 = start([str(CLIENT), "--server"], "official-client-secondary", custom_env=env2)
+        original_peer_id = peer_id
+        deadline = time.monotonic() + MAX_WAIT_S
+        while time.monotonic() < deadline:
+            if client2.poll() is not None:
+                raise AssertionError(
+                    "secondary upstream client exited before identity-isolation check: "
+                    + read_safe_diagnostics(ROOT / "official-client-secondary.log")
+                )
+            if client.poll() is not None or hbbs.poll() is not None or hbbr.poll() is not None:
+                raise AssertionError("upstream first client or servers exited during two-peer check")
+            peers = get_peers(db)
+            if len(peers) == 2:
+                second_ids = {item[0] for item in peers}
+                if len(second_ids) == 2 and original_peer_id in second_ids:
+                    if not all(6 <= len(item[0]) and item[1] >= 16 and item[2] == 32
+                               for item in peers):
+                        raise AssertionError("second client registered without valid UUID/PK metadata")
+                    break
+            if len(peers) > 2:
+                raise AssertionError("unexpected extra rendezvous peer in isolated test")
+            time.sleep(PROBE_INTERVAL_S)
+        else:
+            raise AssertionError(
+                "two independent official RustDesk clients did not register "
+                "with distinct IDs in the same isolated hbbs: "
+                + read_safe_diagnostics(ROOT / "official-client-secondary.log")
+            )
+        print("PASS: two simultaneous genuine RustDesk 1.5.1 clients have distinct peer IDs")
+        print("PASS: both genuine clients maintain valid UUID/public-key metadata in hbbs")
         print("PASS: official RustDesk 1.5.1 --server registered its real key and UUID")
         print("PASS: upstream hbbs 1.1.16 durably stored the peer in a fresh SQLite DB")
         print("PASS: no external routing, real host device, synthetic peer injection, or LAN ports")
