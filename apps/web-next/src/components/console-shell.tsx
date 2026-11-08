@@ -130,7 +130,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
               aria-label="查看尚未开放的管理员登录">DEMO</Link>
           </div>
         </header>
-        <main id="main" className="main-content">
+        <main id="main" tabIndex={-1} className="main-content">
           <div className="warning-banner" role="status">
             <span className="bc-preview-dot" aria-hidden="true"/>
             <strong>独立预览 · 不含真实数据</strong>
