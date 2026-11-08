@@ -107,6 +107,21 @@ def registration_snapshot(destination: pathlib.Path) -> None:
 def peer_diagnostic(name: str) -> str:
     # Return only boolean categories, no raw client logs/IDs/public keys.
     test = (
+        "printf 'dns='; "
+        "if getent hosts rd-server >/dev/null 2>&1; then echo resolved; else echo failure; fi; "
+        "printf 'cfg='; "
+        "if grep -q 'custom-rendezvous-server = \\"rd-server:21116\\"' "
+        '\\"$HOME/.config/rustdesk/RustDesk2.toml\\" 2>/dev/null; '
+        "then echo loaded_file; else echo missing_or_invalid; fi; "
+        "printf 'client_register_log='; "
+        "if grep -Eiq 'register.*(id|peer|pk)|rendezvous.*(server|connect)' /tmp/rustdesk.log 2>/dev/null; "
+        "then echo seen; else echo absent; fi; "
+        "printf 'client_network_error='; "
+        "if grep -Eiq 'failed to resolve|name or service not known|network is unreachable|connection refused|server unreachable' /tmp/rustdesk.log 2>/dev/null; "
+        "then echo seen; else echo absent; fi; "
+        "printf 'client_panic='; "
+        "if grep -Eiq 'panic|fatal error|segmentation fault' /tmp/rustdesk.log 2>/dev/null; "
+        "then echo seen; else echo absent; fi; "
         "printf 'rustdesk='; "
         "if ps -e -o comm= | grep -qx rustdesk; then echo running; else echo absent; fi; "
         "printf 'xvfb='; "
@@ -127,9 +142,23 @@ def peer_diagnostic(name: str) -> str:
         return "unavailable"
 
 
+def db_diagnostic(file: pathlib.Path) -> str:
+    if not file.is_file():
+        return "missing"
+    try:
+        with sqlite3.connect(f"file:{file.resolve()}?mode=ro", uri=True, timeout=1) as db:
+            tables = {x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "peer" not in tables:
+                return "no_peer_table"
+            total, distinct = db.execute("SELECT COUNT(*), COUNT(DISTINCT id) FROM peer").fetchone()
+            return f"rows={total},distinct={distinct}"
+    except sqlite3.Error:
+        return "unreadable"
+
+
 def await_two_registrations(folder: pathlib.Path) -> int:
     db = folder / "registered.sqlite3"
-    for _ in range(45):
+    for _ in range(20):
         try:
             registration_snapshot(db)
             return check_registered_db(db)
@@ -142,7 +171,8 @@ def await_two_registrations(folder: pathlib.Path) -> int:
     except EvidenceRejected:
         db_ok = "unavailable"
     raise EvidenceRejected("No evidence of two unique registered RustDesk peers; "
-                           + " | ".join(diagnostics) + f" | hbbs_sqlite={db_ok}")
+                           + " | ".join(diagnostics)
+                           + f" | hbbs_sqlite={db_ok},snapshot={db_diagnostic(db)}")
 
 
 def run_lab() -> dict:
