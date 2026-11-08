@@ -188,6 +188,45 @@ class PostgreSqlDeviceDirectoryIT {
     }
 
     @Test
+    void filteredUuidPagesIntersectLiveScopesAndEscapeLiteralWildcardPrefixes() {
+        UUID ownGroup = (UUID) manager.createNativeQuery(
+                "SELECT group_id FROM devices WHERE id=:id")
+                .setParameter("id", first).getSingleResult();
+        UUID otherGroup = (UUID) manager.createNativeQuery(
+                "SELECT group_id FROM devices WHERE id=:id")
+                .setParameter("id", outsider).getSingleResult();
+
+        var own = new DeviceDirectoryListQuery(
+                ownGroup, "Synthetic", "device_id_asc");
+        var firstPage = directory.list(null, 1, own);
+        assertEquals(1, firstPage.items().size());
+        assertTrue(firstPage.nextCursor() != null);
+        var secondPage = directory.list(firstPage.nextCursor(), 1, own);
+        assertEquals(1, secondPage.items().size());
+        assertNull(secondPage.nextCursor());
+        assertEquals(Set.of(first, second), Set.of(
+                firstPage.items().getFirst().deviceId(),
+                secondPage.items().getFirst().deviceId()));
+
+        assertTrue(directory.list(null, 100,
+                new DeviceDirectoryListQuery(otherGroup, null, "device_id_asc"))
+                .items().isEmpty());
+        assertTrue(directory.list(null, 100,
+                new DeviceDirectoryListQuery(null, "Confidential", "device_id_asc"))
+                .items().isEmpty());
+
+        new TransactionTemplate(managerTx).executeWithoutResult(ignored ->
+                insertDevice(ownGroup, "%Synthetic test", "active"));
+        var literalWildcard = directory.list(null, 100,
+                new DeviceDirectoryListQuery(ownGroup, "%S", "device_id_asc"));
+        assertEquals(1, literalWildcard.items().size());
+        assertEquals("%Synthetic test", literalWildcard.items().getFirst().label());
+
+        login(otherAdmin);
+        assertTrue(directory.list(null, 100, own).items().isEmpty());
+    }
+
+    @Test
     void disabledAdministratorLosesAllHealthScopeDespiteStalePrincipal() {
         assertEquals(2, directory.list(null, 100).items().size());
         new TransactionTemplate(managerTx).executeWithoutResult(ignored ->
