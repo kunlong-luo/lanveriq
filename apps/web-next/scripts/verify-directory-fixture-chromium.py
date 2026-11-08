@@ -63,6 +63,9 @@ def verify(browser, width):
         require(page.locator(".device-table tbody th[scope='row'] strong").first.inner_text() ==
                 "CI合成设备甲", "page_sort_did_not_restore_server_order")
         if width <= 390:
+            for control in (search, group, sorting):
+                require(control.bounding_box()["height"] >= 44,
+                        "nxt19_mobile_asset_control_hitbox_below_44px")
             table_region.focus()
             require(table_region.evaluate(
                 "(el) => document.activeElement === el"),
