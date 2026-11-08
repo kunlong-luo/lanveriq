@@ -38,6 +38,8 @@ The literal prefix applies to `COALESCE(NULLIF(device_label,''), 'Unlabeled devi
 - Explicitly reject `sort=label_asc`, `sort=group_asc` and reverse UUID sort: global sorting by anything other than ascending UUID would require a separately versioned, composite keyset contract `(normalized sort value, device UUID)`, index review, filter binding and negative tests.
 - `label_prefix` is anchored. It can still require a scan over authorized devices; before production high-cardinality deployments, review `EXPLAIN (ANALYZE, BUFFERS)`, rate limits, P95 targets and appropriate index strategy. No new database migration or unreviewed performance promise is made here.
 - Distinguish empty authorized pages from disconnected/forbidden states. Filtered absence is **not** proof a hidden device does not exist.
+- **Data freshness:** `heartbeat_received_at` and `inventory_received_at` remain nullable server receive timestamps, not guessed `online` booleans or an aggregate snapshot time. A missing timestamp means **unknown/not yet received**, not `0` or `offline`. A future monitoring status classifier must use its independent trusted server `as_of` and last-receipt policy; pagination does not create freshness.
+- **Session changes:** the web client must cancel outstanding queries and clear React Query caches on identity/group-role changes before refetching page 1; never display previous-identity rows while a new request is pending.
 - A candidate API client must use the **generated Springdoc/Orval contract**, not duplicate hand-maintained TypeScript response types. Existing `DirectoryState`/React Query session caches must clear on logout/scope change before showing new rows.
 
 ## Implementation and verification approach
