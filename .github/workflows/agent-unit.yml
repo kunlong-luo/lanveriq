@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: lanveriq-agent-l1-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   agent-unit:
     strategy:
