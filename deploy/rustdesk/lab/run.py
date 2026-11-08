@@ -96,10 +96,13 @@ def registration_snapshot(destination: pathlib.Path) -> None:
     for suffix in ("", "-wal", "-shm"):
         src = f"rd-server:/data/db_v2.sqlite3{suffix}"
         dst = str(destination) + suffix
-        run = subprocess.run([*CMD, "cp", "-q", src, dst],
+        # docker compose cp has NO -q flag (unlike docker cp).
+        # A previously unsupported option silently prevented all snapshots!
+        # Do not turn a failed copy into a false "zero registered peers".
+        run = subprocess.run([*CMD, "cp", src, dst],
                              capture_output=True, text=True, timeout=15)
         if suffix == "" and run.returncode:
-            raise EvidenceRejected("RustDesk registration SQLite does not exist")
+            raise EvidenceRejected(f"RustDesk registration SQLite snapshot copy failed (exit={run.returncode})")
         if suffix != "" and run.returncode and pathlib.Path(dst).exists():
             pathlib.Path(dst).unlink()
 
