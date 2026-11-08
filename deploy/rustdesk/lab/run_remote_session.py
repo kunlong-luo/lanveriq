@@ -80,6 +80,11 @@ def start_synthetic_scene() -> None:
             if re.fullmatch(r"[0-9]+", visible):
                 # No local/automation mouse click has been sent to peer-b.
                 peer_cmd("peer-b", "test ! -e /tmp/r2-remote-input-ok")
+                # Headless Docker lacks an interactive login session that
+                # normally starts RustDesk's native Connection Manager.
+                # Launch the *official* upstream CM explicitly, but do not
+                # approve any connection until its real Accept button appears.
+                background("peer-b", "exec rustdesk --cm >/tmp/r2-cm.log 2>&1")
                 return
         except EvidenceRejected:
             pass
@@ -98,31 +103,31 @@ def launch_connect(target_id: str) -> None:
 
 
 def try_operator_accept() -> bool:
-    # Only the receiving synthetic peer is allowed to approve. It has
-    # RustDesk defaults to password-click; NO password is supplied here.
-    # Only a real CM approval button can authorize this experiment.
-    # The only legitimate upstream RustDesk window on peer-b is its CM popup;
-    # the remote-only marker has a distinct, excluded title.
+    # Synthetic peer-b is the ONLY operator and has an explicit visible
+    # upstream RustDesk CM window. The test does not supply any password.
+    # Exclude the known test-scene window before clicking any GUI surface.
     click = r"""
-ids="$(xdotool search --onlyvisible --name 'RustDesk' 2>/dev/null || true)"
+ids="$(xdotool search --onlyvisible --class '([Rr]ust[Dd]esk|flutter)' 2>/dev/null || true)"
+if [ -z "$ids" ]; then
+  ids="$(xdotool search --onlyvisible --name '.*' 2>/dev/null || true)"
+fi
 for id in $ids; do
   title="$(xdotool getwindowname "$id" 2>/dev/null || true)"
-  case "$title" in
-    *LANVERIQ*|'') continue ;;
-    *RustDesk*|*rustdesk*)
-      geometry="$(xdotool getwindowgeometry --shell "$id" 2>/dev/null || true)"
-      case "$geometry" in *WIDTH=*"HEIGHT="*) ;; *) continue ;; esac
-      eval "$geometry"
-      if [ "$WIDTH" -ge 300 ] && [ "$HEIGHT" -ge 220 ]; then
-        x="$((WIDTH * 27 / 100))"
-        y="$((HEIGHT - 48))"
-        xdotool windowactivate --sync "$id" >/dev/null 2>&1 || continue
-        xdotool mousemove --window "$id" "$x" "$y" click 1 >/dev/null 2>&1 || continue
-        echo CLICKED_UPSTREAM_SYNTHETIC_ACCEPT_BUTTON
-        exit 0
-      fi
-      ;;
-  esac
+  case "$title" in *LANVERIQ_R2_REMOTE_ONLY_CANVAS*) continue ;; esac
+  geometry="$(xdotool getwindowgeometry --shell "$id" 2>/dev/null || true)"
+  case "$geometry" in *WIDTH=*"HEIGHT="*) ;; *) continue ;; esac
+  eval "$geometry"
+  # Fail closed on tiny tray/popover windows; the real CM is a large
+  # desktop Flutter window. No other non-test GUI runs in peer-b.
+  if [ "$WIDTH" -ge 300 ] && [ "$HEIGHT" -ge 220 ] &&
+     [ "$WIDTH" -le 1500 ] && [ "$HEIGHT" -le 1300 ]; then
+    x="$((WIDTH * 27 / 100))"
+    y="$((HEIGHT - 48))"
+    xdotool windowactivate --sync "$id" >/dev/null 2>&1 || continue
+    xdotool mousemove --window "$id" "$x" "$y" click 1 >/dev/null 2>&1 || continue
+    echo CLICKED_UPSTREAM_SYNTHETIC_ACCEPT_BUTTON
+    exit 0
+  fi
 done
 echo NO_UPSTREAM_ACCEPT_WINDOW
 """
@@ -160,7 +165,11 @@ def diagnosis(peer: str) -> str:
 printf 'x11='
 if xdpyinfo >/dev/null 2>&1; then echo ready; else echo unavailable; fi
 printf 'rustdesk_windows='
-xdotool search --onlyvisible --name 'RustDesk' 2>/dev/null | wc -l
+xdotool search --onlyvisible --class '([Rr]ust[Dd]esk|flutter)' 2>/dev/null | wc -l
+printf 'any_gui_windows='
+xdotool search --onlyvisible --name '.*' 2>/dev/null | wc -l
+printf 'cm_executable='
+if grep -Fq 'cm' /tmp/r2-cm.log 2>/dev/null; then echo logging; elif test -f /tmp/r2-cm.log; then echo started; else echo absent; fi
 printf 'rustdesk_processes='
 ps -e -o comm= | grep -cx rustdesk || true
 printf 'scene='
@@ -168,7 +177,7 @@ if xdotool search --onlyvisible --name '^LANVERIQ_R2_REMOTE_ONLY_CANVAS$' >/dev/
 printf 'login_error='
 if grep -Eqi 'login error|authorization denied|no password access' /tmp/r2-connect.log 2>/dev/null; then echo yes; else echo no; fi
 printf 'fatal='
-if grep -Eqi 'error while loading shared libraries|segmentation fault|panic' /tmp/r2-connect.log /tmp/r2-controller-gui.log /tmp/r2-scene.log 2>/dev/null; then echo yes; else echo no; fi
+if grep -Eqi 'error while loading shared libraries|segmentation fault|panic' /tmp/r2-connect.log /tmp/r2-controller-gui.log /tmp/r2-scene.log /tmp/r2-cm.log 2>/dev/null; then echo yes; else echo no; fi
 """
     try:
         return peer_cmd(peer, script).replace("\n", ",")
