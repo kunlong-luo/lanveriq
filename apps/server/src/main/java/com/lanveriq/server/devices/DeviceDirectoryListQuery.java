@@ -22,11 +22,8 @@ public record DeviceDirectoryListQuery(UUID groupId, String labelPrefix, String 
             throw new IllegalArgumentException("Only device_id_asc keyset order is supported");
         }
         if (labelPrefix != null) {
-            labelPrefix = labelPrefix.strip();
-            if (labelPrefix.isEmpty() ||
-                    labelPrefix.codePointCount(0, labelPrefix.length()) > MAX_PREFIX_CODE_POINTS) {
-                throw new IllegalArgumentException("Device label prefix must be 1-64 characters");
-            }
+            // Inspect raw input BEFORE stripping so control characters cannot
+            // be hidden as "whitespace" by normalization.
             for (int i = 0; i < labelPrefix.length(); ) {
                 int point = labelPrefix.codePointAt(i);
                 if (Character.isISOControl(point) ||
@@ -34,6 +31,11 @@ public record DeviceDirectoryListQuery(UUID groupId, String labelPrefix, String 
                     throw new IllegalArgumentException("Invalid device label prefix character");
                 }
                 i += Character.charCount(point);
+            }
+            labelPrefix = labelPrefix.strip();
+            if (labelPrefix.isEmpty() ||
+                    labelPrefix.codePointCount(0, labelPrefix.length()) > MAX_PREFIX_CODE_POINTS) {
+                throw new IllegalArgumentException("Device label prefix must be 1-64 characters");
             }
         }
     }
