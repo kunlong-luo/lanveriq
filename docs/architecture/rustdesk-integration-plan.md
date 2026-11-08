@@ -61,7 +61,15 @@
 
 **CI 验收证据：**首次真实协议通过 [#42487021396](https://github.com/kunlong-luo/lanveriq/actions/runs/42487021396)；依赖与 Action 固定后的**最新全链路协议复测通过 [#42487130862](https://github.com/kunlong-luo/lanveriq/actions/runs/42487130862)**。测试代码和文档在 Draft PR #2，不在正式 `main`。
 
-**重要限制：**这些是 **RustDesk OSS 真实服务端 + 两个合成协议端点**。没有运行真正的 RustDesk 桌面客户端，也没有完整的设备会话握手、端到端加密、视频/输入/文件传输、真实 P2P/NAT、公网延迟、Windows/Linux OS 权限或者 Spring RBAC 到底层中继的授权桥。**服务器公钥并非 Lanveriq 管理员登录或设备业务授权**。所以 RD-1 的传输基础验证可标记已通过，**RD-1 真实远控客户端与 RD-2 会话授权门槛仍 OPEN**，不能对外标为已交付远程控制。
+**重要限制：**这些是 **RustDesk OSS 真实服务端 + 两个合成协议端点**。未使用真正的 RustDesk 桌面客户端进行设备注册/建立会话（另见下述独立的离线客户端 CLI 验证），也没有完整的设备会话握手、端到端加密、视频/输入/文件传输、真实 P2P/NAT、公网延迟、Windows/Linux OS 权限或者 Spring RBAC 到底层中继的授权桥。**服务器公钥并非 Lanveriq 管理员登录或设备业务授权**。所以 RD-1 的传输基础验证可标记已通过，**RD-1 真实远控客户端与 RD-2 会话授权门槛仍 OPEN**，不能对外标为已交付远程控制。
+
+### 2026-11-08 官方 RustDesk 桌面客户端 CLI 离线验证（已通过）
+
+- 官方客户端版本：**1.5.1**（GitHub Releases 发布于 2026-11-01）。Linux x86_64 AppImage 的官方 SHA-256 固定为 `bb8b7ccb3f50a201dccdc89b46385cff90f33e60b4730faeda9fa5504ac4dce6`；从官方 Release URL 下载并使用 `sha256sum --check --strict` 验证。
+- [RustDesk OSS synthetic workflow](../../.github/workflows/rustdesk-server-synthetic.yml) 新增 `official-client-cli` 作业：在临时测试环境中解包**未修改的官方 AppImage**，检查 `AppRun`，然后真实执行 `AppRun --version` 并验证命令退出码。执行日志正确输出 `1.5.1`。
+- AppImage 二进制验证环境：官方下载只发生在 GitHub runner；运行时 Docker `--network none`，非 root、只读根目录、临时可执行 tmpfs、禁所有 Linux capabilities、无主机端口映射/显示服务器/生产密钥/真实设备。为了满足 Flutter 桌面程序的系统动态库依赖，在另一阶段临时构建基于 SHA 固定的 Python 镜像并安装测试用 Linux GTK/X11 库。**没有部署或启动正式被控端 Agent。**
+- **本次已通过 CI：**[GitHub Actions #42488022687](https://github.com/kunlong-luo/lanveriq/actions/runs/42488022687)，两项作业（原 RustDesk Server OSS 协议中继测试、官方客户端离线 CLI 测试）均 SUCCESS。
+- **验收界限：**真实 RustDesk 客户端已经在隔离容器中成功执行了离线 `--version`，但**没有连接 `hbbs/hbbr`**、注册 peer、建立远程控制会话、验证视频或用户同意。它与服务端 1.1.16 的端到端兼容性**仍未经验证**。下一个必需的实验是通过显式配置的隔离测试 ID/自托管会合服务器 + 虚拟显示会话建立真实客户端连接，并验证最小权限及退出回收；同时在服务端证实访问不能绕过 Lanveriq RBAC，不能只测试屏幕能显示。
 
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
 
