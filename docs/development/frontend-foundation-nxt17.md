@@ -48,6 +48,21 @@ A shell cleanup trap removes the generated `src/app/synthetic-directory-probe` d
 
 The ordinary `scripts/verify-route-contract.mjs` explicitly **rejects** a committed `src/app/synthetic-directory-probe` folder or any runtime source importing the unmounted fixture.
 
+## Verified automated acceptance (2026-11-08)
+
+All relevant CI workflows completed successfully **after the NXT-17 source changes**:
+
+| Checked surface | Evidence |
+| --- | --- |
+| [Next.js isolated preview checks #42437031698](https://github.com/kunlong-luo/lanveriq/actions/runs/42437031698) | **SUCCESS** — frozen pnpm 12 lock, source/route safety, Vitest, TypeScript 7, real production build and 11-page HTTP checks |
+| [Next.js real Chromium + disposable directory #42437192574](https://github.com/kunlong-luo/lanveriq/actions/runs/42437192574) | **SUCCESS** — ordinary 11 pages, mobile keyboard/focus and no network/cookies; **NXT-17 SYNTHETIC DIRECTORY CHROMIUM PASS** for both 390/1440px, authorized page search/group/clear, scope replacement, revoke and restore |
+| [Public GitHub Pages deployment #42437031767](https://github.com/kunlong-luo/lanveriq/actions/runs/42437031767) | **SUCCESS** — published disconnected Next.js only |
+| [Caddy/Tomcat/Spring/PG18/multi-admin browser #42437080815](https://github.com/kunlong-luo/lanveriq/actions/runs/42437080815) | **SUCCESS** — synthetic origin isolation, authenticated HTML/RSC, no-store, cookie/session/CSRF, edge static identity and two-admin group RBAC |
+
+A live check returned HTTP 200 for the disconnected `/devices/` page and **HTTP 404** for `/synthetic-directory-probe/`, confirming that the fixture never reached the publicly deployed Pages site.
+
+The first fixture run failed **only** because the previous browser step killed the pnpm launcher without killing its remaining Next.js child process, leaving port 3100 occupied. The browser workflow was corrected to launch both Next servers in dedicated `setsid` process groups and terminate the entire group at step exit. The resulting [re-run #42437192574](https://github.com/kunlong-luo/lanveriq/actions/runs/42437192574) fully passed. This was a CI cleanup issue, not a service authorization failure.
+
 ## Acceptance and remaining work
 
 - Normal GitHub Actions: `verify:routes`, Vitest, strict typecheck, production Next, 11-page HTTP smoke and Pages static export.
