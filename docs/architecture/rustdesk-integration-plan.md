@@ -103,6 +103,14 @@
 - **精确结论：**原版 OSS 的会合层只证明 server-key 校验，**不能替代** Lanveriq 针对管理员、组、设备和短期会话的授权执行。该测试**没有证明攻击者可以通过 RustDesk 密码、批准和端到端加密获取桌面控制权**，也未建立真实 A→B 画面会话。
 - **RD-2 状态：BLOCKED。** 未选定并验证实际会话层强制授权方案（包含外部原版 RustDesk 客户端直接绕开 UI、跨组、禁用账号、撤销/超时、凭证重放的拒绝与断开）前，不增加可被真实终端调用的远控 API、生产开放端口或自动启动权限。比较 RustDesk Server Pro 或经许可的其他方案，但不能假定 Pro 的管理 ACL 天然满足所有会话级要求。
 
+### 2026-11-08 两个官方客户端 A→B 真实会合信令（已通过，非桌面登录）
+
+- **官方原版组件：**RustDesk 1.5.1 Linux x86_64 AppImage 客户端 A、B + RustDesk Server OSS 1.1.16 `hbbs/hbbr`。均在 Docker `--internal` 私有网桥中运行；客户端独立 PID/IPC/挂载/网络命名空间、各自 Xvfb 虚拟屏幕、临时服务器公钥和配置，无外网路由或宿主机端口映射。
+- **实际客户端连接入口：**在客户端 A 中启动原版 Flutter 主界面（隔离 D-Bus session bus、Xvfb、软件 Mesa/EGL/OpenGL 渲染），再用上游 `AppRun --connect <B 的临时 peer ID>` 发起连接。**没有输入远程密码，也没有让 B 同意桌面访问**。B 的 peer ID 来自本轮官方客户端真实 `hbbs` SQLite 注册，而不是人为伪造。
+- **可核验的会合信令：**上游 `hbbs` 自带的 `punch-requests` 本机管理接口实际监听 **21115/TCP**（不是 21116/TCP 业务 Protobuf 端口）。测试先确认记录为空，发起 A→B 后再读取，只在记录明确指向 B 的 peer ID 时通过；测试不会输出原始 peer ID、公钥、密码或个人数据。
+- **自动证据：**[GitHub Actions #42491484680](https://github.com/kunlong-luo/lanveriq/actions/runs/42491484680) 的官方客户端与服务端两个作业 **SUCCESS**；官方客户端日志明确打印 `PASS: genuine RustDesk client A requested a rendezvous with client B`。之前的 SHA-256 校验、双客户端 UUID/公钥注册、退出隔离、Protobuf/错误密钥拒绝及双向 relay bytes 同批复测通过。
+- **严格限制：**该结果仅验证两台真实客户端间**已触发会合信令**。没有证据证明 RustDesk 的 `LoginRequest` 已被 B 授权，更未证明端到端加密、屏幕图像/视频帧、鼠标键盘输入、远控会话审计、撤销/禁用后的断连、跨公网 NAT/P2P 或 Lanveriq RBAC。因此**远程桌面会话未验收，RD-2 继续 BLOCKED**。下一次批次测试必须分别验证有效/无效远程密码与被控端明确批准、画面/输入、会话断开以及绕过 Lanveriq 的外部原版客户端被实际拒绝，且符合许可证方案。
+
 ## 4. RD-2 — Lanveriq 控制面授权桥与自研 UI
 
 先记录协议契约，再实施。以下为**候选接口**，不是仓库已存在的 API：
