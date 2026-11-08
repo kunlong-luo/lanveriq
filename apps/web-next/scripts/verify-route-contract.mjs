@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyRuntimeIsolation } from './verify-runtime-isolation.mjs';
+import { verifyStyleStructure } from './verify-css-structure.mjs';
 
 // Source-only CI guard; not a browser TLS/PG18 acceptance.
 const required = [
@@ -92,6 +93,8 @@ if (!canonicalStyle.includes('.bc-assets-workspace-head') ||
     canonicalStyle.includes('.bc-assets-art-square')) {
   throw new Error('NXT-16 asset workspace must stay operational-first and compact');
 }
+verifyStyleStructure(canonicalStyle);
+console.log('NXT-18 CSS audit passed: zero duplicate selectors in the same responsive scope');
 console.log('NXT-17 consolidated theme, single-source tokens and compact asset layout passed');
 
 const verified = verifyRuntimeIsolation(process.cwd());
