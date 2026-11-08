@@ -45,8 +45,8 @@ jobs:
         run: python3 -m unittest discover -s deploy/network -p 'test_verify_dual_access.py' -v
       - name: Compile and test RustDesk pilot safety contract
         run: |
-          python3 -m py_compile deploy/rustdesk/verify_pilot_config.py deploy/rustdesk/test_verify_pilot_config.py
-          python3 -m unittest discover -s deploy/rustdesk -p 'test_verify_pilot_config.py' -v
+          python3 -m py_compile deploy/rustdesk/verify_pilot_config.py deploy/rustdesk/test_verify_pilot_config.py deploy/rustdesk/verify_native_server.py deploy/rustdesk/test_verify_native_server.py
+          python3 -m unittest discover -s deploy/rustdesk -p 'test_verify_*.py' -v
       - name: Render Docker Compose and enforce approved-only static network config
         env:
           RUSTDESK_PILOT_RELAY_HOST: localhost
@@ -60,6 +60,7 @@ jobs:
         env:
           RUSTDESK_PILOT_RELAY_HOST: localhost
           RUSTDESK_PILOT_BIND_IP: 127.0.0.1
+          LANVERIQ_RUSTDESK_CI_BEHAVIOR_TEST: '1'
         shell: bash
         run: |
           set -euo pipefail
@@ -85,8 +86,10 @@ jobs:
             exit 1
           fi
           python3 deploy/rustdesk/smoke_local.py
+          python3 deploy/rustdesk/verify_native_server.py
+          python3 deploy/rustdesk/smoke_local.py
           [[ "$("${compose[@]}" ps --status running --services)" == "rustdesk-pilot" ]] || { echo 'FAIL: RustDesk container is not running'; exit 1; }
-          echo 'PASS: real pinned RustDesk server image local TCP listeners and persistent keypair files (no keys printed).' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PASS: real RustDesk OSS loopback endpoints + native relay-mode console controls + public key persistence across container restart (no keys printed).' >> "$GITHUB_STEP_SUMMARY"
       - name: Scope reminder
         run: |
-          echo 'PASS only for synthetic source/unit + Docker Compose render and actual localhost RustDesk process checks; no actual LAN/WAN, ICE/UDP/P2P/relay session or production reachability proven.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PASS only for synthetic source/unit + Docker Compose render, actual localhost RustDesk process and native control-plane checks; no actual LAN/WAN, ICE/UDP/P2P/relay session or production reachability proven.' >> "$GITHUB_STEP_SUMMARY"
