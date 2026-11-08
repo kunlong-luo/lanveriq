@@ -31,4 +31,10 @@
 - MockMvc 并非真实 mTLS；上一轮 NXT-20 通过的 Caddy/PG18 合成测试是历史证据，不适用于推断新心跳路由已经通过真实网络集成。
 - 不会采集用户应用、窗口标题、屏幕、个人文件；Agent 服务仍然默认空闲。不会在静态 GitHub Pages 中引入任何认证/网络客户端。
 
-**CI 记录（填入本阶段实际结束的 run ID）：**Java `./gradlew test` 和 Agent Linux/Windows `cargo test --workspace --locked` + Clippy/rustfmt 属于 L1。只有这两类绿灯且相关新接口 MockMvc negative 通过，才能标记 Stage A1 source-ready；所有 L2/L3 仍待后续批次集中验收。
+**L1 验收结果（2026-11-08）：**
+
+- [Java 25 / Gradle JUnit 快速验证 #42448164511](https://github.com/kunlong-luo/lanveriq/actions/runs/42448164511)：**SUCCESS**。包括新默认 OFF heartbeat REST 的 MockMvc 负例，以及既有 mTLS parser / heartbeat policy 和 JPA 单元测试；没有 Docker、真实 TLS 或生产部署。
+- [Rust Agent Linux/Windows / fmt / `cargo test --workspace --locked` / Clippy #42447913810](https://github.com/kunlong-luo/lanveriq/actions/runs/42447913810)：**SUCCESS**。两平台均通过严格 heartbeat receipt/401/403/409/503 分类测试；没有实际联网、服务启动或采集。
+- [Next.js 源码隔离、类型和组件快速验证 #42447944556](https://github.com/kunlong-luo/lanveriq/actions/runs/42447944556)：**SUCCESS**。本批未修改公开预览或启用认证。
+
+**Stage A1 = source-ready（合成 L1）**，不是批次 A 完成。真实 Caddy/Tomcat/PG18/Agent TLS 端到端连接尚未联调；昂贵的 L2/L3 门禁按新策略留待身份/注册/Agent 运行桥接齐备后执行。
