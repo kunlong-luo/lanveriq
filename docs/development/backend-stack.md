@@ -1,5 +1,8 @@
 # Spring Boot server stack — Gradle / Java 25 stable baseline
 
+**现状补充（2026-11-08，优先于下文 10 月历史状态）：** `apps/server/build.gradle` 是当前 Java25/Gradle9.8.2/Spring Boot4.1.2 源码清单。PostgreSQL18 真正 Testcontainers 集成在 [#41290838250](https://github.com/kunlong-luo/lanveriq/actions/runs/41290838250) 通过；NXT-20 的设备组/前缀 PG18 与 Caddy/Chromium 合成验收在 [#42446683900](https://github.com/kunlong-luo/lanveriq/actions/runs/42446683900) 通过。新 **Batch A1** 双开关默认关闭的 heartbeat POST 入口只已通过 [Java JUnit/MockMvc L1 #42448164511](https://github.com/kunlong-luo/lanveriq/actions/runs/42448164511)，**尚未做新的真正 Agent→Caddy→Tomcat→PG18 L2**。早期“数据库迁移、TLS 均未验证”是按当时 SHA 的历史记录，不应被当成当前总状态。重复的 OpenAPI/Orval/BootJar 在 2026-11-08 改为里程碑验收，Java L1 保留受影响单测。参见 [活动技术栈](technology.md)、[批量开发策略](../testing/strategy.md)。
+
+
 **Maintainer decision (2026-10-30): Gradle, not Maven.** D0 is approved and the [SRV-01 source scaffold](../../apps/server/README.md) now exists, including real `build.gradle`, official Gradle Wrapper and CI unit tests. **Java 25 compilation and unit tests passed** on GitHub Actions [run 41058974204](https://github.com/kunlong-luo/lanveriq/actions/runs/41058974204); **`bootJar` packaging passed** in [Java 25 unit/package CI run 41061058441](https://github.com/kunlong-luo/lanveriq/actions/runs/41061058441); PostgreSQL 18 V1/V2/V3/V4 migrations, native JPA authorization/one-use-consumption/role-scope SQL, mTLS and live server startup remain **UNVERIFIED**. The user chose Groovy DSL; the entire D0 technical baseline was separately approved, not merely this build tool.
 
 ## Verified stable release baseline (2026-10-30)
