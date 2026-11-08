@@ -107,6 +107,9 @@ def node() -> None:
         "XDG_CACHE_HOME": str(home / ".cache"),
         "XDG_RUNTIME_DIR": str(runtime),
         "DISPLAY": ":91", "NO_AT_BRIDGE": "1",
+        "LIBGL_ALWAYS_SOFTWARE": "1",
+        "GDK_BACKEND": "x11",
+        "XDG_SESSION_TYPE": "x11",
     }
     text = (
         '[options]\n'
