@@ -68,6 +68,59 @@ pub struct EventWire {
     payload: serde_json::Value,
 }
 
+/// Batch A: strict positive envelope for one explicit heartbeat attempt.
+/// The heartbeat is still NOT scheduled or sent by the Agent service binary.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HeartbeatAck {
+    server_time: String,
+    request_id: Uuid,
+}
+
+/// Pure fail-closed check. Never interpret a malformed 200 response as an ACK.
+pub fn classify_heartbeat_response(
+    status: u16,
+    body: &[u8],
+    retry_after: Option<&str>,
+) -> Result<DeliveryDisposition, TransportError> {
+    if status != 200 {
+        return Ok(classify_error_status(status, retry_after));
+    }
+    if body.len() > MAX_RESPONSE_BYTES {
+        return Err(TransportError::OversizedResponse);
+    }
+    let ack: HeartbeatAck =
+        serde_json::from_slice(body).map_err(|_| TransportError::InvalidAcknowledgement)?;
+    if ack.request_id.is_nil() || !is_utc_instant_shape(&ack.server_time) {
+        return Err(TransportError::InvalidAcknowledgement);
+    }
+    Ok(DeliveryDisposition::Accepted)
+}
+
+/// UTC ISO-8601 shape only. Server/database time is authoritative; do not
+/// interpret a client-parsed string as evidence about device online status.
+fn is_utc_instant_shape(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() < 20 || bytes.len() > 40 || !value.ends_with('Z') {
+        return false;
+    }
+    for (index, expected) in [(4, b'-'), (7, b'-'), (10, b'T'), (13, b':'), (16, b':')] {
+        if bytes[index] != expected {
+            return false;
+        }
+    }
+    for (begin, end) in [(0, 4), (5, 7), (8, 10), (11, 13), (14, 16), (17, 19)] {
+        if !bytes[begin..end].iter().all(u8::is_ascii_digit) {
+            return false;
+        }
+    }
+    let fraction = &bytes[19..bytes.len() - 1];
+    fraction.is_empty()
+        || (fraction.len() >= 2
+            && fraction[0] == b'.'
+            && fraction[1..].iter().all(u8::is_ascii_digit))
+}
+
 #[derive(Debug, Deserialize)]
 struct EventAck {
     schema_version: u32,
@@ -414,21 +467,7 @@ impl AgentTlsTransport {
         if status != 200 {
             return Ok(classify_error_status(status, retry_after.as_deref()));
         }
-        let response: serde_json::Value =
-            serde_json::from_slice(&body).map_err(|_| TransportError::InvalidAcknowledgement)?;
-        if response
-            .get("server_time")
-            .and_then(serde_json::Value::as_str)
-            .is_none_or(|v| v.len() < 20 || !v.ends_with('Z'))
-            || response
-                .get("request_id")
-                .and_then(serde_json::Value::as_str)
-                .and_then(|v| Uuid::parse_str(v).ok())
-                .is_none()
-        {
-            return Err(TransportError::InvalidAcknowledgement);
-        }
-        Ok(DeliveryDisposition::Accepted)
+        classify_heartbeat_response(status, &body, retry_after.as_deref())
     }
 
     /// Staged opt-in inventory attempt. NEVER called by AGT-01 service.
@@ -513,3 +552,7 @@ impl AgentTlsTransport {
 #[cfg(test)]
 #[path = "transport_inventory_tests.rs"]
 mod inventory_transport_tests;
+
+#[cfg(test)]
+#[path = "transport_heartbeat_tests.rs"]
+mod heartbeat_transport_tests;
