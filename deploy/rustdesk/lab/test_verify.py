@@ -104,7 +104,7 @@ class RealPeerProofUnitTests(TestCase):
 
     def test_failed_sqlite_copy_never_masquerades_as_no_peers(self):
         with mock.patch.object(lab_run.subprocess, "run", return_value=SimpleNamespace(returncode=2)):
-            with self.assertRaisesRegex(verify.EvidenceRejected, "snapshot copy failed"):
+            with self.assertRaisesRegex(lab_run.EvidenceRejected, "snapshot copy failed"):
                 lab_run.registration_snapshot(pathlib.Path("synthetic-registrations.sqlite3"))
 
     def test_registration_rejects_missing_or_untrusted_files(self):
