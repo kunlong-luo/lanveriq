@@ -70,8 +70,68 @@ jobs:
             python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 \
             python /workspace/smoke.py
 
+      - name: Set up Python 3.13 for pinned upstream Protobuf codegen
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Generate protocol types from exact RustDesk 1.1.16 submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rustdesk-protobuf" "$RUNNER_TEMP/rustdesk-python-deps"
+          # rustdesk-server 1.1.16 gitlinks hbb_common SHA 83419b65496...
+          # No AGPL protocol source or generated code is committed to Lanveriq.
+          curl --fail --location --silent --show-error \
+            --retry 3 --retry-all-errors --max-time 60 \
+            --proto '=https' --tlsv1.2 \
+            "https://raw.githubusercontent.com/rustdesk/hbb_common/83419b6549636ee39dacef7776c473f5802e08d6/protos/rendezvous.proto" \
+            --output "$RUNNER_TEMP/rustdesk-protobuf/rendezvous.proto"
+          ACTUAL="$(git hash-object "$RUNNER_TEMP/rustdesk-protobuf/rendezvous.proto")"
+          test "$ACTUAL" = "b9b8ed7d4e43dd3049b299e16007915717291f5d"
+          python -m pip install --disable-pip-version-check \
+            --no-cache-dir --only-binary=:all: \
+            --target "$RUNNER_TEMP/rustdesk-python-deps" \
+            "grpcio-tools==1.84.0" "protobuf==6.33.2" "grpcio==1.84.0"
+          PYTHONPATH="$RUNNER_TEMP/rustdesk-python-deps" \
+            python -m grpc_tools.protoc \
+              "-I$RUNNER_TEMP/rustdesk-protobuf" \
+              "--python_out=$RUNNER_TEMP/rustdesk-protobuf" \
+              "$RUNNER_TEMP/rustdesk-protobuf/rendezvous.proto"
+          test -s "$RUNNER_TEMP/rustdesk-protobuf/rendezvous_pb2.py"
+
+      - name: Test real RustDesk rendezvous and relay data via private Docker network
+        shell: bash
+        run: |
+          set -euo pipefail
+          # --network none would cause upstream hbbr to treat every source
+          # as its loopback *admin console*, not as a relay client.
+          # The Docker --internal bridge gives the fixtures non-loopback
+          # private IPs but has NO external routing or published ports.
+          NETWORK="lanveriq-rd-$GITHUB_RUN_ID-$RANDOM"
+          docker network create --driver bridge --internal "$NETWORK" >/dev/null
+          trap 'docker network rm "$NETWORK" >/dev/null 2>&1 || true' EXIT
+          docker run --rm \
+            --network "$NETWORK" \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 64 \
+            --memory 256m \
+            --cpus 1 \
+            --user 65534:65534 \
+            --tmpfs /tmp:rw,nosuid,nodev,size=64m \
+            --volume "$RUNNER_TEMP/rustdesk-bin:/opt/rustdesk:ro" \
+            --volume "$RUNNER_TEMP/rustdesk-protobuf:/opt/protobuf:ro" \
+            --volume "$RUNNER_TEMP/rustdesk-python-deps:/opt/python-deps:ro" \
+            --volume "$GITHUB_WORKSPACE/deploy/rustdesk-synthetic/protocol_smoke.py:/workspace/protocol_smoke.py:ro" \
+            --env PYTHONPATH=/opt/protobuf:/opt/python-deps \
+            --env PYTHONDONTWRITEBYTECODE=1 \
+            python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 \
+            python /workspace/protocol_smoke.py
+
       - name: Scope statement
         if: success()
         run: |
-          echo "PASS only proves offline start/port/key-file/restart basics for RustDesk Server OSS 1.1.16."
-          echo "Not yet tested: RustDesk client handshake, key rejection, NAT/P2P, relay sessions, Lanveriq RBAC or production security."
+          echo "Offline startup + actual upstream Protobuf NAT/peer registration + negative relay key + bidirectional relay bytes were tested."
+          echo "Not tested: true RustDesk client authentication, E2E desktop/video, real NAT/P2P, browser integration, Lanveriq RBAC or production safety."
