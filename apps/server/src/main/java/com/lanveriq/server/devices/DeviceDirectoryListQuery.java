@@ -30,7 +30,7 @@ public record DeviceDirectoryListQuery(UUID groupId, String labelPrefix, String 
             for (int i = 0; i < labelPrefix.length(); ) {
                 int point = labelPrefix.codePointAt(i);
                 if (Character.isISOControl(point) ||
-                        Character.isSurrogate((char) point)) {
+                        (point >= Character.MIN_SURROGATE && point <= Character.MAX_SURROGATE)) {
                     throw new IllegalArgumentException("Invalid device label prefix character");
                 }
                 i += Character.charCount(point);
