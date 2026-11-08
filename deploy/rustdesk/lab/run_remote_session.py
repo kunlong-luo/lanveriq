@@ -84,7 +84,7 @@ def start_synthetic_scene() -> None:
                 # normally starts RustDesk's native Connection Manager.
                 # Launch the *official* upstream CM explicitly, but do not
                 # approve any connection until its real Accept button appears.
-                background("peer-b", "exec rustdesk --cm >/tmp/r2-cm.log 2>&1")
+                background("peer-b", "echo $ >/tmp/r2-cm.pid; exec rustdesk --cm >/tmp/r2-cm.log 2>&1")
                 return
         except EvidenceRejected:
             pass
@@ -107,10 +107,458 @@ def try_operator_accept() -> bool:
     # upstream 'rustdesk --cm' PROCESS, then only windows owned by that PID.
     # Never click Tk, Openbox, the root window or arbitrary X11 windows.
     click = r"""
-cm_pid="$(ps -e -o pid=,comm=,args= |
-  awk '$2 == "rustdesk" && $0 ~ /[[:space:]]--cm([[:space:]]|$)/ {print $1; exit}')"
-case "$cm_pid" in ''|*[!0-9]*) echo NO_CM_PROCESS; exit 0 ;; esac
+cm_pid="$(cat /tmp/r2-cm.pid 2>/dev/null || true)"
+case "$cm_pid" in ''|*[!0-9]*) echo NO_CM_PIDFILE; exit 0 ;; esac
+exe="$(readlink -f "/proc/$cm_pid/exe" 2>/dev/null || true)"
+case "$exe" in */rustdesk) ;; *) echo CM_EXECUTABLE_NOT_RUSTDESK; exit 0 ;; esac
 ids="$(xdotool search --onlyvisible --pid "$cm_pid" 2>/dev/null || true)"
+if [ -z "$ids" ]; then
+  # RustDesk 1.5.1 Linux's official Flutter GtkApplication app ID is
+  # com.carriez.flutter_hbb; there is no other RustDesk GUI in peer-b.
+  ids="$(xdotool search --onlyvisible --class 'com[.]carriez[.]flutter_hbb' 2>/dev/null || true)"
+fi
+if [ -z "$ids" ]; then
+  # Upstream Linux native runner sets GTK title to lowercase "rustdesk".
+  ids="$(xdotool search --onlyvisible --name '^rustdesk
+best_id=""
+best_area=0
+best_width=0
+best_height=0
+for id in $ids; do
+  geometry="$(xdotool getwindowgeometry --shell "$id" 2>/dev/null || true)"
+  case "$geometry" in *WIDTH=*"HEIGHT="*) ;; *) continue ;; esac
+  eval "$geometry"
+  if [ "$WIDTH" -ge 300 ] && [ "$HEIGHT" -ge 220 ] &&
+     [ "$WIDTH" -le 1500 ] && [ "$HEIGHT" -le 1300 ]; then
+    area="$((WIDTH * HEIGHT))"
+    if [ "$area" -gt "$best_area" ]; then
+      best_area="$area"
+      best_id="$id"
+      best_width="$WIDTH"
+      best_height="$HEIGHT"
+    fi
+  fi
+done
+if [ -z "$best_id" ]; then echo NO_VISIBLE_CM_PID_WINDOW; exit 0; fi
+x="$((best_width * 27 / 100))"
+y="$((best_height - 48))"
+# Hard timeout protects CI even if WM focus never stabilizes.
+timeout 2s xdotool windowactivate "$best_id" >/dev/null 2>&1 ||
+  { echo CM_CANNOT_FOCUS; exit 0; }
+timeout 2s xdotool mousemove --window "$best_id" "$x" "$y" click 1 >/dev/null 2>&1 ||
+  { echo CM_CLICK_FAILED; exit 0; }
+echo CLICKED_OPERATOR_CM_WINDOW
+"""
+    return peer_cmd("peer-b", click) == "CLICKED_OPERATOR_CM_WINDOW"
+
+
+def observe_remote_tiles() -> dict[str, Any] | None:
+    try:
+        stdout = lab.compose("exec", "-T", "peer-a", "python3",
+                             "/tmp/r2-verify-remote-frame.py", timeout=20)
+        parsed = json.loads(stdout)
+        if parsed.get("visual_proof") != "PASS_REAL_CONTROLLER_FRAMEBUFFER_SYNTHETIC_TILES":
+            return None
+        return parsed
+    except (EvidenceRejected, ValueError):
+        return None
+
+
+def input_arrived() -> bool:
+    try:
+        peer_cmd("peer-b",
+                 "test -s /tmp/r2-remote-input-ok && "
+                 "grep -Fxq R2_SYNTHETIC_REMOTE_CLICK_CONFIRMED /tmp/r2-remote-input-ok",
+                 timeout=5)
+        return True
+    except EvidenceRejected:
+        return False
+
+
+def diagnosis(peer: str) -> str:
+    # Whitelist of boolean process/window states only, NEVER raw logs,
+    # screenshots, user files, peer IDs or private server key.
+    script = r"""
+printf 'x11='
+if xdpyinfo >/dev/null 2>&1; then echo ready; else echo unavailable; fi
+printf 'rustdesk_windows='
+xdotool search --onlyvisible --class '([Rr]ust[Dd]esk|flutter)' 2>/dev/null | wc -l
+printf 'any_gui_windows='
+xdotool search --onlyvisible --name '.*' 2>/dev/null | wc -l
+printf 'cm_executable='
+if grep -Fq 'cm' /tmp/r2-cm.log 2>/dev/null; then echo logging; elif test -f /tmp/r2-cm.log; then echo started; else echo absent; fi
+cm_pid="$(cat /tmp/r2-cm.pid 2>/dev/null || true)"
+printf 'native_cm_process='
+if [ -n "$cm_pid" ] && [ "$(basename "$(readlink -f "/proc/$cm_pid/exe" 2>/dev/null || true)")" = rustdesk ]; then echo running; else echo absent; fi
+printf 'native_cm_windows='
+if [ -n "$cm_pid" ]; then xdotool search --onlyvisible --pid "$cm_pid" 2>/dev/null | wc -l; else echo 0; fi
+printf 'upstream_gtk_windows='
+xdotool search --onlyvisible --class 'com[.]carriez[.]flutter_hbb' 2>/dev/null | wc -l
+printf 'upstream_titled_windows='
+xdotool search --onlyvisible --name '^rustdesk
+printf 'rustdesk_processes='
+ps -e -o comm= | grep -cx rustdesk || true
+printf 'scene='
+if xdotool search --onlyvisible --name '^LANVERIQ_R2_REMOTE_ONLY_CANVAS$' >/dev/null 2>&1; then echo shown; else echo hidden; fi
+printf 'login_error='
+if grep -Eqi 'login error|authorization denied|no password access' /tmp/r2-connect.log 2>/dev/null; then echo yes; else echo no; fi
+printf 'fatal='
+if grep -Eqi 'error while loading shared libraries|segmentation fault|panic' /tmp/r2-connect.log /tmp/r2-controller-gui.log /tmp/r2-scene.log /tmp/r2-cm.log 2>/dev/null; then echo yes; else echo no; fi
+"""
+    try:
+        return peer_cmd(peer, script).replace("\n", ",")
+    except EvidenceRejected:
+        return "unavailable"
+
+
+def run_session() -> dict[str, Any]:
+    lab.verify_environment()
+    try:
+        lab.compose("up", "-d", "--pull", "missing", timeout=140)
+        pub_key = lab.wait_for_public_key()
+        lab.start_peer("peer-a", pub_key)
+        lab.start_peer("peer-b", pub_key)  # default upstream Both mode still requires GUI consent for this test
+        with tempfile.TemporaryDirectory(prefix="lvq-r2-remote-") as path:
+            count = lab.await_two_registrations(pathlib.Path(path))
+            actual_server_ids = registered_ids(pathlib.Path(path))
+        first_id = wait_for_id("peer-a")
+        second_id = wait_for_id("peer-b")
+        if first_id == second_id or {first_id, second_id} != actual_server_ids:
+            raise EvidenceRejected("Client-local IDs not equal to two distinct server registrations")
+        start_synthetic_scene()
+        launch_connect(second_id)
+        approval_clicked = False
+        frame: dict[str, Any] | None = None
+        for step in range(35):
+            if step > 1 and step % 3 == 0:
+                # The CM can appear before a pending request. Retry the real
+                # visible accept surface periodically, rather than treating
+                # an early click on an idle CM window as final consent.
+                approval_clicked = try_operator_accept() or approval_clicked
+            frame = observe_remote_tiles()
+            if frame is not None:
+                break
+            time.sleep(1.3)
+        if frame is None or not approval_clicked:
+            raise EvidenceRejected(
+                "Synthetic RustDesk full-session remote tiles/GUI consent not proven; "
+                f"approve={approval_clicked},"
+                f"a={diagnosis('peer-a')},b={diagnosis('peer-b')}"
+            )
+        if input_arrived():
+            # A passing input marker before controller-side click would be a
+            # false positive; never accept it.
+            raise EvidenceRejected("Remote input marker already present before controller click")
+        x, y = int(frame["input_target_x"]), int(frame["input_target_y"])
+        if not (10 <= x <= 3840 and 10 <= y <= 2160):
+            raise EvidenceRejected("Untrusted or out of range framebuffer input target")
+        peer_cmd("peer-a", f"xdotool mousemove {x} {y} click 1", timeout=10)
+        for _ in range(15):
+            if input_arrived():
+                return {
+                    "verdict": "PASS_R2_02_REAL_REMOTE_FRAME_AND_SYNTHETIC_INPUT",
+                    "official_peer_client": "RustDesk 1.5.1",
+                    "official_id_relay_server": "RustDesk OSS 1.1.16",
+                    "independent_client_containers": 2,
+                    "server_db_registered_distinct_peers": count,
+                    "native_gui_operator_approved": approval_clicked,
+                    "remote_only_frame_observed_on_controller": True,
+                    "remote_application_received_controller_input": True,
+                    "synthetic_only": True,
+                    "images_uploaded": False,
+                    "actual_wan_test": False,
+                    "not_proven": ["two physical LAN machines", "independent WAN/VPN",
+                                   "Relay data plane", "NAT/P2P beyond this Docker bridge",
+                                   "Windows GUI", "Lanveriq RBAC integration"],
+                }
+            time.sleep(1)
+        raise EvidenceRejected("Remote tiles visible, but synthetic control-input proof did not arrive")
+    finally:
+        # The run's unique, non-production isolated Docker project only.
+        lab.compose("down", "--volumes", "--remove-orphans", timeout=60)
+
+
+def main() -> int:
+    try:
+        print(json.dumps(run_session(), sort_keys=True))
+        return 0
+    except (EvidenceRejected, OSError, subprocess.TimeoutExpired, ValueError) as exc:
+        print(json.dumps({"verdict": "FAIL_R2_02", "reason": str(exc)}),
+              file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+ 2>/dev/null || true)"
+fi
+best_id=""
+best_area=0
+best_width=0
+best_height=0
+for id in $ids; do
+  geometry="$(xdotool getwindowgeometry --shell "$id" 2>/dev/null || true)"
+  case "$geometry" in *WIDTH=*"HEIGHT="*) ;; *) continue ;; esac
+  eval "$geometry"
+  if [ "$WIDTH" -ge 300 ] && [ "$HEIGHT" -ge 220 ] &&
+     [ "$WIDTH" -le 1500 ] && [ "$HEIGHT" -le 1300 ]; then
+    area="$((WIDTH * HEIGHT))"
+    if [ "$area" -gt "$best_area" ]; then
+      best_area="$area"
+      best_id="$id"
+      best_width="$WIDTH"
+      best_height="$HEIGHT"
+    fi
+  fi
+done
+if [ -z "$best_id" ]; then echo NO_VISIBLE_CM_PID_WINDOW; exit 0; fi
+x="$((best_width * 27 / 100))"
+y="$((best_height - 48))"
+# Hard timeout protects CI even if WM focus never stabilizes.
+timeout 2s xdotool windowactivate "$best_id" >/dev/null 2>&1 ||
+  { echo CM_CANNOT_FOCUS; exit 0; }
+timeout 2s xdotool mousemove --window "$best_id" "$x" "$y" click 1 >/dev/null 2>&1 ||
+  { echo CM_CLICK_FAILED; exit 0; }
+echo CLICKED_OPERATOR_CM_WINDOW
+"""
+    return peer_cmd("peer-b", click) == "CLICKED_OPERATOR_CM_WINDOW"
+
+
+def observe_remote_tiles() -> dict[str, Any] | None:
+    try:
+        stdout = lab.compose("exec", "-T", "peer-a", "python3",
+                             "/tmp/r2-verify-remote-frame.py", timeout=20)
+        parsed = json.loads(stdout)
+        if parsed.get("visual_proof") != "PASS_REAL_CONTROLLER_FRAMEBUFFER_SYNTHETIC_TILES":
+            return None
+        return parsed
+    except (EvidenceRejected, ValueError):
+        return None
+
+
+def input_arrived() -> bool:
+    try:
+        peer_cmd("peer-b",
+                 "test -s /tmp/r2-remote-input-ok && "
+                 "grep -Fxq R2_SYNTHETIC_REMOTE_CLICK_CONFIRMED /tmp/r2-remote-input-ok",
+                 timeout=5)
+        return True
+    except EvidenceRejected:
+        return False
+
+
+def diagnosis(peer: str) -> str:
+    # Whitelist of boolean process/window states only, NEVER raw logs,
+    # screenshots, user files, peer IDs or private server key.
+    script = r"""
+printf 'x11='
+if xdpyinfo >/dev/null 2>&1; then echo ready; else echo unavailable; fi
+printf 'rustdesk_windows='
+xdotool search --onlyvisible --class '([Rr]ust[Dd]esk|flutter)' 2>/dev/null | wc -l
+printf 'any_gui_windows='
+xdotool search --onlyvisible --name '.*' 2>/dev/null | wc -l
+printf 'cm_executable='
+if grep -Fq 'cm' /tmp/r2-cm.log 2>/dev/null; then echo logging; elif test -f /tmp/r2-cm.log; then echo started; else echo absent; fi
+cm_pid="$(ps -e -o pid=,comm=,args= | awk '$2 == "rustdesk" && $0 ~ /[[:space:]]--cm([[:space:]]|$)/ {print $1; exit}')"
+printf 'native_cm_process='
+if [ -n "$cm_pid" ]; then echo running; else echo absent; fi
+printf 'native_cm_windows='
+if [ -n "$cm_pid" ]; then
+  xdotool search --onlyvisible --pid "$cm_pid" 2>/dev/null | wc -l
+else
+  echo 0
+fi
+printf 'rustdesk_processes='
+ps -e -o comm= | grep -cx rustdesk || true
+printf 'scene='
+if xdotool search --onlyvisible --name '^LANVERIQ_R2_REMOTE_ONLY_CANVAS$' >/dev/null 2>&1; then echo shown; else echo hidden; fi
+printf 'login_error='
+if grep -Eqi 'login error|authorization denied|no password access' /tmp/r2-connect.log 2>/dev/null; then echo yes; else echo no; fi
+printf 'fatal='
+if grep -Eqi 'error while loading shared libraries|segmentation fault|panic' /tmp/r2-connect.log /tmp/r2-controller-gui.log /tmp/r2-scene.log /tmp/r2-cm.log 2>/dev/null; then echo yes; else echo no; fi
+"""
+    try:
+        return peer_cmd(peer, script).replace("\n", ",")
+    except EvidenceRejected:
+        return "unavailable"
+
+
+def run_session() -> dict[str, Any]:
+    lab.verify_environment()
+    try:
+        lab.compose("up", "-d", "--pull", "missing", timeout=140)
+        pub_key = lab.wait_for_public_key()
+        lab.start_peer("peer-a", pub_key)
+        lab.start_peer("peer-b", pub_key)  # default upstream Both mode still requires GUI consent for this test
+        with tempfile.TemporaryDirectory(prefix="lvq-r2-remote-") as path:
+            count = lab.await_two_registrations(pathlib.Path(path))
+            actual_server_ids = registered_ids(pathlib.Path(path))
+        first_id = wait_for_id("peer-a")
+        second_id = wait_for_id("peer-b")
+        if first_id == second_id or {first_id, second_id} != actual_server_ids:
+            raise EvidenceRejected("Client-local IDs not equal to two distinct server registrations")
+        start_synthetic_scene()
+        launch_connect(second_id)
+        approval_clicked = False
+        frame: dict[str, Any] | None = None
+        for step in range(35):
+            if step > 1 and step % 3 == 0:
+                # The CM can appear before a pending request. Retry the real
+                # visible accept surface periodically, rather than treating
+                # an early click on an idle CM window as final consent.
+                approval_clicked = try_operator_accept() or approval_clicked
+            frame = observe_remote_tiles()
+            if frame is not None:
+                break
+            time.sleep(1.3)
+        if frame is None or not approval_clicked:
+            raise EvidenceRejected(
+                "Synthetic RustDesk full-session remote tiles/GUI consent not proven; "
+                f"approve={approval_clicked},"
+                f"a={diagnosis('peer-a')},b={diagnosis('peer-b')}"
+            )
+        if input_arrived():
+            # A passing input marker before controller-side click would be a
+            # false positive; never accept it.
+            raise EvidenceRejected("Remote input marker already present before controller click")
+        x, y = int(frame["input_target_x"]), int(frame["input_target_y"])
+        if not (10 <= x <= 3840 and 10 <= y <= 2160):
+            raise EvidenceRejected("Untrusted or out of range framebuffer input target")
+        peer_cmd("peer-a", f"xdotool mousemove {x} {y} click 1", timeout=10)
+        for _ in range(15):
+            if input_arrived():
+                return {
+                    "verdict": "PASS_R2_02_REAL_REMOTE_FRAME_AND_SYNTHETIC_INPUT",
+                    "official_peer_client": "RustDesk 1.5.1",
+                    "official_id_relay_server": "RustDesk OSS 1.1.16",
+                    "independent_client_containers": 2,
+                    "server_db_registered_distinct_peers": count,
+                    "native_gui_operator_approved": approval_clicked,
+                    "remote_only_frame_observed_on_controller": True,
+                    "remote_application_received_controller_input": True,
+                    "synthetic_only": True,
+                    "images_uploaded": False,
+                    "actual_wan_test": False,
+                    "not_proven": ["two physical LAN machines", "independent WAN/VPN",
+                                   "Relay data plane", "NAT/P2P beyond this Docker bridge",
+                                   "Windows GUI", "Lanveriq RBAC integration"],
+                }
+            time.sleep(1)
+        raise EvidenceRejected("Remote tiles visible, but synthetic control-input proof did not arrive")
+    finally:
+        # The run's unique, non-production isolated Docker project only.
+        lab.compose("down", "--volumes", "--remove-orphans", timeout=60)
+
+
+def main() -> int:
+    try:
+        print(json.dumps(run_session(), sort_keys=True))
+        return 0
+    except (EvidenceRejected, OSError, subprocess.TimeoutExpired, ValueError) as exc:
+        print(json.dumps({"verdict": "FAIL_R2_02", "reason": str(exc)}),
+              file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+ 2>/dev/null | wc -l
+printf 'rustdesk_processes='
+ps -e -o comm= | grep -cx rustdesk || true
+printf 'scene='
+if xdotool search --onlyvisible --name '^LANVERIQ_R2_REMOTE_ONLY_CANVAS$' >/dev/null 2>&1; then echo shown; else echo hidden; fi
+printf 'login_error='
+if grep -Eqi 'login error|authorization denied|no password access' /tmp/r2-connect.log 2>/dev/null; then echo yes; else echo no; fi
+printf 'fatal='
+if grep -Eqi 'error while loading shared libraries|segmentation fault|panic' /tmp/r2-connect.log /tmp/r2-controller-gui.log /tmp/r2-scene.log /tmp/r2-cm.log 2>/dev/null; then echo yes; else echo no; fi
+"""
+    try:
+        return peer_cmd(peer, script).replace("\n", ",")
+    except EvidenceRejected:
+        return "unavailable"
+
+
+def run_session() -> dict[str, Any]:
+    lab.verify_environment()
+    try:
+        lab.compose("up", "-d", "--pull", "missing", timeout=140)
+        pub_key = lab.wait_for_public_key()
+        lab.start_peer("peer-a", pub_key)
+        lab.start_peer("peer-b", pub_key)  # default upstream Both mode still requires GUI consent for this test
+        with tempfile.TemporaryDirectory(prefix="lvq-r2-remote-") as path:
+            count = lab.await_two_registrations(pathlib.Path(path))
+            actual_server_ids = registered_ids(pathlib.Path(path))
+        first_id = wait_for_id("peer-a")
+        second_id = wait_for_id("peer-b")
+        if first_id == second_id or {first_id, second_id} != actual_server_ids:
+            raise EvidenceRejected("Client-local IDs not equal to two distinct server registrations")
+        start_synthetic_scene()
+        launch_connect(second_id)
+        approval_clicked = False
+        frame: dict[str, Any] | None = None
+        for step in range(35):
+            if step > 1 and step % 3 == 0:
+                # The CM can appear before a pending request. Retry the real
+                # visible accept surface periodically, rather than treating
+                # an early click on an idle CM window as final consent.
+                approval_clicked = try_operator_accept() or approval_clicked
+            frame = observe_remote_tiles()
+            if frame is not None:
+                break
+            time.sleep(1.3)
+        if frame is None or not approval_clicked:
+            raise EvidenceRejected(
+                "Synthetic RustDesk full-session remote tiles/GUI consent not proven; "
+                f"approve={approval_clicked},"
+                f"a={diagnosis('peer-a')},b={diagnosis('peer-b')}"
+            )
+        if input_arrived():
+            # A passing input marker before controller-side click would be a
+            # false positive; never accept it.
+            raise EvidenceRejected("Remote input marker already present before controller click")
+        x, y = int(frame["input_target_x"]), int(frame["input_target_y"])
+        if not (10 <= x <= 3840 and 10 <= y <= 2160):
+            raise EvidenceRejected("Untrusted or out of range framebuffer input target")
+        peer_cmd("peer-a", f"xdotool mousemove {x} {y} click 1", timeout=10)
+        for _ in range(15):
+            if input_arrived():
+                return {
+                    "verdict": "PASS_R2_02_REAL_REMOTE_FRAME_AND_SYNTHETIC_INPUT",
+                    "official_peer_client": "RustDesk 1.5.1",
+                    "official_id_relay_server": "RustDesk OSS 1.1.16",
+                    "independent_client_containers": 2,
+                    "server_db_registered_distinct_peers": count,
+                    "native_gui_operator_approved": approval_clicked,
+                    "remote_only_frame_observed_on_controller": True,
+                    "remote_application_received_controller_input": True,
+                    "synthetic_only": True,
+                    "images_uploaded": False,
+                    "actual_wan_test": False,
+                    "not_proven": ["two physical LAN machines", "independent WAN/VPN",
+                                   "Relay data plane", "NAT/P2P beyond this Docker bridge",
+                                   "Windows GUI", "Lanveriq RBAC integration"],
+                }
+            time.sleep(1)
+        raise EvidenceRejected("Remote tiles visible, but synthetic control-input proof did not arrive")
+    finally:
+        # The run's unique, non-production isolated Docker project only.
+        lab.compose("down", "--volumes", "--remove-orphans", timeout=60)
+
+
+def main() -> int:
+    try:
+        print(json.dumps(run_session(), sort_keys=True))
+        return 0
+    except (EvidenceRejected, OSError, subprocess.TimeoutExpired, ValueError) as exc:
+        print(json.dumps({"verdict": "FAIL_R2_02", "reason": str(exc)}),
+              file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+ 2>/dev/null || true)"
+fi
 best_id=""
 best_area=0
 best_width=0
