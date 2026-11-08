@@ -103,37 +103,44 @@ def launch_connect(target_id: str) -> None:
 
 
 def try_operator_accept() -> bool:
-    # Synthetic peer-b is the ONLY operator and has an explicit visible
-    # upstream RustDesk CM window. The test does not supply any password.
-    # Exclude the known test-scene window before clicking any GUI surface.
+    # The only operator is the isolated receiving client. Match the actual
+    # upstream 'rustdesk --cm' PROCESS, then only windows owned by that PID.
+    # Never click Tk, Openbox, the root window or arbitrary X11 windows.
     click = r"""
-ids="$(xdotool search --onlyvisible --class '([Rr]ust[Dd]esk|flutter)' 2>/dev/null || true)"
-if [ -z "$ids" ]; then
-  ids="$(xdotool search --onlyvisible --name '.*' 2>/dev/null || true)"
-fi
+cm_pid="$(ps -e -o pid=,comm=,args= |
+  awk '$2 == "rustdesk" && $0 ~ /[[:space:]]--cm([[:space:]]|$)/ {print $1; exit}')"
+case "$cm_pid" in ''|*[!0-9]*) echo NO_CM_PROCESS; exit 0 ;; esac
+ids="$(xdotool search --onlyvisible --pid "$cm_pid" 2>/dev/null || true)"
+best_id=""
+best_area=0
+best_width=0
+best_height=0
 for id in $ids; do
-  title="$(xdotool getwindowname "$id" 2>/dev/null || true)"
-  case "$title" in *LANVERIQ_R2_REMOTE_ONLY_CANVAS*) continue ;; esac
   geometry="$(xdotool getwindowgeometry --shell "$id" 2>/dev/null || true)"
   case "$geometry" in *WIDTH=*"HEIGHT="*) ;; *) continue ;; esac
   eval "$geometry"
-  # Fail closed on tiny tray/popover windows; the real CM is a large
-  # desktop Flutter window. No other non-test GUI runs in peer-b.
   if [ "$WIDTH" -ge 300 ] && [ "$HEIGHT" -ge 220 ] &&
      [ "$WIDTH" -le 1500 ] && [ "$HEIGHT" -le 1300 ]; then
-    x="$((WIDTH * 27 / 100))"
-    y="$((HEIGHT - 48))"
-    # Never wait indefinitely for a Flutter/X11 window focus transition.
-    timeout 2s xdotool windowactivate "$id" >/dev/null 2>&1 || continue
-    timeout 2s xdotool mousemove --window "$id" "$x" "$y" click 1 >/dev/null 2>&1 || continue
-    echo CLICKED_UPSTREAM_SYNTHETIC_ACCEPT_BUTTON
-    exit 0
+    area="$((WIDTH * HEIGHT))"
+    if [ "$area" -gt "$best_area" ]; then
+      best_area="$area"
+      best_id="$id"
+      best_width="$WIDTH"
+      best_height="$HEIGHT"
+    fi
   fi
 done
-echo NO_UPSTREAM_ACCEPT_WINDOW
+if [ -z "$best_id" ]; then echo NO_VISIBLE_CM_PID_WINDOW; exit 0; fi
+x="$((best_width * 27 / 100))"
+y="$((best_height - 48))"
+# Hard timeout protects CI even if WM focus never stabilizes.
+timeout 2s xdotool windowactivate "$best_id" >/dev/null 2>&1 ||
+  { echo CM_CANNOT_FOCUS; exit 0; }
+timeout 2s xdotool mousemove --window "$best_id" "$x" "$y" click 1 >/dev/null 2>&1 ||
+  { echo CM_CLICK_FAILED; exit 0; }
+echo CLICKED_OPERATOR_CM_WINDOW
 """
-    output = peer_cmd("peer-b", click)
-    return output == "CLICKED_UPSTREAM_SYNTHETIC_ACCEPT_BUTTON"
+    return peer_cmd("peer-b", click) == "CLICKED_OPERATOR_CM_WINDOW"
 
 
 def observe_remote_tiles() -> dict[str, Any] | None:
@@ -171,6 +178,15 @@ printf 'any_gui_windows='
 xdotool search --onlyvisible --name '.*' 2>/dev/null | wc -l
 printf 'cm_executable='
 if grep -Fq 'cm' /tmp/r2-cm.log 2>/dev/null; then echo logging; elif test -f /tmp/r2-cm.log; then echo started; else echo absent; fi
+cm_pid="$(ps -e -o pid=,comm=,args= | awk '$2 == "rustdesk" && $0 ~ /[[:space:]]--cm([[:space:]]|$)/ {print $1; exit}')"
+printf 'native_cm_process='
+if [ -n "$cm_pid" ]; then echo running; else echo absent; fi
+printf 'native_cm_windows='
+if [ -n "$cm_pid" ]; then
+  xdotool search --onlyvisible --pid "$cm_pid" 2>/dev/null | wc -l
+else
+  echo 0
+fi
 printf 'rustdesk_processes='
 ps -e -o comm= | grep -cx rustdesk || true
 printf 'scene='
