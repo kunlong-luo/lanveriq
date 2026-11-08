@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DeviceDirectory, filterDirectoryRows, normalizeAuthorizedGroupSelection, type DirectoryRow, type DirectoryState } from './device-directory';
+import { DeviceDirectory, filterDirectoryRows, normalizeAuthorizedGroupSelection, sortAuthorizedDirectoryPage, type DirectoryRow, type DirectoryState } from './device-directory';
 
 const render = (state: DirectoryState) => renderToStaticMarkup(<DeviceDirectory state={state} />);
 
@@ -60,6 +60,26 @@ describe('NXT-02 directory display model (all records test-only)', () => {
     expect(normalizeAuthorizedGroupSelection(['授权测试组'], '../admin')).toBe('');
   });
 
+  it('sorts only the supplied authorized page, naturally and without mutating source rows', () => {
+    const source: readonly DirectoryRow[] = [
+      { ...rows[0], label: 'CI设备10', group: 'CI组乙' },
+      { ...rows[1], label: 'CI设备2', group: 'CI组甲' },
+      { ...rows[0], id: '00000000-0000-7000-8000-000000000003',
+        label: 'CI设备2', group: 'CI组甲' },
+    ];
+    expect(sortAuthorizedDirectoryPage(source, 'label-asc').map(row => row.label))
+      .toEqual(['CI设备2', 'CI设备2', 'CI设备10']);
+    expect(sortAuthorizedDirectoryPage(source, 'label-desc').map(row => row.label))
+      .toEqual(['CI设备10', 'CI设备2', 'CI设备2']);
+    expect(sortAuthorizedDirectoryPage(source, 'group-asc').map(row => row.group))
+      .toEqual(['CI组甲', 'CI组甲', 'CI组乙']);
+    expect(sortAuthorizedDirectoryPage(source, 'server').map(row => row.label))
+      .toEqual(['CI设备10', 'CI设备2', 'CI设备2']);
+    expect(source.map(row => row.label))
+      .toEqual(['CI设备10', 'CI设备2', 'CI设备2']);
+    expect(sortAuthorizedDirectoryPage(source.slice(1), 'label-desc')).toHaveLength(2);
+  });
+
   it('renders only authorized test rows, never exposes fake online counts', () => {
     const html = render({ kind: 'ready', rows, hasMore:true });
     expect(html).toContain('合成测试设备 A');
@@ -76,9 +96,16 @@ describe('NXT-02 directory display model (all records test-only)', () => {
   it('labels totals as counts only within the supplied authorized page and keeps native table semantics', () => {
     const html = render({ kind: 'ready', rows, hasMore: false });
     expect(html).toContain('仅本次授权页：匹配 2 / 2 条');
-    expect(html).toContain('本页结果已按服务端权限裁剪');
+    expect(html).toContain('仅本次已授权页面');
+    expect(html).toContain('搜索、设备组筛选与排序不会查询或推断其他页面');
     expect(html).toContain('搜索和设备组筛选仅作用于本页');
     expect(html).toContain('data-slot="table-container"');
+    expect(html).toContain('role="region"');
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain('aria-label="设备目录表格（可横向滚动）"');
+    expect(html).toContain('排序当前授权页');
+    expect(html).toContain('窄屏可横向滑动');
+    expect(html).toContain('scope="row"');
     expect(html).toContain('当前管理员已授权的设备健康列表');
     expect(html).toContain('<th');
     expect(html).toContain('scope="col"');
@@ -93,6 +120,8 @@ describe('NXT-02 directory display model (all records test-only)', () => {
       expect(html).not.toContain('合成测试设备');
       expect(html).not.toContain('data-slot="table-container"');
       expect(html).toContain('disabled');
+      expect(html).not.toContain('role="region"');
+      expect(html).not.toContain('设备目录表格（可横向滚动）');
     }
   });
 
