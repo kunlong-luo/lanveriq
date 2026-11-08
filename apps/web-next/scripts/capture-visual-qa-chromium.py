@@ -115,7 +115,7 @@ def run():
                             require(page.get_by_role("status").filter(
                                 has_text="独立预览 · 不含真实数据").count() >= 1,
                                 "missing preview-only warning")
-                        page.evaluate("() => document.fonts.ready")
+                        page.evaluate("async () => { await document.fonts.ready; return true; }")
                         metrics = measure(page)
                         require(metrics["rootBackground"] == "#f8f8fc" and
                                 metrics["rootViolet"] == "#6a5bff",
