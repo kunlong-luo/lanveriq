@@ -55,13 +55,14 @@ class DeviceDirectoryServiceTest {
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated("plain-string", null, List.of()));
         assertThrows(AccessDeniedException.class, () -> service.list(null, 10));
-        verify(repo, never()).list(Mockito.any(), Mockito.any(), Mockito.anyInt());
+        verify(repo, never()).list(Mockito.any(), Mockito.any(),
+                Mockito.anyInt(), Mockito.any(DeviceDirectoryListQuery.class));
     }
 
     @Test
     void boundedKeysetPaginationReturnsOnlyVisibleItemsAndNextDeviceCursor() {
         login(true);
-        when(repo.list(adminId, null, 3)).thenReturn(
+        when(repo.list(adminId, null, 3, DeviceDirectoryListQuery.unfiltered())).thenReturn(
                 List.of(entry(device1), entry(device2), entry(device3)));
         var first = service.list(null, 2);
         assertEquals(2, first.items().size());
@@ -69,13 +70,40 @@ class DeviceDirectoryServiceTest {
         assertEquals(device1, first.items().getFirst().deviceId());
         assertThrows(UnsupportedOperationException.class,
                 () -> first.items().add(entry(UUID.randomUUID())));
-        verify(repo).list(adminId, null, 3);
+        verify(repo).list(adminId, null, 3, DeviceDirectoryListQuery.unfiltered());
 
-        when(repo.list(adminId, device2, 3)).thenReturn(List.of(entry(device3)));
+        when(repo.list(adminId, device2, 3, DeviceDirectoryListQuery.unfiltered()))
+                .thenReturn(List.of(entry(device3)));
         var last = service.list(device2, 2);
         assertEquals(device3, last.items().getFirst().deviceId());
         assertNull(last.nextCursor());
-        verify(repo).list(adminId, device2, 3);
+        verify(repo).list(adminId, device2, 3, DeviceDirectoryListQuery.unfiltered());
+    }
+
+    @Test
+    void additionalFiltersCannotBypassDbScopeAndKeepBoundedKeyset() {
+        login(true);
+        UUID group = UUID.randomUUID();
+        var filters = new DeviceDirectoryListQuery(group, "Synthetic", "device_id_asc");
+        when(repo.list(adminId, null, 3, filters))
+                .thenReturn(List.of(entry(device1), entry(device2), entry(device3)));
+        var page = service.list(null, 2, filters);
+        assertEquals(2, page.items().size());
+        assertEquals(device2, page.nextCursor());
+        verify(repo).list(adminId, null, 3, filters);
+        assertThrows(IllegalArgumentException.class,
+                () -> service.list(null, 101, filters));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.list(new UUID(0, 0), 2, filters));
+    }
+
+    @Test
+    void filteredReadsRequireAuthenticationWithoutRepositoryAccess() {
+        var filter = new DeviceDirectoryListQuery(UUID.randomUUID(), null, "device_id_asc");
+        assertThrows(AccessDeniedException.class,
+                () -> service.list(null, 20, filter));
+        verify(repo, never()).list(Mockito.any(), Mockito.any(),
+                Mockito.anyInt(), Mockito.any(DeviceDirectoryListQuery.class));
     }
 
     @Test
@@ -98,7 +126,8 @@ class DeviceDirectoryServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.find(null));
         assertThrows(IllegalArgumentException.class,
                 () -> service.find(new UUID(0, 0)));
-        verify(repo, never()).list(Mockito.any(), Mockito.any(), Mockito.anyInt());
+        verify(repo, never()).list(Mockito.any(), Mockito.any(),
+                Mockito.anyInt(), Mockito.any(DeviceDirectoryListQuery.class));
         verify(repo, never()).find(Mockito.any(), Mockito.any());
     }
 }
