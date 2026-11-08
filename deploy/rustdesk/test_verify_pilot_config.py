@@ -24,6 +24,7 @@ def fixture():
         "services": {
             "rustdesk-pilot": {
                 "image": guard.PILOT_IMAGE,
+                "entrypoint": ["/bin/sh", "-ec", "umask 077; exec /init"],
                 "profiles": ["pilot"],
                 "restart": "no",
                 "environment": {
@@ -97,6 +98,12 @@ class RustDeskPilotSecurityTests(TestCase):
             image="ghcr.io/rustdesk/rustdesk-server-s6:latest"))
         self.rejects(lambda d: d["services"]["rustdesk-pilot"].update(
             image=guard.PILOT_IMAGE.replace("5974cd", "000000")))
+
+    def test_requires_secure_first_run_key_creation_umask(self):
+        self.rejects(lambda d: d["services"]["rustdesk-pilot"].update(entrypoint=["/init"]))
+        self.rejects(lambda d: d["services"]["rustdesk-pilot"].update(
+            entrypoint=["/bin/sh", "-ec", "umask 022; exec /init"]))
+        self.rejects(lambda d: d["services"]["rustdesk-pilot"].update(entrypoint=None))
 
     def test_wss_and_extra_exposed_ports_rejected(self):
         self.rejects(lambda d: d["services"]["rustdesk-pilot"]["ports"].append(
