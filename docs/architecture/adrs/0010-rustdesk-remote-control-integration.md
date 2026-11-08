@@ -67,6 +67,14 @@ Lanveriq 当前有三个真实代码入口：Rust 1.94 的 apps/agent（SQLx SQL
 - 可比较有合规和可验证 ACL/会话控制能力的 **RustDesk Server Pro 商业能力**，或经合法授权、能在传输层执行策略的独立授权网关/替代方案；**不能预设 Pro 已满足所有会话级授权、动态撤销和统一身份要求**，必须做真实双客户端正负向验证和法律审查。
 - 未取得上述证据前，隔离 CI 可继续验证官方客户端注册、数据中继、握手和模拟视频，但结果只能作为底层兼容性证据，**不提升产品远控发布状态**。
 
+## RD-2 的候选服务端执行方案（2026-11-08 补充）
+
+经过官方文档核对，优先对 RustDesk Server **Pro 的 Access Control** 做授权执行可行性验证，但它**不是已批准产品技术栈**。官方 [Access Control](https://rustdesk.com/docs/en/self-host/rustdesk-server-pro/permissions/) 负责连接准入，支持用户/设备/分组和禁用；其中用户组和设备组授权可能**叠加为 OR 放行**。官方 [Control Role](https://rustdesk.com/docs/en/self-host/rustdesk-server-pro/control-role/) 只约束连接后的操作，还设有 **Not Logged** 角色，不能用它代替未登录请求的连接拒绝。Pro 的 Web Console/API Token 主要是管理功能，[官方文档](https://rustdesk.com/docs/en/self-host/rustdesk-server-pro/console/) 不能作为已验证的“逐会话短期授权 + 立即中断”接口证据。
+
+因此：不能假定购买 Pro、配置单一设备组或禁用 Not Logged 角色就已经证明 Lanveriq 管理员 RBAC 对原生客户端、P2P/Relay、权限撤销和已有会话不可绕过。具体的 **AUTH-01～AUTH-16 双客户端正负向验收**和官方版本/许可前提，见 [RD-2 会话强制授权与防绕过验收契约](../rustdesk-rd2-security-acceptance.md)。
+
+在准入适配层仍未有验证证据时，仅允许 [源码级默认拒绝保护](../../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py)：`application.yml` 中固定 `lanveriq.remote.enabled: false`，不新增远控 REST/Next.js 路由或生产 Caddy RustDesk 端口。它能避免误发布，**不能**把静态源代码检查当作生产网络层的权限执行证明。RD-2 保持 **BLOCKED**。
+
 ## 技术方案对照
 
 | 子系统 | 现有实现 | 复用/处理 |
