@@ -14,7 +14,7 @@ The user wants an immediate LAN dashboard and WSS is manageable for a single nod
 - Requires authentication of upgrade requests and strict Origin/session/RBAC/device-scope checks.
 - WSS messages are **not durable**. On reconnect clients refetch authorized REST state; **even without a disconnect, visible-page low-frequency REST reconciliation and tab-resume refetch close the indefinitely stale view risk**. No missed-event replay contract.
 - Offline transitions require a server-side heartbeat-expiry detector, not simply forwarding incoming heartbeats.
-- v0.1 UI tests cover messages, subscription/snapshot race, **silent lost hint with a still-connected socket**, reconnect/refetch, access control and error states. Unit-only CI stays unchanged; real-browser/LAN WSS checks are manual at MVP stage.
+- v0.1 UI acceptance must cover messages, subscription/snapshot race, **silent lost hint with a still-connected socket**, reconnect/refetch, access control and error states. **2026-11-08 update:** L1 tests on relevant pushes; L2 integration at business-batch boundary; full Chromium/WSS L3 at explicit `acceptance/v0.1-*` milestone/dispatch. The actual authorized WSS business loop remains unimplemented; synthetic browser checks for other features do not prove WSS readiness.
 - Future multi-instance deployments will require a deliberate dispatcher architecture change; not needed for v0.1.
 
 ## Contract and visuals
