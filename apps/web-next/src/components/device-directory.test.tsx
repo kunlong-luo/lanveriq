@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DeviceDirectory, filterDirectoryRows, type DirectoryRow, type DirectoryState } from './device-directory';
+import { DeviceDirectory, filterDirectoryRows, normalizeAuthorizedGroupSelection, type DirectoryRow, type DirectoryState } from './device-directory';
 
 const render = (state: DirectoryState) => renderToStaticMarkup(<DeviceDirectory state={state} />);
 
@@ -47,6 +47,17 @@ describe('NXT-02 directory display model (all records test-only)', () => {
     expect(filterDirectoryRows(rows,'Windows','另一个测试组')).toHaveLength(0);
     expect(filterDirectoryRows([], '', '')).toEqual([]);
     expect(rows).toHaveLength(2);
+  });
+
+  it('drops a stale group on a newly authorized page without hiding valid rows', () => {
+    const oldGroup = normalizeAuthorizedGroupSelection(['授权测试组'], '授权测试组');
+    expect(oldGroup).toBe('授权测试组');
+    const newGroup = normalizeAuthorizedGroupSelection(['另一个测试组'], oldGroup);
+    expect(newGroup).toBe('');
+    expect(filterDirectoryRows(rows.slice(1), '', newGroup)).toHaveLength(1);
+    expect(normalizeAuthorizedGroupSelection([], '授权测试组')).toBe('');
+    expect(normalizeAuthorizedGroupSelection(['授权测试组'], '')).toBe('');
+    expect(normalizeAuthorizedGroupSelection(['授权测试组'], '../admin')).toBe('');
   });
 
   it('renders only authorized test rows, never exposes fake online counts', () => {
