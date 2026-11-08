@@ -45,6 +45,31 @@ At **390×844 mobile, 768×1024 tablet, 1440×900 desktop**, it records exactly 
 - No backend, network proxy, agent or telemetry source is activated by screenshot capture.
 - Artifact uploads contain **only** preview screenshots, computed layout geometry, a manifest and explanatory text; they never include headers, cookies, credentials or full browser traces.
 
+## Verified NXT-18 final acceptance — 2026-11-08
+
+The audited CSS and follow-up mobile adjustments have now passed **all four final gates**:
+
+| Gate | Final result |
+| --- | --- |
+| [Next.js isolated source/lock/build/type/unit/11-page HTTP #42443164528](https://github.com/kunlong-luo/lanveriq/actions/runs/42443164528) | **SUCCESS** |
+| [Real Chromium routes, 320–1440px, NXT-17 directory fixture, NXT-18 screenshots #42443164574](https://github.com/kunlong-luo/lanveriq/actions/runs/42443164574) | **SUCCESS** — emitted `NXT-18 VISUAL QA PASS: 15 screenshot captures` and `NXT-17 SYNTHETIC DIRECTORY CHROMIUM PASS` |
+| [Static Pages publish, disconnected preview only #42443164765](https://github.com/kunlong-luo/lanveriq/actions/runs/42443164765) | **SUCCESS** |
+| [Caddy / Spring / PostgreSQL 18 / Chromium multi-admin synthetic HTTPS #42443133166](https://github.com/kunlong-luo/lanveriq/actions/runs/42443133166) | **SUCCESS** — edge HTML/RSC, mTLS, identity, cache purge and RBAC |
+
+The [visual artifacts from Chromium run #42443164574](https://github.com/kunlong-luo/lanveriq/actions/runs/42443164574) contain 15 full-page screenshots plus `manifest.json`; the artifact is retained seven days (through November 15, 2026). These snapshots contain no real business data and are **not** an approved golden baseline.
+
+### Follow-up fixes found by reviewing real screenshots
+
+The initial 15-image audit revealed two practical mobile layout defects, so NXT-18 did not stop at simply generating screenshots:
+
+1. At **390px** the four status cards were unnecessarily tall as four single-column rows. A new `@media (min-width:360px) and (max-width:430px)` rule restores a compact **two-column** KPI grid (two rows). At **320px** the existing single-column mode is preserved for readability. The full-page mobile overview height reduced from approximately **3318px to 2891px** in the same Chromium capture environment.
+2. The device-group `NativeSelect` inherited a late `max-width:245px` override, resulting in a narrower control than the search field. A properly scoped mobile rule now makes the select and its wrapper **100% width**.
+3. The mobile menu trigger increased from **39×39px to 44×44px** and the navigation close target is also at least 44px.
+
+`verify-preview-chromium.py` now asserts the KPI column count at 320/390px, the device group/select width against the search box at phone widths, and the mobile menu target geometry in addition to the existing Escape/focus checks. The final screenshots were captured **after** these adjustments and reviewed for content flow.
+
+The ZIP provides a disconnected-only offline gallery (separately packaged for design review), with a simple index allowing users to switch between three widths and five screens. This user-facing gallery does not modify the runtime app or replace the original design prototype.
+
 ## Follow-on tasks
 
 1. Compare the 15 screenshots with the independently approved B+C prototype and record specific discrepancies.
