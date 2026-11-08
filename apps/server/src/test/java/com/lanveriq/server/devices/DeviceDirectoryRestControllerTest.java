@@ -37,7 +37,7 @@ class DeviceDirectoryRestControllerTest {
     void listUsesSnakeCaseBoundedCursorAndNoStoreWithoutSensitiveFields()
             throws Exception {
         UUID next = UUID.randomUUID();
-        when(directory.list(null, 2, DeviceDirectoryListQuery.unfiltered())).thenReturn(
+        when(directory.list(null, 2)).thenReturn(
                 new DeviceDirectoryPage(List.of(summary()), next));
         var mvc = MockMvcBuilders.standaloneSetup(controller).build();
         var response = mvc.perform(get("/api/v1/devices").param("limit", "2"))
@@ -55,14 +55,14 @@ class DeviceDirectoryRestControllerTest {
         assertFalse(response.contains("credential"));
         assertFalse(response.contains("client_cert"));
         assertFalse(response.contains("event_payload"));
-        verify(directory).list(null, 2, DeviceDirectoryListQuery.unfiltered());
+        verify(directory).list(null, 2);
 
-        when(directory.list(next, 10, DeviceDirectoryListQuery.unfiltered()))
+        when(directory.list(next, 10))
                 .thenReturn(new DeviceDirectoryPage(List.of(), null));
         mvc.perform(get("/api/v1/devices").param("cursor", next.toString())
                         .param("limit", "10"))
                 .andExpect(status().isOk());
-        verify(directory).list(next, 10, DeviceDirectoryListQuery.unfiltered());
+        verify(directory).list(next, 10);
     }
 
     @Test
@@ -120,7 +120,7 @@ class DeviceDirectoryRestControllerTest {
 
     @Test
     void invalidBoundedPageHasStable400WithoutLeakingException() throws Exception {
-        when(directory.list(null, 101, DeviceDirectoryListQuery.unfiltered())).thenThrow(
+        when(directory.list(null, 101)).thenThrow(
                 new IllegalArgumentException("synthetic sensitive debugging detail"));
         var mvc = MockMvcBuilders.standaloneSetup(controller).build();
         var response = mvc.perform(get("/api/v1/devices").param("limit", "101"))
