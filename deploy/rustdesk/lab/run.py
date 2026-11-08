@@ -105,38 +105,31 @@ def registration_snapshot(destination: pathlib.Path) -> None:
 
 
 def peer_diagnostic(name: str) -> str:
-    # Return only boolean categories, no raw client logs/IDs/public keys.
-    test = (
-        "printf 'dns='; "
-        "if getent hosts rd-server >/dev/null 2>&1; then echo resolved; else echo failure; fi; "
-        "printf 'cfg='; "
-        "if grep -q 'custom-rendezvous-server = \\"rd-server:21116\\"' "
-        '\\"$HOME/.config/rustdesk/RustDesk2.toml\\" 2>/dev/null; '
-        "then echo loaded_file; else echo missing_or_invalid; fi; "
-        "printf 'client_register_log='; "
-        "if grep -Eiq 'register.*(id|peer|pk)|rendezvous.*(server|connect)' /tmp/rustdesk.log 2>/dev/null; "
-        "then echo seen; else echo absent; fi; "
-        "printf 'client_network_error='; "
-        "if grep -Eiq 'failed to resolve|name or service not known|network is unreachable|connection refused|server unreachable' /tmp/rustdesk.log 2>/dev/null; "
-        "then echo seen; else echo absent; fi; "
-        "printf 'client_panic='; "
-        "if grep -Eiq 'panic|fatal error|segmentation fault' /tmp/rustdesk.log 2>/dev/null; "
-        "then echo seen; else echo absent; fi; "
-        "printf 'rustdesk='; "
-        "if ps -e -o comm= | grep -qx rustdesk; then echo running; else echo absent; fi; "
-        "printf 'xvfb='; "
-        "if ps -e -o comm= | grep -qx Xvfb; then echo running; else echo absent; fi; "
-        "printf 'log='; "
-        "if test -s /tmp/rustdesk.log; then echo nonempty; else echo empty; fi; "
-        "printf 'missing_lib='; "
-        "if grep -qi 'error while loading shared libraries' /tmp/rustdesk.log 2>/dev/null; "
-        "then echo yes; else echo no; fi; "
-        "printf 'display_error='; "
-        "if grep -Eqi 'cannot open display|Unable to open display|XOpenDisplay|Gtk-WARNING' "
-        "/tmp/rustdesk.log 2>/dev/null; then echo yes; else echo no; fi"
-    )
+    # Report only static states, not original logs, secret keys, IDs or IPs.
+    script = r"""
+printf 'dns='
+if getent hosts rd-server >/dev/null 2>&1; then echo resolved; else echo failure; fi
+printf 'cfg='
+if grep -Fq 'rd-server:21116' "$HOME/.config/rustdesk/RustDesk2.toml" 2>/dev/null; then echo present; else echo missing; fi
+printf 'client_register_log='
+if grep -Eiq 'register.*(id|peer|pk)|rendezvous.*(server|connect)' /tmp/rustdesk.log 2>/dev/null; then echo seen; else echo absent; fi
+printf 'client_network_error='
+if grep -Eiq 'failed to resolve|name or service not known|network is unreachable|connection refused|server unreachable' /tmp/rustdesk.log 2>/dev/null; then echo seen; else echo absent; fi
+printf 'client_panic='
+if grep -Eiq 'panic|fatal error|segmentation fault' /tmp/rustdesk.log 2>/dev/null; then echo seen; else echo absent; fi
+printf 'rustdesk='
+if ps -e -o comm= | grep -qx rustdesk; then echo running; else echo absent; fi
+printf 'xvfb='
+if ps -e -o comm= | grep -qx Xvfb; then echo running; else echo absent; fi
+printf 'log='
+if test -s /tmp/rustdesk.log; then echo nonempty; else echo empty; fi
+printf 'missing_lib='
+if grep -qi 'error while loading shared libraries' /tmp/rustdesk.log 2>/dev/null; then echo yes; else echo no; fi
+printf 'display_error='
+if grep -Eqi 'cannot open display|Unable to open display|XOpenDisplay|Gtk-WARNING' /tmp/rustdesk.log 2>/dev/null; then echo yes; else echo no; fi
+"""
     try:
-        result = compose("exec", "-T", name, "sh", "-ec", test, timeout=8)
+        result = compose("exec", "-T", name, "sh", "-ec", script, timeout=8)
         return result.replace("\n", ",")
     except EvidenceRejected:
         return "unavailable"
