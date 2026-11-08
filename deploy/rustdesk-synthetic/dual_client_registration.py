@@ -316,7 +316,7 @@ def orchestrate() -> None:
         # dispatch, verified through its loopback-only administrative socket.
         command = (
             "import socket,sys; "
-            "s=socket.create_connection(('127.0.0.1',21116),timeout=3); "
+            "s=socket.create_connection(('127.0.0.1',21115),timeout=3); "
             "s.settimeout(3); s.sendall(b'pr 0 10'); "
             "print(s.recv(8192).decode('utf-8','replace'))"
         )
