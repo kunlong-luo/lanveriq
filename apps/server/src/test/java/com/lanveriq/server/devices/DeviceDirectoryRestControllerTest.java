@@ -86,7 +86,7 @@ class DeviceDirectoryRestControllerTest {
     @Test
     void malformedPrefixAndUnsupportedGlobalSortFailClosedWithoutLeaks() throws Exception {
         var mvc = MockMvcBuilders.standaloneSetup(controller).build();
-        for (var prefix : List.of("   ", "a".repeat(65), "a\\nadmin")) {
+        for (var prefix : List.of("   ", "a".repeat(65), "a\nadmin")) {
             mvc.perform(get("/api/v1/devices").param("label_prefix", prefix))
                     .andExpect(status().isBadRequest())
                     .andExpect(header().string("Cache-Control", "no-store"));
