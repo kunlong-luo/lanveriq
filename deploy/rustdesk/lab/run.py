@@ -29,8 +29,13 @@ CMD = ["docker", "compose", "--project-name", PROJECT, "-f", str(FILE)]
 
 def invoke(args: list[str], *, input_text: str | None = None, timeout: int = 30,
            accepted: tuple[int, ...] = (0,)) -> str:
-    run = subprocess.run(args, input=input_text, capture_output=True, text=True,
-                         check=False, timeout=timeout)
+    try:
+        run = subprocess.run(args, input=input_text, capture_output=True, text=True,
+                             check=False, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        # TimeoutExpired.__str__ includes FULL argv (peer IDs, paths, future
+        # secrets). Never expose its raw message in public Actions logs.
+        raise EvidenceRejected(f"Synthetic subprocess timed out (family={args[0]})") from None
     if run.returncode not in accepted:
         # Never reveal service logs which may include transient IDs/keys.
         raise EvidenceRejected(f"Container lab subprocess failed (exit={run.returncode}, command_family={args[0]})")
