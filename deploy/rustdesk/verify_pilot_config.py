@@ -20,6 +20,24 @@ PILOT_IMAGE = (
     "sha256:5974cd791a5aca6fbf01a167b37e7427db1d136e95b2710c33a34fdc9fea724c"
 )
 EXPECTED_PORTS = {(21115, "tcp"), (21116, "tcp"), (21116, "udp"), (21117, "tcp")}
+PILOT_ENTRYPOINT = (
+    "umask 077\\n"
+    "if [ ! -e /data/id_ed25519 ] && [ ! -e /data/id_ed25519.pub ]; then\\n"
+    "  /usr/bin/rustdesk-utils genkeypair | awk '\\n"
+    "    /^Public Key:/ { pub=$3 }\\n"
+    "    /^Secret Key:/ { priv=$3 }\\n"
+    "    END {\\n"
+    "      if (pub == \\"\\" || priv == \\"\\") exit 1\\n"
+    "      print pub > \\"/data/id_ed25519.pub\\"\\n"
+    "      print priv > \\"/data/id_ed25519\\"\\n"
+    "    }\\n"
+    "  '\\n"
+    "fi\\n"
+    "test -s /data/id_ed25519\\n"
+    "test -s /data/id_ed25519.pub\\n"
+    "chmod 0600 /data/id_ed25519 /data/id_ed25519.pub\\n"
+    "exec /init\\n"
+)
 SERVICE = "rustdesk-pilot"
 
 
@@ -76,8 +94,8 @@ def check_contract(document: dict, bind_ip: str, relay_host: str) -> dict:
     service = services[SERVICE]
     if service.get("image") != PILOT_IMAGE:
         raise ConfigurationRejected("RustDesk must be digest-pinned to the reviewed OSS pilot image")
-    if service.get("entrypoint") != ["/bin/sh", "-ec", "umask 077; exec /init"]:
-        raise ConfigurationRejected("Strict owner-only umask must run before upstream s6 startup")
+    if service.get("entrypoint") != ["/bin/sh", "-ec", PILOT_ENTRYPOINT]:
+        raise ConfigurationRejected("Only the reviewed upstream utility key bootstrap with chmod 0600 is allowed")
     if service.get("restart", "no") not in ("no", "none"):
         raise ConfigurationRejected("Pilot service cannot auto-restart on reboot")
     if set(service.get("profiles", [])) != {"pilot"}:
