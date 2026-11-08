@@ -101,7 +101,10 @@ def check_contract(document: dict, bind_ip: str, relay_host: str) -> dict:
         and len(entrypoint) == 3
         and entrypoint[:2] == ["/bin/sh", "-ec"]
         and isinstance(entrypoint[2], str)
-        and entrypoint[2].rstrip("\n") == PILOT_ENTRYPOINT.rstrip("\n")
+        and entrypoint[2].rstrip("\n") in {
+            PILOT_ENTRYPOINT.rstrip("\n"),
+            PILOT_ENTRYPOINT.replace("$3", "$3").rstrip("\n"),
+        }
     ):
         actual = entrypoint[2] if isinstance(entrypoint, list) and len(entrypoint) == 3 and isinstance(entrypoint[2], str) else ""
         first = next((i for i, (a, b) in enumerate(zip(actual, PILOT_ENTRYPOINT)) if a != b),
