@@ -1,5 +1,8 @@
 # D0 — documentation-before-code gate
 
+> **2026-11-08 历史文档提醒：** 本页记录 **2026-10-30 D0 批准**及早期每一次测试/故障经过。它不是 2026-11-08 的实时代码/CI 状态汇总；下面“待执行/尚无集成结果”和“unit-only”可能已被后来真实 PG18/浏览器验收或 [L1/L2/L3 批量测试](../testing/strategy.md) 超越。当前文档发现/修复见 [2026-11-08 查漏补缺报告](documentation-audit-2026-11-08.md)。D0 源码批准**不等于**组织/法律/PKI/真实设备/生产批准。
+
+
 **Status: D0 TECHNICAL BASELINE APPROVED 2026-10-30 — V0.1 IMPLEMENTATION MAY BEGIN.** Documentation completeness remains distinct from implemented software, passing security tests or real-world deployment authorization. Reviewed Git baseline: `977392dd73273ea2a7930651d6e3bd40da487859`; approval entered for GitHub-authenticated owner `kunlong-luo` pursuant to explicit conditional authorization in this conversation.
 
 **Approved technical decisions and scope:** [D0 decision package](d0-decision-package-2026-10-30.md) records D-07 PKI, D-11/D-22 V0.1 protocol, D-17/18/20 technical privacy/RBAC and D-02 pilot target. No employee data, production deployment or V0.2/V0.3 feature is authorized by D0. This is a maintainer-directed documented technical approval, not an independent cryptographic signature or completed integration audit.
