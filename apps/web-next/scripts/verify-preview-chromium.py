@@ -153,6 +153,8 @@ def check_browser(page, blocked):
             "search_must_be_disabled_without_authorized_rows")
     require(page.get_by_role("combobox", name="筛选设备组").is_disabled(),
             "group_filter_must_be_disabled_without_authorized_rows")
+    require(page.get_by_role("combobox", name="排序当前授权页").is_disabled(),
+            "nxt19_sort_must_be_disabled_without_authorized_rows")
     require(page.get_by_role("button", name="添加设备（未开放）").is_disabled(),
             "real_device_add_must_remain_disabled")
 
