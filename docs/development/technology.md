@@ -17,6 +17,12 @@
 | HTTPS ingress | **Caddy**、独立 console/enroll/agent 主机、专用 CA 与上游 mTLS | 合成验证曾通过，**参考 Caddyfile 禁止直接生产使用**；真实 CA 与网络隔离另审 |
 | 可选桌面/高级功能 | Tauri 2、OS 确认的采集/录制、FFmpeg 等 | v0.3 **独立授权后再实现**，不是 v0.1 完成条件 |
 
+## 新增已批准的独立远程控制候选（2026-11-08）
+
+用户批准优先直接复用 RustDesk 作为独立的远程桌面/NAT 穿透/Relay/WebRTC 基础设施，同时采用 [ADR-0010](../architecture/adrs/0010-rustdesk-dual-network-access.md) 内网 + 外网安全访问设计及 [双视角验收手册](../operations/dual-network-acceptance.md)。**这是下一步的集成候选，不是当前仓库已安装的依赖或已上线服务。** 不将 RustDesk Flutter UI 用作 Lanveriq 产品主界面，仍由 Next.js + Spring 接入经许可的远程访问能力。RustDesk OSS hbbs/hbbr 与 Pro API、Web Console、Web Client 能力/授权严格区分；正式集成前必须固定版本/SHA、许可证、硬件目标和 LAN/WAN 真正测试证据。
+
+本次批准**不改变**上表 Agent 业务 `reqwest` + mTLS + 严格事务 ACK、PG18、默认 OFF 和 A–E 研发顺序。RustDesk 的 WebRTC/DataChannel 属于独立远程交互链路，不能拿来替代 Agent 业务可靠性协议。使用新稳定组件需经过安全/许可证/兼容性检查，不能因为所谓“最新最流行”就替换已验收的基础组件。
+
 ## 选型底线
 
 - **先完成业务再升级基础设施。** 当前用户批准的优先级是设备注册/证书/首次心跳→库存/离线恢复→授权前端→WSS→真实平台/备份/隐私。v0.1 不新增 MQTT broker、Kafka、gRPC 双栈、视频流或微服务。若未来量化达到需流式/高吞吐的场景，再对比成熟的 `tonic`/`prost` + Spring gRPC + Buf；协议决议见 [ADR-0009](../architecture/adrs/0009-agent-transport-selection.md)。
