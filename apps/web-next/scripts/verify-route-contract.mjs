@@ -23,7 +23,9 @@ for (const forbidden of ['src/app/api', 'src/proxy.ts', 'src/middleware.ts',
   // The credentialed test page is generated only inside manual CI; it must
   // never be committed or built in the ordinary disabled-login preview.
   'src/app/synthetic-auth-probe', 'src/app/synthetic-multi-admin-probe',
-  'src/app/synthetic-console-candidate', 'src/app/synthetic-console-route']) {
+  'src/app/synthetic-console-candidate', 'src/app/synthetic-console-route',
+  // NXT-17: CI fixture is generated only after ordinary source passed this gate.
+  'src/app/synthetic-directory-probe']) {
   if (existsSync(join(process.cwd(), forbidden))) {
     throw new Error('NXT-01 cannot enable a business/API proxy: ' + forbidden);
   }
@@ -46,7 +48,7 @@ function inspectRuntimeSource(folder) {
     if (entry.isDirectory()) inspectRuntimeSource(file);
     else if (/\.[jt]sx?$/.test(entry.name)) {
       const source = readFileSync(file, 'utf8');
-      if (/staged-console-read|staged-console-auth|staged-console-workspace|\.generated-contract/.test(source)) {
+      if (/staged-console-read|staged-console-auth|staged-console-workspace|synthetic-only-directory-probe|\.generated-contract/.test(source)) {
         throw new Error('NXT-03 pending acceptance: runtime imported staged transport/model: ' + file);
       }
     }
