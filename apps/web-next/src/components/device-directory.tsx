@@ -138,16 +138,14 @@ export function DeviceDirectory({
             value={search} onChange={event => setSearch(event.target.value)}
             placeholder="搜索设备或系统" disabled={!isReady} />
         </label>
-        <label className="directory-select">
-          <span className="sr-only">筛选设备组</span>
+        <div className="directory-select">
           <NativeSelect aria-label="筛选设备组" disabled={!isReady}
             value={activeGroup} onChange={event => setGroup(event.target.value)}>
             <option value="">全部授权设备组</option>
             {groups.map(value => <option value={value} key={value}>{value}</option>)}
           </NativeSelect>
-        </label>
-        <label className="directory-sort">
-          <span className="sr-only">排序当前授权页</span>
+        </div>
+        <div className="directory-sort">
           <NativeSelect aria-label="排序当前授权页" disabled={!isReady}
             value={sortMode}
             onChange={event => setSortMode(event.target.value as DirectorySort)}>
@@ -156,7 +154,7 @@ export function DeviceDirectory({
             <option value="label-desc">设备名称 Z–A</option>
             <option value="group-asc">设备组 A–Z</option>
           </NativeSelect>
-        </label>
+        </div>
         {hasFilters && <button type="button" onClick={resetFilters}
           className="directory-clear-filters" aria-label="清除设备搜索和设备组筛选">
           <X size={15} aria-hidden="true"/> 清除筛选
