@@ -1,7 +1,8 @@
 name: Dual-network access contract (synthetic L1)
 
-# No network calls, secrets, credentials, real devices, DNS, VPN or deployment.
-# This intentionally does not claim WAN or actual RustDesk acceptance.
+# Only a disposable localhost-bound Docker RustDesk OSS process in PR CI.
+# No credentials, real devices, DNS, VPN, external access or production deployment.
+# A successful socket test does NOT prove native RustDesk sessions or WAN access.
 on:
   pull_request:
     paths:
@@ -55,6 +56,20 @@ jobs:
           set -euo pipefail
           docker compose -f deploy/rustdesk/compose.pilot.yml --profile pilot config --format json |
             python3 deploy/rustdesk/verify_pilot_config.py --bind-ip "$RUSTDESK_PILOT_BIND_IP" --relay-host "$RUSTDESK_PILOT_RELAY_HOST"
+      - name: Boot the real pinned RustDesk OSS image on localhost only
+        env:
+          RUSTDESK_PILOT_RELAY_HOST: localhost
+          RUSTDESK_PILOT_BIND_IP: 127.0.0.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          compose=(docker compose -f deploy/rustdesk/compose.pilot.yml --profile pilot)
+          cleanup() { "${compose[@]}" down --remove-orphans >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          "${compose[@]}" up -d --pull always
+          python3 deploy/rustdesk/smoke_local.py
+          "${compose[@]}" exec -T rustdesk-pilot sh -ec 'test -s /data/id_ed25519 && test -s /data/id_ed25519.pub'
+          echo 'PASS: real pinned RustDesk server image local TCP listeners and persistent keypair files (no keys printed).' >> "$GITHUB_STEP_SUMMARY"
       - name: Scope reminder
         run: |
-          echo 'PASS only for synthetic source/unit + Docker Compose render checks; no containers started, no actual LAN/WAN, ICE/UDP/relay or production reachability proven.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PASS only for synthetic source/unit + Docker Compose render and actual localhost RustDesk process checks; no actual LAN/WAN, ICE/UDP/P2P/relay session or production reachability proven.' >> "$GITHUB_STEP_SUMMARY"
