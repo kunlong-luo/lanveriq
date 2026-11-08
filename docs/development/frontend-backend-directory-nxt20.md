@@ -51,6 +51,17 @@ The literal prefix applies to `COALESCE(NULLIF(device_label,''), 'Unlabeled devi
 - Existing Caddy/Tomcat/PG18/Chromium two-admin acceptance continues to run automatically on server query changes, without enabling real production credentials or opening a public endpoint.
 - The PostgreSQL 18 **full database integration workflow remains explicitly manually dispatched**, per existing repository safety policy. A compiled Testcontainers test is not the same thing as successful Docker execution. Do not mark the new PG18 filter integration *executed/passed* unless the actual workflow is run with evidence.
 
+## Final verified acceptance — 2026-11-08
+
+| Gate | Evidence and result |
+| --- | --- |
+| [Java 25 Spring Boot unit, OpenAPI/Orval generated Fetch + TanStack Query client, TypeScript validation #42446704434](https://github.com/kunlong-luo/lanveriq/actions/runs/42446704434) | **SUCCESS** — actual controller DTO + new query validator + bounded/keyset unit cases, generated Springdoc contract and Next.js-locked client compilation |
+| [Synthetic Caddy/Tomcat/PostgreSQL 18/Chromium security + new directory PG18 class #42446683900](https://github.com/kunlong-luo/lanveriq/actions/runs/42446683900) | **SUCCESS** — `PostgreSqlDeviceDirectoryIT` executed against disposable real PG18 with literal wildcard/group-filter/keyset and cross-admin negative cases; combined edge HTML/RSC/cookie/session/CSRF and two-admin revoke/deny checks also passed |
+
+There were transient red **intermediate commits** during the incremental implementation: new controller method signatures initially broke old mocked no-filter calls, and one negative HTTP test accidentally passed a literal backslash-`n` instead of a control newline. Both were corrected **without changing existing production auth or relaxing assertions**. The preserved unfiltered call path and corrected negative fixture are included in the green runs above.
+
+The security run records both `Verify NXT-20 filtered UUID keyset against real disposable PostgreSQL 18` and `Run isolated Caddy->Tomcat->PG18 HTTPS session and negative checks` as successful. All traces and fixtures are synthetic and isolated. Neither green workflow establishes public/production data readiness.
+
 ## Next release prerequisites
 
 Before enabling any real web adapter, complete independent decisions on authenticated server-data delivery, UI page reset/caching, traffic limits, production query plan/indexing, fresh/session-scoped read permission semantics and 401/403/404 error envelopes. The public GitHub Pages site stays a **disconnected design preview**, not a backend client. This is a **default-off staged contract implementation**, not production authorization or employee monitoring approval.
