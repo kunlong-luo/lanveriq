@@ -43,12 +43,34 @@ def verify(browser, width):
                 "explicit_synthetic_ci_label_missing")
         search = page.get_by_role("textbox", name="搜索终端名称、系统或设备组")
         group = page.get_by_role("combobox", name="筛选设备组")
-        require(search.is_enabled() and group.is_enabled(),
+        sorting = page.get_by_role("combobox", name="排序当前授权页")
+        require(search.is_enabled() and group.is_enabled() and sorting.is_enabled(),
                 "authorized_fixture_must_enable_local_controls")
         require(page.locator(".device-table tbody tr").count() == 2,
                 "initial_authorized_test_rows_missing")
         require(page.get_by_text("仅本次授权页：匹配 2 / 2 条").count() == 1,
                 "initial_authorized_page_count_missing")
+        table_region = page.get_by_role("region", name="设备目录表格（可横向滚动）")
+        require(table_region.count() == 1 and
+                table_region.get_attribute("tabindex") == "0",
+                "accessible_keyboard_scroller_missing")
+        require(page.locator(".device-table tbody th[scope='row']").count() == 2,
+                "accessible_device_row_headers_missing")
+        sorting.select_option("label-desc")
+        require(page.locator(".device-table tbody th[scope='row'] strong").first.inner_text() ==
+                "CI合成设备乙", "page_sort_desc_not_applied")
+        sorting.select_option("server")
+        require(page.locator(".device-table tbody th[scope='row'] strong").first.inner_text() ==
+                "CI合成设备甲", "page_sort_did_not_restore_server_order")
+        if width <= 390:
+            table_region.focus()
+            require(table_region.evaluate(
+                "(el) => document.activeElement === el"),
+                "keyboard_table_region_not_focusable")
+            page.keyboard.press("ArrowRight")
+            page.wait_for_function(
+                "() => document.querySelector('[data-slot=table-container]').scrollLeft > 0",
+                timeout=5000)
 
         # Actual React keyboard/input updates rather than SSR-only snapshots.
         search.fill("合成设备甲")
@@ -88,14 +110,17 @@ def verify(browser, width):
                 "permission_denial_state_missing")
         require(page.locator("tbody tr").count() == 0,
                 "permission_denial_leaked_authorized_rows")
-        require(search.is_disabled() and group.is_disabled(),
+        require(search.is_disabled() and group.is_disabled() and sorting.is_disabled(),
                 "permission_denial_kept_inputs_active")
+        require(table_region.count() == 0,
+                "permission_denial_must_remove_scrollable_device_rows")
         require(page.get_by_text("CI合成设备丙").count() == 0,
                 "permission_denial_retained_sensitive_test_row")
 
         page.get_by_role("button", name="恢复合成授权页甲").click()
-        require(search.is_enabled() and group.is_enabled() and
-                search.input_value() == "" and group.input_value() == "",
+        require(search.is_enabled() and group.is_enabled() and sorting.is_enabled() and
+                search.input_value() == "" and group.input_value() == "" and
+                sorting.input_value() == "server",
                 "reauthorize_must_reset_previous_local_filters")
         require(page.locator(".device-table tbody tr").count() == 2,
                 "new_authorized_page_not_rendered")
@@ -117,9 +142,9 @@ def main():
                 verify(browser, width)
         finally:
             browser.close()
-    print("NXT-17 SYNTHETIC DIRECTORY CHROMIUM PASS: ready-only search/group,"
-          " clear/focus, new-page normalization, permission revocation,"
-          " reauthorization, mobile width, no network/cookies.")
+    print("NXT-19 SYNTHETIC DIRECTORY CHROMIUM PASS: authorized-page sort/search/group,"
+          " row headers/keyboard scroll, clear/focus, new-page normalization,"
+          " revoke/reset, mobile width, no network/cookies.")
 
 
 if __name__ == "__main__":
