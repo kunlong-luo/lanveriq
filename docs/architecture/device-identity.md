@@ -1,5 +1,8 @@
 # Device identity and replacement policy
 
+**2026-11-08 代码现实校正：** PostgreSQL `uuidv7()`、内部 JPA 一次性注册/签叶子审核与设备有效证书绑定已有部分**源码及合成数据库测试**；不能再笼统说“身份完全未实现”。但 `enroll` HTTP、真实 Rust Agent 生成/保管私钥、人工签发及 mTLS 激活和端到端设备接入 **仍未交付**。默认关闭的 heartbeat POST 是新 A1 源码，不等于注册已经启用。查看 [Batch A](../development/batch-a-first-heartbeat-implementation.md)、[协议基线](device-communication-stack.md)。原技术设计正文继续有效。
+
+
 **Status:** v0.1 design, not implemented. **Canonical field:** PostgreSQL `devices.id UUID PRIMARY KEY DEFAULT uuidv7()`. REST/JSON name: `device_id`. The server **allocates** this value when a one-use token is consumed and a `pending_certificate` enrollment is recorded (proposed D-07 flow); the Agent persists the returned value and its own key, and presents it on every authenticated heartbeat/event batch.
 
 PostgreSQL 18 provides `uuidv7()` natively: https://www.postgresql.org/docs/18/functions-uuid.html . RFC 9562 defines UUIDv7: https://www.rfc-editor.org/rfc/rfc9562.html . UUIDv7 is time-sortable but **not** secret, a hardware fingerprint, a proof of possession or an access token. Never authorize a request just because its path contains a known device ID.
