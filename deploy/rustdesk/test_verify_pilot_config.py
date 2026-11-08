@@ -105,6 +105,14 @@ class RustDeskPilotSecurityTests(TestCase):
             entrypoint=["/bin/sh", "-ec", guard.PILOT_ENTRYPOINT.replace("chmod 0600", "chmod 0644")]))
         self.rejects(lambda d: d["services"]["rustdesk-pilot"].update(entrypoint=None))
 
+    def test_compose_config_escapes_awk_field_dollars_only(self):
+        config = fixture()
+        config["services"]["rustdesk-pilot"]["entrypoint"][2] = guard.PILOT_ENTRYPOINT.replace("$3", "$3")
+        self.assertEqual(self.accepts(config)["result"], "PASS_STATIC_CONFIG_ONLY")
+        config["services"]["rustdesk-pilot"]["entrypoint"][2] = guard.PILOT_ENTRYPOINT.replace("$3", "$9")
+        with self.assertRaises(guard.ConfigurationRejected):
+            self.accepts(config)
+
     def test_wss_and_extra_exposed_ports_rejected(self):
         self.rejects(lambda d: d["services"]["rustdesk-pilot"]["ports"].append(
             {"host_ip": "127.0.0.1", "target": 21118, "published": "21118", "protocol": "tcp"}))
