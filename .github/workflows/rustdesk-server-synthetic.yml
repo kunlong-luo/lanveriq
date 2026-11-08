@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 12
     steps:
       - name: Checkout only test harness
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -71,7 +71,7 @@ jobs:
             python /workspace/smoke.py
 
       - name: Set up Python 3.13 for pinned upstream Protobuf codegen
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -92,7 +92,8 @@ jobs:
           python -m pip install --disable-pip-version-check \
             --no-cache-dir --only-binary=:all: \
             --target "$RUNNER_TEMP/rustdesk-python-deps" \
-            "grpcio-tools==1.84.0" "protobuf==7.35.1" "grpcio==1.84.0"
+            "grpcio-tools==1.84.0" "protobuf==7.35.1" "grpcio==1.84.0" \
+            "setuptools==84.2.1" "typing-extensions==4.16.0"
           PYTHONPATH="$RUNNER_TEMP/rustdesk-python-deps" \
             python -m grpc_tools.protoc \
               "-I$RUNNER_TEMP/rustdesk-protobuf" \
