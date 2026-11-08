@@ -123,8 +123,9 @@ for id in $ids; do
      [ "$WIDTH" -le 1500 ] && [ "$HEIGHT" -le 1300 ]; then
     x="$((WIDTH * 27 / 100))"
     y="$((HEIGHT - 48))"
-    xdotool windowactivate --sync "$id" >/dev/null 2>&1 || continue
-    xdotool mousemove --window "$id" "$x" "$y" click 1 >/dev/null 2>&1 || continue
+    # Never wait indefinitely for a Flutter/X11 window focus transition.
+    timeout 2s xdotool windowactivate "$id" >/dev/null 2>&1 || continue
+    timeout 2s xdotool mousemove --window "$id" "$x" "$y" click 1 >/dev/null 2>&1 || continue
     echo CLICKED_UPSTREAM_SYNTHETIC_ACCEPT_BUTTON
     exit 0
   fi
@@ -204,8 +205,11 @@ def run_session() -> dict[str, Any]:
         approval_clicked = False
         frame: dict[str, Any] | None = None
         for step in range(35):
-            if not approval_clicked and step > 1:
-                approval_clicked = try_operator_accept()
+            if step > 1 and step % 3 == 0:
+                # The CM can appear before a pending request. Retry the real
+                # visible accept surface periodically, rather than treating
+                # an early click on an idle CM window as final consent.
+                approval_clicked = try_operator_accept() or approval_clicked
             frame = observe_remote_tiles()
             if frame is not None:
                 break
