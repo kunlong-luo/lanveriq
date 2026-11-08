@@ -88,6 +88,30 @@ class JpaDeviceDirectoryRepositoryTest {
     }
 
     @Test
+    void boundedPrefixAndGroupAreAndedWithLiveDatabaseScope() {
+        wire();
+        when(query.getResultList()).thenReturn(List.<Object[]>of(sample()));
+        var filter = new DeviceDirectoryListQuery(groupId, "Syn%_!x", "device_id_asc");
+        var results = repo.list(adminId, deviceId, 4, filter);
+        assertEquals(1, results.size());
+        var sql = ArgumentCaptor.forClass(String.class);
+        verify(manager).createNativeQuery(sql.capture());
+        assertTrue(sql.getValue().contains("WHERE EXISTS"));
+        assertTrue(sql.getValue().contains("u.disabled_at IS NULL"));
+        assertTrue(sql.getValue().contains("s.device_group_id=d.group_id"));
+        assertTrue(sql.getValue().contains("AND d.group_id=:filter_group_id"));
+        assertTrue(sql.getValue().contains("LIKE LOWER(:label_pattern) ESCAPE '!'"));
+        assertTrue(sql.getValue().contains("AND d.id>:cursor"));
+        assertTrue(sql.getValue().contains("ORDER BY d.id ASC"));
+        assertFalse(sql.getValue().contains("ORDER BY " + filter.labelPrefix()));
+        verify(query).setParameter("admin_id", adminId);
+        verify(query).setParameter("filter_group_id", groupId);
+        verify(query).setParameter("label_pattern", "Syn!%!_!!x%");
+        verify(query).setParameter("cursor", deviceId);
+        verify(query).setMaxResults(4);
+    }
+
+    @Test
     void emptyAndUnknownHealthAreNotFabricatedAsZeroOrOnline() {
         wire();
         Object[] row = sample();
