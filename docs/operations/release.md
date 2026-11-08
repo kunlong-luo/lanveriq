@@ -14,7 +14,11 @@
 
 No tag or synthetic green check alone authorizes real deployment; the default-OFF feature flags must remain closed until independent approval.
 
-## Local development checkpoints
+## Local development checkpoints## Device-protocol preflight (P0; not yet passed)
+
+The Batch A heartbeat HTTP controller exists only behind **two default-OFF flags**, and the running Rust Agent still has no live enrollment/transport. **DO NOT enable live device ingestion** before: (1) decide/implement/assert the Agent→Caddy minimum TLS version (current Rust `tls_version_min(TLS_1_2)` is **not** proof of TLS1.3-only); (2) validate both Caddy client-identity CA and independent Caddy→Tomcat upstream client certificate, exact SNI/Host and forged-header rejection; (3) run Rust/Java JSON golden fixtures, strict heartbeat/inventory/batch ACK/PKI revocation negative cases; (4) run actual disposable Agent→Caddy→Tomcat→PG18 Batch A L2 and authorized Windows/Linux + key custody acceptance L3. These are separate from previous synthetic Console HTML/RSC/RBAC successes. Canonical checklist: [device transport stack](../architecture/device-communication-stack.md), [document audit](../governance/documentation-audit-2026-11-08.md), [Batch A](../development/batch-a-first-heartbeat-implementation.md).
+
+
 - Changes are small, atomically committed and documented; never force-push main.
 - Run relevant local Rust formatting/compiler, Java compilation, TS typecheck/build and actual unit tests where code exists.
 - Updated schema/API? Update contracts + migration and test compatibility. Authorization/credential changes require targeted manual validation.
