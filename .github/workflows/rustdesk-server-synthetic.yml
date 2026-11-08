@@ -15,6 +15,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  rd2-release-boundary:
+    name: RD-2 fail-closed source release guard (fast, no Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout untrusted draft PR source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test static release-denial checks with invented fixtures
+        run: python3 -m unittest discover -s deploy/rustdesk-synthetic -p 'test_verify_rd2_release_boundary.py' -v
+      - name: Confirm real repository has no active RustDesk remote access route
+        run: python3 deploy/rustdesk-synthetic/verify_rd2_release_boundary.py
+
   hbbs-hbbr-startup:
     name: Pinned hbbs/hbbr in Docker --network none
     runs-on: ubuntu-latest
