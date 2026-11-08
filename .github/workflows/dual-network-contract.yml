@@ -67,8 +67,25 @@ jobs:
           cleanup() { "${compose[@]}" down --remove-orphans >/dev/null 2>&1 || true; }
           trap cleanup EXIT
           "${compose[@]}" up -d --pull always
+          # Docker host TCP port forwarding alone does not prove healthy
+          # hbbs/hbbr processes or completed delayed key generation.
+          ready=0
+          for _ in $(seq 1 25); do
+            if "${compose[@]}" exec -T rustdesk-pilot sh -ec 'test -s /data/id_ed25519 && test -s /data/id_ed25519.pub' >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != 1 ]]; then
+            echo 'FAIL: shared RustDesk key pair absent after startup; showing filenames only.'
+            "${compose[@]}" ps || true
+            "${compose[@]}" exec -T rustdesk-pilot sh -ec 'ls -l /data' || true
+            "${compose[@]}" logs --no-color --tail 45 | sed -E 's/(KEY_PRIV|KEY_PUB|PRIVATE_KEY)=([^[:space:]]+)/\1=[REDACTED]/g' || true
+            exit 1
+          fi
           python3 deploy/rustdesk/smoke_local.py
-          "${compose[@]}" exec -T rustdesk-pilot sh -ec 'test -s /data/id_ed25519 && test -s /data/id_ed25519.pub'
+          [[ "$("${compose[@]}" ps --status running --services)" == "rustdesk-pilot" ]] || { echo 'FAIL: RustDesk container is not running'; exit 1; }
           echo 'PASS: real pinned RustDesk server image local TCP listeners and persistent keypair files (no keys printed).' >> "$GITHUB_STEP_SUMMARY"
       - name: Scope reminder
         run: |
