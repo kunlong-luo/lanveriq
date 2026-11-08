@@ -17,6 +17,8 @@
 | HTTPS ingress | **Caddy**、独立 console/enroll/agent 主机、专用 CA 与上游 mTLS | 合成验证曾通过，**参考 Caddyfile 禁止直接生产使用**；真实 CA 与网络隔离另审 |
 | 可选桌面/高级功能 | Tauri 2、OS 确认的采集/录制、FFmpeg 等 | v0.3 **独立授权后再实现**，不是 v0.1 完成条件 |
 
+**新增候选（未安装/未接线）：**RustDesk 客户端与 Server OSS 的 hbbs/hbbr 用于交互式远程桌面，作为独立的远程会话数据面；其 AGPL-3.0、OSS/Pro API/Web 限制、连接级授权与客户端分发必须按 [ADR-0010](../architecture/adrs/0010-rustdesk-remote-control-integration.md) 与 [RD-0 至 RD-3 计划](../architecture/rustdesk-integration-plan.md) 审查。**不能将其记作当前已部署的协议或 API**；既有 Rust Agent 的 REST/JSON+mTLS/ACK 仍为真实设备管理协议基线。
+
 ## 选型底线
 
 - **先完成业务再升级基础设施。** 当前用户批准的优先级是设备注册/证书/首次心跳→库存/离线恢复→授权前端→WSS→真实平台/备份/隐私。v0.1 不新增 MQTT broker、Kafka、gRPC 双栈、视频流或微服务。若未来量化达到需流式/高吞吐的场景，再对比成熟的 `tonic`/`prost` + Spring gRPC + Buf；协议决议见 [ADR-0009](../architecture/adrs/0009-agent-transport-selection.md)。
