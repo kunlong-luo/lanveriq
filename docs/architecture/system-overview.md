@@ -1,11 +1,11 @@
 # Architecture overview
 
-**Status:** D0 technical architecture approved for V0.1 source implementation; product not yet implemented or tested.
+**Status (2026-11-08):** v0.1 D0 technical design approved; **parts of Agent/Rust, Java/Spring and Next.js source plus synthetic tests exist**, but enrollment→Agent→TLS→PG18→authenticated Next.js is not complete and nothing is production enabled. See [v0.1 business batches](../planning/v0.1-batched-delivery-plan-2026-11-08.md).
 
 [Color overview for non-engineers](../visuals/assets/01-overview.svg) · [Product infographic gallery](../visuals/README.md). These assets are **concepts**, not deployed-system screenshots.
 
 ## Deployment
-A private LAN host runs Caddy TLS, one Spring Boot 4 modular-monolith service, PostgreSQL 18, a static React/Vite dashboard and a protected local/NAS video volume. The v0.1 dashboard uses **HTTPS REST for authoritative snapshots/mutations plus authenticated WSS for scoped, best-effort status notifications**, per [ADR-0005](adrs/0005-rest-plus-websocket.md) and the [WS contract](websocket-contract.md). Windows 11 and Linux terminals run a Rust service with bundled SQLite WAL. Optional Tauri 2 companion runs in the logged-in user session for device status, policy notice and permission-dependent recording.
+The **proposed private LAN** host runs Caddy TLS, one Spring Boot 4 modular-monolith service, PostgreSQL 18 and an isolated **private Next.js App Router runtime** for authenticated HTML/RSC. The public GitHub Pages export is a **separate, deliberately disconnected static showcase**. Protected local/NAS media storage is **v0.3 only** and not a prerequisite for v0.1. The v0.1 dashboard uses **HTTPS REST for authoritative snapshots/mutations plus authenticated WSS for scoped, best-effort status notifications**, per [ADR-0005](adrs/0005-rest-plus-websocket.md) and the [WS contract](websocket-contract.md). Windows 11 and Linux terminals run a Rust service with bundled SQLite WAL. Optional Tauri 2 companion runs in the logged-in user session for device status, policy notice and permission-dependent recording.
 
 ~~~mermaid
 flowchart TD
@@ -22,7 +22,7 @@ flowchart TD
     API["Spring Boot: enrollment, ingestion, query, RBAC"]
     PG[("PostgreSQL 18")]
     NAS[("Local video disk / NAS")]
-    WEB["React/Vite static SPA"]
+    WEB["Private Next.js App Router (future authorized runtime)"]
     WS["WebSocket notifier: in-process, after commit"]
     P --> API
     P --> WEB
@@ -45,7 +45,7 @@ flowchart TD
 - Endpoint evidence is best-effort, subject to manipulation by local administrators; hashes detect accidental transfer corruption, not all endpoint tampering.
 
 ## Interaction flows
-**Enrollment (D-07 D0-approved design, not implemented):** Admin creates expiring single-use code → Agent verifies enrollment-host TLS and prior notice, generates CSR → token is consumed atomically and UUIDv7 device enters `pending_certificate` → approved operator signs/imports leaf certificate via established PKI tooling and delivers it securely → Agent proves mTLS possession on isolated Agent host → Spring verifies active credential and device ID → heartbeat begins. No automatic credential issuing service is claimed. See [LAN bootstrap](enrollment-bootstrap.md) and [enrollment sequence](../diagrams/enrollment-sequence.md).
+**Enrollment (D-07 design with internal JPA/CSR services and a default-OFF heartbeat HTTP source only; not a full running protocol):** Admin creates expiring single-use code → Agent verifies enrollment-host TLS and prior notice, generates CSR → token is consumed atomically and UUIDv7 device enters `pending_certificate` → approved operator signs/imports leaf certificate via established PKI tooling and delivers it securely → Agent proves mTLS possession on isolated Agent host → Spring verifies active credential and device ID → heartbeat begins. No automatic credential issuing service is claimed. See [LAN bootstrap](enrollment-bootstrap.md) and [enrollment sequence](../diagrams/enrollment-sequence.md).
 **Event delivery:** Source adapter filters/redacts → SQLite transaction commits immutable event + monotonic sequence + cursor → uploader sends bounded REST batch → PostgreSQL commits **all or none** with conflict checks → server confirms accepted sequences → Agent deletes **only explicit confirmed rows**. After commit, an in-process WS hub may emit an **ephemeral, scope-filtered status hint**; on reconnect the dashboard refetches REST. See [event delivery](event-delivery.md) and [WS semantics](websocket-contract.md).
 **Recording:** Published policy + OS permission + visible state → session-local recorder writes closed segments → checksums/manifests → authenticated transfer → server validates, indexes and restricts playback.
 
