@@ -1,5 +1,8 @@
 # Rust Agent — ecosystem-first, maintainable library baseline
 
+**当前代码修订（2026-11-08）：** `apps/agent/Cargo.toml` 已锁定 Reqwest 0.13.5/Rustls/Tokio/Serde/SQLx 0.9；库存 collector、SQLite WAL/outbox、transport heartbeat/inventory/event 有部分**可单独调用**的库实现，服务二进制 `runtime.rs` 仍是**空闲循环**。Batch A1 增加严格 typed heartbeat ACK，并通过 [Linux/Windows `cargo test`/Clippy #42447913810](https://github.com/kunlong-luo/lanveriq/actions/runs/42447913810)。当前 Agent TLS 客户端调用 `.tls_version_min(TLS_1_2)`，不能宣称 Agent→Caddy 强制 TLS1.3；生产 TLS 版本、OS 私钥 custody、CSR/证书生命周期、Agent 运行桥与真正网络/PG18 集成仍未完成。优先参见 [设备协议栈事实表](../architecture/device-communication-stack.md) 与 [Batch A 首次心跳](batch-a-first-heartbeat-implementation.md)。以下 AGT-01/02/03 细节属于历史分阶段描述。
+
+
 **Status: D0 design selection plus AGT-01 Rust lifecycle source; OS service smoke NOT TESTED.** This replaces the original `rusqlite`-plus-handwritten-blocking-worker implementation recommendation with **SQLx 0.9** for async SQLite. It does **not** change SQLite/WAL, transaction/inventory/ACK semantics, device identity or the privacy scope. See [ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md).
 
 ## Reuse tested crates instead of inventing infrastructure
