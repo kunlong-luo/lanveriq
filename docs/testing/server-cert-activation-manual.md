@@ -66,3 +66,10 @@ New **separate** `rustls-cng-nonexportable-signing-probe` Windows CI job calls t
 **Confirmed source revision `dbc6e8224e437af52601fd6c201000d950ce4c65`: SUCCESS in [Windows isolated synthetic CI #42626308264](https://github.com/kunlong-luo/lanveriq/actions/runs/42626308264).** The native rustls-cng signing probe, standalone Windows CNG CSR and cross-platform Java25 verifier all completed successfully. The source proof is narrower than completed client mTLS: no actual certificate resolver, trusted issuer, TLS handshake, Caddy→Tomcat proxy or PostgreSQL transaction is invoked. The disposable KSP key is deleted after every test, and the normal Agent binary remains IDLE/default-OFF. This new check must pass before asserting that `rustls-cng` is compatible with our chosen Rustls ABI.
 
 Earlier synthetic current-user key-deletion negative check and Windows CNG CSR→Java Bouncy Castle proof were confirmed green in [#42623937763](https://github.com/kunlong-luo/lanveriq/actions/runs/42623937763).
+
+
+## 2026-11-09 CNG-backed in-memory rustls TLS 1.3 mTLS gate (PENDING)
+
+The isolated `rustls-cng-tls13-memory-handshake` Windows CI job generates a new synthetic CA and distinct non-exportable CNG ECDSA P-256 signing keys, signs short-lived serverAuth/clientAuth end-entity certificates, and passes **public certificates only** into a Rustls 0.23 standalone test. Rustls uses CNG signers and a fixed certificate resolver, verifies a real TLS1.3 mutual cryptographic handshake without sockets, checks matching client certificate and protected application record, and rejects wrong SNI, wrong server CA, absent client certificate and mismatched client issuer. A Reqwest 0.13.5 `tls_backend_preconfigured` **build-only** compatibility check has no HTTP request.
+
+**Status: NOT_RUN at the new source revision until GitHub Actions completes.** There is no Caddy hop, actual Agent runtime, PostgreSQL 18, real service-key custody, upstream certificate revocation, deployed TLS listener or live registration. Never equate this check with the Batch A full end-to-end L2 gate.

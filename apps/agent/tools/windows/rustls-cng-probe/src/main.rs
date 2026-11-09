@@ -4,6 +4,8 @@
 //! synthetic challenge. No service/network, TLS handshake or private export.
 #![cfg(windows)]
 
+mod mtls;
+
 use rustls::sign::SigningKey;
 use rustls::{SignatureAlgorithm, SignatureScheme};
 use rustls_cng::key::NCryptKey;
@@ -23,6 +25,9 @@ fn utf16(value: &str) -> Vec<u16> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    if std::env::args().nth(1).as_deref() == Some("--tls13-handshake") {
+        return mtls::run();
+    }
     let key_name = std::env::var(NAME_ENV).map_err(|_| "missing isolated test key name")?;
     if key_name.len() > 100
         || !key_name.starts_with("lanveriq-synthetic-csr-")

@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - 'apps/agent/tools/windows/verify-cng-csr.ps1'
+      - 'apps/agent/tools/windows/verify-cng-tls13-memory.ps1'
       - 'apps/agent/tools/windows/rustls-cng-probe/**'
       - '.github/workflows/agent-windows-cng-csr-synthetic.yml'
       - 'apps/server/src/test/java/com/lanveriq/server/enrollment/WindowsCngCsrInteropTest.java'
@@ -115,4 +116,31 @@ jobs:
         run: |
           if (Test-Path -LiteralPath $env:SYNTHETIC_CSR_PATH) {
             Remove-Item -LiteralPath $env:SYNTHETIC_CSR_PATH -Force
+          }
+
+  rustls-cng-tls13-memory-handshake:
+    # Real rustls TLS1.3 cryptographic handshake over memory buffers only;
+    # not Caddy, TCP, Agent HTTP, a real device or a production CA.
+    runs-on: windows-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust 1.94
+        run: rustup toolchain install 1.94.0 --profile minimal
+      - name: Verify TLS1.3, mutual CNG client/server and negative PKIX cases
+        shell: pwsh
+        env:
+          SYNTHETIC_FIXTURES_DIR: ${{ runner.temp }}\\lanveriq-cng-tls13-fixtures
+        run: |
+          ./apps/agent/tools/windows/verify-cng-tls13-memory.ps1 -FixtureDirectory $env:SYNTHETIC_FIXTURES_DIR
+      - name: Assert no disposable certificate fixture survives
+        if: always()
+        shell: pwsh
+        env:
+          SYNTHETIC_FIXTURES_DIR: ${{ runner.temp }}\\lanveriq-cng-tls13-fixtures
+        run: |
+          if (Test-Path -LiteralPath $env:SYNTHETIC_FIXTURES_DIR) {
+            throw 'Disposable CNG TLS fixture directory was not removed'
           }
