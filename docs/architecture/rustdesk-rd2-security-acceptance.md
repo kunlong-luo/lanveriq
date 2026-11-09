@@ -70,3 +70,11 @@
 - 新增 [RD-2 源码发布保护](../../deploy/rustdesk-synthetic/verify_rd2_release_boundary.py)：校验 Spring `lanveriq.remote.enabled: false` 是不可用的默认设置，并由 [Spring 启动期硬拒绝机制](../../apps/server/src/main/java/com/lanveriq/server/security/RemoteAccessReleaseLock.java) 对**最终生效属性**进行强制检查：由于系统属性、环境变量等能够覆盖 YAML，任何非 false 值都会使应用无法完成初始化；当前不存在激活的远控 Spring HTTP 映射、Next.js 远控路由或 Caddy RustDesk 端口；通过 Python 单元负例自动验证失败分支。**这是快速源代码回归保护，不是 Spring 运行时路由安全测试、网络准入证明或法律认可。**
 - **禁止**在 AUTH-01～AUTH-16 必需门槛及许可/SBOM/安全审查完成前，把远控状态从 `BLOCKED` 更新为 `READY`。所需上游 Pro 商业测试环境必须明确许可/授权后再安排；当前没有该环境，也不尝试下载未授权软件。
 - 在服务端强制执行方案尚不确定时，**不实现可发放凭据的远控 API 或可连接真实设备的按钮**；保持 Draft PR，不修改生产 `main`。
+
+
+## 6. 自动执行与触发覆盖（2026-11-09）
+
+- 新增 [RD-2 fast PR release guard](../../.github/workflows/rustdesk-rd2-release-guard.yml)，在**每次 Pull Request 更新**时独立执行 Python 负例与真实源码检查，且无需启动 Docker、RustDesk 客户端或 PostgreSQL。原因：原 [RustDesk synthetic workflow](../../.github/workflows/rustdesk-server-synthetic.yml) 设有 `paths` 过滤，如果某个 PR 仅改动 Spring、Next.js 或 Caddy 安全表面，就可能不会触发它；不能把“有检查但未运行”当作保护到位。
+- 首次实际 GitHub Actions 运行 [#42590847010](https://github.com/kunlong-luo/lanveriq/actions/runs/42590847010) SUCCESS。此检查不代表 branch protection 已把它设为必需，也不代表可抵抗具有修改工作流/验收脚本权限的恶意提交；合并前仍需要审查和仓库分支保护。
+- 后续工作、实际安全证据与剩余阻塞使用 [RD-2 issue #3](https://github.com/kunlong-luo/lanveriq/issues/3) 跟踪；16 项 AUTH 用例只有凭官方客户端的实际连接/拒绝/撤权证据才能从 `NOT_RUN` 变更为 `PASS`。
+- 自动 L1 CI 不需要人工逐项确认；许可审批、真实设备参与、生产部署与放开远控仍是明确人工审批门槛。在许可和服务端实际强制执行能力未验证之前，远控始终 `BLOCKED`。
