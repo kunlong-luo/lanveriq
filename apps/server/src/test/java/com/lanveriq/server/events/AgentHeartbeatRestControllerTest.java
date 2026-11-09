@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class AgentHeartbeatRestControllerTest {
 
     private final UUID device = UUID.randomUUID();
+    private final UUID requestId = UUID.randomUUID();
     private final VerifiedDeviceCertificate identity =
             new VerifiedDeviceCertificate(device, "a".repeat(64));
     private final AgentIngressAssertionPolicy ingress =
@@ -49,8 +50,8 @@ class AgentHeartbeatRestControllerTest {
                  "queue_count":0,"queue_bytes":0,
                  "oldest_pending_at":null,"last_successful_upload_at":null,
                  "dropped_count":0,"integrity_degraded":false,
-                 "collection_errors":[]}
-                """.formatted(device);
+                 "collection_errors":[],"request_id":"%s"}
+                """.formatted(device, requestId);
     }
 
     @Test
@@ -75,14 +76,14 @@ class AgentHeartbeatRestControllerTest {
         when(ingress.resolve(any(HttpServletRequest.class), eq(device), eq("heartbeats")))
                 .thenReturn(identity);
         var receipt = new DeviceHeartbeatReceipt(Instant.parse("2026-11-08T04:25:46Z"),
-                UUID.randomUUID());
+                requestId);
         when(service.ingest(eq(identity), eq(device), any(DeviceHeartbeat.class)))
                 .thenReturn(receipt);
         MockMvcBuilders.standaloneSetup(controller).build()
                 .perform(post(path()).contentType(MediaType.APPLICATION_JSON).content(json()))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
-                .andExpect(jsonPath("$.request_id").value(receipt.requestId().toString()));
+                .andExpect(jsonPath("$.request_id").value(requestId.toString()));
         verify(ingress).resolve(any(HttpServletRequest.class), eq(device), eq("heartbeats"));
         verify(service).ingest(eq(identity), eq(device), any(DeviceHeartbeat.class));
     }
