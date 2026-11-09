@@ -12,7 +12,7 @@
 
 ## 本批第一份实际代码
 
-1. Rust `transport.rs` 用 `HeartbeatAck` (`serde(deny_unknown_fields)`) + `classify_heartbeat_response` 取代自由 `serde_json::Value` 的宽松 ACK 接受方式。只有格式正确的 `server_time` 和非 nil `request_id`、HTTP 200 才是 `Accepted`；未知/额外字段、损坏时间、超大包不能当作成功。401/403 暂停身份、409 隔离、5xx 有界退避，**不删除数据也不直接重试**。`transport_heartbeat_tests.rs` 用纯合成数据验证，未执行任何联网。
+1. Rust `transport.rs` 用 `HeartbeatAck` (`serde(deny_unknown_fields)`) + `classify_heartbeat_response` 取代自由 `serde_json::Value` 的宽松 ACK 接受方式。在 [Batch A 传输硬化 Draft PR #4](https://github.com/kunlong-luo/lanveriq/pull/4) 中，只有格式正确的 `server_time`、**与当次心跳请求完全匹配且非 nil 的 `request_id`**、HTTP 200 才是 `Accepted`；未知/额外字段、错配/旧请求 ID、损坏时间、超大包不能当作成功。原先服务端随机生成而不与请求关联的回执不再被认为有足够的相关性。此阶段仍需完成 Rust/Java 真实跨语言合成联调，不能由单测推断。401/403 暂停身份、409 隔离、5xx 有界退避，**不删除数据也不直接重试**。`transport_heartbeat_tests.rs` 用纯合成数据验证，未执行任何联网。
 2. Spring `AgentHeartbeatRestController` 是一个 **同时需要两个显式开关** 的精确 POST 路由 `/api/v1/devices/{deviceId}/heartbeats`；`AgentHeartbeatHttpSecurityConfiguration` 仅此路由 sessionless/CSRF-independent，其余 API 沿用默认 deny，GET/异常路径不授权。入口先经 `AgentIngressAssertionPolicy` 解析受信 Caddy upstream mTLS，再由 `DeviceHeartbeatService` + JPA 当前有效证书写入；服务器回包 `no-store`，401/403/400/413 不能泄露设备组。
 3. `application.yml` 添加独立的 `lanveriq.agent.heartbeat.http-enabled: ${LANVERIQ_AGENT_HEARTBEAT_HTTP_ENABLED:false}`。**单独开启这个开关不会激活路由**；还需要明确开启 `lanveriq.agent.ingress.assertions-enabled`，且不满足 Tomcat TLS startup 约束会直接失败。部署参考配置、真实 Caddy/Agent/CA 与默认 OFF 状态都未改动。
 4. `AgentHeartbeatRestControllerTest` 在**mock** Servlet 请求和 mock proxy 证据下检查双重开关注解、mTLS 身份检查必须先调用、合法 ACK no-store、身份拒绝不能写库、字段无效/超大/撤销后无泄漏。它**不是**真实 TLS 或 PostgreSQL 集成。
@@ -36,5 +36,7 @@
 - [Java 25 / Gradle JUnit 快速验证 #42448164511](https://github.com/kunlong-luo/lanveriq/actions/runs/42448164511)：**SUCCESS**。包括新默认 OFF heartbeat REST 的 MockMvc 负例，以及既有 mTLS parser / heartbeat policy 和 JPA 单元测试；没有 Docker、真实 TLS 或生产部署。
 - [Rust Agent Linux/Windows / fmt / `cargo test --workspace --locked` / Clippy #42447913810](https://github.com/kunlong-luo/lanveriq/actions/runs/42447913810)：**SUCCESS**。两平台均通过严格 heartbeat receipt/401/403/409/503 分类测试；没有实际联网、服务启动或采集。
 - [Next.js 源码隔离、类型和组件快速验证 #42447944556](https://github.com/kunlong-luo/lanveriq/actions/runs/42447944556)：**SUCCESS**。本批未修改公开预览或启用认证。
+
+**2026-11-09 增补（Draft PR #4，待最终 CI/评审）：**源代码对 Agent HTTPS 限定 TLSv1.3，并为心跳请求增加 UUID 请求关联、服务端核验非 nil、成功写入后回显、Rust 端拒绝旧/错配 ACK。以上为源码/单测层安全改进，不意味着 Caddy/Tomcat/PG18 已完成完整双跳 TLS 正负向验收，也不代表 A2 CSR 与密钥托管或 A3 运行时已连接。后续集中验收跟踪 [Batch A Issue #5](https://github.com/kunlong-luo/lanveriq/issues/5)。
 
 **Stage A1 = source-ready（合成 L1）**，不是批次 A 完成。真实 Caddy/Tomcat/PG18/Agent TLS 端到端连接尚未联调；昂贵的 L2/L3 门禁按新策略留待身份/注册/Agent 运行桥接齐备后执行。

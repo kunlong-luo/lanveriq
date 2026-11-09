@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "device_id": "019a3fc1-b66b-7eed-9444-7711c0ffee11",
+  "request_id": "019a3fc1-b66b-7eed-9444-7711c0ffee22",
+  "sent_at": "2026-11-08T12:00:00Z",
+  "agent_version": "0.1.0",
+  "policy_version": 1,
+  "status": "running",
+  "capabilities": {
+    "hardware_inventory": "not_collected",
+    "app_activity": "not_collected"
+  },
+  "queue_count": 0,
+  "queue_bytes": 0,
+  "oldest_pending_at": null,
+  "last_successful_upload_at": null,
+  "dropped_count": 0,
+  "integrity_degraded": false,
+  "collection_errors": []
+}

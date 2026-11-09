@@ -1,5 +1,6 @@
 package com.lanveriq.server.events;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,7 +29,7 @@ class DeviceHeartbeatTransactionProxyTest {
     private DeviceHeartbeat heartbeat() {
         return new DeviceHeartbeat(1, id, "2026-10-30T09:00:00Z", "0.1.0", 1,
                 "running", Map.of("hardware_inventory", "not_collected"),
-                0, 0, null, null, 0, false, List.of());
+                0, 0, null, null, 0, false, List.of(), UUID.randomUUID());
     }
 
     @Test
@@ -38,7 +39,9 @@ class DeviceHeartbeatTransactionProxyTest {
         var status = Mockito.mock(TransactionStatus.class);
         when(manager.getTransaction(any(TransactionDefinition.class))).thenReturn(status);
         var proxy = proxy(repository, manager);
-        var receipt = proxy.ingest(identity, id, heartbeat());
+        var sent = heartbeat();
+        var receipt = proxy.ingest(identity, id, sent);
+        assertEquals(sent.requestId(), receipt.requestId());
         assertNotNull(receipt.serverTime());
         assertNotNull(receipt.requestId());
         verify(repository).record(Mockito.eq(identity), Mockito.eq(id), Mockito.any());

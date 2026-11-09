@@ -1,7 +1,7 @@
 use lanveriq_agent::store::PendingEvent;
 use lanveriq_agent::transport::{
     AgentTlsTransport, DeliveryDisposition, EventBatch, Heartbeat, TransportError,
-    classify_batch_response, classify_error_status,
+    classify_batch_response, classify_error_status, classify_heartbeat_response,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -166,6 +166,11 @@ fn heartbeat_explicitly_discloses_missing_capabilities() {
     let payload =
         serde_json::to_value(Heartbeat::synthetic(id, "2026-10-31T00:00:00Z".into())).unwrap();
     assert_eq!(payload["device_id"], id.to_string());
+    assert!(
+        payload["request_id"]
+            .as_str()
+            .is_some_and(|v| v != Uuid::nil().to_string())
+    );
     assert_eq!(
         payload["capabilities"]["hardware_inventory"],
         "not_collected"
@@ -201,5 +206,32 @@ fn nonapproved_hostname_and_invalid_tls_identity_fail_before_network() {
             b"garbage private key",
         ),
         Err(TransportError::InvalidTlsMaterial)
+    ));
+}
+
+#[test]
+fn shared_heartbeat_json_golden_fixture_matches_rust_serde_and_exact_ack() {
+    // Same synthetic file is also consumed by Spring's Jackson 3 JUnit test.
+    // No CI fixture key or UUID is a real endpoint identity.
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../docs/testing/fixtures/heartbeat-v1-request.json"
+    ))
+    .unwrap();
+    let device = Uuid::parse_str(fixture["device_id"].as_str().unwrap()).unwrap();
+    let request = Uuid::parse_str(fixture["request_id"].as_str().unwrap()).unwrap();
+    assert!(!request.is_nil());
+
+    let mut outbound = Heartbeat::synthetic(device, fixture["sent_at"].as_str().unwrap().into());
+    outbound.request_id = request;
+    assert_eq!(serde_json::to_value(&outbound).unwrap(), fixture);
+
+    let reply = include_bytes!("../../../docs/testing/fixtures/heartbeat-v1-receipt.json");
+    assert_eq!(
+        classify_heartbeat_response(200, reply, request, None).unwrap(),
+        DeliveryDisposition::Accepted
+    );
+    assert!(matches!(
+        classify_heartbeat_response(200, reply, Uuid::now_v7(), None),
+        Err(TransportError::InvalidAcknowledgement)
     ));
 }

@@ -40,7 +40,8 @@ final class DeviceHeartbeatPolicy {
                 || body.policyVersion() <= 0 || body.queueCount() < 0
                 || body.queueBytes() < 0 || body.droppedCount() < 0
                 || body.capabilities() == null || body.capabilities().size() > 32
-                || body.collectionErrors() == null || body.collectionErrors().size() > 16) {
+                || body.collectionErrors() == null || body.collectionErrors().size() > 16
+                || body.requestId() == null || body.requestId().equals(new UUID(0L, 0L))) {
             throw invalid();
         }
         for (var entry : body.capabilities().entrySet()) {

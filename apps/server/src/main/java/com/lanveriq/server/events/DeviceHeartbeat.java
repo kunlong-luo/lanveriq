@@ -8,7 +8,8 @@ import java.util.UUID;
 /**
  * D0 V0.1 Agent heartbeat wire shape. Never authenticate using deviceId or
  * sentAt from this DTO; only a separately verified mTLS peer may supply identity.
- * No HTTP controller is wired to this type.
+ * The heartbeat HTTP route is default-OFF and requires two independent flags.
+ * request_id is an Agent-generated single-attempt correlation ID, never an identity credential.
  */
 public record DeviceHeartbeat(
         @JsonProperty("schema_version") int schemaVersion,
@@ -24,5 +25,6 @@ public record DeviceHeartbeat(
         @JsonProperty("last_successful_upload_at") String lastSuccessfulUploadAt,
         @JsonProperty("dropped_count") long droppedCount,
         @JsonProperty("integrity_degraded") boolean integrityDegraded,
-        @JsonProperty("collection_errors") List<String> collectionErrors) {
+        @JsonProperty("collection_errors") List<String> collectionErrors,
+        @JsonProperty("request_id") UUID requestId) {
 }

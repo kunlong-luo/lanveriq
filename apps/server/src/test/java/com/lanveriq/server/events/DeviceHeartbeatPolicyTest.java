@@ -28,7 +28,24 @@ class DeviceHeartbeatPolicyTest {
         return new DeviceHeartbeat(1, deviceId, "2026-10-30T23:59:00Z",
                 "0.1.0", 1, "running",
                 Map.of("hardware_inventory", "not_collected", "app_activity", "unsupported"),
-                0, 0, null, null, 0, false, List.of());
+                0, 0, null, null, 0, false, List.of(), UUID.randomUUID());
+    }
+
+    @Test
+    void missingOrNilRequestUuidIsRejectedBeforeDatabaseWrite() {
+        var original = heartbeat();
+        for (UUID id : java.util.Arrays.asList(null, new UUID(0L, 0L))) {
+            var invalid = new DeviceHeartbeat(
+                    original.schemaVersion(), original.deviceId(), original.sentAt(),
+                    original.agentVersion(), original.policyVersion(), original.status(),
+                    original.capabilities(), original.queueCount(), original.queueBytes(),
+                    original.oldestPendingAt(), original.lastSuccessfulUploadAt(),
+                    original.droppedCount(), original.integrityDegraded(),
+                    original.collectionErrors(), id);
+            assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
+                    assertThrows(DeviceHeartbeatRejection.class, () ->
+                            policy.validate(identity, deviceId, invalid)).reason());
+        }
     }
 
     @Test
@@ -47,7 +64,7 @@ class DeviceHeartbeatPolicyTest {
                 assertThrows(DeviceHeartbeatRejection.class, () ->
                         policy.validate(identity, UUID.randomUUID(), heartbeat())).reason());
         var other = new DeviceHeartbeat(2, deviceId, "2026-10-30T23:59:00Z",
-                "0.1.0", 1, "running", Map.of(), 0, 0, null, null, 0, false, List.of());
+                "0.1.0", 1, "running", Map.of(), 0, 0, null, null, 0, false, List.of(), UUID.randomUUID());
         assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
                 assertThrows(DeviceHeartbeatRejection.class, () ->
                         policy.validate(identity, deviceId, other)).reason());
@@ -59,7 +76,7 @@ class DeviceHeartbeatPolicyTest {
         var unsafe = new DeviceHeartbeat(1, deviceId, original.sentAt(), "0.1.0", 1,
                 "running", Map.of("hardware_inventory", "supported"),
                 0, 0, null, null, 0, false,
-                List.of("file /home/private_user/secret.txt could not be opened"));
+                List.of("file /home/private_user/secret.txt could not be opened"), UUID.randomUUID());
         assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
                 assertThrows(DeviceHeartbeatRejection.class, () ->
                         policy.validate(identity, deviceId, unsafe)).reason());
@@ -68,12 +85,12 @@ class DeviceHeartbeatPolicyTest {
     @Test
     void rejectsNegativeCountsFakeCapabilityAndFutureDeviceClock() {
         var negative = new DeviceHeartbeat(1, deviceId, "2026-10-30T23:59:00Z",
-                "0.1.0", 1, "running", Map.of(), -1, 0, null, null, 0, false, List.of());
+                "0.1.0", 1, "running", Map.of(), -1, 0, null, null, 0, false, List.of(), UUID.randomUUID());
         var invented = new DeviceHeartbeat(1, deviceId, "2026-10-30T23:59:00Z",
                 "0.1.0", 1, "running", Map.of("app_activity", "fully_monitored"),
-                0, 0, null, null, 0, false, List.of());
+                0, 0, null, null, 0, false, List.of(), UUID.randomUUID());
         var future = new DeviceHeartbeat(1, deviceId, "2026-11-02T00:00:00Z",
-                "0.1.0", 1, "running", Map.of(), 0, 0, null, null, 0, false, List.of());
+                "0.1.0", 1, "running", Map.of(), 0, 0, null, null, 0, false, List.of(), UUID.randomUUID());
         for (var invalid : List.of(negative, invented, future)) {
             assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
                     assertThrows(DeviceHeartbeatRejection.class, () ->
@@ -84,12 +101,12 @@ class DeviceHeartbeatPolicyTest {
     @Test
     void missingStatusOrCapabilityValueFailClosed() {
         var missingStatus = new DeviceHeartbeat(1, deviceId, "2026-10-30T23:59:00Z",
-                "0.1.0", 1, null, Map.of(), 0, 0, null, null, 0, false, List.of());
+                "0.1.0", 1, null, Map.of(), 0, 0, null, null, 0, false, List.of(), UUID.randomUUID());
         var missingCapability = new java.util.HashMap<String, String>();
         missingCapability.put("hardware_inventory", null);
         var invalidValue = new DeviceHeartbeat(1, deviceId, "2026-10-30T23:59:00Z",
                 "0.1.0", 1, "running", missingCapability, 0, 0,
-                null, null, 0, false, List.of());
+                null, null, 0, false, List.of(), UUID.randomUUID());
         for (var invalid : List.of(missingStatus, invalidValue)) {
             assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
                     assertThrows(DeviceHeartbeatRejection.class, () ->
@@ -104,7 +121,7 @@ class DeviceHeartbeatPolicyTest {
             many.put("cap_" + i, "not_collected");
         }
         var invalid = new DeviceHeartbeat(1, deviceId, "2026-10-30T23:59:00Z",
-                "0.1.0", 1, "running", many, 0, 0, null, null, 0, false, List.of());
+                "0.1.0", 1, "running", many, 0, 0, null, null, 0, false, List.of(), UUID.randomUUID());
         assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
                 assertThrows(DeviceHeartbeatRejection.class, () ->
                         policy.validate(identity, deviceId, invalid)).reason());
