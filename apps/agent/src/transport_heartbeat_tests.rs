@@ -14,8 +14,7 @@ fn receipt(request_id: Uuid, time: &str) -> Vec<u8> {
 fn valid_server_heartbeat_receipt_accepts_only_the_exact_matching_envelope() {
     let id = Uuid::now_v7();
     assert_eq!(
-        classify_heartbeat_response(200, &receipt(id, "2026-11-08T04:25:45Z"), id, None)
-            .unwrap(),
+        classify_heartbeat_response(200, &receipt(id, "2026-11-08T04:25:45Z"), id, None).unwrap(),
         DeliveryDisposition::Accepted
     );
     assert_eq!(
@@ -31,12 +30,7 @@ fn stale_or_cross_request_heartbeat_receipts_never_count_as_delivery() {
     let other = Uuid::now_v7();
     assert_ne!(expected, other);
     assert!(matches!(
-        classify_heartbeat_response(
-            200,
-            &receipt(other, "2026-11-08T04:25:45Z"),
-            expected,
-            None
-        ),
+        classify_heartbeat_response(200, &receipt(other, "2026-11-08T04:25:45Z"), expected, None),
         Err(TransportError::InvalidAcknowledgement)
     ));
     assert!(matches!(
