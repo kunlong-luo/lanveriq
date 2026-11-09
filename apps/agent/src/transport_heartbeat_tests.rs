@@ -11,28 +11,55 @@ fn receipt(request_id: Uuid, time: &str) -> Vec<u8> {
 }
 
 #[test]
-fn valid_server_heartbeat_receipt_accepts_only_the_exact_two_field_envelope() {
+fn valid_server_heartbeat_receipt_accepts_only_the_exact_matching_envelope() {
     let id = Uuid::now_v7();
     assert_eq!(
-        classify_heartbeat_response(200, &receipt(id, "2026-11-08T04:25:45Z"), None).unwrap(),
+        classify_heartbeat_response(200, &receipt(id, "2026-11-08T04:25:45Z"), id, None)
+            .unwrap(),
         DeliveryDisposition::Accepted
     );
     assert_eq!(
-        classify_heartbeat_response(200, &receipt(id, "2026-11-08T04:25:45.012345Z"), None)
+        classify_heartbeat_response(200, &receipt(id, "2026-11-08T04:25:45.012345Z"), id, None)
             .unwrap(),
         DeliveryDisposition::Accepted
     );
 }
 
 #[test]
+fn stale_or_cross_request_heartbeat_receipts_never_count_as_delivery() {
+    let expected = Uuid::now_v7();
+    let other = Uuid::now_v7();
+    assert_ne!(expected, other);
+    assert!(matches!(
+        classify_heartbeat_response(
+            200,
+            &receipt(other, "2026-11-08T04:25:45Z"),
+            expected,
+            None
+        ),
+        Err(TransportError::InvalidAcknowledgement)
+    ));
+    assert!(matches!(
+        classify_heartbeat_response(
+            200,
+            &receipt(expected, "2026-11-08T04:25:45Z"),
+            Uuid::nil(),
+            None
+        ),
+        Err(TransportError::InvalidEvent)
+    ));
+}
+
+#[test]
 fn malformed_response_must_never_count_as_delivery() {
+    let expected = Uuid::now_v7();
     let valid: serde_json::Value =
-        serde_json::from_slice(&receipt(Uuid::now_v7(), "2026-11-08T04:25:45Z")).unwrap();
+        serde_json::from_slice(&receipt(expected, "2026-11-08T04:25:45Z")).unwrap();
     for field in ["server_time", "request_id"] {
         let mut missing = valid.clone();
         missing.as_object_mut().unwrap().remove(field);
         assert!(matches!(
-            classify_heartbeat_response(200, missing.to_string().as_bytes(), None),
+            classify_heartbeat_response(200, missing.to_string().as_bytes(), expected, None),
             Err(TransportError::InvalidAcknowledgement)
         ));
     }
@@ -45,47 +72,53 @@ fn malformed_response_must_never_count_as_delivery() {
         "2026-11-08T04:25:45.Z",
     ] {
         assert!(matches!(
-            classify_heartbeat_response(200, &receipt(Uuid::now_v7(), timestamp), None),
+            classify_heartbeat_response(200, &receipt(expected, timestamp), expected, None),
             Err(TransportError::InvalidAcknowledgement)
         ));
     }
     assert!(matches!(
-        classify_heartbeat_response(200, &receipt(Uuid::nil(), "2026-11-08T04:25:45Z"), None),
+        classify_heartbeat_response(
+            200,
+            &receipt(Uuid::nil(), "2026-11-08T04:25:45Z"),
+            expected,
+            None
+        ),
         Err(TransportError::InvalidAcknowledgement)
     ));
     let mut extra = valid;
     extra["unexpected_business_data"] = serde_json::json!("not_allowed");
     assert!(matches!(
-        classify_heartbeat_response(200, extra.to_string().as_bytes(), None),
+        classify_heartbeat_response(200, extra.to_string().as_bytes(), expected, None),
         Err(TransportError::InvalidAcknowledgement)
     ));
     assert!(matches!(
-        classify_heartbeat_response(200, b"{broken", None),
+        classify_heartbeat_response(200, b"{broken", expected, None),
         Err(TransportError::InvalidAcknowledgement)
     ));
     assert!(matches!(
-        classify_heartbeat_response(200, &vec![b'!'; 4097], None),
+        classify_heartbeat_response(200, &vec![b'!'; 4097], expected, None),
         Err(TransportError::OversizedResponse)
     ));
 }
 
 #[test]
 fn all_auth_failures_and_retries_remain_non_acknowledged() {
-    let body = receipt(Uuid::now_v7(), "2026-11-08T04:25:45Z");
+    let expected = Uuid::now_v7();
+    let body = receipt(expected, "2026-11-08T04:25:45Z");
     assert_eq!(
-        classify_heartbeat_response(401, &body, None).unwrap(),
+        classify_heartbeat_response(401, &body, expected, None).unwrap(),
         DeliveryDisposition::PauseIdentity
     );
     assert_eq!(
-        classify_heartbeat_response(403, &body, None).unwrap(),
+        classify_heartbeat_response(403, &body, expected, None).unwrap(),
         DeliveryDisposition::PauseIdentity
     );
     assert_eq!(
-        classify_heartbeat_response(409, &body, None).unwrap(),
+        classify_heartbeat_response(409, &body, expected, None).unwrap(),
         DeliveryDisposition::Quarantine
     );
     assert_eq!(
-        classify_heartbeat_response(503, &body, Some("11")).unwrap(),
+        classify_heartbeat_response(503, &body, expected, Some("11")).unwrap(),
         DeliveryDisposition::Retry {
             after: Duration::from_secs(11)
         }
