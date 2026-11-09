@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Internal-only device activation; not reachable from HTTP. Caddy mTLS
- * verification and server-side issuer/SPKI/leaf registration remain separate
- * prerequisites. No credential can be activated from a caller-provided header.
+ * Device activation service. A strictly gated HTTP route is source-ready but
+ * disabled by default; Caddy mTLS and independent certificate registration
+ * are mandatory before any real activation. No body/header is device identity.
  */
 @Service
 public class DeviceActivationService {
@@ -37,12 +37,14 @@ public class DeviceActivationService {
                 || !pathDeviceId.equals(request.deviceId())
                 || pathDeviceId.equals(new UUID(0L, 0L))
                 || request.schemaVersion() != 1
+                || request.requestId() == null
+                || request.requestId().equals(new UUID(0L, 0L))
                 || request.agentVersion() == null
                 || !request.agentVersion().matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")) {
             throw new DeviceActivationRejection(DeviceActivationRejection.Reason.INVALID_REQUEST);
         }
         repository.activate(verifiedPeer, pathDeviceId);
         return new DeviceActivationReceipt(1, pathDeviceId, "active",
-                clock.instant(), UUID.randomUUID());
+                clock.instant(), request.requestId());
     }
 }

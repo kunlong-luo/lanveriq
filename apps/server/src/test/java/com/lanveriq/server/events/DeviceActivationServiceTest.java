@@ -23,7 +23,7 @@ class DeviceActivationServiceTest {
             new VerifiedDeviceCertificate(id, "a".repeat(64));
 
     private DeviceActivationRequest request(UUID requestId) {
-        return new DeviceActivationRequest(1, requestId, "0.1.0");
+        return new DeviceActivationRequest(1, requestId, "0.1.0", UUID.randomUUID());
     }
 
     @Test
@@ -32,13 +32,14 @@ class DeviceActivationServiceTest {
         var manager = Mockito.mock(PlatformTransactionManager.class);
         var status = Mockito.mock(TransactionStatus.class);
         when(manager.getTransaction(Mockito.any(TransactionDefinition.class))).thenReturn(status);
-        var receipt = proxy(repository, manager).activate(identity, id, request(id));
+        var attempt = request(id);
+        var receipt = proxy(repository, manager).activate(identity, id, attempt);
 
         assertEquals(1, receipt.schemaVersion());
         assertEquals(id, receipt.deviceId());
         assertEquals("active", receipt.enrollmentState());
         assertNotNull(receipt.serverTime());
-        assertNotNull(receipt.requestId());
+        assertEquals(attempt.requestId(), receipt.requestId());
         verify(repository).activate(identity, id);
         verify(manager).commit(status);
     }
@@ -50,10 +51,12 @@ class DeviceActivationServiceTest {
         var wrongPath = UUID.randomUUID();
         for (var rejected : new DeviceActivationRequest[]{
                 request(wrongPath),
-                new DeviceActivationRequest(2, id, "0.1.0"),
-                new DeviceActivationRequest(1, id, "invalid version!"),
-                new DeviceActivationRequest(1, id, null),
-                new DeviceActivationRequest(1, null, "0.1.0")
+                new DeviceActivationRequest(2, id, "0.1.0", UUID.randomUUID()),
+                new DeviceActivationRequest(1, id, "invalid version!", UUID.randomUUID()),
+                new DeviceActivationRequest(1, id, null, UUID.randomUUID()),
+                new DeviceActivationRequest(1, null, "0.1.0", UUID.randomUUID()),
+                new DeviceActivationRequest(1, id, "0.1.0", null),
+                new DeviceActivationRequest(1, id, "0.1.0", new UUID(0L, 0L))
         }) {
             var error = assertThrows(DeviceActivationRejection.class,
                     () -> service.activate(identity, id, rejected));

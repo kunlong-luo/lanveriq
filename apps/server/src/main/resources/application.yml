@@ -72,6 +72,11 @@ lanveriq:
     ingress:
       assertions-enabled: ${LANVERIQ_AGENT_INGRESS_ASSERTIONS_ENABLED:false}
       expected-host: ${LANVERIQ_AGENT_INGRESS_EXPECTED_HOST:}
+    # Batch A2: activation is a different POST capability from heartbeat.
+    # Require independent explicit approval of ingress mTLS and certificate
+    # lifecycle tests; no activation route is mounted by default.
+    activation:
+      http-enabled: ${LANVERIQ_AGENT_ACTIVATION_HTTP_ENABLED:false}
     # Batch A: explicitly default-OFF Agent heartbeat POST, even if the
     # assertion parser was independently configured for a synthetic test.
     heartbeat:

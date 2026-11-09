@@ -106,7 +106,7 @@ class PostgreSqlDeviceActivationIT {
     }
 
     private DeviceActivationRequest request() {
-        return new DeviceActivationRequest(1, deviceId, "0.1.0");
+        return new DeviceActivationRequest(1, deviceId, "0.1.0", UUID.randomUUID());
     }
 
     private String state() {
