@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - 'apps/agent/tools/windows/verify-cng-csr.ps1'
+      - 'apps/agent/tools/windows/rustls-cng-probe/**'
       - '.github/workflows/agent-windows-cng-csr-synthetic.yml'
       - 'apps/server/src/test/java/com/lanveriq/server/enrollment/WindowsCngCsrInteropTest.java'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/CertificateSigningRequestValidator.java'
@@ -87,3 +88,31 @@ jobs:
           LANVERIQ_SYNTHETIC_CNG_CSR: ${{ runner.temp }}/cng-csr/lanveriq-cng-synthetic.csr.pem
         run: ./gradlew test --tests com.lanveriq.server.enrollment.WindowsCngCsrInteropTest --no-daemon
 
+
+  rustls-cng-nonexportable-signing-probe:
+    # Separate disposable Windows user/session. No actual service, private
+    # machine CNG key, network listener, client certificate installation or
+    # remote session. Only rustls' SigningKey contract is exercised.
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust 1.94 stable toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal
+      - name: Reopen a non-exportable CNG key from Rust and sign via rustls-cng
+        shell: pwsh
+        env:
+          SYNTHETIC_CSR_PATH: ${{ runner.temp }}\\lanveriq-cng-rustls-probe.csr.pem
+        run: |
+          ./apps/agent/tools/windows/verify-cng-csr.ps1 -PublicCsrPath $env:SYNTHETIC_CSR_PATH -ProbeRustlsSigning
+      - name: Erase disposable public CSR
+        if: always()
+        shell: pwsh
+        env:
+          SYNTHETIC_CSR_PATH: ${{ runner.temp }}\\lanveriq-cng-rustls-probe.csr.pem
+        run: |
+          if (Test-Path -LiteralPath $env:SYNTHETIC_CSR_PATH) {
+            Remove-Item -LiteralPath $env:SYNTHETIC_CSR_PATH -Force
+          }
