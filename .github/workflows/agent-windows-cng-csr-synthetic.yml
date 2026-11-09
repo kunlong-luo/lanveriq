@@ -10,6 +10,8 @@ on:
     paths:
       - 'apps/agent/tools/windows/verify-cng-csr.ps1'
       - '.github/workflows/agent-windows-cng-csr-synthetic.yml'
+      - 'apps/server/src/test/java/com/lanveriq/server/enrollment/WindowsCngCsrInteropTest.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/enrollment/CertificateSigningRequestValidator.java'
   workflow_dispatch:
 
 permissions:
@@ -43,5 +45,45 @@ jobs:
               $pem -match 'PRIVATE KEY|SECRET|ENROLLMENT TOKEN') {
             throw 'Public CSR artifact is malformed or contains a secret'
           }
-          Remove-Item -LiteralPath $env:SYNTHETIC_CSR_PATH -Force
-          Write-Output 'PASS: no private key file or enrollment token was produced; public CSR removed.'
+          Write-Output 'PASS: the only cross-platform artifact will be the public CSR.'
+      - name: Publish public-only synthetic CSR for independent Java validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-windows-cng-public-csr
+          path: ${{ runner.temp }}/lanveriq-cng-synthetic.csr.pem
+          if-no-files-found: error
+          retention-days: 1
+      - name: Erase the public CSR from the disposable Windows runner
+        if: always()
+        shell: pwsh
+        env:
+          SYNTHETIC_CSR_PATH: ${{ runner.temp }}\\lanveriq-cng-synthetic.csr.pem
+        run: |
+          if (Test-Path -LiteralPath $env:SYNTHETIC_CSR_PATH) {
+            Remove-Item -LiteralPath $env:SYNTHETIC_CSR_PATH -Force
+          }
+
+  verify-spring-bouncycastle-interop:
+    needs: cng-csr-synthetic
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Download public CSR only (no CNG private key)
+        uses: actions/download-artifact@v4
+        with:
+          name: synthetic-windows-cng-public-csr
+          path: ${{ runner.temp }}/cng-csr
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Verify native CNG P-256 PKCS10 with Java Bouncy Castle
+        working-directory: apps/server
+        env:
+          LANVERIQ_SYNTHETIC_CNG_CSR: ${{ runner.temp }}/cng-csr/lanveriq-cng-synthetic.csr.pem
+        run: ./gradlew test --tests com.lanveriq.server.enrollment.WindowsCngCsrInteropTest --no-daemon
+
