@@ -88,7 +88,7 @@ function New-Leaf {
 try {
     [IO.Directory]::CreateDirectory($FixtureDirectory) | Out-Null
     $caSigner = [Security.Cryptography.ECDsa]::Create(
-        [Security.Cryptography.ECCurve]::NamedCurves.nistP256
+        [Security.Cryptography.ECCurve]::CreateFromFriendlyName('nistP256')
     )
     $caRequest = [Security.Cryptography.X509Certificates.CertificateRequest]::new(
         [Security.Cryptography.X509Certificates.X500DistinguishedName]::new(
@@ -120,7 +120,7 @@ try {
     )
     # The wrong root is an unrelated synthetic CA. No private key exported.
     $otherSigner = [Security.Cryptography.ECDsa]::Create(
-        [Security.Cryptography.ECCurve]::NamedCurves.nistP256
+        [Security.Cryptography.ECCurve]::CreateFromFriendlyName('nistP256')
     )
     try {
         $otherReq = [Security.Cryptography.X509Certificates.CertificateRequest]::new(
