@@ -1,0 +1,47 @@
+name: Windows CNG non-exportable P-256 CSR (isolated synthetic L2)
+
+# Windows-only isolated acceptance; uses a disposable current-user native
+# CNG Software KSP key and deletes it after CSR signature verification.
+# No Agent service install, Windows machine/service key, CA signing, mTLS,
+# network enrollment, authorized real endpoint or telemetry.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/agent/tools/windows/verify-cng-csr.ps1'
+      - '.github/workflows/agent-windows-cng-csr-synthetic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-cng-csr-synthetic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cng-csr-synthetic:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Generate, verify and delete disposable non-exportable CNG signing key
+        shell: pwsh
+        env:
+          SYNTHETIC_CSR_PATH: ${{ runner.temp }}\\lanveriq-cng-synthetic.csr.pem
+        run: |
+          ./apps/agent/tools/windows/verify-cng-csr.ps1 -PublicCsrPath $env:SYNTHETIC_CSR_PATH
+      - name: Confirm public CSR only, no private-key materials on disk
+        shell: pwsh
+        env:
+          SYNTHETIC_CSR_PATH: ${{ runner.temp }}\\lanveriq-cng-synthetic.csr.pem
+        run: |
+          $pem = [IO.File]::ReadAllText($env:SYNTHETIC_CSR_PATH)
+          if ($pem -notmatch '-----BEGIN CERTIFICATE REQUEST-----' -or
+              $pem -match 'PRIVATE KEY|SECRET|ENROLLMENT TOKEN') {
+            throw 'Public CSR artifact is malformed or contains a secret'
+          }
+          Remove-Item -LiteralPath $env:SYNTHETIC_CSR_PATH -Force
+          Write-Output 'PASS: no private key file or enrollment token was produced; public CSR removed.'

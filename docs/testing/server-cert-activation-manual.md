@@ -45,3 +45,10 @@ The Rust response classifier counts activation as accepted **only** when an HTTP
 ## 2026-11-09 Linux offline key/CSR source boundary
 
 The Linux Agent now has a callable-but-not-scheduled `create_offline_p256_csr` helper implemented with fixed-path system OpenSSL 3, P-256 ECDSA/SHA-256, a private owner-only directory/key and signature verification. Its pure/isolated unit tests generate fresh synthetic keys and reject unsafe directories. The private key never leaves local mode-0600 storage; `Debug` is redacted. **No online endpoint enrollment, Admin approval, private issuer, real Windows/Linux service identity, secure hardware storage, mTLS active session, PostgreSQL 18 transaction or authorized real device** is tested/approved by these assertions. Do not present OpenSSL file permissions as equivalent to a non-exportable OS key. The documented A2 L2/L3 and approved provisioning lifecycle remain OPEN.
+
+
+## Windows CNG synthetic native crypto gate (2026-11-09)
+
+The separate agent-windows-cng-csr-synthetic.yml workflow can exercise an *actual* disposable current-user Microsoft Software KSP ECDSA P-256 signing key. It checks its non-exportable export policy and signing-only usage, produces a public SHA-256 PKCS#10 CSR without exporting a private key, validates CSR signature and curve, rejects tampering, deletes the disposable CNG key and removes the public CSR. **Source written; CI result pending.**
+
+Even a PASS is not evidence of Windows service account SID/ACL, hardware-backed TPM, production certificate issuance, Rustls/reqwest non-exportable key signing or actual TLS/PG18 activation. No normal Agent runtime or real endpoint is involved.
