@@ -25,7 +25,10 @@ fn activation_wire_is_explicit_and_contains_no_secrets() {
     assert_eq!(wire["agent_version"], "0.1.0");
     assert_eq!(wire["request_id"], attempt.request_id.to_string());
     assert_eq!(wire.as_object().unwrap().len(), 4);
-    assert_ne!(attempt.request_id, ActivationRequest::synthetic(device).request_id);
+    assert_ne!(
+        attempt.request_id,
+        ActivationRequest::synthetic(device).request_id
+    );
 }
 
 #[test]
@@ -45,23 +48,17 @@ fn nil_cross_device_stale_and_nonactive_receipts_are_denied() {
     let attempt = Uuid::now_v7();
     let other = Uuid::now_v7();
     let good = ack(device, attempt, "active", "2026-11-09T10:20:30Z");
-    for (payload, expected_device, expected_attempt) in [
-        (ack(other, attempt, "active", "2026-11-09T10:20:30Z"), device, attempt),
-        (ack(device, other, "active", "2026-11-09T10:20:30Z"), device, attempt),
-        (ack(device, attempt, "pending", "2026-11-09T10:20:30Z"), device, attempt),
-        (ack(device, attempt, "revoked", "2026-11-09T10:20:30Z"), device, attempt),
-        (ack(device, attempt, "ACTIVE", "2026-11-09T10:20:30Z"), device, attempt),
-        (ack(Uuid::nil(), attempt, "active", "2026-11-09T10:20:30Z"), device, attempt),
-        (ack(device, Uuid::nil(), "active", "2026-11-09T10:20:30Z"), device, attempt),
+    for payload in [
+        ack(other, attempt, "active", "2026-11-09T10:20:30Z"),
+        ack(device, other, "active", "2026-11-09T10:20:30Z"),
+        ack(device, attempt, "pending", "2026-11-09T10:20:30Z"),
+        ack(device, attempt, "revoked", "2026-11-09T10:20:30Z"),
+        ack(device, attempt, "ACTIVE", "2026-11-09T10:20:30Z"),
+        ack(Uuid::nil(), attempt, "active", "2026-11-09T10:20:30Z"),
+        ack(device, Uuid::nil(), "active", "2026-11-09T10:20:30Z"),
     ] {
         assert!(matches!(
-            classify_activation_response(
-                200,
-                &payload,
-                expected_device,
-                expected_attempt,
-                None
-            ),
+            classify_activation_response(200, &payload, device, attempt, None),
             Err(TransportError::InvalidAcknowledgement)
         ));
     }
@@ -80,8 +77,7 @@ fn malformed_or_oversized_200_never_activates() {
     let device = Uuid::now_v7();
     let attempt = Uuid::now_v7();
     let base: serde_json::Value =
-        serde_json::from_slice(&ack(device, attempt, "active", "2026-11-09T10:20:30Z"))
-            .unwrap();
+        serde_json::from_slice(&ack(device, attempt, "active", "2026-11-09T10:20:30Z")).unwrap();
     for field in [
         "schema_version",
         "device_id",
@@ -124,7 +120,11 @@ fn malformed_or_oversized_200_never_activates() {
     extra["secret"] = serde_json::json!("should-not-exist");
     let mut version = base;
     version["schema_version"] = serde_json::json!(2);
-    for bad in [extra.to_string().into_bytes(), version.to_string().into_bytes(), b"{".to_vec()] {
+    for bad in [
+        extra.to_string().into_bytes(),
+        version.to_string().into_bytes(),
+        b"{".to_vec(),
+    ] {
         assert!(matches!(
             classify_activation_response(200, &bad, device, attempt, None),
             Err(TransportError::InvalidAcknowledgement)
@@ -163,7 +163,15 @@ fn authentication_denials_and_transient_errors_never_count_as_activation() {
 fn malformed_agent_activation_request_cannot_be_sent() {
     let device = Uuid::now_v7();
     let mut request = ActivationRequest::synthetic(device);
-    for name in ["", "-leading", "two words", "unsafe/path", "a".repeat(65).as_str(), "中文"] {
+    let oversized = "a".repeat(65);
+    for name in [
+        "",
+        "-leading",
+        "two words",
+        "unsafe/path",
+        oversized.as_str(),
+        "中文",
+    ] {
         request.agent_version = name.to_owned();
         assert!(!request.is_valid());
     }
