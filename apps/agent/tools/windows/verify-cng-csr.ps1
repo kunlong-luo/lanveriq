@@ -107,7 +107,7 @@ try {
 
     # Only the *public* CSR can leave this function. No private key blobs,
     # store handles, or key names are written into an artifact or workflow log.
-    $pem = [System.Security.Cryptography.PemEncoding]::Write('CERTIFICATE REQUEST', $der)
+    $pem = -join ([System.Security.Cryptography.PemEncoding]::Write('CERTIFICATE REQUEST', $der))
     if (-not $pem.StartsWith('-----BEGIN CERTIFICATE REQUEST-----') -or
         -not $pem.TrimEnd().EndsWith('-----END CERTIFICATE REQUEST-----')) {
         throw 'Unexpected PKCS#10 PEM framing'
