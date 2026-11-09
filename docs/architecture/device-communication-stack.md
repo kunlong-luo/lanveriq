@@ -20,7 +20,7 @@
 | 服务器存储/DTO | JPA/Hibernate + Flyway + PostgreSQL 18；Jackson / Spring MVC | 数据库服务器接收时间为权威；不存在开放的生产 Agent API；Console 可用 Springdoc→Orval 类型生成仅为 default-OFF read/auth 阶段 |
 | Dashboard | Next.js 16.4.5 / React 19 / TanStack Query；Spring WebSocket (selected) | 公开 GitHub Pages 仅断开预览；WSS REST-refetch 策略选定但 **正式 WSS 登录与实时业务链路未上线** |
 
-**重要协议准确性提醒：**Rust `AgentTlsTransport::new` 目前调用 `.tls_version_min(reqwest::tls::Version::TLS_1_2)`，这只是 **TLS 1.2 最低下限**，不是 TLS 1.3-only 保证；虽然 Tomcat 独立后端验收严格限制为 TLSv1.3，`agent` 对外 Caddy 协商是否同样强制 TLSv1.3 仍须在部署前修改/证明。**P0 合约缺口：**确定 v0.1 是否强制端到端各段 TLSv1.3，并用 Agent/Caddy/Tomcat 实际握手正负例证明（包括 TLS1.2 被拒、双向证书链错误、过期、错误 SNI、伪造 fingerprint、无 Caddy 上游证书）。不得将历史上游 TLS 成功推断为 Agent→Caddy 也必定 TLSv1.3。
+**重要协议准确性提醒（Batch A TLS 客户端加固候选，待 PR 验证）：**Rust `AgentTlsTransport::new` 在本独立开发分支中已从 TLS 1.2 最低下限调整为 `.tls_version_min(TLS_1_3)` 且 `.tls_version_max(TLS_1_3)`（具体调用采用 `reqwest::tls::Version`）；仅约束该 `reqwest` 客户端的外侧连接协商，不会自动修改 Caddy `agent` listener、Tomcat 上游或 Agent 运行时，也不等于真实握手已通过。此变更仅为源码候选，尚未合并到 `main`。**P0 合约缺口仍未关闭：**需用 Agent/Caddy/Tomcat 真实握手正负例证明两跳 TLSv1.3（包括 TLS1.2 被拒、双向证书链错误、过期、错误 SNI、伪造 fingerprint、无 Caddy 上游证书），再完成经授权的合成 PG18 心跳 E2E；未运行前不得标记通过。
 
 ## 2. 三类通信不能混用
 
