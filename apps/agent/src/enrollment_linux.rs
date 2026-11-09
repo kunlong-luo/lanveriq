@@ -188,9 +188,18 @@ fn run(args: &[&str]) -> Result<(), CsrProvisionError> {
 mod tests {
     use super::*;
 
+    fn private_tempdir() -> tempfile::TempDir {
+        // tempfile 3.27 defaults to 0777 & umask for temp dirs; that may
+        // yield 0755. Security is enforced at creation, not by later chmod.
+        tempfile::Builder::new()
+            .permissions(fs::Permissions::from_mode(0o700))
+            .tempdir()
+            .unwrap()
+    }
+
     #[test]
     fn new_private_linux_bundle_has_signed_p256_csr_and_owner_only_key() {
-        let root = tempfile::tempdir().unwrap();
+        let root = private_tempdir();
         let bundle = root.path().join("pending-device-1");
         let result = create_offline_p256_csr(&bundle).unwrap();
         assert!(
@@ -233,7 +242,7 @@ mod tests {
 
     #[test]
     fn unique_attempts_use_different_keys_and_never_overwrite_existing_key() {
-        let root = tempfile::tempdir().unwrap();
+        let root = private_tempdir();
         let first = create_offline_p256_csr(&root.path().join("first")).unwrap();
         let second = create_offline_p256_csr(&root.path().join("second")).unwrap();
         assert_ne!(first.public_csr_pem, second.public_csr_pem);
