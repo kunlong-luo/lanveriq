@@ -127,6 +127,9 @@ try {
             # Prove we can erase this named test key rather than persisting
             # a long-lived user credential on the CI runner.
             $key.Delete()
+            if ([System.Security.Cryptography.CngKey]::Exists($keyName, $provider)) {
+                throw 'Deleted disposable CNG key still exists in the user KSP'
+            }
         } catch {
             $cleanupIssue = $_
         } finally {
