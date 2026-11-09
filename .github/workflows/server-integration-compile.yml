@@ -40,4 +40,5 @@ jobs:
         run: ./gradlew compileIntegrationTestJava --no-daemon
       - name: Record evidence limitation
         if: success()
-        run: echo "PASS: integrationTest Java compiled. NOT RUN: PostgreSQL18, migration, mTLS, runtime, real endpoints."
+        run: |
+          echo 'PASS: integrationTest Java compiled. NOT RUN: PostgreSQL18, migration, mTLS, runtime, real endpoints.'
