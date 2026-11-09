@@ -6,7 +6,7 @@
 //! A dedicated service-owned parent directory and OpenSSL 3 are prerequisites.
 //! This is mode-0600 file custody, NOT a hardware-backed/non-exportable key.
 use std::fs::{self, DirBuilder, OpenOptions};
-use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use thiserror::Error;
@@ -69,6 +69,13 @@ pub fn create_offline_p256_csr(bundle_dir: &Path) -> Result<PendingCsr, CsrProvi
         return Err(CsrProvisionError::UnsafeDirectory);
     }
 
+    // Refuse symlinked *ancestors* and dot-dot aliases as well as a direct
+    // parent symlink. A unique lexical path is required before creating keys.
+    let canonical_parent =
+        fs::canonicalize(parent).map_err(|_| CsrProvisionError::UnsafeDirectory)?;
+    if canonical_parent != parent {
+        return Err(CsrProvisionError::UnsafeDirectory);
+    }
     let metadata = fs::symlink_metadata(parent).map_err(|_| CsrProvisionError::UnsafeDirectory)?;
     if !metadata.file_type().is_dir()
         || metadata.file_type().is_symlink()
@@ -187,6 +194,7 @@ fn run(args: &[&str]) -> Result<(), CsrProvisionError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::unix::fs::PermissionsExt;
 
     fn private_tempdir() -> tempfile::TempDir {
         // tempfile 3.27 defaults to 0777 & umask for temp dirs; that may
@@ -272,6 +280,19 @@ mod tests {
         std::os::unix::fs::symlink(&target, &alias).unwrap();
         assert!(matches!(
             create_offline_p256_csr(&alias.join("new")),
+            Err(CsrProvisionError::UnsafeDirectory)
+        ));
+        // The *direct* parent appears as an ordinary private directory, but
+        // an earlier path component is a symlink to a different target.
+        let locked = private_tempdir();
+        let real = locked.path().join("real");
+        DirBuilder::new().mode(0o700).create(&real).unwrap();
+        let deeper = real.join("child");
+        DirBuilder::new().mode(0o700).create(&deeper).unwrap();
+        let parent_alias = locked.path().join("linked");
+        std::os::unix::fs::symlink(&real, &parent_alias).unwrap();
+        assert!(matches!(
+            create_offline_p256_csr(&parent_alias.join("child").join("pending")),
             Err(CsrProvisionError::UnsafeDirectory)
         ));
         for input in [

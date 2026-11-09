@@ -1,5 +1,6 @@
 //! AGT-01 idle lifecycle and AGT-02 isolated synthetic SQLite state.
-//! No real collection, network, enrollment, key custody or recording.
+//! Explicit Linux-only offline CSR file preparation exists, but no actual
+//! enrollment/activation runtime, live collection, network or recording.
 pub mod config;
 #[cfg(target_os = "linux")]
 pub mod enrollment_linux;
