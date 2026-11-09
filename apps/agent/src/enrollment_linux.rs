@@ -49,7 +49,9 @@ pub enum CsrProvisionError {
 /// created bundle. Never provide the private-key path to users via CLI,
 /// logs or a web API; the returned path is for the future reviewed key store.
 pub fn create_offline_p256_csr(bundle_dir: &Path) -> Result<PendingCsr, CsrProvisionError> {
-    let parent = bundle_dir.parent().ok_or(CsrProvisionError::UnsafeDirectory)?;
+    let parent = bundle_dir
+        .parent()
+        .ok_or(CsrProvisionError::UnsafeDirectory)?;
     let name = bundle_dir
         .file_name()
         .and_then(|v| v.to_str())
@@ -101,22 +103,34 @@ fn create_inner(dir: &Path) -> Result<PendingCsr, CsrProvisionError> {
     // directory. CLI stderr and stdout are deliberately not surfaced.
     run(&[
         "genpkey",
-        "-algorithm", "EC",
-        "-pkeyopt", "ec_paramgen_curve:P-256",
-        "-pkeyopt", "ec_param_enc:named_curve",
-        "-out", key.to_str().ok_or(CsrProvisionError::UnsafeDirectory)?,
+        "-algorithm",
+        "EC",
+        "-pkeyopt",
+        "ec_paramgen_curve:P-256",
+        "-pkeyopt",
+        "ec_param_enc:named_curve",
+        "-out",
+        key.to_str().ok_or(CsrProvisionError::UnsafeDirectory)?,
     ])?;
 
     reserve_owner_only_file(&csr)?;
     run(&[
-        "req", "-new", "-sha256",
-        "-key", key.to_str().ok_or(CsrProvisionError::UnsafeDirectory)?,
-        "-subj", "/CN=Lanveriq Pending Device",
-        "-out", csr.to_str().ok_or(CsrProvisionError::UnsafeDirectory)?,
+        "req",
+        "-new",
+        "-sha256",
+        "-key",
+        key.to_str().ok_or(CsrProvisionError::UnsafeDirectory)?,
+        "-subj",
+        "/CN=Lanveriq Pending Device",
+        "-out",
+        csr.to_str().ok_or(CsrProvisionError::UnsafeDirectory)?,
     ])?;
     run(&[
-        "req", "-in", csr.to_str().ok_or(CsrProvisionError::UnsafeDirectory)?,
-        "-verify", "-noout",
+        "req",
+        "-in",
+        csr.to_str().ok_or(CsrProvisionError::UnsafeDirectory)?,
+        "-verify",
+        "-noout",
     ])?;
 
     for (path, max) in [(&key, MAX_KEY_BYTES), (&csr, MAX_CSR_BYTES)] {
@@ -130,8 +144,8 @@ fn create_inner(dir: &Path) -> Result<PendingCsr, CsrProvisionError> {
             return Err(CsrProvisionError::InvalidMaterial);
         }
     }
-    let public_csr_pem = fs::read_to_string(&csr)
-        .map_err(|_| CsrProvisionError::InvalidMaterial)?;
+    let public_csr_pem =
+        fs::read_to_string(&csr).map_err(|_| CsrProvisionError::InvalidMaterial)?;
     if !public_csr_pem.starts_with("-----BEGIN CERTIFICATE REQUEST-----")
         || !public_csr_pem
             .trim_end()
@@ -139,7 +153,10 @@ fn create_inner(dir: &Path) -> Result<PendingCsr, CsrProvisionError> {
     {
         return Err(CsrProvisionError::InvalidMaterial);
     }
-    Ok(PendingCsr { public_csr_pem, private_key_path: key })
+    Ok(PendingCsr {
+        public_csr_pem,
+        private_key_path: key,
+    })
 }
 
 fn reserve_owner_only_file(path: &Path) -> Result<(), CsrProvisionError> {
@@ -176,7 +193,11 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let bundle = root.path().join("pending-device-1");
         let result = create_offline_p256_csr(&bundle).unwrap();
-        assert!(result.public_csr_pem.contains("-----BEGIN CERTIFICATE REQUEST-----"));
+        assert!(
+            result
+                .public_csr_pem
+                .contains("-----BEGIN CERTIFICATE REQUEST-----")
+        );
         assert_eq!(
             result.private_key_path.file_name().unwrap(),
             std::ffi::OsStr::new(KEY_NAME)
