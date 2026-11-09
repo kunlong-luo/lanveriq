@@ -147,7 +147,7 @@ class PostgreSqlDeviceActivationIT {
         var heartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
                 "0.1.0", 1, "running",
                 Map.of("hardware_inventory", "not_collected"),
-                0, 0, null, null, 0, false, List.of());
+                0, 0, null, null, 0, false, List.of(), UUID.randomUUID());
         assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
                 assertThrows(DeviceHeartbeatRejection.class,
                         () -> heartbeatService.ingest(credential, deviceId, heartbeat)).reason());

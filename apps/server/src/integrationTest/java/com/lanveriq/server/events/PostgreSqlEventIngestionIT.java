@@ -154,7 +154,7 @@ class PostgreSqlEventIngestionIT {
                 "0.1.0", 1, "running",
                 java.util.Map.of("hardware_inventory", "not_collected"),
                 2, 512, "2026-10-30T08:58:00Z", null, 0, false,
-                java.util.List.of("transport_backoff"));
+                java.util.List.of("transport_backoff"), UUID.randomUUID());
         var receipt = heartbeats.ingest(credential, deviceId, request);
         assertTrue(receipt.serverTime() != null);
         Object[] saved = (Object[]) entityManager.createNativeQuery("""
@@ -178,7 +178,7 @@ class PostgreSqlEventIngestionIT {
 
         var updated = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:01:00Z",
                 "0.1.0", 1, "degraded", java.util.Map.of("hardware_inventory", "unsupported"),
-                0, 0, null, null, 1, true, java.util.List.of("database_corrupt"));
+                0, 0, null, null, 1, true, java.util.List.of("database_corrupt"), UUID.randomUUID());
         heartbeats.ingest(credential, deviceId, updated);
         Object[] latest = (Object[]) entityManager.createNativeQuery("""
                 SELECT agent_status, dropped_count,
@@ -198,7 +198,7 @@ class PostgreSqlEventIngestionIT {
         var denied = new VerifiedDeviceCertificate(deviceId, "f".repeat(64));
         var request = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
                 "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
-                null, null, 0, false, java.util.List.of());
+                null, null, 0, false, java.util.List.of(), UUID.randomUUID());
         assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
                 assertThrows(DeviceHeartbeatRejection.class, () ->
                         heartbeats.ingest(denied, deviceId, request)).reason());
@@ -425,7 +425,7 @@ class PostgreSqlEventIngestionIT {
         var sample = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
         var heartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
                 "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
-                null, null, 0, false, List.of());
+                null, null, 0, false, List.of(), UUID.randomUUID());
 
         assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
                 assertThrows(DeviceBatchRejection.class, () ->
@@ -448,7 +448,7 @@ class PostgreSqlEventIngestionIT {
         var sample = event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z");
         var heartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
                 "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
-                null, null, 0, false, List.of());
+                null, null, 0, false, List.of(), UUID.randomUUID());
         for (String window : List.of("expired", "future")) {
             new TransactionTemplate(transactionManager).executeWithoutResult(ignored ->
                     entityManager.createNativeQuery(window.equals("expired") ? """
@@ -548,7 +548,7 @@ class PostgreSqlEventIngestionIT {
                 List.of(event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z")));
         var stolenHeartbeat = new DeviceHeartbeat(1, other, "2026-10-30T09:00:00Z",
                 "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
-                null, null, 0, false, List.of());
+                null, null, 0, false, List.of(), UUID.randomUUID());
         assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
                 assertThrows(DeviceBatchRejection.class, () ->
                         ingestion.ingest(forged, other, stolenBatch)).reason());
@@ -578,7 +578,7 @@ class PostgreSqlEventIngestionIT {
         ingestion.ingest(credential, deviceId, original);
         var firstHeartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
                 "0.1.0", 1, "running", java.util.Map.of(), 2, 100,
-                null, null, 0, false, List.of());
+                null, null, 0, false, List.of(), UUID.randomUUID());
         heartbeats.ingest(credential, deviceId, firstHeartbeat);
         String previousSeen = (String) entityManager.createNativeQuery("""
                 SELECT last_seen_at::text FROM devices WHERE id=:device
@@ -595,7 +595,7 @@ class PostgreSqlEventIngestionIT {
                         ingestion.ingest(credential, deviceId, original)).reason());
         var laterHeartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:01:00Z",
                 "0.1.0", 1, "degraded", java.util.Map.of(), 0, 0,
-                null, null, 1, true, List.of());
+                null, null, 1, true, List.of(), UUID.randomUUID());
         assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
                 assertThrows(DeviceHeartbeatRejection.class, () ->
                         heartbeats.ingest(credential, deviceId, laterHeartbeat)).reason());
@@ -620,7 +620,7 @@ class PostgreSqlEventIngestionIT {
         var eventBatch = request(event(UUID.randomUUID(), 1, "2026-10-30T08:57:00Z"));
         var heartbeat = new DeviceHeartbeat(1, deviceId, "2026-10-30T09:00:00Z",
                 "0.1.0", 1, "running", java.util.Map.of(), 0, 0,
-                null, null, 0, false, List.of());
+                null, null, 0, false, List.of(), UUID.randomUUID());
         assertEquals(DeviceBatchRejection.Reason.REVOKED_DEVICE,
                 assertThrows(DeviceBatchRejection.class, () ->
                         ingestion.ingest(credential, deviceId, eventBatch)).reason());
