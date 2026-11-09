@@ -1,0 +1,304 @@
+name: RustDesk OSS isolated server smoke
+
+on:
+  pull_request:
+    paths:
+      - "deploy/rustdesk-synthetic/**"
+      - ".github/workflows/rustdesk-server-synthetic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rustdesk-oss-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rd2-release-boundary:
+    name: RD-2 fail-closed source release guard (fast, no Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout untrusted draft PR source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test static release-denial checks with invented fixtures
+        run: python3 -m unittest discover -s deploy/rustdesk-synthetic -p 'test_verify_rd2_release_boundary.py' -v
+      - name: Confirm real repository has no active RustDesk remote access route
+        run: python3 deploy/rustdesk-synthetic/verify_rd2_release_boundary.py
+
+  hbbs-hbbr-startup:
+    name: Pinned hbbs/hbbr in Docker --network none
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout only test harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch pinned official RustDesk OSS server release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rustdesk-zip" "$RUNNER_TEMP/rustdesk-extracted" "$RUNNER_TEMP/rustdesk-bin"
+          curl --fail --location --silent --show-error \
+            --retry 3 --retry-all-errors --max-time 120 \
+            --proto '=https' --tlsv1.2 \
+            "https://github.com/rustdesk/rustdesk-server/releases/download/1.1.16/rustdesk-server-linux-amd64.zip" \
+            --output "$RUNNER_TEMP/rustdesk-zip/rustdesk-server-linux-amd64.zip"
+          printf '%s  %s\n' \
+            '0565c41affe6c3f409b0bddfaf5a24ccbf3f64f5f8e3fec250b69a0d5f6bdbcf' \
+            "$RUNNER_TEMP/rustdesk-zip/rustdesk-server-linux-amd64.zip" | sha256sum --check --strict
+          unzip -q "$RUNNER_TEMP/rustdesk-zip/rustdesk-server-linux-amd64.zip" \
+            -d "$RUNNER_TEMP/rustdesk-extracted"
+          HBBS="$(find "$RUNNER_TEMP/rustdesk-extracted" -type f -name hbbs -print -quit)"
+          HBBR="$(find "$RUNNER_TEMP/rustdesk-extracted" -type f -name hbbr -print -quit)"
+          test -n "$HBBS" && test -n "$HBBR"
+          install -m 0755 "$HBBS" "$RUNNER_TEMP/rustdesk-bin/hbbs"
+          install -m 0755 "$HBBR" "$RUNNER_TEMP/rustdesk-bin/hbbr"
+          file "$RUNNER_TEMP/rustdesk-bin/hbbs" "$RUNNER_TEMP/rustdesk-bin/hbbr"
+
+      - name: Run completely network-isolated service smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No forwarded ports, outbound networking, real agents, secrets,
+          # shared host sockets, privileged runtime, or production CA.
+          # The unmodified official binaries remain outside Lanveriq source.
+          docker run --rm --pull=always \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 64 \
+            --memory 256m \
+            --cpus 1 \
+            --user 65534:65534 \
+            --tmpfs /tmp:rw,nosuid,nodev,size=64m \
+            --volume "$RUNNER_TEMP/rustdesk-bin:/opt/rustdesk:ro" \
+            --volume "$GITHUB_WORKSPACE/deploy/rustdesk-synthetic/smoke.py:/workspace/smoke.py:ro" \
+            --env PYTHONDONTWRITEBYTECODE=1 \
+            python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 \
+            python /workspace/smoke.py
+
+      - name: Set up Python 3.13 for pinned upstream Protobuf codegen
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
+      - name: Generate protocol types from exact RustDesk 1.1.16 submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rustdesk-protobuf" "$RUNNER_TEMP/rustdesk-python-deps"
+          # rustdesk-server 1.1.16 gitlinks hbb_common SHA 83419b65496...
+          # No AGPL protocol source or generated code is committed to Lanveriq.
+          curl --fail --location --silent --show-error \
+            --retry 3 --retry-all-errors --max-time 60 \
+            --proto '=https' --tlsv1.2 \
+            "https://raw.githubusercontent.com/rustdesk/hbb_common/83419b6549636ee39dacef7776c473f5802e08d6/protos/rendezvous.proto" \
+            --output "$RUNNER_TEMP/rustdesk-protobuf/rendezvous.proto"
+          ACTUAL="$(git hash-object "$RUNNER_TEMP/rustdesk-protobuf/rendezvous.proto")"
+          test "$ACTUAL" = "b9b8ed7d4e43dd3049b299e16007915717291f5d"
+          python -m pip install --disable-pip-version-check \
+            --no-cache-dir --only-binary=:all: \
+            --target "$RUNNER_TEMP/rustdesk-python-deps" \
+            "grpcio-tools==1.84.0" "protobuf==7.35.1" "grpcio==1.84.0" \
+            "setuptools==84.2.1" "typing-extensions==4.16.0"
+          PYTHONPATH="$RUNNER_TEMP/rustdesk-python-deps" \
+            python -m grpc_tools.protoc \
+              "-I$RUNNER_TEMP/rustdesk-protobuf" \
+              "--python_out=$RUNNER_TEMP/rustdesk-protobuf" \
+              "$RUNNER_TEMP/rustdesk-protobuf/rendezvous.proto"
+          test -s "$RUNNER_TEMP/rustdesk-protobuf/rendezvous_pb2.py"
+
+      - name: Test real RustDesk rendezvous and relay data via private Docker network
+        shell: bash
+        run: |
+          set -euo pipefail
+          # --network none would cause upstream hbbr to treat every source
+          # as its loopback *admin console*, not as a relay client.
+          # The Docker --internal bridge gives the fixtures non-loopback
+          # private IPs but has NO external routing or published ports.
+          NETWORK="lanveriq-rd-$GITHUB_RUN_ID-$RANDOM"
+          docker network create --driver bridge --internal "$NETWORK" >/dev/null
+          trap 'docker network rm "$NETWORK" >/dev/null 2>&1 || true' EXIT
+          docker run --rm \
+            --network "$NETWORK" \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 64 \
+            --memory 256m \
+            --cpus 1 \
+            --user 65534:65534 \
+            --tmpfs /tmp:rw,nosuid,nodev,size=64m \
+            --volume "$RUNNER_TEMP/rustdesk-bin:/opt/rustdesk:ro" \
+            --volume "$RUNNER_TEMP/rustdesk-protobuf:/opt/protobuf:ro" \
+            --volume "$RUNNER_TEMP/rustdesk-python-deps:/opt/python-deps:ro" \
+            --volume "$GITHUB_WORKSPACE/deploy/rustdesk-synthetic/protocol_smoke.py:/workspace/protocol_smoke.py:ro" \
+            --env PYTHONPATH=/opt/protobuf:/opt/python-deps \
+            --env PYTHONDONTWRITEBYTECODE=1 \
+            python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 \
+            python /workspace/protocol_smoke.py
+
+      - name: Scope statement
+        if: success()
+        run: |
+          echo "Offline startup + actual upstream Protobuf NAT/peer registration + negative relay key + bidirectional relay bytes were tested."
+          echo "Not tested: true RustDesk client authentication, E2E desktop/video, real NAT/P2P, browser integration, Lanveriq RBAC or production safety."
+
+  official-client-cli:
+    name: Official RustDesk 1.5.1 clients, registration and A-to-B signaling
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout only synthetic harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download and SHA-256 verify official AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rustdesk-official-client"
+          curl --fail --location --silent --show-error \
+            --retry 3 --retry-all-errors --max-time 180 \
+            --proto '=https' --tlsv1.2 \
+            "https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.AppImage" \
+            --output "$RUNNER_TEMP/rustdesk-official-client/rustdesk.AppImage"
+          printf '%s  %s\n' \
+            "bb8b7ccb3f50a201dccdc89b46385cff90f33e60b4730faeda9fa5504ac4dce6" \
+            "$RUNNER_TEMP/rustdesk-official-client/rustdesk.AppImage" | sha256sum --check --strict
+          chmod 0755 "$RUNNER_TEMP/rustdesk-official-client/rustdesk.AppImage"
+
+      - name: Download pinned RustDesk 1.1.16 server for real-client registration
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rustdesk-server-zip" "$RUNNER_TEMP/rustdesk-server-extracted" "$RUNNER_TEMP/rustdesk-server-bin"
+          curl --fail --location --silent --show-error \
+            --retry 3 --retry-all-errors --max-time 120 \
+            --proto '=https' --tlsv1.2 \
+            "https://github.com/rustdesk/rustdesk-server/releases/download/1.1.16/rustdesk-server-linux-amd64.zip" \
+            --output "$RUNNER_TEMP/rustdesk-server-zip/server.zip"
+          printf '%s  %s\n' \
+            '0565c41affe6c3f409b0bddfaf5a24ccbf3f64f5f8e3fec250b69a0d5f6bdbcf' \
+            "$RUNNER_TEMP/rustdesk-server-zip/server.zip" | sha256sum --check --strict
+          unzip -q "$RUNNER_TEMP/rustdesk-server-zip/server.zip" -d "$RUNNER_TEMP/rustdesk-server-extracted"
+          for bin in hbbs hbbr; do
+            src="$(find "$RUNNER_TEMP/rustdesk-server-extracted" -type f -name "$bin" -print -quit)"
+            test -n "$src"
+            install -m 0755 "$src" "$RUNNER_TEMP/rustdesk-server-bin/$bin"
+          done
+
+      - name: Prepare minimal Linux GUI libraries for offline CLI verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Installed only into an ephemeral test image. The RustDesk binary is
+          # never copied into the image; runtime remains offline/non-root.
+          docker build --pull \
+            --tag "lanveriq-rd-cli:$GITHUB_RUN_ID" - <<'DOCKERFILE'
+          FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
+          RUN apt-get update && apt-get install -y --no-install-recommends \
+            libx11-6 libxext6 libxrender1 libxrandr2 libxfixes3 libxi6 libxtst6 \
+            libx11-xcb1 libxcb1 libxkbcommon0 libglib2.0-0t64 \
+            libgtk-3-0t64 libasound2t64 libnss3 libdbus-1-3 \
+            libgbm1 libfontconfig1 libpango-1.0-0 libxcomposite1 \
+            libegl1 libgles2 libgl1 libgl1-mesa-dri libglx-mesa0 \
+            libxkbcommon-x11-0 libayatana-appindicator3-1 dbus-x11 \
+            xvfb xauth \
+            && rm -rf /var/lib/apt/lists/*
+          DOCKERFILE
+
+      - name: Extract and execute offline --version from upstream client
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This step has no network, no host port publishing, no display,
+          # no production credentials, and no real remote device.
+          docker run --rm \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 64 \
+            --memory 768m \
+            --cpus 2 \
+            --user 65534:65534 \
+            --tmpfs /tmp:rw,exec,nosuid,nodev,size=512m \
+            --volume "$RUNNER_TEMP/rustdesk-official-client:/opt/client:ro" \
+            --workdir /tmp \
+            "lanveriq-rd-cli:$GITHUB_RUN_ID" \
+            sh -eu -c '
+              if ! timeout 45s /opt/client/rustdesk.AppImage --appimage-extract >/tmp/extract.log 2>&1; then
+                tail -n 30 /tmp/extract.log
+                echo "ERROR: official AppImage extraction failed"
+                exit 1
+              fi
+              if ! test -x /tmp/squashfs-root/AppRun; then
+                ls -la /tmp /tmp/squashfs-root 2>&1 | head -n 45
+                echo "ERROR: no executable AppRun after upstream extraction"
+                exit 1
+              fi
+              echo "PASS: official AppImage runtime extracted and AppRun is executable"
+              # Full Flutter UI is not launched; --version returns before UI setup
+              if ! timeout 20s /tmp/squashfs-root/AppRun --version > /tmp/client-version.log 2>&1; then
+                tail -n 30 /tmp/client-version.log
+                echo "ERROR: RustDesk CLI --version failed in minimal offline container"
+                exit 1
+              fi
+              cat /tmp/client-version.log
+              grep -Fxq "1.5.1" /tmp/client-version.log
+              echo "PASS: upstream RustDesk executable reports exactly 1.5.1"
+            '
+
+      - name: Verify unmodified client registers with actual upstream hbbs
+        shell: bash
+        run: |
+          set -euo pipefail
+          # One isolated container contains ONLY ephemeral upstream server
+          # processes, the official client and Xvfb. No network namespace
+          # routes, Docker host ports, real certificates or production Agent.
+          docker run --rm \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 128 \
+            --memory 1g \
+            --cpus 2 \
+            --user 65534:65534 \
+            --tmpfs /tmp:rw,exec,nosuid,nodev,size=512m \
+            --volume "$RUNNER_TEMP/rustdesk-official-client:/opt/client:ro" \
+            --volume "$RUNNER_TEMP/rustdesk-server-bin:/opt/rustdesk:ro" \
+            --volume "$GITHUB_WORKSPACE/deploy/rustdesk-synthetic/real_client_registration.py:/workspace/client_registration.py:ro" \
+            --env PYTHONDONTWRITEBYTECODE=1 \
+            --workdir /tmp \
+            "lanveriq-rd-cli:$GITHUB_RUN_ID" \
+            sh -eu -c '
+              timeout 45s /opt/client/rustdesk.AppImage --appimage-extract >/tmp/extract.log 2>&1
+              test -x /tmp/squashfs-root/AppRun
+              python /workspace/client_registration.py
+            '
+
+      - name: Verify distinct real clients and actual A-to-B rendezvous signaling
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Genuine two-client rendezvous test, NOT desktop login or input.
+          # Independent client network/PID/IPC/roots/X11, linked only by a
+          # Docker --internal bridge without external routes or published ports.
+          python3 deploy/rustdesk-synthetic/dual_client_registration.py
+
+      - name: Scope statement
+        if: success()
+        run: |
+          echo "PASS: official RustDesk client binary integrity, AppImage extraction and CLI version."
+          echo "PASS: two separate genuine clients registered; upstream hbbs recorded actual A-to-B rendezvous from original Flutter CLI."
+          echo "NOT tested: authorized desktop login, E2EE media, video, input, consent, revocation or Lanveriq session RBAC."

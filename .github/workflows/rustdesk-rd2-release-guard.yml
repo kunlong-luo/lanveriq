@@ -1,0 +1,37 @@
+name: RD-2 fail-closed remote release guard
+
+# Fast, always-on main/PR safeguard independent of the expensive RustDesk
+# Docker/client protocol smoke. No paths filter: any main push or PR may introduce
+# a remote route, weaken Spring startup locking, or expose an ingress.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rd2-release-guard-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reject-unapproved-remote-control:
+    name: Default-OFF source guard and negative fixtures
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify intentional negative fixtures
+        run: python3 -m unittest discover -s deploy/rustdesk-synthetic -p 'test_verify_rd2_release_boundary.py' -v
+      - name: Verify repository denies accidental remote release
+        run: python3 deploy/rustdesk-synthetic/verify_rd2_release_boundary.py
+      - name: Record scope limitation
+        if: success()
+        run: |
+          echo "PASS: source-level fail-closed guard; applies to PRs without a paths filter"
+          echo "NOT PROVEN: active-session RustDesk RBAC, revocation, bypass resistance or release approval"
