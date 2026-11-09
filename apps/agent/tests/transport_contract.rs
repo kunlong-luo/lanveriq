@@ -166,6 +166,7 @@ fn heartbeat_explicitly_discloses_missing_capabilities() {
     let payload =
         serde_json::to_value(Heartbeat::synthetic(id, "2026-10-31T00:00:00Z".into())).unwrap();
     assert_eq!(payload["device_id"], id.to_string());
+    assert!(payload["request_id"].as_str().is_some_and(|v| v != Uuid::nil().to_string()));
     assert_eq!(
         payload["capabilities"]["hardware_inventory"],
         "not_collected"
