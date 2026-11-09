@@ -98,9 +98,9 @@ impl ActivationRequest {
             && !bytes.is_empty()
             && bytes.len() <= 64
             && bytes[0].is_ascii_alphanumeric()
-            && bytes[1..].iter().all(|c| {
-                c.is_ascii_alphanumeric() || matches!(*c, b'.' | b'_' | b'-')
-            })
+            && bytes[1..]
+                .iter()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(*c, b'.' | b'_' | b'-'))
     }
 }
 
