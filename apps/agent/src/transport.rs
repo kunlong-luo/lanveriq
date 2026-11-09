@@ -69,7 +69,8 @@ pub struct EventWire {
 }
 
 /// Batch A: strict positive envelope for one explicit heartbeat attempt.
-/// The heartbeat is still NOT scheduled or sent by the Agent service binary.
+/// The server must echo the request UUID provided in the outbound envelope.
+/// Heartbeats are still NOT scheduled by the Agent service binary.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct HeartbeatAck {
@@ -81,8 +82,12 @@ struct HeartbeatAck {
 pub fn classify_heartbeat_response(
     status: u16,
     body: &[u8],
+    expected_request_id: Uuid,
     retry_after: Option<&str>,
 ) -> Result<DeliveryDisposition, TransportError> {
+    if expected_request_id.is_nil() {
+        return Err(TransportError::InvalidEvent);
+    }
     if status != 200 {
         return Ok(classify_error_status(status, retry_after));
     }
@@ -91,7 +96,7 @@ pub fn classify_heartbeat_response(
     }
     let ack: HeartbeatAck =
         serde_json::from_slice(body).map_err(|_| TransportError::InvalidAcknowledgement)?;
-    if ack.request_id.is_nil() || !is_utc_instant_shape(&ack.server_time) {
+    if ack.request_id != expected_request_id || !is_utc_instant_shape(&ack.server_time) {
         return Err(TransportError::InvalidAcknowledgement);
     }
     Ok(DeliveryDisposition::Accepted)
@@ -155,6 +160,8 @@ enum InventoryOutcome {
 pub struct Heartbeat {
     pub schema_version: u32,
     pub device_id: Uuid,
+    /// Unique ID for this attempt, generated locally and echoed after commit.
+    pub request_id: Uuid,
     pub sent_at: String,
     pub agent_version: String,
     pub policy_version: i64,
@@ -175,6 +182,7 @@ impl Heartbeat {
         Self {
             schema_version: 1,
             device_id,
+            request_id: Uuid::now_v7(),
             sent_at,
             agent_version: "0.1.0".into(),
             policy_version: 1,
@@ -463,6 +471,7 @@ impl AgentTlsTransport {
             || heartbeat.queue_bytes < 0
             || heartbeat.dropped_count < 0
             || heartbeat.device_id.is_nil()
+            || heartbeat.request_id.is_nil()
         {
             return Err(TransportError::InvalidEvent);
         }
@@ -471,7 +480,7 @@ impl AgentTlsTransport {
         if status != 200 {
             return Ok(classify_error_status(status, retry_after.as_deref()));
         }
-        classify_heartbeat_response(status, &body, retry_after.as_deref())
+        classify_heartbeat_response(status, &body, heartbeat.request_id, retry_after.as_deref())
     }
 
     /// Staged opt-in inventory attempt. NEVER called by AGT-01 service.
