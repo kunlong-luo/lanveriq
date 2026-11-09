@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Internal-only V0.1 heartbeat. No HTTP handler, TLS-identity bridge or live
- * Agent scheduling exists; never expose this without reviewed mTLS ingress.
+ * V0.1 heartbeat service. HTTP ingress exists but remains default-OFF and
+ * requires reviewed two-hop mTLS; no Agent runtime upload is enabled.
  */
 @Service
 public class DeviceHeartbeatService {
@@ -36,6 +36,8 @@ public class DeviceHeartbeatService {
                                           UUID pathDeviceId, DeviceHeartbeat heartbeat) {
         var validated = policy.validate(identity, pathDeviceId, heartbeat);
         repository.record(identity, pathDeviceId, validated);
-        return new DeviceHeartbeatReceipt(clock.instant(), UUID.randomUUID());
+        // Echo only the request ID validated with the accepted body; do not
+        // generate an unrelated UUID that would allow stale ACK confusion.
+        return new DeviceHeartbeatReceipt(clock.instant(), heartbeat.requestId());
     }
 }
