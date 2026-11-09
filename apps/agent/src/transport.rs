@@ -68,6 +68,84 @@ pub struct EventWire {
     payload: serde_json::Value,
 }
 
+/// Batch A2: one device activation attempt against the separately gated
+/// Spring POST route. This carries only a correlation UUID; it never conveys
+/// authorization, enrollment tokens, CSR private keys or real device data.
+#[derive(Debug, Serialize)]
+pub struct ActivationRequest {
+    pub schema_version: u32,
+    pub device_id: Uuid,
+    pub agent_version: String,
+    pub request_id: Uuid,
+}
+
+impl ActivationRequest {
+    /// Synthetic-only constructor; the running Agent does not call this.
+    pub fn synthetic(device_id: Uuid) -> Self {
+        Self {
+            schema_version: 1,
+            device_id,
+            agent_version: "0.1.0".into(),
+            request_id: Uuid::now_v7(),
+        }
+    }
+
+    fn is_valid(&self) -> bool {
+        let bytes = self.agent_version.as_bytes();
+        self.schema_version == 1
+            && !self.device_id.is_nil()
+            && !self.request_id.is_nil()
+            && !bytes.is_empty()
+            && bytes.len() <= 64
+            && bytes[0].is_ascii_alphanumeric()
+            && bytes[1..].iter().all(|c| {
+                c.is_ascii_alphanumeric() || matches!(*c, b'.' | b'_' | b'-')
+            })
+    }
+}
+
+/// The exact five-field Spring activation receipt, decoded fail-closed.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ActivationAck {
+    schema_version: u32,
+    device_id: Uuid,
+    enrollment_state: String,
+    server_time: String,
+    request_id: Uuid,
+}
+
+/// Returns Accepted only for a 200 receipt bound to this device and attempt.
+/// A raw 200, unrelated UUID or success-shaped response is never approval.
+pub fn classify_activation_response(
+    status: u16,
+    body: &[u8],
+    expected_device_id: Uuid,
+    expected_request_id: Uuid,
+    retry_after: Option<&str>,
+) -> Result<DeliveryDisposition, TransportError> {
+    if expected_device_id.is_nil() || expected_request_id.is_nil() {
+        return Err(TransportError::InvalidEvent);
+    }
+    if status != 200 {
+        return Ok(classify_error_status(status, retry_after));
+    }
+    if body.len() > MAX_RESPONSE_BYTES {
+        return Err(TransportError::OversizedResponse);
+    }
+    let ack: ActivationAck =
+        serde_json::from_slice(body).map_err(|_| TransportError::InvalidAcknowledgement)?;
+    if ack.schema_version != 1
+        || ack.device_id != expected_device_id
+        || ack.request_id != expected_request_id
+        || ack.enrollment_state != "active"
+        || !is_utc_instant_shape(&ack.server_time)
+    {
+        return Err(TransportError::InvalidAcknowledgement);
+    }
+    Ok(DeliveryDisposition::Accepted)
+}
+
 /// Batch A: strict positive envelope for one explicit heartbeat attempt.
 /// The server must echo the request UUID provided in the outbound envelope.
 /// Heartbeats are still NOT scheduled by the Agent service binary.
@@ -460,6 +538,28 @@ impl AgentTlsTransport {
         Ok((status, bytes, retry_after))
     }
 
+    /// A single optional activation request for an already-approved identity.
+    /// Neither the AGT-01 runtime nor installer calls this method. HTTP alone
+    /// cannot issue, review or authorize a certificate; the server must verify
+    /// both mTLS hops and the registered pending credential transactionally.
+    pub async fn send_activation(
+        &self,
+        activation: &ActivationRequest,
+    ) -> Result<DeliveryDisposition, TransportError> {
+        if !activation.is_valid() {
+            return Err(TransportError::InvalidEvent);
+        }
+        let path = format!("/api/v1/devices/{}/activate", activation.device_id);
+        let (status, body, retry_after) = self.post_json(&path, activation).await?;
+        classify_activation_response(
+            status,
+            &body,
+            activation.device_id,
+            activation.request_id,
+            retry_after.as_deref(),
+        )
+    }
+
     /// Never called by AGT-01 service, and no live Agent authorization exists.
     pub async fn send_heartbeat(
         &self,
@@ -569,3 +669,7 @@ mod inventory_transport_tests;
 #[cfg(test)]
 #[path = "transport_heartbeat_tests.rs"]
 mod heartbeat_transport_tests;
+
+#[cfg(test)]
+#[path = "transport_activation_tests.rs"]
+mod activation_transport_tests;
