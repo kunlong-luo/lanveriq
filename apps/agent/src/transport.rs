@@ -393,7 +393,11 @@ impl AgentTlsTransport {
             .https_only(true)
             .redirect(reqwest::redirect::Policy::none())
             .no_proxy()
-            .tls_version_min(reqwest::tls::Version::TLS_1_2)
+            // Batch A P0: pin the external Agent hop to TLS 1.3 only.
+            // This does not assert Caddy listener configuration or
+            // prove a completed two-hop mTLS handshake; L2 must do that.
+            .tls_version_min(reqwest::tls::Version::TLS_1_3)
+            .tls_version_max(reqwest::tls::Version::TLS_1_3)
             .connect_timeout(Duration::from_secs(5))
             .timeout(Duration::from_secs(12))
             .pool_max_idle_per_host(1)
