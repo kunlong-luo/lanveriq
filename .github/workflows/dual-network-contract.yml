@@ -1,0 +1,97 @@
+name: Dual-network access contract (synthetic L1)
+
+# Only a disposable localhost-bound Docker RustDesk OSS process in PR CI.
+# No credentials, real devices, DNS, VPN, external access or production deployment.
+# A successful socket test does NOT prove native RustDesk sessions or WAN access.
+on:
+  pull_request:
+    paths:
+      - 'deploy/network/**'
+      - 'deploy/rustdesk/**'
+      - 'docs/operations/rustdesk-pilot.md'
+      - 'docs/architecture/adrs/0010-rustdesk-dual-network-access.md'
+      - 'docs/operations/dual-network-acceptance.md'
+      - '.github/workflows/dual-network-contract.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'deploy/network/**'
+      - 'deploy/rustdesk/**'
+      - 'docs/operations/rustdesk-pilot.md'
+      - 'docs/architecture/adrs/0010-rustdesk-dual-network-access.md'
+      - 'docs/operations/dual-network-acceptance.md'
+      - '.github/workflows/dual-network-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-network-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  read-only-network-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Compile read-only network probe
+        run: python3 -m py_compile deploy/network/verify_dual_access.py deploy/network/test_verify_dual_access.py
+      - name: Assert TLS, network routing and anonymous API fail-closed contracts
+        run: python3 -m unittest discover -s deploy/network -p 'test_verify_dual_access.py' -v
+      - name: Compile and test RustDesk pilot safety contract
+        run: |
+          python3 -m py_compile deploy/rustdesk/verify_pilot_config.py deploy/rustdesk/test_verify_pilot_config.py deploy/rustdesk/verify_native_server.py deploy/rustdesk/test_verify_native_server.py deploy/rustdesk/verify_client_release.py deploy/rustdesk/test_verify_client_release.py
+          python3 -m unittest discover -s deploy/rustdesk -p 'test_verify_*.py' -v
+      - name: Verify locked RustDesk 1.5.1 stable client release metadata
+        run: python3 deploy/rustdesk/verify_client_release.py
+      - name: Render Docker Compose and enforce approved-only static network config
+        env:
+          RUSTDESK_PILOT_RELAY_HOST: localhost
+          RUSTDESK_PILOT_BIND_IP: 127.0.0.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f deploy/rustdesk/compose.pilot.yml --profile pilot config --format json |
+            python3 deploy/rustdesk/verify_pilot_config.py --bind-ip "$RUSTDESK_PILOT_BIND_IP" --relay-host "$RUSTDESK_PILOT_RELAY_HOST"
+      - name: Boot the real pinned RustDesk OSS image on localhost only
+        env:
+          RUSTDESK_PILOT_RELAY_HOST: localhost
+          RUSTDESK_PILOT_BIND_IP: 127.0.0.1
+          LANVERIQ_RUSTDESK_CI_BEHAVIOR_TEST: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          compose=(docker compose -f deploy/rustdesk/compose.pilot.yml --profile pilot)
+          cleanup() { "${compose[@]}" down --remove-orphans >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          "${compose[@]}" up -d --pull always
+          # Docker host TCP port forwarding alone does not prove healthy
+          # hbbs/hbbr processes or completed delayed key generation.
+          ready=0
+          for _ in $(seq 1 25); do
+            if "${compose[@]}" exec -T rustdesk-pilot sh -ec 'test -s /data/id_ed25519 && test -s /data/id_ed25519.pub' >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != 1 ]]; then
+            echo 'FAIL: shared RustDesk key pair absent after startup; showing filenames only.'
+            "${compose[@]}" ps || true
+            "${compose[@]}" exec -T rustdesk-pilot sh -ec 'ls -l /data' || true
+            "${compose[@]}" logs --no-color --tail 45 | sed -E 's/(KEY_PRIV|KEY_PUB|PRIVATE_KEY)=([^[:space:]]+)/\1=[REDACTED]/g' || true
+            exit 1
+          fi
+          python3 deploy/rustdesk/smoke_local.py
+          python3 deploy/rustdesk/verify_native_server.py
+          python3 deploy/rustdesk/smoke_local.py
+          [[ "$("${compose[@]}" ps --status running --services)" == "rustdesk-pilot" ]] || { echo 'FAIL: RustDesk container is not running'; exit 1; }
+          echo 'PASS: real RustDesk OSS loopback endpoints + native relay-mode console controls + public key persistence across container restart (no keys printed).' >> "$GITHUB_STEP_SUMMARY"
+      - name: Scope reminder
+        run: |
+          echo 'PASS only for pinned client release metadata, synthetic unit tests, Compose render and actual localhost RustDesk server/control-plane; full client binary check runs in separate path-filtered workflow; no two-peer GUI, LAN/WAN, ICE/UDP/P2P or relay session proven.' >> "$GITHUB_STEP_SUMMARY"

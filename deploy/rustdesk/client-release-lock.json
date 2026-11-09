@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "source": "https://api.github.com/repos/rustdesk/rustdesk/releases/tags/1.5.1",
+  "repository": "rustdesk/rustdesk",
+  "version": "1.5.1",
+  "tag": "1.5.1",
+  "published_at": "2026-11-01T16:13:27Z",
+  "prerelease": false,
+  "assets": {
+    "linux-amd64-deb": {
+      "filename": "rustdesk-1.5.1-x86_64.deb",
+      "size_bytes": 25337156,
+      "sha256": "b5d682ad90cb7571ecbdbf26eef58d3c4514e726a74ef6d08ce3f0b114ef0bd9",
+      "url": "https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.deb"
+    },
+    "linux-amd64-appimage": {
+      "filename": "rustdesk-1.5.1-x86_64.AppImage",
+      "size_bytes": 88472056,
+      "sha256": "bb8b7ccb3f50a201dccdc89b46385cff90f33e60b4730faeda9fa5504ac4dce6",
+      "url": "https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.AppImage"
+    },
+    "windows-amd64-exe": {
+      "filename": "rustdesk-1.5.1-x86_64.exe",
+      "size_bytes": 26211184,
+      "sha256": "319206042390ebfcba934cf0baa2f612f34de463c78c843b7cb8c22097c4bf7b",
+      "url": "https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.exe"
+    },
+    "windows-amd64-msi": {
+      "filename": "rustdesk-1.5.1-x86_64.msi",
+      "size_bytes": 26718208,
+      "sha256": "71069183cbc6124273138684ab4032d2211e83efa035886f9c774fe1d3eba3f0",
+      "url": "https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.msi"
+    }
+  },
+  "note": "Official GitHub release API asset digests pinned for synthetic validation. Not a redistribution license grant, client pairing, GUI remote session, or WAN acceptance."
+}

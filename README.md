@@ -1,5 +1,7 @@
 # Lanveriq
 
+> **2026-11-08 LAN/WAN + RustDesk architecture direction:** Adopt an independent RustDesk hbbs/hbbr remote-access plane, reuse its client/protocol/NAT/ICE/relay rather than developing our own, and preserve Lanveriq Next.js + Spring + Rust Agent business correctness. The target supports both LAN (private split DNS) and authorized WAN (VPN first; public HTTPS Console requires separate release/security approval) behind **one owned Console HTTPS hostname**. **This is a decision and unactivated network test scaffold, not an Internet-accessible production service.** See [ADR-0011](docs/architecture/adrs/0011-rustdesk-dual-network-access.md), [dual-network runbook](docs/operations/dual-network-acceptance.md), [deployment](docs/architecture/deployment.md) and [read-only network probe](deploy/network/verify_dual_access.py). The [opt-in RustDesk OSS pilot](docs/operations/rustdesk-pilot.md) pins the official 1.1.16 image digest with isolated Compose and CI-local binary smoke testing; it has **not** been enabled on any real LAN/WAN endpoint. RustDesk software/license/API integration, trusted DNS/CA, independent LAN+WAN acceptance and existing A–E v0.1 gates remain OPEN. Public GitHub Pages stays disconnected.
+
 [**English**](README.md) | [简体中文](README.zh.md)
 
 **LAN-first, self-hosted asset health and audit platform for workplace endpoints with lawful notice and authorization.**

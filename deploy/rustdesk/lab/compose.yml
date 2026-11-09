@@ -1,0 +1,66 @@
+# R2-01 synthetic isolated Docker registration lab; NOT LAN/WAN access.
+# Zero published host ports, no Internet egress, no existing application DB.
+name: lanveriq-rustdesk-r2-synthetic
+
+services:
+  rd-server:
+    image: ghcr.io/rustdesk/rustdesk-server-s6:1.1.16@sha256:5974cd791a5aca6fbf01a167b37e7427db1d136e95b2710c33a34fdc9fea724c
+    pull_policy: missing
+    restart: "no"
+    environment:
+      RELAY: rd-server:21117
+      ENCRYPTED_ONLY: "1"
+      ALWAYS_USE_RELAY: "N"
+      RUST_LOG: info
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        umask 077
+        if [ ! -e /data/id_ed25519 ] && [ ! -e /data/id_ed25519.pub ]; then
+          /usr/bin/rustdesk-utils genkeypair | awk '
+            /^Public Key:/ { pub=$3 }
+            /^Secret Key:/ { priv=$3 }
+            END {
+              if (pub == "" || priv == "") exit 1
+              print pub > "/data/id_ed25519.pub"
+              print priv > "/data/id_ed25519"
+            }
+          '
+        fi
+        test -s /data/id_ed25519
+        test -s /data/id_ed25519.pub
+        chmod 0600 /data/id_ed25519 /data/id_ed25519.pub
+        exec /init
+    volumes:
+      - r2_server_state:/data
+    networks: [r2_internal]
+
+  peer-a:
+    image: lanveriq-rustdesk-client-1.5.1:r2-local-only
+    pull_policy: never
+    restart: "no"
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    pids_limit: 128
+    shm_size: 128m
+    depends_on: [rd-server]
+    networks: [r2_internal]
+
+  peer-b:
+    image: lanveriq-rustdesk-client-1.5.1:r2-local-only
+    pull_policy: never
+    restart: "no"
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    pids_limit: 128
+    shm_size: 128m
+    depends_on: [rd-server]
+    networks: [r2_internal]
+
+networks:
+  r2_internal:
+    internal: true
+
+volumes:
+  r2_server_state:

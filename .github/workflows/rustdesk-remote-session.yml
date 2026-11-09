@@ -1,0 +1,76 @@
+name: RustDesk R2-02 synthetic real GUI pixels and input
+
+# Coherent R2 L2/L3 opt-in acceptance gate, NOT a passing main-branch test.
+# Last exact native-GUI test failed (#42485980575); never report remote control available.
+# Preserve full session, real input and remote framebuffer assertions.
+# Explicit manual dispatch or an acceptance/rustdesk-* milestone tag only;
+# do not repeat known-incomplete expensive R2 L2 on every main commit.
+# No user devices, real credentials, public ports, WAN or preinstalled Agent.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'acceptance/rustdesk-*'
+permissions:
+  contents: read
+
+concurrency:
+  group: rustdesk-remote-session-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-true-GUI-input:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      LANVERIQ_R2_SYNTHETIC: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Compile real GUI acceptance scripts and registered-peer proof modules
+        run: |
+          python3 -m py_compile \
+            deploy/rustdesk/lab/run_remote_session.py \
+            deploy/rustdesk/lab/synthetic_scene.py \
+            deploy/rustdesk/lab/verify_remote_frame.py \
+            deploy/rustdesk/lab/run.py \
+            deploy/rustdesk/lab/verify.py
+          python3 -m unittest discover -s deploy/rustdesk/lab -p 'test_verify*.py' -v
+      - name: Cache the official immutable upstream client release package
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/rustdesk-1.5.1-x86_64.deb
+          key: rustdesk-1.5.1-linux-amd64-b5d682ad90cb7571ecbdbf26eef58d3c4514e726a74ef6d08ce3f0b114ef0bd9
+      - name: Fetch stable client when absent from verified cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 2 \
+            --connect-timeout 12 --max-time 150 --proto '=https' --tlsv1.2 \
+            'https://github.com/rustdesk/rustdesk/releases/download/1.5.1/rustdesk-1.5.1-x86_64.deb' \
+            --output "$RUNNER_TEMP/rustdesk-1.5.1-x86_64.deb"
+      - name: Build two disposable synthetic Linux clients from verified official release
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 deploy/rustdesk/verify_client_release.py \
+            --asset linux-amd64-deb \
+            --file "$RUNNER_TEMP/rustdesk-1.5.1-x86_64.deb"
+          cp "$RUNNER_TEMP/rustdesk-1.5.1-x86_64.deb" deploy/rustdesk/lab/
+          trap 'rm -f deploy/rustdesk/lab/rustdesk-1.5.1-x86_64.deb' EXIT
+          docker build --file deploy/rustdesk/lab/Dockerfile.client \
+            --tag lanveriq-rustdesk-client-1.5.1:r2-local-only \
+            deploy/rustdesk/lab
+      - name: Check rendered no-egress and no-host-port Docker topology
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f deploy/rustdesk/lab/compose.yml config --format json |
+            python3 -c 'import json,sys;sys.path.insert(0,"deploy/rustdesk/lab");from verify import verify_topology;print(json.dumps(verify_topology(json.load(sys.stdin))))'
+      - name: Prove true upstream GUI remote pixels AND input to synthetic desktop
+        run: |
+          set -euo pipefail
+          python3 deploy/rustdesk/lab/run_remote_session.py
+          echo 'R2-02 true remote visual+input passed only if both controller-view framebuffer colors and remote Tk input marker were checked. This is ONE Docker network, not WAN or real LAN.' >> "$GITHUB_STEP_SUMMARY"

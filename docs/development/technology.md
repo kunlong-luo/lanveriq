@@ -30,3 +30,22 @@
 ## 历史框架和参考来源
 
 2026-10-30 初始设计曾使用 Vite 8、Radix、Zustand、Motion 作为候选。2026-11-07 用户明确选择 Next.js App Router，2026-11-08 采取 B+C 设计、Base UI/shadcn-style 和批量开发策略，故早期框架段落仅供迁移/设计历史参考，不构成当前技术决策。参考 [ADR-0007 生态复用](../architecture/adrs/0007-mature-ecosystem-first.md)、[ADR-0008 Next.js 决策](../architecture/adrs/0008-nextjs-app-router-console.md)、[Agent 库基线](rust-agent-stack.md)、[后端依赖审查](backend-stack.md)。
+
+
+## 新增已批准的独立远程控制候选（2026-11-08）
+
+用户批准优先直接复用 RustDesk 作为独立的远程桌面/NAT 穿透/Relay/WebRTC 基础设施，同时采用 [ADR-0011](../architecture/adrs/0011-rustdesk-dual-network-access.md) 内网 + 外网安全访问设计及 [双视角验收手册](../operations/dual-network-acceptance.md)。**这是下一步的集成候选，不是当前仓库已安装的依赖或已上线服务。** 不将 RustDesk Flutter UI 用作 Lanveriq 产品主界面，仍由 Next.js + Spring 接入经许可的远程访问能力。RustDesk OSS hbbs/hbbr 与 Pro API、Web Console、Web Client 能力/授权严格区分；正式集成前必须固定版本/SHA、许可证、硬件目标和 LAN/WAN 真正测试证据。
+
+本次批准**不改变**上表 Agent 业务 `reqwest` + mTLS + 严格事务 ACK、PG18、默认 OFF 和 A–E 研发顺序。RustDesk 的 WebRTC/DataChannel 属于独立远程交互链路，不能拿来替代 Agent 业务可靠性协议。使用新稳定组件需经过安全/许可证/兼容性检查，不能因为所谓“最新最流行”就替换已验收的基础组件。
+
+## 选型底线
+
+- **先完成业务再升级基础设施。** 当前用户批准的优先级是设备注册/证书/首次心跳→库存/离线恢复→授权前端→WSS→真实平台/备份/隐私。v0.1 不新增 MQTT broker、Kafka、gRPC 双栈、视频流或微服务。若未来量化达到需流式/高吞吐的场景，再对比成熟的 `tonic`/`prost` + Spring gRPC + Buf；协议决议见 [ADR-0009](../architecture/adrs/0009-agent-transport-selection.md)。
+- **成熟工具优先：**标准库/操作系统/数据库官方能力 → 官方框架 → 稳定维护的第三方库 → 最小 glue；Java 持久化使用 Spring Data JPA/Hibernate，必要的原生 PostgreSQL 语句通过 JPA native query + 参数绑定/事务，而不是自行写 JDBC 客户端层。不要自行写 HTTP/TLS/UUID/ASN.1/数据库迁移器。
+- **只有实际依赖可算“采用”。** 版本、许可证、CVE 修复、Windows/Linux 与 Java25/Boot4 兼容都要经过锁定版本和目标环境检查；候选模块不能计入产品完成率。
+- **安全性是架构条件。** 设备 UUID/请求头/JSON/MAC/IP 不能证明身份，Agent 需证书+活跃数据库绑定；Console session + HTML/RSC/REST 均要实时角色/组授权；所有业务路由默认关闭。Rust TLS 客户端当前仅设置 TLS1.2 **最小版本**，TLS1.3-only 没有端到端证据；见 [协议差距](../architecture/device-communication-stack.md)。
+- **测试改为 L1/L2/L3：**每日变更触发相关 Gradle/Cargo/pnpm 快速测试（包括敏感边界的负例）；批次结束合成 PG18/Caddy/Agent 集成；发布候选再集中执行完整 Chromium/Windows/Linux/隐私/备份验证。[正式测试策略](../testing/strategy.md)。
+
+## 历史框架和参考来源
+
+2026-10-30 初始设计曾使用 Vite 8、Radix、Zustand、Motion 作为候选。2026-11-07 用户明确选择 Next.js App Router，2026-11-08 采取 B+C 设计、Base UI/shadcn-style 和批量开发策略，故早期框架段落仅供迁移/设计历史参考，不构成当前技术决策。参考 [ADR-0007 生态复用](../architecture/adrs/0007-mature-ecosystem-first.md)、[ADR-0008 Next.js 决策](../architecture/adrs/0008-nextjs-app-router-console.md)、[Agent 库基线](rust-agent-stack.md)、[后端依赖审查](backend-stack.md)。

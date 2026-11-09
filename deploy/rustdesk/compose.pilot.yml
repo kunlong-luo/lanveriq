@@ -1,0 +1,65 @@
+# ISOLATED/OPT-IN RustDesk OSS pilot. NOT a public/prod deployment.
+# Run only after the preflight at docs/operations/rustdesk-pilot.md.
+# Source/tag+manifest: https://github.com/rustdesk/rustdesk-server/pkgs/container/rustdesk-server-s6
+name: lanveriq-rustdesk-pilot
+
+services:
+  rustdesk-pilot:
+    profiles:
+      - pilot
+    image: ghcr.io/rustdesk/rustdesk-server-s6:1.1.16@sha256:5974cd791a5aca6fbf01a167b37e7427db1d136e95b2710c33a34fdc9fea724c
+    pull_policy: missing
+    # RustDesk Server 1.1.16's s6 may reset the inherited umask.
+    # Pre-create keys USING OFFICIAL rustdesk-utils, never printing them.
+    # Validate existing or generated keys via the upstream /init key-secret step.
+    # A partial or invalid key pair fails closed, without silent regeneration.
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        umask 077
+        if [ ! -e /data/id_ed25519 ] && [ ! -e /data/id_ed25519.pub ]; then
+          /usr/bin/rustdesk-utils genkeypair | awk '
+            /^Public Key:/ { pub=$3 }
+            /^Secret Key:/ { priv=$3 }
+            END {
+              if (pub == "" || priv == "") exit 1
+              print pub > "/data/id_ed25519.pub"
+              print priv > "/data/id_ed25519"
+            }
+          '
+        fi
+        test -s /data/id_ed25519
+        test -s /data/id_ed25519.pub
+        chmod 0600 /data/id_ed25519 /data/id_ed25519.pub
+        exec /init
+    restart: "no"
+    environment:
+      RELAY: ${RUSTDESK_PILOT_RELAY_HOST:?Specify an approved real relay hostname}
+      ENCRYPTED_ONLY: "1"
+      ALWAYS_USE_RELAY: "N"
+      RUST_LOG: info
+    # The default is LOOPBACK ONLY. A non-loopback private address requires
+    # a deliberate approved LAN/VPN configuration and a preflight check.
+    # Docker bridge publish may bypass host firewall assumptions; inspect
+    # the resulting rules and real peer reachability before enabling.
+    ports:
+      - "${RUSTDESK_PILOT_BIND_IP:-127.0.0.1}:21115:21115/tcp"
+      - "${RUSTDESK_PILOT_BIND_IP:-127.0.0.1}:21116:21116/tcp"
+      - "${RUSTDESK_PILOT_BIND_IP:-127.0.0.1}:21116:21116/udp"
+      - "${RUSTDESK_PILOT_BIND_IP:-127.0.0.1}:21117:21117/tcp"
+    # No WebSocket 21118/21119, Pro 21114, Console, Agent, SQL or Redis ports.
+    volumes:
+      - rustdesk_pilot_state:/data
+    networks:
+      - rustdesk_pilot_only
+    init: false
+    # Application keys/database belong ONLY to the isolated named volume.
+    # Inspect private id_ed25519 permissions; back it up securely before reuse.
+
+networks:
+  rustdesk_pilot_only:
+    internal: false
+
+volumes:
+  rustdesk_pilot_state:
