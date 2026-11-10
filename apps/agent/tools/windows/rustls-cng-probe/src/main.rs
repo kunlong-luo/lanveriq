@@ -25,8 +25,10 @@ fn utf16(value: &str) -> Vec<u16> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    if std::env::args().nth(1).as_deref() == Some("--tls13-handshake") {
-        return mtls::run();
+    match std::env::args().nth(1).as_deref() {
+        Some("--tls13-handshake") => return mtls::run(),
+        Some("--https-loopback") => return mtls::run_loopback(),
+        _ => {}
     }
     let key_name = std::env::var(NAME_ENV).map_err(|_| "missing isolated test key name")?;
     if key_name.len() > 100

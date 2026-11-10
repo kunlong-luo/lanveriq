@@ -129,7 +129,7 @@ jobs:
           persist-credentials: false
       - name: Install pinned Rust 1.94
         run: rustup toolchain install 1.94.0 --profile minimal
-      - name: Verify TLS1.3, mutual CNG client/server and negative PKIX cases
+      - name: Verify TLS1.3 CNG mutual handshake (memory and real Reqwest HTTPS loopback)
         shell: pwsh
         env:
           SYNTHETIC_FIXTURES_DIR: ${{ runner.temp }}\\lanveriq-cng-tls13-fixtures

@@ -192,6 +192,12 @@ try {
         if ($LASTEXITCODE -ne 0) {
             throw 'Rustls CNG in-memory TLS1.3 verification failed'
         }
+        # Reuse the same new disposable CA, separate CNG signing keys and
+        # public-only leafs; now issue real Reqwest HTTPS across 127.0.0.1.
+        & cargo +1.94.0 run --quiet --manifest-path $manifest -- --https-loopback
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Reqwest TLS1.3 non-exportable CNG loopback HTTPS verification failed'
+        }
     } finally {
         Remove-Item Env:LANVERIQ_SYNTHETIC_CNG_KEY_NAME -ErrorAction SilentlyContinue
         Remove-Item Env:LANVERIQ_SYNTHETIC_CNG_SERVER_KEY_NAME -ErrorAction SilentlyContinue

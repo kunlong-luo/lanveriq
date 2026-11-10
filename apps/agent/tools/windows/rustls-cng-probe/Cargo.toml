@@ -14,4 +14,7 @@ rustls = { version = "=0.23.46", default-features = false, features = ["std", "r
 rustls-cng = { version = "=0.7.1", default-features = false, features = ["ring"] }
 # Only the standalone synthetic probe uses the advanced preconfigured TLS API.
 reqwest = { version = "=0.13.5", default-features = false, features = ["rustls"] }
+# Used by the isolated async HTTPS integration probe only; never by the
+# Agent's service lifecycle or real endpoint communication.
+tokio = { version = "=1.54.1", features = ["rt", "time", "net"] }
 windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
