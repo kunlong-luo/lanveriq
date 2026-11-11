@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - 'apps/agent/tools/windows/verify-cng-csr.ps1'
+      - 'apps/agent/tools/windows/verify-cng-key-acl.ps1'
       - 'apps/agent/tools/windows/verify-cng-tls13-memory.ps1'
       - 'apps/agent/tools/windows/rustls-cng-probe/**'
       - '.github/workflows/agent-windows-cng-csr-synthetic.yml'
@@ -31,12 +32,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Generate, verify and delete disposable non-exportable CNG signing key
+      - name: Generate disposable non-exportable CNG signing key and inspect real key DACL
         shell: pwsh
         env:
           SYNTHETIC_CSR_PATH: ${{ runner.temp }}\\lanveriq-cng-synthetic.csr.pem
         run: |
-          ./apps/agent/tools/windows/verify-cng-csr.ps1 -PublicCsrPath $env:SYNTHETIC_CSR_PATH
+          ./apps/agent/tools/windows/verify-cng-csr.ps1 -PublicCsrPath $env:SYNTHETIC_CSR_PATH -ProbeKeyAcl
       - name: Confirm public CSR only, no private-key materials on disk
         shell: pwsh
         env:

@@ -6,7 +6,8 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
     [string] $PublicCsrPath,
-    [switch] $ProbeRustlsSigning
+    [switch] $ProbeRustlsSigning,
+    [switch] $ProbeKeyAcl
 )
 
 Set-StrictMode -Version Latest
@@ -56,6 +57,12 @@ try {
     }
     if ($key.KeyUsage -ne [System.Security.Cryptography.CngKeyUsages]::Signing) {
         throw 'CNG key usage must be restricted to signing'
+    }
+
+    if ($ProbeKeyAcl) {
+        # Test the *actual CNG key object's* security descriptor rather than
+        # assuming Windows file paths or ACLs. No DACL change or export.
+        & (Join-Path $PSScriptRoot 'verify-cng-key-acl.ps1') -Key $key
     }
 
     $ecdsa = [System.Security.Cryptography.ECDsaCng]::new($key)
