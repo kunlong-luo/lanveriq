@@ -2,6 +2,10 @@
 
 **Status as of 2026-11-08:** D0 technical baseline approved, code development underway through NXT-20; static Next.js B+C preview, source-only Agent/Java services and opt-in synthetic PG18/Caddy/Chromium checks exist. **The first real Agent → Spring/PG18 → authorized frontend business loop is NOT complete**, and public preview remains disconnected. The product owner approved **batched P0 feature development with three-level CI**, replacing a full synthetic E2E run on every small commit. See [new executable v0.1 delivery plan](v0.1-batched-delivery-plan-2026-11-08.md).
 
+## Owner platform priority change — 2026-11-11
+
+**Pop!_OS 24.04 LTS (COSMIC desktop) / Linux is the primary Agent development and acceptance target.** Focus v0.1 Batch A first on Linux `systemd` non-root state/key custody, secure Linux CSR→approved certificate, Caddy→Tomcat TLS 1.3 and PostgreSQL18 commit/ACK; then the approved COSMIC/Wayland-facing client workflows. Windows service SID/DPAPI/CNG packaging becomes **secondary cross-platform compatibility work**, not the critical path for Linux-first acceptance. Preserve prior Windows synthetic evidence, but do not spend the next milestones on Windows-only hardening while Linux business-loop acceptance is incomplete. Linux server/desktop behavior must be accepted on a real authorized Pop!_OS machine only after consent; Ubuntu 24.04 CI is a *proxy*, not a certified Pop!_OS runner. See [Linux-first systemd and private-key acceptance](../testing/linux-popos24-agent-acceptance.md).
+
 ## Documentation visuals
 The [eight-image stakeholder gallery](../visuals/README.md) and [20 Mermaid engineering diagrams](../diagrams/README.md) are maintained alongside architecture decisions. **They are design proposals, not implemented features**; keep milestone labels and status synchronized with PRD and code as implementation proceeds.
 

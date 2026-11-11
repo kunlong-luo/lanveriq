@@ -30,3 +30,13 @@ All private keys are ephemeral **exportable Linux PEM file keys** in this test. 
 **Safety decision:** batch A stays OPEN; real monitoring/upload and RustDesk remote are default-OFF. The Linux CI result alone does not authorize installation on the user's Pop!_OS.
 
 References: [Pop!_OS 24.04 official](https://system76.com/download-pop/), [systemd service hardening](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec).
+
+## 2026-11-11 observed CI evidence
+
+**Exact source commit:** [`98b76be485a973c1fb947706c0ba2a7b0a3fe725`](https://github.com/kunlong-luo/lanveriq/commit/98b76be485a973c1fb947706c0ba2a7b0a3fe725). The first CI attempt failed at systemd's requirement for an already-installed binary, and initial Rustfmt changed the synthetic example. The systemd syntax checker now substitutes `/usr/bin/true` **only in an ephemeral verification copy** while the independent policy parser checks the real exact ExecStart; no Agent binary is installed. The final exact-source checks succeeded:
+
+- [Linux state/DAC + OpenSSL P-256 synthetic L2 #43009141284 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43009141284), including two disposable Unix UID read/write/traverse negatives, private 0700/0600 key, signed CSR, same-UID separate process reopen, unsafe parent rejection, no overwrite and systemd policy/syntax
+- [Agent Rustfmt, locked unit tests, Clippy #43009141303 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43009141303)
+- [RD-2 fail-closed remote guard #43009141351 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43009141351)
+
+**Acceptance is limited to the disposable Ubuntu 24.04 runner.** It is not a true Pop!_OS 24.04/COSMIC, installed service, systemd DynamicUser reboot, TPM-backed key, operational TLS or real device proof. Batch A remains OPEN and all real monitoring/remote features remain OFF.
