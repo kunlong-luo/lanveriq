@@ -9,9 +9,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("LANVERIQ_SYNTHETIC_CSR_ONLY").as_deref() != Ok("yes") {
         return Err("synthetic offline CSR gate must be explicitly enabled".into());
     }
-    let parent = PathBuf::from(std::env::var_os("LANVERIQ_SYNTHETIC_CSR_PARENT")
-        .ok_or("synthetic private parent not provided")?);
-    let bundle = std::env::args_os().nth(1).ok_or("one bundle path is required")?;
+    let parent = PathBuf::from(
+        std::env::var_os("LANVERIQ_SYNTHETIC_CSR_PARENT")
+            .ok_or("synthetic private parent not provided")?,
+    );
+    let bundle = std::env::args_os()
+        .nth(1)
+        .ok_or("one bundle path is required")?;
     if std::env::args_os().count() != 2 {
         return Err("exactly one synthetic bundle is required".into());
     }
@@ -28,11 +32,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let csr = lanveriq_agent::enrollment_linux::create_offline_p256_csr(&bundle)?;
-    if !csr.public_csr_pem.contains("-----BEGIN CERTIFICATE REQUEST-----") {
+    if !csr
+        .public_csr_pem
+        .contains("-----BEGIN CERTIFICATE REQUEST-----")
+    {
         return Err("offline CSR did not contain a public PKCS#10 request".into());
     }
     // Do not print the private key path, bytes, enrollment token or CSR.
-    println!("PASS: explicit offline synthetic P-256 CSR generated with owner-private file custody");
+    println!(
+        "PASS: explicit offline synthetic P-256 CSR generated with owner-private file custody"
+    );
     Ok(())
 }
 
