@@ -1,28 +1,52 @@
-# AGT-01 experimental Linux unit; requires an approved local installation.
-# NOT TESTED on the Pop!_OS/KWin target. No monitoring or enrollment enabled.
+# Pop!_OS 24.04 LTS / Ubuntu-family systemd system-service TEMPLATE.
+# Not installed or enabled by checkout/CI. An approved installer and consent
+# gate are required before any real endpoint deployment.
+# Batch A: IDLE agent only. Network, enrollment, collection and remote access
+# are deliberately unavailable in the systemd sandbox.
 [Unit]
-Description=Lanveriq Agent (idle lifecycle skeleton)
-After=network.target
+Description=Lanveriq Agent (idle, offline, synthetic-safe)
+Documentation=https://github.com/kunlong-luo/lanveriq
 ConditionPathExists=/etc/lanveriq-agent/agent.toml
 
 [Service]
-Type=simple
+Type=exec
+# Non-root and not tied to the logged-in COSMIC desktop session.
 DynamicUser=yes
 StateDirectory=lanveriq-agent
+StateDirectoryMode=0700
+RuntimeDirectory=lanveriq-agent
+RuntimeDirectoryMode=0700
+UMask=0077
 ExecStart=/usr/local/bin/lanveriq-agent --config /etc/lanveriq-agent/agent.toml
 Restart=on-failure
 RestartSec=10s
+TimeoutStopSec=15s
+
 NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
 PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+IPAddressDeny=any
+SocketBindDeny=any
+RestrictAddressFamilies=AF_UNIX
 ProtectSystem=strict
 ProtectHome=yes
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
+ProtectKernelLogs=yes
 ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
 LockPersonality=yes
 RestrictSUIDSGID=yes
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-UMask=0077
+RestrictRealtime=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+MemoryDenyWriteExecute=yes
 
+# Permission to deploy and enable is separately gated. This [Install] section
+# is deliberately passive: CI MUST NOT call systemctl enable/start on a host.
 [Install]
 WantedBy=multi-user.target

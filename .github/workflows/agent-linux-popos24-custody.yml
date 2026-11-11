@@ -1,0 +1,43 @@
+name: Linux Pop!_OS 24.04 Agent custody (isolated synthetic L2)
+
+# Linux-first Pop!_OS 24.04 target. CI uses ubuntu-24.04, which shares
+# the systemd/Linux DAC foundation, but is NOT a real System76/Pop!_OS host.
+# No real service is installed/enabled and no collection/remote is started.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/agent/deploy/systemd/lanveriq-agent.service'
+      - 'apps/agent/examples/linux_csr_synthetic.rs'
+      - 'apps/agent/src/enrollment_linux.rs'
+      - 'apps/agent/tools/linux/**'
+      - '.github/workflows/agent-linux-popos24-custody.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-linux-popos24-custody-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ubuntu24-linux-uid-custody:
+    name: Linux systemd/DAC and OpenSSL P-256 synthetic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check Pop!_OS 24.04 idle-service security policy
+        run: python3 apps/agent/tools/linux/verify-systemd-popos24.py apps/agent/deploy/systemd/lanveriq-agent.service
+      - name: Verify systemd unit syntax without installing or starting
+        run: systemd-analyze verify apps/agent/deploy/systemd/lanveriq-agent.service
+      - name: Install pinned Rust
+        run: rustup toolchain install 1.94.0 --profile minimal
+      - name: Build Linux synthetic-only CSR helper (production Agent remains idle)
+        working-directory: apps/agent
+        run: cargo +1.94.0 build --example linux_csr_synthetic --locked
+      - name: Verify distinct Unix accounts cannot read/write owner CSR private key
+        run: sudo bash apps/agent/tools/linux/verify-linux-csr-uid.sh apps/agent/target/debug/examples/linux_csr_synthetic
