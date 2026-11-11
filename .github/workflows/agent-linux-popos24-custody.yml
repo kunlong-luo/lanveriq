@@ -33,7 +33,18 @@ jobs:
       - name: Check Pop!_OS 24.04 idle-service security policy
         run: python3 apps/agent/tools/linux/verify-systemd-popos24.py apps/agent/deploy/systemd/lanveriq-agent.service
       - name: Verify systemd unit syntax without installing or starting
-        run: systemd-analyze verify apps/agent/deploy/systemd/lanveriq-agent.service
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          trap 'rm -rf -- "$tmp"' EXIT
+          # The REAL ExecStart is separately asserted by the Python gate.
+          # systemd-analyze verify also insists that the binary is installed,
+          # which is intentionally NOT true on a disposable CI runner.
+          sed 's@^ExecStart=/usr/local/bin/lanveriq-agent .*@ExecStart=/usr/bin/true@' \
+            apps/agent/deploy/systemd/lanveriq-agent.service > "$tmp/lanveriq-agent.service"
+          grep -Fx 'ExecStart=/usr/bin/true' "$tmp/lanveriq-agent.service"
+          systemd-analyze verify "$tmp/lanveriq-agent.service"
       - name: Install pinned Rust
         run: rustup toolchain install 1.94.0 --profile minimal
       - name: Build Linux synthetic-only CSR helper (production Agent remains idle)
