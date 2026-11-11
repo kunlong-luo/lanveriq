@@ -115,6 +115,33 @@ class DeviceHeartbeatPolicyTest {
     }
 
     @Test
+    void rejectsWrongCertificateIdentityEvenWhenBodyAndPathAgree() {
+        var differentIdentity = new VerifiedDeviceCertificate(
+                UUID.randomUUID(), "b".repeat(64));
+        assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        policy.validate(differentIdentity, deviceId, heartbeat())).reason());
+        assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        policy.validate(null, deviceId, heartbeat())).reason());
+    }
+
+    @Test
+    void rejectsMalformedOptionalTimestampsWithoutTreatingThemAsUnknown() {
+        var original = heartbeat();
+        for (String bad : List.of("2026-10-30T23:59:00+00:00",
+                "2026-11-02T00:00:00Z", "not-a-time")) {
+            var invalid = new DeviceHeartbeat(1, deviceId, original.sentAt(),
+                    original.agentVersion(), original.policyVersion(), original.status(),
+                    original.capabilities(), 0, 0, bad, null, 0, false,
+                    List.of(), UUID.randomUUID());
+            assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
+                    assertThrows(DeviceHeartbeatRejection.class, () ->
+                            policy.validate(identity, deviceId, invalid)).reason());
+        }
+    }
+
+    @Test
     void rejectsOversizedCapabilitiesBeforeAnyDatabaseWrite() {
         var many = new java.util.HashMap<String, String>();
         for (int i = 0; i < 33; i++) {
