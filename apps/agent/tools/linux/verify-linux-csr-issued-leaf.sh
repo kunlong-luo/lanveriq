@@ -42,6 +42,10 @@ created=1
 # Staging ancestor is searchable only; CA key remains in a separate root-
 # controlled 0700 directory, while the Agent's own parent is owner-only.
 chmod 0711 "$work"
+# GitHub workspace's ancestor permissions can deny an unrelated Linux UID
+# executable traversal. Copy ONLY the public CI test binary into a scoped
+# searchable staging directory; do NOT copy the private Agent key or CA key.
+install -m 0755 "$helper" "$work/synthetic-csr"
 parent="$work/lanveriq-linux-csr-ci.$nonce"
 install -d -m 0700 -o "$owner" -g "$owner" "$parent"
 install -d -m 0700 "$work/ca"
@@ -49,9 +53,9 @@ ca="$work/ca"
 install -d -m 0755 "$public_dir"
 
 runuser -u "$owner" -- env LANVERIQ_SYNTHETIC_CSR_ONLY=yes \
-  LANVERIQ_SYNTHETIC_CSR_PARENT="$parent" "$helper" "$parent/device-primary"
+  LANVERIQ_SYNTHETIC_CSR_PARENT="$parent" "$work/synthetic-csr" "$parent/device-primary"
 runuser -u "$owner" -- env LANVERIQ_SYNTHETIC_CSR_ONLY=yes \
-  LANVERIQ_SYNTHETIC_CSR_PARENT="$parent" "$helper" "$parent/device-alternate"
+  LANVERIQ_SYNTHETIC_CSR_PARENT="$parent" "$work/synthetic-csr" "$parent/device-alternate"
 primary="$parent/device-primary/device-p256-request.pem"
 other="$parent/device-alternate/device-p256-request.pem"
 key="$parent/device-primary/device-p256-private.pem"
