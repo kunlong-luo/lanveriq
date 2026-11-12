@@ -61,10 +61,15 @@ class AgentIngressAssertionPolicyTest {
             request.removeHeader("Host");
             request.setServerName("console.lanveriq.internal");
         });
-        assertDenied(request -> {
-            request.setProtocol("HTTP/2.0");
-            request.setServerName("enroll.lanveriq.internal");
-        });
+        // MockHttpServletRequest derives getServerName() from its existing
+        // Host header, so a spy is necessary to model a conflicting HTTP/2
+        // :authority when an ordinary Host is also present.
+        var conflictingAuthority = Mockito.spy(request());
+        conflictingAuthority.setProtocol("HTTP/2.0");
+        Mockito.doReturn("enroll.lanveriq.internal")
+                .when(conflictingAuthority).getServerName();
+        assertThrows(SecurityException.class,
+                () -> policy.resolve(conflictingAuthority, deviceId, "activate"));
         assertDenied(request -> {
             request.setProtocol("HTTP/2.0");
             request.setServerName(HOST);

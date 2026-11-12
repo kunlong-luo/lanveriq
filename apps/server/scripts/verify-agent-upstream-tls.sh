@@ -1013,10 +1013,34 @@ JSON
                 WHERE d.id='$DEVICE_ID'"
         }
         DB_BEFORE="$(db_latest)"
-        [[ "$DB_BEFORE" == "degraded|2|true|"*"|2" ]] || {
+        # Assert typed PostgreSQL columns, not shell-formatted boolean or
+        # timestamptz text (psql renders boolean values differently depending
+        # on whether the value is cast explicitly).
+        expected_latest="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+            SELECT COUNT(*) FROM device_heartbeat_latest h
+            JOIN devices d ON d.id=h.device_id
+            WHERE d.id='$DEVICE_ID'
+              AND h.agent_status='degraded'
+              AND h.policy_version=2
+              AND h.integrity_degraded IS TRUE
+              AND h.received_at IS NOT NULL
+              AND d.last_seen_at IS NOT NULL
+              AND (SELECT COUNT(*) FROM device_heartbeat_request_ids r
+                   WHERE r.device_id=d.id)=2")"
+        if [[ "$expected_latest" != 1 ]]; then
+            # Only fixed synthetic status/counters are eligible for logs.
+            state_diagnostic="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT concat_ws(',', h.agent_status, h.policy_version,
+                    h.integrity_degraded::text,
+                    (SELECT COUNT(*) FROM device_heartbeat_request_ids r
+                     WHERE r.device_id=d.id))
+                FROM device_heartbeat_latest h
+                JOIN devices d ON d.id=h.device_id
+                WHERE d.id='$DEVICE_ID'")"
+            echo "SYNTHETIC PG18 DIAGNOSTIC latest_status,policy,integrity,accepted_ids=$state_diagnostic" >&2
             echo "FAIL: real Rust Agent did not commit exactly two distinct PG18 heartbeats" >&2
             exit 1
-        }
+        fi
         # Rust deliberately quarantines non-200; independently require the
         # exact 409 status, zero body and no-store from the same real route.
         replay_code="$(curl --silent --show-error --noproxy '*' --http2 \
