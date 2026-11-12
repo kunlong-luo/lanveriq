@@ -14,7 +14,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         || env::var("RUNNER_OS").as_deref() != Ok("Linux")
         || env::var("LANVERIQ_SYNTHETIC_AGENT_HTTP_ONLY").as_deref() != Ok("yes")
     {
-        return Err("only explicit disposable Linux GitHub Actions can issue synthetic POSTs".into());
+        return Err(
+            "only explicit disposable Linux GitHub Actions can issue synthetic POSTs".into(),
+        );
     }
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 || !matches!(args[1].as_str(), "accepted" | "revoked" | "expired") {
@@ -36,16 +38,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     identity.extend_from_slice(b"\n");
     identity.extend_from_slice(&fs::read(pki.join("agent.key"))?);
     let client = AgentTlsTransport::new("https://agent.lanveriq.internal", &ca, &identity)?;
-    let assert_disposition = |actual: DeliveryDisposition, wanted: DeliveryDisposition| {
-        if actual == wanted {
-            Ok(())
-        } else {
-            Err("synthetic server acknowledgement or identity classification mismatch")
-        }
-    };
     if args[1] == "accepted" {
         let activation = ActivationRequest::synthetic(device);
         assert_disposition(
+            "activation",
             client.send_activation(&activation).await?,
             DeliveryDisposition::Accepted,
         )?;
@@ -54,29 +50,63 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         second.status = "degraded";
         second.policy_version = 2;
         second.integrity_degraded = true;
-        assert_disposition(client.send_heartbeat(&first).await?, DeliveryDisposition::Accepted)?;
-        assert_disposition(client.send_heartbeat(&second).await?, DeliveryDisposition::Accepted)?;
+        assert_disposition(
+            "heartbeat-first",
+            client.send_heartbeat(&first).await?,
+            DeliveryDisposition::Accepted,
+        )?;
+        assert_disposition(
+            "heartbeat-second",
+            client.send_heartbeat(&second).await?,
+            DeliveryDisposition::Accepted,
+        )?;
         // Persist the first outbound JSON for a separate real HTTP 409 probe.
         // This is an operational-only synthetic payload; no device collection.
-        fs::write(env::var("LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE")?,
-                  serde_json::to_vec(&first)?)?;
-        assert_disposition(client.send_heartbeat(&first).await?, DeliveryDisposition::Quarantine)?;
+        fs::write(
+            env::var("LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE")?,
+            serde_json::to_vec(&first)?,
+        )?;
+        assert_disposition(
+            "heartbeat-replay",
+            client.send_heartbeat(&first).await?,
+            DeliveryDisposition::Quarantine,
+        )?;
         let wrong_device = Uuid::parse_str("00000000-0000-7000-8000-000000000002")?;
         let mismatch = Heartbeat::synthetic(wrong_device, "2026-11-12T09:02:00Z".into());
         assert_disposition(
+            "heartbeat-wrong-device",
             client.send_heartbeat(&mismatch).await?,
             DeliveryDisposition::PauseIdentity,
         )?;
-        println!("PASS: real Rust Reqwest TLS1.3 activation, two committed heartbeats, strict ACK, replay quarantine and cross-device denial.");
+        println!(
+            "PASS: real Rust Reqwest TLS1.3 activation, two committed heartbeats, strict ACK, replay quarantine and cross-device denial."
+        );
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
         assert_disposition(
+            "heartbeat-denied-credential",
             client.send_heartbeat(&denied).await?,
             DeliveryDisposition::PauseIdentity,
         )?;
-        println!("PASS: real Rust Reqwest heartbeat denied after synthetic credential {}.", args[1]);
+        println!(
+            "PASS: real Rust Reqwest heartbeat denied after synthetic credential {}.",
+            args[1]
+        );
     }
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn assert_disposition(
+    stage: &str,
+    actual: lanveriq_agent::transport::DeliveryDisposition,
+    wanted: lanveriq_agent::transport::DeliveryDisposition,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if actual == wanted {
+        Ok(())
+    } else {
+        Err(format!("synthetic {stage}: response {actual:?}, expected {wanted:?}").into())
+    }
 }
 
 #[cfg(not(target_os = "linux"))]
