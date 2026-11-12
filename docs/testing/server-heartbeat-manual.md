@@ -1,6 +1,6 @@
 # HB-01 — internal device heartbeat and latest-state acceptance
 
-**2026-11-12 replay guard (source; pending exact-SHA CI):** Flyway V9 adds a
+**2026-11-12 replay guard (L1 and real synthetic PG18 CI PASS, source SHA [`7547f5c0`](https://github.com/kunlong-luo/lanveriq/commit/7547f5c0ccc80fdd6d5e248eafdcb7d939734f41); [Batch A #43205182338](https://github.com/kunlong-luo/lanveriq/actions/runs/43205182338)):** Flyway V9 adds a
 per-device persistent accepted-request UUID ledger. After device and certificate
 locks succeed, the same transaction inserts the validated UUID before updating
 `last_seen_at` or `device_heartbeat_latest`. Repeated IDs produce HTTP 409,
