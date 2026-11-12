@@ -1,0 +1,83 @@
+name: Linux Rust CSR to Java validated client leaf (synthetic L2)
+
+# Linux/Pop!_OS first; Ubuntu 24.04 runner is NOT a Pop!_OS device.
+# Short-lived synthetic OpenSSL CA signs public CSR produced by real Rust
+# Agent offline helper, then Java25 validates actual CSR and leaf profiles.
+# NO production CA, credential registration, TLS listener, PostgreSQL or Agent.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/agent/src/enrollment_linux.rs'
+      - 'apps/agent/examples/linux_csr_synthetic.rs'
+      - 'apps/agent/tools/linux/verify-linux-csr-issued-leaf.sh'
+      - 'apps/server/src/main/java/com/lanveriq/server/enrollment/CertificateSigningRequestValidator.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/enrollment/ClientCertificateProfileValidator.java'
+      - 'apps/server/src/test/java/com/lanveriq/server/enrollment/LinuxOpenSslCsrInteropTest.java'
+      - '.github/workflows/agent-linux-csr-leaf-interop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-linux-csr-java-interop-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-rust-openssl-to-java:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust 1.94
+        run: rustup toolchain install 1.94.0 --profile minimal
+      - name: Install Java 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+      - name: Syntax-check synthetic issuer and compile genuine Rust CSR helper
+        run: |
+          bash -n apps/agent/tools/linux/verify-linux-csr-issued-leaf.sh
+          cd apps/agent
+          cargo +1.94.0 build --locked --example linux_csr_synthetic
+      - name: Generate offline P-256 CSR as unprivileged Linux account and issue temporary CA public leaf
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo env RUNNER_TEMP="$RUNNER_TEMP" GITHUB_ACTIONS="$GITHUB_ACTIONS" \
+            bash apps/agent/tools/linux/verify-linux-csr-issued-leaf.sh \
+              apps/agent/target/debug/examples/linux_csr_synthetic \
+              "$RUNNER_TEMP/lanveriq-linux-pki-public"
+      - name: Verify actual Linux-generated CSR and issued clientAuth leaf with server policy
+        working-directory: apps/server
+        env:
+          LANVERIQ_SYNTHETIC_LINUX_PKI_DIR: \${{ runner.temp }}/lanveriq-linux-pki-public
+        run: ./gradlew --no-daemon --no-build-cache --rerun-tasks test --tests com.lanveriq.server.enrollment.LinuxOpenSslCsrInteropTest
+      - name: Fail closed unless all three real cross-language Java tests executed
+        working-directory: apps/server
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          path = Path("build/test-results/test/TEST-com.lanveriq.server.enrollment.LinuxOpenSslCsrInteropTest.xml")
+          assert path.is_file(), "No JUnit XML: Linux CSR/leaf verification not executed"
+          suite = ET.parse(path).getroot()
+          values = {field: int(suite.attrib.get(field, "0")) for field in ("tests", "skipped", "errors", "failures")}
+          assert values == {"tests": 3, "skipped": 0, "errors": 0, "failures": 0}, f"Missing or failing Linux PKI negative tests: {values}"
+          cases = list(suite.iter("testcase"))
+          assert len(cases) == 3
+          assert not any(list(c) for c in cases), "Some tests failed or were skipped"
+          print("PASS: actual Linux Rust-generated PKCS10 -> temporary OpenSSL clientAuth leaf -> Java Bouncy Castle + JDK PKIX, three JUnit methods executed")
+          PY
+      - name: Erase short-lived public fixture files even on failure
+        if: always()
+        run: |
+          if [ -d "$RUNNER_TEMP/lanveriq-linux-pki-public" ]; then
+            sudo rm -rf --one-file-system -- "$RUNNER_TEMP/lanveriq-linux-pki-public"
+          fi
