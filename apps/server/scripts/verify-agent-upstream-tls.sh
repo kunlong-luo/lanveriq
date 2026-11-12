@@ -960,6 +960,41 @@ SQL
         export LANVERIQ_SYNTHETIC_AGENT_HTTP_CA="$ROOT_CA"
         export LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE="$TMP/first-heartbeat.json"
         "$RUST_AGENT_HTTP" accepted "$DEVICE_ID" || {
+            # The real failing Rust path must stay FAIL. A private CI-only
+            # comparison tells us whether Tomcat's H1/H2 request metadata
+            # or the reviewed PG18 credential binding caused this 403.
+            # Do not log PEM, fingerprint, SQL, headers or response bodies.
+            cat > "$TMP/activation-diagnostic.json" <<JSON
+{"schema_version":1,"device_id":"$DEVICE_ID","agent_version":"0.1.0","request_id":"00000000-0000-7000-8000-000000000043"}
+JSON
+            direct_activation_code() {
+                local protocol="$1"
+                curl --silent --show-error --noproxy '*' --max-time 12 \
+                    "$protocol" --tlsv1.3 --tls-max 1.3 \
+                    --cacert "$TMP/pki/backend-ca.crt" --resolve "$HOST_RESOLVE" \
+                    --cert "$TMP/pki/proxy.crt" --key "$TMP/pki/proxy.key" \
+                    -H 'Host: agent.lanveriq.internal' \
+                    -H "X-Lanveriq-Verified-Client-Fingerprint: $CLIENT_FP" \
+                    -H 'Content-Type: application/json' \
+                    --data-binary @"$TMP/activation-diagnostic.json" \
+                    -o "$TMP/direct-activation-response" -w '%{http_code}' \
+                    "$URL/api/v1/devices/$DEVICE_ID/activate"
+            }
+            # H2 first: an unsuccessful H2 must not be concealed by a
+            # preceding successful idempotent H1 activation.
+            direct_h2="$(direct_activation_code --http2 || true)"
+            direct_h1="$(direct_activation_code --http1.1 || true)"
+            reviewed_count="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT COUNT(*) FROM devices d
+                JOIN device_credentials c ON c.device_id=d.id
+                JOIN device_enrollment_csrs r ON r.device_id=d.id
+                WHERE d.id='$DEVICE_ID'
+                  AND c.client_cert_sha256_fingerprint='$CLIENT_FP'
+                  AND c.csr_spki_digest=r.csr_spki_digest
+                  AND r.reviewed_by IS NOT NULL AND r.reviewed_at IS NOT NULL
+                  AND c.revoked_at IS NULL AND d.revoked_at IS NULL
+                  AND c.expires_at>clock_timestamp()")"
+            echo "SYNTHETIC DIAGNOSTIC: direct trusted Tomcat activation h2=$direct_h2 h1=$direct_h1 reviewed_binding=$([[ "$reviewed_count" == 1 ]] && echo true || echo false)." >&2
             echo "FAIL: real Rust Agent request/strict ACK chain rejected" >&2
             exit 1
         }
