@@ -1,5 +1,9 @@
 # HB-01 — internal device heartbeat and latest-state acceptance
 
+**2026-11-12 HB-HTTP-01 L2 实际合成验收已通过。** [代码 SHA `80298562`](https://github.com/kunlong-luo/lanveriq/commit/80298562d4221c0afc4dd18cfa01d1ac3f7b15ad) 的 [Linux Batch A #43210930135](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930135) **SUCCESS（两个任务均成功）**，独立 [Java L1 #43210930065](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930065) 和 [RD-2 默认拒绝 #43210930301](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930301) 也 **SUCCESS**。一次性 Ubuntu 24.04 runner 上，先在默认关闭状态验证真实 TLS1.2 禁止、双向 mTLS、错误 CA/SNI/Host 和业务 403，再对**同一临时 PostgreSQL 18.6** 以独立双路由 opt-in 启用测试服务：真实 Linux Rust P-256 CSR 对应叶证书发送激活 + 两次不同心跳，精确 ACK 全部通过；旧 `request_id` 的 HTTP 409/空体/no-store、数据库最新状态和 `last_seen_at` 不变、跨设备、受信 CA 但未注册证书、过期/吊销后拒绝均通过。全部合成且只使用测试私钥和固定虚构设备 ID，没有启动设备 Agent service、采集真实机器或改变生产配置。**仅 A4 核心 L2 合成请求闭环通过，不等于 A2 完整接入令牌/审核发行、A3 受控系统服务调度、A5 Pop!_OS 实机、生产 CA、请求 ID retention/epoch 与隐私/发布批准。**
+
+**注意：**以下标为 `source-only`、`pending CI` 和 `NOT EXECUTED` 的历史段落，均以本次同源成功记录为准；真实设备、安装服务与生产批准仍缺失。
+
 **2026-11-12 HTTP/2 activation regression under investigation:** Real Rust transport reached
 the opt-in synthetic business test but initially received 403 on activation.
 The isolated comparison in [run #43209697578](https://github.com/kunlong-luo/lanveriq/actions/runs/43209697578)
@@ -48,7 +52,7 @@ policy before production scale without silently weakening security.
 
 - `DeviceHeartbeatService` retains an internal, transactional contract, now called by a **default-OFF, trust-gated HTTP source** only when both Agent ingress and heartbeat flags are enabled; the normal runtime has neither production Agent host nor registered device keys. It must be invoked only after an independently verified Agent mTLS identity is mapped to the enrolled device. An arbitrary body `device_id` or forwarded fingerprint header does **not** authenticate the caller.
 - The service validates `schema_version=1`, device/path/credential ID equality, version, status, bounded machine-code capability/error states, nonnegative queue counters, and UTC timestamps **before SQL**. Raw free-text error messages, IP/MAC, file paths, process/window activity, employee names or recording status are not accepted.
-- Inside **one Spring-managed transaction**, the JPA repository first locks the currently active device row and then the exact registered credential row with `FOR UPDATE`, verifying its fingerprint, validity window and nonrevoked state after the lock (using `clock_timestamp()`); it then updates `devices.last_seen_at` and upserts one `device_heartbeat_latest` row. `received_at` is database-owned. The Agent's clock must not determine online/stale/offline.
+- Inside **one Spring-managed transaction**, the JPA repository first locks the currently active device row and then the exact registered credential row with `FOR UPDATE`, verifying its fingerprint, validity window and nonrevoked state after the lock (using `clock_timestamp()`); it inserts the accepted per-device `request_id` in the durable V9 ledger before updating `devices.last_seen_at` and upserting one `device_heartbeat_latest` row. A duplicate request aborts before any latest-state write. `received_at` is database-owned. The Agent's clock must not determine online/stale/offline.
 - Capabilities `not_collected`, `unsupported`, `permission_denied` and `degraded` retain their distinct meanings. Successful heartbeats do **not** establish collector coverage or authorize future device telemetry.
 
 ## Opt-in synthetic PostgreSQL test
@@ -63,7 +67,7 @@ Open [manual PostgreSQL 18 integration workflow](../../.github/workflows/server-
 | HB-DB-04 | Unknown, forged, expired or revoked fingerprint cannot change `last_seen_at` or add heartbeat rows |
 | HB-DB-05 | Missing, malformed, oversized, untrusted-device, free-form error or unsupported schema input is rejected before database writes |
 | HB-DB-06 | A failed write rolls back the complete latest-state transaction, with no successful response before commit |
-| HB-HTTP-01 | Default-OFF heartbeat POST + exact-route chain **SOURCE IMPLEMENTED/L1 PASS**. Actual Rust mTLS→Caddy→Tomcat→PG18 and Host/SNI/header-spoofing/expired/revoked/wrong-ID checks **NOT EXECUTED on the new route**; L2 batch A acceptance required |
+| HB-HTTP-01 | **2026-11-12 L2 synthetic PASS** [#43210930135](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930135): real Rust `send_activation`/`send_heartbeat` over Caddy→Tomcat TLS1.3, PG18 persistence, exact ACK, replay HTTP 409/no-store/empty and stable latest-state/last-seen; host/SNI/wrong client CA, trusted-CA-unregistered, wrong device, expiry and revocation denied. Disposable runner only, no Agent service or production endpoint. |
 | HB-OS-01 | Installed Windows/Pop!_OS Agent schedules authentic heartbeats and UI derives online/stale/offline from DB server receipts — **NOT IMPLEMENTED** |
 
 **Acceptance boundary:** A successful synthetic PostgreSQL run may establish HB-DB evidence only. It does not close Agent transport, certificate issuance, session login, REST/WSS permissions, OS service tests, organizational privacy approval or real-data authorization. Record tested Git SHA, run URL, actual DB version, sanitized JUnit artifacts and image digest; never upload real device data, certificates or passwords.

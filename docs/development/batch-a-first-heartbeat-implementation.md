@@ -1,5 +1,9 @@
 # Batch A / 首次心跳的可运行链路 — Stage A1
 
+**2026-11-12 最新合成验收：单条真实 Rust→Caddy→Spring/Tomcat→PostgreSQL 18 业务链已通过。** [代码 SHA `80298562`](https://github.com/kunlong-luo/lanveriq/commit/80298562d4221c0afc4dd18cfa01d1ac3f7b15ad) 的 [Linux Batch A #43210930135](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930135) **SUCCESS（两个任务均成功）**，独立 [Java L1 #43210930065](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930065) 和 [RD-2 默认拒绝 #43210930301](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930301) 也 **SUCCESS**。一次性 Ubuntu 24.04 runner 上，先在默认关闭状态验证真实 TLS1.2 禁止、双向 mTLS、错误 CA/SNI/Host 和业务 403，再对**同一临时 PostgreSQL 18.6** 以独立双路由 opt-in 启用测试服务：真实 Linux Rust P-256 CSR 对应叶证书发送激活 + 两次不同心跳，精确 ACK 全部通过；旧 `request_id` 的 HTTP 409/空体/no-store、数据库最新状态和 `last_seen_at` 不变、跨设备、受信 CA 但未注册证书、过期/吊销后拒绝均通过。全部合成且只使用测试私钥和固定虚构设备 ID，没有启动设备 Agent service、采集真实机器或改变生产配置。**仅 A4 核心 L2 合成请求闭环通过，不等于 A2 完整接入令牌/审核发行、A3 受控系统服务调度、A5 Pop!_OS 实机、生产 CA、请求 ID retention/epoch 与隐私/发布批准。**
+
+**历史状态说明：**下方的 2026-11-08 A1 源码状态、2026-11-12 「待 CI」和失败诊断仅为历史时间点记录；**本节上方的 `80298562` 同源 CI 成功证据优先**。
+
 **2026-11-12 HTTP/2 Host 安全差异诊断（修复尚待 CI）：** [原始诊断 #43209697578](https://github.com/kunlong-luo/lanveriq/actions/runs/43209697578) 使用同一受信托的 Caddy upstream 证书与已审核合成 PG18 注册行，直接请求 Tomcat 的 HTTP/1.1 激活为 200、HTTP/2 激活为 403。因 HTTP/2 使用 `:authority` 伪头，普通 `Host` 可能缺失，现将 `AgentIngressAssertionPolicy` 限定为：**仅 HTTP/2** 可在普通 Host 缺失时使用 Tomcat 解析的精确 `getServerName()`，任何显式不一致 Host 仍拒绝；HTTP/1.1 继续必须提供唯一准确 Host，所有 TLS peer、来源 IP、路径、设备绑定仍保留。真实链路 CI 通过前不得宣告修复成功。
 
 **2026-11-12 Batch A 单链路候选（源代码已准备、CI 尚未验证）：**
@@ -28,7 +32,7 @@
 
 - **A2 证书生命周期：**管理员受限发行一次性接入令牌→Agent 生成/保存密钥与 CSR→人工批准/离线签名→受审核的注册/激活/撤销。必要的证书保护、密钥管理、用户告知与设备授权必须先定。
 - **A3 真实 Agent service 链接：**首次激活后受控调度 `send_heartbeat`，依据真实授权/运行状态和 SQLite 元信息构造 wire DTO，持续 401/403 停止而不是无限尝试；保留严格终止/恢复、协议限流。未授权员工终端不允许启动。
-- **A4 L2 合成闭环：**在明确的一次性批次验收中生成测试 CA/CSR/签名叶子，Rust Agent→Caddy→Tomcat mTLS→Spring 当前 credential guard→PG18 持久化→受限 GET，验证缺失/伪造/过期/撤销/错设备和离线重试，明确真实测试尚缺的 Windows/Linux 与 CA 托管。此步骤 **不在每次小改动提交上自动运行**。
+- **A4 L2 合成闭环：核心真实请求正负向已通过（`80298562`）**：一次性 Rust Reqwest 通过 Caddy/Tomcat TLS 1.3 到 PostgreSQL 18.6 的激活、双心跳、精确 ACK、防重放与错证书/错设备/过期/吊销拒绝有 CI 证据。**仍缺**受限浏览器 GET 与同一请求链的授权会话绑定、断网/重启重试、跨语言完整 Golden Fixture、受控审批发行及真实 Pop!_OS 安装服务；这些不得由当前合成通过推断。后续昂贵 L2/L3 按里程碑运行，不在每次普通源码提交全量重跑。
 - **A5 真实受限试点** 需要独立合法/组织批准、设备所有者同意、受控 CA 与 Windows/Linux 验收，暂不执行。
 
 ## 风险/边界
@@ -46,4 +50,4 @@
 
 **2026-11-09 增补（Draft PR #4，待最终 CI/评审）：**源代码对 Agent HTTPS 限定 TLSv1.3，并为心跳请求增加 UUID 请求关联、服务端核验非 nil、成功写入后回显、Rust 端拒绝旧/错配 ACK。以上为源码/单测层安全改进，不意味着 Caddy/Tomcat/PG18 已完成完整双跳 TLS 正负向验收，也不代表 A2 CSR 与密钥托管或 A3 运行时已连接。后续集中验收跟踪 [Batch A Issue #5](https://github.com/kunlong-luo/lanveriq/issues/5)。
 
-**Stage A1 = source-ready（合成 L1）**，不是批次 A 完成。真实 Caddy/Tomcat/PG18/Agent TLS 端到端连接尚未联调；昂贵的 L2/L3 门禁按新策略留待身份/注册/Agent 运行桥接齐备后执行。
+**Stage A1（2026-11-08 历史基线）= source-ready（合成 L1）；2026-11-12 已补齐 A4 的核心 Rust 单请求→双跳 TLS→PG18→精确 ACK L2 合成测试（见文首同源 CI）。** Batch A 仍未完整完成，后续主要工作是正式审核/证书发行生命周期、Agent runtime/SQLite 受控桥接、故障重试与独立设备授权。
