@@ -10,6 +10,7 @@ on:
       - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
       - 'apps/server/scripts/assert-postgres18-junit.py'
+      - 'apps/server/scripts/test_assert_postgres18_junit.py'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/**'
       - 'apps/server/src/integrationTest/**'
       - 'apps/server/src/main/resources/application-agent-upstream-mtls-acceptance.yml'
@@ -61,7 +62,7 @@ jobs:
         run: bash apps/server/scripts/verify-agent-upstream-tls.sh
 
   linux-postgres18-transactions:
-    name: Real PostgreSQL18 reviewed cert, activation and heartbeat transactions
+    name: PG18 synthetic registration, activation, heartbeat and Console security transactions
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -80,7 +81,9 @@ jobs:
           test "$GITHUB_ACTIONS" = true
           echo '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
           docker info --format 'Synthetic Docker engine: {{.ServerVersion}}'
-      - name: Exercise all seven actual PostgreSQL18 Testcontainers transaction classes
+      - name: Verify strict eight-suite JUnit evidence gate rejects missing tests
+        run: python3 -m unittest discover -s apps/server/scripts -p test_assert_postgres18_junit.py
+      - name: Exercise all eight actual PostgreSQL18 Testcontainers transaction classes
         working-directory: apps/server
         run: ./gradlew --no-build-cache --rerun-tasks integrationTest --stacktrace
       - name: Fail closed unless mandatory PostgreSQL18 JUnit results all executed

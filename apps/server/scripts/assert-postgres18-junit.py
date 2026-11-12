@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed evidence gate for the manually run synthetic PostgreSQL 18 suite.
+"""Fail-closed evidence gate for manually or automatically run synthetic PG18.
 
 Use Gradle's own JUnit XML, not source-file counts or a zero-exit code alone.
 This script never starts PostgreSQL or runs a test; it validates what Gradle
@@ -12,7 +12,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 
-# Bind evidence to the exact seven Java test classes and Gradle XML paths.
+# Bind evidence to the exact eight Java test classes and Gradle XML paths.
 # A duplicate simple class name in another package is not database evidence.
 PACKAGES = {
     "PostgreSqlEventIngestionIT": "com.lanveriq.server.events",
@@ -22,6 +22,7 @@ PACKAGES = {
     "PostgreSqlDeviceRevocationIT": "com.lanveriq.server.events",
     "PostgreSqlDeviceDirectoryIT": "com.lanveriq.server.devices",
     "PostgreSqlAdminAuditAtomicityIT": "com.lanveriq.server.security",
+    "PostgreSqlConsoleSecurityWiringIT": "com.lanveriq.server.security",
 }
 
 # Minimum discovered tests in seven independent Testcontainers classes.
@@ -34,6 +35,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
+    "PostgreSqlConsoleSecurityWiringIT": 2,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -80,6 +82,10 @@ REQUIRED_CASES = {
         "disabledAdministratorLosesAllHealthScopeDespiteStalePrincipal",
         "monitoringOverviewCountsOnlyCurrentGroupsAndExcludesPendingFromOffline",
         "monitoringOverviewDisablesAllCountsAfterCurrentGrantIsRemoved",
+    },
+    "PostgreSqlConsoleSecurityWiringIT": {
+        "bootDiscoversConditionalConsoleChainsAndBlocksAnonymousReads",
+        "realPostgresGroupsAreIsolatedAtActualServletEndpoints",
     },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
@@ -176,7 +182,7 @@ def main() -> int:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
     print("PG18 synthetic JUnit evidence verified: all 7 Testcontainers classes, "
-          ">=58 passing tests, mandatory DB/lock/revocation/rollback cases; "
+          ">=60 passing tests across eight suites, including Console security wiring; "
           "no failed, errored or skipped cases.")
     return 0
 

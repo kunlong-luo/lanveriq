@@ -1,4 +1,4 @@
-"""Synthetic-only unit tests for the manual PostgreSQL JUnit evidence gate."""
+"""Synthetic-only unit tests for strict PG18 JUnit evidence gate."""
 
 import runpy
 import tempfile
@@ -115,6 +115,26 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             errors = verify_reports(Path(tmp))
             self.assertTrue(any("PostgreSqlAdminAuditAtomicityIT: only 0 passing tests"
                                 in error for error in errors))
+
+    def test_eighth_console_security_wiring_suite_is_mandatory(self):
+        cls = "PostgreSqlConsoleSecurityWiringIT"
+        required = (
+            "bootDiscoversConditionalConsoleChainsAndBlocksAnonymousReads",
+            "realPostgresGroupsAreIsolatedAtActualServletEndpoints",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            synthetic_reports(directory)
+            path = directory / f"TEST-{packages[cls]}.{cls}.xml"
+            path.unlink()
+            errors = verify_reports(directory)
+            self.assertTrue(any(f"{cls}: only 0 passing tests" in error
+                                for error in errors))
+        for method in required:
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp), omit=(cls, method))
+                errors = verify_reports(Path(tmp))
+                self.assertIn(f"Missing mandatory test: {cls}.{method}", errors)
 
     def test_mismatched_gradle_suite_and_case_class_are_rejected(self):
         cls = "PostgreSqlAdminAuditAtomicityIT"
