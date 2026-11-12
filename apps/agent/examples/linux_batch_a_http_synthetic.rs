@@ -4,9 +4,7 @@
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use lanveriq_agent::heartbeat_runtime::{
-        HeartbeatAttemptOutcome, run_explicit_heartbeat_once,
-    };
+    use lanveriq_agent::heartbeat_runtime::{HeartbeatAttemptOutcome, run_explicit_heartbeat_once};
     use lanveriq_agent::store::OutboxStore;
     use lanveriq_agent::transport::{
         ActivationRequest, AgentTlsTransport, DeliveryDisposition, Heartbeat,
@@ -52,21 +50,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // A3: only this throwaway, explicitly approved CI example is wired
         // to the SQLite attempt coordinator. The installed Agent still has
         // no sender task, timer, credentials or networking enabled.
-        let state_file = pki.parent().ok_or("synthetic PKI parent missing")?
+        let state_file = pki
+            .parent()
+            .ok_or("synthetic PKI parent missing")?
             .join("synthetic-heartbeat.sqlite");
         let first_request_id = Cell::new(Uuid::nil());
         let store = OutboxStore::open(&state_file).await?;
-        let first_outcome = run_explicit_heartbeat_once(
-            &store, device, true, 1_000, 30, |id| {
-                first_request_id.set(id);
-                let mut heartbeat = Heartbeat::synthetic(
-                    device, "2026-11-12T09:00:00Z".into()
-                );
-                heartbeat.request_id = id;
-                let sender = &client;
-                async move { sender.send_heartbeat(&heartbeat).await }
-            },
-        ).await?;
+        let first_outcome = run_explicit_heartbeat_once(&store, device, true, 1_000, 30, |id| {
+            first_request_id.set(id);
+            let mut heartbeat = Heartbeat::synthetic(device, "2026-11-12T09:00:00Z".into());
+            heartbeat.request_id = id;
+            let sender = &client;
+            async move { sender.send_heartbeat(&heartbeat).await }
+        })
+        .await?;
         if first_outcome != HeartbeatAttemptOutcome::Accepted {
             return Err("synthetic first heartbeat did not earn a strict ACK".into());
         }
@@ -76,28 +73,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // heartbeat ID store. Only an exactly acknowledged attempt clears
         // pending and permits another send after the configured interval.
         let store = OutboxStore::open(&state_file).await?;
-        let second_outcome = run_explicit_heartbeat_once(
-            &store, device, true, 1_030, 30, |id| {
-                let mut heartbeat = Heartbeat::synthetic(
-                    device, "2026-11-12T09:01:00Z".into()
-                );
-                heartbeat.request_id = id;
-                heartbeat.status = "degraded";
-                heartbeat.policy_version = 2;
-                heartbeat.integrity_degraded = true;
-                let sender = &client;
-                async move { sender.send_heartbeat(&heartbeat).await }
-            },
-        ).await?;
+        let second_outcome = run_explicit_heartbeat_once(&store, device, true, 1_030, 30, |id| {
+            let mut heartbeat = Heartbeat::synthetic(device, "2026-11-12T09:01:00Z".into());
+            heartbeat.request_id = id;
+            heartbeat.status = "degraded";
+            heartbeat.policy_version = 2;
+            heartbeat.integrity_degraded = true;
+            let sender = &client;
+            async move { sender.send_heartbeat(&heartbeat).await }
+        })
+        .await?;
         if second_outcome != HeartbeatAttemptOutcome::Accepted {
             return Err("synthetic second heartbeat did not earn a strict ACK".into());
         }
         let state = store.load_heartbeat_schedule_recovery(device).await?;
-        if state.generation != 4 || state.checkpoint.is_none_or(|checkpoint| {
-            checkpoint.pending_request_id.is_some()
-                || checkpoint.last_acknowledged_at != Some(1_030)
-                || checkpoint.halted.is_some()
-        }) {
+        if state.generation != 4
+            || state.checkpoint.is_none_or(|checkpoint| {
+                checkpoint.pending_request_id.is_some()
+                    || checkpoint.last_acknowledged_at != Some(1_030)
+                    || checkpoint.halted.is_some()
+            })
+        {
             return Err("synthetic persistent heartbeat recovery did not match strict ACKs".into());
         }
         store.close().await;
