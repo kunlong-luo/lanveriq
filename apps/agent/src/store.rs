@@ -768,17 +768,18 @@ impl OutboxStore {
         )
         .fetch_optional(&mut *tx)
         .await?;
-        let seen: i64 = sqlx::query_scalar(
-            "SELECT heartbeat_schedule_seen FROM agent_state WHERE singleton=1",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        let seen: i64 =
+            sqlx::query_scalar("SELECT heartbeat_schedule_seen FROM agent_state WHERE singleton=1")
+                .fetch_one(&mut *tx)
+                .await?;
         if !matches!((seen, current.is_some()), (0, false) | (1, true)) {
             return Err(StoreError::HeartbeatConflict);
         }
         let recovered = match current {
             Some((owner, json, generation)) => HeartbeatScheduleRecovery {
-                checkpoint: Some(parse_heartbeat_checkpoint(device_id, &owner, &json, generation)?),
+                checkpoint: Some(parse_heartbeat_checkpoint(
+                    device_id, &owner, &json, generation,
+                )?),
                 generation,
             },
             None => HeartbeatScheduleRecovery {
@@ -813,22 +814,17 @@ impl OutboxStore {
         )
         .fetch_optional(&mut *tx)
         .await?;
-        let seen: i64 = sqlx::query_scalar(
-            "SELECT heartbeat_schedule_seen FROM agent_state WHERE singleton=1",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        let seen: i64 =
+            sqlx::query_scalar("SELECT heartbeat_schedule_seen FROM agent_state WHERE singleton=1")
+                .fetch_one(&mut *tx)
+                .await?;
         if !matches!((seen, current.is_some()), (0, false) | (1, true)) {
             return Err(StoreError::HeartbeatConflict);
         }
         let generation = match current {
             Some((owner, state, generation)) => {
-                let old = parse_heartbeat_checkpoint(
-                    checkpoint.device_id,
-                    &owner,
-                    &state,
-                    generation,
-                )?;
+                let old =
+                    parse_heartbeat_checkpoint(checkpoint.device_id, &owner, &state, generation)?;
                 if !heartbeat_checkpoint_transition_valid(&old, checkpoint) {
                     return Err(StoreError::HeartbeatConflict);
                 }
@@ -862,12 +858,11 @@ impl OutboxStore {
         if affected != 1 {
             return Err(StoreError::HeartbeatConflict);
         }
-        let marked = sqlx::query(
-            "UPDATE agent_state SET heartbeat_schedule_seen=1 WHERE singleton=1",
-        )
-        .execute(&mut *tx)
-        .await?
-        .rows_affected();
+        let marked =
+            sqlx::query("UPDATE agent_state SET heartbeat_schedule_seen=1 WHERE singleton=1")
+                .execute(&mut *tx)
+                .await?
+                .rows_affected();
         if marked != 1 {
             return Err(StoreError::HeartbeatConflict);
         }
@@ -916,25 +911,31 @@ fn heartbeat_checkpoint_transition_valid(
 ) -> bool {
     if old.device_id != new.device_id
         || old.halted.is_some() && old.halted != new.halted
-        || old.last_acknowledged_at.is_some_and(|prior| {
-            new.last_acknowledged_at.is_none_or(|next| next < prior)
-        })
+        || old
+            .last_acknowledged_at
+            .is_some_and(|prior| new.last_acknowledged_at.is_none_or(|next| next < prior))
     {
         return false;
     }
     match (old.pending_request_id, new.pending_request_id) {
-        (None, None) => old.last_acknowledged_at == new.last_acknowledged_at
-            && new.halted.is_none(),
-        (None, Some(_)) => old.halted.is_none()
-            && new.halted.is_none()
-            && old.last_acknowledged_at == new.last_acknowledged_at,
-        (Some(previous), Some(next)) => previous == next
-            && old.last_acknowledged_at == new.last_acknowledged_at,
-        (Some(_), None) => old.halted.is_none()
-            && new.halted.is_none()
-            && new.last_acknowledged_at.is_some_and(|current| {
-                old.last_acknowledged_at.is_none_or(|prior| current > prior)
-            }),
+        (None, None) => {
+            old.last_acknowledged_at == new.last_acknowledged_at && new.halted.is_none()
+        }
+        (None, Some(_)) => {
+            old.halted.is_none()
+                && new.halted.is_none()
+                && old.last_acknowledged_at == new.last_acknowledged_at
+        }
+        (Some(previous), Some(next)) => {
+            previous == next && old.last_acknowledged_at == new.last_acknowledged_at
+        }
+        (Some(_), None) => {
+            old.halted.is_none()
+                && new.halted.is_none()
+                && new.last_acknowledged_at.is_some_and(|current| {
+                    old.last_acknowledged_at.is_none_or(|prior| current > prior)
+                })
+        }
     }
 }
 
@@ -944,16 +945,14 @@ async fn verify_heartbeat_owner(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     device_id: Uuid,
 ) -> Result<(), StoreError> {
-    let inventory_owner: Option<String> = sqlx::query_scalar(
-        "SELECT device_id FROM inventory_latest_state WHERE singleton=1",
-    )
-    .fetch_optional(&mut **tx)
-    .await?;
-    let schedule_owner: Option<String> = sqlx::query_scalar(
-        "SELECT device_id FROM inventory_schedule_checkpoint WHERE singleton=1",
-    )
-    .fetch_optional(&mut **tx)
-    .await?;
+    let inventory_owner: Option<String> =
+        sqlx::query_scalar("SELECT device_id FROM inventory_latest_state WHERE singleton=1")
+            .fetch_optional(&mut **tx)
+            .await?;
+    let schedule_owner: Option<String> =
+        sqlx::query_scalar("SELECT device_id FROM inventory_schedule_checkpoint WHERE singleton=1")
+            .fetch_optional(&mut **tx)
+            .await?;
     if inventory_owner.is_some_and(|owner| owner != device_id.to_string())
         || schedule_owner.is_some_and(|owner| owner != device_id.to_string())
     {

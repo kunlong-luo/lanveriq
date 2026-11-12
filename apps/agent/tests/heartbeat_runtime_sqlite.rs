@@ -4,9 +4,7 @@
 use lanveriq_agent::heartbeat_runtime::{
     HeartbeatAttemptOutcome, HeartbeatDriverError, run_explicit_heartbeat_once,
 };
-use lanveriq_agent::heartbeat_schedule::{
-    HeartbeatCheckpoint, HeartbeatHalt,
-};
+use lanveriq_agent::heartbeat_schedule::{HeartbeatCheckpoint, HeartbeatHalt};
 use lanveriq_agent::store::{OutboxStore, StoreError};
 use lanveriq_agent::transport::{DeliveryDisposition, TransportError};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -31,7 +29,11 @@ async fn disabled_is_off_and_exact_ack_is_durable_across_restart() {
     assert_eq!(disabled, HeartbeatAttemptOutcome::Disabled);
     assert_eq!(sends.load(Ordering::SeqCst), 0);
     assert_eq!(
-        store.load_heartbeat_schedule_recovery(device()).await.unwrap().generation,
+        store
+            .load_heartbeat_schedule_recovery(device())
+            .await
+            .unwrap()
+            .generation,
         0
     );
 
@@ -55,13 +57,12 @@ async fn disabled_is_off_and_exact_ack_is_durable_across_restart() {
     let saved = recovery.checkpoint.unwrap();
     assert_eq!(saved.pending_request_id, None);
     assert_eq!(saved.last_acknowledged_at, Some(1_000));
-    let too_soon =
-        run_explicit_heartbeat_once(&restarted, device(), true, 1_029, 30, |_| {
-            sends.fetch_add(1, Ordering::SeqCst);
-            async { Ok(DeliveryDisposition::Accepted) }
-        })
-        .await
-        .unwrap();
+    let too_soon = run_explicit_heartbeat_once(&restarted, device(), true, 1_029, 30, |_| {
+        sends.fetch_add(1, Ordering::SeqCst);
+        async { Ok(DeliveryDisposition::Accepted) }
+    })
+    .await
+    .unwrap();
     assert_eq!(too_soon, HeartbeatAttemptOutcome::WaitUntil(1_030));
     assert_eq!(sends.load(Ordering::SeqCst), 1);
 }
@@ -75,7 +76,10 @@ async fn crash_after_prepare_before_network_requires_reconciliation() {
     let mut staged = HeartbeatCheckpoint::initial(device()).unwrap();
     staged.begin(true, 10, 30, id).unwrap();
     assert_eq!(
-        store.save_heartbeat_schedule_checkpoint(&staged, 0).await.unwrap(),
+        store
+            .save_heartbeat_schedule_checkpoint(&staged, 0)
+            .await
+            .unwrap(),
         1
     );
     store.close().await;
@@ -142,13 +146,12 @@ async fn identity_denial_and_uncertain_network_result_survive_restart() {
         assert_eq!(saved.halted, Some(expected));
         assert!(saved.pending_request_id.is_some());
         let sends = AtomicUsize::new(0);
-        let result =
-            run_explicit_heartbeat_once(&restarted, device(), true, 100_000, 30, |_| {
-                sends.fetch_add(1, Ordering::SeqCst);
-                async { Ok(DeliveryDisposition::Accepted) }
-            })
-            .await
-            .unwrap();
+        let result = run_explicit_heartbeat_once(&restarted, device(), true, 100_000, 30, |_| {
+            sends.fetch_add(1, Ordering::SeqCst);
+            async { Ok(DeliveryDisposition::Accepted) }
+        })
+        .await
+        .unwrap();
         assert_eq!(result, HeartbeatAttemptOutcome::Halted(expected));
         assert_eq!(sends.load(Ordering::SeqCst), 0);
     }
@@ -163,7 +166,10 @@ async fn cross_device_stale_writer_and_silent_unpause_are_denied() {
     let id = Uuid::now_v7();
     let mut first = HeartbeatCheckpoint::initial(device()).unwrap();
     first.begin(true, 100, 30, id).unwrap();
-    store.save_heartbeat_schedule_checkpoint(&first, 0).await.unwrap();
+    store
+        .save_heartbeat_schedule_checkpoint(&first, 0)
+        .await
+        .unwrap();
     assert!(matches!(
         store.load_heartbeat_schedule_recovery(Uuid::now_v7()).await,
         Err(StoreError::HeartbeatConflict)
@@ -174,13 +180,20 @@ async fn cross_device_stale_writer_and_silent_unpause_are_denied() {
         .finish(id, 101, DeliveryDisposition::PauseIdentity)
         .unwrap();
     assert_eq!(
-        store.save_heartbeat_schedule_checkpoint(&paused, 1).await.unwrap(),
+        store
+            .save_heartbeat_schedule_checkpoint(&paused, 1)
+            .await
+            .unwrap(),
         2
     );
     let mut old_writer = first.clone();
-    old_writer.finish(id, 102, DeliveryDisposition::Accepted).unwrap();
+    old_writer
+        .finish(id, 102, DeliveryDisposition::Accepted)
+        .unwrap();
     assert!(matches!(
-        store.save_heartbeat_schedule_checkpoint(&old_writer, 1).await,
+        store
+            .save_heartbeat_schedule_checkpoint(&old_writer, 1)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
     let mut unpause = paused.clone();
@@ -194,7 +207,10 @@ async fn cross_device_stale_writer_and_silent_unpause_are_denied() {
         .await
         .unwrap();
     assert_eq!(recovered.generation, 2);
-    assert_eq!(recovered.checkpoint.unwrap().halted, Some(HeartbeatHalt::Identity));
+    assert_eq!(
+        recovered.checkpoint.unwrap().halted,
+        Some(HeartbeatHalt::Identity)
+    );
 }
 
 #[tokio::test]
@@ -211,8 +227,14 @@ async fn missing_or_malformed_checkpoint_cannot_reset_identity_pause() {
     // First persist the pending state before the identity pause.
     let mut pending = HeartbeatCheckpoint::initial(device()).unwrap();
     pending.begin(true, 100, 30, id).unwrap();
-    store.save_heartbeat_schedule_checkpoint(&pending, 0).await.unwrap();
-    store.save_heartbeat_schedule_checkpoint(&checkpoint, 1).await.unwrap();
+    store
+        .save_heartbeat_schedule_checkpoint(&pending, 0)
+        .await
+        .unwrap();
+    store
+        .save_heartbeat_schedule_checkpoint(&checkpoint, 1)
+        .await
+        .unwrap();
     store.close().await;
 
     let pool = sqlx::SqlitePool::connect(&format!("sqlite:{}", path.display()))
@@ -293,8 +315,14 @@ async fn failed_ack_checkpoint_update_leaves_durable_pending_and_never_claims_su
         Ok(DeliveryDisposition::Accepted)
     })
     .await;
-    assert!(matches!(outcome, Err(HeartbeatDriverError::Store(StoreError::Database(_)))));
-    let pending = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+    assert!(matches!(
+        outcome,
+        Err(HeartbeatDriverError::Store(StoreError::Database(_)))
+    ));
+    let pending = store
+        .load_heartbeat_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(pending.generation, 1);
     assert!(pending.checkpoint.unwrap().pending_request_id.is_some());
 }

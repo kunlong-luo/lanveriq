@@ -139,9 +139,8 @@ impl HeartbeatCheckpoint {
         match disposition {
             DeliveryDisposition::Accepted => {
                 self.pending_request_id = None;
-                self.last_acknowledged_at = Some(
-                    self.last_acknowledged_at.map_or(now, |last| last.max(now)),
-                );
+                self.last_acknowledged_at =
+                    Some(self.last_acknowledged_at.map_or(now, |last| last.max(now)));
             }
             DeliveryDisposition::PauseIdentity => {
                 self.halted = Some(HeartbeatHalt::Identity);
@@ -199,8 +198,14 @@ mod tests {
             checkpoint.decide(true, 1_001, 30).unwrap(),
             HeartbeatDecision::NeedsReconciliation(id)
         );
-        assert!(checkpoint.finish(Uuid::now_v7(), 1_005, DeliveryDisposition::Accepted).is_err());
-        checkpoint.finish(id, 1_005, DeliveryDisposition::Accepted).unwrap();
+        assert!(
+            checkpoint
+                .finish(Uuid::now_v7(), 1_005, DeliveryDisposition::Accepted)
+                .is_err()
+        );
+        checkpoint
+            .finish(id, 1_005, DeliveryDisposition::Accepted)
+            .unwrap();
         assert_eq!(
             checkpoint.decide(true, 1_034, 30).unwrap(),
             HeartbeatDecision::WaitUntil(1_035)
@@ -230,7 +235,10 @@ mod tests {
             let saved = serde_json::to_string(&checkpoint).unwrap();
             let restored: HeartbeatCheckpoint = serde_json::from_str(&saved).unwrap();
             assert_eq!(restored.pending_request_id, Some(id));
-            assert_eq!(restored.decide(true, 100_000, 30).unwrap(), HeartbeatDecision::Halted(halt));
+            assert_eq!(
+                restored.decide(true, 100_000, 30).unwrap(),
+                HeartbeatDecision::Halted(halt)
+            );
             assert_eq!(
                 checkpoint.finish(id, 102, DeliveryDisposition::Accepted),
                 Err(HeartbeatScheduleError::Halted)
