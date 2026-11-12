@@ -1,7 +1,8 @@
 name: Linux Batch A Caddy Spring PG18 acceptance (isolated synthetic)
 
-# Linux-first: on scoped main changes only, run existing real isolated
-# Caddy->Tomcat TLS1.3 and PostgreSQL18 acceptance with synthetic PKI.
+# Linux-first: on scoped main changes only, run real isolated
+# Linux Rust Agent CSR/CA -> Caddy->Tomcat TLS1.3 and PG18 acceptance.
+# The actual Rust-generated key is test-only and never installed on a device.
 # Nothing is deployed to user Pop!_OS, and Agent/remote remain default-OFF.
 on:
   push:
@@ -9,6 +10,8 @@ on:
     paths:
       - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
+      - 'apps/agent/src/enrollment_linux.rs'
+      - 'apps/agent/examples/linux_csr_synthetic.rs'
       - 'apps/server/scripts/assert-postgres18-junit.py'
       - 'apps/server/scripts/test_assert_postgres18_junit.py'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/**'
@@ -38,6 +41,11 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
+      - name: Install pinned Rust toolchain for Linux Agent CSR
+        run: rustup toolchain install 1.94.0 --profile minimal
+      - name: Build real offline-only Linux P-256 CSR helper (not Agent runtime)
+        working-directory: apps/agent
+        run: cargo +1.94.0 build --locked --example linux_csr_synthetic
       - name: Confirm disposable synthetic runner, Docker, pinned tools
         run: |
           set -euo pipefail
@@ -52,6 +60,7 @@ jobs:
       - name: Run real Caddy Agent-side mTLS to Spring/Tomcat upstream TLS1.3 and PG18
         env:
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
+          LANVERIQ_SYNTHETIC_LINUX_CSR: '1'
           LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '0'
           LANVERIQ_SYNTHETIC_BROWSER_PROBE: '0'
           LANVERIQ_SYNTHETIC_NEXTJS_PROBE: '0'

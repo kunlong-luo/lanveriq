@@ -12,6 +12,9 @@ CADDY_CID=""
 CADDY_DATA_VOLUME=""
 CADDY_CONFIG_VOLUME=""
 BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
+# Optional Linux-primary, synthetic-only Rust Agent CSR -> Caddy/Tomcat proof.
+# Never invoked by a production Agent, nor available without bridge opt-in.
+LINUX_CSR_MODE="${LANVERIQ_SYNTHETIC_LINUX_CSR:-0}"
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
 BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
 NEXTJS_MODE="${LANVERIQ_SYNTHETIC_NEXTJS_PROBE:-0}"
@@ -59,6 +62,15 @@ MULTI_ADMIN_MODE="${LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE:-0}"
 }
 [[ "$BRIDGE_MODE" == 0 || "$BRIDGE_MODE" == 1 ]] || {
     echo "Synthetic bridge mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$LINUX_CSR_MODE" == 0 || "$LINUX_CSR_MODE" == 1 ]] || {
+    echo "Synthetic Linux CSR mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$LINUX_CSR_MODE" == 0 ||
+    ( "$BRIDGE_MODE" == 1 && "${GITHUB_ACTIONS:-}" == true ) ]] || {
+    echo "Linux Rust CSR bridge requires disposable GitHub Actions and explicit synthetic Caddy bridge" >&2
     exit 1
 }
 # Spring @ConditionalOnProperty(havingValue="true") requires the canonical
@@ -165,7 +177,58 @@ if [[ "$BRIDGE_MODE" == 1 ]]; then
     DEVICE_ID="00000000-0000-7000-8000-000000000001"
     make_ca approved-client-ca "Synthetic Agent Client CA"
     make_ca untrusted-agent-ca "Synthetic Wrong Agent Client CA"
-    make_leaf agent approved-client-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
+    if [[ "$LINUX_CSR_MODE" == 1 ]]; then
+        # The compiled, offline-only Rust Agent example is run as the
+        # unprivileged GitHub runner. Its PKCS#8 key is confined to TMP.
+        # No enrollment API, key upload, real CA, or runtime Agent starts.
+        RUST_CSR_EXAMPLE="$ROOT/apps/agent/target/debug/examples/linux_csr_synthetic"
+        [[ -x "$RUST_CSR_EXAMPLE" && "$(stat -c %u "$RUST_CSR_EXAMPLE")" == "$(id -u)" ]] || {
+            echo "Required native Linux Rust CSR example is missing or untrusted" >&2
+            exit 1
+        }
+        RUST_PARENT="$TMP/lanveriq-linux-csr-ci.bridge"
+        install -d -m 0700 "$RUST_PARENT"
+        LANVERIQ_SYNTHETIC_CSR_ONLY=yes \
+        LANVERIQ_SYNTHETIC_CSR_PARENT="$RUST_PARENT" \
+            "$RUST_CSR_EXAMPLE" "$RUST_PARENT/agent"
+        RUST_BUNDLE="$RUST_PARENT/agent"
+        [[ "$(stat -c %a "$RUST_BUNDLE")" == 700 &&
+           "$(stat -c %a "$RUST_BUNDLE/device-p256-private.pem")" == 600 &&
+           "$(stat -c %u "$RUST_BUNDLE/device-p256-private.pem")" == "$(id -u)" ]] || {
+            echo "Linux offline CSR private key custody is not owner-only" >&2
+            exit 1
+        }
+        # The ONLY duplicate key is a disposable 0600 test credential for
+        # curl to authenticate to the local Caddy container. It is never
+        # passed to Spring, Java, Docker image layers or GitHub artifacts.
+        install -m 0600 "$RUST_BUNDLE/device-p256-private.pem" "$TMP/pki/agent.key"
+        install -m 0600 "$RUST_BUNDLE/device-p256-request.pem" "$TMP/pki/agent.csr"
+        cat > "$TMP/pki/agent.ext" <<EOF
+basicConstraints=critical,CA:FALSE
+keyUsage=critical,digitalSignature
+extendedKeyUsage=clientAuth
+subjectAltName=URI:urn:uuid:$DEVICE_ID
+EOF
+        openssl x509 -req -in "$TMP/pki/agent.csr" \
+            -CA "$TMP/pki/approved-client-ca.crt" -CAkey "$TMP/pki/approved-client-ca.key" \
+            -set_serial "0x$(openssl rand -hex 16)" \
+            -out "$TMP/pki/agent.crt" -days 1 -sha256 \
+            -extfile "$TMP/pki/agent.ext" >/dev/null 2>&1
+        openssl req -in "$TMP/pki/agent.csr" -verify -noout >/dev/null 2>&1
+        openssl verify -purpose sslclient -CAfile "$TMP/pki/approved-client-ca.crt" \
+            "$TMP/pki/agent.crt" >/dev/null 2>&1
+        CSR_SPKI="$(openssl req -in "$TMP/pki/agent.csr" -pubkey -noout \
+            | openssl pkey -pubin -outform DER 2>/dev/null | sha256sum | cut -d' ' -f1)"
+        LEAF_SPKI="$(openssl x509 -in "$TMP/pki/agent.crt" -pubkey -noout \
+            | openssl pkey -pubin -outform DER 2>/dev/null | sha256sum | cut -d' ' -f1)"
+        [[ "$CSR_SPKI" =~ ^[0-9a-f]{64}$ && "$CSR_SPKI" == "$LEAF_SPKI" ]] || {
+            echo "FAIL: issued Agent leaf does not match the real Linux Rust CSR SPKI" >&2
+            exit 1
+        }
+        echo "PASS: real Rust Linux offline CSR/SPKI bound to disposable CA clientAuth-only leaf for live Caddy bridge."
+    else
+        make_leaf agent approved-client-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
+    fi
     make_leaf wrong-agent untrusted-agent-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
     cp "$TMP/pki/approved-client-ca.crt" "$TMP/pki/approved-client-ca.pem"
     cp "$TMP/pki/backend-ca.crt" "$TMP/pki/backend-server-ca.pem"
