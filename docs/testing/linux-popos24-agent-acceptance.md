@@ -54,3 +54,8 @@ The helper and stage script are **copied to a disposable `/run` path**, so the r
 ## 2026-11-12 next Linux PKI interoperability milestone
 
 The separate Linux-first [Rust CSR → temporary OpenSSL client certificate → Java PKIX acceptance](linux-pki-spki-interop.md) now passed at source `33e939f5d8334a4f81edd0cf04daae6e5d08d22d`, [CI #43157407314](https://github.com/kunlong-luo/lanveriq/actions/runs/43157407314). The **same Rust helper's real CSR** is checked against a 30-day clientAuth-only/URI-SAN certificate with dedicated synthetic root, and negative wrong-issuer/SPKI/SAN/EKU and tampered-signature cases are not skipped. Still no actual Pop!_OS host, production CA approval, Caddy→Tomcat live mTLS or PostgreSQL18 Agent activation. This is a separate offline PKI L2 subset, not Batch A completion.
+
+
+## 2026-11-12 live Linux synthetic mTLS/PG18 milestone
+
+The Linux-first [Rust CSR → temporary clientAuth leaf → Caddy → Spring/Tomcat TLS1.3 → PostgreSQL18](linux-caddy-spring-pg18-rust-csr.md) milestone passed at exact main source `5444eec68db6c2b4b460d15c61a44717bf5d9cf6` in [Linux Rust CSR → live Caddy/Tomcat mTLS + PG18, CI #43186315505 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43186315505). Both Caddy/Tomcat health/mTLS and separately isolated eight-suite PostgreSQL18/≥60 transaction evidence jobs succeeded, with Agent business API still 403/default-OFF. The **tested client is curl using a synthetic Rust-generated key**, not an installed Agent Reqwest service; Ubuntu 24.04 is not real Pop!_OS/COSMIC. Registration/activation/heartbeat/ACK across a single HTTPS business transaction and revocation/issuer review remain separately gated.
