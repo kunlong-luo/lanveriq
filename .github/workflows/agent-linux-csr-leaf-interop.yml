@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: lanveriq-linux-csr-java-interop-\${{ github.ref }}
+  group: lanveriq-linux-csr-java-interop-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -57,7 +57,7 @@ jobs:
       - name: Verify actual Linux-generated CSR and issued clientAuth leaf with server policy
         working-directory: apps/server
         env:
-          LANVERIQ_SYNTHETIC_LINUX_PKI_DIR: \${{ runner.temp }}/lanveriq-linux-pki-public
+          LANVERIQ_SYNTHETIC_LINUX_PKI_DIR: ${{ runner.temp }}/lanveriq-linux-pki-public
         run: ./gradlew --no-daemon --no-build-cache --rerun-tasks test --tests com.lanveriq.server.enrollment.LinuxOpenSslCsrInteropTest
       - name: Fail closed unless all three real cross-language Java tests executed
         working-directory: apps/server
