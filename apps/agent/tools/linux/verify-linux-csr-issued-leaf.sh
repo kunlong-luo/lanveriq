@@ -24,12 +24,12 @@ command -v runuser >/dev/null
 nonce=$(openssl rand -hex 4)
 [[ "$nonce" =~ ^[0-9a-f]{8}$ ]]
 owner="lvcsr$nonce"
-work=$(mktemp -d -p "$RUNNER_TEMP" lanveriq-linux-csr-ci.XXXXXXXX)
+work=$(mktemp -d -p /tmp lanveriq-linux-csr-ci.XXXXXXXX)
 created=0
 cleanup() {
   local ret=$?
   trap - EXIT
-  if [[ "$work" == "$RUNNER_TEMP"/lanveriq-linux-csr-ci.* ]]; then
+  if [[ "$work" == /tmp/lanveriq-linux-csr-ci.* ]]; then
     rm -rf --one-file-system -- "$work"
   fi
   if (( created )); then userdel "$owner" >/dev/null 2>&1 || :; fi
