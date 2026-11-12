@@ -4,10 +4,14 @@
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use lanveriq_agent::heartbeat_runtime::{
+        HeartbeatAttemptOutcome, run_explicit_heartbeat_once,
+    };
+    use lanveriq_agent::store::OutboxStore;
     use lanveriq_agent::transport::{
         ActivationRequest, AgentTlsTransport, DeliveryDisposition, Heartbeat,
     };
-    use std::{env, fs, path::PathBuf};
+    use std::{cell::Cell, env, fs, path::PathBuf};
     use uuid::Uuid;
 
     if env::var("GITHUB_ACTIONS").as_deref() != Ok("true")
@@ -45,21 +49,63 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             client.send_activation(&activation).await?,
             DeliveryDisposition::Accepted,
         )?;
-        let first = Heartbeat::synthetic(device, "2026-11-12T09:00:00Z".into());
-        let mut second = Heartbeat::synthetic(device, "2026-11-12T09:01:00Z".into());
-        second.status = "degraded";
-        second.policy_version = 2;
-        second.integrity_degraded = true;
-        assert_disposition(
-            "heartbeat-first",
-            client.send_heartbeat(&first).await?,
-            DeliveryDisposition::Accepted,
-        )?;
-        assert_disposition(
-            "heartbeat-second",
-            client.send_heartbeat(&second).await?,
-            DeliveryDisposition::Accepted,
-        )?;
+        // A3: only this throwaway, explicitly approved CI example is wired
+        // to the SQLite attempt coordinator. The installed Agent still has
+        // no sender task, timer, credentials or networking enabled.
+        let state_file = pki.parent().ok_or("synthetic PKI parent missing")?
+            .join("synthetic-heartbeat.sqlite");
+        let first_request_id = Cell::new(Uuid::nil());
+        let store = OutboxStore::open(&state_file).await?;
+        let first_outcome = run_explicit_heartbeat_once(
+            &store, device, true, 1_000, 30, |id| {
+                first_request_id.set(id);
+                let mut heartbeat = Heartbeat::synthetic(
+                    device, "2026-11-12T09:00:00Z".into()
+                );
+                heartbeat.request_id = id;
+                let sender = &client;
+                async move { sender.send_heartbeat(&heartbeat).await }
+            },
+        ).await?;
+        if first_outcome != HeartbeatAttemptOutcome::Accepted {
+            return Err("synthetic first heartbeat did not earn a strict ACK".into());
+        }
+        store.close().await;
+
+        // Reopen the REAL same SQLite file, not an in-memory fake or a new
+        // heartbeat ID store. Only an exactly acknowledged attempt clears
+        // pending and permits another send after the configured interval.
+        let store = OutboxStore::open(&state_file).await?;
+        let second_outcome = run_explicit_heartbeat_once(
+            &store, device, true, 1_030, 30, |id| {
+                let mut heartbeat = Heartbeat::synthetic(
+                    device, "2026-11-12T09:01:00Z".into()
+                );
+                heartbeat.request_id = id;
+                heartbeat.status = "degraded";
+                heartbeat.policy_version = 2;
+                heartbeat.integrity_degraded = true;
+                let sender = &client;
+                async move { sender.send_heartbeat(&heartbeat).await }
+            },
+        ).await?;
+        if second_outcome != HeartbeatAttemptOutcome::Accepted {
+            return Err("synthetic second heartbeat did not earn a strict ACK".into());
+        }
+        let state = store.load_heartbeat_schedule_recovery(device).await?;
+        if state.generation != 4 || state.checkpoint.is_none_or(|checkpoint| {
+            checkpoint.pending_request_id.is_some()
+                || checkpoint.last_acknowledged_at != Some(1_030)
+                || checkpoint.halted.is_some()
+        }) {
+            return Err("synthetic persistent heartbeat recovery did not match strict ACKs".into());
+        }
+        store.close().await;
+
+        // A real duplicate wire request is an intentional negative probe,
+        // never an automatic retry by the now-settled coordinator.
+        let mut first = Heartbeat::synthetic(device, "2026-11-12T09:00:00Z".into());
+        first.request_id = first_request_id.get();
         // Persist the first outbound JSON for a separate real HTTP 409 probe.
         // This is an operational-only synthetic payload; no device collection.
         fs::write(
@@ -79,7 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             DeliveryDisposition::PauseIdentity,
         )?;
         println!(
-            "PASS: real Rust Reqwest TLS1.3 activation, two committed heartbeats, strict ACK, replay quarantine and cross-device denial."
+            "PASS: real Rust Reqwest TLS1.3 activation, two committed heartbeats with on-disk SQLite restart/strict ACK, replay quarantine and cross-device denial."
         );
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
