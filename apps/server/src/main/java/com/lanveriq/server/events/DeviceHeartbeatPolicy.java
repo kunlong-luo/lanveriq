@@ -65,7 +65,7 @@ final class DeviceHeartbeatPolicy {
                 body.policyVersion(), Map.copyOf(body.capabilities()),
                 body.queueCount(), body.queueBytes(), oldestPendingAt, lastUploadAt,
                 body.droppedCount(), body.integrityDegraded(),
-                List.copyOf(body.collectionErrors()));
+                List.copyOf(body.collectionErrors()), body.requestId());
     }
 
     private Instant checkedUtc(String timestamp, boolean nullable) {
@@ -96,6 +96,6 @@ final class DeviceHeartbeatPolicy {
                           long policyVersion, Map<String, String> capabilities,
                           long queueCount, long queueBytes, Instant oldestPendingAt,
                           Instant lastSuccessfulUploadAt, long droppedCount,
-                          boolean integrityDegraded, List<String> collectionErrors) {
+                          boolean integrityDegraded, List<String> collectionErrors, UUID requestId) {
     }
 }

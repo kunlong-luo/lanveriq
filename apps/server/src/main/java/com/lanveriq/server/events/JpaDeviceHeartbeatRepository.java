@@ -33,6 +33,21 @@ class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
         if (!JpaActiveDeviceCredentialGuard.lock(manager, identity, deviceId)) {
             throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE);
         }
+        // Locks above remain held until the transaction commits. The per-device
+        // PostgreSQL unique key also rejects races and survives restarts.
+        int accepted = manager.createNativeQuery("""
+                INSERT INTO device_heartbeat_request_ids (device_id, request_id)
+                VALUES (:device_id, :request_id)
+                ON CONFLICT (device_id, request_id) DO NOTHING
+                """)
+                .setParameter("device_id", deviceId)
+                .setParameter("request_id", state.requestId())
+                .executeUpdate();
+        if (accepted != 1) {
+            throw new DeviceHeartbeatRejection(
+                    DeviceHeartbeatRejection.Reason.REPLAYED_REQUEST);
+        }
+        // Never renew last_seen_at or replace the latest state on replay.
         manager.createNativeQuery("""
                 UPDATE devices
                 SET last_seen_at = GREATEST(

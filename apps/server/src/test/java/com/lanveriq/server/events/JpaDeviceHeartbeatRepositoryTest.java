@@ -24,6 +24,7 @@ class JpaDeviceHeartbeatRepositoryTest {
     private final EntityManager manager = Mockito.mock(EntityManager.class);
     private final Query auth = Mockito.mock(Query.class);
     private final Query credentialLock = Mockito.mock(Query.class);
+    private final Query replayInsert = Mockito.mock(Query.class);
     private final Query deviceUpdate = Mockito.mock(Query.class);
     private final Query snapshot = Mockito.mock(Query.class);
     private final UUID deviceId = UUID.randomUUID();
@@ -34,7 +35,7 @@ class JpaDeviceHeartbeatRepositoryTest {
         return new DeviceHeartbeatPolicy.ValidHeartbeat(
                 Instant.parse("2026-10-30T23:59:00Z"), "0.1.0", "running", 1,
                 Map.of("hardware_inventory", "not_collected"), 2, 512,
-                null, null, 0, false, List.of());
+                null, null, 0, false, List.of(), UUID.randomUUID());
     }
 
     private void wire() {
@@ -42,14 +43,16 @@ class JpaDeviceHeartbeatRepositoryTest {
             String sql = invocation.getArgument(0);
             if (sql.contains("FOR UPDATE OF d")) return auth;
             if (sql.contains("FOR UPDATE OF c")) return credentialLock;
+            if (sql.contains("INSERT INTO device_heartbeat_request_ids")) return replayInsert;
             if (sql.contains("UPDATE devices")) {
                 return deviceUpdate;
             }
             return snapshot;
         });
-        for (Query query : List.of(auth, credentialLock, deviceUpdate, snapshot)) {
+        for (Query query : List.of(auth, credentialLock, replayInsert, deviceUpdate, snapshot)) {
             when(query.setParameter(anyString(), Mockito.nullable(Object.class))).thenReturn(query);
         }
+        when(replayInsert.executeUpdate()).thenReturn(1);
     }
 
     @Test
@@ -62,18 +65,35 @@ class JpaDeviceHeartbeatRepositoryTest {
                 .record(identity, deviceId, heartbeat());
 
         var sql = ArgumentCaptor.forClass(String.class);
-        verify(manager, Mockito.times(4)).createNativeQuery(sql.capture());
+        verify(manager, Mockito.times(5)).createNativeQuery(sql.capture());
         assertTrue(sql.getAllValues().get(0).contains("enrollment_state='active'"));
         assertTrue(sql.getAllValues().get(0).contains("FOR UPDATE OF d"));
         assertTrue(sql.getAllValues().get(1).contains("FOR UPDATE OF c"));
         assertTrue(sql.getAllValues().get(1).contains("client_cert_sha256_fingerprint"));
         assertTrue(sql.getAllValues().get(1).contains("expires_at>clock_timestamp()"));
-        assertTrue(sql.getAllValues().get(2).contains("clock_timestamp()"));
-        assertTrue(sql.getAllValues().get(3).contains("ON CONFLICT (device_id) DO UPDATE"));
+        assertTrue(sql.getAllValues().get(2).contains("ON CONFLICT (device_id, request_id) DO NOTHING"));
+        assertTrue(sql.getAllValues().get(3).contains("clock_timestamp()"));
+        assertTrue(sql.getAllValues().get(4).contains("ON CONFLICT (device_id) DO UPDATE"));
         verify(credentialLock).setParameter("fingerprint", identity.sha256Fingerprint());
+        verify(replayInsert).executeUpdate();
         verify(deviceUpdate).executeUpdate();
         verify(snapshot).setParameter("capabilities", "{\"hardware_inventory\":\"not_collected\"}");
         verify(snapshot).executeUpdate();
+    }
+
+    @Test
+    void duplicateRequestIdIsRejectedBeforeLatestStateAndLastSeenWrites() {
+        wire();
+        when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
+        when(replayInsert.executeUpdate()).thenReturn(0);
+
+        var error = assertThrows(DeviceHeartbeatRejection.class, () ->
+                new JpaDeviceHeartbeatRepository(manager, JsonMapper.builder().build())
+                        .record(identity, deviceId, heartbeat()));
+        assertEquals(DeviceHeartbeatRejection.Reason.REPLAYED_REQUEST, error.reason());
+        verify(deviceUpdate, never()).executeUpdate();
+        verify(snapshot, never()).executeUpdate();
     }
 
     @Test

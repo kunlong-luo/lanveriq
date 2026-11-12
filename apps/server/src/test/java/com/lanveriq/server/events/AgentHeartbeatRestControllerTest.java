@@ -116,6 +116,7 @@ class AgentHeartbeatRestControllerTest {
                 case INVALID_SCHEMA -> 400;
                 case REQUEST_TOO_LARGE -> 413;
                 case REVOKED_DEVICE -> 403;
+                case REPLAYED_REQUEST -> 409;
             };
             mvc.perform(post(path()).contentType(MediaType.APPLICATION_JSON).content(json()))
                     .andExpect(status().is(expected))

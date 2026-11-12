@@ -1,5 +1,16 @@
 # HB-01 — internal device heartbeat and latest-state acceptance
 
+**2026-11-12 replay guard (source; pending exact-SHA CI):** Flyway V9 adds a
+per-device persistent accepted-request UUID ledger. After device and certificate
+locks succeed, the same transaction inserts the validated UUID before updating
+`last_seen_at` or `device_heartbeat_latest`. Repeated IDs produce HTTP 409,
+no-store, empty body, and no receipt. The synthetic PostgreSQL 18 regression
+accepts two distinct IDs and then replays the first, asserting latest state and
+server receive time remain unchanged. No Agent runtime/production ingress is
+enabled. The ledger retains only device/request UUID pairs, not heartbeat
+payloads, and has no purge: define bounded lifetime/epoch and replay-window
+policy before production scale without silently weakening security.
+
 **CURRENT UPDATE 2026-11-08 (supersedes the 2026-10-31 test-stage statements below):** V0.1 Java JPA/Flyway latest-heartbeat implementation and synthetic PostgreSQL tests exist; Caddy/Tomcat/PG18 have *historical* combined TLS/RBAC synthetic success. **Batch A1** introduced a `POST /api/v1/devices/{deviceId}/heartbeats` HTTP controller and its exact stateless Spring Security chain behind **two default-OFF flags**; [Java MockMvc/negative L1 #42448164511](https://github.com/kunlong-luo/lanveriq/actions/runs/42448164511) passed. However **this new endpoint has NOT been exercised through a real Rust Agent→Caddy→Tomcat→PG18 L2 chain**. The Agent binary remains idle. Do not treat earlier successful synthetic Console TLS tests as new heartbeat route acceptance; no real employee/device monitoring is authorized. [Batch A record](../development/batch-a-first-heartbeat-implementation.md) · [full protocol/security gate](../architecture/device-communication-stack.md).
 
 **Credential revocation race test (2026-10-31, opt-in source only):** The shared `JpaActiveDeviceCredentialGuard` now requires the same ordered device→credential locks for heartbeats, event batches and inventory. A staged synthetic PostgreSQL 18.6 suite checks revoked, expired and future client credentials cannot change `device_heartbeat_latest`, `devices.last_seen_at` or canonical events. This does **not** prove actual mTLS/Tomcat certificate attributes or real DB execution until the manual workflow succeeds.
@@ -19,7 +30,7 @@ Open [manual PostgreSQL 18 integration workflow](../../.github/workflows/server-
 
 | Check | Expected |
 |---|---|
-| HB-DB-01 | Flyway V1–V7 applies, `device_heartbeat_latest` exists empty on first startup |
+| HB-DB-01 | Flyway V1–V9 applies, `device_heartbeat_latest` exists empty on first startup |
 | HB-DB-02 | Accepted synthetic active-device heartbeat stores one row, with DB receipt, `devices.last_seen_at`, typed queue/capabilities JSONB |
 | HB-DB-03 | A later heartbeat **updates the single latest row**, retaining `unsupported` vs `not_collected` without fabricated coverage |
 | HB-DB-04 | Unknown, forged, expired or revoked fingerprint cannot change `last_seen_at` or add heartbeat rows |

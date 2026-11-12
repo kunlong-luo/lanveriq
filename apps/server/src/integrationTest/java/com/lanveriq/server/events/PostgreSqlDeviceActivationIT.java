@@ -160,6 +160,52 @@ class PostgreSqlDeviceActivationIT {
     }
 
     @Test
+    void earlierAcceptedRequestIdReplayCannotReplaceNewerHeartbeat() {
+        activation.activate(credential, deviceId, request());
+        UUID oldRequestId = UUID.randomUUID();
+        UUID newRequestId = UUID.randomUUID();
+        var oldHeartbeat = new DeviceHeartbeat(1, deviceId, "2026-11-12T09:00:00Z",
+                "0.1.0", 1, "running",
+                Map.of("hardware_inventory", "not_collected"),
+                0, 0, null, null, 0, false, List.of(), oldRequestId);
+        var newHeartbeat = new DeviceHeartbeat(1, deviceId, "2026-11-12T09:01:00Z",
+                "0.1.0", 2, "degraded",
+                Map.of("hardware_inventory", "not_collected"),
+                0, 0, null, null, 0, true, List.of(), newRequestId);
+
+        assertEquals(oldRequestId,
+                heartbeatService.ingest(credential, deviceId, oldHeartbeat).requestId());
+        assertEquals(newRequestId,
+                heartbeatService.ingest(credential, deviceId, newHeartbeat).requestId());
+        Object[] newest = (Object[]) entityManager.createNativeQuery("""
+                SELECT agent_status, policy_version, integrity_degraded, received_at
+                FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        Object lastSeen = entityManager.createNativeQuery("""
+                SELECT last_seen_at FROM devices WHERE id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        assertEquals("degraded", newest[0]);
+        assertEquals(2L, ((Number) newest[1]).longValue());
+        assertEquals(true, newest[2]);
+
+        var denied = assertThrows(DeviceHeartbeatRejection.class, () ->
+                heartbeatService.ingest(credential, deviceId, oldHeartbeat));
+        assertEquals(DeviceHeartbeatRejection.Reason.REPLAYED_REQUEST, denied.reason());
+        Object[] after = (Object[]) entityManager.createNativeQuery("""
+                SELECT agent_status, policy_version, integrity_degraded, received_at
+                FROM device_heartbeat_latest WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        assertEquals(java.util.Arrays.asList(newest), java.util.Arrays.asList(after));
+        assertEquals(lastSeen, entityManager.createNativeQuery("""
+                SELECT last_seen_at FROM devices WHERE id=:device
+                """).setParameter("device", deviceId).getSingleResult());
+        long accepted = ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_heartbeat_request_ids WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult()).longValue();
+        assertEquals(2L, accepted);
+    }
+
+    @Test
     void forgedFingerprintOrMissingAdminReviewCannotActivate() {
         var forged = new VerifiedDeviceCertificate(deviceId, "f".repeat(64));
         assertEquals(DeviceActivationRejection.Reason.DENIED,

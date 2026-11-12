@@ -62,6 +62,22 @@ class DeviceHeartbeatTransactionProxyTest {
         verify(manager).rollback(status);
     }
 
+    @Test
+    void duplicateHeartbeatRequestRollsBackWithoutAcknowledgement() {
+        var repository = Mockito.mock(DeviceHeartbeatRepository.class);
+        Mockito.doThrow(new DeviceHeartbeatRejection(
+                DeviceHeartbeatRejection.Reason.REPLAYED_REQUEST))
+                .when(repository).record(Mockito.any(), Mockito.any(), Mockito.any());
+        var manager = Mockito.mock(PlatformTransactionManager.class);
+        var status = Mockito.mock(TransactionStatus.class);
+        when(manager.getTransaction(any(TransactionDefinition.class))).thenReturn(status);
+
+        var failure = assertThrows(DeviceHeartbeatRejection.class, () ->
+                proxy(repository, manager).ingest(identity, id, heartbeat()));
+        assertEquals(DeviceHeartbeatRejection.Reason.REPLAYED_REQUEST, failure.reason());
+        verify(manager).rollback(status);
+    }
+
     private static DeviceHeartbeatService proxy(DeviceHeartbeatRepository repository,
                                                 PlatformTransactionManager manager) {
         var target = new DeviceHeartbeatService(repository, JsonMapper.builder().build());

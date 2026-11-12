@@ -38,6 +38,6 @@ public class DeviceHeartbeatService {
         repository.record(identity, pathDeviceId, validated);
         // Echo only the request ID validated with the accepted body; do not
         // generate an unrelated UUID that would allow stale ACK confusion.
-        return new DeviceHeartbeatReceipt(clock.instant(), heartbeat.requestId());
+        return new DeviceHeartbeatReceipt(clock.instant(), validated.requestId());
     }
 }

@@ -69,6 +69,7 @@ final class AgentHeartbeatRestController {
             case INVALID_SCHEMA -> HttpStatus.BAD_REQUEST;
             case REQUEST_TOO_LARGE -> HttpStatus.PAYLOAD_TOO_LARGE;
             case REVOKED_DEVICE -> HttpStatus.FORBIDDEN;
+            case REPLAYED_REQUEST -> HttpStatus.CONFLICT;
         };
         // Do not disclose whether a device does not exist, is revoked, or
         // belongs to another group in any error response.
