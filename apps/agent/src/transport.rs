@@ -650,11 +650,14 @@ impl AgentTlsTransport {
         if device_id.is_nil() || request_id.is_nil() {
             return Err(TransportError::InvalidEvent);
         }
-        let path = format!(
-            "/api/v1/devices/{device_id}/heartbeats/requests/{request_id}"
-        );
+        let path = format!("/api/v1/devices/{device_id}/heartbeats/requests/{request_id}");
         let url = format!("{AGENT_ORIGIN}{path}");
-        let mut response = self.client.get(url).send().await.map_err(TransportError::Network)?;
+        let mut response = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(TransportError::Network)?;
         let status = response.status().as_u16();
         let mut bytes = Vec::new();
         while let Some(chunk) = response.chunk().await.map_err(TransportError::Network)? {

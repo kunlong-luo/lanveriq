@@ -160,9 +160,7 @@ fn durable_ledger_lookup_requires_exact_positive_receipt_and_never_trusts_absenc
         malformed.clone_from(&good);
         malformed[key] = value;
         assert!(matches!(
-            classify_heartbeat_lookup_response(
-                200, malformed.to_string().as_bytes(), device, id
-            ),
+            classify_heartbeat_lookup_response(200, malformed.to_string().as_bytes(), device, id),
             Err(TransportError::InvalidAcknowledgement)
         ));
     }

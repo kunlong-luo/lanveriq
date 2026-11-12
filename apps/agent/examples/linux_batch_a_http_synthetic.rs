@@ -103,7 +103,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // current registered leaf via both Caddy/Tomcat TLS1.3 hops. An
         // unknown UUID is unresolved, NOT negative proof for retransmission.
         assert_eq!(
-            client.lookup_heartbeat_request(device, first_request_id.get()).await?,
+            client
+                .lookup_heartbeat_request(device, first_request_id.get())
+                .await?,
             HeartbeatLookupDisposition::Committed
         );
         let missing = Uuid::now_v7();
@@ -129,7 +131,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
         let wrong_device = Uuid::parse_str("00000000-0000-7000-8000-000000000002")?;
         assert_eq!(
-            client.lookup_heartbeat_request(wrong_device, first_request_id.get()).await?,
+            client
+                .lookup_heartbeat_request(wrong_device, first_request_id.get())
+                .await?,
             HeartbeatLookupDisposition::PauseIdentity
         );
         let mismatch = Heartbeat::synthetic(wrong_device, "2026-11-12T09:02:00Z".into());
@@ -148,11 +152,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             client.send_heartbeat(&denied).await?,
             DeliveryDisposition::PauseIdentity,
         )?;
-        let first: serde_json::Value = serde_json::from_slice(&fs::read(
-            env::var("LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE")?
-        )?)?;
+        let first: serde_json::Value = serde_json::from_slice(&fs::read(env::var(
+            "LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE",
+        )?)?)?;
         let request_id = Uuid::parse_str(
-            first["request_id"].as_str().ok_or("missing disposable request UUID")?
+            first["request_id"]
+                .as_str()
+                .ok_or("missing disposable request UUID")?,
         )?;
         assert_eq!(
             client.lookup_heartbeat_request(device, request_id).await?,
