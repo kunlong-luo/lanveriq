@@ -36,6 +36,9 @@ enroll.lanveriq.internal {
 
 agent.lanveriq.internal {
     tls internal {
+        # Batch A P0: reject TLS 1.2 at the Agent ingress boundary.
+        # Keep this reference synthetic-only until reviewed deployment approval.
+        protocols tls1.3
         client_auth {
             mode require_and_verify
             trust_pool file /etc/lanveriq/pki/approved-client-ca.pem

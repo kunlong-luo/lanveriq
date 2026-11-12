@@ -769,6 +769,23 @@ PY
         assert_bridge_up
         echo "PASS: $label denied at Caddy TLS boundary; trusted double-mTLS still UP."
     }
+    # TLS 1.2 must fail at the public Agent ingress, even with a valid
+    # Rust-origin client key and approved client certificate. A negotiated
+    # HTTP error (403/404/421/502) is NOT an acceptable TLS-version denial.
+    tls12_code=000
+    tls12_rc=0
+    tls12_code="$(curl --silent --noproxy '*' --http2 --max-time 10 \
+        --tlsv1.2 --tls-max 1.2 --cacert "$ROOT_CA" \
+        --resolve agent.lanveriq.internal:443:127.0.0.1 \
+        --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+        -o "$TMP/tls12-response" -w '%{http_code}' \
+        "$EDGE_URL" 2>"$TMP/tls12-error")" || tls12_rc=$?
+    [[ "$tls12_rc" != 0 && "$tls12_code" == 000 ]] || {
+        echo "FAIL: TLS 1.2 reached Agent HTTP boundary (status $tls12_code)" >&2
+        exit 1
+    }
+    assert_bridge_up
+    echo "PASS: TLS 1.2-only Agent rejected before HTTP; TLS 1.3 double-mTLS health remains UP."
     deny_agent_handshake "no Agent client certificate"
     deny_agent_handshake "Agent client signed by untrusted CA" \
         --cert "$TMP/pki/wrong-agent.crt" --key "$TMP/pki/wrong-agent.key"
