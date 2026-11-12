@@ -303,9 +303,9 @@ async fn failed_ack_checkpoint_update_leaves_durable_pending_and_never_claims_su
         .await
         .unwrap();
     sqlx::query(
-        "CREATE TRIGGER synthetic_fail_heartbeat_checkpoint \\
-         BEFORE UPDATE ON heartbeat_schedule_checkpoint \\
-         BEGIN SELECT RAISE(ABORT, 'synthetic heartbeat checkpoint failure'); END",
+        r#"CREATE TRIGGER synthetic_fail_heartbeat_checkpoint
+           BEFORE UPDATE ON heartbeat_schedule_checkpoint
+           BEGIN SELECT RAISE(ABORT, 'synthetic heartbeat checkpoint failure'); END"#,
     )
     .execute(&pool)
     .await
