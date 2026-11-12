@@ -4,6 +4,8 @@
 pub mod config;
 #[cfg(target_os = "linux")]
 pub mod enrollment_linux;
+pub mod heartbeat_runtime;
+pub mod heartbeat_schedule;
 pub mod inventory;
 pub mod inventory_platform;
 pub mod inventory_schedule;

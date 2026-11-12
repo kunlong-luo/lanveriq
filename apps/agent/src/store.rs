@@ -1,5 +1,6 @@
 //! SQLx WAL outbox with synthetic events and local-only typed inventory.
 //! Neither path is connected to Agent service scheduling or network I/O.
+use crate::heartbeat_schedule::HeartbeatCheckpoint;
 use crate::inventory::{InventorySnapshot, RawInventory};
 use crate::inventory_schedule::InventoryScheduleCheckpoint;
 use sha2::{Digest, Sha256};
@@ -26,6 +27,8 @@ pub enum StoreError {
     Inventory(#[from] crate::inventory::InventoryError),
     #[error("inventory belongs to a different enrolled device or has conflicting state")]
     InventoryConflict,
+    #[error("heartbeat checkpoint missing, stale, inconsistent or bound to another device")]
+    HeartbeatConflict,
     #[error("outbox full; gap recorded if space available")]
     QueueFull,
     #[error("duplicate event identity")]
@@ -71,6 +74,14 @@ pub struct InventoryScheduleRecovery {
     pub checkpoint: Option<InventoryScheduleCheckpoint>,
     pub generation: i64,
     pub pending: Option<PendingInventory>,
+}
+
+/// Crash-safe local heartbeat attempt recovery. It is not an authorization
+/// grant, an ACK, or a request to collect or transmit any device data.
+#[derive(Debug, Clone)]
+pub struct HeartbeatScheduleRecovery {
+    pub checkpoint: Option<HeartbeatCheckpoint>,
+    pub generation: i64,
 }
 
 /// Local staging outcomes. No outcome implies remote upload or server ACK.
@@ -740,6 +751,130 @@ impl OutboxStore {
         Ok(new_generation)
     }
 
+    /// Batch A3: read heartbeat attempt and "ever persisted" marker in the
+    /// same SQLite transaction; missing/corrupted state must never reset a
+    /// previous 401/403 pause, ambiguous request or replay quarantine.
+    pub async fn load_heartbeat_schedule_recovery(
+        &self,
+        device_id: Uuid,
+    ) -> Result<HeartbeatScheduleRecovery, StoreError> {
+        if device_id.is_nil() {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let mut tx = self.pool.begin().await?;
+        verify_heartbeat_owner(&mut tx, device_id).await?;
+        let current: Option<(String, String, i64)> = sqlx::query_as(
+            "SELECT device_id,state_json,generation FROM heartbeat_schedule_checkpoint WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        let seen: i64 = sqlx::query_scalar(
+            "SELECT heartbeat_schedule_seen FROM agent_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if !matches!((seen, current.is_some()), (0, false) | (1, true)) {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let recovered = match current {
+            Some((owner, json, generation)) => HeartbeatScheduleRecovery {
+                checkpoint: Some(parse_heartbeat_checkpoint(device_id, &owner, &json, generation)?),
+                generation,
+            },
+            None => HeartbeatScheduleRecovery {
+                checkpoint: None,
+                generation: 0,
+            },
+        };
+        tx.commit().await?;
+        Ok(recovered)
+    }
+
+    /// Every one-shot sender MUST persist its pending request UUID BEFORE
+    /// networking. Only a caller holding a strict, matching authenticated
+    /// ACK may transition pending -> acknowledged. No implicit unpause exists.
+    /// CAS and all checks live in one SQLite transaction.
+    pub async fn save_heartbeat_schedule_checkpoint(
+        &self,
+        checkpoint: &HeartbeatCheckpoint,
+        expected_generation: i64,
+    ) -> Result<i64, StoreError> {
+        checkpoint
+            .validate(checkpoint.device_id)
+            .map_err(|_| StoreError::HeartbeatConflict)?;
+        if !(0..i64::MAX - 1).contains(&expected_generation) {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let json = serde_json::to_string(checkpoint)?;
+        let mut tx = self.pool.begin().await?;
+        verify_heartbeat_owner(&mut tx, checkpoint.device_id).await?;
+        let current: Option<(String, String, i64)> = sqlx::query_as(
+            "SELECT device_id,state_json,generation FROM heartbeat_schedule_checkpoint WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        let seen: i64 = sqlx::query_scalar(
+            "SELECT heartbeat_schedule_seen FROM agent_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if !matches!((seen, current.is_some()), (0, false) | (1, true)) {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let generation = match current {
+            Some((owner, state, generation)) => {
+                let old = parse_heartbeat_checkpoint(
+                    checkpoint.device_id,
+                    &owner,
+                    &state,
+                    generation,
+                )?;
+                if !heartbeat_checkpoint_transition_valid(&old, checkpoint) {
+                    return Err(StoreError::HeartbeatConflict);
+                }
+                generation
+            }
+            None => {
+                // A first checkpoint must not forge a previous ACK or halt.
+                if checkpoint.last_acknowledged_at.is_some() || checkpoint.halted.is_some() {
+                    return Err(StoreError::HeartbeatConflict);
+                }
+                0
+            }
+        };
+        if generation != expected_generation {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let affected = sqlx::query(
+            "INSERT INTO heartbeat_schedule_checkpoint \
+             (singleton,device_id,state_json,generation) VALUES(1,?,?,1) \
+             ON CONFLICT(singleton) DO UPDATE SET \
+             state_json=excluded.state_json,generation=heartbeat_schedule_checkpoint.generation+1 \
+             WHERE heartbeat_schedule_checkpoint.device_id=excluded.device_id \
+             AND heartbeat_schedule_checkpoint.generation=?",
+        )
+        .bind(checkpoint.device_id.to_string())
+        .bind(json)
+        .bind(expected_generation)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if affected != 1 {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let marked = sqlx::query(
+            "UPDATE agent_state SET heartbeat_schedule_seen=1 WHERE singleton=1",
+        )
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if marked != 1 {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        tx.commit().await?;
+        Ok(expected_generation + 1)
+    }
+
     pub async fn settings(&self) -> Result<(String, i64, i64), StoreError> {
         let journal: String = sqlx::query_scalar("PRAGMA journal_mode")
             .fetch_one(&self.pool)
@@ -756,6 +891,75 @@ impl OutboxStore {
     pub async fn close(self) {
         self.pool.close().await;
     }
+}
+
+fn parse_heartbeat_checkpoint(
+    device_id: Uuid,
+    owner: &str,
+    json: &str,
+    generation: i64,
+) -> Result<HeartbeatCheckpoint, StoreError> {
+    if owner != device_id.to_string() || !(1..i64::MAX).contains(&generation) {
+        return Err(StoreError::HeartbeatConflict);
+    }
+    let checkpoint: HeartbeatCheckpoint =
+        serde_json::from_str(json).map_err(|_| StoreError::HeartbeatConflict)?;
+    checkpoint
+        .validate(device_id)
+        .map_err(|_| StoreError::HeartbeatConflict)?;
+    Ok(checkpoint)
+}
+
+fn heartbeat_checkpoint_transition_valid(
+    old: &HeartbeatCheckpoint,
+    new: &HeartbeatCheckpoint,
+) -> bool {
+    if old.device_id != new.device_id
+        || old.halted.is_some() && old.halted != new.halted
+        || old.last_acknowledged_at.is_some_and(|prior| {
+            new.last_acknowledged_at.is_none_or(|next| next < prior)
+        })
+    {
+        return false;
+    }
+    match (old.pending_request_id, new.pending_request_id) {
+        (None, None) => old.last_acknowledged_at == new.last_acknowledged_at
+            && new.halted.is_none(),
+        (None, Some(_)) => old.halted.is_none()
+            && new.halted.is_none()
+            && old.last_acknowledged_at == new.last_acknowledged_at,
+        (Some(previous), Some(next)) => previous == next
+            && old.last_acknowledged_at == new.last_acknowledged_at,
+        (Some(_), None) => old.halted.is_none()
+            && new.halted.is_none()
+            && new.last_acknowledged_at.is_some_and(|current| {
+                old.last_acknowledged_at.is_none_or(|prior| current > prior)
+            }),
+    }
+}
+
+/// Heartbeat, inventory and their checkpoints may not cohabit a SQLite DB
+/// under different device IDs. Reads are transaction-bound with the CAS.
+async fn verify_heartbeat_owner(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    device_id: Uuid,
+) -> Result<(), StoreError> {
+    let inventory_owner: Option<String> = sqlx::query_scalar(
+        "SELECT device_id FROM inventory_latest_state WHERE singleton=1",
+    )
+    .fetch_optional(&mut **tx)
+    .await?;
+    let schedule_owner: Option<String> = sqlx::query_scalar(
+        "SELECT device_id FROM inventory_schedule_checkpoint WHERE singleton=1",
+    )
+    .fetch_optional(&mut **tx)
+    .await?;
+    if inventory_owner.is_some_and(|owner| owner != device_id.to_string())
+        || schedule_owner.is_some_and(|owner| owner != device_id.to_string())
+    {
+        return Err(StoreError::HeartbeatConflict);
+    }
+    Ok(())
 }
 
 fn parse_inventory_schedule_checkpoint(

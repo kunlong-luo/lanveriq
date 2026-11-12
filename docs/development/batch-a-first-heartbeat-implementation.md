@@ -1,5 +1,7 @@
 # Batch A / 首次心跳的可运行链路 — Stage A1
 
+**2026-11-12 Batch A3 本地运行时桥接（源码 / CI 待验证）：** 新增 Rust `heartbeat_schedule.rs`、`heartbeat_runtime.rs` 和 SQLx SQLite V6 心跳 checkpoint。它们不是系统服务入口：只有调用方显式 `enabled=true` 且验证设备身份时才允许**一次**发送尝试；本地事务在发送前持久化非 nil `request_id`，只有调用方经已验证的严格 ACK 才清除。系统意外重启、网络超时、503/409、403/401 或 SQLite 写入失败均不得自动用不同 UUID 重传。任何悬而未决的请求要求重新对账/人工授权，身份证明拒绝则持久暂停。CAS generation 拒绝过时写入，损坏或被删除的 checkpoint 不会自动恢复。**目前未接入 `main.rs`、systemd 定时器、真实数据采集或设备网络；完整服务授权与自动可靠重试仍在 A3 待办。**
+
 **2026-11-12 最新合成验收：单条真实 Rust→Caddy→Spring/Tomcat→PostgreSQL 18 业务链已通过。** [代码 SHA `80298562`](https://github.com/kunlong-luo/lanveriq/commit/80298562d4221c0afc4dd18cfa01d1ac3f7b15ad) 的 [Linux Batch A #43210930135](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930135) **SUCCESS（两个任务均成功）**，独立 [Java L1 #43210930065](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930065) 和 [RD-2 默认拒绝 #43210930301](https://github.com/kunlong-luo/lanveriq/actions/runs/43210930301) 也 **SUCCESS**。一次性 Ubuntu 24.04 runner 上，先在默认关闭状态验证真实 TLS1.2 禁止、双向 mTLS、错误 CA/SNI/Host 和业务 403，再对**同一临时 PostgreSQL 18.6** 以独立双路由 opt-in 启用测试服务：真实 Linux Rust P-256 CSR 对应叶证书发送激活 + 两次不同心跳，精确 ACK 全部通过；旧 `request_id` 的 HTTP 409/空体/no-store、数据库最新状态和 `last_seen_at` 不变、跨设备、受信 CA 但未注册证书、过期/吊销后拒绝均通过。全部合成且只使用测试私钥和固定虚构设备 ID，没有启动设备 Agent service、采集真实机器或改变生产配置。**仅 A4 核心 L2 合成请求闭环通过，不等于 A2 完整接入令牌/审核发行、A3 受控系统服务调度、A5 Pop!_OS 实机、生产 CA、请求 ID retention/epoch 与隐私/发布批准。**
 
 **历史状态说明：**下方的 2026-11-08 A1 源码状态、2026-11-12 「待 CI」和失败诊断仅为历史时间点记录；**本节上方的 `80298562` 同源 CI 成功证据优先**。

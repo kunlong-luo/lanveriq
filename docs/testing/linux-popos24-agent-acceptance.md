@@ -1,5 +1,7 @@
 # Pop!_OS 24.04 Linux-first Agent: offline identity and custody acceptance
 
+**Batch A3 localhost-only safety checkpoint (2026-11-12; pending exact-SHA CI):** New SQLx SQLite V6 `heartbeat_schedule_checkpoint`, Rust `HeartbeatCheckpoint` and `run_explicit_heartbeat_once` hold a request ID durably *before* the single injected send. Normal `main.rs` and the systemd template remain completely idle and IP-blocked. A restored outstanding request is `NeedsReconciliation`, **never** a fresh UUID or silent resend; 401/403 persist an identity halt, 409/5xx/transport ambiguity persist quarantine. Corrupted/deleted/cross-device state, stale CAS writers and attempted halt-clearing fail closed. L1 tests use file-backed SQLite and injected synthetic response classifications only; no actual network, Pop!_OS device, installed service, collection, systemd activation, TPM, or recovery authorization is implied.
+
 **Owner decision (2026-11-11): Pop!_OS 24.04 LTS with COSMIC is the primary operating system.** Linux-first systemd, Rustls, secure local Agent operation and Pop!_OS installation/consent come before any new Windows SID/DPAPI/CNG service-account work. Windows synthetic crypto proofs remain historical, optional compatibility evidence, not critical-path blockers for the first Linux release.
 
 ## Approved baseline and scope
