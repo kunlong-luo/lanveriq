@@ -1,0 +1,102 @@
+name: Linux Batch A Caddy Spring PG18 acceptance (isolated synthetic)
+
+# Linux-first: on scoped main changes only, run existing real isolated
+# Caddy->Tomcat TLS1.3 and PostgreSQL18 acceptance with synthetic PKI.
+# Nothing is deployed to user Pop!_OS, and Agent/remote remain default-OFF.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
+      - 'apps/server/scripts/verify-agent-upstream-tls.sh'
+      - 'apps/server/scripts/assert-postgres18-junit.py'
+      - 'apps/server/src/main/java/com/lanveriq/server/enrollment/**'
+      - 'apps/server/src/integrationTest/**'
+      - 'apps/server/src/main/resources/application-agent-upstream-mtls-acceptance.yml'
+      - 'deploy/caddy/Caddyfile.reference'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-linux-batch-a-real-synthetic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-caddy-spring-tls13:
+    name: Real Caddy to Tomcat double TLS1.3 and PG18 startup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Confirm disposable synthetic runner, Docker, pinned tools
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTIONS" = true
+          test "$RUNNER_OS" = Linux
+          echo "Source SHA: $GITHUB_SHA"
+          docker info --format 'Synthetic Docker engine: {{.ServerVersion}}'
+          docker run --rm --network none caddy:2.11.7 caddy version
+          openssl version
+          java -version
+          bash -n apps/server/scripts/verify-agent-upstream-tls.sh
+      - name: Run real Caddy Agent-side mTLS to Spring/Tomcat upstream TLS1.3 and PG18
+        env:
+          LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
+          LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '0'
+          LANVERIQ_SYNTHETIC_BROWSER_PROBE: '0'
+          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: '0'
+          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: '0'
+          LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: '0'
+        # Actual server launch/PG18 migration and strict TLS/hostname/client
+        # negatives; activation must remain disabled/403 throughout.
+        run: bash apps/server/scripts/verify-agent-upstream-tls.sh
+
+  linux-postgres18-transactions:
+    name: Real PostgreSQL18 reviewed cert, activation and heartbeat transactions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Check isolated Docker and pinned Gradle wrapper
+        working-directory: apps/server
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTIONS" = true
+          echo '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
+          docker info --format 'Synthetic Docker engine: {{.ServerVersion}}'
+      - name: Exercise all seven actual PostgreSQL18 Testcontainers transaction classes
+        working-directory: apps/server
+        run: ./gradlew --no-build-cache --rerun-tasks integrationTest --stacktrace
+      - name: Fail closed unless mandatory PostgreSQL18 JUnit results all executed
+        if: ${{ !cancelled() }}
+        working-directory: apps/server
+        run: python3 scripts/assert-postgres18-junit.py build/test-results/integrationTest
+      - name: Record PostgreSQL18 synthetic image provenance
+        if: always()
+        run: |
+          echo "Source SHA: $GITHUB_SHA"
+          docker image inspect postgres:18.6 --format 'PostgreSQL image: {{.Id}}' || true
+      - name: Archive only synthetic JUnit XML evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-batch-a-pg18-junit
+          path: apps/server/build/test-results/integrationTest/*.xml
+          if-no-files-found: warn
+          retention-days: 7
