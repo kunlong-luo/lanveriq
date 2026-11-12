@@ -78,6 +78,37 @@ class DeviceHeartbeatTransactionProxyTest {
         verify(manager).rollback(status);
     }
 
+    @Test
+    void committedRequestLedgerLookupReturnsEvidenceOnlyAfterTransactionCommit() {
+        var repository = Mockito.mock(DeviceHeartbeatRepository.class);
+        var manager = Mockito.mock(PlatformTransactionManager.class);
+        var status = Mockito.mock(TransactionStatus.class);
+        when(manager.getTransaction(any(TransactionDefinition.class))).thenReturn(status);
+        var requestId = UUID.randomUUID();
+        when(repository.wasAccepted(identity, id, requestId)).thenReturn(true);
+        var receipt = proxy(repository, manager)
+                .lookupAccepted(identity, id, requestId).orElseThrow();
+        assertEquals(id, receipt.deviceId());
+        assertEquals(requestId, receipt.requestId());
+        assertEquals(true, receipt.committed());
+        verify(repository).wasAccepted(identity, id, requestId);
+        verify(manager).commit(status);
+    }
+
+    @Test
+    void rejectedCredentialLedgerLookupRollsBackWithoutAnyReceipt() {
+        var repository = Mockito.mock(DeviceHeartbeatRepository.class);
+        Mockito.doThrow(new DeviceHeartbeatRejection(
+                DeviceHeartbeatRejection.Reason.REVOKED_DEVICE))
+                .when(repository).wasAccepted(Mockito.any(), Mockito.any(), Mockito.any());
+        var manager = Mockito.mock(PlatformTransactionManager.class);
+        var status = Mockito.mock(TransactionStatus.class);
+        when(manager.getTransaction(any(TransactionDefinition.class))).thenReturn(status);
+        assertThrows(DeviceHeartbeatRejection.class, () ->
+                proxy(repository, manager).lookupAccepted(identity, id, UUID.randomUUID()));
+        verify(manager).rollback(status);
+    }
+
     private static DeviceHeartbeatService proxy(DeviceHeartbeatRepository repository,
                                                 PlatformTransactionManager manager) {
         var target = new DeviceHeartbeatService(repository, JsonMapper.builder().build());

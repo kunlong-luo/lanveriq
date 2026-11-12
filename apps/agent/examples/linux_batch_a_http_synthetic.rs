@@ -8,6 +8,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use lanveriq_agent::store::OutboxStore;
     use lanveriq_agent::transport::{
         ActivationRequest, AgentTlsTransport, DeliveryDisposition, Heartbeat,
+        HeartbeatLookupDisposition,
     };
     use std::{cell::Cell, env, fs, path::PathBuf};
     use uuid::Uuid;
@@ -98,6 +99,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         store.close().await;
 
+        // The server must prove *durable ledger membership*, with the same
+        // current registered leaf via both Caddy/Tomcat TLS1.3 hops. An
+        // unknown UUID is unresolved, NOT negative proof for retransmission.
+        assert_eq!(
+            client.lookup_heartbeat_request(device, first_request_id.get()).await?,
+            HeartbeatLookupDisposition::Committed
+        );
+        let missing = Uuid::now_v7();
+        assert_eq!(
+            client.lookup_heartbeat_request(device, missing).await?,
+            HeartbeatLookupDisposition::Unresolved
+        );
+
         // A real duplicate wire request is an intentional negative probe,
         // never an automatic retry by the now-settled coordinator.
         let mut first = Heartbeat::synthetic(device, "2026-11-12T09:00:00Z".into());
@@ -114,6 +128,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             DeliveryDisposition::Quarantine,
         )?;
         let wrong_device = Uuid::parse_str("00000000-0000-7000-8000-000000000002")?;
+        assert_eq!(
+            client.lookup_heartbeat_request(wrong_device, first_request_id.get()).await?,
+            HeartbeatLookupDisposition::PauseIdentity
+        );
         let mismatch = Heartbeat::synthetic(wrong_device, "2026-11-12T09:02:00Z".into());
         assert_disposition(
             "heartbeat-wrong-device",
@@ -121,7 +139,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             DeliveryDisposition::PauseIdentity,
         )?;
         println!(
-            "PASS: real Rust Reqwest TLS1.3 activation, two committed heartbeats with on-disk SQLite restart/strict ACK, replay quarantine and cross-device denial."
+            "PASS: real Rust Reqwest TLS1.3 activation, SQLite restart/strict ACK, committed/unknown read-only ledger lookup, replay and wrong-device denial."
         );
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
@@ -130,8 +148,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             client.send_heartbeat(&denied).await?,
             DeliveryDisposition::PauseIdentity,
         )?;
+        let first: serde_json::Value = serde_json::from_slice(&fs::read(
+            env::var("LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE")?
+        )?)?;
+        let request_id = Uuid::parse_str(
+            first["request_id"].as_str().ok_or("missing disposable request UUID")?
+        )?;
+        assert_eq!(
+            client.lookup_heartbeat_request(device, request_id).await?,
+            HeartbeatLookupDisposition::PauseIdentity
+        );
         println!(
-            "PASS: real Rust Reqwest heartbeat denied after synthetic credential {}.",
+            "PASS: real Rust Reqwest heartbeat and read-only ledger lookup denied after synthetic credential {}.",
             args[1]
         );
     }

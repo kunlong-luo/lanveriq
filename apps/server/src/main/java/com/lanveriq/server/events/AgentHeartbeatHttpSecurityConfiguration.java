@@ -14,8 +14,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 
 /**
- * Agent's one explicitly enabled heartbeat route is separate from browser
- * sessions, console CSRF/login and every other Agent operation. POST only.
+ * Agent's opt-in heartbeat POST and read-only exact-request receipt GET are
+ * separate from browser sessions, console CSRF/login and other operations.
  *
  * permitAll here is ONLY an HTTP filter-chain routing decision: the endpoint
  * itself refuses any request without pinned *actual* upstream Caddy mTLS
@@ -35,10 +35,13 @@ class AgentHeartbeatHttpSecurityConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE + 2)
     SecurityFilterChain scopedHeartbeatIngress(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/api/v1/devices/*/heartbeats")
+                .securityMatcher("/api/v1/devices/*/heartbeats",
+                        "/api/v1/devices/*/heartbeats/requests/*")
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/devices/*/heartbeats").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/devices/*/heartbeats/requests/*").permitAll()
                         .anyRequest().denyAll())
                 // Agent uses TLS client certificates; it never receives a
                 // browser session or CSRF cookie. Disable CSRF ONLY in this

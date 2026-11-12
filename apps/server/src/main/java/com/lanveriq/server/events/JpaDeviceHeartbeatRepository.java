@@ -99,6 +99,28 @@ class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
                 .executeUpdate();
     }
 
+    @Override
+    public boolean wasAccepted(VerifiedDeviceCertificate identity, UUID deviceId, UUID requestId) {
+        if (identity == null || deviceId == null || requestId == null
+                || requestId.equals(new UUID(0, 0))
+                || !deviceId.equals(identity.deviceId())) {
+            throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA);
+        }
+        // A revoked/expired/foreign leaf must not read even accepted IDs.
+        // The device lock serializes this read with revoke and heartbeat writes.
+        if (!JpaActiveDeviceCredentialGuard.lock(manager, identity, deviceId)) {
+            throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE);
+        }
+        var accepted = manager.createNativeQuery("""
+                SELECT r.request_id FROM device_heartbeat_request_ids r
+                WHERE r.device_id=:device_id AND r.request_id=:request_id
+                """)
+                .setParameter("device_id", deviceId)
+                .setParameter("request_id", requestId)
+                .getResultList();
+        return accepted.size() == 1;
+    }
+
     private static String nullableTimestamp(java.time.Instant value) {
         // Avoid Hibernate null-parameter type ambiguity in native PostgreSQL SQL.
         return value == null ? "" : value.toString();

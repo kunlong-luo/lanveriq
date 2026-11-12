@@ -118,3 +118,70 @@ fn all_auth_failures_and_retries_remain_non_acknowledged() {
         }
     );
 }
+
+#[test]
+fn durable_ledger_lookup_requires_exact_positive_receipt_and_never_trusts_absence() {
+    let device = Uuid::now_v7();
+    let id = Uuid::now_v7();
+    let good = serde_json::json!({
+        "schema_version": 1,
+        "device_id": device,
+        "request_id": id,
+        "committed": true,
+        "server_time": "2026-11-13T00:00:00Z"
+    });
+    assert_eq!(
+        classify_heartbeat_lookup_response(200, good.to_string().as_bytes(), device, id).unwrap(),
+        HeartbeatLookupDisposition::Committed
+    );
+    for status in [404, 429, 500, 503] {
+        assert_eq!(
+            classify_heartbeat_lookup_response(status, b"", device, id).unwrap(),
+            HeartbeatLookupDisposition::Unresolved
+        );
+    }
+    assert_eq!(
+        classify_heartbeat_lookup_response(403, b"", device, id).unwrap(),
+        HeartbeatLookupDisposition::PauseIdentity
+    );
+    assert_eq!(
+        classify_heartbeat_lookup_response(409, b"", device, id).unwrap(),
+        HeartbeatLookupDisposition::Quarantine
+    );
+
+    let mut malformed = good.clone();
+    for (key, value) in [
+        ("request_id", serde_json::json!(Uuid::now_v7())),
+        ("device_id", serde_json::json!(Uuid::now_v7())),
+        ("committed", serde_json::json!(false)),
+        ("schema_version", serde_json::json!(2)),
+        ("server_time", serde_json::json!("not-a-date")),
+    ] {
+        malformed.clone_from(&good);
+        malformed[key] = value;
+        assert!(matches!(
+            classify_heartbeat_lookup_response(
+                200, malformed.to_string().as_bytes(), device, id
+            ),
+            Err(TransportError::InvalidAcknowledgement)
+        ));
+    }
+    malformed.clone_from(&good);
+    malformed["extra"] = serde_json::json!(true);
+    assert!(matches!(
+        classify_heartbeat_lookup_response(200, malformed.to_string().as_bytes(), device, id),
+        Err(TransportError::InvalidAcknowledgement)
+    ));
+    assert!(matches!(
+        classify_heartbeat_lookup_response(200, b"{}", device, id),
+        Err(TransportError::InvalidAcknowledgement)
+    ));
+    assert!(matches!(
+        classify_heartbeat_lookup_response(200, &vec![b'x'; 4097], device, id),
+        Err(TransportError::OversizedResponse)
+    ));
+    assert!(matches!(
+        classify_heartbeat_lookup_response(200, good.to_string().as_bytes(), Uuid::nil(), id),
+        Err(TransportError::InvalidEvent)
+    ));
+}

@@ -27,6 +27,7 @@ class JpaDeviceHeartbeatRepositoryTest {
     private final Query replayInsert = Mockito.mock(Query.class);
     private final Query deviceUpdate = Mockito.mock(Query.class);
     private final Query snapshot = Mockito.mock(Query.class);
+    private final Query committedLookup = Mockito.mock(Query.class);
     private final UUID deviceId = UUID.randomUUID();
     private final VerifiedDeviceCertificate identity =
             new VerifiedDeviceCertificate(deviceId, "b".repeat(64));
@@ -44,12 +45,15 @@ class JpaDeviceHeartbeatRepositoryTest {
             if (sql.contains("FOR UPDATE OF d")) return auth;
             if (sql.contains("FOR UPDATE OF c")) return credentialLock;
             if (sql.contains("INSERT INTO device_heartbeat_request_ids")) return replayInsert;
+            if (sql.contains("SELECT r.request_id FROM device_heartbeat_request_ids"))
+                return committedLookup;
             if (sql.contains("UPDATE devices")) {
                 return deviceUpdate;
             }
             return snapshot;
         });
-        for (Query query : List.of(auth, credentialLock, replayInsert, deviceUpdate, snapshot)) {
+        for (Query query : List.of(auth, credentialLock, replayInsert, deviceUpdate,
+                snapshot, committedLookup)) {
             when(query.setParameter(anyString(), Mockito.nullable(Object.class))).thenReturn(query);
         }
         when(replayInsert.executeUpdate()).thenReturn(1);
@@ -79,6 +83,42 @@ class JpaDeviceHeartbeatRepositoryTest {
         verify(deviceUpdate).executeUpdate();
         verify(snapshot).setParameter("capabilities", "{\"hardware_inventory\":\"not_collected\"}");
         verify(snapshot).executeUpdate();
+    }
+
+    @Test
+    void authorizedLookupReadsOnlyDurableLedgerUnderDeviceAndCredentialLocks() {
+        wire();
+        when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
+        UUID known = UUID.randomUUID();
+        when(committedLookup.getResultList()).thenReturn(List.of(known));
+
+        var repository = new JpaDeviceHeartbeatRepository(manager, JsonMapper.builder().build());
+        assertTrue(repository.wasAccepted(identity, deviceId, known));
+        verify(committedLookup).setParameter("device_id", deviceId);
+        verify(committedLookup).setParameter("request_id", known);
+        verify(deviceUpdate, never()).executeUpdate();
+        verify(snapshot, never()).executeUpdate();
+        verify(replayInsert, never()).executeUpdate();
+    }
+
+    @Test
+    void missingOrRevokedLedgerLookupCannotBeConfirmed() {
+        wire();
+        when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
+        when(committedLookup.getResultList()).thenReturn(List.of());
+        var repository = new JpaDeviceHeartbeatRepository(manager, JsonMapper.builder().build());
+        assertTrue(!repository.wasAccepted(identity, deviceId, UUID.randomUUID()));
+        Mockito.reset(credentialLock);
+        when(credentialLock.setParameter(anyString(), Mockito.nullable(Object.class)))
+                .thenReturn(credentialLock);
+        when(credentialLock.getResultList()).thenReturn(List.of());
+        var error = assertThrows(DeviceHeartbeatRejection.class,
+                () -> repository.wasAccepted(identity, deviceId, UUID.randomUUID()));
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE, error.reason());
+        verify(deviceUpdate, never()).executeUpdate();
+        verify(snapshot, never()).executeUpdate();
     }
 
     @Test

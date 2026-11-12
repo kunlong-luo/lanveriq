@@ -52,10 +52,31 @@ final class AgentIngressAssertionPolicy {
 
     VerifiedDeviceCertificate resolve(HttpServletRequest request, UUID pathDeviceId,
                                       String endpointSuffix) {
-        if (request == null || pathDeviceId == null || endpointSuffix == null
+        if (endpointSuffix == null || !ROUTE_SUFFIXES.contains(endpointSuffix)) {
+            throw denied();
+        }
+        return resolveExact(request, pathDeviceId, endpointSuffix, "POST");
+    }
+
+    /// The only GET exception is the exact device/request UUID receipt lookup.
+    /// A body, caller-supplied fingerprint, generic GET or query string is
+    /// never identity evidence. The same pinned Caddy peer and DB credential
+    /// guard are required as on writes.
+    VerifiedDeviceCertificate resolveHeartbeatLookup(
+            HttpServletRequest request, UUID pathDeviceId, UUID requestId) {
+        if (requestId == null || requestId.equals(new UUID(0, 0))) {
+            throw denied();
+        }
+        return resolveExact(request, pathDeviceId,
+                "heartbeats/requests/" + requestId, "GET");
+    }
+
+    private VerifiedDeviceCertificate resolveExact(
+            HttpServletRequest request, UUID pathDeviceId,
+            String endpointSuffix, String expectedMethod) {
+        if (request == null || pathDeviceId == null
                 || pathDeviceId.equals(new UUID(0, 0))
-                || !ROUTE_SUFFIXES.contains(endpointSuffix)
-                || !"POST".equals(request.getMethod())
+                || !expectedMethod.equals(request.getMethod())
                 || !request.isSecure()
                 || !"https".equals(request.getScheme())
                 || !"127.0.0.1".equals(request.getRemoteAddr())

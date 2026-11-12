@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,6 +56,26 @@ final class AgentHeartbeatRestController {
         VerifiedDeviceCertificate peer = ingress.resolve(request, deviceId, "heartbeats");
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(heartbeats.ingest(peer, deviceId, body));
+    }
+
+    /** Only positive durable ledger membership is a confirmed response.
+     * A 404 means "not yet verifiable", never safe permission to retry.
+     * The request method/URI, upstream mTLS peer, host and fingerprint
+     * are independently pinned before the DB credential lock. */
+    @GetMapping(path = "/api/v1/devices/{deviceId}/heartbeats/requests/{requestId}",
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<DeviceHeartbeatLookupReceipt> lookup(
+            HttpServletRequest request,
+            @PathVariable UUID deviceId,
+            @PathVariable UUID requestId) {
+        VerifiedDeviceCertificate peer =
+                ingress.resolveHeartbeatLookup(request, deviceId, requestId);
+        var result = heartbeats.lookupAccepted(peer, deviceId, requestId);
+        if (result.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .cacheControl(CacheControl.noStore()).build();
+        }
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(result.get());
     }
 
     @ExceptionHandler(SecurityException.class)

@@ -180,6 +180,61 @@ pub fn classify_heartbeat_response(
     Ok(DeliveryDisposition::Accepted)
 }
 
+/// Strict type for one CURRENT-credential mTLS read of the committed request
+/// ledger. The verified positive is proof of durable ID membership, not of a
+/// new heartbeat POST or an original response timestamp.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HeartbeatLookupReceipt {
+    schema_version: u32,
+    device_id: Uuid,
+    request_id: Uuid,
+    committed: bool,
+    server_time: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HeartbeatLookupDisposition {
+    Committed,
+    /// 404 and transient errors cannot prove a request was never committed.
+    Unresolved,
+    PauseIdentity,
+    Quarantine,
+}
+
+/// A missing row is never permission to retry or mint a new request UUID.
+pub fn classify_heartbeat_lookup_response(
+    status: u16,
+    body: &[u8],
+    device_id: Uuid,
+    request_id: Uuid,
+) -> Result<HeartbeatLookupDisposition, TransportError> {
+    if device_id.is_nil() || request_id.is_nil() {
+        return Err(TransportError::InvalidEvent);
+    }
+    match status {
+        200 => {
+            if body.len() > MAX_RESPONSE_BYTES {
+                return Err(TransportError::OversizedResponse);
+            }
+            let receipt: HeartbeatLookupReceipt =
+                serde_json::from_slice(body).map_err(|_| TransportError::InvalidAcknowledgement)?;
+            if receipt.schema_version != 1
+                || receipt.device_id != device_id
+                || receipt.request_id != request_id
+                || !receipt.committed
+                || !is_utc_instant_shape(&receipt.server_time)
+            {
+                return Err(TransportError::InvalidAcknowledgement);
+            }
+            Ok(HeartbeatLookupDisposition::Committed)
+        }
+        404 | 429 | 500..=599 => Ok(HeartbeatLookupDisposition::Unresolved),
+        401 | 403 => Ok(HeartbeatLookupDisposition::PauseIdentity),
+        _ => Ok(HeartbeatLookupDisposition::Quarantine),
+    }
+}
+
 /// UTC ISO-8601 shape only. Server/database time is authoritative; do not
 /// interpret a client-parsed string as evidence about device online status.
 fn is_utc_instant_shape(value: &str) -> bool {
@@ -581,6 +636,34 @@ impl AgentTlsTransport {
             return Ok(classify_error_status(status, retry_after.as_deref()));
         }
         classify_heartbeat_response(status, &body, heartbeat.request_id, retry_after.as_deref())
+    }
+
+    /// Read-only reconciliation of one previously persisted request UUID.
+    /// Only a current registered mTLS credential may read accepted ledger
+    /// membership. 404/5xx leave local pending state UNRESOLVED, not retried.
+    /// No installed service calls this helper; no OS data is collected.
+    pub async fn lookup_heartbeat_request(
+        &self,
+        device_id: Uuid,
+        request_id: Uuid,
+    ) -> Result<HeartbeatLookupDisposition, TransportError> {
+        if device_id.is_nil() || request_id.is_nil() {
+            return Err(TransportError::InvalidEvent);
+        }
+        let path = format!(
+            "/api/v1/devices/{device_id}/heartbeats/requests/{request_id}"
+        );
+        let url = format!("{AGENT_ORIGIN}{path}");
+        let mut response = self.client.get(url).send().await.map_err(TransportError::Network)?;
+        let status = response.status().as_u16();
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(TransportError::Network)? {
+            if bytes.len() + chunk.len() > MAX_RESPONSE_BYTES {
+                return Err(TransportError::OversizedResponse);
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        classify_heartbeat_lookup_response(status, &bytes, device_id, request_id)
     }
 
     /// Staged opt-in inventory attempt. NEVER called by AGT-01 service.

@@ -177,6 +177,16 @@ class PostgreSqlDeviceActivationIT {
                 heartbeatService.ingest(credential, deviceId, oldHeartbeat).requestId());
         assertEquals(newRequestId,
                 heartbeatService.ingest(credential, deviceId, newHeartbeat).requestId());
+        // The real PG18 lookup must be positive only for committed IDs under
+        // the CURRENT certificate lock, and unknown UUID is not a resend grant.
+        var lookup = heartbeatService.lookupAccepted(credential, deviceId, oldRequestId);
+        assertTrue(lookup.isPresent());
+        assertEquals(oldRequestId, lookup.orElseThrow().requestId());
+        assertEquals(deviceId, lookup.orElseThrow().deviceId());
+        assertTrue(lookup.orElseThrow().committed());
+        assertTrue(heartbeatService.lookupAccepted(credential, deviceId, newRequestId).isPresent());
+        assertTrue(heartbeatService.lookupAccepted(
+                credential, deviceId, UUID.randomUUID()).isEmpty());
         Object[] newest = (Object[]) entityManager.createNativeQuery("""
                 SELECT agent_status, policy_version, integrity_degraded, received_at
                 FROM device_heartbeat_latest WHERE device_id=:device
@@ -203,6 +213,38 @@ class PostgreSqlDeviceActivationIT {
                 SELECT COUNT(*) FROM device_heartbeat_request_ids WHERE device_id=:device
                 """).setParameter("device", deviceId).getSingleResult()).longValue();
         assertEquals(2L, accepted);
+    }
+
+    @Test
+    void readOnlyLedgerLookupCannotBypassRevokedCredentialOrMutateHeartbeatState() {
+        activation.activate(credential, deviceId, request());
+        UUID acceptedId = UUID.randomUUID();
+        var heartbeat = new DeviceHeartbeat(1, deviceId, "2026-11-12T09:00:00Z",
+                "0.1.0", 1, "running",
+                Map.of("hardware_inventory", "not_collected"),
+                0, 0, null, null, 0, false, List.of(), acceptedId);
+        heartbeatService.ingest(credential, deviceId, heartbeat);
+        assertTrue(heartbeatService.lookupAccepted(
+                credential, deviceId, acceptedId).isPresent());
+        var foreign = new VerifiedDeviceCertificate(deviceId, "f".repeat(64));
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeatService.lookupAccepted(foreign, deviceId, acceptedId)).reason());
+
+        new TransactionTemplate(txManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        UPDATE device_credentials SET status='revoked',
+                            revoked_at=clock_timestamp()
+                        WHERE device_id=:device
+                        """).setParameter("device", deviceId).executeUpdate());
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeatService.lookupAccepted(
+                                credential, deviceId, acceptedId)).reason());
+        long accepted = ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM device_heartbeat_request_ids WHERE device_id=:device
+                """).setParameter("device", deviceId).getSingleResult()).longValue();
+        assertEquals(1L, accepted);
     }
 
     @Test

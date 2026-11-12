@@ -2,6 +2,7 @@ package com.lanveriq.server.events;
 
 import java.time.Clock;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,24 @@ public class DeviceHeartbeatService {
         this.repository = Objects.requireNonNull(repository);
         this.policy = Objects.requireNonNull(policy);
         this.clock = Objects.requireNonNull(clock);
+    }
+
+    /** Only a current, authenticated client certificate may query the durable
+     * accepted UUID ledger. An absent row is UNKNOWN, not an invitation to
+     * reuse or replace an ambiguously delivered heartbeat. */
+    @Transactional
+    public Optional<DeviceHeartbeatLookupReceipt> lookupAccepted(
+            VerifiedDeviceCertificate identity, UUID deviceId, UUID requestId) {
+        if (requestId == null || requestId.equals(new UUID(0, 0))
+                || deviceId == null || identity == null
+                || !deviceId.equals(identity.deviceId())) {
+            throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA);
+        }
+        if (!repository.wasAccepted(identity, deviceId, requestId)) {
+            return Optional.empty();
+        }
+        return Optional.of(new DeviceHeartbeatLookupReceipt(1, deviceId,
+                requestId, true, clock.instant()));
     }
 
     @Transactional

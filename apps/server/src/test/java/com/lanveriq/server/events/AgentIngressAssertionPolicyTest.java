@@ -45,6 +45,47 @@ class AgentIngressAssertionPolicyTest {
     }
 
     @Test
+    void onlyExactGetReceiptLookupRetainsFullPinnedTlsIdentityGate() {
+        UUID requestId = UUID.randomUUID();
+        var accepted = request();
+        accepted.setMethod("GET");
+        accepted.setRequestURI("/api/v1/devices/" + deviceId
+                + "/heartbeats/requests/" + requestId);
+        var identity = policy.resolveHeartbeatLookup(accepted, deviceId, requestId);
+        assertEquals(deviceId, identity.deviceId());
+        assertEquals(FINGERPRINT, identity.sha256Fingerprint());
+
+        // HTTP/2 canonical authority may omit ordinary Host, as on POST.
+        accepted.setProtocol("HTTP/2.0");
+        accepted.removeHeader("Host");
+        accepted.setServerName(HOST);
+        assertEquals(deviceId, policy.resolveHeartbeatLookup(
+                accepted, deviceId, requestId).deviceId());
+
+        var invalid = request();
+        invalid.setMethod("POST");
+        invalid.setRequestURI("/api/v1/devices/" + deviceId
+                + "/heartbeats/requests/" + requestId);
+        assertThrows(SecurityException.class,
+                () -> policy.resolveHeartbeatLookup(invalid, deviceId, requestId));
+        invalid.setMethod("GET");
+        assertThrows(SecurityException.class,
+                () -> policy.resolveHeartbeatLookup(invalid, deviceId, UUID.randomUUID()));
+        assertThrows(SecurityException.class,
+                () -> policy.resolveHeartbeatLookup(invalid, deviceId, new UUID(0, 0)));
+        invalid.setQueryString("state=known");
+        assertThrows(SecurityException.class,
+                () -> policy.resolveHeartbeatLookup(invalid, deviceId, requestId));
+        invalid.setQueryString(null);
+        invalid.removeAttribute("jakarta.servlet.request.X509Certificate");
+        assertThrows(SecurityException.class,
+                () -> policy.resolveHeartbeatLookup(invalid, deviceId, requestId));
+        // A GET to the ordinary heartbeat POST must never be accepted.
+        assertThrows(SecurityException.class,
+                () -> policy.resolve(accepted, deviceId, "heartbeats"));
+    }
+
+    @Test
     void http2UsesCanonicalServletAuthorityWithoutAcceptingHostSpoofing() {
         var h2 = request();
         h2.setProtocol("HTTP/2.0");

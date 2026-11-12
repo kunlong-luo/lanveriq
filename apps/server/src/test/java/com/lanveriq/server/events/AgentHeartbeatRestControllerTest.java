@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -100,6 +101,48 @@ class AgentHeartbeatRestControllerTest {
         verify(service, never()).ingest(
                 any(VerifiedDeviceCertificate.class), any(UUID.class),
                 any(DeviceHeartbeat.class));
+    }
+
+    @Test
+    void acceptedLedgerLookupRequiresPinnedProxyAndDoesNotExposeUnknownUuid()
+            throws Exception {
+        when(ingress.resolveHeartbeatLookup(any(HttpServletRequest.class),
+                eq(device), eq(requestId))).thenReturn(identity);
+        var valid = new DeviceHeartbeatLookupReceipt(1, device, requestId,
+                true, Instant.parse("2026-11-08T04:25:46Z"));
+        when(service.lookupAccepted(eq(identity), eq(device), eq(requestId)))
+                .thenReturn(java.util.Optional.of(valid));
+        var mvc = MockMvcBuilders.standaloneSetup(controller).build();
+        String target = path() + "/requests/" + requestId;
+        mvc.perform(get(target))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.request_id").value(requestId.toString()))
+                .andExpect(jsonPath("$.device_id").value(device.toString()))
+                .andExpect(jsonPath("$.committed").value(true));
+        verify(ingress).resolveHeartbeatLookup(any(HttpServletRequest.class),
+                eq(device), eq(requestId));
+        verify(service).lookupAccepted(eq(identity), eq(device), eq(requestId));
+
+        org.mockito.Mockito.reset(service);
+        when(service.lookupAccepted(eq(identity), eq(device), eq(requestId)))
+                .thenReturn(java.util.Optional.empty());
+        mvc.perform(get(target))
+                .andExpect(status().isNotFound())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(result -> assertTrue(
+                        result.getResponse().getContentAsString().isEmpty()));
+    }
+
+    @Test
+    void untrustedLookupDoesNotTouchDatabase() throws Exception {
+        when(ingress.resolveHeartbeatLookup(any(HttpServletRequest.class),
+                eq(device), eq(requestId))).thenThrow(new SecurityException("untrusted"));
+        MockMvcBuilders.standaloneSetup(controller).build()
+                .perform(get(path() + "/requests/" + requestId))
+                .andExpect(status().isForbidden())
+                .andExpect(header().string("Cache-Control", "no-store"));
+        verify(service, never()).lookupAccepted(any(), any(), any());
     }
 
     @Test
