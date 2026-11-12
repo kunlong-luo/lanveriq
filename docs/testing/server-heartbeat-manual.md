@@ -1,5 +1,16 @@
 # HB-01 — internal device heartbeat and latest-state acceptance
 
+**2026-11-12 HTTP/2 activation regression under investigation:** Real Rust transport reached
+the opt-in synthetic business test but initially received 403 on activation.
+The isolated comparison in [run #43209697578](https://github.com/kunlong-luo/lanveriq/actions/runs/43209697578)
+returned direct Tomcat HTTP/2=403, HTTP/1.1=200 with the same trusted
+upstream certificate and matched reviewed PG18 row. A narrow policy candidate
+allows absent ordinary Host only on actual HTTP/2 when Tomcat's parsed
+`:authority` / `getServerName()` equals the expected Agent hostname;
+conflicting explicit Host, incorrect authority, missing H1 Host, wrong TLS
+peer and direct access still fail closed. Source is pending exact-SHA CI.
+Do not mark the real Rust-to-PG18 chain accepted until the new request passes.
+
 **2026-11-12 source-only upcoming single-request L2:** An explicit
 `LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP=1` runner mode is being added to the
 disposable Linux-only Batch A workflow. It first verifies the production-like

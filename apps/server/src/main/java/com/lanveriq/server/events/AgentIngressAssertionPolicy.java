@@ -59,10 +59,25 @@ final class AgentIngressAssertionPolicy {
                 || !request.isSecure()
                 || !"https".equals(request.getScheme())
                 || !"127.0.0.1".equals(request.getRemoteAddr())
-                || !expectedHost.equals(singleHeader(request, "Host"))
                 || !("/api/v1/devices/" + pathDeviceId + "/" + endpointSuffix)
                         .equals(request.getRequestURI())
                 || request.getQueryString() != null) {
+            throw denied();
+        }
+
+        // Tomcat's HTTP/2 connector receives :authority, not necessarily
+        // an ordinary Host header. Under no forwarded-header strategy,
+        // getServerName() reflects Tomcat's parsed request authority.
+        // Only exact HTTP/2 may omit Host, and it must still match the
+        // canonical authority. An explicit conflicting Host is always denied.
+        // HTTP/1.1 and every other protocol still REQUIRE one exact Host.
+        String ordinaryHost = singleHeader(request, "Host");
+        if ("HTTP/2.0".equals(request.getProtocol())) {
+            if (!expectedHost.equals(request.getServerName())
+                    || (ordinaryHost != null && !expectedHost.equals(ordinaryHost))) {
+                throw denied();
+            }
+        } else if (!expectedHost.equals(ordinaryHost)) {
             throw denied();
         }
 

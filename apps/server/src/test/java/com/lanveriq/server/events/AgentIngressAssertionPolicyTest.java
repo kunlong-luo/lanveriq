@@ -45,6 +45,40 @@ class AgentIngressAssertionPolicyTest {
     }
 
     @Test
+    void http2UsesCanonicalServletAuthorityWithoutAcceptingHostSpoofing() {
+        var h2 = request();
+        h2.setProtocol("HTTP/2.0");
+        h2.removeHeader("Host");
+        h2.setServerName(HOST);
+        var identity = policy.resolve(h2, deviceId, "activate");
+        assertEquals(deviceId, identity.deviceId());
+        assertEquals(FINGERPRINT, identity.sha256Fingerprint());
+
+        // HTTP/1.1 with no Host remains denied, and HTTP/2 cannot replace
+        // the exact authority with another Caddy virtual host.
+        assertDenied(request -> {
+            request.setProtocol("HTTP/2.0");
+            request.removeHeader("Host");
+            request.setServerName("console.lanveriq.internal");
+        });
+        assertDenied(request -> {
+            request.setProtocol("HTTP/2.0");
+            request.setServerName("enroll.lanveriq.internal");
+        });
+        assertDenied(request -> {
+            request.setProtocol("HTTP/2.0");
+            request.setServerName(HOST);
+            request.removeHeader("Host");
+            request.addHeader("Host", "console.lanveriq.internal");
+        });
+        assertDenied(request -> {
+            request.setProtocol("HTTP/2.0");
+            request.setServerName(HOST);
+            request.addHeader("Host", HOST);
+        });
+    }
+
+    @Test
     void missingTlsPeerCertificateIsDenied() {
         assertDenied(request -> request.removeAttribute(
                 "jakarta.servlet.request.X509Certificate"));

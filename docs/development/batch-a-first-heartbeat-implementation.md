@@ -1,5 +1,7 @@
 # Batch A / 首次心跳的可运行链路 — Stage A1
 
+**2026-11-12 HTTP/2 Host 安全差异诊断（修复尚待 CI）：** [原始诊断 #43209697578](https://github.com/kunlong-luo/lanveriq/actions/runs/43209697578) 使用同一受信托的 Caddy upstream 证书与已审核合成 PG18 注册行，直接请求 Tomcat 的 HTTP/1.1 激活为 200、HTTP/2 激活为 403。因 HTTP/2 使用 `:authority` 伪头，普通 `Host` 可能缺失，现将 `AgentIngressAssertionPolicy` 限定为：**仅 HTTP/2** 可在普通 Host 缺失时使用 Tomcat 解析的精确 `getServerName()`，任何显式不一致 Host 仍拒绝；HTTP/1.1 继续必须提供唯一准确 Host，所有 TLS peer、来源 IP、路径、设备绑定仍保留。真实链路 CI 通过前不得宣告修复成功。
+
 **2026-11-12 Batch A 单链路候选（源代码已准备、CI 尚未验证）：**
 `linux-batch-a-caddy-pg18-acceptance.yml` 在一次性 GitHub Ubuntu 24.04 runner 上先验证所有既有默认-OFF 403 与真实 TLS1.2、错 CA、错 Host 负例，再启动同一个临时 PostgreSQL 18 数据库所对应的受控 Spring 双路由。真实 Rust `AgentTlsTransport` 以刚生成的 Linux P-256 CSR 所签客户端证书，经 Caddy/Tomcat 双向 TLS 发送 activation + 两次 heartbeat；随后重放旧请求，并验证精确 ACK、HTTP 409、数据库最新状态与 last_seen 不被改写、未注册但受信 CA 证书、错设备、过期和吊销后的拒绝。仅合成 `not_collected`，不启动 Agent service、不搜集真实端点。此阶段不要在 CI 完成前宣称 A4 已验收；生产、POP!_OS 实机及受控发行仍未获授权。
 
