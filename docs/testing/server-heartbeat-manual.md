@@ -1,5 +1,21 @@
 # HB-01 — internal device heartbeat and latest-state acceptance
 
+**2026-11-12 source-only upcoming single-request L2:** An explicit
+`LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP=1` runner mode is being added to the
+disposable Linux-only Batch A workflow. It first verifies the production-like
+default-deny 403 and actual TLS negatives, then restarts only the throwaway
+Spring process with activation and heartbeat flags true, seeds a matching
+reviewed *synthetic* Rust CSR/leaf in the disposable PG18 database and exercises
+real `AgentTlsTransport::send_activation` and `send_heartbeat` through
+Caddy/Tomcat to PostgreSQL 18. Rust checks exact response DTOs, request UUIDs
+and replay quarantine; an independent curl checks replay 409 with empty
+no-store response, and SQL checks the latest-state and last-seen are unchanged.
+Expired/revoked and trusted-CA-unregistered keys must still fail. **Pending CI**
+until the exact source SHA workflow succeeds; never copy this temporary mode
+into deployed infrastructure.
+
+
+
 **2026-11-12 replay guard (L1 and real synthetic PG18 CI PASS, source SHA [`7547f5c0`](https://github.com/kunlong-luo/lanveriq/commit/7547f5c0ccc80fdd6d5e248eafdcb7d939734f41); [Batch A #43205182338](https://github.com/kunlong-luo/lanveriq/actions/runs/43205182338)):** Flyway V9 adds a
 per-device persistent accepted-request UUID ledger. After device and certificate
 locks succeed, the same transaction inserts the validated UUID before updating

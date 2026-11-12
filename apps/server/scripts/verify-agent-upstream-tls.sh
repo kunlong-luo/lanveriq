@@ -15,6 +15,8 @@ BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
 # Optional Linux-primary, synthetic-only Rust Agent CSR -> Caddy/Tomcat proof.
 # Never invoked by a production Agent, nor available without bridge opt-in.
 LINUX_CSR_MODE="${LANVERIQ_SYNTHETIC_LINUX_CSR:-0}"
+# Independent, CI-only actual Rust HTTPS business request opt-in.
+BUSINESS_MODE="${LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP:-0}"
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
 BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
 NEXTJS_MODE="${LANVERIQ_SYNTHETIC_NEXTJS_PROBE:-0}"
@@ -73,6 +75,31 @@ MULTI_ADMIN_MODE="${LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE:-0}"
     echo "Linux Rust CSR bridge requires disposable GitHub Actions and explicit synthetic Caddy bridge" >&2
     exit 1
 }
+[[ "$BUSINESS_MODE" == 0 || "$BUSINESS_MODE" == 1 ]] || {
+    echo "Synthetic Agent business mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$BUSINESS_MODE" == 0 ||
+    ( "$BRIDGE_MODE" == 1 && "$LINUX_CSR_MODE" == 1 &&
+      "$CONSOLE_MODE" == 0 && "${GITHUB_ACTIONS:-}" == true &&
+      "${RUNNER_OS:-}" == Linux ) ]] || {
+    echo "Real synthetic Agent POST is restricted to disposable Linux CI only" >&2
+    exit 1
+}
+if [[ "$BUSINESS_MODE" == 1 ]]; then
+    for tool in base64 getent; do
+        command -v "$tool" >/dev/null || {
+            echo "Missing disposable Agent HTTP prerequisite: $tool" >&2
+            exit 1
+        }
+    done
+    # Reqwest deliberately has no production DNS override; disposable CI
+    # pins the exact canonical Agent hostname to its own loopback only.
+    [[ "$(getent ahostsv4 agent.lanveriq.internal | awk 'NR==1 {print $1}')" == 127.0.0.1 ]] || {
+        echo "Synthetic Agent DNS is not pinned to CI loopback" >&2
+        exit 1
+    }
+fi
 # Spring @ConditionalOnProperty(havingValue="true") requires the canonical
 # literal, not the synthetic harness 0/1 switch (which would silently leave
 # the opt-in Console/readonly SecurityFilterChains disabled).
@@ -230,6 +257,10 @@ EOF
         make_leaf agent approved-client-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
     fi
     make_leaf wrong-agent untrusted-agent-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
+    if [[ "$BUSINESS_MODE" == 1 ]]; then
+        # Caddy may accept this cert's CA, but PostgreSQL MUST deny it.
+        make_leaf other-agent approved-client-ca clientAuth "URI:urn:uuid:$DEVICE_ID"
+    fi
     cp "$TMP/pki/approved-client-ca.crt" "$TMP/pki/approved-client-ca.pem"
     cp "$TMP/pki/backend-ca.crt" "$TMP/pki/backend-server-ca.pem"
     cp "$TMP/pki/untrusted-ca.crt" "$TMP/pki/wrong-backend-ca.pem"
@@ -846,7 +877,180 @@ PY
         exit 1
     }
     echo "MANUAL SYNTHETIC BRIDGE PASS: Caddy->real Tomcat health 200/UP, business default-deny 403, PostgreSQL 18.6 Flyway."
-    echo "NOT PROVEN: Agent controller/revocation, actual servlet assertion, key ACL, live OS."
+    if [[ "$BUSINESS_MODE" == 1 ]]; then
+        # Only after DEFAULT-OFF 403, TLS1.2, no-cert, wrong-CA, SNI and
+        # wrong-Caddy-upstream checks pass may this throwaway Boot process
+        # mount both Agent business routes. Production config stays OFF.
+        RUST_AGENT_HTTP="$ROOT/apps/agent/target/debug/examples/linux_batch_a_http_synthetic"
+        [[ -x "$RUST_AGENT_HTTP" &&
+           "$(stat -c %u "$RUST_AGENT_HTTP")" == "$(id -u)" ]] || {
+            echo "Missing trusted compiled Rust single-shot CI Agent probe" >&2
+            exit 1
+        }
+        CLIENT_FP="$(openssl x509 -in "$TMP/pki/agent.crt" -outform DER |
+            sha256sum | cut -d' ' -f1)"
+        CSR_SHA="$(sha256sum "$TMP/pki/agent.csr" | cut -d' ' -f1)"
+        CSR_B64="$(base64 -w0 "$TMP/pki/agent.csr")"
+        [[ "$CLIENT_FP" =~ ^[0-9a-f]{64}$ &&
+           "$CSR_SHA" =~ ^[0-9a-f]{64}$ &&
+           "$CSR_SPKI" =~ ^[0-9a-f]{64}$ &&
+           "$CSR_B64" =~ ^[A-Za-z0-9+/=]+$ ]] || {
+            echo "Synthetic Rust CSR, leaf fingerprint or public PEM is malformed" >&2
+            exit 1
+        }
+        # Create one reviewed-only synthetic fixture; no real endpoint,
+        # admin, CA signing service, identity upload or employee data.
+        # The actual public CSR and matching leaf SPKI are persisted.
+        docker exec -i "$DB_CID" psql -U lanveriq -d lanveriq -Xq \
+            -v ON_ERROR_STOP=1 >/dev/null <<SQL
+INSERT INTO device_groups(name) VALUES ('synthetic-batch-a-http');
+INSERT INTO devices(id, group_id, enrollment_state)
+VALUES ('$DEVICE_ID',
+        (SELECT id FROM device_groups WHERE name='synthetic-batch-a-http'),
+        'pending_certificate');
+INSERT INTO device_enrollment_csrs
+    (device_id, csr_pem_public, csr_sha256_digest, csr_spki_digest,
+     pending_expires_at, reviewed_by, reviewed_at)
+VALUES ('$DEVICE_ID',
+        convert_from(decode('$CSR_B64','base64'),'UTF8'),
+        '$CSR_SHA', '$CSR_SPKI',
+        clock_timestamp() + INTERVAL '1 hour',
+        '00000000-0000-7000-8000-000000000042', clock_timestamp());
+INSERT INTO device_credentials
+    (device_id, client_cert_sha256_fingerprint, issuer_id, serial_number,
+     csr_spki_digest, status, issued_at, expires_at)
+VALUES ('$DEVICE_ID', '$CLIENT_FP', 'synthetic-approved-agent-ca',
+        'synthetic-single-shot', '$CSR_SPKI', 'pending',
+        clock_timestamp() - INTERVAL '1 hour',
+        clock_timestamp() + INTERVAL '1 hour');
+SQL
+        # Restart the SAME disposable TLS connector against the SAME PG18
+        # database with TWO explicit flags. Never modify application.yml
+        # or start the installed Agent service.
+        kill "$APP_PID"
+        wait "$APP_PID" >/dev/null 2>&1 || true
+        APP_PID=""
+        java -jar "$ROOT/apps/server/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar" \
+            --spring.profiles.active=agent-upstream-mtls-acceptance \
+            --lanveriq.agent.activation.http-enabled=true \
+            --lanveriq.agent.heartbeat.http-enabled=true \
+            --lanveriq.console.auth.enabled=false \
+            >"$TMP/spring-business.log" 2>&1 &
+        APP_PID=$!
+        BUSINESS_READY=0
+        for _ in $(seq 1 90); do
+            if curl --silent --fail --noproxy '*' --max-time 3 \
+                --tlsv1.3 --tls-max 1.3 \
+                --cacert "$TMP/pki/backend-ca.crt" --resolve "$HOST_RESOLVE" \
+                --cert "$TMP/pki/proxy.crt" --key "$TMP/pki/proxy.key" \
+                "$URL/actuator/health" | grep -q '"status":"UP"'; then
+                BUSINESS_READY=1
+                break
+            fi
+            kill -0 "$APP_PID" >/dev/null 2>&1 || break
+            sleep 2
+        done
+        [[ "$BUSINESS_READY" == 1 ]] || {
+            echo "FAIL: throwaway Boot business acceptance process failed" >&2
+            exit 1
+        }
+        assert_bridge_up
+        export LANVERIQ_SYNTHETIC_AGENT_HTTP_ONLY=yes
+        export LANVERIQ_SYNTHETIC_AGENT_HTTP_PKI="$TMP/pki"
+        export LANVERIQ_SYNTHETIC_AGENT_HTTP_CA="$ROOT_CA"
+        export LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE="$TMP/first-heartbeat.json"
+        "$RUST_AGENT_HTTP" accepted "$DEVICE_ID" || {
+            echo "FAIL: real Rust Agent request/strict ACK chain rejected" >&2
+            exit 1
+        }
+        [[ -s "$TMP/first-heartbeat.json" ]] || {
+            echo "FAIL: Rust Agent did not retain its first synthetic outbound body" >&2
+            exit 1
+        }
+        db_latest() {
+            docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT concat_ws('|', h.agent_status, h.policy_version,
+                    h.integrity_degraded, h.received_at, d.last_seen_at,
+                    (SELECT COUNT(*) FROM device_heartbeat_request_ids r
+                        WHERE r.device_id=d.id))
+                FROM device_heartbeat_latest h
+                JOIN devices d ON d.id=h.device_id
+                WHERE d.id='$DEVICE_ID'"
+        }
+        DB_BEFORE="$(db_latest)"
+        [[ "$DB_BEFORE" == "degraded|2|true|"*"|2" ]] || {
+            echo "FAIL: real Rust Agent did not commit exactly two distinct PG18 heartbeats" >&2
+            exit 1
+        }
+        # Rust deliberately quarantines non-200; independently require the
+        # exact 409 status, zero body and no-store from the same real route.
+        replay_code="$(curl --silent --show-error --noproxy '*' --http2 \
+            --tlsv1.3 --tls-max 1.3 --max-time 12 \
+            --cacert "$ROOT_CA" \
+            --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+            -H 'Content-Type: application/json' \
+            --data-binary @"$TMP/first-heartbeat.json" \
+            -D "$TMP/replay-headers" -o "$TMP/replay-response" \
+            -w '%{http_code}' \
+            "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/heartbeats")"
+        [[ "$replay_code" == 409 && ! -s "$TMP/replay-response" ]] &&
+            grep -iq '^cache-control:.*no-store' "$TMP/replay-headers" || {
+            echo "FAIL: real replay did not produce empty no-store HTTP 409" >&2
+            exit 1
+        }
+        [[ "$(db_latest)" == "$DB_BEFORE" ]] || {
+            echo "FAIL: replay changed latest heartbeat, last-seen or durable ID count" >&2
+            exit 1
+        }
+        # Different client key signed by the *approved* CA passes TLS but
+        # must fail at the real device credential SQL lock (403, no mutation).
+        unknown_code="$(curl --silent --show-error --noproxy '*' --http2 \
+            --tlsv1.3 --tls-max 1.3 --max-time 12 \
+            --cacert "$ROOT_CA" \
+            --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/other-agent.crt" --key "$TMP/pki/other-agent.key" \
+            -H 'Content-Type: application/json' \
+            --data-binary @"$TMP/first-heartbeat.json" \
+            -o "$TMP/unregistered-response" -w '%{http_code}' \
+            "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/heartbeats")"
+        [[ "$unknown_code" == 403 && "$(db_latest)" == "$DB_BEFORE" ]] || {
+            echo "FAIL: trusted-CA but unregistered client leaf bypassed PG18 identity" >&2
+            exit 1
+        }
+        # Expire the otherwise matching registered leaf; JPA validates
+        # clock_timestamp() while holding the canonical credential lock.
+        docker exec "$DB_CID" psql -U lanveriq -d lanveriq -Xq -v ON_ERROR_STOP=1 \
+            -c "UPDATE device_credentials
+                SET issued_at=clock_timestamp() - INTERVAL '2 hours',
+                    expires_at=clock_timestamp() - INTERVAL '1 hour'
+                WHERE device_id='$DEVICE_ID' AND status='active'" >/dev/null
+        "$RUST_AGENT_HTTP" expired "$DEVICE_ID" || {
+            echo "FAIL: expired client credential accepted a heartbeat" >&2
+            exit 1
+        }
+        [[ "$(db_latest)" == "$DB_BEFORE" ]] || {
+            echo "FAIL: expired credential changed committed PG18 state" >&2
+            exit 1
+        }
+        docker exec "$DB_CID" psql -U lanveriq -d lanveriq -Xq -v ON_ERROR_STOP=1 \
+            -c "UPDATE device_credentials
+                SET issued_at=clock_timestamp() - INTERVAL '1 hour',
+                    expires_at=clock_timestamp() + INTERVAL '1 hour',
+                    status='revoked', revoked_at=clock_timestamp()
+                WHERE device_id='$DEVICE_ID'" >/dev/null
+        "$RUST_AGENT_HTTP" revoked "$DEVICE_ID" || {
+            echo "FAIL: revoked client credential accepted a heartbeat" >&2
+            exit 1
+        }
+        [[ "$(db_latest)" == "$DB_BEFORE" ]] || {
+            echo "FAIL: revoked credential changed committed PG18 state" >&2
+            exit 1
+        }
+        echo "PASS: one real Rust Reqwest TLS1.3 Agent->Caddy->Tomcat->PG18 activation/heartbeat/strict ACK chain, 409 replay and three credential negatives."
+    else
+        echo "NOT PROVEN: enabled Agent controller/revocation or live OS."
+    fi
     if [[ "$CONSOLE_MODE" == 1 ]]; then
         # Diagnose the actual first-request 403 without exposing headers,
         # cookies, SQL, credentials or exception messages. Use the dedicated
@@ -989,9 +1193,11 @@ PY
 fi
 
 echo "MANUAL SYNTHETIC PASS: real Spring/Tomcat mTLS, PG18 Flyway startup, default deny."
-if [[ "$BRIDGE_MODE" == 0 ]]; then
-    echo "NOT PROVEN: real Caddy-to-Tomcat handshake, path-specific policy resolution,"
+if [[ "$BUSINESS_MODE" == 1 ]]; then
+    echo "PASS: synthetic Rust HTTPS request, exact Spring ACK and PG18 persistence/replay/revocation."
+    echo "NOT PROVEN: authorized Pop!_OS installed service, production CA, retention epoch or live device."
+elif [[ "$BRIDGE_MODE" == 0 ]]; then
+    echo "NOT PROVEN: real Caddy-to-Tomcat handshake, Agent business route or live device."
 else
-    echo "NOT PROVEN: enabled Agent controller or per-request servlet-assertion handling,"
+    echo "NOT PROVEN: enabled Agent business request/ACK, credential revocation or live device."
 fi
-echo "per-request PostgreSQL revocation, OS key custody, or any actual Agent."

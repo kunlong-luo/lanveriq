@@ -12,6 +12,8 @@ on:
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
       - 'apps/agent/src/enrollment_linux.rs'
       - 'apps/agent/examples/linux_csr_synthetic.rs'
+      - 'apps/agent/examples/linux_batch_a_http_synthetic.rs'
+      - 'apps/agent/src/transport.rs'
       - 'apps/server/scripts/assert-postgres18-junit.py'
       - 'apps/server/scripts/test_assert_postgres18_junit.py'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/**'
@@ -46,6 +48,16 @@ jobs:
       - name: Build real offline-only Linux P-256 CSR helper (not Agent runtime)
         working-directory: apps/agent
         run: cargo +1.94.0 build --locked --example linux_csr_synthetic
+      - name: Build real Reqwest/Rustls single-shot synthetic Agent client
+        working-directory: apps/agent
+        run: cargo +1.94.0 build --locked --example linux_batch_a_http_synthetic
+      - name: Pin Agent test DNS to loopback on disposable GitHub runner only
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTIONS" = true
+          test "$RUNNER_OS" = Linux
+          printf '127.0.0.1 agent.lanveriq.internal\n' | sudo tee -a /etc/hosts >/dev/null
+          test "$(getent ahostsv4 agent.lanveriq.internal | awk 'NR==1 {print $1}')" = 127.0.0.1
       - name: Confirm disposable synthetic runner, Docker, pinned tools
         run: |
           set -euo pipefail
@@ -61,13 +73,15 @@ jobs:
         env:
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
           LANVERIQ_SYNTHETIC_LINUX_CSR: '1'
+          LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP: '1'
           LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '0'
           LANVERIQ_SYNTHETIC_BROWSER_PROBE: '0'
           LANVERIQ_SYNTHETIC_NEXTJS_PROBE: '0'
           LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: '0'
           LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: '0'
-        # Actual server launch/PG18 migration and strict TLS/hostname/client
-        # negatives; activation must remain disabled/403 throughout.
+        # Preserve default-OFF business denial first, then opt in ONLY inside
+        # disposable runner for actual Rust POST -> Caddy -> Boot -> PG18 + ACK
+        # and replay/certificate negative checks. No installed Agent runs.
         run: bash apps/server/scripts/verify-agent-upstream-tls.sh
 
   linux-postgres18-transactions:

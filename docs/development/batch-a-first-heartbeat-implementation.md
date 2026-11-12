@@ -1,5 +1,10 @@
 # Batch A / 首次心跳的可运行链路 — Stage A1
 
+**2026-11-12 Batch A 单链路候选（源代码已准备、CI 尚未验证）：**
+`linux-batch-a-caddy-pg18-acceptance.yml` 在一次性 GitHub Ubuntu 24.04 runner 上先验证所有既有默认-OFF 403 与真实 TLS1.2、错 CA、错 Host 负例，再启动同一个临时 PostgreSQL 18 数据库所对应的受控 Spring 双路由。真实 Rust `AgentTlsTransport` 以刚生成的 Linux P-256 CSR 所签客户端证书，经 Caddy/Tomcat 双向 TLS 发送 activation + 两次 heartbeat；随后重放旧请求，并验证精确 ACK、HTTP 409、数据库最新状态与 last_seen 不被改写、未注册但受信 CA 证书、错设备、过期和吊销后的拒绝。仅合成 `not_collected`，不启动 Agent service、不搜集真实端点。此阶段不要在 CI 完成前宣称 A4 已验收；生产、POP!_OS 实机及受控发行仍未获授权。
+
+
+
 **日期：2026-11-08。状态：默认 OFF 的心跳 HTTP 入口、Agent 严格回执与 L1 定向单测已提交；尚未完成批次 A 合成 E2E。**
 **上级计划：**[v0.1 批量交付计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md)，其优先级高于旧 NXT 逐阶段 UI/验收笔记。
 
