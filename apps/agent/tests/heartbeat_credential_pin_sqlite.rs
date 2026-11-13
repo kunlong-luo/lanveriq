@@ -200,7 +200,9 @@ async fn pinned_epoch_blocks_direct_checkpoint_writer_inside_sqlite_transaction(
         .await
         .unwrap();
     assert!(matches!(
-        store.save_heartbeat_schedule_checkpoint(&checkpoint, 0).await,
+        store
+            .save_heartbeat_schedule_checkpoint(&checkpoint, 0)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
     let existing = store
