@@ -198,6 +198,19 @@ def check_viewports(browser):
                     "document.documentElement.scrollWidth <= window.innerWidth + 2"),
                     "horizontal_page_overflow_at_" + str(width))
                 if route == "/overview":
+                    # Browser-native scrollbar is visually absent, but the
+                    # viewport must remain scrollable by wheel and keyboard.
+                    require(page.evaluate(
+                        "getComputedStyle(document.documentElement).scrollbarWidth") ==
+                            "none", "native_viewport_scrollbar_visible_at_" + str(width))
+                    if width == 1440:
+                        require(page.evaluate(
+                            "document.documentElement.scrollHeight > window.innerHeight + 100"),
+                            "overview_no_vertical_content_for_scroll_regression")
+                        page.evaluate("window.scrollTo(0, 0)")
+                        page.mouse.wheel(0, 650)
+                        page.wait_for_function("window.scrollY > 0", timeout=4000)
+                        page.evaluate("window.scrollTo(0, 0)")
                     hero = page.locator(".overview-hero")
                     require(hero.is_visible() and
                             hero.bounding_box()["width"] <= width + 1,
