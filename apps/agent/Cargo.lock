@@ -1022,10 +1022,12 @@ name = "lanveriq-agent"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "hex",
  "libsqlite3-sys",
  "network-interface",
  "os_info",
  "reqwest",
+ "ring",
  "rustls-pki-types",
  "serde",
  "serde_json",

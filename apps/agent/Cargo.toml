@@ -16,6 +16,10 @@ reqwest = { version = "=0.13.5", default-features = false, features = ["rustls",
 # Fingerprint the DER leaf actually supplied to the same Reqwest identity;
 # never accept an arbitrary caller-reported "expected" fingerprint.
 rustls-pki-types = { version = "=1.15.1", features = ["alloc"] }
+# Existing locked crates for detached Ed25519 review verification and hex.
+# No embedded signing key, certificate issuer or production trust anchor.
+ring = "=0.17.14"
+hex = "=0.4.3"
 sha2 = "0.10"
 # INV-01: explicit local hardware/OS + NIC snapshots; no process/user collection.
 # sysinfo disables components, user enumeration and built-in network features.

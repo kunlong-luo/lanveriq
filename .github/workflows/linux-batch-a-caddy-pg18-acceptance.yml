@@ -15,6 +15,7 @@ on:
       - 'apps/agent/examples/linux_batch_a_http_synthetic.rs'
       - 'apps/agent/src/transport.rs'
       - 'apps/agent/src/heartbeat_credential_pin.rs'
+      - 'apps/agent/src/first_pin_review.rs'
       - 'apps/agent/Cargo.toml'
       - 'apps/agent/Cargo.lock'
       - 'apps/server/scripts/assert-postgres18-junit.py'

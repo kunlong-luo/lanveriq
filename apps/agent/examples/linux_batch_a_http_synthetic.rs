@@ -8,13 +8,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         HeartbeatEpochPreflightObservation, inspect_explicit_heartbeat_epoch_preflight,
     };
     use lanveriq_agent::heartbeat_runtime::{HeartbeatAttemptOutcome, run_explicit_heartbeat_once};
+    use lanveriq_agent::first_pin_review::{
+        FirstPinReviewObservation, OfflineFirstPinReview, inspect_offline_first_pin_review,
+    };
     use lanveriq_agent::heartbeat_schedule::HeartbeatHalt;
     use lanveriq_agent::store::OutboxStore;
     use lanveriq_agent::transport::{
         ActivationRequest, AgentTlsTransport, CredentialEpochDisposition, DeliveryDisposition,
         Heartbeat, HeartbeatLookupDisposition, TransportError,
     };
-    use std::{cell::Cell, env, fs, path::PathBuf};
+    use ring::signature::{Ed25519KeyPair, KeyPair};
+    use ring::rand::SystemRandom;
+    use std::{cell::Cell, env, fs, path::PathBuf, time::{SystemTime, UNIX_EPOCH}};
     use uuid::Uuid;
 
     if env::var("GITHUB_ACTIONS").as_deref() != Ok("true")
@@ -167,6 +172,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         println!(
             "PASS: real Rust TLS1.3 SQLite epoch preflight is unbound-needs-review, no pin/ACK release and durable quarantine unchanged."
+        );
+        // A8: a fresh, entirely synthetic reviewer key exists only in
+        // this disposable CI process. Its signature is NOT a real admin
+        // authorization or a deployable trust root. The binding includes
+        // a CURRENT TLS DER-bound observation from the actual mTLS client.
+        let verified_epoch = match client.observe_current_credential_epoch(device).await? {
+            CredentialEpochDisposition::ObservedOnly(epoch) => epoch,
+            _ => return Err("synthetic current TLS epoch unavailable for signature test".into()),
+        };
+        let random = SystemRandom::new();
+        let test_pkcs8 = Ed25519KeyPair::generate_pkcs8(&random)
+            .map_err(|_| "cannot create disposable CI reviewer key")?;
+        let ephemeral_reviewer = Ed25519KeyPair::from_pkcs8(test_pkcs8.as_ref())
+            .map_err(|_| "invalid disposable CI reviewer key")?;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        let mut signed_review = OfflineFirstPinReview {
+            schema_version: 1,
+            device_id: verified_epoch.device_id,
+            credential_epoch_id: verified_epoch.credential_epoch_id,
+            cert_sha256_fingerprint: verified_epoch.cert_sha256_fingerprint.clone(),
+            review_id: Uuid::now_v7(),
+            not_before_unix: now - 30,
+            expires_at_unix: now + 300,
+            signature_hex: String::new(),
+        };
+        signed_review.signature_hex = hex::encode(
+            ephemeral_reviewer.sign(&signed_review.signing_payload()?).as_ref()
+        );
+        if inspect_offline_first_pin_review(
+            &signed_review,
+            &verified_epoch,
+            ephemeral_reviewer.public_key().as_ref(),
+            now,
+        )? != FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly
+        {
+            return Err("synthetic detached review signature did not verify".into());
+        }
+        let mut forged_review = signed_review.clone();
+        forged_review.review_id = Uuid::now_v7();
+        if inspect_offline_first_pin_review(
+            &forged_review,
+            &verified_epoch,
+            ephemeral_reviewer.public_key().as_ref(),
+            now,
+        ).is_ok() {
+            return Err("synthetic tampered review signature was accepted".into());
+        }
+        if store.load_heartbeat_credential_pin(device).await?.is_some()
+            || store.load_heartbeat_schedule_recovery(device).await?.generation != state.generation
+        {
+            return Err("synthetic review signature implicitly modified SQLite".into());
+        }
+        println!(
+            "PASS: real TLS-bound epoch and synthetic Ed25519 detached review match; tampered review denied and durable ACK quarantine unchanged."
         );
         let missing = Uuid::now_v7();
         assert_eq!(
