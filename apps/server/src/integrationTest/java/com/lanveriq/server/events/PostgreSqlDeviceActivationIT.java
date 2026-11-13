@@ -1,10 +1,13 @@
 package com.lanveriq.server.events;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.persistence.EntityManager;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +16,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -290,19 +295,85 @@ class PostgreSqlDeviceActivationIT {
                 assertThrows(DeviceHeartbeatRejection.class, () ->
                         heartbeatService.ingest(secondCredential, deviceId, firstHeartbeat)).reason());
 
-        // A V9 ledger row cannot be safely attributed during migration.
-        new TransactionTemplate(txManager).executeWithoutResult(ignored ->
-                entityManager.createNativeQuery("""
-                        UPDATE device_heartbeat_request_ids
-                        SET client_cert_sha256_fingerprint=NULL
-                        WHERE device_id=:device AND request_id=:request
-                        """)
-                        .setParameter("device", deviceId)
-                        .setParameter("request", firstId)
-                        .executeUpdate());
-        assertTrue(heartbeatService.lookupAccepted(credential, deviceId, firstId).isEmpty());
-        assertTrue(heartbeatService.lookupAccepted(secondCredential, deviceId, firstId).isEmpty());
-        assertTrue(heartbeatService.lookupAccepted(secondCredential, deviceId, secondId).isPresent());
+    }
+
+    @Test
+    void v9ToV10UpgradeKeepsLegacyIdsButRejectsNewUnboundRows() throws SQLException {
+        String schema = "legacy_" + UUID.randomUUID().toString().replace("-", "");
+        var old = Flyway.configure()
+                .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .schemas(schema).defaultSchema(schema)
+                .locations("classpath:db/migration")
+                .target(MigrationVersion.fromVersion("9"))
+                .load();
+        old.migrate();
+
+        UUID oldDevice = UUID.randomUUID();
+        UUID oldRequest = UUID.randomUUID();
+        try (var connection = DriverManager.getConnection(
+                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
+            connection.setSchema(schema);
+            UUID group = UUID.randomUUID();
+            try (var insert = connection.prepareStatement(
+                    "INSERT INTO device_groups(id,name) VALUES (?,?)")) {
+                insert.setObject(1, group);
+                insert.setString(2, "legacy-group");
+                insert.executeUpdate();
+            }
+            try (var insert = connection.prepareStatement(
+                    "INSERT INTO devices(id,group_id,enrollment_state) VALUES (?,?,'active')")) {
+                insert.setObject(1, oldDevice);
+                insert.setObject(2, group);
+                insert.executeUpdate();
+            }
+            try (var insert = connection.prepareStatement(
+                    "INSERT INTO device_heartbeat_request_ids(device_id,request_id) VALUES (?,?)")) {
+                insert.setObject(1, oldDevice);
+                insert.setObject(2, oldRequest);
+                insert.executeUpdate();
+            }
+        }
+
+        var upgraded = Flyway.configure()
+                .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .schemas(schema).defaultSchema(schema)
+                .locations("classpath:db/migration")
+                .load();
+        assertEquals(1, upgraded.migrate().migrationsExecuted);
+        try (var connection = DriverManager.getConnection(
+                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
+            connection.setSchema(schema);
+            try (var select = connection.prepareStatement("""
+                    SELECT client_cert_sha256_fingerprint
+                    FROM device_heartbeat_request_ids
+                    WHERE device_id=? AND request_id=?
+                    """)) {
+                select.setObject(1, oldDevice);
+                select.setObject(2, oldRequest);
+                try (var rows = select.executeQuery()) {
+                    assertTrue(rows.next());
+                    assertNull(rows.getString(1));
+                }
+            }
+            try (var insert = connection.prepareStatement(
+                    "INSERT INTO device_heartbeat_request_ids(device_id,request_id) VALUES (?,?)")) {
+                insert.setObject(1, oldDevice);
+                insert.setObject(2, UUID.randomUUID());
+                var denied = assertThrows(SQLException.class, insert::executeUpdate);
+                assertEquals("23514", denied.getSQLState());
+            }
+            try (var insert = connection.prepareStatement("""
+                    INSERT INTO device_heartbeat_request_ids
+                        (device_id,request_id,client_cert_sha256_fingerprint)
+                    VALUES (?,?,?)
+                    """)) {
+                insert.setObject(1, oldDevice);
+                insert.setObject(2, oldRequest);
+                insert.setString(3, "a".repeat(64));
+                var denied = assertThrows(SQLException.class, insert::executeUpdate);
+                assertEquals("23505", denied.getSQLState());
+            }
+        }
     }
 
     @Test

@@ -10,3 +10,9 @@ ALTER TABLE device_heartbeat_request_ids
     ADD CONSTRAINT heartbeat_request_certificate_fingerprint_hex
     CHECK (client_cert_sha256_fingerprint IS NULL
            OR client_cert_sha256_fingerprint ~ '^[0-9a-f]{64}$');
+
+-- PostgreSQL enforces a NOT VALID CHECK for new rows and updates, while
+-- grandfathering V9 rows whose submitting certificate cannot be recovered.
+ALTER TABLE device_heartbeat_request_ids
+    ADD CONSTRAINT heartbeat_request_certificate_fingerprint_required
+    CHECK (client_cert_sha256_fingerprint IS NOT NULL) NOT VALID;
