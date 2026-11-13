@@ -1,3 +1,5 @@
+> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+
 # Definition of done (DOD)
 
 ## Docs gate D0
@@ -13,7 +15,7 @@
 - Requirements/behavior explained; change committed atomically to main.
 - **L1:** related source/typed DTO/security negative unit tests, format, type and compile checks are green on the tested SHA; never mark a default-OFF feature production-ready by typecheck alone.
 - **L2:** a cohesive P0 business batch (A, B, C or D) cannot be marked completed until its relevant disposable PostgreSQL/Caddy/Agent/Next.js integration and negative cases have actually executed and passed; avoid entire E2E on every tiny push.
-- **L3:** v0.1 milestone/first pilot requires the complete security browser/cross-platform suite, real authorized Windows/Linux acceptance, PKI/key custody, restore and privacy/operations approvals. Missing or unexecuted checks remain explicitly OPEN.
+- **L3:** v0.1 milestone/first pilot requires the complete security browser/cross-platform suite, real authorized Pop!_OS Linux acceptance for the Linux-only release (Windows native L3 separately required for Windows support), PKI/key custody, restore and privacy/operations approvals. Missing or unexecuted checks remain explicitly OPEN.
 - API schema and data migrations updated if changed; fail-safe on platform permission denial.
 - No sensitive sample data, secrets, covert capabilities or unsupported compatibility claims.
 

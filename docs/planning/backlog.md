@@ -1,3 +1,5 @@
+> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+
 # Issue-ready prioritized backlog
 
 > **Delivery policy updated 2026-11-08:** this large original ticket matrix includes historical snapshots (especially rows marked "not implemented" or "DB untested" from 2026-10/early 11). It is **not** a current status ledger. Read the latest source/CI and [v0.1 batched delivery plan](v0.1-batched-delivery-plan-2026-11-08.md). Priority is now **Batch A device identity→enrollment/activation→Agent mTLS heartbeat→PG18**, then B inventory/recovery, C real authorized console, D WSS/events, E controlled release. Pause extra UI polishing and all v0.2/v0.3 features until v0.1 is functional. L1 fast checks run per relevant change; heavy CI is milestone/dispatch only. No production real-data approval.

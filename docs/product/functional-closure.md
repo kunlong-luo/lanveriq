@@ -1,3 +1,5 @@
+> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](../planning/release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+
 # Product functional closure and milestone acceptance
 
 **Status as of 2026-11-08:** **部分源代码与合成验收已实现**：Spring Boot/PostgreSQL、Rust SQLx/Reqwest、Next.js 断开式 B+C 控制台及默认 OFF 心跳入口；**没有一条真实 Agent→Caddy→PG18→授权前端业务链路完全闭环**。D0 技术设计已批准，真实员工数据、证书保管与生产发布仍待独立审批。三个独立业务循环中 **仅 Loop A 是 v0.1 P0**；Loop B/C 不得阻塞首次设备管理上线。见 [v0.1 A–E 交付计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md)。
@@ -5,7 +7,7 @@
 ## Loop A — Device management and health (v0.1)
 `Admin approves policy → pairs device → Agent authenticates → heartbeats/health/SQLite backlog → server stores → WebSocket status hint → Monitoring Center fetches REST → alert or diagnosis → recover/revoke → audit admin action`
 
-**Closure criteria:** managed Windows + selected Pop!_OS device display distinct identities and online/stale/offline state; unsupported/denied collectors are not shown as healthy; a temporary LAN outage triggers a bounded queue and duplicate-safe replay; unauthorized dashboard views/subscriptions are denied. A `Monitoring Center` is a **dedicated v0.1 screen**, not merely the homepage. No realtime screen images in v0.1.
+**Linux-first closure criteria:** an authorized real Pop!_OS 24.04 device displays its verified identity (Windows requires later independent acceptance) and online/stale/offline state; unsupported/denied collectors are not shown as healthy; a temporary LAN outage triggers a bounded queue and duplicate-safe replay; unauthorized dashboard views/subscriptions are denied. A `Monitoring Center` is a **dedicated v0.1 screen**, not merely the homepage. No realtime screen images in v0.1.
 
 ## Loop B — Scoped activity/security audit (v0.2)
 `Published allowlist → platform adapter collects approved metadata → local durable outbox → PostgreSQL canonical event → activity/audit projection → auditor searches device/time → sees gaps and source confidence → authorized export/incident case → retention/deletion`

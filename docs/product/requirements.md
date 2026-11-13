@@ -1,6 +1,8 @@
+> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](../planning/release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+
 # Product requirements document (PRD)
 
-**Status:** Draft for review, no code | **Product:** LAN-only endpoint management and scoped activity audit for 1–10 authorized company devices.
+**Status:** D0 approved, source/L2 partial, NOT production-ready | **Product:** LAN-first Linux device management; approved VPN/WAN by separate gate, activity audit in later milestones.
 
 ## Problem and outcomes
 Small offices need a simple private-server tool to review endpoint availability, declared application activity and selected security events without external clouds, a message broker or a complex distributed deployment. The product favors predictable installation, lightweight agents and recoverable event delivery.
@@ -47,7 +49,7 @@ Small offices need a simple private-server tool to review endpoint availability,
 Covert monitoring, hidden installs, permission bypass, keylogging, password/clipboard/message collection, webcam/microphone, arbitrary remote-shell, AI/LLM, public SaaS, enterprise MDM and high-volume video analytics. Having a company-owned device does not eliminate privacy obligations.
 
 ## Acceptance constraints
-- Pilot on one Windows 11 device and one supported Linux desktop; all features must report their actual capability state.
+- Linux-only v0.1 pilot on one authorized Pop!_OS 24.04 device; Windows 11 is a separate future native L3 gate. All capabilities must report actual state.
 - Enroll → heartbeat → disconnect → local queue → reconnect → duplicate-safe server delivery is reproducible.
 - Staff receive clear prior notice and can see when optional screen recording is active.
 - Admin role restrictions protect device-specific queries, video, exports and policy changes.

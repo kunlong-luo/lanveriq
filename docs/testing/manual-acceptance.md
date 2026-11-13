@@ -1,6 +1,8 @@
-# Manual acceptance checklist (no E2E automation in early MVP)
+> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](../planning/release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
 
-**Status:** test plan only, not executed. This is intentionally separate from GitHub CI, which will run **only unit tests** during v0.x. Keep dated evidence without actual employee information.
+# Real-device manual acceptance checklist (separate from synthetic automated E2E)
+
+**Status:** real-device/manual L3 NOT yet approved. L1 unit and L2 actual isolated Rust/Caddy/PG18/Chromium E2E now exist; neither substitutes for consented Pop!_OS testing. Keep dated evidence without employee information.
 
 ## Evidence template
 - Case ID / milestone:
@@ -17,7 +19,7 @@
 | ID | Test | Expected result |
 |---|---|---|
 | MAN-001 | Fresh server bootstrap with synthetic admin | login and no default password |
-| MAN-002 | Valid temporary enrollment on Windows | new unique identity, one token use |
+| MAN-002 | Windows temporary enrollment (later independent compatibility gate) | new identity, one-use token; not Linux-only v0.1 blocker |
 | MAN-003 | Valid temporary enrollment on Linux | same logical result |
 | MAN-004 | Replay used/expired token | blocked and logged |
 | MAN-005 | Invalid CA/hostname | connection fails, no TLS bypass |

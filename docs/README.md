@@ -1,3 +1,5 @@
+> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](planning/release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+
 # Lanveriq — documentation index
 
 **Current baseline (2026-11-08):** D0 technical design approved; implemented Java 25/Spring Boot/PG18 unit & synthetic integration slices, Rust SQLx/reqwest + Linux/Windows tests, and canonical Next.js B+C disconnected preview. Batch A1 has a default-OFF Agent heartbeat POST source/strict Rust ACK, **but device registration→Agent runtime→Caddy→PG18→authorized UI is not yet an integrated product**. Full synthetic and real-device legal/operational releases are separate. Active [batch plan](planning/v0.1-batched-delivery-plan-2026-11-08.md), [actual stack](development/technology.md) and [2026-11-08 doc audit](governance/documentation-audit-2026-11-08.md). Historical runbook statuses must be read as timestamped evidence, not the most recent result. See [中文介绍](../README.zh.md).
@@ -18,7 +20,7 @@
 - [Event delivery and idempotency contract](architecture/event-delivery.md)
 - [Configuration and collection policy](architecture/policy-configuration.md)
 - [Independent health and coverage semantics](architecture/health-and-gap-semantics.md)
-- **[Canonical device communication protocol / TLS/ACK review](architecture/device-communication-stack.md)** — implemented reqwest/rustls + Caddy + Spring/PG18, TLS1.2-minimum gap, gRPC/MQTT comparison and release gates.
+- **[Canonical device communication protocol / TLS/ACK review](architecture/device-communication-stack.md)** — implemented reqwest/rustls + Caddy + Spring/PG18, historical TLS1.2-minimum gap (isolated TLS1.3 L2 now passed), gRPC/MQTT comparison and remaining release gates.
 - **[ADR-0010: RustDesk remote session reuse (proposed)](architecture/adrs/0010-rustdesk-remote-control-integration.md)**, [isolated RD-0—RD-3 plan](architecture/rustdesk-integration-plan.md) and **[RD-2 server-enforced authorization acceptance](architecture/rustdesk-rd2-security-acceptance.md)** — genuine OSS/client synthetic CI has passed rendezvous and relay tests, but **no approved remote-desktop session or production integration**; Pro/OSS/AGPL and fail-closed release gates remain open.
 - [REST and event API contract](architecture/api-contract.md)
 - [Dashboard WebSocket protocol](architecture/websocket-contract.md)
@@ -58,6 +60,7 @@
 - [Rust Agent dependency stack and service runtime](development/rust-agent-stack.md) · [AGT-01 source](../apps/agent/README.md) · [Windows/Linux manual service acceptance](testing/agent-lifecycle-manual.md) · [SQLite WAL/outbox manual acceptance](testing/agent-sqlite-manual.md) · [mTLS/heartbeat/batch-ACK manual acceptance](testing/agent-transport-manual.md) · [SRV-03 PostgreSQL event acceptance](testing/server-event-ingestion-manual.md) · [HB-01 heartbeat acceptance](testing/server-heartbeat-manual.md) · [SRV-02 certificate activation acceptance](testing/server-cert-activation-manual.md) · [SRV-02 signed certificate registration acceptance](testing/server-cert-registration-manual.md) · [SRV-02 Caddy Agent ingress identity gate](testing/agent-ingress-identity-manual.md) · [INV-02 latest inventory acceptance](testing/server-inventory-manual.md)
 - **[Approved v0.1 batched delivery / three-tier testing plan (2026-11-08)](planning/v0.1-batched-delivery-plan-2026-11-08.md)** — feature-first A/B/C/D/E milestones, path-filtered fast CI, batch integration and milestone acceptance.
 - [Batch A first heartbeat source and default-off security boundary](development/batch-a-first-heartbeat-implementation.md) — committed HTTP ingress and Agent typed ACK; full Agent→TLS→PG18 business loop still pending.
+- **[Current Linux-first launch readiness, 2026-11-13](planning/release-readiness-2026-11-13.md)**
 - [Development roadmap](planning/roadmap.md)
 - [v0.1 implementation sequence](planning/v0.1-implementation-sequence.md)
 - [Issue-sized backlog](planning/backlog.md)
