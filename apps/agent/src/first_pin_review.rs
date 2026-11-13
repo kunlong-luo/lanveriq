@@ -125,3 +125,192 @@ pub fn inspect_offline_first_pin_review(
         .map_err(|_| FirstPinReviewError::SignatureRejected)?;
     Ok(FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ring::rand::SystemRandom;
+    use ring::signature::{Ed25519KeyPair, KeyPair};
+
+    const NOW: u64 = 1_795_000_000;
+
+    fn new_reviewer() -> Ed25519KeyPair {
+        let private = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new()).unwrap();
+        Ed25519KeyPair::from_pkcs8(private.as_ref()).unwrap()
+    }
+
+    fn signed_fixture() -> (OfflineFirstPinReview, CurrentCredentialEpoch, Ed25519KeyPair) {
+        let current = CurrentCredentialEpoch {
+            device_id: Uuid::now_v7(),
+            credential_epoch_id: Uuid::now_v7(),
+            cert_sha256_fingerprint: "a".repeat(64),
+        };
+        let signer = new_reviewer();
+        let mut grant = OfflineFirstPinReview {
+            schema_version: 1,
+            device_id: current.device_id,
+            credential_epoch_id: current.credential_epoch_id,
+            cert_sha256_fingerprint: current.cert_sha256_fingerprint.clone(),
+            review_id: Uuid::now_v7(),
+            not_before_unix: NOW - 30,
+            expires_at_unix: NOW + 300,
+            signature_hex: String::new(),
+        };
+        grant.signature_hex = hex::encode(signer.sign(&grant.signing_payload().unwrap()).as_ref());
+        (grant, current, signer)
+    }
+
+    #[test]
+    fn valid_signature_binds_exact_current_epoch_but_never_returns_install_permission() {
+        let (grant, current, signer) = signed_fixture();
+        assert_eq!(
+            inspect_offline_first_pin_review(&grant, &current, signer.public_key().as_ref(), NOW),
+            Ok(FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly)
+        );
+        assert_eq!(grant.signing_payload().unwrap(), grant.signing_payload().unwrap());
+        assert!(!grant.signing_payload().unwrap().contains(&b'{'));
+    }
+
+    #[test]
+    fn changed_signed_fields_and_wrong_public_key_fail_closed() {
+        let (grant, current, signer) = signed_fixture();
+        let mut altered = grant.clone();
+        altered.review_id = Uuid::now_v7();
+        assert_eq!(
+            inspect_offline_first_pin_review(&altered, &current, signer.public_key().as_ref(), NOW),
+            Err(FirstPinReviewError::SignatureRejected)
+        );
+        let mut altered = grant.clone();
+        altered.not_before_unix -= 1;
+        assert_eq!(
+            inspect_offline_first_pin_review(&altered, &current, signer.public_key().as_ref(), NOW),
+            Err(FirstPinReviewError::SignatureRejected)
+        );
+        let mut altered = grant.clone();
+        altered.expires_at_unix += 1;
+        assert_eq!(
+            inspect_offline_first_pin_review(&altered, &current, signer.public_key().as_ref(), NOW),
+            Err(FirstPinReviewError::SignatureRejected)
+        );
+        let another = new_reviewer();
+        assert_eq!(
+            inspect_offline_first_pin_review(&grant, &current, another.public_key().as_ref(), NOW),
+            Err(FirstPinReviewError::SignatureRejected)
+        );
+        assert_eq!(
+            inspect_offline_first_pin_review(&grant, &current, &[0u8; 31], NOW),
+            Err(FirstPinReviewError::SignatureRejected)
+        );
+        let mut invalid = grant.clone();
+        invalid.signature_hex = "b".repeat(128);
+        assert_eq!(
+            inspect_offline_first_pin_review(&invalid, &current, signer.public_key().as_ref(), NOW),
+            Err(FirstPinReviewError::SignatureRejected)
+        );
+        invalid.signature_hex = grant.signature_hex.to_uppercase();
+        assert_eq!(
+            inspect_offline_first_pin_review(&invalid, &current, signer.public_key().as_ref(), NOW),
+            Err(FirstPinReviewError::SignatureRejected)
+        );
+    }
+
+    #[test]
+    fn different_tls_device_epoch_or_fingerprint_never_matches_signed_review() {
+        let (grant, current, signer) = signed_fixture();
+        for mutated in [
+            CurrentCredentialEpoch {
+                device_id: Uuid::now_v7(),
+                ..current.clone()
+            },
+            CurrentCredentialEpoch {
+                credential_epoch_id: Uuid::now_v7(),
+                ..current.clone()
+            },
+            CurrentCredentialEpoch {
+                cert_sha256_fingerprint: "b".repeat(64),
+                ..current.clone()
+            },
+        ] {
+            assert_eq!(
+                inspect_offline_first_pin_review(
+                    &grant,
+                    &mutated,
+                    signer.public_key().as_ref(),
+                    NOW
+                ),
+                Err(FirstPinReviewError::DifferentCredential)
+            );
+        }
+    }
+
+    #[test]
+    fn expired_future_or_long_lived_review_cannot_be_accepted() {
+        let (grant, current, signer) = signed_fixture();
+        for now in [NOW - 31, NOW + 300, NOW + 301] {
+            assert_eq!(
+                inspect_offline_first_pin_review(
+                    &grant,
+                    &current,
+                    signer.public_key().as_ref(),
+                    now
+                ),
+                Err(FirstPinReviewError::OutsideValidityWindow)
+            );
+        }
+        let mut too_long = grant.clone();
+        too_long.expires_at_unix = too_long.not_before_unix + 3601;
+        assert_eq!(
+            inspect_offline_first_pin_review(
+                &too_long,
+                &current,
+                signer.public_key().as_ref(),
+                NOW
+            ),
+            Err(FirstPinReviewError::MalformedReview)
+        );
+        let mut inverted = grant.clone();
+        inverted.expires_at_unix = inverted.not_before_unix - 1;
+        assert_eq!(
+            inspect_offline_first_pin_review(
+                &inverted,
+                &current,
+                signer.public_key().as_ref(),
+                NOW
+            ),
+            Err(FirstPinReviewError::MalformedReview)
+        );
+    }
+
+    #[test]
+    fn invalid_versions_fingerprints_fields_and_json_extensions_are_rejected() {
+        let (grant, current, signer) = signed_fixture();
+        let mut altered = grant.clone();
+        altered.schema_version = 2;
+        assert!(matches!(
+            inspect_offline_first_pin_review(&altered, &current, signer.public_key().as_ref(), NOW),
+            Err(FirstPinReviewError::MalformedReview)
+        ));
+        altered = grant.clone();
+        altered.review_id = Uuid::nil();
+        assert!(altered.signing_payload().is_err());
+        altered = grant.clone();
+        altered.credential_epoch_id =
+            Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        assert!(altered.signing_payload().is_err());
+        altered = grant.clone();
+        altered.cert_sha256_fingerprint = "A".repeat(64);
+        assert!(altered.signing_payload().is_err());
+        altered = grant.clone();
+        altered.not_before_unix = 0;
+        assert!(altered.signing_payload().is_err());
+
+        let mut json = serde_json::to_value(&grant).unwrap();
+        json["auto_install_pin"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<OfflineFirstPinReview>(json).is_err());
+        let replay = serde_json::from_slice::<OfflineFirstPinReview>(
+            &serde_json::to_vec(&grant).unwrap()
+        )
+        .unwrap();
+        assert_eq!(replay, grant);
+    }
+}
