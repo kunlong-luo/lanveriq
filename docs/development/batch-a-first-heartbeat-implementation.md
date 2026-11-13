@@ -1,5 +1,8 @@
 # Batch A / 首次心跳的可运行链路 — Stage A1
 
+**2026-11-13 Batch A3 只读恢复竞态 L1 已通过（不是自动恢复）：** 源码 [`b70b20c2`](https://github.com/kunlong-luo/lanveriq/commit/b70b20c265d45de1aaa53690a05e50949a04bd5f) 引入查账完成后二次加载 SQLite，必须同时匹配 CAS generation 与完整 checkpoint；并发进入 Quarantine / 同状态重复 CAS 改变版本时，只返回 `StaleDuringLookup`，不准把原 `Committed`/未知状态报告为当前结果；不修改 pending UUID 或解隔离。实际验证源码 SHA [`cc85897f`](https://github.com/kunlong-luo/lanveriq/commit/cc85897f28949f4938baa69310d61ba44abf9717)：[Agent Rustfmt + 全量单测 + Clippy #43368140495 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43368140495)，[RD-2 default-OFF #43368140522 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43368140522)。新增两项真实文件型 SQLite 并发验证，不是新功能的网络 L2、正式操作员恢复协议、Pop!_OS 实机验收或生产放行。
+
+
 **2026-11-13 Batch A3 恢复检查竞态加固（源码待当次 L1 CI 验证）：** 只读 `inspect_explicit_heartbeat_reconciliation` 不再仅依据查账开始前的 SQLite 快照，网络 GET 返回后必须**二次加载设备绑定 checkpoint，对比 CAS generation 和完整状态**。如果查账期间同一身份进入暂停/隔离、切换请求 ID，甚至仅发生无业务变动的 generation 增长，返回 `StaleDuringLookup`，绝不把旧 `Committed`、404/429/5xx 推断为当前可恢复证据；不修改 SQLite，也不自动解除隔离。新增基于真实文件型 SQLite 的并发更新、无业务变更 CAS 竞争负例。该读取仍不是正式操作员恢复协议，不启用 systemd、生产 Agent 网络或采集。
 
 

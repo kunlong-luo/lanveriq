@@ -14,6 +14,12 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 最新：只读恢复竞态加固 L1 验收成功
+
+- 源码 [`b70b20c2`](https://github.com/kunlong-luo/lanveriq/commit/b70b20c265d45de1aaa53690a05e50949a04bd5f)、实际受测修正 [`cc85897f`](https://github.com/kunlong-luo/lanveriq/commit/cc85897f28949f4938baa69310d61ba44abf9717)。[Rustfmt/Agent 单测/Clippy #43368140495](https://github.com/kunlong-luo/lanveriq/actions/runs/43368140495) SUCCESS；[RD-2 默认拒绝 #43368140522](https://github.com/kunlong-luo/lanveriq/actions/runs/43368140522) SUCCESS。
+- 新增 SQLite 同设备 checkpoint 二次核验：查账等待时发生**并发身份/隔离更新或任意 CAS generation 变化**，返回 `StaleDuringLookup`，而不是沿用过期 committed/unknown 观察。两项真实文件型 SQLite 并发负例已通过；查询保持只读，绝不重发或自动清除 quarantine。
+- **仅 A3 受控本地检查子项 L1_PASS**，没有声称新检查器通过隔离真实网络 L2，更没有完成运营恢复许可、ledger epoch/retention、A2 PKI/常驻 systemd 及真实 Pop!_OS L3。Batch A 仍 OPEN。
+
 ## 最新 Batch A3 安全进展（2026-11-13，单独 L1）
 
 - **只读恢复检查器已实现并通过 L1：** [Agent Rustfmt / 所有 Cargo 单测 / Clippy #43364626478](https://github.com/kunlong-luo/lanveriq/actions/runs/43364626478) SUCCESS（源 SHA [`864297bb`](https://github.com/kunlong-luo/lanveriq/commit/864297bbeb2c5f96191f29526b1afbe4f6eedeb7)）；[RD-2 default OFF #43364626482](https://github.com/kunlong-luo/lanveriq/actions/runs/43364626482) SUCCESS。新增 `heartbeat_reconciliation.rs` 及文件型 SQLite 负向测试：disabled / no pending / identity halt 不发起查账；同设备 pending 查得 committed、unknown、identity rejected、quarantine 和无效响应都**只返回诊断**，不改变持久 SQLite UUID、halt、generation，重启后仍不能发送心跳。已确认核对门槛只读且不会运行真实设备网络。
