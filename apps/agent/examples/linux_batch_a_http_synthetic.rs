@@ -8,8 +8,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use lanveriq_agent::heartbeat_schedule::HeartbeatHalt;
     use lanveriq_agent::store::OutboxStore;
     use lanveriq_agent::transport::{
-        ActivationRequest, AgentTlsTransport, CredentialEpochDisposition,
-        DeliveryDisposition, Heartbeat, HeartbeatLookupDisposition, TransportError,
+        ActivationRequest, AgentTlsTransport, CredentialEpochDisposition, DeliveryDisposition,
+        Heartbeat, HeartbeatLookupDisposition, TransportError,
     };
     use std::{cell::Cell, env, fs, path::PathBuf};
     use uuid::Uuid;
@@ -142,7 +142,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             other => {
                 return Err(format!(
                     "synthetic read-only credential epoch not observed: {other:?}"
-                ).into());
+                )
+                .into());
             }
         };
         if current_epoch.device_id != device
@@ -157,8 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("synthetic epoch observation silently installed a local pin".into());
         }
         let after_epoch = store.load_heartbeat_schedule_recovery(device).await?;
-        if after_epoch.generation != state.generation
-            || after_epoch.checkpoint != state.checkpoint
+        if after_epoch.generation != state.generation || after_epoch.checkpoint != state.checkpoint
         {
             return Err("synthetic epoch observation changed durable checkpoint".into());
         }

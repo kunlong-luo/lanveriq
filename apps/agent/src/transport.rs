@@ -771,9 +771,7 @@ impl AgentTlsTransport {
         if device_id.is_nil() {
             return Err(TransportError::InvalidEvent);
         }
-        let url = format!(
-            "{AGENT_ORIGIN}/api/v1/devices/{device_id}/heartbeats/credential-epoch"
-        );
+        let url = format!("{AGENT_ORIGIN}/api/v1/devices/{device_id}/heartbeats/credential-epoch");
         let mut response = self
             .client
             .get(url)
@@ -788,12 +786,7 @@ impl AgentTlsTransport {
             }
             bytes.extend_from_slice(&chunk);
         }
-        classify_credential_epoch_response(
-            status,
-            &bytes,
-            device_id,
-            &self.client_leaf_sha256,
-        )
+        classify_credential_epoch_response(status, &bytes, device_id, &self.client_leaf_sha256)
     }
 
     /// Staged opt-in inventory attempt. NEVER called by AGT-01 service.

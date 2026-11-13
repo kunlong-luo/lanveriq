@@ -277,4 +277,3 @@ fn transport_epoch_observation_never_takes_a_caller_chosen_fingerprint() {
     let _method = AgentTlsTransport::observe_current_credential_epoch;
     let _ = _method;
 }
-
