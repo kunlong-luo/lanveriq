@@ -176,7 +176,12 @@ mod tests {
             grant.signing_payload().unwrap(),
             grant.signing_payload().unwrap()
         );
-        assert!(grant.signing_payload().unwrap().starts_with(FIRST_PIN_REVIEW_DOMAIN));
+        assert!(
+            grant
+                .signing_payload()
+                .unwrap()
+                .starts_with(FIRST_PIN_REVIEW_DOMAIN)
+        );
     }
 
     #[test]
