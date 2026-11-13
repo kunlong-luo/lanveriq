@@ -325,9 +325,15 @@ async fn epoch_preflight_rejected_or_unresolved_never_releases_legacy_pending() 
     let request = Uuid::now_v7();
     let mut pending = HeartbeatCheckpoint::initial(device()).unwrap();
     pending.begin(true, 100, 30, request).unwrap();
-    pending.note_uncertain_outcome().unwrap();
+    // SQLite refuses to mint a halted first row: persist an authentic
+    // pending UUID first, then emulate the ambiguous ACK-loss transition.
     store
         .save_heartbeat_schedule_checkpoint(&pending, 0)
+        .await
+        .unwrap();
+    pending.note_uncertain_outcome().unwrap();
+    store
+        .save_heartbeat_schedule_checkpoint(&pending, 1)
         .await
         .unwrap();
     for (disposition, expected) in [
@@ -359,7 +365,7 @@ async fn epoch_preflight_rejected_or_unresolved_never_releases_legacy_pending() 
             .load_heartbeat_schedule_recovery(device())
             .await
             .unwrap();
-        assert_eq!(current.generation, 1);
+        assert_eq!(current.generation, 2);
         assert_eq!(current.checkpoint, Some(pending.clone()));
         assert!(
             store
