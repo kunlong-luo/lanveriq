@@ -14,6 +14,11 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 V12 PostgreSQL 证书代际基础：PG18 真实 L2 作业通过
+
+- 每条证书记录的 `credential_epoch_id` 是 PostgreSQL 生成的独立 UUIDv7（含 V9 遗留数据迁移回填），不允许 SQL 客户端指定，也不允许后续改写该身份字段；仍允许证书正常吊销。源码 [`5183ddac`](https://github.com/kunlong-luo/lanveriq/commit/5183ddacfd5b7c5e653b70412f5753c601bb9370)。[PG18 Testcontainers 真实迁移/负例 #43374592095](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592095) 的**数据库作业 SUCCESS**；[Java L1 #43374592206](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592206)、[源码编译 #43374592044](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592044)、[RD-2 default-OFF #43374592077](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592077) SUCCESS。同一运行中的双跳 TLS 作业独立验收。
+- **严格边界：** 当前 V12 只是数据库内服务端代际身份，不是服务器签名/下发给 Agent 的 epoch 凭据，不允许据此切换私钥、解除 SQLite pending/quarantine、按 TTL 删除 UUID 或恢复生产心跳；Batch A 仍 OPEN。完整安全条件见 [代际/保留策略](../architecture/heartbeat-request-ledger-epoch-retention.md)。
+
 ## Batch A V11 账本不可变与代际/保留策略（2026-11-13）
 
 - [`93c24299`](https://github.com/kunlong-luo/lanveriq/commit/93c24299ed031c1c44b6f6158696125d9c97142a) 新增 PostgreSQL V11 `BEFORE UPDATE` 保护，拒绝任何已确认 UUID 或证书指纹归属变更；保留 V9 未绑定旧行及跨证书唯一主键，**没有启用按时限删除、自动轮换或恢复**。

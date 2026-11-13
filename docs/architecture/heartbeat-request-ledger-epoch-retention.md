@@ -21,6 +21,8 @@
 - 不通过证书轮换、管理员切换、设备重新登录、进程重启或查询 404 自动重建 pending UUID；原有设备 UUID 不得复用以绕过重放账本。
 - 不为此开启生产入口、后台轮询、设备库存/活动收集、远控或部署到用户 Pop!_OS。
 
+**V12（2026-11-13，服务端代际身份基础）：** [`7b3a36f7`](https://github.com/kunlong-luo/lanveriq/commit/7b3a36f786e4e4f059b601e3b6be0e65d1f99f07) / [测试补全 `5183ddac`](https://github.com/kunlong-luo/lanveriq/commit/5183ddacfd5b7c5e653b70412f5753c601bb9370) 在 PostgreSQL 18 的 `device_credentials` 新增唯一非空 `credential_epoch_id`，为历史证书回填独立 UUIDv7；`BEFORE INSERT` 不接受 SQL 自选代际 ID，`BEFORE UPDATE` 阻止改写代际及原证书身份字段，但允许有效的 status/revoked_at 更新。**它不是签名授权凭据、可排序/递增代际序号、请求 ID 账本归属替代品或 Agent 可用的轮换协议。** PG18 真实迁移、旧 V9 证书回填、伪造代际/身份更新与正常吊销负例已由 [Linux Batch A #43374592095](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592095) 中 **PG18 Testcontainers 作业 SUCCESS** 证实；同 SHA [Java L1 #43374592206](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592206)、[集成源编译 #43374592044](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592044)、[RD-2 default-OFF #43374592077](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592077) 均 SUCCESS；独立 Caddy/TLS 作业另行判定。
+
 ## 受控证书轮换与 epoch 的后续必需设计（未实现）
 
 1. **审批与状态机：** 限定管理员在已授权设备上先冻结常驻发送，审核该设备的 pending/quarantine、旧证书状态及 SQLite 请求身份；启动新 CSR/新密钥与独立证书审核发行，记录可审计的操作员/原因/设备/旧新证书指纹。
