@@ -222,7 +222,10 @@ fn current_credential_epoch_receipt_is_strictly_read_only_and_identity_bound() {
     for (key, value) in [
         ("device_id", serde_json::json!(Uuid::now_v7())),
         ("credential_epoch_id", serde_json::json!(Uuid::nil())),
-        ("credential_epoch_id", serde_json::json!(Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap())),
+        (
+            "credential_epoch_id",
+            serde_json::json!(Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap()),
+        ),
         (
             "client_cert_sha256_fingerprint",
             serde_json::json!("b".repeat(64)),
