@@ -36,12 +36,14 @@ class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
         // Locks above remain held until the transaction commits. The per-device
         // PostgreSQL unique key also rejects races and survives restarts.
         int accepted = manager.createNativeQuery("""
-                INSERT INTO device_heartbeat_request_ids (device_id, request_id)
-                VALUES (:device_id, :request_id)
+                INSERT INTO device_heartbeat_request_ids
+                    (device_id, request_id, client_cert_sha256_fingerprint)
+                VALUES (:device_id, :request_id, :fingerprint)
                 ON CONFLICT (device_id, request_id) DO NOTHING
                 """)
                 .setParameter("device_id", deviceId)
                 .setParameter("request_id", state.requestId())
+                .setParameter("fingerprint", identity.sha256Fingerprint())
                 .executeUpdate();
         if (accepted != 1) {
             throw new DeviceHeartbeatRejection(
@@ -114,9 +116,11 @@ class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
         var accepted = manager.createNativeQuery("""
                 SELECT r.request_id FROM device_heartbeat_request_ids r
                 WHERE r.device_id=:device_id AND r.request_id=:request_id
+                  AND r.client_cert_sha256_fingerprint=:fingerprint
                 """)
                 .setParameter("device_id", deviceId)
                 .setParameter("request_id", requestId)
+                .setParameter("fingerprint", identity.sha256Fingerprint())
                 .getResultList();
         return accepted.size() == 1;
     }

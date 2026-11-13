@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Positive, authenticated, current-credential evidence of a durable
+ * Positive, authenticated, exact-submitting-certificate evidence of a durable
  * heartbeat request-id ledger entry. Server time is lookup time, NOT the
  * original commit time. Absence cannot prove non-delivery.
  */

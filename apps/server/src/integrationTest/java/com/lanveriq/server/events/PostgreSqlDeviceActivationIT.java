@@ -248,6 +248,64 @@ class PostgreSqlDeviceActivationIT {
     }
 
     @Test
+    void acceptedRequestLookupIsBoundToTheCertificateThatSubmittedIt() {
+        activation.activate(credential, deviceId, request());
+        UUID firstId = UUID.randomUUID();
+        var firstHeartbeat = new DeviceHeartbeat(1, deviceId, "2026-11-12T09:00:00Z",
+                "0.1.0", 1, "running",
+                Map.of("hardware_inventory", "not_collected"),
+                0, 0, null, null, 0, false, List.of(), firstId);
+        heartbeatService.ingest(credential, deviceId, firstHeartbeat);
+
+        String secondFingerprint = UUID.randomUUID().toString().replace("-", "").repeat(2);
+        String secondSpki = UUID.randomUUID().toString().replace("-", "").repeat(2);
+        var secondCredential = new VerifiedDeviceCertificate(deviceId, secondFingerprint);
+        new TransactionTemplate(txManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        INSERT INTO device_credentials(
+                            device_id,client_cert_sha256_fingerprint,issuer_id,
+                            serial_number,csr_spki_digest,status,issued_at,expires_at)
+                        VALUES (:device,:fingerprint,'synthetic-second-issuer',
+                                :serial,:spki_digest,'active',
+                                CURRENT_TIMESTAMP - INTERVAL '1 hour',
+                                CURRENT_TIMESTAMP + INTERVAL '1 hour')
+                        """)
+                        .setParameter("device", deviceId)
+                        .setParameter("fingerprint", secondFingerprint)
+                        .setParameter("serial", UUID.randomUUID().toString())
+                        .setParameter("spki_digest", secondSpki)
+                        .executeUpdate());
+        assertTrue(heartbeatService.lookupAccepted(credential, deviceId, firstId).isPresent());
+        assertTrue(heartbeatService.lookupAccepted(secondCredential, deviceId, firstId).isEmpty());
+
+        UUID secondId = UUID.randomUUID();
+        var secondHeartbeat = new DeviceHeartbeat(1, deviceId, "2026-11-12T09:01:00Z",
+                "0.1.0", 2, "degraded",
+                Map.of("hardware_inventory", "not_collected"),
+                0, 0, null, null, 0, true, List.of(), secondId);
+        heartbeatService.ingest(secondCredential, deviceId, secondHeartbeat);
+        assertTrue(heartbeatService.lookupAccepted(secondCredential, deviceId, secondId).isPresent());
+        assertTrue(heartbeatService.lookupAccepted(credential, deviceId, secondId).isEmpty());
+        assertEquals(DeviceHeartbeatRejection.Reason.REPLAYED_REQUEST,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeatService.ingest(secondCredential, deviceId, firstHeartbeat)).reason());
+
+        // A V9 ledger row cannot be safely attributed during migration.
+        new TransactionTemplate(txManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        UPDATE device_heartbeat_request_ids
+                        SET client_cert_sha256_fingerprint=NULL
+                        WHERE device_id=:device AND request_id=:request
+                        """)
+                        .setParameter("device", deviceId)
+                        .setParameter("request", firstId)
+                        .executeUpdate());
+        assertTrue(heartbeatService.lookupAccepted(credential, deviceId, firstId).isEmpty());
+        assertTrue(heartbeatService.lookupAccepted(secondCredential, deviceId, firstId).isEmpty());
+        assertTrue(heartbeatService.lookupAccepted(secondCredential, deviceId, secondId).isPresent());
+    }
+
+    @Test
     void forgedFingerprintOrMissingAdminReviewCannotActivate() {
         var forged = new VerifiedDeviceCertificate(deviceId, "f".repeat(64));
         assertEquals(DeviceActivationRejection.Reason.DENIED,

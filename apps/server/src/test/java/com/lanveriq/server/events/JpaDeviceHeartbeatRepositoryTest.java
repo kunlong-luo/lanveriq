@@ -79,6 +79,7 @@ class JpaDeviceHeartbeatRepositoryTest {
         assertTrue(sql.getAllValues().get(3).contains("clock_timestamp()"));
         assertTrue(sql.getAllValues().get(4).contains("ON CONFLICT (device_id) DO UPDATE"));
         verify(credentialLock).setParameter("fingerprint", identity.sha256Fingerprint());
+        verify(replayInsert).setParameter("fingerprint", identity.sha256Fingerprint());
         verify(replayInsert).executeUpdate();
         verify(deviceUpdate).executeUpdate();
         verify(snapshot).setParameter("capabilities", "{\"hardware_inventory\":\"not_collected\"}");
@@ -97,6 +98,7 @@ class JpaDeviceHeartbeatRepositoryTest {
         assertTrue(repository.wasAccepted(identity, deviceId, known));
         verify(committedLookup).setParameter("device_id", deviceId);
         verify(committedLookup).setParameter("request_id", known);
+        verify(committedLookup).setParameter("fingerprint", identity.sha256Fingerprint());
         verify(deviceUpdate, never()).executeUpdate();
         verify(snapshot, never()).executeUpdate();
         verify(replayInsert, never()).executeUpdate();
