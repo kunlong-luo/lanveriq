@@ -125,6 +125,36 @@ class JpaDeviceHeartbeatRepository implements DeviceHeartbeatRepository {
         return accepted.size() == 1;
     }
 
+
+    @Override
+    public UUID currentCredentialEpoch(VerifiedDeviceCertificate identity, UUID deviceId) {
+        if (identity == null || deviceId == null || !deviceId.equals(identity.deviceId())) {
+            throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA);
+        }
+        // Canonical lock order, unchanged from POST and request-ledger GET.
+        // The returned UUID comes from PostgreSQL V12, not a header, JSON
+        // field, agent clock, or credential CN. Nothing is updated here.
+        if (!JpaActiveDeviceCredentialGuard.lock(manager, identity, deviceId)) {
+            throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE);
+        }
+        var epoch = manager.createNativeQuery("""
+                SELECT c.credential_epoch_id FROM device_credentials c
+                WHERE c.device_id=:device_id
+                  AND c.client_cert_sha256_fingerprint=:fingerprint
+                  AND c.status='active' AND c.revoked_at IS NULL
+                  AND c.issued_at<=clock_timestamp()
+                  AND c.expires_at>clock_timestamp()
+                """)
+                .setParameter("device_id", deviceId)
+                .setParameter("fingerprint", identity.sha256Fingerprint())
+                .getResultList();
+        if (epoch.size() != 1 || !(epoch.getFirst() instanceof UUID canonical)
+                || canonical.equals(new UUID(0, 0))) {
+            throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE);
+        }
+        return canonical;
+    }
+
     private static String nullableTimestamp(java.time.Instant value) {
         // Avoid Hibernate null-parameter type ambiguity in native PostgreSQL SQL.
         return value == null ? "" : value.toString();

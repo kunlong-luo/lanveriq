@@ -235,6 +235,80 @@ pub fn classify_heartbeat_lookup_response(
     }
 }
 
+/// Read-only CURRENT certificate observation; not a signed authorization
+/// token or permission to initialize SQLite pin or resend any old request.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CredentialEpochReceipt {
+    schema_version: u32,
+    device_id: Uuid,
+    credential_epoch_id: Uuid,
+    client_cert_sha256_fingerprint: String,
+    server_time: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CurrentCredentialEpoch {
+    pub device_id: Uuid,
+    pub credential_epoch_id: Uuid,
+    pub cert_sha256_fingerprint: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CredentialEpochDisposition {
+    ObservedOnly(CurrentCredentialEpoch),
+    Unresolved,
+    PauseIdentity,
+    Quarantine,
+}
+
+/// Pure response classifier, not an HTTP call. A mismatched/extra field,
+/// unknown epoch or inconsistent fingerprint can never become identity.
+/// HTTP 404/429/5xx are unresolved, not permission to create a new pin.
+pub fn classify_credential_epoch_response(
+    status: u16,
+    body: &[u8],
+    expected_device_id: Uuid,
+    expected_fingerprint: &str,
+) -> Result<CredentialEpochDisposition, TransportError> {
+    if expected_device_id.is_nil()
+        || expected_fingerprint.len() != 64
+        || !expected_fingerprint
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err(TransportError::InvalidEvent);
+    }
+    match status {
+        200 => {
+            if body.len() > MAX_RESPONSE_BYTES {
+                return Err(TransportError::OversizedResponse);
+            }
+            let reply: CredentialEpochReceipt =
+                serde_json::from_slice(body).map_err(|_| TransportError::InvalidAcknowledgement)?;
+            if reply.schema_version != 1
+                || reply.device_id != expected_device_id
+                || reply.credential_epoch_id.is_nil()
+                || reply.credential_epoch_id.as_bytes()[6] >> 4 != 7
+                || reply.client_cert_sha256_fingerprint != expected_fingerprint
+                || !is_utc_instant_shape(&reply.server_time)
+            {
+                return Err(TransportError::InvalidAcknowledgement);
+            }
+            Ok(CredentialEpochDisposition::ObservedOnly(
+                CurrentCredentialEpoch {
+                    device_id: reply.device_id,
+                    credential_epoch_id: reply.credential_epoch_id,
+                    cert_sha256_fingerprint: reply.client_cert_sha256_fingerprint,
+                },
+            ))
+        }
+        401 | 403 => Ok(CredentialEpochDisposition::PauseIdentity),
+        404 | 429 | 500..=599 => Ok(CredentialEpochDisposition::Unresolved),
+        _ => Ok(CredentialEpochDisposition::Quarantine),
+    }
+}
+
 /// UTC ISO-8601 shape only. Server/database time is authoritative; do not
 /// interpret a client-parsed string as evidence about device online status.
 fn is_utc_instant_shape(value: &str) -> bool {

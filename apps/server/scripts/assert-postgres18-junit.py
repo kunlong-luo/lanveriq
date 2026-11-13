@@ -56,6 +56,7 @@ REQUIRED_CASES = {
         "twoConcurrentSameCertificateActivationsSerializeAndConverge",
         "v9ToV13UpgradeKeepsLegacyLedgerAndBindsNewRequestsToEpoch",
         "realHeartbeatTransactionPersistsServerOwnedCredentialEpoch",
+        "internalEpochInspectionUsesLiveCredentialAndDoesNotReleaseReplayOrModifyState",
         "serverIssuesImmutableCredentialEpochAndAllowsRevocation",
     },
     "PostgreSqlDeviceInventoryIT": {

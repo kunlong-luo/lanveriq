@@ -28,6 +28,7 @@ class JpaDeviceHeartbeatRepositoryTest {
     private final Query deviceUpdate = Mockito.mock(Query.class);
     private final Query snapshot = Mockito.mock(Query.class);
     private final Query committedLookup = Mockito.mock(Query.class);
+    private final Query currentEpoch = Mockito.mock(Query.class);
     private final UUID deviceId = UUID.randomUUID();
     private final VerifiedDeviceCertificate identity =
             new VerifiedDeviceCertificate(deviceId, "b".repeat(64));
@@ -47,13 +48,15 @@ class JpaDeviceHeartbeatRepositoryTest {
             if (sql.contains("INSERT INTO device_heartbeat_request_ids")) return replayInsert;
             if (sql.contains("SELECT r.request_id FROM device_heartbeat_request_ids"))
                 return committedLookup;
+            if (sql.contains("SELECT c.credential_epoch_id FROM device_credentials"))
+                return currentEpoch;
             if (sql.contains("UPDATE devices")) {
                 return deviceUpdate;
             }
             return snapshot;
         });
         for (Query query : List.of(auth, credentialLock, replayInsert, deviceUpdate,
-                snapshot, committedLookup)) {
+                snapshot, committedLookup, currentEpoch)) {
             when(query.setParameter(anyString(), Mockito.nullable(Object.class))).thenReturn(query);
         }
         when(replayInsert.executeUpdate()).thenReturn(1);
@@ -121,6 +124,28 @@ class JpaDeviceHeartbeatRepositoryTest {
         assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE, error.reason());
         verify(deviceUpdate, never()).executeUpdate();
         verify(snapshot, never()).executeUpdate();
+    }
+
+    @Test
+    void currentEpochReadReturnsOnlyExactActiveDatabaseCredentialWithoutWrites() {
+        wire();
+        when(auth.getResultList()).thenReturn(List.of(deviceId));
+        when(credentialLock.getResultList()).thenReturn(List.of(deviceId));
+        UUID serverEpoch = UUID.randomUUID();
+        when(currentEpoch.getResultList()).thenReturn(List.of(serverEpoch));
+
+        var repository = new JpaDeviceHeartbeatRepository(manager, JsonMapper.builder().build());
+        assertEquals(serverEpoch, repository.currentCredentialEpoch(identity, deviceId));
+        verify(currentEpoch).setParameter("device_id", deviceId);
+        verify(currentEpoch).setParameter("fingerprint", identity.sha256Fingerprint());
+        verify(replayInsert, never()).executeUpdate();
+        verify(snapshot, never()).executeUpdate();
+        verify(deviceUpdate, never()).executeUpdate();
+
+        when(currentEpoch.getResultList()).thenReturn(List.of());
+        var failure = assertThrows(DeviceHeartbeatRejection.class,
+                () -> repository.currentCredentialEpoch(identity, deviceId));
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE, failure.reason());
     }
 
     @Test

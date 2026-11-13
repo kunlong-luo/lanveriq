@@ -165,6 +165,50 @@ class PostgreSqlDeviceActivationIT {
     }
 
     @Test
+    void internalEpochInspectionUsesLiveCredentialAndDoesNotReleaseReplayOrModifyState() {
+        activation.activate(credential, deviceId, request());
+        var expected = (UUID) entityManager.createNativeQuery("""
+                SELECT credential_epoch_id FROM device_credentials
+                WHERE device_id=:device AND client_cert_sha256_fingerprint=:fingerprint
+                """)
+                .setParameter("device", deviceId)
+                .setParameter("fingerprint", credential.sha256Fingerprint())
+                .getSingleResult();
+        var before = entityManager.createNativeQuery("""
+                SELECT last_seen_at FROM devices WHERE id=:device
+                """).setParameter("device", deviceId).getSingleResult();
+        var observed = heartbeatService.inspectCurrentCredentialEpoch(credential, deviceId);
+        assertEquals(1, observed.schemaVersion());
+        assertEquals(deviceId, observed.deviceId());
+        assertEquals(expected, observed.credentialEpochId());
+        assertEquals(credential.sha256Fingerprint(),
+                observed.clientCertSha256Fingerprint());
+        assertEquals(before, entityManager.createNativeQuery("""
+                SELECT last_seen_at FROM devices WHERE id=:device
+                """).setParameter("device", deviceId).getSingleResult());
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeatService.inspectCurrentCredentialEpoch(
+                                new VerifiedDeviceCertificate(deviceId, "f".repeat(64)),
+                                deviceId)).reason());
+        assertEquals(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeatService.inspectCurrentCredentialEpoch(
+                                credential, UUID.randomUUID())).reason());
+
+        new TransactionTemplate(txManager).executeWithoutResult(ignored ->
+                entityManager.createNativeQuery("""
+                        UPDATE device_credentials SET status='revoked',
+                            revoked_at=clock_timestamp()
+                        WHERE device_id=:device
+                        """).setParameter("device", deviceId).executeUpdate());
+        assertEquals(DeviceHeartbeatRejection.Reason.REVOKED_DEVICE,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeatService.inspectCurrentCredentialEpoch(
+                                credential, deviceId)).reason());
+    }
+
+    @Test
     void realHeartbeatTransactionPersistsServerOwnedCredentialEpoch() {
         activation.activate(credential, deviceId, request());
         UUID requestId = UUID.randomUUID();

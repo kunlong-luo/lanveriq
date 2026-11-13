@@ -50,6 +50,23 @@ public class DeviceHeartbeatService {
                 requestId, true, clock.instant()));
     }
 
+
+    /** Internal-only read. Do NOT expose as HTTP until a separately reviewed
+     * exact-route mTLS ingress and negative L2 checks are approved. A valid
+     * current epoch does not retroactively authenticate an old pending UUID.
+     */
+    @Transactional
+    public DeviceCredentialEpochReceipt inspectCurrentCredentialEpoch(
+            VerifiedDeviceCertificate identity, UUID deviceId) {
+        if (identity == null || deviceId == null || !deviceId.equals(identity.deviceId())
+                || deviceId.equals(new UUID(0, 0))) {
+            throw new DeviceHeartbeatRejection(DeviceHeartbeatRejection.Reason.INVALID_SCHEMA);
+        }
+        UUID serverEpoch = repository.currentCredentialEpoch(identity, deviceId);
+        return new DeviceCredentialEpochReceipt(1, deviceId, serverEpoch,
+                identity.sha256Fingerprint(), clock.instant());
+    }
+
     @Transactional
     public DeviceHeartbeatReceipt ingest(VerifiedDeviceCertificate identity,
                                           UUID pathDeviceId, DeviceHeartbeat heartbeat) {

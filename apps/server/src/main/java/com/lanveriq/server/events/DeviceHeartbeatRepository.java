@@ -12,4 +12,9 @@ interface DeviceHeartbeatRepository {
      * unbound rows remain unresolved. A negative result must NEVER be
      * interpreted as proof that retrying a request is safe. */
     boolean wasAccepted(VerifiedDeviceCertificate identity, UUID deviceId, UUID requestId);
+
+    /** Read-only, transaction-bound canonical epoch of the exact CURRENT
+     * registered credential. Never trust a client-supplied epoch; a legacy
+     * pending heartbeat may not be released by this observation. */
+    UUID currentCredentialEpoch(VerifiedDeviceCertificate identity, UUID deviceId);
 }

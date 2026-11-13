@@ -109,6 +109,23 @@ class DeviceHeartbeatTransactionProxyTest {
         verify(manager).rollback(status);
     }
 
+    @Test
+    void currentEpochInspectionReturnsOnlyCommittedReadOnlyTransactionAndDoesNotAcknowledge() {
+        var repository = Mockito.mock(DeviceHeartbeatRepository.class);
+        var manager = Mockito.mock(PlatformTransactionManager.class);
+        var status = Mockito.mock(TransactionStatus.class);
+        when(manager.getTransaction(any(TransactionDefinition.class))).thenReturn(status);
+        UUID serverEpoch = UUID.randomUUID();
+        when(repository.currentCredentialEpoch(identity, id)).thenReturn(serverEpoch);
+        var reply = proxy(repository, manager).inspectCurrentCredentialEpoch(identity, id);
+        assertEquals(1, reply.schemaVersion());
+        assertEquals(id, reply.deviceId());
+        assertEquals(serverEpoch, reply.credentialEpochId());
+        assertEquals(identity.sha256Fingerprint(), reply.clientCertSha256Fingerprint());
+        verify(repository).currentCredentialEpoch(identity, id);
+        verify(manager).commit(status);
+    }
+
     private static DeviceHeartbeatService proxy(DeviceHeartbeatRepository repository,
                                                 PlatformTransactionManager manager) {
         var target = new DeviceHeartbeatService(repository, JsonMapper.builder().build());

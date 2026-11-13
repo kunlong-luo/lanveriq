@@ -183,3 +183,75 @@ fn durable_ledger_lookup_requires_exact_positive_receipt_and_never_trusts_absenc
         Err(TransportError::InvalidEvent)
     ));
 }
+
+#[test]
+fn current_credential_epoch_receipt_is_strictly_read_only_and_identity_bound() {
+    let device = Uuid::now_v7();
+    let epoch = Uuid::now_v7();
+    let fp = "a".repeat(64);
+    let good = serde_json::json!({
+        "schema_version": 1,
+        "device_id": device,
+        "credential_epoch_id": epoch,
+        "client_cert_sha256_fingerprint": fp,
+        "server_time": "2026-11-13T07:00:00Z"
+    });
+    let observed = classify_credential_epoch_response(
+        200, good.to_string().as_bytes(), device, &fp
+    ).unwrap();
+    assert_eq!(
+        observed,
+        CredentialEpochDisposition::ObservedOnly(CurrentCredentialEpoch {
+            device_id: device,
+            credential_epoch_id: epoch,
+            cert_sha256_fingerprint: fp.clone(),
+        })
+    );
+    for (status, expected) in [
+        (401, CredentialEpochDisposition::PauseIdentity),
+        (403, CredentialEpochDisposition::PauseIdentity),
+        (404, CredentialEpochDisposition::Unresolved),
+        (429, CredentialEpochDisposition::Unresolved),
+        (503, CredentialEpochDisposition::Unresolved),
+        (409, CredentialEpochDisposition::Quarantine),
+    ] {
+        assert_eq!(
+            classify_credential_epoch_response(status, b"", device, &fp).unwrap(),
+            expected
+        );
+    }
+    for (key, value) in [
+        ("device_id", serde_json::json!(Uuid::now_v7())),
+        ("credential_epoch_id", serde_json::json!(Uuid::nil())),
+        ("credential_epoch_id", serde_json::json!(Uuid::new_v4())),
+        ("client_cert_sha256_fingerprint", serde_json::json!("b".repeat(64))),
+        ("schema_version", serde_json::json!(2)),
+        ("server_time", serde_json::json!("invalid")),
+    ] {
+        let mut bad = good.clone();
+        bad[key] = value;
+        assert!(matches!(
+            classify_credential_epoch_response(200, bad.to_string().as_bytes(), device, &fp),
+            Err(TransportError::InvalidAcknowledgement)
+        ));
+    }
+    let mut extra = good.clone();
+    extra["can_resume_quarantine"] = serde_json::json!(true);
+    assert!(matches!(
+        classify_credential_epoch_response(200, extra.to_string().as_bytes(), device, &fp),
+        Err(TransportError::InvalidAcknowledgement)
+    ));
+    let mut missing = good.clone();
+    missing.as_object_mut().unwrap().remove("credential_epoch_id");
+    assert!(classify_credential_epoch_response(
+        200, missing.to_string().as_bytes(), device, &fp
+    ).is_err());
+    assert!(matches!(
+        classify_credential_epoch_response(200, &vec![b'!'; 4097], device, &fp),
+        Err(TransportError::OversizedResponse)
+    ));
+    assert!(matches!(
+        classify_credential_epoch_response(200, good.to_string().as_bytes(), device, &"A".repeat(64)),
+        Err(TransportError::InvalidEvent)
+    ));
+}
