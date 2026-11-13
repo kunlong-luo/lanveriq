@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 A5：三重默认拒绝的当前证书代际只读 GET，隔离 L1/L2 PASS
+
+- **精确源码：** [`b9e4efc2`](https://github.com/kunlong-luo/lanveriq/commit/b9e4efc279df35e0b73e1f5f01864ceefbd500d6)。[Linux Batch A #43417739656](https://github.com/kunlong-luo/lanveriq/actions/runs/43417739656) 的 PG18.6 Testcontainers 八组事务与真实隔离 Rust→Caddy→Spring/Tomcat 双跳 TLS1.3 两项作业 **SUCCESS**；[Java L1 #43417739502](https://github.com/kunlong-luo/lanveriq/actions/runs/43417739502)、[PG 编译 #43417739729](https://github.com/kunlong-luo/lanveriq/actions/runs/43417739729)、[RD-2 默认 OFF #43417739717](https://github.com/kunlong-luo/lanveriq/actions/runs/43417739717) **SUCCESS**。
+- **实现：** 新增 Spring `AgentCredentialEpochRestController` 的 `GET /api/v1/devices/{deviceId}/heartbeats/credential-epoch`。除现有上游 mTLS 断言与心跳 HTTP 两开关外，`lanveriq.agent.credential-epoch.http-enabled` **第三独立默认 OFF 开关**必须显式开启。Caddy 只代理精确候选路径；Spring Security 只允许 GET；入站校验固定 Host、真实双跳证书、有效设备及注册指纹，JPA 当前证书行锁读取 V12 canonical epoch，响应 `Cache-Control: no-store`；不接受客户端提供的 epoch 值，不访问任何操作员密钥、不更新心跳/请求账本。
+- **隔离网络负例：** 默认 GET 403；已注册未撤销证书的真实 TLS 200 代际等于 PostgreSQL UUIDv7；同一测试 CA 签发但未注册的叶证书 403；伪造指纹被 Caddy 覆盖；过期和撤销都 403，`last_seen_at`、最新心跳与请求计数前后不变。旧 Rust 真实 ACK 丢失及重放/撤销测试保持成功。
+- **尚未实现/未获批准：** 客户端未调用这个新 GET；Rust 只具有先前 A4 严格解析器，尚无已验证的本地 TLS 证书物料→指纹/epoch→SQLite V7 pin 的可信桥接。200 epoch 既不是原 heartbeat ACK，也不是可移植签名授权、换证或解除隔离许可。没有 Agent 常驻联网、采集、远控、Pop!_OS 24.04 实机 L3、生产证书与数据治理批准。Issue #5 OPEN、v0.1 NOT RELEASE READY。
+
 ## 2026-11-13 A4：当前有效证书代际的内部只读查询与 Rust 严格解码，L1/L2 PASS
 
 - **Java/PG18/TLS 受测源码：** [`1f91db49`](https://github.com/kunlong-luo/lanveriq/commit/1f91db49585429bb8ae6edaaa20f7c0ff568ef5f)；[Linux Batch A #43385185651](https://github.com/kunlong-luo/lanveriq/actions/runs/43385185651) 的 PostgreSQL 18 Testcontainers 八组真实迁移/事务及独立 Rust→Caddy→Spring/Tomcat TLS1.3 合成链路两项均 **SUCCESS**，同源码 [Java L1 #43385185594](https://github.com/kunlong-luo/lanveriq/actions/runs/43385185594) 与 [PG 编译 #43385185657](https://github.com/kunlong-luo/lanveriq/actions/runs/43385185657) **SUCCESS**。
