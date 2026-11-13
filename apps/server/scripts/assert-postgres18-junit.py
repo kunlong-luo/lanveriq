@@ -54,6 +54,8 @@ REQUIRED_CASES = {
         "pendingCredentialCannotSendHeartbeatBeforeActivation",
         "expiredPendingEnrollmentAndRevokedCertificateRemainDenied",
         "twoConcurrentSameCertificateActivationsSerializeAndConverge",
+        "v9ToV12UpgradeKeepsLegacyLedgerAndBackfillsCredentialEpoch",
+        "serverIssuesImmutableCredentialEpochAndAllowsRevocation",
     },
     "PostgreSqlDeviceInventoryIT": {
         "v8StoresMultipleNicsAndIpv4Ipv6ThenReplacesCompleteChildren",

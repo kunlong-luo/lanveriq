@@ -298,7 +298,7 @@ class PostgreSqlDeviceActivationIT {
     }
 
     @Test
-    void v9ToV11UpgradeKeepsLegacyIdsAndForbidsLedgerRebinding() throws SQLException {
+    void v9ToV12UpgradeKeepsLegacyLedgerAndBackfillsCredentialEpoch() throws SQLException {
         String schema = "legacy_" + UUID.randomUUID().toString().replace("-", "");
         var old = Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
@@ -339,7 +339,7 @@ class PostgreSqlDeviceActivationIT {
                 .schemas(schema).defaultSchema(schema)
                 .locations("classpath:db/migration")
                 .load();
-        assertEquals(2, upgraded.migrate().migrationsExecuted);
+        assertEquals(3, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);
@@ -442,6 +442,97 @@ class PostgreSqlDeviceActivationIT {
                 try (var rows = lookup.executeQuery()) {
                     assertTrue(rows.next());
                     assertNull(rows.getString(1));
+                }
+            }
+        }
+    }
+
+    @Test
+    void serverIssuesImmutableCredentialEpochAndAllowsRevocation() throws SQLException {
+        activation.activate(credential, deviceId, request());
+        String secondFingerprint = UUID.randomUUID().toString().replace("-", "").repeat(2);
+        UUID forgedEpoch = UUID.randomUUID();
+        try (var connection = DriverManager.getConnection(
+                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
+            UUID firstEpoch;
+            try (var query = connection.prepareStatement("""
+                    SELECT credential_epoch_id, uuid_extract_version(credential_epoch_id)
+                    FROM device_credentials WHERE client_cert_sha256_fingerprint=?
+                    """)) {
+                query.setString(1, credential.sha256Fingerprint());
+                try (var rows = query.executeQuery()) {
+                    assertTrue(rows.next());
+                    firstEpoch = (UUID) rows.getObject(1);
+                    assertEquals(7, rows.getInt(2));
+                }
+            }
+            try (var insert = connection.prepareStatement("""
+                    INSERT INTO device_credentials(
+                        device_id,client_cert_sha256_fingerprint,issuer_id,
+                        serial_number,csr_spki_digest,status,issued_at,expires_at,
+                        credential_epoch_id)
+                    VALUES (?,?,'synthetic-second-issuer',?,repeat('c',64),'active',
+                            clock_timestamp()-INTERVAL '1 hour',
+                            clock_timestamp()+INTERVAL '1 hour',?)
+                    """)) {
+                insert.setObject(1, deviceId);
+                insert.setString(2, secondFingerprint);
+                insert.setString(3, UUID.randomUUID().toString());
+                insert.setObject(4, forgedEpoch);
+                assertEquals(1, insert.executeUpdate());
+            }
+            UUID secondEpoch;
+            try (var query = connection.prepareStatement("""
+                    SELECT credential_epoch_id, uuid_extract_version(credential_epoch_id)
+                    FROM device_credentials WHERE client_cert_sha256_fingerprint=?
+                    """)) {
+                query.setString(1, secondFingerprint);
+                try (var rows = query.executeQuery()) {
+                    assertTrue(rows.next());
+                    secondEpoch = (UUID) rows.getObject(1);
+                    assertEquals(7, rows.getInt(2));
+                }
+            }
+            assertTrue(!firstEpoch.equals(secondEpoch));
+            assertTrue(!forgedEpoch.equals(secondEpoch));
+            // The immutable identity check must not prevent revocation.
+            try (var update = connection.prepareStatement("""
+                    UPDATE device_credentials
+                    SET status='revoked',revoked_at=clock_timestamp()
+                    WHERE client_cert_sha256_fingerprint=?
+                    """)) {
+                update.setString(1, secondFingerprint);
+                assertEquals(1, update.executeUpdate());
+            }
+            for (String column : List.of(
+                    "credential_epoch_id", "device_id",
+                    "client_cert_sha256_fingerprint", "issuer_id",
+                    "serial_number", "csr_spki_digest")) {
+                String candidate = switch (column) {
+                    case "credential_epoch_id", "device_id" -> UUID.randomUUID().toString();
+                    case "client_cert_sha256_fingerprint", "csr_spki_digest" -> "f".repeat(64);
+                    default -> "forged-synthetic-identity";
+                };
+                String expr = column.equals("credential_epoch_id")
+                        || column.equals("device_id") ? "CAST(? AS uuid)" : "?";
+                try (var update = connection.prepareStatement(
+                        "UPDATE device_credentials SET " + column + "=" + expr
+                                + " WHERE client_cert_sha256_fingerprint=?")) {
+                    update.setString(1, candidate);
+                    update.setString(2, secondFingerprint);
+                    var denied = assertThrows(SQLException.class, update::executeUpdate);
+                    assertEquals("23514", denied.getSQLState());
+                }
+            }
+            try (var query = connection.prepareStatement("""
+                    SELECT credential_epoch_id,status
+                    FROM device_credentials WHERE client_cert_sha256_fingerprint=?
+                    """)) {
+                query.setString(1, secondFingerprint);
+                try (var rows = query.executeQuery()) {
+                    assertTrue(rows.next());
+                    assertEquals(secondEpoch, rows.getObject(1));
+                    assertEquals("revoked", rows.getString(2));
                 }
             }
         }
