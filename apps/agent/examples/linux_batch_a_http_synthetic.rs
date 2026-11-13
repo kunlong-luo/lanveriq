@@ -5,10 +5,11 @@
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use lanveriq_agent::heartbeat_runtime::{HeartbeatAttemptOutcome, run_explicit_heartbeat_once};
+    use lanveriq_agent::heartbeat_schedule::HeartbeatHalt;
     use lanveriq_agent::store::OutboxStore;
     use lanveriq_agent::transport::{
         ActivationRequest, AgentTlsTransport, DeliveryDisposition, Heartbeat,
-        HeartbeatLookupDisposition,
+        HeartbeatLookupDisposition, TransportError,
     };
     use std::{cell::Cell, env, fs, path::PathBuf};
     use uuid::Uuid;
@@ -70,34 +71,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         store.close().await;
 
-        // Reopen the REAL same SQLite file, not an in-memory fake or a new
-        // heartbeat ID store. Only an exactly acknowledged attempt clears
-        // pending and permits another send after the configured interval.
+        // Reopen the same SQLite file. The second POST will commit in PG18,
+        // but an injected local ACK-loss window must retain its pending UUID.
         let store = OutboxStore::open(&state_file).await?;
+        let second_request_id = Cell::new(Uuid::nil());
         let second_outcome = run_explicit_heartbeat_once(&store, device, true, 1_030, 30, |id| {
+            second_request_id.set(id);
             let mut heartbeat = Heartbeat::synthetic(device, "2026-11-12T09:01:00Z".into());
             heartbeat.request_id = id;
             heartbeat.status = "degraded";
             heartbeat.policy_version = 2;
             heartbeat.integrity_degraded = true;
             let sender = &client;
-            async move { sender.send_heartbeat(&heartbeat).await }
+            async move {
+                let disposition = sender.send_heartbeat(&heartbeat).await?;
+                if disposition != DeliveryDisposition::Accepted {
+                    return Ok(disposition);
+                }
+                // The server has returned its strict ACK, but the caller
+                // deliberately loses it before updating the local checkpoint.
+                Err(TransportError::InvalidAcknowledgement)
+            }
         })
-        .await?;
-        if second_outcome != HeartbeatAttemptOutcome::Accepted {
-            return Err("synthetic second heartbeat did not earn a strict ACK".into());
-        }
-        let state = store.load_heartbeat_schedule_recovery(device).await?;
-        if state.generation != 4
-            || state.checkpoint.is_none_or(|checkpoint| {
-                checkpoint.pending_request_id.is_some()
-                    || checkpoint.last_acknowledged_at != Some(1_030)
-                    || checkpoint.halted.is_some()
-            })
-        {
-            return Err("synthetic persistent heartbeat recovery did not match strict ACKs".into());
+        .await;
+        if !matches!(
+            second_outcome,
+            Err(lanveriq_agent::heartbeat_runtime::HeartbeatDriverError::Transport(
+                TransportError::InvalidAcknowledgement
+            ))
+        ) {
+            return Err("synthetic ACK-loss injection was not quarantined".into());
         }
         store.close().await;
+
+        let store = OutboxStore::open(&state_file).await?;
+        let state = store.load_heartbeat_schedule_recovery(device).await?;
+        if state.generation != 4
+            || state.checkpoint.as_ref().is_none_or(|checkpoint| {
+                checkpoint.pending_request_id != Some(second_request_id.get())
+                    || checkpoint.last_acknowledged_at != Some(1_000)
+                    || checkpoint.halted != Some(HeartbeatHalt::Quarantine)
+            })
+        {
+            return Err("synthetic ACK-loss checkpoint did not survive restart".into());
+        }
 
         // The server must prove *durable ledger membership*, with the same
         // current registered leaf via both Caddy/Tomcat TLS1.3 hops. An
@@ -108,11 +125,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .await?,
             HeartbeatLookupDisposition::Committed
         );
+        assert_eq!(
+            client
+                .lookup_heartbeat_request(device, second_request_id.get())
+                .await?,
+            HeartbeatLookupDisposition::Committed
+        );
         let missing = Uuid::now_v7();
         assert_eq!(
             client.lookup_heartbeat_request(device, missing).await?,
             HeartbeatLookupDisposition::Unresolved
         );
+        let resend_count = Cell::new(0);
+        let no_resend = run_explicit_heartbeat_once(&store, device, true, 100_000, 30, |_| {
+            resend_count.set(resend_count.get() + 1);
+            async { Ok(DeliveryDisposition::Accepted) }
+        })
+        .await?;
+        if no_resend != HeartbeatAttemptOutcome::Halted(HeartbeatHalt::Quarantine)
+            || resend_count.get() != 0
+        {
+            return Err("synthetic ledger read implicitly cleared quarantine".into());
+        }
+        let unchanged = store.load_heartbeat_schedule_recovery(device).await?;
+        if unchanged.generation != state.generation || unchanged.checkpoint != state.checkpoint {
+            return Err("synthetic ledger read mutated the local checkpoint".into());
+        }
+        store.close().await;
 
         // A real duplicate wire request is an intentional negative probe,
         // never an automatic retry by the now-settled coordinator.
@@ -143,7 +182,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             DeliveryDisposition::PauseIdentity,
         )?;
         println!(
-            "PASS: real Rust Reqwest TLS1.3 activation, SQLite restart/strict ACK, committed/unknown read-only ledger lookup, replay and wrong-device denial."
+            "PASS: real Rust Reqwest TLS1.3 activation, SQLite restart/strict ACK, injected post-commit ACK loss with durable quarantine, committed/unknown read-only ledger lookup, replay and wrong-device denial."
         );
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
