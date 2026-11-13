@@ -1,7 +1,8 @@
 //! All tests are offline, with file-backed SQLite; never call an Agent
 //! service, TLS socket, enrollment CA, telemetry or remote control.
 use lanveriq_agent::heartbeat_credential_pin::{
-    HeartbeatCredentialContinuity, HeartbeatCredentialPin,
+    HeartbeatCredentialContinuity, HeartbeatCredentialPin, HeartbeatEpochPreflightError,
+    HeartbeatEpochPreflightObservation, inspect_explicit_heartbeat_epoch_preflight,
     inspect_local_heartbeat_credential_continuity,
 };
 use lanveriq_agent::heartbeat_reconciliation::{
@@ -10,7 +11,9 @@ use lanveriq_agent::heartbeat_reconciliation::{
 use lanveriq_agent::heartbeat_runtime::{HeartbeatDriverError, run_explicit_heartbeat_once};
 use lanveriq_agent::heartbeat_schedule::HeartbeatCheckpoint;
 use lanveriq_agent::store::{OutboxStore, StoreError};
-use lanveriq_agent::transport::{DeliveryDisposition, HeartbeatLookupDisposition};
+use lanveriq_agent::transport::{
+    CredentialEpochDisposition, DeliveryDisposition, HeartbeatLookupDisposition,
+};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
 
@@ -219,4 +222,203 @@ fn invalid_local_credential_metadata_rejected() {
     assert!(HeartbeatCredentialPin::new(device(), Uuid::nil(), &"a".repeat(64)).is_err());
     assert!(HeartbeatCredentialPin::new(device(), Uuid::now_v7(), &"A".repeat(64)).is_err());
     assert!(HeartbeatCredentialPin::new(device(), Uuid::now_v7(), &"z".repeat(64)).is_err());
+}
+
+fn observed(pin: &HeartbeatCredentialPin) -> lanveriq_agent::transport::CredentialEpochDisposition {
+    lanveriq_agent::transport::CredentialEpochDisposition::ObservedOnly(
+        lanveriq_agent::transport::CurrentCredentialEpoch {
+            device_id: pin.device_id,
+            credential_epoch_id: pin.credential_epoch_id,
+            cert_sha256_fingerprint: pin.cert_sha256_fingerprint.clone(),
+        },
+    )
+}
+
+#[tokio::test]
+async fn explicit_epoch_preflight_default_off_and_missing_pin_never_install_identity() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("unbound.sqlite"))
+        .await
+        .unwrap();
+    let calls = AtomicUsize::new(0);
+    let disabled = inspect_explicit_heartbeat_epoch_preflight(&store, device(), false, |_| {
+        calls.fetch_add(1, Ordering::SeqCst);
+        async { Ok(observed(&pin())) }
+    })
+    .await
+    .unwrap();
+    assert_eq!(disabled, HeartbeatEpochPreflightObservation::Disabled);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let result = inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
+        Ok(observed(&pin()))
+    })
+    .await
+    .unwrap();
+    assert_eq!(result, HeartbeatEpochPreflightObservation::UnboundNeedsReview);
+    assert!(store
+        .load_heartbeat_credential_pin(device())
+        .await
+        .unwrap()
+        .is_none());
+}
+
+#[tokio::test]
+async fn matching_and_mismatching_existing_pins_are_only_diagnostic() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("matching.sqlite");
+    let store = OutboxStore::open(&path).await.unwrap();
+    let identity = pin();
+    store.initialize_heartbeat_credential_pin(&identity).await.unwrap();
+    for (candidate, expected) in [
+        (identity.clone(), HeartbeatEpochPreflightObservation::MatchingLocalPinOnly),
+        (
+            HeartbeatCredentialPin::new(device(), Uuid::now_v7(), &"a".repeat(64)).unwrap(),
+            HeartbeatEpochPreflightObservation::MismatchStayHalted,
+        ),
+        (
+            HeartbeatCredentialPin::new(
+                device(),
+                identity.credential_epoch_id,
+                &"b".repeat(64),
+            )
+            .unwrap(),
+            HeartbeatEpochPreflightObservation::MismatchStayHalted,
+        ),
+    ] {
+        assert_eq!(
+            inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
+                Ok(observed(&candidate))
+            })
+            .await
+            .unwrap(),
+            expected
+        );
+        assert_eq!(
+            store.load_heartbeat_credential_pin(device()).await.unwrap(),
+            Some(identity.clone())
+        );
+    }
+    store.close().await;
+    let restarted = OutboxStore::open(&path).await.unwrap();
+    assert_eq!(
+        restarted.load_heartbeat_credential_pin(device()).await.unwrap(),
+        Some(identity)
+    );
+}
+
+#[tokio::test]
+async fn epoch_preflight_rejected_or_unresolved_never_releases_legacy_pending() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("held.sqlite"))
+        .await
+        .unwrap();
+    let request = Uuid::now_v7();
+    let mut pending = HeartbeatCheckpoint::initial(device()).unwrap();
+    pending.begin(true, 100, 30, request).unwrap();
+    pending.note_uncertain_outcome().unwrap();
+    store.save_heartbeat_schedule_checkpoint(&pending, 0)
+        .await
+        .unwrap();
+    for (disposition, expected) in [
+        (
+            CredentialEpochDisposition::PauseIdentity,
+            HeartbeatEpochPreflightObservation::IdentityRejectedStillHeld,
+        ),
+        (
+            CredentialEpochDisposition::Unresolved,
+            HeartbeatEpochPreflightObservation::UnresolvedStillHeld,
+        ),
+        (
+            CredentialEpochDisposition::Quarantine,
+            HeartbeatEpochPreflightObservation::QuarantinedStillHeld,
+        ),
+        (
+            observed(&pin()),
+            HeartbeatEpochPreflightObservation::UnboundNeedsReview,
+        ),
+    ] {
+        let result = inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
+            Ok(disposition)
+        })
+        .await
+        .unwrap();
+        assert_eq!(result, expected);
+        let current = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+        assert_eq!(current.generation, 1);
+        assert_eq!(current.checkpoint, Some(pending.clone()));
+        assert!(store.load_heartbeat_credential_pin(device()).await.unwrap().is_none());
+    }
+}
+
+#[tokio::test]
+async fn concurrent_checkpoint_change_makes_mtls_observation_stale_not_approved() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("checkpoint-race.sqlite"))
+        .await
+        .unwrap();
+    let result = inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
+        let mut checkpoint = HeartbeatCheckpoint::initial(device()).unwrap();
+        checkpoint.begin(true, 100, 30, Uuid::now_v7()).unwrap();
+        store.save_heartbeat_schedule_checkpoint(&checkpoint, 0)
+            .await
+            .unwrap();
+        Ok(observed(&pin()))
+    })
+    .await
+    .unwrap();
+    assert_eq!(result, HeartbeatEpochPreflightObservation::StaleDuringLookup);
+    assert!(store.load_heartbeat_credential_pin(device()).await.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn concurrent_first_pin_is_stale_and_cannot_be_used_for_authorization() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("pin-race.sqlite"))
+        .await
+        .unwrap();
+    let identity = pin();
+    let result = inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
+        store.initialize_heartbeat_credential_pin(&identity)
+            .await
+            .unwrap();
+        Ok(observed(&identity))
+    })
+    .await
+    .unwrap();
+    assert_eq!(result, HeartbeatEpochPreflightObservation::StaleDuringLookup);
+    assert_eq!(
+        store.load_heartbeat_credential_pin(device()).await.unwrap(),
+        Some(identity)
+    );
+}
+
+#[tokio::test]
+async fn wrong_device_and_invalid_signed_epoch_are_fail_closed() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("bad-epoch.sqlite"))
+        .await
+        .unwrap();
+    let candidate = pin();
+    assert!(HeartbeatCredentialPin::new(
+        candidate.device_id,
+        Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+        &candidate.cert_sha256_fingerprint
+    )
+    .is_err());
+    let wrong = Uuid::now_v7();
+    assert!(matches!(
+        inspect_explicit_heartbeat_epoch_preflight(&store, wrong, true, |_| async {
+            Ok(observed(&candidate))
+        })
+        .await,
+        Err(HeartbeatEpochPreflightError::Store(StoreError::HeartbeatConflict))
+    ));
+    let altered = HeartbeatCredentialPin::new(wrong, candidate.credential_epoch_id, &"b".repeat(64)).unwrap();
+    assert!(matches!(
+        inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
+            Ok(observed(&altered))
+        })
+        .await,
+        Err(HeartbeatEpochPreflightError::Store(StoreError::HeartbeatConflict))
+    ));
 }

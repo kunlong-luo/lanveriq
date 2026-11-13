@@ -14,6 +14,7 @@ on:
       - 'apps/agent/examples/linux_csr_synthetic.rs'
       - 'apps/agent/examples/linux_batch_a_http_synthetic.rs'
       - 'apps/agent/src/transport.rs'
+      - 'apps/agent/src/heartbeat_credential_pin.rs'
       - 'apps/agent/Cargo.toml'
       - 'apps/agent/Cargo.lock'
       - 'apps/server/scripts/assert-postgres18-junit.py'

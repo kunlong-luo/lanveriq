@@ -4,6 +4,9 @@
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use lanveriq_agent::heartbeat_credential_pin::{
+        HeartbeatEpochPreflightObservation, inspect_explicit_heartbeat_epoch_preflight,
+    };
     use lanveriq_agent::heartbeat_runtime::{HeartbeatAttemptOutcome, run_explicit_heartbeat_once};
     use lanveriq_agent::heartbeat_schedule::HeartbeatHalt;
     use lanveriq_agent::store::OutboxStore;
@@ -133,34 +136,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .await?,
             HeartbeatLookupDisposition::Committed
         );
-        // A5: explicit read-only TLS1.3 GET using the *same* loaded
-        // Rust client certificate as the accepted POST, and using the
-        // locally DER-derived leaf fingerprint (never JSON-supplied).
-        let epoch_observation = client.observe_current_credential_epoch(device).await?;
-        let current_epoch = match epoch_observation {
-            CredentialEpochDisposition::ObservedOnly(epoch) => epoch,
-            other => {
-                return Err(format!(
-                    "synthetic read-only credential epoch not observed: {other:?}"
-                )
-                .into());
-            }
-        };
-        if current_epoch.device_id != device
-            || current_epoch.credential_epoch_id.get_version_num() != 7
-            || current_epoch.cert_sha256_fingerprint.len() != 64
-        {
-            return Err("synthetic epoch observation is not exact device/UUIDv7".into());
+        // A7: real TLS1.3 current-certificate epoch preflight. The
+        // certificate fingerprint comes only from the loaded local DER,
+        // never an arbitrary caller-provided expected fingerprint. Because
+        // ACK-loss produced a durable checkpoint, this MUST remain unbound
+        // and cannot install a retroactively attributed SQLite pin.
+        let preflight = inspect_explicit_heartbeat_epoch_preflight(
+            &store,
+            device,
+            true,
+            |id| client.observe_current_credential_epoch(id),
+        )
+        .await?;
+        if preflight != HeartbeatEpochPreflightObservation::UnboundNeedsReview {
+            return Err("synthetic epoch preflight unexpectedly granted local identity".into());
         }
-        // The query is not approved pin enrollment. Even a perfect epoch
-        // match MUST leave an old pending UUID and durable quarantine alone.
         if store.load_heartbeat_credential_pin(device).await?.is_some() {
-            return Err("synthetic epoch observation silently installed a local pin".into());
+            return Err("synthetic epoch preflight silently installed a local pin".into());
         }
-        let after_epoch = store.load_heartbeat_schedule_recovery(device).await?;
-        if after_epoch.generation != state.generation || after_epoch.checkpoint != state.checkpoint
+        let after_preflight = store.load_heartbeat_schedule_recovery(device).await?;
+        if after_preflight.generation != state.generation
+            || after_preflight.checkpoint != state.checkpoint
         {
-            return Err("synthetic epoch observation changed durable checkpoint".into());
+            return Err("synthetic preflight modified durable pending/quarantine".into());
         }
         let wrong_epoch_device = Uuid::parse_str("00000000-0000-7000-8000-000000000002")?;
         if client
@@ -171,7 +169,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("synthetic cross-device epoch read was not denied".into());
         }
         println!(
-            "PASS: real Rust TLS1.3 read-only credential epoch matches the locally loaded DER leaf, with unchanged SQLite ACK quarantine."
+            "PASS: real Rust TLS1.3 SQLite epoch preflight is unbound-needs-review, no pin/ACK release and durable quarantine unchanged."
         );
         let missing = Uuid::now_v7();
         assert_eq!(
