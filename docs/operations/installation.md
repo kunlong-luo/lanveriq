@@ -1,3 +1,5 @@
+> **2026-11-13 Linux-only 首版安装范围：** 参见 [当前上线差距账本](../planning/release-readiness-2026-11-13.md)。通过的 Rust→Caddy→Tomcat TLS1.3/PG18 测试属于**临时合成 CI**，而非正式 Pop!_OS 24 上的 systemd 服务。DEB/身份密钥/备份恢复与真实组织许可仍是发布 P0，Windows MSI/SCM/CNG 属独立后续平台发布门槛。本文件不能直接作为生产安装指令。
+
 # Lanveriq installation, local development, and deployment runbook
 
 **Status: development-only.** The repository now contains a runnable default-deny Java Spring Boot process and an idle Rust Agent binary, but **only a synthetic React preview (no live login/API), no production-ready Compose stack, no signed MSI/DEB installers, and no production Caddy configuration**. This is **not** a supported production monitoring deployment. Legal/privacy notice and real PostgreSQL/TLS/OS acceptance gates remain open.
@@ -90,7 +92,7 @@ The three **business components** are Web, Server and Agent; PostgreSQL and Cadd
 - PostgreSQL on a private network with pinned/reviewed image, persistent volume, Flyway versioning, `pg_dump`/restore drill, secret custody and retention controls.
 - Completed React app, exact same-origin session/cookie/CSRF/Origin browser acceptance, current group-scoped authorization and audited admin controls.
 - Real PostgreSQL 18.6 **seven-suite / >=58 passing test** evidence from the [manual integration workflow](../../.github/workflows/server-postgres18-integration.yml), not just source compilation.
-- Accepted Windows 11 and Linux system service lifecycle, device identity and certificate custody tests.
+- For Linux-only v0.1, **actual authorized Pop!_OS 24.04** systemd service lifecycle, device identity, non-root certificate custody and rollback testing. Windows native SCM/CNG and installer L3 are required separately before declaring Windows support.
 - Prior organization/legal authorization, clear employee notice and explicit allowed fields/collection schedules. V0.2 app/audit and V0.3 recording have separate permission gates.
 
 **No operator should execute `docker compose up -d` against this repository today:** there is no Compose definition in the current tree. Do not substitute the reference `deploy/caddy/Caddyfile.reference` for a production config or open the dev HTTP bind beyond loopback.
