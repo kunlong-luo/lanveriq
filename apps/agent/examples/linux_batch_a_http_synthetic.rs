@@ -96,9 +96,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await;
         if !matches!(
             second_outcome,
-            Err(lanveriq_agent::heartbeat_runtime::HeartbeatDriverError::Transport(
-                TransportError::InvalidAcknowledgement
-            ))
+            Err(
+                lanveriq_agent::heartbeat_runtime::HeartbeatDriverError::Transport(
+                    TransportError::InvalidAcknowledgement
+                )
+            )
         ) {
             return Err("synthetic ACK-loss injection was not quarantined".into());
         }
