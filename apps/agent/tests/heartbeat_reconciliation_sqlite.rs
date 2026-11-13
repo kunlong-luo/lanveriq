@@ -14,11 +14,7 @@ fn device() -> Uuid {
     Uuid::parse_str("018f9fad-5c71-7db1-b89e-b71f8d620f44").unwrap()
 }
 
-async fn prepare(
-    store: &OutboxStore,
-    request_id: Uuid,
-    halt: Option<HeartbeatHalt>,
-) -> i64 {
+async fn prepare(store: &OutboxStore, request_id: Uuid, halt: Option<HeartbeatHalt>) -> i64 {
     let mut checkpoint = HeartbeatCheckpoint::initial(device()).unwrap();
     checkpoint.begin(true, 100, 30, request_id).unwrap();
     let generation = store
@@ -51,22 +47,21 @@ async fn disabled_and_no_pending_never_invoke_lookup_or_write_checkpoint() {
         (false, HeartbeatReconciliationObservation::Disabled),
         (true, HeartbeatReconciliationObservation::NoPending),
     ] {
-        let seen = inspect_explicit_heartbeat_reconciliation(
-            &store,
-            device(),
-            enabled,
-            |_, _| {
-                calls.fetch_add(1, Ordering::SeqCst);
-                async { Ok(HeartbeatLookupDisposition::Committed) }
-            },
-        )
+        let seen = inspect_explicit_heartbeat_reconciliation(&store, device(), enabled, |_, _| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            async { Ok(HeartbeatLookupDisposition::Committed) }
+        })
         .await
         .unwrap();
         assert_eq!(seen, expected);
     }
     assert_eq!(calls.load(Ordering::SeqCst), 0);
     assert_eq!(
-        store.load_heartbeat_schedule_recovery(device()).await.unwrap().generation,
+        store
+            .load_heartbeat_schedule_recovery(device())
+            .await
+            .unwrap()
+            .generation,
         0
     );
 }
@@ -107,20 +102,16 @@ async fn committed_ledger_member_remains_pending_after_restart_and_no_sender_run
     assert_eq!(checkpoint.halted, Some(HeartbeatHalt::Quarantine));
 
     let sends = AtomicUsize::new(0);
-    let result = run_explicit_heartbeat_once(
-        &restarted,
-        device(),
-        true,
-        999_999,
-        30,
-        |_| {
-            sends.fetch_add(1, Ordering::SeqCst);
-            async { Ok(DeliveryDisposition::Accepted) }
-        },
-    )
+    let result = run_explicit_heartbeat_once(&restarted, device(), true, 999_999, 30, |_| {
+        sends.fetch_add(1, Ordering::SeqCst);
+        async { Ok(DeliveryDisposition::Accepted) }
+    })
     .await
     .unwrap();
-    assert_eq!(result, HeartbeatAttemptOutcome::Halted(HeartbeatHalt::Quarantine));
+    assert_eq!(
+        result,
+        HeartbeatAttemptOutcome::Halted(HeartbeatHalt::Quarantine)
+    );
     assert_eq!(sends.load(Ordering::SeqCst), 0);
 }
 
@@ -152,7 +143,10 @@ async fn unknown_denied_quarantined_and_malformed_lookup_never_mutate_state() {
         ),
     ] {
         let actual = inspect_explicit_heartbeat_reconciliation(
-            &store, device(), true, |owner, request| async move {
+            &store,
+            device(),
+            true,
+            |owner, request| async move {
                 assert_eq!(owner, device());
                 assert_eq!(request, id);
                 Ok(disposition)
@@ -163,15 +157,16 @@ async fn unknown_denied_quarantined_and_malformed_lookup_never_mutate_state() {
         assert_eq!(actual, expected);
     }
     assert!(
-        inspect_explicit_heartbeat_reconciliation(
-            &store, device(), true, |_, _| async {
-                Err(TransportError::InvalidAcknowledgement)
-            },
-        )
+        inspect_explicit_heartbeat_reconciliation(&store, device(), true, |_, _| async {
+            Err(TransportError::InvalidAcknowledgement)
+        },)
         .await
         .is_err()
     );
-    let recovery = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+    let recovery = store
+        .load_heartbeat_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(recovery.generation, generation);
     let checkpoint = recovery.checkpoint.unwrap();
     assert_eq!(checkpoint.pending_request_id, Some(id));
@@ -187,27 +182,32 @@ async fn identity_halt_does_not_lookup_and_cross_device_is_rejected() {
     let generation = prepare(&store, id, Some(HeartbeatHalt::Identity)).await;
     let calls = AtomicUsize::new(0);
     assert_eq!(
-        inspect_explicit_heartbeat_reconciliation(
-            &store, device(), true, |_, _| {
-                calls.fetch_add(1, Ordering::SeqCst);
-                async { Ok(HeartbeatLookupDisposition::Committed) }
-            },
-        ).await.unwrap(),
+        inspect_explicit_heartbeat_reconciliation(&store, device(), true, |_, _| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            async { Ok(HeartbeatLookupDisposition::Committed) }
+        },)
+        .await
+        .unwrap(),
         HeartbeatReconciliationObservation::IdentityHalted
     );
     assert_eq!(calls.load(Ordering::SeqCst), 0);
     assert_eq!(
-        store.load_heartbeat_schedule_recovery(device()).await.unwrap().generation,
+        store
+            .load_heartbeat_schedule_recovery(device())
+            .await
+            .unwrap()
+            .generation,
         generation
     );
     assert!(matches!(
-        inspect_explicit_heartbeat_reconciliation(
-            &store, Uuid::now_v7(), true, |_, _| async {
-                Ok(HeartbeatLookupDisposition::Committed)
-            },
-        ).await,
-        Err(lanveriq_agent::heartbeat_reconciliation::HeartbeatReconciliationError::Store(
-            StoreError::HeartbeatConflict
-        ))
+        inspect_explicit_heartbeat_reconciliation(&store, Uuid::now_v7(), true, |_, _| async {
+            Ok(HeartbeatLookupDisposition::Committed)
+        },)
+        .await,
+        Err(
+            lanveriq_agent::heartbeat_reconciliation::HeartbeatReconciliationError::Store(
+                StoreError::HeartbeatConflict
+            )
+        )
     ));
 }
