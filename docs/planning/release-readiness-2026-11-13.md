@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 SQLite V7：本地证书代际固定保护，L1 已通过
+
+- **实际受测源码：** [`a13a3e7d`](https://github.com/kunlong-luo/lanveriq/commit/a13a3e7dd67f1c327eb4ed9632df68d1ee2306d4)。[Agent Rustfmt / 所有 Cargo 单测 / Clippy #43376633141 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43376633141)；[RD-2 fail-closed #43376633124 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43376633124)。本轮为**实际文件型 SQLite L1**，没有执行新能力的双跳 TLS/PG18 L2，也未在 Pop!_OS 实机 L3 运行。
+- SQLx 迁移 `20261113000700_heartbeat_credential_pin.sql` 在 Agent 本地增加唯一固定的 `(device_id,credential_epoch_id,cert_sha256_fingerprint)` 身份及 seen 防丢失标记；SQL 触发器拒绝正常 UPDATE/DELETE。仅可在没有**任何已持久化心跳 checkpoint** 的库中显式首次固定，旧 pending/隔离无法事后归属给新证书。
+- 已绑定后，现存未传入可信证书上下文的 `run_explicit_heartbeat_once` 与 `inspect_explicit_heartbeat_reconciliation` **一律拒绝执行**；旧发送器若在 pin 写入前读取过无绑定状态，`save_heartbeat_schedule_checkpoint` 同一 SQLite 写事务仍再次拒绝，从而封闭此竞态。新只读 `inspect_local_heartbeat_credential_continuity` 只输出本地匹配/不匹配/无绑定诊断，**匹配绝非授权证明**。
+- **未实现：** 由可信服务端/CA 身份验证到本地 pin 的认证开通协议、携带已验证证书上下文的新版心跳驱动、已获批轮换及旧 pending 人工恢复、硬件密钥托管、真实 Linux systemd 服务联网与 Pop!_OS L3、生产隐私审批。不得将本地输入的指纹/UUID 当 mTLS 或操作员批准，也不得自动换证书、清除 SQLite 隔离、恢复重试或启用采集/远控。Batch A #5 继续 OPEN。
+
 ## 2026-11-13 V12 PostgreSQL 证书代际基础：PG18 真实 L2 作业通过
 
 - 每条证书记录的 `credential_epoch_id` 是 PostgreSQL 生成的独立 UUIDv7（含 V9 遗留数据迁移回填），不允许 SQL 客户端指定，也不允许后续改写该身份字段；仍允许证书正常吊销。源码 [`5183ddac`](https://github.com/kunlong-luo/lanveriq/commit/5183ddacfd5b7c5e653b70412f5753c601bb9370)。[PG18 Testcontainers 真实迁移/负例 #43374592095](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592095) 的**数据库作业 SUCCESS**；[Java L1 #43374592206](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592206)、[源码编译 #43374592044](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592044)、[RD-2 default-OFF #43374592077](https://github.com/kunlong-luo/lanveriq/actions/runs/43374592077) SUCCESS。**同一 CI 中真实 Rust CSR/Reqwest→Caddy→Spring/Tomcat TLS1.3 受控作业也已独立 SUCCESS**：#43374592095 两项实际 L2 作业均通过，仍不等于 Pop!_OS L3。
