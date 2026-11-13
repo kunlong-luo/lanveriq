@@ -211,3 +211,82 @@ async fn identity_halt_does_not_lookup_and_cross_device_is_rejected() {
         )
     ));
 }
+
+#[tokio::test]
+async fn concurrent_quarantine_during_lookup_never_reports_stale_committed_as_current() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("race.sqlite"))
+        .await
+        .unwrap();
+    let id = Uuid::now_v7();
+    let generation = prepare(&store, id, None).await;
+
+    let observed =
+        inspect_explicit_heartbeat_reconciliation(&store, device(), true, |owner, pending| {
+            let store = &store;
+            async move {
+                assert_eq!(owner, device());
+                assert_eq!(pending, id);
+                let recovery = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+                assert_eq!(recovery.generation, generation);
+                let mut checkpoint = recovery.checkpoint.unwrap();
+                checkpoint.note_uncertain_outcome().unwrap();
+                store
+                    .save_heartbeat_schedule_checkpoint(&checkpoint, generation)
+                    .await
+                    .unwrap();
+                Ok(HeartbeatLookupDisposition::Committed)
+            }
+        })
+        .await
+        .unwrap();
+    assert_eq!(
+        observed,
+        HeartbeatReconciliationObservation::StaleDuringLookup(id)
+    );
+    let recovery = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+    assert_eq!(recovery.generation, generation + 1);
+    let checkpoint = recovery.checkpoint.unwrap();
+    assert_eq!(checkpoint.pending_request_id, Some(id));
+    assert_eq!(checkpoint.halted, Some(HeartbeatHalt::Quarantine));
+}
+
+#[tokio::test]
+async fn same_state_cas_bump_during_lookup_also_invalidates_evidence() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("generation.sqlite"))
+        .await
+        .unwrap();
+    let id = Uuid::now_v7();
+    let generation = prepare(&store, id, None).await;
+
+    let observed =
+        inspect_explicit_heartbeat_reconciliation(&store, device(), true, |_, pending| {
+            let store = &store;
+            async move {
+                assert_eq!(pending, id);
+                let checkpoint = store
+                    .load_heartbeat_schedule_recovery(device())
+                    .await
+                    .unwrap()
+                    .checkpoint
+                    .unwrap();
+                // A redundant same-state CAS still invalidates the original
+                // observation, not a license to assume nothing else changed.
+                store
+                    .save_heartbeat_schedule_checkpoint(&checkpoint, generation)
+                    .await
+                    .unwrap();
+                Ok(HeartbeatLookupDisposition::Unresolved)
+            }
+        })
+        .await
+        .unwrap();
+    assert_eq!(
+        observed,
+        HeartbeatReconciliationObservation::StaleDuringLookup(id)
+    );
+    let recovery = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+    assert_eq!(recovery.generation, generation + 1);
+    assert_eq!(recovery.checkpoint.unwrap().pending_request_id, Some(id));
+}

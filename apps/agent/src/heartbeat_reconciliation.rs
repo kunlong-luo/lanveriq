@@ -27,6 +27,9 @@ pub enum HeartbeatReconciliationObservation {
     UnresolvedStillHeld(Uuid),
     IdentityRejectedStillHeld(Uuid),
     QuarantinedStillHeld(Uuid),
+    /// A concurrent checkpoint update invalidated the observation, even if
+    /// the lookup appeared to prove durable membership for the old UUID.
+    StaleDuringLookup(Uuid),
 }
 
 #[derive(Debug, Error)]
@@ -43,6 +46,9 @@ pub enum HeartbeatReconciliationError {
 /// The callback MUST call the strict mTLS AgentTlsTransport lookup with the
 /// exact (device_id, pending_request_id); its typed disposition is not proof
 /// of operator consent or a license to clear the durable pending state.
+/// A second durable read detects any concurrent CAS generation/state change
+/// while the lookup was in flight. This is a read-only, point-in-time
+/// diagnostic, NOT an authorization token valid after this function returns.
 /// No network is attempted when disabled, idle, or identity-halted.
 pub async fn inspect_explicit_heartbeat_reconciliation<F, Fut>(
     store: &OutboxStore,
@@ -71,6 +77,19 @@ where
         return Ok(HeartbeatReconciliationObservation::NoPending);
     };
     let result = lookup(device_id, pending).await?;
+    // A network lookup may take arbitrarily long. Another local writer may
+    // pause the identity, quarantine or advance the attempt meanwhile. Never
+    // label a stale ledger result as the CURRENT pending request diagnosis.
+    // Compare both the CAS generation and the full state: even a same-state
+    // generation bump invalidates the snapshot. This does not mutate SQLite.
+    let current = store.load_heartbeat_schedule_recovery(device_id).await?;
+    if current.generation != recovery.generation
+        || current.checkpoint.as_ref() != Some(&checkpoint)
+    {
+        return Ok(HeartbeatReconciliationObservation::StaleDuringLookup(
+            pending,
+        ));
+    }
     Ok(match result {
         HeartbeatLookupDisposition::Committed => {
             HeartbeatReconciliationObservation::CommittedStillHeld(pending)
