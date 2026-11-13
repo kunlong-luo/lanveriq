@@ -165,6 +165,38 @@ class PostgreSqlDeviceActivationIT {
     }
 
     @Test
+    void realHeartbeatTransactionPersistsServerOwnedCredentialEpoch() {
+        activation.activate(credential, deviceId, request());
+        UUID requestId = UUID.randomUUID();
+        var body = new DeviceHeartbeat(1, deviceId, "2026-11-13T09:00:00Z",
+                "0.1.0", 1, "running",
+                Map.of("hardware_inventory", "not_collected"),
+                0, 0, null, null, 0, false, List.of(), requestId);
+        assertEquals(requestId,
+                heartbeatService.ingest(credential, deviceId, body).requestId());
+
+        Object[] saved = (Object[]) entityManager.createNativeQuery("""
+                SELECT r.credential_epoch_id, c.credential_epoch_id,
+                       r.client_cert_sha256_fingerprint
+                FROM device_heartbeat_request_ids r
+                JOIN device_credentials c ON c.device_id=r.device_id
+                  AND c.client_cert_sha256_fingerprint=:fingerprint
+                WHERE r.device_id=:device_id AND r.request_id=:request_id
+                """)
+                .setParameter("fingerprint", credential.sha256Fingerprint())
+                .setParameter("device_id", deviceId)
+                .setParameter("request_id", requestId)
+                .getSingleResult();
+        assertTrue(saved[0] instanceof UUID);
+        assertEquals(saved[1], saved[0]);
+        assertEquals(credential.sha256Fingerprint(), ((String) saved[2]).trim());
+        assertTrue(heartbeatService.lookupAccepted(credential, deviceId, requestId).isPresent());
+        assertEquals(DeviceHeartbeatRejection.Reason.REPLAYED_REQUEST,
+                assertThrows(DeviceHeartbeatRejection.class, () ->
+                        heartbeatService.ingest(credential, deviceId, body)).reason());
+    }
+
+    @Test
     void earlierAcceptedRequestIdReplayCannotReplaceNewerHeartbeat() {
         activation.activate(credential, deviceId, request());
         UUID oldRequestId = UUID.randomUUID();
@@ -298,7 +330,7 @@ class PostgreSqlDeviceActivationIT {
     }
 
     @Test
-    void v9ToV12UpgradeKeepsLegacyLedgerAndBackfillsCredentialEpoch() throws SQLException {
+    void v9ToV13UpgradeKeepsLegacyLedgerAndBindsNewRequestsToEpoch() throws SQLException {
         String schema = "legacy_" + UUID.randomUUID().toString().replace("-", "");
         var old = Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
@@ -354,7 +386,7 @@ class PostgreSqlDeviceActivationIT {
                 .schemas(schema).defaultSchema(schema)
                 .locations("classpath:db/migration")
                 .load();
-        assertEquals(3, upgraded.migrate().migrationsExecuted);
+        assertEquals(4, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);
@@ -371,7 +403,7 @@ class PostgreSqlDeviceActivationIT {
                 }
             }
             try (var select = connection.prepareStatement("""
-                    SELECT client_cert_sha256_fingerprint
+                    SELECT client_cert_sha256_fingerprint, credential_epoch_id
                     FROM device_heartbeat_request_ids
                     WHERE device_id=? AND request_id=?
                     """)) {
@@ -380,6 +412,7 @@ class PostgreSqlDeviceActivationIT {
                 try (var rows = select.executeQuery()) {
                     assertTrue(rows.next());
                     assertNull(rows.getString(1));
+                    assertNull(rows.getObject(2));
                 }
             }
             try (var insert = connection.prepareStatement(
@@ -396,7 +429,7 @@ class PostgreSqlDeviceActivationIT {
                     """)) {
                 insert.setObject(1, oldDevice);
                 insert.setObject(2, oldRequest);
-                insert.setString(3, "a".repeat(64));
+                insert.setString(3, "e".repeat(64));
                 var denied = assertThrows(SQLException.class, insert::executeUpdate);
                 assertEquals("23505", denied.getSQLState());
             }
@@ -407,15 +440,15 @@ class PostgreSqlDeviceActivationIT {
                     SET client_cert_sha256_fingerprint=?
                     WHERE device_id=? AND request_id=?
                     """)) {
-                update.setString(1, "a".repeat(64));
+                update.setString(1, "e".repeat(64));
                 update.setObject(2, oldDevice);
                 update.setObject(3, oldRequest);
                 var denied = assertThrows(SQLException.class, update::executeUpdate);
                 assertEquals("23514", denied.getSQLState());
             }
 
-            // New V11 requests remain insertable. Every accepted row is
-            // immutable: neither ownership nor UUID may be rewritten.
+            // New V13 requests must be assigned the matching server-owned
+            // credential epoch, while the historic V9 row remains NULL.
             UUID newRequest = UUID.randomUUID();
             try (var insert = connection.prepareStatement("""
                     INSERT INTO device_heartbeat_request_ids
@@ -424,12 +457,58 @@ class PostgreSqlDeviceActivationIT {
                     """)) {
                 insert.setObject(1, oldDevice);
                 insert.setObject(2, newRequest);
-                insert.setString(3, "a".repeat(64));
+                insert.setString(3, "e".repeat(64));
                 assertEquals(1, insert.executeUpdate());
+            }
+            UUID expectedEpoch;
+            try (var query = connection.prepareStatement(
+                    "SELECT credential_epoch_id FROM device_credentials WHERE id=?")) {
+                query.setObject(1, oldCredential);
+                try (var rows = query.executeQuery()) {
+                    assertTrue(rows.next());
+                    expectedEpoch = (UUID) rows.getObject(1);
+                }
+            }
+            try (var query = connection.prepareStatement("""
+                    SELECT client_cert_sha256_fingerprint, credential_epoch_id
+                    FROM device_heartbeat_request_ids WHERE device_id=? AND request_id=?
+                    """)) {
+                query.setObject(1, oldDevice);
+                query.setObject(2, newRequest);
+                try (var rows = query.executeQuery()) {
+                    assertTrue(rows.next());
+                    assertEquals("e".repeat(64), rows.getString(1));
+                    assertEquals(expectedEpoch, rows.getObject(2));
+                }
+            }
+            // Invalid fingerprints and caller-chosen generations cannot
+            // forge a valid new accepted ledger row.
+            try (var insert = connection.prepareStatement("""
+                    INSERT INTO device_heartbeat_request_ids
+                        (device_id,request_id,client_cert_sha256_fingerprint)
+                    VALUES (?,?,?)
+                    """)) {
+                insert.setObject(1, oldDevice);
+                insert.setObject(2, UUID.randomUUID());
+                insert.setString(3, "a".repeat(64));
+                var denied = assertThrows(SQLException.class, insert::executeUpdate);
+                assertEquals("23514", denied.getSQLState());
+            }
+            try (var insert = connection.prepareStatement("""
+                    INSERT INTO device_heartbeat_request_ids
+                        (device_id,request_id,client_cert_sha256_fingerprint,credential_epoch_id)
+                    VALUES (?,?,?,?)
+                    """)) {
+                insert.setObject(1, oldDevice);
+                insert.setObject(2, UUID.randomUUID());
+                insert.setString(3, "e".repeat(64));
+                insert.setObject(4, UUID.randomUUID());
+                var denied = assertThrows(SQLException.class, insert::executeUpdate);
+                assertEquals("23514", denied.getSQLState());
             }
             // Rebinding to a different certificate, or even a no-op
             // rewrite of the original attribution, must be rejected.
-            for (String candidate : List.of("b".repeat(64), "a".repeat(64))) {
+            for (String candidate : List.of("b".repeat(64), "e".repeat(64))) {
                 try (var update = connection.prepareStatement("""
                         UPDATE device_heartbeat_request_ids
                         SET client_cert_sha256_fingerprint=?
@@ -452,6 +531,16 @@ class PostgreSqlDeviceActivationIT {
                 var denied = assertThrows(SQLException.class, update::executeUpdate);
                 assertEquals("23514", denied.getSQLState());
             }
+            try (var update = connection.prepareStatement("""
+                    UPDATE device_heartbeat_request_ids SET credential_epoch_id=?
+                    WHERE device_id=? AND request_id=?
+                    """)) {
+                update.setObject(1, UUID.randomUUID());
+                update.setObject(2, oldDevice);
+                update.setObject(3, newRequest);
+                var denied = assertThrows(SQLException.class, update::executeUpdate);
+                assertEquals("23514", denied.getSQLState());
+            }
             // The failed mutations cannot invalidate the original replay key
             // or resurrect an unbound legacy request as a positive lookup.
             try (var lookup = connection.prepareStatement("""
@@ -463,7 +552,7 @@ class PostgreSqlDeviceActivationIT {
                 lookup.setObject(2, newRequest);
                 try (var rows = lookup.executeQuery()) {
                     assertTrue(rows.next());
-                    assertEquals("a".repeat(64), rows.getString(1));
+                    assertEquals("e".repeat(64), rows.getString(1));
                 }
                 lookup.setObject(2, oldRequest);
                 try (var rows = lookup.executeQuery()) {
