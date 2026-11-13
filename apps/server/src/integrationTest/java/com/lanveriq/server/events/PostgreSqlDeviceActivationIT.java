@@ -298,7 +298,7 @@ class PostgreSqlDeviceActivationIT {
     }
 
     @Test
-    void v9ToV10UpgradeKeepsLegacyIdsButRejectsNewUnboundRows() throws SQLException {
+    void v9ToV11UpgradeKeepsLegacyIdsAndForbidsLedgerRebinding() throws SQLException {
         String schema = "legacy_" + UUID.randomUUID().toString().replace("-", "");
         var old = Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
@@ -339,7 +339,7 @@ class PostgreSqlDeviceActivationIT {
                 .schemas(schema).defaultSchema(schema)
                 .locations("classpath:db/migration")
                 .load();
-        assertEquals(1, upgraded.migrate().migrationsExecuted);
+        assertEquals(2, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);
@@ -372,6 +372,77 @@ class PostgreSqlDeviceActivationIT {
                 insert.setString(3, "a".repeat(64));
                 var denied = assertThrows(SQLException.class, insert::executeUpdate);
                 assertEquals("23505", denied.getSQLState());
+            }
+            // V11: even a legacy V9 row with NULL attribution cannot be
+            // retroactively assigned a certificate after the migration.
+            try (var update = connection.prepareStatement("""
+                    UPDATE device_heartbeat_request_ids
+                    SET client_cert_sha256_fingerprint=?
+                    WHERE device_id=? AND request_id=?
+                    """)) {
+                update.setString(1, "a".repeat(64));
+                update.setObject(2, oldDevice);
+                update.setObject(3, oldRequest);
+                var denied = assertThrows(SQLException.class, update::executeUpdate);
+                assertEquals("23514", denied.getSQLState());
+            }
+
+            // New V11 requests remain insertable. Every accepted row is
+            // immutable: neither ownership nor UUID may be rewritten.
+            UUID newRequest = UUID.randomUUID();
+            try (var insert = connection.prepareStatement("""
+                    INSERT INTO device_heartbeat_request_ids
+                        (device_id,request_id,client_cert_sha256_fingerprint)
+                    VALUES (?,?,?)
+                    """)) {
+                insert.setObject(1, oldDevice);
+                insert.setObject(2, newRequest);
+                insert.setString(3, "a".repeat(64));
+                assertEquals(1, insert.executeUpdate());
+            }
+            // Rebinding to a different certificate, or even a no-op
+            // rewrite of the original attribution, must be rejected.
+            for (String candidate : List.of("b".repeat(64), "a".repeat(64))) {
+                try (var update = connection.prepareStatement("""
+                        UPDATE device_heartbeat_request_ids
+                        SET client_cert_sha256_fingerprint=?
+                        WHERE device_id=? AND request_id=?
+                        """)) {
+                    update.setString(1, candidate);
+                    update.setObject(2, oldDevice);
+                    update.setObject(3, newRequest);
+                    var denied = assertThrows(SQLException.class, update::executeUpdate);
+                    assertEquals("23514", denied.getSQLState());
+                }
+            }
+            try (var update = connection.prepareStatement("""
+                    UPDATE device_heartbeat_request_ids
+                    SET request_id=? WHERE device_id=? AND request_id=?
+                    """)) {
+                update.setObject(1, UUID.randomUUID());
+                update.setObject(2, oldDevice);
+                update.setObject(3, newRequest);
+                var denied = assertThrows(SQLException.class, update::executeUpdate);
+                assertEquals("23514", denied.getSQLState());
+            }
+            // The failed mutations cannot invalidate the original replay key
+            // or resurrect an unbound legacy request as a positive lookup.
+            try (var lookup = connection.prepareStatement("""
+                    SELECT client_cert_sha256_fingerprint
+                    FROM device_heartbeat_request_ids
+                    WHERE device_id=? AND request_id=?
+                    """)) {
+                lookup.setObject(1, oldDevice);
+                lookup.setObject(2, newRequest);
+                try (var rows = lookup.executeQuery()) {
+                    assertTrue(rows.next());
+                    assertEquals("a".repeat(64), rows.getString(1));
+                }
+                lookup.setObject(2, oldRequest);
+                try (var rows = lookup.executeQuery()) {
+                    assertTrue(rows.next());
+                    assertNull(rows.getString(1));
+                }
             }
         }
     }
