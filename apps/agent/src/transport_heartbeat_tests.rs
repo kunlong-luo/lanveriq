@@ -196,9 +196,8 @@ fn current_credential_epoch_receipt_is_strictly_read_only_and_identity_bound() {
         "client_cert_sha256_fingerprint": fp,
         "server_time": "2026-11-13T07:00:00Z"
     });
-    let observed = classify_credential_epoch_response(
-        200, good.to_string().as_bytes(), device, &fp
-    ).unwrap();
+    let observed =
+        classify_credential_epoch_response(200, good.to_string().as_bytes(), device, &fp).unwrap();
     assert_eq!(
         observed,
         CredentialEpochDisposition::ObservedOnly(CurrentCredentialEpoch {
@@ -224,7 +223,10 @@ fn current_credential_epoch_receipt_is_strictly_read_only_and_identity_bound() {
         ("device_id", serde_json::json!(Uuid::now_v7())),
         ("credential_epoch_id", serde_json::json!(Uuid::nil())),
         ("credential_epoch_id", serde_json::json!(Uuid::new_v4())),
-        ("client_cert_sha256_fingerprint", serde_json::json!("b".repeat(64))),
+        (
+            "client_cert_sha256_fingerprint",
+            serde_json::json!("b".repeat(64)),
+        ),
         ("schema_version", serde_json::json!(2)),
         ("server_time", serde_json::json!("invalid")),
     ] {
@@ -242,16 +244,25 @@ fn current_credential_epoch_receipt_is_strictly_read_only_and_identity_bound() {
         Err(TransportError::InvalidAcknowledgement)
     ));
     let mut missing = good.clone();
-    missing.as_object_mut().unwrap().remove("credential_epoch_id");
-    assert!(classify_credential_epoch_response(
-        200, missing.to_string().as_bytes(), device, &fp
-    ).is_err());
+    missing
+        .as_object_mut()
+        .unwrap()
+        .remove("credential_epoch_id");
+    assert!(
+        classify_credential_epoch_response(200, missing.to_string().as_bytes(), device, &fp)
+            .is_err()
+    );
     assert!(matches!(
         classify_credential_epoch_response(200, &vec![b'!'; 4097], device, &fp),
         Err(TransportError::OversizedResponse)
     ));
     assert!(matches!(
-        classify_credential_epoch_response(200, good.to_string().as_bytes(), device, &"A".repeat(64)),
+        classify_credential_epoch_response(
+            200,
+            good.to_string().as_bytes(),
+            device,
+            &"A".repeat(64)
+        ),
         Err(TransportError::InvalidEvent)
     ));
 }
