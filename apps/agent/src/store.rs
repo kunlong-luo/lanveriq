@@ -1,6 +1,7 @@
 //! SQLx WAL outbox with synthetic events and local-only typed inventory.
 //! Neither path is connected to Agent service scheduling or network I/O.
 use crate::heartbeat_schedule::HeartbeatCheckpoint;
+use crate::heartbeat_credential_pin::HeartbeatCredentialPin;
 use crate::inventory::{InventorySnapshot, RawInventory};
 use crate::inventory_schedule::InventoryScheduleCheckpoint;
 use sha2::{Digest, Sha256};
@@ -868,6 +869,102 @@ impl OutboxStore {
         }
         tx.commit().await?;
         Ok(expected_generation + 1)
+    }
+
+    /// Fail-closed local pin recovery. Missing after prior persistence,
+    /// wrong-device ownership and malformed storage are NOT unbound state.
+    pub async fn load_heartbeat_credential_pin(
+        &self,
+        device_id: Uuid,
+    ) -> Result<Option<HeartbeatCredentialPin>, StoreError> {
+        if device_id.is_nil() {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let mut tx = self.pool.begin().await?;
+        verify_heartbeat_owner(&mut tx, device_id).await?;
+        let row: Option<(String, String, String)> = sqlx::query_as(
+            "SELECT device_id,credential_epoch_id,cert_sha256_fingerprint \
+             FROM heartbeat_credential_pin WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        let seen: i64 = sqlx::query_scalar(
+            "SELECT heartbeat_credential_pin_seen FROM agent_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if !matches!((seen, row.is_some()), (0, false) | (1, true)) {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let recovered = match row {
+            None => None,
+            Some((owner, epoch, fingerprint)) => {
+                if owner != device_id.to_string() {
+                    return Err(StoreError::HeartbeatConflict);
+                }
+                let epoch = Uuid::parse_str(&epoch).map_err(|_| StoreError::HeartbeatConflict)?;
+                Some(HeartbeatCredentialPin::new(device_id, epoch, &fingerprint)?)
+            }
+        };
+        tx.commit().await?;
+        Ok(recovered)
+    }
+
+    /// Explicit offline provisioning ONLY, before any heartbeat checkpoint
+    /// has EVER been persisted. No proof of operator approval is accepted
+    /// from this API: callers must separately enforce their trusted workflow.
+    /// Immutable pinning cannot lift quarantine or perform certificate rotation.
+    pub async fn initialize_heartbeat_credential_pin(
+        &self,
+        pin: &HeartbeatCredentialPin,
+    ) -> Result<(), StoreError> {
+        HeartbeatCredentialPin::new(
+            pin.device_id,
+            pin.credential_epoch_id,
+            &pin.cert_sha256_fingerprint,
+        )?;
+        let mut tx = self.pool.begin().await?;
+        verify_heartbeat_owner(&mut tx, pin.device_id).await?;
+        let (pin_seen, heartbeat_seen): (i64, i64) = sqlx::query_as(
+            "SELECT heartbeat_credential_pin_seen,heartbeat_schedule_seen \
+             FROM agent_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        let occupied: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM heartbeat_credential_pin",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        let attempts: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM heartbeat_schedule_checkpoint",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if pin_seen != 0 || heartbeat_seen != 0 || occupied != 0 || attempts != 0 {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        sqlx::query(
+            "INSERT INTO heartbeat_credential_pin \
+             (singleton,device_id,credential_epoch_id,cert_sha256_fingerprint) \
+             VALUES (1,?,?,?)",
+        )
+        .bind(pin.device_id.to_string())
+        .bind(pin.credential_epoch_id.to_string())
+        .bind(&pin.cert_sha256_fingerprint)
+        .execute(&mut *tx)
+        .await?;
+        let marked = sqlx::query(
+            "UPDATE agent_state SET heartbeat_credential_pin_seen=1 WHERE singleton=1",
+        )
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if marked != 1 {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn settings(&self) -> Result<(String, i64, i64), StoreError> {

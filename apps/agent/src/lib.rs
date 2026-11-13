@@ -4,6 +4,7 @@
 pub mod config;
 #[cfg(target_os = "linux")]
 pub mod enrollment_linux;
+pub mod heartbeat_credential_pin;
 pub mod heartbeat_reconciliation;
 pub mod heartbeat_runtime;
 pub mod heartbeat_schedule;
