@@ -71,6 +71,17 @@ final class AgentIngressAssertionPolicy {
                 "heartbeats/requests/" + requestId, "GET");
     }
 
+    /// Exact read-only path with the same trusted upstream TLS and
+    /// Caddy-origin identity as a heartbeat receipt lookup.
+    VerifiedDeviceCertificate resolveCurrentCredentialEpoch(
+            HttpServletRequest request, UUID deviceId) {
+        if (request == null || request.getContentLengthLong() > 0
+                || request.getHeader("Transfer-Encoding") != null) {
+            throw denied();
+        }
+        return resolveExact(request, deviceId, "heartbeats/credential-epoch", "GET");
+    }
+
     private VerifiedDeviceCertificate resolveExact(
             HttpServletRequest request, UUID pathDeviceId,
             String endpointSuffix, String expectedMethod) {

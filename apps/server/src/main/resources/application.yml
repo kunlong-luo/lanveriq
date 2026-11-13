@@ -81,6 +81,9 @@ lanveriq:
     # assertion parser was independently configured for a synthetic test.
     heartbeat:
       http-enabled: ${LANVERIQ_AGENT_HEARTBEAT_HTTP_ENABLED:false}
+    # Separate third default-OFF mount gate. Not ACK or rotation approval.
+    credential-epoch:
+      http-enabled: ${LANVERIQ_AGENT_CREDENTIAL_EPOCH_HTTP_ENABLED:false}
   # This internal-only service has no HTTP route. Keep OFF until reviewed
   # admin/Caddy/CSRF, PostgreSQL and organizational acceptance.
   # WEB-01 health-only scoped JPA reads; DEFAULT OFF and NO HTTP endpoint.

@@ -231,6 +231,41 @@ class AgentIngressAssertionPolicyTest {
                 () -> new AgentIngressAssertionPolicy(HOST, ""));
     }
 
+    @Test
+    void exactCurrentEpochGetRequiresPinnedTlsAndRejectsSpoofedIdentity() {
+        var request = request();
+        request.setMethod("GET");
+        request.setRequestURI("/api/v1/devices/" + deviceId + "/heartbeats/credential-epoch");
+        assertEquals(FINGERPRINT, policy.resolveCurrentCredentialEpoch(
+                request, deviceId).sha256Fingerprint());
+        request.setQueryString("epoch=forged");
+        assertThrows(SecurityException.class,
+                () -> policy.resolveCurrentCredentialEpoch(request, deviceId));
+        request.setQueryString(null);
+        request.setMethod("POST");
+        assertThrows(SecurityException.class,
+                () -> policy.resolveCurrentCredentialEpoch(request, deviceId));
+        request.setMethod("GET");
+        request.addHeader("X-Lanveriq-Verified-Client-Epoch", "forged");
+        assertThrows(SecurityException.class,
+                () -> policy.resolveCurrentCredentialEpoch(request, deviceId));
+
+        var wrong = request();
+        wrong.setMethod("GET");
+        wrong.setRequestURI("/api/v1/devices/" + deviceId + "/heartbeats/credential-epoch");
+        wrong.setContent("unexpected".getBytes(StandardCharsets.UTF_8));
+        assertThrows(SecurityException.class,
+                () -> policy.resolveCurrentCredentialEpoch(wrong, deviceId));
+        wrong.setContent(new byte[0]);
+        wrong.setRemoteAddr("192.0.2.1");
+        assertThrows(SecurityException.class,
+                () -> policy.resolveCurrentCredentialEpoch(wrong, deviceId));
+        wrong.setRemoteAddr("127.0.0.1");
+        wrong.setAttribute("jakarta.servlet.request.X509Certificate", new X509Certificate[0]);
+        assertThrows(SecurityException.class,
+                () -> policy.resolveCurrentCredentialEpoch(wrong, deviceId));
+    }
+
     private static X509Certificate syntheticTlsPeer(byte[] encoded) {
         try {
             var certificate = Mockito.mock(X509Certificate.class);

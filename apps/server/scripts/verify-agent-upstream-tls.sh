@@ -782,6 +782,15 @@ PY
         exit 1
     }
     echo "PASS: Agent->Caddy mTLS and Caddy->real Spring/Tomcat mTLS, HTTP business deny 403."
+    EPOCH_URL="https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/heartbeats/credential-epoch"
+    epoch_off="$(curl --silent --show-error --noproxy '*' --http2 --max-time 12 \
+        --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+        --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+        -o "$TMP/epoch-off-body" -w '%{http_code}' "$EPOCH_URL")"
+    [[ "$epoch_off" == 403 ]] || {
+        echo "FAIL: canonical credential epoch is not default denied" >&2
+        exit 1
+    }
 
     deny_agent_handshake() {
         local label="$1"
@@ -934,6 +943,7 @@ SQL
             --spring.profiles.active=agent-upstream-mtls-acceptance \
             --lanveriq.agent.activation.http-enabled=true \
             --lanveriq.agent.heartbeat.http-enabled=true \
+            --lanveriq.agent.credential-epoch.http-enabled=true \
             --lanveriq.console.auth.enabled=false \
             >"$TMP/spring-business.log" 2>&1 &
         APP_PID=$!
@@ -1041,6 +1051,69 @@ JSON
             echo "FAIL: real Rust Agent did not commit exactly two distinct PG18 heartbeats" >&2
             exit 1
         fi
+        # Actual TLS1.3 double-hop CURRENT-epoch read, after Rust activated
+        # the exact reviewed certificate and committed two heartbeats.
+        epoch_ok="$(curl --silent --show-error --noproxy '*' --http2 \
+            --tlsv1.3 --tls-max 1.3 --max-time 12 \
+            --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+            -D "$TMP/epoch-response-headers" -o "$TMP/epoch-ok" -w '%{http_code}' "$EPOCH_URL")"
+        [[ "$epoch_ok" == 200 ]] &&
+            grep -iq '^cache-control:.*no-store' "$TMP/epoch-response-headers" || {
+            echo "FAIL: exact live epoch GET did not produce no-store 200" >&2
+            exit 1
+        }
+        db_epoch="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+            SELECT credential_epoch_id FROM device_credentials
+            WHERE device_id='$DEVICE_ID' AND
+                  client_cert_sha256_fingerprint='$CLIENT_FP'
+                  AND status='active' AND revoked_at IS NULL")"
+        python3 - "$TMP/epoch-ok" "$DEVICE_ID" "$CLIENT_FP" "$db_epoch" <<'PY'
+import json
+import sys
+from pathlib import Path
+from uuid import UUID
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert set(payload) == {
+    "schema_version", "device_id", "credential_epoch_id",
+    "client_cert_sha256_fingerprint", "server_time"
+}
+assert payload["schema_version"] == 1
+assert payload["device_id"] == sys.argv[2]
+assert payload["client_cert_sha256_fingerprint"] == sys.argv[3]
+assert payload["credential_epoch_id"] == sys.argv[4]
+assert UUID(payload["credential_epoch_id"]).version == 7
+assert payload["server_time"].endswith("Z")
+PY
+        [[ "$(db_latest)" == "$DB_BEFORE" ]] || {
+            echo "FAIL: read-only epoch GET modified device heartbeat state" >&2
+            exit 1
+        }
+        epoch_unknown="$(curl --silent --show-error --noproxy '*' --http2 \
+            --tlsv1.3 --tls-max 1.3 --max-time 12 \
+            --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/other-agent.crt" --key "$TMP/pki/other-agent.key" \
+             -o "$TMP/epoch-unregistered" -w '%{http_code}' "$EPOCH_URL")"
+        [[ "$epoch_unknown" == 403 && ! -s "$TMP/epoch-unregistered" ]] || {
+            echo "FAIL: unrelated same-CA client retrieved credential epoch" >&2
+            exit 1
+        }
+        # Forged asserted fingerprint MUST be replaced by Caddy's actual
+        # verified peer fingerprint, never forwarded as caller authority.
+        epoch_header="$(curl --silent --show-error --noproxy '*' --http2 \
+            --tlsv1.3 --tls-max 1.3 --max-time 12 \
+            --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+            -H "X-Lanveriq-Verified-Client-Fingerprint: $(printf '%064d' 0)" -o "$TMP/epoch-header" -w '%{http_code}' "$EPOCH_URL")"
+        [[ "$epoch_header" == 200 ]] || {
+            echo "FAIL: Caddy did not replace forged epoch GET identity header" >&2
+            exit 1
+        }
+        [[ "$(db_latest)" == "$DB_BEFORE" ]] || {
+            echo "FAIL: epoch identity negative changed heartbeat state" >&2
+            exit 1
+        }
+        echo "PASS: real mTLS current-credential epoch matches PG18; unregistered leaf denied."
         # Rust deliberately quarantines non-200; independently require the
         # exact 409 status, zero body and no-store from the same real route.
         replay_code="$(curl --silent --show-error --noproxy '*' --http2 \
@@ -1084,6 +1157,15 @@ JSON
                 SET issued_at=clock_timestamp() - INTERVAL '2 hours',
                     expires_at=clock_timestamp() - INTERVAL '1 hour'
                 WHERE device_id='$DEVICE_ID' AND status='active'" >/dev/null
+        epoch_expired="$(curl --silent --show-error --noproxy '*' --http2 \
+            --tlsv1.3 --tls-max 1.3 --max-time 12 \
+            --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+             -o "$TMP/epoch-expired" -w '%{http_code}' "$EPOCH_URL")"
+        [[ "$epoch_expired" == 403 && ! -s "$TMP/epoch-expired" ]] || {
+            echo "FAIL: expired client read server credential epoch" >&2
+            exit 1
+        }
         "$RUST_AGENT_HTTP" expired "$DEVICE_ID" || {
             echo "FAIL: expired client credential accepted a heartbeat" >&2
             exit 1
@@ -1098,6 +1180,15 @@ JSON
                     expires_at=clock_timestamp() + INTERVAL '1 hour',
                     status='revoked', revoked_at=clock_timestamp()
                 WHERE device_id='$DEVICE_ID'" >/dev/null
+        epoch_revoked="$(curl --silent --show-error --noproxy '*' --http2 \
+            --tlsv1.3 --tls-max 1.3 --max-time 12 \
+            --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+            --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+             -o "$TMP/epoch-revoked" -w '%{http_code}' "$EPOCH_URL")"
+        [[ "$epoch_revoked" == 403 && ! -s "$TMP/epoch-revoked" ]] || {
+            echo "FAIL: revoked client read server credential epoch" >&2
+            exit 1
+        }
         "$RUST_AGENT_HTTP" revoked "$DEVICE_ID" || {
             echo "FAIL: revoked client credential accepted a heartbeat" >&2
             exit 1

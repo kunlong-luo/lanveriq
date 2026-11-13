@@ -36,12 +36,17 @@ class AgentHeartbeatHttpSecurityConfiguration {
     SecurityFilterChain scopedHeartbeatIngress(HttpSecurity http) throws Exception {
         return http
                 .securityMatcher("/api/v1/devices/*/heartbeats",
-                        "/api/v1/devices/*/heartbeats/requests/*")
+                        "/api/v1/devices/*/heartbeats/requests/*",
+                        "/api/v1/devices/*/heartbeats/credential-epoch")
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/devices/*/heartbeats").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/devices/*/heartbeats/requests/*").permitAll()
+                        // HTTP security routing is not authorization:
+                        // the separately triple-gated controller remains OFF.
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/devices/*/heartbeats/credential-epoch").permitAll()
                         .anyRequest().denyAll())
                 // Agent uses TLS client certificates; it never receives a
                 // browser session or CSRF cookie. Disable CSRF ONLY in this

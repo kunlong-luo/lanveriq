@@ -47,7 +47,7 @@ agent.lanveriq.internal {
 
     # This list is a candidate for later approved handlers ONLY.
     # Default-deny Spring Security blocks all these paths today.
-    @agentRoutes path /api/v1/devices/*/activate /api/v1/devices/*/heartbeats /api/v1/devices/*/heartbeats/requests/* /api/v1/devices/*/event-batches /api/v1/devices/*/inventory
+    @agentRoutes path /api/v1/devices/*/activate /api/v1/devices/*/heartbeats /api/v1/devices/*/heartbeats/requests/* /api/v1/devices/*/heartbeats/credential-epoch /api/v1/devices/*/event-batches /api/v1/devices/*/inventory
     handle @agentRoutes {
         # Caddy 2.11 applies reverse_proxy header_up Set BEFORE Delete,
         # regardless of the order written in this block. If we strip
