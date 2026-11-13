@@ -810,6 +810,20 @@ impl OutboxStore {
         let json = serde_json::to_string(checkpoint)?;
         let mut tx = self.pool.begin().await?;
         verify_heartbeat_owner(&mut tx, checkpoint.device_id).await?;
+        // Pinning is serialized with checkpoint CAS by this same write
+        // transaction. An old sender that observed "not pinned" before a
+        // concurrent pin cannot write a fresh UUID AFTER the pin commits.
+        // No identity-aware sender is approved yet, so every attempt write
+        // after pinning is intentionally denied.
+        let pinned: (i64, i64) = sqlx::query_as(
+            "SELECT heartbeat_credential_pin_seen, \
+             (SELECT COUNT(*) FROM heartbeat_credential_pin) FROM agent_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if pinned.0 != 0 || pinned.1 != 0 {
+            return Err(StoreError::HeartbeatConflict);
+        }
         let current: Option<(String, String, i64)> = sqlx::query_as(
             "SELECT device_id,state_json,generation FROM heartbeat_schedule_checkpoint WHERE singleton=1",
         )

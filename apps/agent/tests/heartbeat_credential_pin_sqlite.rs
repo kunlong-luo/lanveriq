@@ -184,6 +184,33 @@ async fn deleted_or_corrupted_pin_marker_never_looks_like_fresh_enrollment() {
     ));
 }
 
+#[tokio::test]
+async fn pinned_epoch_blocks_direct_checkpoint_writer_inside_sqlite_transaction() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = OutboxStore::open(&dir.path().join("write-race.sqlite"))
+        .await
+        .unwrap();
+    let mut checkpoint = HeartbeatCheckpoint::initial(device()).unwrap();
+    let pending = Uuid::now_v7();
+    checkpoint.begin(true, 100, 30, pending).unwrap();
+
+    // Emulates a legacy driver holding a stale pre-pin checkpoint snapshot.
+    store
+        .initialize_heartbeat_credential_pin(&pin())
+        .await
+        .unwrap();
+    assert!(matches!(
+        store.save_heartbeat_schedule_checkpoint(&checkpoint, 0).await,
+        Err(StoreError::HeartbeatConflict)
+    ));
+    let existing = store
+        .load_heartbeat_schedule_recovery(device())
+        .await
+        .unwrap();
+    assert_eq!(existing.generation, 0);
+    assert!(existing.checkpoint.is_none());
+}
+
 #[test]
 fn invalid_local_credential_metadata_rejected() {
     assert!(HeartbeatCredentialPin::new(Uuid::nil(), Uuid::now_v7(), &"a".repeat(64)).is_err());
