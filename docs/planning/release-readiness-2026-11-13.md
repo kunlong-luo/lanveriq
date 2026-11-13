@@ -17,7 +17,7 @@
 ## Batch A V11 账本不可变与代际/保留策略（2026-11-13）
 
 - [`93c24299`](https://github.com/kunlong-luo/lanveriq/commit/93c24299ed031c1c44b6f6158696125d9c97142a) 新增 PostgreSQL V11 `BEFORE UPDATE` 保护，拒绝任何已确认 UUID 或证书指纹归属变更；保留 V9 未绑定旧行及跨证书唯一主键，**没有启用按时限删除、自动轮换或恢复**。
-- [Linux Batch A #43371701087](https://github.com/kunlong-luo/lanveriq/actions/runs/43371701087) 的 **PG18 Testcontainers 真实 V9→V11 迁移/反篡改测试作业已成功**；Java 单测 [#43371701100](https://github.com/kunlong-luo/lanveriq/actions/runs/43371701100)、集成测试源编译 [#43371700985](https://github.com/kunlong-luo/lanveriq/actions/runs/43371700985)、RD-2 默认拒绝 [#43371701023](https://github.com/kunlong-luo/lanveriq/actions/runs/43371701023) 均成功。双跳 TLS 独立作业仍按该运行的最终结果判定，不提前宣布整条 L2。
+- [Linux Batch A #43371701087](https://github.com/kunlong-luo/lanveriq/actions/runs/43371701087) 的 **PG18 Testcontainers 真实 V9→V11 迁移/反篡改测试作业已成功**；Java 单测 [#43371701100](https://github.com/kunlong-luo/lanveriq/actions/runs/43371701100)、集成测试源编译 [#43371700985](https://github.com/kunlong-luo/lanveriq/actions/runs/43371700985)、RD-2 默认拒绝 [#43371701023](https://github.com/kunlong-luo/lanveriq/actions/runs/43371701023) 均成功。**同运行的真实 Rust CSR/Reqwest→Caddy→Spring/Tomcat TLS1.3/PG18 双跳作业也已 SUCCESS**：两项隔离 L2 均通过，但不是本轮新 V11 的生产流量或真实 Pop!_OS L3。
 - **未完成：** 证书生命周期签发/审核与 credential epoch、可安全执行的自动保留期清理、PG 删除权限/灾备回滚、受控操作员恢复、真实 Pop!_OS L3。策略见 [请求账本代际与保留规范](../architecture/heartbeat-request-ledger-epoch-retention.md)。Batch A #5 继续 OPEN。
 
 

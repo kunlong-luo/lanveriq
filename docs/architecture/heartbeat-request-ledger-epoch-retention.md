@@ -12,7 +12,7 @@
 4. **Agent A3：** SQLite 写前持久保存 pending UUID；不确定响应/409/401/403 要持久保留并隔离；查账诊断也不解除隔离。查账期间 checkpoint/generation 变化必须返回 stale，而不是认证旧查询结果。
 5. **响应语义：** 只有首次 POST 的严格、对应请求 ID 的 200 ACK 可以按现行受控一次性流程清除 pending；账本 GET 200 只是已提交记录的证明，**不是历史 POST ACK**；404、429、5xx、无效响应绝不许可更换 UUID 或重试。
 
-**实际测试证据：** [V11 源码 `93c24299`](https://github.com/kunlong-luo/lanveriq/commit/93c24299ed031c1c44b6f6158696125d9c97142a)；[Linux Batch A PostgreSQL 18 Testcontainers 真实迁移与事务 #43371701087](https://github.com/kunlong-luo/lanveriq/actions/runs/43371701087) 的 PG18 作业已成功；具体双跳 TLS 作业的结果须独立查看，不能由 PG 成功推断。
+**实际测试证据：** [V11 源码 `93c24299`](https://github.com/kunlong-luo/lanveriq/commit/93c24299ed031c1c44b6f6158696125d9c97142a)；[Linux Batch A PostgreSQL 18 Testcontainers 真实迁移与事务 #43371701087](https://github.com/kunlong-luo/lanveriq/actions/runs/43371701087) 的 **PG18 迁移/事务作业与 Rust→Caddy→Spring 双跳 TLS1.3 作业均已 SUCCESS**；这是同一源 SHA 的隔离 L2，不能推断获批真实设备运行。
 
 ## 目前不允许的操作
 
