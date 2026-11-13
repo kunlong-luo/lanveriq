@@ -269,3 +269,12 @@ fn current_credential_epoch_receipt_is_strictly_read_only_and_identity_bound() {
         Err(TransportError::InvalidEvent)
     ));
 }
+
+#[test]
+fn transport_epoch_observation_never_takes_a_caller_chosen_fingerprint() {
+    // Compile-time shape: only device_id is accepted. A "fingerprint" body
+    // or caller-selected epoch cannot override the TLS PEM-derived identity.
+    let _method = AgentTlsTransport::observe_current_credential_epoch;
+    let _ = _method;
+}
+

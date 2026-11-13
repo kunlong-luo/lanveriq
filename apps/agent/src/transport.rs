@@ -5,6 +5,7 @@
 //! an active PostgreSQL device; this module cannot grant that trust.
 use crate::store::{OutboxStore, PendingEvent, PendingInventory, StoreError};
 use reqwest::header::{CONTENT_TYPE, RETRY_AFTER};
+use rustls_pki_types::{CertificateDer, pem::PemObject};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, time::Duration};
 use thiserror::Error;
@@ -583,6 +584,9 @@ pub fn classify_error_status(status: u16, retry_after: Option<&str>) -> Delivery
 /// Caller is responsible for secure OS key custody and certificate activation.
 pub struct AgentTlsTransport {
     client: reqwest::Client,
+    // Derived once from the first certificate of the exact TLS identity PEM
+    // loaded by Reqwest, never from JSON, headers or caller-supplied strings.
+    client_leaf_sha256: String,
 }
 
 impl AgentTlsTransport {
@@ -601,6 +605,15 @@ impl AgentTlsTransport {
             .map_err(|_| TransportError::InvalidTlsMaterial)?;
         let identity = reqwest::Identity::from_pem(client_identity_pem)
             .map_err(|_| TransportError::InvalidTlsMaterial)?;
+        // The same PEM is handed to Rustls below. The first certificate
+        // represents the client leaf; additional chain certificates are
+        // allowed but cannot replace the locally observed leaf identity.
+        // Use the maintained Rustls PEM/DER parser, not custom Base64 code.
+        let leaf = CertificateDer::pem_slice_iter(client_identity_pem)
+            .next()
+            .ok_or(TransportError::InvalidTlsMaterial)?
+            .map_err(|_| TransportError::InvalidTlsMaterial)?;
+        let client_leaf_sha256 = format!("{:x}", sha2::Sha256::digest(leaf.as_ref()));
         let client = reqwest::Client::builder()
             .tls_backend_rustls()
             .tls_certs_only([ca])
@@ -618,7 +631,10 @@ impl AgentTlsTransport {
             .pool_max_idle_per_host(1)
             .build()
             .map_err(TransportError::Tls)?;
-        Ok(Self { client })
+        Ok(Self {
+            client,
+            client_leaf_sha256,
+        })
     }
 
     async fn post_json<T: Serialize>(
@@ -741,6 +757,43 @@ impl AgentTlsTransport {
             bytes.extend_from_slice(&chunk);
         }
         classify_heartbeat_lookup_response(status, &bytes, device_id, request_id)
+    }
+
+    /// Explicit opt-in *observation* of the registered/current certificate
+    /// generation. This has no caller-supplied fingerprint, state mutation,
+    /// resume token, ACK or local pin write. Only an actual mTLS identity
+    /// loaded by this transport can supply the expected fingerprint.
+    /// The installed Agent service NEVER schedules or invokes this method.
+    pub async fn observe_current_credential_epoch(
+        &self,
+        device_id: Uuid,
+    ) -> Result<CredentialEpochDisposition, TransportError> {
+        if device_id.is_nil() {
+            return Err(TransportError::InvalidEvent);
+        }
+        let url = format!(
+            "{AGENT_ORIGIN}/api/v1/devices/{device_id}/heartbeats/credential-epoch"
+        );
+        let mut response = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(TransportError::Network)?;
+        let status = response.status().as_u16();
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(TransportError::Network)? {
+            if bytes.len() + chunk.len() > MAX_RESPONSE_BYTES {
+                return Err(TransportError::OversizedResponse);
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        classify_credential_epoch_response(
+            status,
+            &bytes,
+            device_id,
+            &self.client_leaf_sha256,
+        )
     }
 
     /// Staged opt-in inventory attempt. NEVER called by AGT-01 service.
