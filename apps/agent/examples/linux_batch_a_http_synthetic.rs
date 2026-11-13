@@ -141,12 +141,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // never an arbitrary caller-provided expected fingerprint. Because
         // ACK-loss produced a durable checkpoint, this MUST remain unbound
         // and cannot install a retroactively attributed SQLite pin.
-        let preflight = inspect_explicit_heartbeat_epoch_preflight(
-            &store,
-            device,
-            true,
-            |id| client.observe_current_credential_epoch(id),
-        )
+        let preflight = inspect_explicit_heartbeat_epoch_preflight(&store, device, true, |id| {
+            client.observe_current_credential_epoch(id)
+        })
         .await?;
         if preflight != HeartbeatEpochPreflightObservation::UnboundNeedsReview {
             return Err("synthetic epoch preflight unexpectedly granted local identity".into());

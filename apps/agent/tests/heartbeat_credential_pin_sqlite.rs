@@ -254,12 +254,17 @@ async fn explicit_epoch_preflight_default_off_and_missing_pin_never_install_iden
     })
     .await
     .unwrap();
-    assert_eq!(result, HeartbeatEpochPreflightObservation::UnboundNeedsReview);
-    assert!(store
-        .load_heartbeat_credential_pin(device())
-        .await
-        .unwrap()
-        .is_none());
+    assert_eq!(
+        result,
+        HeartbeatEpochPreflightObservation::UnboundNeedsReview
+    );
+    assert!(
+        store
+            .load_heartbeat_credential_pin(device())
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[tokio::test]
@@ -268,20 +273,22 @@ async fn matching_and_mismatching_existing_pins_are_only_diagnostic() {
     let path = dir.path().join("matching.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
     let identity = pin();
-    store.initialize_heartbeat_credential_pin(&identity).await.unwrap();
+    store
+        .initialize_heartbeat_credential_pin(&identity)
+        .await
+        .unwrap();
     for (candidate, expected) in [
-        (identity.clone(), HeartbeatEpochPreflightObservation::MatchingLocalPinOnly),
+        (
+            identity.clone(),
+            HeartbeatEpochPreflightObservation::MatchingLocalPinOnly,
+        ),
         (
             HeartbeatCredentialPin::new(device(), Uuid::now_v7(), &"a".repeat(64)).unwrap(),
             HeartbeatEpochPreflightObservation::MismatchStayHalted,
         ),
         (
-            HeartbeatCredentialPin::new(
-                device(),
-                identity.credential_epoch_id,
-                &"b".repeat(64),
-            )
-            .unwrap(),
+            HeartbeatCredentialPin::new(device(), identity.credential_epoch_id, &"b".repeat(64))
+                .unwrap(),
             HeartbeatEpochPreflightObservation::MismatchStayHalted,
         ),
     ] {
@@ -301,7 +308,10 @@ async fn matching_and_mismatching_existing_pins_are_only_diagnostic() {
     store.close().await;
     let restarted = OutboxStore::open(&path).await.unwrap();
     assert_eq!(
-        restarted.load_heartbeat_credential_pin(device()).await.unwrap(),
+        restarted
+            .load_heartbeat_credential_pin(device())
+            .await
+            .unwrap(),
         Some(identity)
     );
 }
@@ -316,7 +326,8 @@ async fn epoch_preflight_rejected_or_unresolved_never_releases_legacy_pending() 
     let mut pending = HeartbeatCheckpoint::initial(device()).unwrap();
     pending.begin(true, 100, 30, request).unwrap();
     pending.note_uncertain_outcome().unwrap();
-    store.save_heartbeat_schedule_checkpoint(&pending, 0)
+    store
+        .save_heartbeat_schedule_checkpoint(&pending, 0)
         .await
         .unwrap();
     for (disposition, expected) in [
@@ -337,16 +348,26 @@ async fn epoch_preflight_rejected_or_unresolved_never_releases_legacy_pending() 
             HeartbeatEpochPreflightObservation::UnboundNeedsReview,
         ),
     ] {
-        let result = inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
-            Ok(disposition)
-        })
-        .await
-        .unwrap();
+        let result =
+            inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
+                Ok(disposition)
+            })
+            .await
+            .unwrap();
         assert_eq!(result, expected);
-        let current = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+        let current = store
+            .load_heartbeat_schedule_recovery(device())
+            .await
+            .unwrap();
         assert_eq!(current.generation, 1);
         assert_eq!(current.checkpoint, Some(pending.clone()));
-        assert!(store.load_heartbeat_credential_pin(device()).await.unwrap().is_none());
+        assert!(
+            store
+                .load_heartbeat_credential_pin(device())
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 }
 
@@ -359,15 +380,25 @@ async fn concurrent_checkpoint_change_makes_mtls_observation_stale_not_approved(
     let result = inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
         let mut checkpoint = HeartbeatCheckpoint::initial(device()).unwrap();
         checkpoint.begin(true, 100, 30, Uuid::now_v7()).unwrap();
-        store.save_heartbeat_schedule_checkpoint(&checkpoint, 0)
+        store
+            .save_heartbeat_schedule_checkpoint(&checkpoint, 0)
             .await
             .unwrap();
         Ok(observed(&pin()))
     })
     .await
     .unwrap();
-    assert_eq!(result, HeartbeatEpochPreflightObservation::StaleDuringLookup);
-    assert!(store.load_heartbeat_credential_pin(device()).await.unwrap().is_none());
+    assert_eq!(
+        result,
+        HeartbeatEpochPreflightObservation::StaleDuringLookup
+    );
+    assert!(
+        store
+            .load_heartbeat_credential_pin(device())
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[tokio::test]
@@ -378,14 +409,18 @@ async fn concurrent_first_pin_is_stale_and_cannot_be_used_for_authorization() {
         .unwrap();
     let identity = pin();
     let result = inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
-        store.initialize_heartbeat_credential_pin(&identity)
+        store
+            .initialize_heartbeat_credential_pin(&identity)
             .await
             .unwrap();
         Ok(observed(&identity))
     })
     .await
     .unwrap();
-    assert_eq!(result, HeartbeatEpochPreflightObservation::StaleDuringLookup);
+    assert_eq!(
+        result,
+        HeartbeatEpochPreflightObservation::StaleDuringLookup
+    );
     assert_eq!(
         store.load_heartbeat_credential_pin(device()).await.unwrap(),
         Some(identity)
@@ -399,26 +434,33 @@ async fn wrong_device_and_invalid_signed_epoch_are_fail_closed() {
         .await
         .unwrap();
     let candidate = pin();
-    assert!(HeartbeatCredentialPin::new(
-        candidate.device_id,
-        Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
-        &candidate.cert_sha256_fingerprint
-    )
-    .is_err());
+    assert!(
+        HeartbeatCredentialPin::new(
+            candidate.device_id,
+            Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+            &candidate.cert_sha256_fingerprint
+        )
+        .is_err()
+    );
     let wrong = Uuid::now_v7();
     assert!(matches!(
         inspect_explicit_heartbeat_epoch_preflight(&store, wrong, true, |_| async {
             Ok(observed(&candidate))
         })
         .await,
-        Err(HeartbeatEpochPreflightError::Store(StoreError::HeartbeatConflict))
+        Err(HeartbeatEpochPreflightError::Store(
+            StoreError::HeartbeatConflict
+        ))
     ));
-    let altered = HeartbeatCredentialPin::new(wrong, candidate.credential_epoch_id, &"b".repeat(64)).unwrap();
+    let altered =
+        HeartbeatCredentialPin::new(wrong, candidate.credential_epoch_id, &"b".repeat(64)).unwrap();
     assert!(matches!(
         inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
             Ok(observed(&altered))
         })
         .await,
-        Err(HeartbeatEpochPreflightError::Store(StoreError::HeartbeatConflict))
+        Err(HeartbeatEpochPreflightError::Store(
+            StoreError::HeartbeatConflict
+        ))
     ));
 }
