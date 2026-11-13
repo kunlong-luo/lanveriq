@@ -310,6 +310,7 @@ class PostgreSqlDeviceActivationIT {
 
         UUID oldDevice = UUID.randomUUID();
         UUID oldRequest = UUID.randomUUID();
+        UUID oldCredential = UUID.randomUUID();
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);
@@ -325,6 +326,20 @@ class PostgreSqlDeviceActivationIT {
                 insert.setObject(1, oldDevice);
                 insert.setObject(2, group);
                 insert.executeUpdate();
+            }
+            // Actual V9 row has no epoch column before migration.
+            try (var insert = connection.prepareStatement("""
+                    INSERT INTO device_credentials(
+                        id,device_id,client_cert_sha256_fingerprint,issuer_id,
+                        serial_number,csr_spki_digest,status,issued_at,expires_at)
+                    VALUES (?,?,repeat('e',64),'v9-test-issuer',
+                            'v9-test-serial',repeat('c',64),'active',
+                            CURRENT_TIMESTAMP - INTERVAL '1 hour',
+                            CURRENT_TIMESTAMP + INTERVAL '1 hour')
+                    """)) {
+                insert.setObject(1, oldCredential);
+                insert.setObject(2, oldDevice);
+                assertEquals(1, insert.executeUpdate());
             }
             try (var insert = connection.prepareStatement(
                     "INSERT INTO device_heartbeat_request_ids(device_id,request_id) VALUES (?,?)")) {
@@ -343,6 +358,18 @@ class PostgreSqlDeviceActivationIT {
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);
+            // V12 backfills the existing V9 credential with PostgreSQL UUIDv7.
+            try (var select = connection.prepareStatement("""
+                    SELECT credential_epoch_id, uuid_extract_version(credential_epoch_id)
+                    FROM device_credentials WHERE id=?
+                    """)) {
+                select.setObject(1, oldCredential);
+                try (var rows = select.executeQuery()) {
+                    assertTrue(rows.next());
+                    assertTrue(!((UUID) rows.getObject(1)).equals(new UUID(0, 0)));
+                    assertEquals(7, rows.getInt(2));
+                }
+            }
             try (var select = connection.prepareStatement("""
                     SELECT client_cert_sha256_fingerprint
                     FROM device_heartbeat_request_ids
