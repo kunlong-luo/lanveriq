@@ -38,6 +38,9 @@ jobs:
       - name: Regress transitive source-level authentication isolation (NO runtime)
         working-directory: apps/web-next
         run: node --test scripts/test_runtime_isolation.mjs
+      - name: Verify native scrollbar hidden without disabling page scrolling
+        working-directory: apps/web-next
+        run: node --test scripts/test_viewport_scrollbar.mjs
       - name: Check no API proxy or reachable credential route
         working-directory: apps/web-next
         run: pnpm run verify:routes
