@@ -1,5 +1,8 @@
 # Batch A / 首次心跳的可运行链路 — Stage A1
 
+**V13（2026-11-13，新请求证书代际归属）：** [`ce350bac`](https://github.com/kunlong-luo/lanveriq/commit/ce350bacfbcf1f7413430484a9dc48b73b12af53) 使 PostgreSQL 每条新提交心跳请求经设备/证书行锁，绑定当前真实数据库凭据的不可变 `credential_epoch_id`，拒绝错指纹/伪造 epoch；V9–V12 历史记录保留 NULL 不猜测归属，旧 UUID 唯一键与 V11 UPDATE 拒绝不变。真实 [PG18 + Caddy 双跳 TLS #43382446151](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446151) 两项隔离 L2 以及 [Java #43382446134](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446134)、[集成编译 #43382446098](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446098)、[RD-2 #43382446147](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446147) 全部 SUCCESS。**数据库内代际证明不是由服务端签名/下发的 Agent 授权令牌；不能恢复旧 pending、切换证书或删除账本。**
+
+
 **2026-11-13 Agent SQLite V7 首次证书代际固定（L1 PASS、联网仍 OFF）：** 源码 [`a13a3e7d`](https://github.com/kunlong-luo/lanveriq/commit/a13a3e7dd67f1c327eb4ed9632df68d1ee2306d4) 对应 [Rustfmt/所有 Agent 单测/Clippy #43376633141](https://github.com/kunlong-luo/lanveriq/actions/runs/43376633141) SUCCESS、[RD-2 #43376633124](https://github.com/kunlong-luo/lanveriq/actions/runs/43376633124) SUCCESS。新 SQLite 迁移保存 immutable device/epoch/fingerprint 和 seen 标记；旧 checkpoint 无法事后绑证书；绑定后旧发送/查账 API 均拒绝；保存 pending UUID 的事务也二次拒绝已固定状态，覆盖并发 race。**这只是离线 L1 安全封锁，不是证书身份可信引导、完整轮换/解隔离或联网 L2/L3**。详见 [上线差距账本](../planning/release-readiness-2026-11-13.md)。
 
 

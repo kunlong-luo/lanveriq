@@ -25,6 +25,8 @@
 
 **Agent 本地 pin（2026-11-13 L1）：** [`a13a3e7d`](https://github.com/kunlong-luo/lanveriq/commit/a13a3e7dd67f1c327eb4ed9632df68d1ee2306d4) 在 SQLx SQLite V7 引入设备 UUID、服务器代际 UUID 和证书指纹的**不可改、不可删本地绑定**，以 seen 标记防止静默删除重置。旧 heartbeat checkpoint 已存在时不可自动附着新证书；固定后老版缺少证书证明的发送/账本查询停止，SQLite checkpoint CAS 写事务也拒绝竞态绕过；新本地匹配检查仅是诊断，不是经过证书/签名验证的身份授权。文件 SQLite 重启、错代际/错指纹/错设备、历史 pending 禁止补绑、删除篡改及旧发送器竞态负例已在 [Agent L1 #43376633141](https://github.com/kunlong-luo/lanveriq/actions/runs/43376633141) SUCCESS；[RD-2 #43376633124](https://github.com/kunlong-luo/lanveriq/actions/runs/43376633124) SUCCESS。**后续须设计单独获批的身份感知驱动/CA 审批和 L2/L3；当前不存在能自动解除停止状态的 API。**
 
+**V13（2026-11-13，新请求证书代际归属）：** [`ce350bac`](https://github.com/kunlong-luo/lanveriq/commit/ce350bacfbcf1f7413430484a9dc48b73b12af53) 使 PostgreSQL 每条新提交心跳请求经设备/证书行锁，绑定当前真实数据库凭据的不可变 `credential_epoch_id`，拒绝错指纹/伪造 epoch；V9–V12 历史记录保留 NULL 不猜测归属，旧 UUID 唯一键与 V11 UPDATE 拒绝不变。真实 [PG18 + Caddy 双跳 TLS #43382446151](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446151) 两项隔离 L2 以及 [Java #43382446134](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446134)、[集成编译 #43382446098](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446098)、[RD-2 #43382446147](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446147) 全部 SUCCESS。**数据库内代际证明不是由服务端签名/下发的 Agent 授权令牌；不能恢复旧 pending、切换证书或删除账本。**
+
 ## 受控证书轮换与 epoch 的后续必需设计（未实现）
 
 1. **审批与状态机：** 限定管理员在已授权设备上先冻结常驻发送，审核该设备的 pending/quarantine、旧证书状态及 SQLite 请求身份；启动新 CSR/新密钥与独立证书审核发行，记录可审计的操作员/原因/设备/旧新证书指纹。

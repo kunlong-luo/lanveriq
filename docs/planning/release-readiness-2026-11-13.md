@@ -14,6 +14,12 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 V13：新心跳 UUID 账本绑定服务端证书代际，隔离 L1 + L2 PASS
+
+- **实际受测源码：** [`ce350bac`](https://github.com/kunlong-luo/lanveriq/commit/ce350bacfbcf1f7413430484a9dc48b73b12af53)。[Linux Batch A #43382446151](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446151) 中 **PG18.6 Testcontainers 八组事务/迁移与独立 Rust CSR/Reqwest→Caddy→Spring/Tomcat 双跳 TLS1.3 两项 L2 作业均 SUCCESS**；[Java 单测 #43382446134](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446134)、[PG 集成源码编译 #43382446098](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446098)、[RD-2 default-OFF #43382446147](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446147) 同源 SUCCESS。
+- **已实现：** PostgreSQL V13 在 `device_heartbeat_request_ids` 新增 `credential_epoch_id UUID`。对每条新 INSERT，数据库按 device→credential 锁序确认活跃设备与当前未撤销/未过期证书，从不可变 `device_credentials.credential_epoch_id` 补足代际，拒绝错误指纹和自选错误 epoch（SQLSTATE 23514）。既有 `(device_id,request_id)` 唯一反重放键与 V11 UPDATE 不可变保护不变。V9–V12 历史账本不猜测回填 epoch，`CHECK NOT VALID` 只要求新记录非空；完整数据删除/保留策略仍未批准。
+- **明确不代表：** 数据库 SQL 约束不能代替 TLS 身份验证；独立 Caddy mTLS 及 Hibernate/JPA 受控事务原有保护继续必需。V13 **未新增 Agent 签名 epoch 凭证、受审核证书轮换、可信本地 pin 安装、恢复旧 pending 的授权 API、自动重试、定时清理或生产联网**。Agent SQLite V7 仍保持旧发送入口默认拒绝；Pop!_OS 24.04 实机 L3 与隐私/发布审核未完成。Batch A #5 OPEN、v0.1 NOT RELEASE READY。
+
 ## 2026-11-13 SQLite V7：本地证书代际固定保护，L1 已通过
 
 - **实际受测源码：** [`a13a3e7d`](https://github.com/kunlong-luo/lanveriq/commit/a13a3e7dd67f1c327eb4ed9632df68d1ee2306d4)。[Agent Rustfmt / 所有 Cargo 单测 / Clippy #43376633141 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43376633141)；[RD-2 fail-closed #43376633124 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43376633124)。本轮为**实际文件型 SQLite L1**，没有执行新能力的双跳 TLS/PG18 L2，也未在 Pop!_OS 实机 L3 运行。
