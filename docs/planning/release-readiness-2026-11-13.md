@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 A8 — Ed25519 first-pin detached review, L1/L2 same-SHA SUCCESS
+
+- Implementation: [8f94cc28](https://github.com/kunlong-luo/lanveriq/commit/8f94cc2877509f21723d4cba8d6ae4d5bc5bbff9), Rust L1 [#43428246769](https://github.com/kunlong-luo/lanveriq/actions/runs/43428246769), RD-2 [#43428246783](https://github.com/kunlong-luo/lanveriq/actions/runs/43428246783), real Linux double TLS1.3+PG18 [#43428246806](https://github.com/kunlong-luo/lanveriq/actions/runs/43428246806): ALL SUCCESS on exact same SHA.
+- The real CI job logs explicitly state: PASS: real TLS-bound epoch and synthetic Ed25519 detached review match; tampered review denied and durable ACK quarantine unchanged.
+- Locked ring/hex libraries verify domain-separated detached signature on device, server epoch UUIDv7, actual TLS certificate DER SHA256, review UUIDv7 and short lifetime. Negative tests reject tampered reviews, wrong reviewer key, cross-device, wrong epoch/fingerprint, time windows and unknown fields. The reviewer's key is generated only in disposable synthetic CI memory. No production key material.
+- **Critical boundary:** SignatureValidForSuppliedKeyOnly is diagnostic for a supplied public key, NOT an operational administrator authorization or automatically trusted key. No first-pin write/rotation protocol, signed reviewer issuance workflow, trust-anchor custody, audit, anti-replay consumption or runtime Agent enablement has been approved. Previous SQLite quarantine/ACK remains unchanged. Real Pop!_OS L3, authorized users, production release remain OPEN.
+
 ## 2026-11-13 A7：当前证书代际与 SQLite 不可变 pin 的只读预检，L1/L2 PASS
 
 - **最终单测源码：** [`53ffad0f`](https://github.com/kunlong-luo/lanveriq/commit/53ffad0fd276e569d419b917d009e6f85042232d)，[Rust L1 #43426057069](https://github.com/kunlong-luo/lanveriq/actions/runs/43426057069) **SUCCESS**（Rustfmt、完整 Cargo tests、Clippy）、[RD-2 #43426057030](https://github.com/kunlong-luo/lanveriq/actions/runs/43426057030) **SUCCESS**。实际网络/PG18 L2 在功能一致的源码 SHA [`9a39345e`](https://github.com/kunlong-luo/lanveriq/commit/9a39345e0ecd48bfe6afec66bdafdf0e49c78444) 上运行，[Linux Batch A #43425686892](https://github.com/kunlong-luo/lanveriq/actions/runs/43425686892) 两项真实隔离作业 **SUCCESS**；最后变动只修复离线测试用非法首次 quarantine 状态创建的问题，**不可冒称是相同 SHA 的 L2**。
