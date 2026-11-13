@@ -4,22 +4,27 @@
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use lanveriq_agent::first_pin_review::{
+        FirstPinReviewObservation, OfflineFirstPinReview, inspect_offline_first_pin_review,
+    };
     use lanveriq_agent::heartbeat_credential_pin::{
         HeartbeatEpochPreflightObservation, inspect_explicit_heartbeat_epoch_preflight,
     };
     use lanveriq_agent::heartbeat_runtime::{HeartbeatAttemptOutcome, run_explicit_heartbeat_once};
-    use lanveriq_agent::first_pin_review::{
-        FirstPinReviewObservation, OfflineFirstPinReview, inspect_offline_first_pin_review,
-    };
     use lanveriq_agent::heartbeat_schedule::HeartbeatHalt;
     use lanveriq_agent::store::OutboxStore;
     use lanveriq_agent::transport::{
         ActivationRequest, AgentTlsTransport, CredentialEpochDisposition, DeliveryDisposition,
         Heartbeat, HeartbeatLookupDisposition, TransportError,
     };
-    use ring::signature::{Ed25519KeyPair, KeyPair};
     use ring::rand::SystemRandom;
-    use std::{cell::Cell, env, fs, path::PathBuf, time::{SystemTime, UNIX_EPOCH}};
+    use ring::signature::{Ed25519KeyPair, KeyPair};
+    use std::{
+        cell::Cell,
+        env, fs,
+        path::PathBuf,
+        time::{SystemTime, UNIX_EPOCH},
+    };
     use uuid::Uuid;
 
     if env::var("GITHUB_ACTIONS").as_deref() != Ok("true")
@@ -198,7 +203,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             signature_hex: String::new(),
         };
         signed_review.signature_hex = hex::encode(
-            ephemeral_reviewer.sign(&signed_review.signing_payload()?).as_ref()
+            ephemeral_reviewer
+                .sign(&signed_review.signing_payload()?)
+                .as_ref(),
         );
         if inspect_offline_first_pin_review(
             &signed_review,
@@ -216,11 +223,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             &verified_epoch,
             ephemeral_reviewer.public_key().as_ref(),
             now,
-        ).is_ok() {
+        )
+        .is_ok()
+        {
             return Err("synthetic tampered review signature was accepted".into());
         }
         if store.load_heartbeat_credential_pin(device).await?.is_some()
-            || store.load_heartbeat_schedule_recovery(device).await?.generation != state.generation
+            || store
+                .load_heartbeat_schedule_recovery(device)
+                .await?
+                .generation
+                != state.generation
         {
             return Err("synthetic review signature implicitly modified SQLite".into());
         }

@@ -75,7 +75,8 @@ impl OfflineFirstPinReview {
         if fingerprint.len() != 32 {
             return Err(FirstPinReviewError::MalformedReview);
         }
-        let mut message = Vec::with_capacity(FIRST_PIN_REVIEW_DOMAIN.len() + 4 + 16 * 3 + 32 + 8 * 2);
+        let mut message =
+            Vec::with_capacity(FIRST_PIN_REVIEW_DOMAIN.len() + 4 + 16 * 3 + 32 + 8 * 2);
         message.extend_from_slice(FIRST_PIN_REVIEW_DOMAIN);
         message.extend_from_slice(&self.schema_version.to_be_bytes());
         message.extend_from_slice(self.device_id.as_bytes());
@@ -118,8 +119,8 @@ pub fn inspect_offline_first_pin_review(
     {
         return Err(FirstPinReviewError::SignatureRejected);
     }
-    let signature = hex::decode(&review.signature_hex)
-        .map_err(|_| FirstPinReviewError::SignatureRejected)?;
+    let signature =
+        hex::decode(&review.signature_hex).map_err(|_| FirstPinReviewError::SignatureRejected)?;
     UnparsedPublicKey::new(&ED25519, independently_provisioned_ed25519_public_key)
         .verify(&payload, &signature)
         .map_err(|_| FirstPinReviewError::SignatureRejected)?;
@@ -139,7 +140,11 @@ mod tests {
         Ed25519KeyPair::from_pkcs8(private.as_ref()).unwrap()
     }
 
-    fn signed_fixture() -> (OfflineFirstPinReview, CurrentCredentialEpoch, Ed25519KeyPair) {
+    fn signed_fixture() -> (
+        OfflineFirstPinReview,
+        CurrentCredentialEpoch,
+        Ed25519KeyPair,
+    ) {
         let current = CurrentCredentialEpoch {
             device_id: Uuid::now_v7(),
             credential_epoch_id: Uuid::now_v7(),
@@ -167,8 +172,11 @@ mod tests {
             inspect_offline_first_pin_review(&grant, &current, signer.public_key().as_ref(), NOW),
             Ok(FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly)
         );
-        assert_eq!(grant.signing_payload().unwrap(), grant.signing_payload().unwrap());
-        assert!(!grant.signing_payload().unwrap().contains(&b'{'));
+        assert_eq!(
+            grant.signing_payload().unwrap(),
+            grant.signing_payload().unwrap()
+        );
+        assert!(grant.signing_payload().unwrap().starts_with(FIRST_PIN_REVIEW_DOMAIN));
     }
 
     #[test]
@@ -307,10 +315,9 @@ mod tests {
         let mut json = serde_json::to_value(&grant).unwrap();
         json["auto_install_pin"] = serde_json::json!(true);
         assert!(serde_json::from_value::<OfflineFirstPinReview>(json).is_err());
-        let replay = serde_json::from_slice::<OfflineFirstPinReview>(
-            &serde_json::to_vec(&grant).unwrap()
-        )
-        .unwrap();
+        let replay =
+            serde_json::from_slice::<OfflineFirstPinReview>(&serde_json::to_vec(&grant).unwrap())
+                .unwrap();
         assert_eq!(replay, grant);
     }
 }
