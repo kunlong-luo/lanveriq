@@ -1,16 +1,26 @@
 package com.lanveriq.server.enrollment;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.persistence.EntityManager;
+import java.io.StringWriter;
+import java.security.KeyPairGenerator;
+import java.security.spec.ECGenParameterSpec;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.UUID;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +55,12 @@ class PostgreSqlCertificateRegistrationIT {
 
     @Autowired
     private JpaDeviceCertificateRegistrationRepository registration;
+
+    @Autowired
+    private EnrollmentTokenIssuer tokenIssuer;
+
+    @Autowired
+    private PendingEnrollmentService pendingEnrollment;
 
     @Autowired
     private EntityManager manager;
@@ -114,6 +130,151 @@ class PostgreSqlCertificateRegistrationIT {
         };
         return ((Number) manager.createNativeQuery(sql)
                 .setParameter("id", deviceId).getSingleResult()).longValue();
+    }
+
+    private static String syntheticP256Csr() throws Exception {
+        var generator = KeyPairGenerator.getInstance("EC");
+        generator.initialize(new ECGenParameterSpec("secp256r1"));
+        var keys = generator.generateKeyPair();
+        var request = new JcaPKCS10CertificationRequestBuilder(
+                new X500Name("CN=untrusted-synthetic-subject"), keys.getPublic())
+                .build(new JcaContentSignerBuilder("SHA256withECDSA").build(keys.getPrivate()));
+        var output = new StringWriter();
+        try (var writer = new JcaPEMWriter(output)) {
+            writer.writeObject(request);
+        }
+        return output.toString();
+    }
+
+    @Test
+    void scopedTokenCsrAndReviewFormOnePostgresPendingIdentityLifecycle() throws Exception {
+        assertThrows(AccessDeniedException.class, () ->
+                tokenIssuer.issue(UUID.randomUUID(), groupId, 9, Duration.ofMinutes(5)));
+        var token = tokenIssuer.issue(adminId, groupId, 9, Duration.ofMinutes(5));
+        assertTrue(token.toString().contains("plaintext=REDACTED"));
+        byte[] storedVerifier = (byte[]) manager.createNativeQuery("""
+                SELECT token_sha256 FROM enrollment_tokens WHERE id=:id
+                """).setParameter("id", token.id()).getSingleResult();
+        assertArrayEquals(new EnrollmentTokenCodec().verifierFor(token.plaintext()), storedVerifier);
+        String csr = syntheticP256Csr();
+        String spki = new CertificateSigningRequestValidator()
+                .validate(csr).spkiSha256Digest();
+
+        assertThrows(AccessDeniedException.class, () ->
+                pendingEnrollment.register(token.plaintext(), 10, csr));
+        assertThrows(IllegalArgumentException.class, () ->
+                pendingEnrollment.register(token.plaintext(), 9, "invalid-csr"));
+        assertNull(manager.createNativeQuery("""
+                SELECT consumed_at FROM enrollment_tokens WHERE id=:id
+                """).setParameter("id", token.id()).getSingleResult());
+
+        var pending = pendingEnrollment.register(token.plaintext(), 9, csr);
+        assertEquals(groupId, pending.deviceGroupId());
+        assertEquals("pending_certificate", manager.createNativeQuery("""
+                SELECT enrollment_state FROM devices WHERE id=:id
+                """).setParameter("id", pending.deviceId()).getSingleResult());
+        assertEquals(spki, manager.createNativeQuery("""
+                SELECT csr_spki_digest FROM device_enrollment_csrs WHERE device_id=:id
+                """).setParameter("id", pending.deviceId()).getSingleResult());
+        assertNotNull(manager.createNativeQuery("""
+                SELECT consumed_at FROM enrollment_tokens WHERE id=:id
+                """).setParameter("id", token.id()).getSingleResult());
+        assertThrows(AccessDeniedException.class, () ->
+                pendingEnrollment.register(token.plaintext(), 9, csr));
+        assertThrows(AccessDeniedException.class, () ->
+                transaction().executeWithoutResult(ignored ->
+                        registration.lockPendingForScopedAdmin(UUID.randomUUID(), pending.deviceId())));
+
+        // PKIX/profile validation is covered separately; this fixture tests
+        // the reviewed registration transaction and audit boundary.
+        var signed = new ClientCertificateProfileValidator.VerifiedLeaf(
+                UUID.randomUUID().toString().replace("-", "").repeat(2),
+                "a".repeat(64), UUID.randomUUID().toString(), spki,
+                Instant.now().minusSeconds(3600), Instant.now().plusSeconds(48 * 3600));
+        transaction().executeWithoutResult(ignored -> {
+            registration.lockPendingForScopedAdmin(adminId, pending.deviceId());
+            registration.registerReviewed(adminId, pending.deviceId(), signed);
+        });
+        assertEquals(adminId, manager.createNativeQuery("""
+                SELECT reviewed_by FROM device_enrollment_csrs WHERE device_id=:id
+                """).setParameter("id", pending.deviceId()).getSingleResult());
+        assertEquals("pending", manager.createNativeQuery("""
+                SELECT status FROM device_credentials WHERE device_id=:id
+                """).setParameter("id", pending.deviceId()).getSingleResult());
+        long tokenAudit = ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                WHERE resource_id=:id AND action='enrollment_token.issue'
+                """).setParameter("id", token.id()).getSingleResult()).longValue();
+        long reviewAudit = ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                WHERE resource_id=:id AND action='device_certificate.register'
+                """).setParameter("id", pending.deviceId()).getSingleResult()).longValue();
+        assertEquals(1L, tokenAudit);
+        assertEquals(1L, reviewAudit);
+    }
+
+    @Test
+    void concurrentSingleUseTokenCreatesOnlyOnePendingCsr() throws Exception {
+        var token = tokenIssuer.issue(adminId, groupId, 9, Duration.ofMinutes(5));
+        String firstCsr = syntheticP256Csr();
+        String secondCsr = syntheticP256Csr();
+        long before = ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM devices WHERE group_id=:group_id
+                """).setParameter("group_id", groupId).getSingleResult()).longValue();
+        var start = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var first = pool.submit(() -> {
+                start.await();
+                try {
+                    pendingEnrollment.register(token.plaintext(), 9, firstCsr);
+                    return true;
+                } catch (AccessDeniedException denied) {
+                    return false;
+                }
+            });
+            var second = pool.submit(() -> {
+                start.await();
+                try {
+                    pendingEnrollment.register(token.plaintext(), 9, secondCsr);
+                    return true;
+                } catch (AccessDeniedException denied) {
+                    return false;
+                }
+            });
+            start.countDown();
+            assertEquals(1, (first.get(20, TimeUnit.SECONDS) ? 1 : 0)
+                    + (second.get(20, TimeUnit.SECONDS) ? 1 : 0));
+        }
+        long after = ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM devices WHERE group_id=:group_id
+                """).setParameter("group_id", groupId).getSingleResult()).longValue();
+        assertEquals(before + 1, after);
+        assertNotNull(manager.createNativeQuery("""
+                SELECT consumed_at FROM enrollment_tokens WHERE id=:id
+                """).setParameter("id", token.id()).getSingleResult());
+    }
+
+    @Test
+    void expiredTokenCannotCreateOrConsumePendingDevice() throws Exception {
+        var token = tokenIssuer.issue(adminId, groupId, 9, Duration.ofMinutes(5));
+        transaction().executeWithoutResult(ignored ->
+                manager.createNativeQuery("""
+                        UPDATE enrollment_tokens
+                        SET expires_at=clock_timestamp()-INTERVAL '1 second'
+                        WHERE id=:id
+                        """).setParameter("id", token.id()).executeUpdate());
+        long before = ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM devices WHERE group_id=:group_id
+                """).setParameter("group_id", groupId).getSingleResult()).longValue();
+        assertThrows(AccessDeniedException.class, () ->
+                pendingEnrollment.register(token.plaintext(), 9, syntheticP256Csr()));
+        long after = ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM devices WHERE group_id=:group_id
+                """).setParameter("group_id", groupId).getSingleResult()).longValue();
+        assertEquals(before, after);
+        assertNull(manager.createNativeQuery("""
+                SELECT consumed_at FROM enrollment_tokens WHERE id=:id
+                """).setParameter("id", token.id()).getSingleResult());
     }
 
     @Test
