@@ -227,7 +227,10 @@ async fn concurrent_quarantine_during_lookup_never_reports_stale_committed_as_cu
             async move {
                 assert_eq!(owner, device());
                 assert_eq!(pending, id);
-                let recovery = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+                let recovery = store
+                    .load_heartbeat_schedule_recovery(device())
+                    .await
+                    .unwrap();
                 assert_eq!(recovery.generation, generation);
                 let mut checkpoint = recovery.checkpoint.unwrap();
                 checkpoint.note_uncertain_outcome().unwrap();
@@ -244,7 +247,10 @@ async fn concurrent_quarantine_during_lookup_never_reports_stale_committed_as_cu
         observed,
         HeartbeatReconciliationObservation::StaleDuringLookup(id)
     );
-    let recovery = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+    let recovery = store
+        .load_heartbeat_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(recovery.generation, generation + 1);
     let checkpoint = recovery.checkpoint.unwrap();
     assert_eq!(checkpoint.pending_request_id, Some(id));
@@ -286,7 +292,10 @@ async fn same_state_cas_bump_during_lookup_also_invalidates_evidence() {
         observed,
         HeartbeatReconciliationObservation::StaleDuringLookup(id)
     );
-    let recovery = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+    let recovery = store
+        .load_heartbeat_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(recovery.generation, generation + 1);
     assert_eq!(recovery.checkpoint.unwrap().pending_request_id, Some(id));
 }

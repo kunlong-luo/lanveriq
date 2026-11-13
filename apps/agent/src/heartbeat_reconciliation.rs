@@ -83,8 +83,7 @@ where
     // Compare both the CAS generation and the full state: even a same-state
     // generation bump invalidates the snapshot. This does not mutate SQLite.
     let current = store.load_heartbeat_schedule_recovery(device_id).await?;
-    if current.generation != recovery.generation
-        || current.checkpoint.as_ref() != Some(&checkpoint)
+    if current.generation != recovery.generation || current.checkpoint.as_ref() != Some(&checkpoint)
     {
         return Ok(HeartbeatReconciliationObservation::StaleDuringLookup(
             pending,
