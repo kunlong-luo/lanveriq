@@ -14,6 +14,12 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 A7：当前证书代际与 SQLite 不可变 pin 的只读预检，L1/L2 PASS
+
+- **最终单测源码：** [`53ffad0f`](https://github.com/kunlong-luo/lanveriq/commit/53ffad0fd276e569d419b917d009e6f85042232d)，[Rust L1 #43426057069](https://github.com/kunlong-luo/lanveriq/actions/runs/43426057069) **SUCCESS**（Rustfmt、完整 Cargo tests、Clippy）、[RD-2 #43426057030](https://github.com/kunlong-luo/lanveriq/actions/runs/43426057030) **SUCCESS**。实际网络/PG18 L2 在功能一致的源码 SHA [`9a39345e`](https://github.com/kunlong-luo/lanveriq/commit/9a39345e0ecd48bfe6afec66bdafdf0e49c78444) 上运行，[Linux Batch A #43425686892](https://github.com/kunlong-luo/lanveriq/actions/runs/43425686892) 两项真实隔离作业 **SUCCESS**；最后变动只修复离线测试用非法首次 quarantine 状态创建的问题，**不可冒称是相同 SHA 的 L2**。
+- **实现：** 显式只读 `inspect_explicit_heartbeat_epoch_preflight` 校验本地不可变 pin、已有 heartbeat checkpoint/generation，调用 Rust TLS1.3 当前认证叶证书指纹驱动的 GET 后再校验持久状态。任何并发 pin 首次写入或 checkpoint generation 改变都返回 `StaleDuringLookup`，不会采用过时查询结果。未绑 pin 返回 `UnboundNeedsReview`；已绑相同只返回 `MatchingLocalPinOnly`，错代际/指纹为 `MismatchStayHalted`，401/403/404/409/5xx 继续保持暂停/未决/隔离，不得自动确认历史 POST 或重发。
+- **验收：** 真实 CI 日志直接证明 Rust→Caddy→Tomcat 双跳 mTLS GET→PG18，且 SQLite 中 ACK 丢失的 pending、quarantine、generation 不变；离线 SQLx 文件库覆盖并发旧 checkpoint、并发初次 pin、旧状态/撤权/错误 UUIDv4 拒绝。未修改实际 Agent 服务、生产开关或后台调度；仍未获得证书运营审批/首次 pin 安装协议，不能上线/进行 L3 Pop!_OS 声明。
+
 ## 2026-11-13 A6：Rust 本地叶证书指纹驱动的 mTLS 证书代际只读联调，L1/L2 PASS
 
 - **代码：** [`0468bc43`](https://github.com/kunlong-luo/lanveriq/commit/0468bc43a216e6d2f0294efc237c1d9f36180b34)、最终受测 [`28046a00`](https://github.com/kunlong-luo/lanveriq/commit/28046a00a19793d0ba879976dfe064ff7e669b6b)。仅修改 GitHub `main`，不创建常驻 Agent 任务。
