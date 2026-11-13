@@ -14,6 +14,11 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 最新 Batch A3 安全进展（2026-11-13，单独 L1）
+
+- **只读恢复检查器已实现并通过 L1：** [Agent Rustfmt / 所有 Cargo 单测 / Clippy #43364626478](https://github.com/kunlong-luo/lanveriq/actions/runs/43364626478) SUCCESS（源 SHA [`864297bb`](https://github.com/kunlong-luo/lanveriq/commit/864297bbeb2c5f96191f29526b1afbe4f6eedeb7)）；[RD-2 default OFF #43364626482](https://github.com/kunlong-luo/lanveriq/actions/runs/43364626482) SUCCESS。新增 `heartbeat_reconciliation.rs` 及文件型 SQLite 负向测试：disabled / no pending / identity halt 不发起查账；同设备 pending 查得 committed、unknown、identity rejected、quarantine 和无效响应都**只返回诊断**，不改变持久 SQLite UUID、halt、generation，重启后仍不能发送心跳。已确认核对门槛只读且不会运行真实设备网络。
+- **完成度仍是 A3 子项 L1_PASS、Batch A 整体 OPEN。** 没有完成经批准的操作员恢复授权/ledger retention 与 epoch、证书轮换代际验证、Pop!_OS systemd 常驻服务接线、真正设备 L3；切勿把 committed 账本 GET 当首次 POST ACK 或作为自动解除隔离依据。原有 Linux Batch A 网络 L2 证据属于早期不同 SHA，本次新 helper 没有声称单独网络 L2。
+
 ## 已通过的实际证据与边界
 
 | 能力 | 实测证据 | 尚不代表 |
