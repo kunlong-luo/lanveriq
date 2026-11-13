@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 A4：当前有效证书代际的内部只读查询与 Rust 严格解码，L1/L2 PASS
+
+- **Java/PG18/TLS 受测源码：** [`1f91db49`](https://github.com/kunlong-luo/lanveriq/commit/1f91db49585429bb8ae6edaaa20f7c0ff568ef5f)；[Linux Batch A #43385185651](https://github.com/kunlong-luo/lanveriq/actions/runs/43385185651) 的 PostgreSQL 18 Testcontainers 八组真实迁移/事务及独立 Rust→Caddy→Spring/Tomcat TLS1.3 合成链路两项均 **SUCCESS**，同源码 [Java L1 #43385185594](https://github.com/kunlong-luo/lanveriq/actions/runs/43385185594) 与 [PG 编译 #43385185657](https://github.com/kunlong-luo/lanveriq/actions/runs/43385185657) **SUCCESS**。
+- **Rust 最终受测源码：** [`b941a18a`](https://github.com/kunlong-luo/lanveriq/commit/b941a18ae44b3440354dfe79a4e76ffbdc16f83a)；[Agent Rustfmt/全量单测/Clippy #43385582279](https://github.com/kunlong-luo/lanveriq/actions/runs/43385582279) **SUCCESS**，[RD-2 default OFF #43385582281](https://github.com/kunlong-luo/lanveriq/actions/runs/43385582281) **SUCCESS**。中间两次 Rust L1 红灯为新增测试夹具 Rustfmt、默认未启用 `uuid` v4 feature，不涉及新增生产功能，已在最终 SHA 修复且全部重验。
+- **实际新增：** `DeviceHeartbeatService.inspectCurrentCredentialEpoch` 是一个**内部事务服务**，经现有 `JpaActiveDeviceCredentialGuard` 按设备→证书锁序检查当前有效的已注册证书，并从 PostgreSQL V12 的不可变 `credential_epoch_id` 取出当前代际；它不会更新 `last_seen_at`、心跳 UUID 账本或解隔离。PG18 负例覆盖错证书、错设备、证书撤销及读取前后状态不变。Rust `classify_credential_epoch_response` 只是内存中的严格解码器：只接受设备 ID、证书 SHA-256 指纹、UUIDv7 代际、服务器 UTC 时间全部匹配且无多余字段的 200；401/403 暂停、404/429/5xx 未决，其他响应隔离，**绝不算原始 POST ACK**。
+- **尚未实现/明确禁止：** 没有创建/挂载 HTTP epoch GET 路由；`AgentTlsTransport` 还没有该请求方法；解析器的预期指纹必须由**未来经过实际 TLS 身份验证的客户端上下文**提供，而不是自行信任的字符串。查询结果不是带签名的离线发证/授权令牌，也**未**写入 Agent SQLite V7 pin、未启用 heartbeat sender、未解除已隔离请求、未开启联网/采集/远控。后续须独立评审确切 mTLS GET 路由与 L2 负例、服务端签名/证书匹配和 Pop!_OS 24.04 L3。Batch A #5 OPEN、v0.1 NOT RELEASE READY。
+
 ## 2026-11-13 V13：新心跳 UUID 账本绑定服务端证书代际，隔离 L1 + L2 PASS
 
 - **实际受测源码：** [`ce350bac`](https://github.com/kunlong-luo/lanveriq/commit/ce350bacfbcf1f7413430484a9dc48b73b12af53)。[Linux Batch A #43382446151](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446151) 中 **PG18.6 Testcontainers 八组事务/迁移与独立 Rust CSR/Reqwest→Caddy→Spring/Tomcat 双跳 TLS1.3 两项 L2 作业均 SUCCESS**；[Java 单测 #43382446134](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446134)、[PG 集成源码编译 #43382446098](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446098)、[RD-2 default-OFF #43382446147](https://github.com/kunlong-luo/lanveriq/actions/runs/43382446147) 同源 SUCCESS。
