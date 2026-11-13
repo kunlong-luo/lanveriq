@@ -49,12 +49,12 @@ pub async fn inspect_local_heartbeat_credential_continuity(
     store: &OutboxStore,
     candidate: &HeartbeatCredentialPin,
 ) -> Result<HeartbeatCredentialContinuity, StoreError> {
-    let pin = store.load_heartbeat_credential_pin(candidate.device_id).await?;
+    let pin = store
+        .load_heartbeat_credential_pin(candidate.device_id)
+        .await?;
     Ok(match pin {
         None => HeartbeatCredentialContinuity::UnboundNeedsReview,
-        Some(saved) if saved == *candidate => {
-            HeartbeatCredentialContinuity::MatchingLocalPinOnly
-        }
+        Some(saved) if saved == *candidate => HeartbeatCredentialContinuity::MatchingLocalPinOnly,
         Some(_) => HeartbeatCredentialContinuity::MismatchStayHalted,
     })
 }

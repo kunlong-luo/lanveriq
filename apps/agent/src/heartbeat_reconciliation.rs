@@ -64,8 +64,14 @@ where
     // Silently falling back to "fresh" after local corruption is forbidden.
     // The legacy diagnostic cannot prove which certificate signed the GET.
     // A locally pinned epoch requires a future identity-aware path instead.
-    if store.load_heartbeat_credential_pin(device_id).await?.is_some() {
-        return Err(HeartbeatReconciliationError::Store(StoreError::HeartbeatConflict));
+    if store
+        .load_heartbeat_credential_pin(device_id)
+        .await?
+        .is_some()
+    {
+        return Err(HeartbeatReconciliationError::Store(
+            StoreError::HeartbeatConflict,
+        ));
     }
     let recovery = store.load_heartbeat_schedule_recovery(device_id).await?;
     if !enabled {

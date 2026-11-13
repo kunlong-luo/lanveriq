@@ -7,9 +7,7 @@ use lanveriq_agent::heartbeat_credential_pin::{
 use lanveriq_agent::heartbeat_reconciliation::{
     HeartbeatReconciliationError, inspect_explicit_heartbeat_reconciliation,
 };
-use lanveriq_agent::heartbeat_runtime::{
-    HeartbeatDriverError, run_explicit_heartbeat_once,
-};
+use lanveriq_agent::heartbeat_runtime::{HeartbeatDriverError, run_explicit_heartbeat_once};
 use lanveriq_agent::heartbeat_schedule::HeartbeatCheckpoint;
 use lanveriq_agent::store::{OutboxStore, StoreError};
 use lanveriq_agent::transport::{DeliveryDisposition, HeartbeatLookupDisposition};
@@ -30,12 +28,18 @@ async fn pinned_epoch_survives_restart_and_legacy_sender_and_lookup_are_denied()
     let path = dir.path().join("pinned.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
     let identity = pin();
-    store.initialize_heartbeat_credential_pin(&identity).await.unwrap();
+    store
+        .initialize_heartbeat_credential_pin(&identity)
+        .await
+        .unwrap();
     store.close().await;
 
     let restarted = OutboxStore::open(&path).await.unwrap();
     assert_eq!(
-        restarted.load_heartbeat_credential_pin(device()).await.unwrap(),
+        restarted
+            .load_heartbeat_credential_pin(device())
+            .await
+            .unwrap(),
         Some(identity.clone())
     );
     assert_eq!(
@@ -48,21 +52,23 @@ async fn pinned_epoch_survives_restart_and_legacy_sender_and_lookup_are_denied()
     let result = run_explicit_heartbeat_once(&restarted, device(), true, 100, 30, |_| {
         sends.fetch_add(1, Ordering::SeqCst);
         async { Ok(DeliveryDisposition::Accepted) }
-    }).await;
+    })
+    .await;
     assert!(matches!(
         result,
         Err(HeartbeatDriverError::Store(StoreError::HeartbeatConflict))
     ));
     let lookups = AtomicUsize::new(0);
-    let result = inspect_explicit_heartbeat_reconciliation(
-        &restarted, device(), true, |_, _| {
-            lookups.fetch_add(1, Ordering::SeqCst);
-            async { Ok(HeartbeatLookupDisposition::Committed) }
-        }
-    ).await;
+    let result = inspect_explicit_heartbeat_reconciliation(&restarted, device(), true, |_, _| {
+        lookups.fetch_add(1, Ordering::SeqCst);
+        async { Ok(HeartbeatLookupDisposition::Committed) }
+    })
+    .await;
     assert!(matches!(
         result,
-        Err(HeartbeatReconciliationError::Store(StoreError::HeartbeatConflict))
+        Err(HeartbeatReconciliationError::Store(
+            StoreError::HeartbeatConflict
+        ))
     ));
     assert_eq!(sends.load(Ordering::SeqCst), 0);
     assert_eq!(lookups.load(Ordering::SeqCst), 0);
@@ -71,16 +77,23 @@ async fn pinned_epoch_survives_restart_and_legacy_sender_and_lookup_are_denied()
 #[tokio::test]
 async fn mismatch_and_wrong_device_never_rewrite_pinned_identity() {
     let dir = tempfile::tempdir().unwrap();
-    let store = OutboxStore::open(&dir.path().join("mismatch.sqlite")).await.unwrap();
+    let store = OutboxStore::open(&dir.path().join("mismatch.sqlite"))
+        .await
+        .unwrap();
     let identity = pin();
-    store.initialize_heartbeat_credential_pin(&identity).await.unwrap();
+    store
+        .initialize_heartbeat_credential_pin(&identity)
+        .await
+        .unwrap();
     for alternate in [
         HeartbeatCredentialPin::new(device(), Uuid::now_v7(), &"a".repeat(64)).unwrap(),
-        HeartbeatCredentialPin::new(device(), identity.credential_epoch_id, &"b".repeat(64)).unwrap(),
+        HeartbeatCredentialPin::new(device(), identity.credential_epoch_id, &"b".repeat(64))
+            .unwrap(),
     ] {
         assert_eq!(
             inspect_local_heartbeat_credential_continuity(&store, &alternate)
-                .await.unwrap(),
+                .await
+                .unwrap(),
             HeartbeatCredentialContinuity::MismatchStayHalted
         );
         assert!(matches!(
@@ -101,21 +114,30 @@ async fn mismatch_and_wrong_device_never_rewrite_pinned_identity() {
 #[tokio::test]
 async fn previous_heartbeat_attempt_cannot_be_retroactively_claimed() {
     let dir = tempfile::tempdir().unwrap();
-    let store = OutboxStore::open(&dir.path().join("legacy.sqlite")).await.unwrap();
+    let store = OutboxStore::open(&dir.path().join("legacy.sqlite"))
+        .await
+        .unwrap();
     let id = Uuid::now_v7();
     let mut checkpoint = HeartbeatCheckpoint::initial(device()).unwrap();
     checkpoint.begin(true, 100, 30, id).unwrap();
-    store.save_heartbeat_schedule_checkpoint(&checkpoint, 0).await.unwrap();
+    store
+        .save_heartbeat_schedule_checkpoint(&checkpoint, 0)
+        .await
+        .unwrap();
     assert!(matches!(
         store.initialize_heartbeat_credential_pin(&pin()).await,
         Err(StoreError::HeartbeatConflict)
     ));
     assert_eq!(
         inspect_local_heartbeat_credential_continuity(&store, &pin())
-            .await.unwrap(),
+            .await
+            .unwrap(),
         HeartbeatCredentialContinuity::UnboundNeedsReview
     );
-    let existing = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+    let existing = store
+        .load_heartbeat_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(existing.checkpoint.unwrap().pending_request_id, Some(id));
     assert_eq!(existing.generation, 1);
 }
@@ -125,20 +147,31 @@ async fn deleted_or_corrupted_pin_marker_never_looks_like_fresh_enrollment() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("tamper.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
-    store.initialize_heartbeat_credential_pin(&pin()).await.unwrap();
+    store
+        .initialize_heartbeat_credential_pin(&pin())
+        .await
+        .unwrap();
     store.close().await;
 
     // SQLite's immutable DELETE trigger blocks ordinary deletion. Simulate
     // tampering by removing it directly; seen marker remains durable.
-    let database = sqlx::SqlitePool::connect(
-        &format!("sqlite://{}", path.display())
-    ).await.unwrap();
-    assert!(sqlx::query("DELETE FROM heartbeat_credential_pin")
-        .execute(&database).await.is_err());
+    let database = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display()))
+        .await
+        .unwrap();
+    assert!(
+        sqlx::query("DELETE FROM heartbeat_credential_pin")
+            .execute(&database)
+            .await
+            .is_err()
+    );
     sqlx::query("DROP TRIGGER heartbeat_credential_pin_no_delete")
-        .execute(&database).await.unwrap();
+        .execute(&database)
+        .await
+        .unwrap();
     sqlx::query("DELETE FROM heartbeat_credential_pin")
-        .execute(&database).await.unwrap();
+        .execute(&database)
+        .await
+        .unwrap();
     database.close().await;
     let recovered = OutboxStore::open(&path).await.unwrap();
     assert!(matches!(

@@ -50,7 +50,11 @@ where
     // This legacy driver has no authenticated certificate/epoch evidence.
     // Once a local epoch is pinned, even a valid-looking original ACK must
     // never let this old entry point send or release a pending request.
-    if store.load_heartbeat_credential_pin(device_id).await?.is_some() {
+    if store
+        .load_heartbeat_credential_pin(device_id)
+        .await?
+        .is_some()
+    {
         return Err(HeartbeatDriverError::Store(StoreError::HeartbeatConflict));
     }
     let recovery = store.load_heartbeat_schedule_recovery(device_id).await?;

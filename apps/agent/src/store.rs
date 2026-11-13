@@ -1,7 +1,7 @@
 //! SQLx WAL outbox with synthetic events and local-only typed inventory.
 //! Neither path is connected to Agent service scheduling or network I/O.
-use crate::heartbeat_schedule::HeartbeatCheckpoint;
 use crate::heartbeat_credential_pin::HeartbeatCredentialPin;
+use crate::heartbeat_schedule::HeartbeatCheckpoint;
 use crate::inventory::{InventorySnapshot, RawInventory};
 use crate::inventory_schedule::InventoryScheduleCheckpoint;
 use sha2::{Digest, Sha256};
@@ -931,16 +931,13 @@ impl OutboxStore {
         )
         .fetch_one(&mut *tx)
         .await?;
-        let occupied: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM heartbeat_credential_pin",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
-        let attempts: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM heartbeat_schedule_checkpoint",
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        let occupied: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_credential_pin")
+            .fetch_one(&mut *tx)
+            .await?;
+        let attempts: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_schedule_checkpoint")
+                .fetch_one(&mut *tx)
+                .await?;
         if pin_seen != 0 || heartbeat_seen != 0 || occupied != 0 || attempts != 0 {
             return Err(StoreError::HeartbeatConflict);
         }
@@ -954,12 +951,11 @@ impl OutboxStore {
         .bind(&pin.cert_sha256_fingerprint)
         .execute(&mut *tx)
         .await?;
-        let marked = sqlx::query(
-            "UPDATE agent_state SET heartbeat_credential_pin_seen=1 WHERE singleton=1",
-        )
-        .execute(&mut *tx)
-        .await?
-        .rows_affected();
+        let marked =
+            sqlx::query("UPDATE agent_state SET heartbeat_credential_pin_seen=1 WHERE singleton=1")
+                .execute(&mut *tx)
+                .await?
+                .rows_affected();
         if marked != 1 {
             return Err(StoreError::HeartbeatConflict);
         }
