@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-13 A6：Rust 本地叶证书指纹驱动的 mTLS 证书代际只读联调，L1/L2 PASS
+
+- **代码：** [`0468bc43`](https://github.com/kunlong-luo/lanveriq/commit/0468bc43a216e6d2f0294efc237c1d9f36180b34)、最终受测 [`28046a00`](https://github.com/kunlong-luo/lanveriq/commit/28046a00a19793d0ba879976dfe064ff7e669b6b)。仅修改 GitHub `main`，不创建常驻 Agent 任务。
+- **已过 CI：** [Rustfmt/Cargo 单测/Clippy #43423162146](https://github.com/kunlong-luo/lanveriq/actions/runs/43423162146) SUCCESS、[RD-2 fail-closed #43423162205](https://github.com/kunlong-luo/lanveriq/actions/runs/43423162205) SUCCESS。[Linux Batch A #43423162368](https://github.com/kunlong-luo/lanveriq/actions/runs/43423162368) 的 PG18 Testcontainers 八组事务 + 真实 Rust→Caddy→Spring/Tomcat 双跳 TLS1.3/PG18 两项作业 SUCCESS，最终 CI 作业日志确证 `PASS: real Rust TLS1.3 read-only credential epoch matches the locally loaded DER leaf, with unchanged SQLite ACK quarantine.`。
+- **实现：** 直接使用已锁定的 Rustls `rustls-pki-types 1.15.1` PEM→DER 解析器计算传给 Reqwest 的本地 mTLS 证书叶 SHA-256；新 `AgentTlsTransport.observe_current_credential_epoch` 只接收设备 UUID，固定 Agent HTTPS、TLS1.3、无代理/重定向，4 KiB 响应限制，严格解析匹配服务器当前有效证书与 UUIDv7 代际，无外部可注入的“预期指纹”。真实 Rust 单次合成探针在心跳已提交但本地 ACK 丢失后读取代际，仍保持 pending UUID、generation、隔离状态和本地 pin 未安装。错设备/未注册/过期/吊销、重放与未知查账负例继续通过；生产 HTTP GET 仍受独立三开关 default-OFF。
+- **边界：** 成功观察**不是**由服务端签名的独立凭证/运营批准、旧 POST ACK、数据库删除许可、SQLite pin 首次安装授权或证书轮换协议。本轮不执行真实采集、真实设备网络、自动心跳或远控；不能因 Ubuntu 24.04 L2 当作 Pop!_OS 24 L3 或正式发布。Issue #5 保持开放，v0.1 NOT RELEASE READY。
+
 ## 2026-11-13 A5：三重默认拒绝的当前证书代际只读 GET，隔离 L1/L2 PASS
 
 - **精确源码：** [`b9e4efc2`](https://github.com/kunlong-luo/lanveriq/commit/b9e4efc279df35e0b73e1f5f01864ceefbd500d6)。[Linux Batch A #43417739656](https://github.com/kunlong-luo/lanveriq/actions/runs/43417739656) 的 PG18.6 Testcontainers 八组事务与真实隔离 Rust→Caddy→Spring/Tomcat 双跳 TLS1.3 两项作业 **SUCCESS**；[Java L1 #43417739502](https://github.com/kunlong-luo/lanveriq/actions/runs/43417739502)、[PG 编译 #43417739729](https://github.com/kunlong-luo/lanveriq/actions/runs/43417739729)、[RD-2 默认 OFF #43417739717](https://github.com/kunlong-luo/lanveriq/actions/runs/43417739717) **SUCCESS**。
