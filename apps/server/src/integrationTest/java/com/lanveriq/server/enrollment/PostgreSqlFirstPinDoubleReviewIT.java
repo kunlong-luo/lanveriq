@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.lanveriq.server.security.AdminPrincipal;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.Base64;
+import java.security.MessageDigest;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -422,6 +425,160 @@ class PostgreSqlFirstPinDoubleReviewIT {
                     .setParameter("reviewer", first).executeUpdate()));
         assertEquals(0L, countVotes());
         assertEquals(0L, countVoteAudit());
+    }
+
+    // V17 synthetic-only verifier: test callback is NEVER built into
+    // src/main, never an authenticated Passkey/WebAuthn cryptographic proof.
+    private StagedFirstPinPasskeyChallengeLedger challengeLedger(
+            FirstPinWebAuthnAssertionVerifier verifier) {
+        return new StagedFirstPinPasskeyChallengeLedger(manager, verifier);
+    }
+
+    private StagedFirstPinPasskeyChallengeLedger.IssuedChallenge issueChallenge(
+            StagedFirstPinPasskeyChallengeLedger staged) {
+        return new TransactionTemplate(txManager)
+                .execute(ignored -> staged.issue(request));
+    }
+
+    private void consumeChallenge(StagedFirstPinPasskeyChallengeLedger staged,
+            StagedFirstPinPasskeyChallengeLedger.IssuedChallenge issued,
+            String nonce, byte[] assertion) {
+        tx(() -> staged.consumeAfterVerifiedAssertion(
+                issued.id(), nonce, assertion));
+    }
+
+    private long challengeAuditCount(String action) {
+        return ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                WHERE resource_id=:request AND action=:action
+                """).setParameter("request", request).setParameter("action", action)
+                .getSingleResult()).longValue();
+    }
+
+    @Test
+    void challengeIsServerRandomHashedAndProductionVerifierCannotConsume() throws Exception {
+        login(first);
+        var production = challengeLedger(new DenyAllFirstPinWebAuthnAssertionVerifier());
+        var issued = issueChallenge(production);
+        assertEquals(43, issued.challengeBase64Url().length(),
+                "32 random bytes encoded as canonical unpadded Base64url");
+        byte[] raw = Base64.getUrlDecoder().decode(issued.challengeBase64Url());
+        assertEquals(32, raw.length);
+        byte[] digest = (byte[]) manager.createNativeQuery("""
+                SELECT challenge_sha256 FROM admin_passkey_step_up_challenges
+                WHERE id=:id
+                """).setParameter("id", issued.id()).getSingleResult();
+        assertArrayEquals(MessageDigest.getInstance("SHA-256").digest(raw), digest);
+        assertEquals(1L, challengeAuditCount("first_pin.step_up.challenge.issue"));
+
+        assertThrows(AccessDeniedException.class, () ->
+                consumeChallenge(production, issued, issued.challengeBase64Url(),
+                        new byte[]{1, 2, 3}));
+        assertEquals(0L, challengeAuditCount("first_pin.step_up.challenge.consume"));
+        assertEquals(0L, countVotes());
+        assertEquals(0L, countVoteAudit());
+        assertEquals(1L, ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_passkey_step_up_challenges
+                WHERE id=:id AND consumed_at IS NULL
+                """).setParameter("id", issued.id()).getSingleResult()).longValue());
+    }
+
+    @Test
+    void syntheticVerifiedChallengeIsOneUseAndBoundToActorSessionRequestAndAction() {
+        login(first);
+        var staged = challengeLedger(bound -> {
+            assertEquals(first, bound.actorId());
+            assertEquals(request, bound.reviewRequestId());
+            assertEquals(device, bound.deviceId());
+            assertEquals(0L, bound.sessionVersion());
+            assertEquals(FirstPinReviewStepUpVerifier.REVIEW_ACTION, bound.action());
+        });
+        var issued = issueChallenge(staged);
+        login(second);
+        assertThrows(AccessDeniedException.class, () ->
+                consumeChallenge(staged, issued, issued.challengeBase64Url(), new byte[]{5}));
+        login(first);
+        assertThrows(AccessDeniedException.class, () ->
+                consumeChallenge(staged, issued, "A".repeat(43), new byte[]{5}));
+        assertThrows(AccessDeniedException.class, () ->
+                consumeChallenge(staged, issued, issued.challengeBase64Url(), new byte[0]));
+        assertEquals(0L, challengeAuditCount("first_pin.step_up.challenge.consume"));
+        consumeChallenge(staged, issued, issued.challengeBase64Url(), new byte[]{5});
+        assertEquals(1L, challengeAuditCount("first_pin.step_up.challenge.consume"));
+        assertThrows(AccessDeniedException.class, () ->
+                consumeChallenge(staged, issued, issued.challengeBase64Url(), new byte[]{5}));
+        assertEquals(1L, challengeAuditCount("first_pin.step_up.challenge.consume"));
+        assertEquals(0L, countVotes());
+    }
+
+    @Test
+    void staleOrExpiredChallengeCannotBeSpentOrHistoryRewritten() {
+        login(first);
+        var staged = challengeLedger(bound -> {});
+        var issued = issueChallenge(staged);
+        tx(() -> manager.createNativeQuery("""
+                UPDATE users SET session_version=session_version+1
+                WHERE id=:actor
+                """).setParameter("actor", first).executeUpdate());
+        assertThrows(AccessDeniedException.class, () ->
+                consumeChallenge(staged, issued, issued.challengeBase64Url(), new byte[]{8}));
+        assertThrows(AccessDeniedException.class, () -> issueChallenge(staged));
+
+        // The database rejects attempts to extend a challenge deadline,
+        // rebind a challenge to a second device, or erase its audit history.
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                manager.createNativeQuery("""
+                    UPDATE admin_passkey_step_up_challenges
+                       SET expires_at=clock_timestamp()+INTERVAL '3 minutes'
+                     WHERE id=:id
+                    """).setParameter("id", issued.id()).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                manager.createNativeQuery("""
+                    UPDATE admin_passkey_step_up_challenges
+                       SET device_id=:other WHERE id=:id
+                    """).setParameter("other", UUID.randomUUID())
+                .setParameter("id", issued.id()).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                manager.createNativeQuery("""
+                    DELETE FROM admin_passkey_step_up_challenges WHERE id=:id
+                    """).setParameter("id", issued.id()).executeUpdate()));
+        assertEquals(0L, challengeAuditCount("first_pin.step_up.challenge.consume"));
+        assertEquals(0L, countVotes());
+    }
+
+    @Test
+    void expiredChallengeCannotBeConsumedEvenWithSyntheticVerifier() {
+        login(first);
+        var staged = challengeLedger(bound -> {});
+        var issued = issueChallenge(staged);
+        byte[] raw = Base64.getUrlDecoder().decode(issued.challengeBase64Url());
+        byte[] digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256").digest(raw);
+        } catch (java.security.NoSuchAlgorithmException ex) {
+            throw new IllegalStateException(ex);
+        }
+        UUID old = new TransactionTemplate(txManager).execute(ignored ->
+                (UUID) manager.createNativeQuery("""
+                    INSERT INTO admin_passkey_step_up_challenges
+                      (actor_id,actor_session_version,request_id,device_id,
+                       action,challenge_sha256,created_at,expires_at)
+                    VALUES (:actor,0,:request,:device,'first_pin.review',:digest,
+                            clock_timestamp()-INTERVAL '10 minutes',
+                            clock_timestamp()-INTERVAL '8 minutes')
+                    RETURNING id
+                    """).setParameter("actor", first).setParameter("request", request)
+                    .setParameter("device", device)
+                    .setParameter("digest", MessageDigest.isEqual(digest, raw)
+                            ? raw : java.util.Arrays.copyOf(digest, digest.length))
+                    .getSingleResult());
+        // A distinct synthetic expired nonce is required because challenge
+        // hashes are globally unique; use a new CSPRNG-derived value.
+        assertTrue(old != null);
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                staged.consumeAfterVerifiedAssertion(old,
+                        issued.challengeBase64Url(), new byte[]{9})));
+        assertEquals(0L, countVotes());
     }
 
     @Test
