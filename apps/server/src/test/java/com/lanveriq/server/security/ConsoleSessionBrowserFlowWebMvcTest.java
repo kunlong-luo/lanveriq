@@ -305,7 +305,17 @@ class ConsoleSessionBrowserFlowWebMvcTest {
                 "/webauthn/register/options",
                 "/webauthn/register",
                 "/webauthn/authenticate/options",
-                "/login/webauthn",
+                "/login/webauthn"}) {
+            // This WebMvc slice has no global catch-all security chain; a
+            // nonexistent WebAuthn handler may return 404 instead of 403.
+            // Full Boot PG18 separately requires real deny-all 403.
+            mvc.perform(post(path).with(csrf())
+                            .header("Host", "console.lanveriq.internal")
+                            .header("Origin", "https://console.lanveriq.internal")
+                            .header("Sec-Fetch-Site", "same-origin"))
+                    .andExpect(status().is4xxClientError());
+        }
+        for (String path : new String[]{
                 "/api/v1/auth/webauthn/register",
                 "/api/v1/auth/webauthn/step-up"}) {
             mvc.perform(post(path).with(csrf())
