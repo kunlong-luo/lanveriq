@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A11-A — 内部管理员双人审核策略预判（代码已提交，Java L1 待最终核实）
+
+- **仅源码、非生产授权：** [受测候选 `b681f872`](https://github.com/kunlong-luo/lanveriq/commit/b681f8726c656bb956b534c32d3a3dc6dc1e3664) 在 Spring 服务端新增 `FirstPinReviewDryRunGate` 和负向 JUnit，并新增 `AdminAction.REVIEW_FIRST_PIN`。Gate **没有** Spring Bean/HTTP 入口、签名操作、数据库审核状态写入、CA 接入或 Agent 执行权。并且 `APPROVED_FOR_SIGNING` 仅为**只读 dry-run**，不能当签名许可。
+- **现有实现的真实边界：** Gate 从 Spring Security 读取审核人 `AdminPrincipal`，对当前设备组重新读取两个审核人的权限；合成 Snapshot/State 检查租户、设备、组、申请人、独立审核人、审核记录、策略版本和状态代际，以及 MFA/重新认证/撤销状态。这里的 State **尚未连接可信数据库或 IdP**，仅可作代码策略负向验证。不能凭输入布尔值赋权。
+- **CI：** [RD-2 default-OFF #43568599424](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599424) 已在 `b681f872` SUCCESS；[Java L1 #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438) 在本项记录时仍 PENDING，**未标记通过**。L2/Pop!_OS L3 均未为 A11-A 运行。
+- **下一步：** 可信持久化审核状态与事务期 RBAC/ABAC 二次验证、实际管理员 MFA/会话再认证、身份与凭证撤销/签发隔离、可信时间、Root-of-Trust/KMS 与 Pop!_OS 管理员授权执行。v0.1 NOT RELEASE READY，Issue #5 OPEN，生产联网/采集/自动恢复/RD-2 OFF。
+
 ## 2026-11-14 A11 trusted-administrator review/issuance — DESIGN ONLY, NOT IMPLEMENTED
 
 - **已写入验收合同：** [A11 管理员审核/信任根/撤销/可信时间/Agent 授权边界](../development/batch-a11-trusted-administrator-review-issuance.md)（设计提交 [`4bb1e319`](https://github.com/kunlong-luo/lanveriq/commit/4bb1e31989741b79aef0d4c380814ab5af9c43bd)）。
