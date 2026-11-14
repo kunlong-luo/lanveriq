@@ -37,7 +37,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
-    "PostgreSqlConsoleSecurityWiringIT": 6,
+    "PostgreSqlConsoleSecurityWiringIT": 8,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -108,6 +108,8 @@ REQUIRED_CASES = {
         "passkeyUserHandleIsStableGloballyUniqueAndReadThroughJpa",
         "passkeyIdIsGloballyUniqueAndOwnerPublicKeyAndRpAreImmutable",
         "passkeyCountersAndRevocationCannotRollBackOrResurrect",
+        "officialWebAuthnUserAdapterReadsOnlyActivePg18UserHandles",
+        "completeSpringWebAuthnCredentialAdapterIsStillFailClosedWithPg18Rows",
     },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
@@ -204,7 +206,7 @@ def main() -> int:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
     print("PG18 synthetic JUnit evidence verified: all 9 Testcontainers classes, "
-          "at least 74 passing tests across nine suites, including A11 double-review and Console security wiring; "
+          "at least 76 passing tests across nine suites, including A11 double-review and Console security wiring; "
           "no failed, errored or skipped cases.")
     return 0
 
