@@ -15,7 +15,7 @@ fn device() -> Uuid {
     Uuid::parse_str("018f9fad-5c71-7db1-b89e-b71f8d620f44").unwrap()
 }
 
-fn signer() -> Ed25519KeyPair {
+fn make_signer() -> Ed25519KeyPair {
     let bytes = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new()).unwrap();
     Ed25519KeyPair::from_pkcs8(bytes.as_ref()).unwrap()
 }
@@ -52,7 +52,7 @@ async fn first_review_and_pin_commit_together_survive_restart_and_replay_fails()
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("atomic.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
-    let signer = signer();
+    let signer = make_signer();
     provision(&store, &signer).await;
     let (review, observed) = signed_review(&signer);
     let expected = HeartbeatCredentialPin::new(
@@ -144,7 +144,7 @@ async fn no_trusted_local_key_or_bad_signature_writes_no_audit_and_no_pin() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("reject.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
-    let signer = signer();
+    let signer = make_signer();
     let (review, observed) = signed_review(&signer);
     assert!(matches!(
         store
@@ -153,7 +153,7 @@ async fn no_trusted_local_key_or_bad_signature_writes_no_audit_and_no_pin() {
         Err(StoreError::HeartbeatConflict)
     ));
     provision(&store, &signer).await;
-    let bad_signer = signer();
+    let bad_signer = make_signer();
     let (bad_review, _) = signed_review(&bad_signer);
     assert!(matches!(
         store
@@ -209,7 +209,7 @@ async fn old_heartbeat_history_blocks_review_consumption_and_immutable_pin() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("old-heartbeat.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
-    let signer = signer();
+    let signer = make_signer();
     provision(&store, &signer).await;
     let mut pending = HeartbeatCheckpoint::initial(device()).unwrap();
     let pending_id = Uuid::now_v7();
@@ -263,7 +263,7 @@ async fn injected_pin_insert_failure_rolls_back_review_id_and_can_retry_exact_on
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("rolled-back.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
-    let signer = signer();
+    let signer = make_signer();
     provision(&store, &signer).await;
     let (review, observed) = signed_review(&signer);
     let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display()))
@@ -315,7 +315,7 @@ async fn direct_sql_pin_without_audit_is_rejected_and_review_audit_deletion_is_d
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("sql-guard.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
-    let signer = signer();
+    let signer = make_signer();
     provision(&store, &signer).await;
     let (review, observed) = signed_review(&signer);
     let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display()))
