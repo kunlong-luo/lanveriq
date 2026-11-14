@@ -1,0 +1,324 @@
+package com.lanveriq.server.enrollment;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.lanveriq.server.security.AdminPrincipal;
+import jakarta.persistence.EntityManager;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * Actual disposable PG18/Flyway V14 transaction acceptance. Only synthetic
+ * principals and credentials. No signer, CA, HTTP, Agent or production data.
+ */
+@Testcontainers
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
+        "lanveriq.bootstrap.enabled=false",
+        "lanveriq.console.auth.enabled=false",
+        "lanveriq.first-pin-review.ledger-enabled=true"
+})
+class PostgreSqlFirstPinDoubleReviewIT {
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+            .withDatabaseName("lanveriq_first_pin_review_synthetic")
+            .withUsername("lanveriq_test")
+            .withPassword("synthetic-only-no-login");
+
+    @Autowired
+    private EntityManager manager;
+
+    @Autowired
+    private PlatformTransactionManager txManager;
+
+    @Autowired
+    private FirstPinReviewLedgerService ledger;
+
+    private UUID group;
+    private UUID device;
+    private UUID applicant;
+    private UUID first;
+    private UUID second;
+    private UUID third;
+    private UUID outsider;
+    private UUID request;
+
+    private void tx(Runnable action) {
+        new TransactionTemplate(txManager).executeWithoutResult(ignored -> action.run());
+    }
+
+    private UUID insert(String sql) {
+        return (UUID) manager.createNativeQuery(sql).getSingleResult();
+    }
+
+    private UUID group() {
+        return (UUID) manager.createNativeQuery("""
+                INSERT INTO device_groups(name) VALUES(:name) RETURNING id
+                """).setParameter("name", "A11-synthetic-" + UUID.randomUUID())
+                .getSingleResult();
+    }
+
+    private UUID user(UUID groupId, boolean owner) {
+        UUID id = (UUID) manager.createNativeQuery("""
+                INSERT INTO users(normalized_login,password_hash)
+                VALUES(:login,'synthetic-not-a-usable-hash') RETURNING id
+                """).setParameter("login", "a11-" + UUID.randomUUID()).getSingleResult();
+        if (owner) {
+            assertEquals(1, manager.createNativeQuery("""
+                    INSERT INTO user_role_scopes(user_id,role_id,device_group_id)
+                    SELECT :user,id,:group FROM roles WHERE code='owner_security_admin'
+                    """).setParameter("user", id).setParameter("group", groupId)
+                    .executeUpdate());
+        }
+        return id;
+    }
+
+    private void login(UUID id) {
+        AdminPrincipal p = Mockito.mock(AdminPrincipal.class);
+        Mockito.when(p.userId()).thenReturn(id);
+        Mockito.when(p.isEnabled()).thenReturn(true);
+        Mockito.when(p.sessionVersion()).thenReturn(0L);
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(p, null, List.of()));
+    }
+
+    private long countVotes() {
+        return ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM first_pin_review_approvals WHERE request_id=:id
+                """).setParameter("id", request).getSingleResult()).longValue();
+    }
+
+    private long countVoteAudit() {
+        return ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                 WHERE resource_id=:id AND action='first_pin.review.vote'
+                """).setParameter("id", request).getSingleResult()).longValue();
+    }
+
+    @BeforeEach
+    void syntheticFixture() {
+        tx(() -> {
+            group = group();
+            UUID otherGroup = group();
+            applicant = user(group, true);
+            first = user(group, true);
+            second = user(group, true);
+            third = user(group, true);
+            outsider = user(otherGroup, true);
+            device = (UUID) manager.createNativeQuery("""
+                    INSERT INTO devices(group_id,enrollment_state)
+                    VALUES(:group,'active') RETURNING id
+                    """).setParameter("group", group).getSingleResult();
+            manager.createNativeQuery("""
+                    INSERT INTO device_credentials
+                    (device_id,client_cert_sha256_fingerprint,issuer_id,serial_number,
+                     csr_spki_digest,status,issued_at,expires_at)
+                    VALUES (:device,:fingerprint,'synthetic-ca',:serial,:spki,
+                            'active',clock_timestamp()-INTERVAL '1 hour',
+                            clock_timestamp()+INTERVAL '1 day')
+                    """).setParameter("device", device)
+                    .setParameter("fingerprint", "b".repeat(64))
+                    .setParameter("serial", UUID.randomUUID().toString())
+                    .setParameter("spki", "a".repeat(64)).executeUpdate();
+        });
+        login(applicant);
+        request = ledger.request(device);
+        assertNotNull(request);
+        assertEquals(0L, countVotes());
+    }
+
+    @AfterEach
+    void cleanupAuthentication() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void twoDistinctReviewersCommitWithRequestAndAuditWithoutSigning() {
+        login(first);
+        assertEquals(FirstPinReviewLedgerService.Outcome.PENDING_SECOND_REVIEW,
+                ledger.review(request));
+        login(second);
+        assertEquals(FirstPinReviewLedgerService.Outcome
+                .TWO_REVIEWS_RECORDED_NOT_AUTHORIZED_TO_SIGN, ledger.review(request));
+        assertEquals(2L, countVotes());
+        assertEquals(2L, countVoteAudit());
+        assertEquals(1L, ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM first_pin_review_requests WHERE id=:request
+                """).setParameter("request", request).getSingleResult()).longValue());
+        assertEquals(0L, ((Number) manager.createNativeQuery("""
+                SELECT COUNT(*) FROM first_pin_review_revocations WHERE request_id=:id
+                """).setParameter("id", request).getSingleResult()).longValue());
+    }
+
+    @Test
+    void selfReviewWrongGroupAndReplayAreRejectedWithoutAudit() {
+        login(applicant);
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        login(outsider);
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        assertEquals(0L, countVotes());
+        assertEquals(0L, countVoteAudit());
+
+        login(first);
+        ledger.review(request);
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        login(second);
+        ledger.review(request);
+        login(third);
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        assertEquals(2L, countVotes());
+        assertEquals(2L, countVoteAudit());
+    }
+
+    @Test
+    void revokedFirstReviewerOrApplicantSessionRotationBlocksSecond() {
+        login(first);
+        ledger.review(request);
+        tx(() -> manager.createNativeQuery("""
+                DELETE FROM user_role_scopes WHERE user_id=:user
+                """).setParameter("user", first).executeUpdate());
+        login(second);
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        assertEquals(1L, countVotes());
+
+        tx(() -> manager.createNativeQuery("""
+                INSERT INTO user_role_scopes(user_id,role_id,device_group_id)
+                SELECT :user,id,:group FROM roles WHERE code='owner_security_admin'
+                """).setParameter("user", first).setParameter("group", group)
+                .executeUpdate());
+        tx(() -> manager.createNativeQuery("""
+                UPDATE users SET session_version=session_version+1 WHERE id=:user
+                """).setParameter("user", applicant).executeUpdate());
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        assertEquals(1L, countVotes());
+        assertEquals(1L, countVoteAudit());
+    }
+
+    @Test
+    void silentlySuppressedReviewAuditRollsBackVoteThenAllowsRetry() {
+        tx(() -> {
+            manager.createNativeQuery("""
+                    CREATE FUNCTION a11_synthetic_suppress_vote_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                        IF NEW.action='first_pin.review.vote' THEN
+                            RETURN NULL;
+                        END IF;
+                        RETURN NEW;
+                    END;
+                    $$
+                    """).executeUpdate();
+            manager.createNativeQuery("""
+                    CREATE TRIGGER a11_synthetic_suppress_vote_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_synthetic_suppress_vote_audit()
+                    """).executeUpdate();
+        });
+        try {
+            login(first);
+            assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+            assertEquals(0L, countVotes());
+            assertEquals(0L, countVoteAudit());
+        } finally {
+            tx(() -> {
+                manager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS a11_synthetic_suppress_vote_audit
+                        ON admin_access_log
+                        """).executeUpdate();
+                manager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS a11_synthetic_suppress_vote_audit()
+                        """).executeUpdate();
+            });
+        }
+        login(first);
+        assertEquals(FirstPinReviewLedgerService.Outcome.PENDING_SECOND_REVIEW,
+                ledger.review(request));
+        assertEquals(1L, countVotes());
+        assertEquals(1L, countVoteAudit());
+    }
+
+    @Test
+    void postgresConstraintsRejectSkippedSecondStepAndHistoryMutation() {
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                manager.createNativeQuery("""
+                        INSERT INTO first_pin_review_approvals
+                          (request_id,step,reviewer_id,reviewer_session_version)
+                        VALUES (:request,2,:reviewer,0)
+                        """).setParameter("request", request)
+                        .setParameter("reviewer", second).executeUpdate()));
+        assertEquals(0L, countVotes());
+        login(first);
+        ledger.review(request);
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                manager.createNativeQuery("""
+                        UPDATE first_pin_review_approvals SET reviewer_id=:replacement
+                         WHERE request_id=:request
+                        """).setParameter("replacement", third)
+                        .setParameter("request", request).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                manager.createNativeQuery("""
+                        DELETE FROM first_pin_review_requests WHERE id=:request
+                        """).setParameter("request", request).executeUpdate()));
+        assertEquals(1L, countVotes());
+        assertEquals(1L, countVoteAudit());
+    }
+
+    @Test
+    void twoConcurrentSecondReviewsSerializeWithOnlyOneCommittedWinner() throws Exception {
+        login(first);
+        ledger.review(request);
+        var start = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var a = pool.submit(() -> {
+                login(second);
+                start.await();
+                try {
+                    ledger.review(request);
+                    return true;
+                } catch (AccessDeniedException expected) {
+                    return false;
+                } finally {
+                    SecurityContextHolder.clearContext();
+                }
+            });
+            var b = pool.submit(() -> {
+                login(third);
+                start.await();
+                try {
+                    ledger.review(request);
+                    return true;
+                } catch (AccessDeniedException expected) {
+                    return false;
+                } finally {
+                    SecurityContextHolder.clearContext();
+                }
+            });
+            start.countDown();
+            assertEquals(1, (a.get(25, TimeUnit.SECONDS) ? 1 : 0)
+                    + (b.get(25, TimeUnit.SECONDS) ? 1 : 0));
+        }
+        assertEquals(2L, countVotes());
+        assertEquals(2L, countVoteAudit());
+    }
+}
