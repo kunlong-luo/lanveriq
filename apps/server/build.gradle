@@ -21,6 +21,11 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    // Official Spring Security WebAuthn4J verification stack; dependency only.
+    // No .webAuthn() config, passkey routes, user credential storage, or
+    // enrollment/step-up bridge is enabled by adding this library.
+    // Spring Boot manages its version; no parallel hand-rolled FIDO parser.
+    implementation 'org.springframework.security:spring-security-webauthn'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
