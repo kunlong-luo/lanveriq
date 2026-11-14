@@ -153,7 +153,8 @@ class FirstPinReviewLedgerService {
             throw denied();
         }
         var approvals = manager.createNativeQuery("""
-                SELECT reviewer_id,reviewer_session_version
+                SELECT reviewer_id,reviewer_session_version,
+                       step_up_proof_id,step_up_verified_at,step_up_method
                   FROM first_pin_review_approvals
                  WHERE request_id=:request ORDER BY step
                 """).setParameter("request", requestId).getResultList();
@@ -167,7 +168,12 @@ class FirstPinReviewLedgerService {
             Object[] firstRow = (Object[]) approvals.getFirst();
             first = (UUID) firstRow[0];
             firstVersion = ((Number) firstRow[1]).longValue();
-            if (actor.userId().equals(first)) {
+            // V14 historical votes were committed without independent
+            // step-up proof. V15 intentionally does not mutate those rows;
+            // never let an old first approval be upgraded by adding a new
+            // second approval, even to an internal diagnostic outcome.
+            if (!hasStepUpEvidence(firstRow)
+                    || actor.userId().equals(first)) {
                 throw denied();
             }
         }
@@ -236,6 +242,14 @@ class FirstPinReviewLedgerService {
         return step == 1
                 ? Outcome.PENDING_SECOND_REVIEW
                 : Outcome.TWO_REVIEWS_RECORDED_NOT_AUTHORIZED_TO_SIGN;
+    }
+
+    static boolean hasStepUpEvidence(Object[] voteRow) {
+        return voteRow != null && voteRow.length >= 5
+                && voteRow[2] instanceof UUID proof
+                && !proof.equals(new UUID(0, 0))
+                && voteRow[3] != null
+                && "webauthn".equals(voteRow[4]);
     }
 
     private long currentScopedOwnerVersion(UUID subject, UUID group) {
