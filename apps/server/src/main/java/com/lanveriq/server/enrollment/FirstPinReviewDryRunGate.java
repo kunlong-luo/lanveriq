@@ -84,7 +84,8 @@ final class FirstPinReviewDryRunGate {
         UUID second = request.secondReviewerId();
         if (first == null && !authoritative.firstReviewCommitted()
                 && second == null && !authoritative.secondReviewCommitted()) {
-            return Decision.PENDING_SECOND_REVIEW;
+            // No first approval is not a second-review queue position.
+            return Decision.DENIED;
         }
         if (isMissing(first) || first.equals(request.applicantId())
                 || !scopes.allowed(first, request.groupId(), AdminAction.REVIEW_FIRST_PIN)) {
