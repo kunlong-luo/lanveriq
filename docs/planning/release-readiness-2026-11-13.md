@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A11-C — 审核人 Passkey 二次认证凭证边界（生产强拒绝，CI 待验收）
+
+- **已落地代码（main `5fbe22fc`）：** `FirstPinReviewStepUpVerifier` 定义绑定审核人、设备、review request、会话版本和 `first_pin.review` 操作的独立证据接口。**唯一生产实现 `DenyAllFirstPinReviewStepUpVerifier` 固定拒绝**；不会将现有 Spring Security 密码登录、请求头、客户端布尔 MFA 或服务端环境开关变成可信二次认证。内部 `FirstPinReviewLedgerService` 在数据库持锁复验当前人员/范围后才接受验证器返回的精确绑定、`webauthn`、时间窗口与唯一证据 ID，并原子记投票＋访问审计。没有生产 WebAuthn/IdP/MFA、没有审核 HTTP API，服务本身仍默认 OFF。
+- **PG18 V15：** 新审核投票必须有独立 `step_up_proof_id` 唯一索引、服务验证的时间和 `webauthn` 方法；`NOT VALID` 约束保留历史 V14 不具 MFA 证明的记录但禁止新票据绕过；**不能追认历史记录**。数据库时间仅相对有效期检查，非独立可信时间。V9 历史升级验收同步为 V10–V15 六次迁移，不删原有负向断言。
+- **验收证据：** L1 默认拒绝单测，PG18 第九套新增“错身份/请求/设备/会话、无验证、时间失效、错误验证方式、proof 重放、原生 SQL 无证据投票”负向共四项，强制验证共十项。候选 [PostgreSQL18 L2 #43573481713](https://github.com/kunlong-luo/lanveriq/actions/runs/43573481713) **待最终结果核实，不可宣布通过**；同源码 [RD-2 #43573481597](https://github.com/kunlong-luo/lanveriq/actions/runs/43573481597) 已 SUCCESS。只有两项 L2+Junit 终态都 SUCCESS 才可记本阶段验收。
+- **仍然阻断上线：** 真正 WebAuthn/IdP MFA 设施、挑战和 credential 生命周期、独立 tenant 隔离、撤权签名 grant、KMS/HSM 密钥托管、可信时间、正式 CA、设备端授权安装与 Pop!_OS24 L3，均未完成。生产联网/采集/自动恢复/RD-2 OFF，Issue #5 OPEN，v0.1 NOT RELEASE READY。
+
 ## 2026-11-14 A11-B — PostgreSQL 18 双审核不可变账本（隔离 L2 SUCCESS，默认 OFF）
 
 - **最新实现：** A11 独立文档与 [`a512ea2f`](https://github.com/kunlong-luo/lanveriq/commit/a512ea2fb91fe662e7ef14e20f0475aceebebd3b) 源码里程碑，Flyway V14 提供唯一证书代际请求、申请人及 session version、第一/第二个不同审核人的不可变记录、审核撤销占位和防跳步/自审/重复审批触发器。`FirstPinReviewLedgerService` Spring/JPA 内部事务同时要求设备当前有效证书、当前设备组 owner 权限、审核人账户未禁用和 session version 未改变，审核与普通管理员访问日志同事务提交；审计丢失触发回滚。
@@ -28,7 +35,7 @@
 - **CI：** [RD-2 default-OFF #43568599424](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599424) 已在 `b681f872` SUCCESS；[Java L1 #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438) 已完成 **SUCCESS**（精确源 SHA `b681f872`）。L2/Pop!_OS L3 均未为 A11-A 运行。
 - **下一步：** 可信持久化审核状态与事务期 RBAC/ABAC 二次验证、实际管理员 MFA/会话再认证、身份与凭证撤销/签发隔离、可信时间、Root-of-Trust/KMS 与 Pop!_OS 管理员授权执行。v0.1 NOT RELEASE READY，Issue #5 OPEN，生产联网/采集/自动恢复/RD-2 OFF。
 
-## 2026-11-14 A11 trusted-administrator review/issuance — DESIGN ONLY, NOT IMPLEMENTED
+## 2026-11-14 A11 trusted-administrator review/issuance — 初始设计记录（后续源码状态见上文）
 
 - **已写入验收合同：** [A11 管理员审核/信任根/撤销/可信时间/Agent 授权边界](../development/batch-a11-trusted-administrator-review-issuance.md)（设计提交 [`4bb1e319`](https://github.com/kunlong-luo/lanveriq/commit/4bb1e31989741b79aef0d4c380814ab5af9c43bd)）。
 - **下一项最小代码切片：** 在生产签发/联网/Agent 调用保持不可用的前提下，先实现服务端无签名无写库的审核身份与组织/设备权限策略、职责分离和负向单测；随后单独评审 v2 域隔离签名、密钥硬件托管、正式 CA、撤权/时间与 Linux 本地安装者权限。
