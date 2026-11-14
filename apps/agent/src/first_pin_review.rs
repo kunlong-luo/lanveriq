@@ -5,6 +5,7 @@
 //! The public key MUST come from independently authorized local custody,
 //! never from the grant, the HTTP response or a user-selected browser field.
 //! There is deliberately no production trust anchor in this repository.
+use crate::store::{OutboxStore, StoreError};
 use crate::transport::CurrentCredentialEpoch;
 use ring::signature::{ED25519, UnparsedPublicKey};
 use serde::{Deserialize, Serialize};
@@ -125,6 +126,37 @@ pub fn inspect_offline_first_pin_review(
         .verify(&payload, &signature)
         .map_err(|_| FirstPinReviewError::SignatureRejected)?;
     Ok(FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly)
+}
+
+#[derive(Debug, Error)]
+pub enum LocalReviewerCheckError {
+    #[error("independently provisioned local reviewer key required")]
+    KeyNotProvisioned,
+    #[error("reviewer key pin corrupted or belongs to a different device")]
+    Store(#[from] StoreError),
+    #[error("review does not verify under the previously pinned local key")]
+    Review(#[from] FirstPinReviewError),
+}
+
+/// Offline read-only verifier uses the locally immutable public key, NEVER
+/// a public key supplied by a review or a live HTTP response. An arbitrary
+/// initial on-disk pin still does NOT prove actual administrator approval.
+/// No pin installation, consumption, reset or send is performed here.
+pub async fn inspect_offline_review_against_local_key(
+    store: &OutboxStore,
+    review: &OfflineFirstPinReview,
+    observed: &CurrentCredentialEpoch,
+    now_unix: u64,
+) -> Result<FirstPinReviewObservation, LocalReviewerCheckError> {
+    let key = store
+        .load_offline_reviewer_public_key(observed.device_id)
+        .await?
+        .ok_or(LocalReviewerCheckError::KeyNotProvisioned)?;
+    let observation = inspect_offline_first_pin_review(review, observed, &key, now_unix)?;
+    if store.load_offline_reviewer_public_key(observed.device_id).await? != Some(key) {
+        return Err(LocalReviewerCheckError::Store(StoreError::HeartbeatConflict));
+    }
+    Ok(observation)
 }
 
 #[cfg(test)]

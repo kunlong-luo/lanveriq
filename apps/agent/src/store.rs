@@ -977,6 +977,105 @@ impl OutboxStore {
         Ok(())
     }
 
+    /// Explicit offline only. Installation before any heartbeat history or
+    /// credential pin is one-way. This is a local continuity check, NOT
+    /// proof of operator approval; no Agent runtime or issuer calls it.
+    pub async fn initialize_offline_reviewer_public_key(
+        &self,
+        device_id: Uuid,
+        public_key: &[u8],
+    ) -> Result<(), StoreError> {
+        if device_id.is_nil() || public_key.len() != 32
+            || public_key.iter().all(|byte| *byte == 0)
+        {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let mut tx = self.pool.begin().await?;
+        verify_heartbeat_owner(&mut tx, device_id).await?;
+        let (key_seen, heartbeat_seen, pin_seen): (i64, i64, i64) = sqlx::query_as(
+            "SELECT heartbeat_reviewer_public_key_seen, heartbeat_schedule_seen, heartbeat_credential_pin_seen \
+             FROM agent_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        let current_keys: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_reviewer_public_key_pin")
+                .fetch_one(&mut *tx)
+                .await?;
+        let old_heartbeats: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_schedule_checkpoint")
+                .fetch_one(&mut *tx)
+                .await?;
+        let old_pins: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_credential_pin")
+            .fetch_one(&mut *tx)
+            .await?;
+        if key_seen != 0 || heartbeat_seen != 0 || pin_seen != 0
+            || current_keys != 0 || old_heartbeats != 0 || old_pins != 0
+        {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        sqlx::query(
+            "INSERT INTO heartbeat_reviewer_public_key_pin(singleton,device_id,ed25519_public_key) VALUES(1,?,?)",
+        )
+        .bind(device_id.to_string())
+        .bind(public_key)
+        .execute(&mut *tx)
+        .await?;
+        let marked = sqlx::query(
+            "UPDATE agent_state SET heartbeat_reviewer_public_key_seen=1 WHERE singleton=1",
+        )
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if marked != 1 {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Detect key deletion, corruption and cross-device reuse; missing after
+    /// prior persistence MUST NOT look like never-enrolled state.
+    pub async fn load_offline_reviewer_public_key(
+        &self,
+        device_id: Uuid,
+    ) -> Result<Option<[u8; 32]>, StoreError> {
+        if device_id.is_nil() {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let mut tx = self.pool.begin().await?;
+        verify_heartbeat_owner(&mut tx, device_id).await?;
+        let row: Option<(String, Vec<u8>)> = sqlx::query_as(
+            "SELECT device_id,ed25519_public_key FROM heartbeat_reviewer_public_key_pin WHERE singleton=1",
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        let seen: i64 = sqlx::query_scalar(
+            "SELECT heartbeat_reviewer_public_key_seen FROM agent_state WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if !matches!((seen, row.is_some()), (0, false) | (1, true)) {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let recovered = match row {
+            None => None,
+            Some((owner, bytes)) => {
+                if owner != device_id.to_string()
+                    || bytes.len() != 32
+                    || bytes.iter().all(|byte| *byte == 0)
+                {
+                    return Err(StoreError::HeartbeatConflict);
+                }
+                let mut public_key = [0u8; 32];
+                public_key.copy_from_slice(&bytes);
+                Some(public_key)
+            }
+        };
+        tx.commit().await?;
+        Ok(recovered)
+    }
+
     pub async fn settings(&self) -> Result<(String, i64, i64), StoreError> {
         let journal: String = sqlx::query_scalar("PRAGMA journal_mode")
             .fetch_one(&self.pool)

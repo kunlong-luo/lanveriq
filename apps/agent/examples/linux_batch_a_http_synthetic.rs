@@ -5,7 +5,7 @@
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use lanveriq_agent::first_pin_review::{
-        FirstPinReviewObservation, OfflineFirstPinReview, inspect_offline_first_pin_review,
+        FirstPinReviewObservation, OfflineFirstPinReview, inspect_offline_review_against_local_key,
     };
     use lanveriq_agent::heartbeat_credential_pin::{
         HeartbeatEpochPreflightObservation, inspect_explicit_heartbeat_epoch_preflight,
@@ -71,6 +71,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .join("synthetic-heartbeat.sqlite");
         let first_request_id = Cell::new(Uuid::nil());
         let store = OutboxStore::open(&state_file).await?;
+        // A9: the disposable reviewer identity is pinned *offline* before
+        // heartbeat history exists. The reviewer private key stays in CI
+        // memory only; installed Agent has no production trust anchor.
+        let reviewer_pkcs8 = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new())
+            .map_err(|_| "cannot generate synthetic reviewer key")?;
+        let reviewer = Ed25519KeyPair::from_pkcs8(reviewer_pkcs8.as_ref())
+            .map_err(|_| "cannot decode synthetic reviewer key")?;
+        store
+            .initialize_offline_reviewer_public_key(device, reviewer.public_key().as_ref())
+            .await?;
         let first_outcome = run_explicit_heartbeat_once(&store, device, true, 1_000, 30, |id| {
             first_request_id.set(id);
             let mut heartbeat = Heartbeat::synthetic(device, "2026-11-12T09:00:00Z".into());
@@ -186,11 +196,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             CredentialEpochDisposition::ObservedOnly(epoch) => epoch,
             _ => return Err("synthetic current TLS epoch unavailable for signature test".into()),
         };
-        let random = SystemRandom::new();
-        let test_pkcs8 = Ed25519KeyPair::generate_pkcs8(&random)
-            .map_err(|_| "cannot create disposable CI reviewer key")?;
-        let ephemeral_reviewer = Ed25519KeyPair::from_pkcs8(test_pkcs8.as_ref())
-            .map_err(|_| "invalid disposable CI reviewer key")?;
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let mut signed_review = OfflineFirstPinReview {
             schema_version: 1,
@@ -203,27 +208,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             signature_hex: String::new(),
         };
         signed_review.signature_hex = hex::encode(
-            ephemeral_reviewer
+            reviewer
                 .sign(&signed_review.signing_payload()?)
                 .as_ref(),
         );
-        if inspect_offline_first_pin_review(
+        if inspect_offline_review_against_local_key(
+            &store,
             &signed_review,
             &verified_epoch,
-            ephemeral_reviewer.public_key().as_ref(),
             now,
-        )? != FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly
+        ).await? != FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly
         {
             return Err("synthetic detached review signature did not verify".into());
         }
         let mut forged_review = signed_review.clone();
         forged_review.review_id = Uuid::now_v7();
-        if inspect_offline_first_pin_review(
+        if inspect_offline_review_against_local_key(
+            &store,
             &forged_review,
             &verified_epoch,
-            ephemeral_reviewer.public_key().as_ref(),
             now,
-        )
+        ).await
         .is_ok()
         {
             return Err("synthetic tampered review signature was accepted".into());
@@ -238,7 +243,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("synthetic review signature implicitly modified SQLite".into());
         }
         println!(
-            "PASS: real TLS-bound epoch and synthetic Ed25519 detached review match; tampered review denied and durable ACK quarantine unchanged."
+            "PASS: real TLS-bound epoch and immutable SQLite reviewer key pin verify detached Ed25519 review; tampered review denied and ACK quarantine unchanged."
         );
         let missing = Uuid::now_v7();
         assert_eq!(
