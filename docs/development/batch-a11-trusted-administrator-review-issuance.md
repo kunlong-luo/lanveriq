@@ -1,8 +1,16 @@
 # Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
 
-> 状态：A11-A/B 合成验收已完成；A11-C 二次认证边界源码已提交、CI 待验收；完整管理员 MFA／可信签发 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
+> 状态：A11-A/B/C 合成隔离测试已通过；A11-D1 官方 WebAuthn 依赖和默认拒绝负向测试待验收；真正的 MFA/Passkey step-up、可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
+
+## 2026-11-14 A11-D1 — 官方 Spring Security WebAuthn 引擎预装（端点仍不可用）
+
+- **成熟组件选型：** 在 Spring Boot 4.1.2 / Java 25 / Gradle 技术栈直接采用 Spring Security 官方 `org.springframework.security:spring-security-webauthn`（由 Spring Boot BOM 管理版本），复用其 WebAuthn4J 底层验证；不自行实现 FIDO/WebAuthn 签名解析、CBOR、COSE 或自定义 JWT 作为 Passkey 代替品。参考官方文档 https://docs.spring.io/spring-security/reference/servlet/authentication/passkeys.html 。Yubico 2.10.1 可作独立选型对比，但不应在现有 Spring Security 中无理由叠加第二套认证流程。
+- **仅为依赖预装：** 新增 Gradle 依赖，**没有**调用 `HttpSecurity.webAuthn(...)`，没有 WebAuthn Passkey 注册、验证或登录 Controller，没有改变 Console 密码/CSRF/session 路由，也不开放 `/webauthn/register/options`、`/webauthn/register`、`/webauthn/authenticate/options`、`/login/webauthn` 或 `/api/v1/auth/webauthn/step-up`。正式管理员审核验证器仍只有 hard-deny 实现，未建立成功凭证生成途径；既有二人审核、CA/Agent/远控开关全部保持原样。
+- **安全测试：** `ConsoleSessionBrowserFlowWebMvcTest` 用正确 CSRF、Origin/Host 和登录会话负向检查目标 URI；`PostgreSqlConsoleSecurityWiringIT.fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency` 使用真实 Spring Boot 组件扫描/PG18/Servlet SecurityFilterChain 验证即使已安装依赖，端点也无法绕过默认拒绝。严格九套 PG18 JUnit evidence checker **新增强制案例**，不允许测试遗漏。此时只证明“未意外开放端点”，**不证明**真正 Passkey 密码学验证、用户验证 UV 或设备绑定。
+- **实际 Passkey 上线前门槛：** 先设计 `users.id` 对应的永久用户句柄与可信注册/注销、PostgreSQL/Flyway 持久化的 `PublicKeyCredentialUserEntityRepository` 与 `UserCredentialRepository` 适配（**不得**使用 Spring Security 的 in-memory 默认实现，也不得为迎合源码风格写裸 JDBC），锁定唯一 credential ID 与当前授权用户/设备组、签名计数器/多设备备份语义、真实 RP ID 和单一 Console HTTPS origin、严格 `userVerification=required`、挑战的服务器所有权及原子一次消费、CSRF/Origin/Host/重放/撤权/跨用户负向测试。成功的登录 Passkey 验证仍然不等于审核动作 step-up：还必须绑定审核请求/设备/会话版本/时间和单次 proof，且在数据库锁定事务中验证角色权限。生产密钥不写代码、CI 或 Agent。
+- **验收证据待最终核实：** 该依赖/负向安全切片的 L1 与 PG18 L2 必须分别报告精确源码 SHA 和 GH run 结果；任何未完成 job 不能算 PASS。此前 A11-C [精确 SHA `7e4ad3b1`](https://github.com/kunlong-luo/lanveriq/commit/7e4ad3b18f4a7d5d731152e074f3dea5c2a8aa2c) 的 [Java L1 #43573695114](https://github.com/kunlong-luo/lanveriq/actions/runs/43573695114)、[PG18 L2 #43573695132](https://github.com/kunlong-luo/lanveriq/actions/runs/43573695132)、[PG 源码编译 #43573695168](https://github.com/kunlong-luo/lanveriq/actions/runs/43573695168)、[RD-2 #43573695190](https://github.com/kunlong-luo/lanveriq/actions/runs/43573695190) **同 SHA 均 SUCCESS**。这只关闭 A11-C 合成隔离切片，不等于 A11-D 真正 Passkey 生产完成。
 
 ## 2026-11-14 A11-C — 审核人二次认证可信证明边界（源码已提交，L1/L2 待验收）
 
