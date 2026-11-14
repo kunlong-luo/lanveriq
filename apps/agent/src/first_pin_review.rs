@@ -153,8 +153,14 @@ pub async fn inspect_offline_review_against_local_key(
         .await?
         .ok_or(LocalReviewerCheckError::KeyNotProvisioned)?;
     let observation = inspect_offline_first_pin_review(review, observed, &key, now_unix)?;
-    if store.load_offline_reviewer_public_key(observed.device_id).await? != Some(key) {
-        return Err(LocalReviewerCheckError::Store(StoreError::HeartbeatConflict));
+    if store
+        .load_offline_reviewer_public_key(observed.device_id)
+        .await?
+        != Some(key)
+    {
+        return Err(LocalReviewerCheckError::Store(
+            StoreError::HeartbeatConflict,
+        ));
     }
     Ok(observation)
 }

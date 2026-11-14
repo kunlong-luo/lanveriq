@@ -985,8 +985,7 @@ impl OutboxStore {
         device_id: Uuid,
         public_key: &[u8],
     ) -> Result<(), StoreError> {
-        if device_id.is_nil() || public_key.len() != 32
-            || public_key.iter().all(|byte| *byte == 0)
+        if device_id.is_nil() || public_key.len() != 32 || public_key.iter().all(|byte| *byte == 0)
         {
             return Err(StoreError::HeartbeatConflict);
         }
@@ -1009,8 +1008,12 @@ impl OutboxStore {
         let old_pins: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_credential_pin")
             .fetch_one(&mut *tx)
             .await?;
-        if key_seen != 0 || heartbeat_seen != 0 || pin_seen != 0
-            || current_keys != 0 || old_heartbeats != 0 || old_pins != 0
+        if key_seen != 0
+            || heartbeat_seen != 0
+            || pin_seen != 0
+            || current_keys != 0
+            || old_heartbeats != 0
+            || old_pins != 0
         {
             return Err(StoreError::HeartbeatConflict);
         }

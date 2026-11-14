@@ -207,29 +207,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             expires_at_unix: now + 300,
             signature_hex: String::new(),
         };
-        signed_review.signature_hex = hex::encode(
-            reviewer
-                .sign(&signed_review.signing_payload()?)
-                .as_ref(),
-        );
-        if inspect_offline_review_against_local_key(
-            &store,
-            &signed_review,
-            &verified_epoch,
-            now,
-        ).await? != FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly
+        signed_review.signature_hex =
+            hex::encode(reviewer.sign(&signed_review.signing_payload()?).as_ref());
+        if inspect_offline_review_against_local_key(&store, &signed_review, &verified_epoch, now)
+            .await?
+            != FirstPinReviewObservation::SignatureValidForSuppliedKeyOnly
         {
             return Err("synthetic detached review signature did not verify".into());
         }
         let mut forged_review = signed_review.clone();
         forged_review.review_id = Uuid::now_v7();
-        if inspect_offline_review_against_local_key(
-            &store,
-            &forged_review,
-            &verified_epoch,
-            now,
-        ).await
-        .is_ok()
+        if inspect_offline_review_against_local_key(&store, &forged_review, &verified_epoch, now)
+            .await
+            .is_ok()
         {
             return Err("synthetic tampered review signature was accepted".into());
         }
