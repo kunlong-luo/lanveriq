@@ -1,6 +1,8 @@
 //! SQLx WAL outbox with synthetic events and local-only typed inventory.
 //! Neither path is connected to Agent service scheduling or network I/O.
 use crate::heartbeat_credential_pin::HeartbeatCredentialPin;
+use crate::first_pin_review::{inspect_offline_first_pin_review, OfflineFirstPinReview};
+use crate::transport::CurrentCredentialEpoch;
 use crate::heartbeat_schedule::HeartbeatCheckpoint;
 use crate::inventory::{InventorySnapshot, RawInventory};
 use crate::inventory_schedule::InventoryScheduleCheckpoint;
@@ -920,56 +922,145 @@ impl OutboxStore {
                 Some(HeartbeatCredentialPin::new(device_id, epoch, &fingerprint)?)
             }
         };
-        tx.commit().await?;
-        Ok(recovered)
-    }
-
-    /// Explicit offline provisioning ONLY, before any heartbeat checkpoint
-    /// has EVER been persisted. No proof of operator approval is accepted
-    /// from this API: callers must separately enforce their trusted workflow.
-    /// Immutable pinning cannot lift quarantine or perform certificate rotation.
-    pub async fn initialize_heartbeat_credential_pin(
-        &self,
-        pin: &HeartbeatCredentialPin,
-    ) -> Result<(), StoreError> {
-        HeartbeatCredentialPin::new(
-            pin.device_id,
-            pin.credential_epoch_id,
-            &pin.cert_sha256_fingerprint,
-        )?;
-        let mut tx = self.pool.begin().await?;
-        verify_heartbeat_owner(&mut tx, pin.device_id).await?;
-        let (pin_seen, heartbeat_seen): (i64, i64) = sqlx::query_as(
-            "SELECT heartbeat_credential_pin_seen,heartbeat_schedule_seen \
+        // A10: legacy direct provisioned pins do not become authorized
+        // retroactively; audit consumption must match the immutable pin.
+        let (used_seen, used_count): (i64, i64) = sqlx::query_as(
+            "SELECT heartbeat_first_pin_review_seen, (SELECT COUNT(*) FROM heartbeat_first_pin_review_usage) \
              FROM agent_state WHERE singleton=1",
         )
         .fetch_one(&mut *tx)
         .await?;
-        let occupied: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_credential_pin")
-            .fetch_one(&mut *tx)
-            .await?;
-        let attempts: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_schedule_checkpoint")
-                .fetch_one(&mut *tx)
-                .await?;
-        if pin_seen != 0 || heartbeat_seen != 0 || occupied != 0 || attempts != 0 {
+        if !matches!((used_seen, used_count), (0, 0) | (1, 1))
+            || (recovered.is_some() != (used_seen == 1))
+        {
             return Err(StoreError::HeartbeatConflict);
         }
+        if let Some(pin) = &recovered {
+            let audit: Option<(String, String, String)> = sqlx::query_as(
+                "SELECT device_id,credential_epoch_id,cert_sha256_fingerprint \
+                 FROM heartbeat_first_pin_review_usage WHERE singleton=1",
+            )
+            .fetch_optional(&mut *tx)
+            .await?;
+            if audit != Some((
+                pin.device_id.to_string(),
+                pin.credential_epoch_id.to_string(),
+                pin.cert_sha256_fingerprint.clone(),
+            )) {
+                return Err(StoreError::HeartbeatConflict);
+            }
+        }
+        tx.commit().await?;
+        Ok(recovered)
+    }
+
+    /// Legacy entry-point is now deliberately fail-closed. A10 disallows
+    /// ever installing a credential pin without atomically consuming a
+    /// device-bound, signature-verified first-pin review. No test backdoor.
+    pub async fn initialize_heartbeat_credential_pin(
+        &self,
+        _pin: &HeartbeatCredentialPin,
+    ) -> Result<(), StoreError> {
+        Err(StoreError::HeartbeatConflict)
+    }
+
+    /// Explicit OFFLINE first-pin review consumption. The supplied current
+    /// epoch must have come from the separately authenticated TLS client;
+    /// a caller-provided value alone is NOT TLS evidence or an authorized
+    /// administrator approval. This function is NOT called by Agent runtime.
+    ///
+    /// One SQLite transaction verifies the pre-provisioned reviewer key,
+    /// detached signature, no previous heartbeat/pin/review, and commits
+    /// both audit record and immutable first pin. Crash/error rolls back
+    /// BOTH. It cannot authorize old pending UUID recovery or rotation.
+    pub async fn install_first_pin_with_offline_review(
+        &self,
+        review: &OfflineFirstPinReview,
+        observed: &CurrentCredentialEpoch,
+        now_unix: u64,
+    ) -> Result<(), StoreError> {
+        let pin = HeartbeatCredentialPin::new(
+            observed.device_id,
+            observed.credential_epoch_id,
+            &observed.cert_sha256_fingerprint,
+        )?;
+        let mut tx = self.pool.begin().await?;
+        verify_heartbeat_owner(&mut tx, pin.device_id).await?;
+        let (key_seen, heartbeat_seen, pin_seen, review_seen): (i64, i64, i64, i64) =
+            sqlx::query_as(
+                "SELECT heartbeat_reviewer_public_key_seen, heartbeat_schedule_seen, \
+                 heartbeat_credential_pin_seen, heartbeat_first_pin_review_seen \
+                 FROM agent_state WHERE singleton=1",
+            )
+            .fetch_one(&mut *tx)
+            .await?;
+        let (key_rows, heartbeat_rows, pin_rows, review_rows): (i64, i64, i64, i64) =
+            sqlx::query_as(
+                "SELECT (SELECT COUNT(*) FROM heartbeat_reviewer_public_key_pin), \
+                 (SELECT COUNT(*) FROM heartbeat_schedule_checkpoint), \
+                 (SELECT COUNT(*) FROM heartbeat_credential_pin), \
+                 (SELECT COUNT(*) FROM heartbeat_first_pin_review_usage)",
+            )
+            .fetch_one(&mut *tx)
+            .await?;
+        if key_seen != 1 || key_rows != 1 || heartbeat_seen != 0
+            || heartbeat_rows != 0 || pin_seen != 0 || pin_rows != 0
+            || review_seen != 0 || review_rows != 0
+        {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        let key_row: (String, Vec<u8>) = sqlx::query_as(
+            "SELECT device_id,ed25519_public_key \
+             FROM heartbeat_reviewer_public_key_pin WHERE singleton=1",
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if key_row.0 != pin.device_id.to_string() || key_row.1.len() != 32
+            || key_row.1.iter().all(|byte| *byte == 0)
+        {
+            return Err(StoreError::HeartbeatConflict);
+        }
+        inspect_offline_first_pin_review(review, observed, &key_row.1, now_unix)
+            .map_err(|_| StoreError::HeartbeatConflict)?;
+        // The unique review_id and device/epoch/DER fingerprint are consumed
+        // in the same DB transaction as pin. A network GET or signature
+        // observation ALONE never spends the review.
+        let signature_digest = format!("{:x}", Sha256::digest(
+            hex::decode(&review.signature_hex).map_err(|_| StoreError::HeartbeatConflict)?
+        ));
+        let key_digest = format!("{:x}", Sha256::digest(&key_row.1));
+        sqlx::query(
+            "INSERT INTO heartbeat_first_pin_review_usage \
+             (singleton,review_id,device_id,credential_epoch_id,cert_sha256_fingerprint, \
+              reviewer_key_sha256,signature_sha256,applied_at_unix) \
+             VALUES(1,?,?,?,?,?,?,?)",
+        )
+        .bind(review.review_id.to_string())
+        .bind(pin.device_id.to_string())
+        .bind(pin.credential_epoch_id.to_string())
+        .bind(&pin.cert_sha256_fingerprint)
+        .bind(key_digest)
+        .bind(signature_digest)
+        .bind(i64::try_from(now_unix).map_err(|_| StoreError::HeartbeatConflict)?)
+        .execute(&mut *tx)
+        .await?;
         sqlx::query(
             "INSERT INTO heartbeat_credential_pin \
-             (singleton,device_id,credential_epoch_id,cert_sha256_fingerprint) \
-             VALUES (1,?,?,?)",
+             (singleton,device_id,credential_epoch_id,cert_sha256_fingerprint) VALUES (1,?,?,?)",
         )
         .bind(pin.device_id.to_string())
         .bind(pin.credential_epoch_id.to_string())
         .bind(&pin.cert_sha256_fingerprint)
         .execute(&mut *tx)
         .await?;
-        let marked =
-            sqlx::query("UPDATE agent_state SET heartbeat_credential_pin_seen=1 WHERE singleton=1")
-                .execute(&mut *tx)
-                .await?
-                .rows_affected();
+        let marked = sqlx::query(
+            "UPDATE agent_state \
+             SET heartbeat_first_pin_review_seen=1, heartbeat_credential_pin_seen=1 \
+             WHERE singleton=1",
+        )
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
         if marked != 1 {
             return Err(StoreError::HeartbeatConflict);
         }
