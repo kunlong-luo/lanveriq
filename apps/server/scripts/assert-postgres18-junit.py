@@ -12,26 +12,28 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 
-# Bind evidence to the exact eight Java test classes and Gradle XML paths.
+# Bind evidence to all nine Java Testcontainers classes and Gradle XML paths.
 # A duplicate simple class name in another package is not database evidence.
 PACKAGES = {
     "PostgreSqlEventIngestionIT": "com.lanveriq.server.events",
     "PostgreSqlDeviceActivationIT": "com.lanveriq.server.events",
     "PostgreSqlDeviceInventoryIT": "com.lanveriq.server.events",
     "PostgreSqlCertificateRegistrationIT": "com.lanveriq.server.enrollment",
+    "PostgreSqlFirstPinDoubleReviewIT": "com.lanveriq.server.enrollment",
     "PostgreSqlDeviceRevocationIT": "com.lanveriq.server.events",
     "PostgreSqlDeviceDirectoryIT": "com.lanveriq.server.devices",
     "PostgreSqlAdminAuditAtomicityIT": "com.lanveriq.server.security",
     "PostgreSqlConsoleSecurityWiringIT": "com.lanveriq.server.security",
 }
 
-# Minimum discovered tests in seven independent Testcontainers classes.
+# Minimum discovered tests in nine independent Testcontainers classes.
 # Review increases when acceptance cases are added; never lower to hide skips.
 MIN_COUNTS = {
     "PostgreSqlEventIngestionIT": 20,
     "PostgreSqlDeviceActivationIT": 5,
     "PostgreSqlDeviceInventoryIT": 11,
     "PostgreSqlCertificateRegistrationIT": 5,
+    "PostgreSqlFirstPinDoubleReviewIT": 6,
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
@@ -66,6 +68,14 @@ REQUIRED_CASES = {
         "postgresVolumeInsertFailurePreservesLastCommittedCompleteInventory",
         "competingHigherAndLowerRevisionsCannotRegressCurrentInventory",
         "certificateRegisteredToOneDeviceCannotWriteAnotherActiveDevicesInventory",
+    },
+    "PostgreSqlFirstPinDoubleReviewIT": {
+        "twoDistinctReviewersCommitWithRequestAndAuditWithoutSigning",
+        "selfReviewWrongGroupAndReplayAreRejectedWithoutAudit",
+        "revokedFirstReviewerOrApplicantSessionRotationBlocksSecond",
+        "silentlySuppressedReviewAuditRollsBackVoteThenAllowsRetry",
+        "postgresConstraintsRejectSkippedSecondStepAndHistoryMutation",
+        "twoConcurrentSecondReviewsSerializeWithOnlyOneCommittedWinner",
     },
     "PostgreSqlCertificateRegistrationIT": {
         "scopedOwnerReviewsAndRegistersOnlyPendingCredentialWithAudit",
@@ -185,8 +195,8 @@ def main() -> int:
         for error in errors:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
-    print("PG18 synthetic JUnit evidence verified: all 8 Testcontainers classes, "
-          ">=60 passing tests across eight suites, including Console security wiring; "
+    print("PG18 synthetic JUnit evidence verified: all 9 Testcontainers classes, "
+          ">=66 passing tests across nine suites, including A11 double-review and Console security wiring; "
           "no failed, errored or skipped cases.")
     return 0
 
