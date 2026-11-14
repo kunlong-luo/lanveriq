@@ -9,6 +9,9 @@ on:
     branches: [main]
     paths:
       - 'apps/server/src/main/resources/db/migration/V14__durable_first_pin_double_review.sql'
+      - 'apps/server/src/main/resources/db/migration/V15__bind_first_pin_review_to_step_up_proof.sql'
+      - 'apps/server/src/main/java/com/lanveriq/server/enrollment/FirstPinReviewStepUpVerifier.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/enrollment/DenyAllFirstPinReviewStepUpVerifier.java'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/FirstPinReviewLedgerService.java'
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlFirstPinDoubleReviewIT.java'
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/events/PostgreSqlDeviceActivationIT.java'
