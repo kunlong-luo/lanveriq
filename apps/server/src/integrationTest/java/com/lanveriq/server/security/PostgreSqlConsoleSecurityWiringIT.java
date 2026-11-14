@@ -420,6 +420,11 @@ class PostgreSqlConsoleSecurityWiringIT {
                         .setParameter("id", id).executeUpdate()));
         assertThrows(RuntimeException.class, () -> tx(() ->
                 entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credentials SET rp_id='other.example'
+                         WHERE credential_id=:id
+                        """).setParameter("id", id).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
                         UPDATE admin_passkey_credentials
                            SET credential_public_key_cose=:forged
                          WHERE credential_id=:id
