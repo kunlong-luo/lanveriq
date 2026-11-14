@@ -2,6 +2,8 @@ package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -15,6 +17,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 import java.security.SecureRandom;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.webauthn.api.Bytes;
+import org.springframework.security.web.webauthn.management.PublicKeyCredentialUserEntityRepository;
+import org.springframework.security.web.webauthn.management.UserCredentialRepository;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import jakarta.persistence.EntityManager;
@@ -87,6 +93,9 @@ class PostgreSqlConsoleSecurityWiringIT {
 
     @Autowired
     private AdminPasskeyCredentialRepository passkeyCredentials;
+
+    @Autowired
+    private AdminAccountRepository adminAccounts;
 
     @Test
     void bootDiscoversConditionalConsoleChainsAndBlocksAnonymousReads()
@@ -471,6 +480,68 @@ class PostgreSqlConsoleSecurityWiringIT {
                         """).setParameter("id", id).executeUpdate()));
         assertTrue(passkeyCredentials.findByUserId(owner)
                 .getFirst().revoked());
+    }
+
+    @Test
+    void officialWebAuthnUserAdapterReadsOnlyActivePg18UserHandles() {
+        byte[] firstHandle = syntheticPasskeyBytes(32);
+        byte[] otherHandle = syntheticPasskeyBytes(32);
+        UUID first = passkeyFixture(firstHandle);
+        UUID other = passkeyFixture(otherHandle);
+        var bridge = new StagedJpaWebAuthnUserEntityRepository(
+                passkeyHandles, adminAccounts);
+        String firstLogin = adminAccounts.findById(first)
+                .orElseThrow().getNormalizedLogin();
+        String otherLogin = adminAccounts.findById(other)
+                .orElseThrow().getNormalizedLogin();
+        var firstById = bridge.findById(new Bytes(firstHandle));
+        assertNotNull(firstById);
+        assertEquals(firstLogin, firstById.getName());
+        assertArrayEquals(firstHandle, firstById.getId().getBytes());
+        assertArrayEquals(otherHandle, bridge.findByUsername(otherLogin)
+                .getId().getBytes());
+        assertNull(bridge.findByUsername("synthetic-cross-user-invalid"));
+        assertNull(bridge.findById(new Bytes(syntheticPasskeyBytes(32))));
+
+        // Account disable MUST revoke eligibility immediately on DB reread,
+        // independent of a stale Spring Security session.
+        tx(() -> entityManager.createNativeQuery("""
+                UPDATE users SET disabled_at=clock_timestamp(),
+                                  session_version=session_version+1
+                 WHERE id=:user
+                """).setParameter("user", first).executeUpdate());
+        assertNull(bridge.findById(new Bytes(firstHandle)));
+        assertNull(bridge.findByUsername(firstLogin));
+        assertEquals(otherLogin, bridge.findByUsername(otherLogin).getName());
+        assertThrows(AccessDeniedException.class,
+                () -> bridge.save(firstById));
+        assertThrows(AccessDeniedException.class,
+                () -> bridge.delete(new Bytes(firstHandle)));
+    }
+
+    @Test
+    void completeSpringWebAuthnCredentialAdapterIsStillFailClosedWithPg18Rows() {
+        UUID user = passkeyFixture(syntheticPasskeyBytes(32));
+        byte[] credential = syntheticPasskeyBytes(64);
+        tx(() -> insertPasskeyCredential(credential, user, syntheticPasskeyBytes(128)));
+        assertEquals(1, passkeyCredentials.findByUserId(user).size());
+
+        // V16 test bytes cannot be parsed/accepted as authenticator proofs:
+        // even an inserted row and an active account never yield a Spring
+        // Security CredentialRecord or a login/step-up authority.
+        var bridge = new StagedDenyAllWebAuthnCredentialRepository();
+        assertNull(bridge.findByCredentialId(new Bytes(credential)));
+        byte[] handle = passkeyHandles.findById(user).orElseThrow().userHandle();
+        assertTrue(bridge.findByUserId(new Bytes(handle)).isEmpty());
+        assertThrows(AccessDeniedException.class, () -> bridge.save(null));
+        assertThrows(AccessDeniedException.class,
+                () -> bridge.delete(new Bytes(credential)));
+
+        // No adapter bean is registered with SecurityFilterChain; the
+        // official default-in-memory credential pathway is not activated.
+        assertTrue(context.getBeansOfType(
+                PublicKeyCredentialUserEntityRepository.class).isEmpty());
+        assertTrue(context.getBeansOfType(UserCredentialRepository.class).isEmpty());
     }
 
     @Test
