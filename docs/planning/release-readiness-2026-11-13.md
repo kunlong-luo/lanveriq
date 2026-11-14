@@ -14,6 +14,14 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A11-D1 — 官方 WebAuthn/Passkey 验证引擎依赖已接入（不等于 MFA 上线）
+
+- **技术选型：** 依赖 BOM 管理的官方 `org.springframework.security:spring-security-webauthn`（Spring Security WebAuthn4J 验证能力），与 Spring Boot 4.1.2 / Java 25 / Gradle 对齐；不自行实现 FIDO/COSE/CBOR/签名原语，也不引入双重认证框架。官方指南 https://docs.spring.io/spring-security/reference/servlet/authentication/passkeys.html 。
+- **现阶段只有依赖，任何成功路径仍不可用：** 未调用 `HttpSecurity.webAuthn(...)`，未开 `/webauthn/**` / `/login/webauthn` / Console Step-up 路由，未注册 Passkey 凭证/持久化库，唯一生产 Step-up verifier 仍是 hard-deny。测试代码使用正确 CSRF、Origin/Host 和登录会话检查认证入口不可用；真正 `@SpringBootTest` + PG18 `PostgreSqlConsoleSecurityWiringIT` 新增强制 `fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency`；JUnit 严格验收门禁同步防跳过。
+- **精确验收候选：** [`642583cd`](https://github.com/kunlong-luo/lanveriq/commit/642583cd3a99cdc3edbc8f8d2a7577d8172667a6) 对应 [真实 PG18 #43575188306](https://github.com/kunlong-luo/lanveriq/actions/runs/43575188306) 及 Java L1 需要最终核对，在未完成前 **NOT YET ACCEPTED**；[RD-2 同 SHA #43575188330](https://github.com/kunlong-luo/lanveriq/actions/runs/43575188330) SUCCESS。A11-C 之前的 [四项同 SHA `7e4ad3b1`](https://github.com/kunlong-luo/lanveriq/commit/7e4ad3b18f4a7d5d731152e074f3dea5c2a8aa2c) Java L1/PG18/编译/RD-2 **全部 SUCCESS**。
+- **下一最小切片：** 必须先设计用户注册/恢复和唯一用户句柄绑定、JPA/Flyway PostgreSQL credential repository、真实 WebAuthn 原生验证的严格 `userVerification=required`、经 HTTPS Console RP ID/Origin 绑定、服务器挑战单次消耗/撤权、凭证签名计数器与备份语义，再单独将通过的审核人 Passkey 证明绑定现有 A11-C 请求+设备+会话+单次 proof。不得使用 Spring 公开示例的内存默认凭证库、无验证的登录状态或新环境变量跳过验证。不开放生产审批签发。
+- **上线判定未变化：** Issue #5 OPEN，v0.1 NOT RELEASE READY；Pop!_OS24 L3、独立租户授权、审核密钥与 CA、可信时间、撤权传播均未实现；Agent 联网/采集/自动恢复/远控默认 OFF。
+
 ## 2026-11-14 A11-C — 审核人 Passkey 二次认证凭证边界（生产强拒绝，CI 待验收）
 
 - **已落地代码（main `5fbe22fc`）：** `FirstPinReviewStepUpVerifier` 定义绑定审核人、设备、review request、会话版本和 `first_pin.review` 操作的独立证据接口。**唯一生产实现 `DenyAllFirstPinReviewStepUpVerifier` 固定拒绝**；不会将现有 Spring Security 密码登录、请求头、客户端布尔 MFA 或服务端环境开关变成可信二次认证。内部 `FirstPinReviewLedgerService` 在数据库持锁复验当前人员/范围后才接受验证器返回的精确绑定、`webauthn`、时间窗口与唯一证据 ID，并原子记投票＋访问审计。没有生产 WebAuthn/IdP/MFA、没有审核 HTTP API，服务本身仍默认 OFF。
