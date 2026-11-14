@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -316,6 +318,37 @@ class PostgreSqlConsoleSecurityWiringIT {
         mvc.perform(scopedGet("/api/v1/devices", data.secondAdmin()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    @Test
+    void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
+        // A11-D1: proving real component-scanned Boot servlet security is
+        // crucial; a WebMvcTest alone could silently omit an auto-configured
+        // passkey registration handler. Supplying CSRF excludes false
+        // positives caused solely by CSRF rejection.
+        for (String route : new String[]{
+                "/webauthn/register/options",
+                "/webauthn/register",
+                "/webauthn/authenticate/options",
+                "/login/webauthn",
+                "/api/v1/auth/webauthn/step-up"}) {
+            mvc.perform(post(route).with(csrf()).secure(true)
+                            .header("Host", "console.lanveriq.internal:443")
+                            .header("Origin", "https://console.lanveriq.internal")
+                            .header("Sec-Fetch-Site", "same-origin"))
+                    .andExpect(status().isForbidden());
+        }
+        // A mock-authenticated user must not make these routes usable.
+        ScopedFixture scoped = seedScopedFixture();
+        mvc.perform(post("/api/v1/auth/webauthn/step-up")
+                        .with(csrf()).secure(true)
+                        .header("Host", "console.lanveriq.internal:443")
+                        .header("Origin", "https://console.lanveriq.internal")
+                        .header("Sec-Fetch-Site", "same-origin")
+                        .with(authentication(UsernamePasswordAuthenticationToken.authenticated(
+                                new AdminPrincipal(scoped.firstAdmin(), "synthetic-admin",
+                                        "synthetic-NO-LOGIN", true, 0L), null, List.of()))))
+                .andExpect(status().isForbidden());
     }
 
 }
