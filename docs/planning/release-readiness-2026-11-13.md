@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A10 — SQLite 首次证书 pin 与审核 review_id 原子消耗，Linux L1/L2 同 SHA SUCCESS
+
+- **代码与真实 CI：** [`42a3a12f`](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)，[Rustfmt/Cargo 所有单测/Clippy #43543552496](https://github.com/kunlong-luo/lanveriq/actions/runs/43543552496)、[Linux 双跳 TLS1.3 Rust→Caddy→Tomcat→PG18 和 PG18 Testcontainers 八组事务 #43543552477](https://github.com/kunlong-luo/lanveriq/actions/runs/43543552477)、[RD-2 默认拒绝 #43543552507](https://github.com/kunlong-luo/lanveriq/actions/runs/43543552507)：**全部 SUCCESS，三个作业均为同一最终代码 SHA**。
+- **SQLx V9 和代码：** 增加唯一 `review_id` 的 `heartbeat_first_pin_review_usage`，记录设备、证书 epoch、DER SHA256 指纹、审核公钥/签名摘要与消费时间；禁止改写或删除，`heartbeat_first_pin_review_seen` 发现历史消耗记录被破坏。触发器禁止没有对应已消费审核记录的证书 pin 直接插入；旧 `initialize_heartbeat_credential_pin` 接口固定拒绝。唯一离线审核事务 `install_first_pin_with_offline_review` 先验证已有设备绑定审核公钥、有效 Ed25519 签名、时间窗及完整匹配的当前证书代际和从未发生的心跳历史，再在**同一个 SQLite 事务**写入审核消费、首次证书 pin、两项 seen 标记。失败时全部回滚，成功后跨重启重放/换审核编号不能再次绑定。故障注入在审核写入后拒绝 pin，证实消耗编号也被回滚，不出现部分提交。
+- **真实网络验收：** 日志 `PASS: real TLS-bound epoch, immutable local reviewer key, atomic SQLite first pin + unique review-ID consumption, replay denied, old ACK quarantine held.`。使用一次性 GitHub Linux Runner 临时密钥，在独立的**全新 SQLite 文件**完成首次 pin；已有 ACK 丢失 checkpoint 的另一个 SQLite 文件仍强制拒绝追认/复用 UUID。
+- **未完成的发布门槛：** SQLite 固定公钥并**不等于**组织批准信任根；本地 API 的 `observed` 字段仍由独立调用方供应，不能凭任意伪造值声称完成 mTLS 证明。受授权审核人签发、身份审计、操作系统信任根托管/撤销、安全时钟、已有旧 pin 迁移策略、正式 Linux Agent 首次安装/调度和真实 Pop!_OS24 L3 均未完成。不能回填旧审核或解开旧隔离，不能启用生产联网/采集/远控。Issue #5 OPEN、v0.1 NOT RELEASE READY。
+
 ## 2026-11-14 A9 — 审核公钥的 SQLite 不可变绑定与当前 mTLS 代际签名验证，L1/L2 同 SHA SUCCESS
 
 - **源码及证据：** [`c6a513d`](https://github.com/kunlong-luo/lanveriq/commit/c6a513d0565a7943cca2eb2fb43d17823ca0b16a)、[Rustfmt/Cargo 全量测试/Clippy #43540816853](https://github.com/kunlong-luo/lanveriq/actions/runs/43540816853)、[PG18 Testcontainers 八组事务与真实 Rust→Caddy→Tomcat 双跳 TLS1.3 + PG18 #43540816930](https://github.com/kunlong-luo/lanveriq/actions/runs/43540816930)、[RD-2 默认 OFF #43540816881](https://github.com/kunlong-luo/lanveriq/actions/runs/43540816881) **全部 SUCCESS，均为同一代码 SHA**。
