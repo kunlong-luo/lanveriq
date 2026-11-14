@@ -545,6 +545,166 @@ class PostgreSqlConsoleSecurityWiringIT {
     }
 
     @Test
+    void stagedCredentialRecordEnforcesOwnerHandleAndRpWithoutEnablingAuthentication() {
+        byte[] handle = syntheticPasskeyBytes(32);
+        UUID owner = passkeyFixture(handle);
+        UUID outsider = passkeyFixture(syntheticPasskeyBytes(32));
+        byte[] credential = syntheticPasskeyBytes(64);
+        tx(() -> insertPasskeyCredential(credential, owner, syntheticPasskeyBytes(128)));
+        var insertRecord = (java.util.function.BiConsumer<UUID, byte[]>) (actor, userHandle) ->
+                entityManager.createNativeQuery("""
+                        INSERT INTO admin_passkey_credential_records_staging
+                         (credential_id,user_id,rp_id,user_handle,
+                          registration_attestation_object,registration_client_data_json,
+                          uv_initialized,display_label,registration_tracking_id,
+                          registered_session_version)
+                        VALUES(:credential,:actor,'console.lanveriq.internal',:handle,
+                               :attestation,:client,true,'synthetic-only',:tracking,0)
+                        """).setParameter("credential", credential)
+                        .setParameter("actor", actor)
+                        .setParameter("handle", userHandle)
+                        .setParameter("attestation", syntheticPasskeyBytes(256))
+                        .setParameter("client", syntheticPasskeyBytes(128))
+                        .setParameter("tracking", UUID.randomUUID()).executeUpdate();
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                insertRecord.accept(outsider,
+                        passkeyHandles.findById(outsider).orElseThrow().userHandle())));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                insertRecord.accept(owner,
+                        passkeyHandles.findById(outsider).orElseThrow().userHandle())));
+        tx(() -> insertRecord.accept(owner, handle));
+        assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_passkey_credential_records_staging
+                WHERE credential_id=:id AND user_id=:owner
+                """).setParameter("id", credential).setParameter("owner", owner)
+                .getSingleResult()).longValue());
+
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credential_records_staging
+                           SET rp_id='hostile.example' WHERE credential_id=:id
+                        """).setParameter("id", credential).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        DELETE FROM admin_passkey_credential_records_staging
+                        WHERE credential_id=:id
+                        """).setParameter("id", credential).executeUpdate()));
+        assertNull(new StagedDenyAllWebAuthnCredentialRepository()
+                .findByCredentialId(new Bytes(credential)));
+    }
+
+    @Test
+    void latestStoredPasskeyCounterCasRejectsStaleReplaysAndWrongOwners() {
+        UUID owner = passkeyFixture(syntheticPasskeyBytes(32));
+        UUID outsider = passkeyFixture(syntheticPasskeyBytes(32));
+        byte[] id = syntheticPasskeyBytes(64);
+        tx(() -> insertPasskeyCredential(id, owner, syntheticPasskeyBytes(128)));
+        var gate = new StagedWebAuthnCounterGate(entityManager);
+        var expectedRp = "console.lanveriq.internal";
+        tx(() -> assertEquals(StagedWebAuthnCounterGate.Outcome.ADVANCED,
+                gate.compareAndAdvance(owner,id,expectedRp,0,5,false)));
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                gate.compareAndAdvance(owner,id,expectedRp,0,3,false)));
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                gate.compareAndAdvance(owner,id,expectedRp,0,5,false)));
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                gate.compareAndAdvance(outsider,id,expectedRp,5,6,false)));
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                gate.compareAndAdvance(owner,id,"hostile.example",5,6,false)));
+        tx(() -> assertEquals(StagedWebAuthnCounterGate.Outcome.ADVANCED,
+                gate.compareAndAdvance(owner,id,expectedRp,5,9,false)));
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                gate.compareAndAdvance(owner,id,expectedRp,5,8,false)));
+        assertEquals(9L, ((Number) entityManager.createNativeQuery("""
+                SELECT signature_count FROM admin_passkey_credentials
+                WHERE credential_id=:id
+                """).setParameter("id", id).getSingleResult()).longValue());
+        assertEquals(2L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                WHERE principal_id=:owner AND action='admin.passkey.counter.advance.staged'
+                """).setParameter("owner", owner).getSingleResult()).longValue());
+    }
+
+    @Test
+    void counterlessCredentialProvidesNoAuthorizationAndDisabledOrRevokedOwnerDenies() {
+        UUID owner = passkeyFixture(syntheticPasskeyBytes(32));
+        byte[] id = syntheticPasskeyBytes(64);
+        tx(() -> insertPasskeyCredential(id, owner, syntheticPasskeyBytes(128)));
+        var gate = new StagedWebAuthnCounterGate(entityManager);
+        assertEquals(StagedWebAuthnCounterGate.Outcome.NO_COUNTER_SIGNAL,
+                new TransactionTemplate(transactionManager).execute(ignored ->
+                        gate.compareAndAdvance(owner,id,"console.lanveriq.internal",0,0,false)));
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                gate.compareAndAdvance(owner,id,"console.lanveriq.internal",0,1,true)));
+        tx(() -> entityManager.createNativeQuery("""
+                UPDATE users SET disabled_at=clock_timestamp(),
+                                 session_version=session_version+1 WHERE id=:owner
+                """).setParameter("owner",owner).executeUpdate());
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                gate.compareAndAdvance(owner,id,"console.lanveriq.internal",0,1,false)));
+        tx(() -> entityManager.createNativeQuery("""
+                UPDATE admin_passkey_credentials
+                SET revoked_at=clock_timestamp(),revoked_by=:owner
+                WHERE credential_id=:id
+                """).setParameter("owner",owner).setParameter("id",id).executeUpdate());
+        assertThrows(AccessDeniedException.class, () -> tx(() ->
+                gate.compareAndAdvance(owner,id,"console.lanveriq.internal",0,2,false)));
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                WHERE principal_id=:owner AND action='admin.passkey.counter.advance.staged'
+                """).setParameter("owner", owner).getSingleResult()).longValue());
+    }
+
+    @Test
+    void silentlySuppressedCounterAuditRollsBackSignatureUpdate() {
+        UUID owner = passkeyFixture(syntheticPasskeyBytes(32));
+        byte[] id = syntheticPasskeyBytes(64);
+        tx(() -> insertPasskeyCredential(id, owner, syntheticPasskeyBytes(128)));
+        var gate = new StagedWebAuthnCounterGate(entityManager);
+        tx(() -> {
+            entityManager.createNativeQuery("""
+                    CREATE FUNCTION a11_counter_suppress_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $
+                    BEGIN
+                        IF NEW.action='admin.passkey.counter.advance.staged' THEN
+                            RETURN NULL;
+                        END IF;
+                        RETURN NEW;
+                    END;
+                    $
+                    """).executeUpdate();
+            entityManager.createNativeQuery("""
+                    CREATE TRIGGER a11_counter_suppress_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_counter_suppress_audit()
+                    """).executeUpdate();
+        });
+        try {
+            assertThrows(IllegalStateException.class, () -> tx(() ->
+                    gate.compareAndAdvance(owner,id,"console.lanveriq.internal",0,4,false)));
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT signature_count FROM admin_passkey_credentials
+                    WHERE credential_id=:id
+                    """).setParameter("id",id).getSingleResult()).longValue());
+        } finally {
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS a11_counter_suppress_audit
+                        ON admin_access_log
+                        """).executeUpdate();
+                entityManager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS a11_counter_suppress_audit()
+                        """).executeUpdate();
+            });
+        }
+        tx(() -> gate.compareAndAdvance(owner,id,"console.lanveriq.internal",0,4,false));
+        assertEquals(4L, ((Number) entityManager.createNativeQuery("""
+                SELECT signature_count FROM admin_passkey_credentials
+                WHERE credential_id=:id
+                """).setParameter("id",id).getSingleResult()).longValue());
+    }
+
+    @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is
         // crucial; a WebMvcTest alone could silently omit an auto-configured

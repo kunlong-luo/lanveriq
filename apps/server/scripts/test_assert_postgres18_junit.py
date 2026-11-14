@@ -53,6 +53,22 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_v18_full_record_and_latest_counter_evidence_cannot_disappear(self):
+        required = (
+            "stagedCredentialRecordEnforcesOwnerHandleAndRpWithoutEnablingAuthentication",
+            "latestStoredPasskeyCounterCasRejectsStaleReplaysAndWrongOwners",
+            "counterlessCredentialProvidesNoAuthorizationAndDisabledOrRevokedOwnerDenies",
+            "silentlySuppressedCounterAuditRollsBackSignatureUpdate",
+        )
+        for method in required:
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp),
+                                  omit=("PostgreSqlConsoleSecurityWiringIT", method))
+                self.assertIn(
+                    "Missing mandatory test: PostgreSqlConsoleSecurityWiringIT." + method,
+                    verify_reports(Path(tmp)),
+                )
+
     def test_v17_challenge_evidence_cannot_disappear(self):
         required = (
             "challengeIsServerRandomHashedAndProductionVerifierCannotConsume",
