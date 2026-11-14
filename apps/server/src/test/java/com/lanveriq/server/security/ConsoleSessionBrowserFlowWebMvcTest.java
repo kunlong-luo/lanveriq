@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -292,6 +293,38 @@ class ConsoleSessionBrowserFlowWebMvcTest {
                         .content("username=synthetic-owner&password=synthetic-test-only"))
                 .andExpect(status().isForbidden());
         verify(provider, never()).authenticate(any());
+    }
+
+    @Test
+    void stagedWebAuthnLibraryMustNotExposeRegistrationOrAssertionRoutes() throws Exception {
+        // A11-D1: the vetted Spring Security WebAuthn library may be on the
+        // classpath, but NOT activated via HttpSecurity.webAuthn().
+        // CSRF is intentionally satisfied: a 403 must be due to deny-all
+        // authorization, not just a rejected missing-CSRF shortcut.
+        for (String path : new String[]{
+                "/webauthn/register/options",
+                "/webauthn/register",
+                "/webauthn/authenticate/options",
+                "/login/webauthn",
+                "/api/v1/auth/webauthn/register",
+                "/api/v1/auth/webauthn/step-up"}) {
+            mvc.perform(post(path).with(csrf())
+                            .header("Host", "console.lanveriq.internal")
+                            .header("Origin", "https://console.lanveriq.internal")
+                            .header("Sec-Fetch-Site", "same-origin"))
+                    .andExpect(status().isForbidden());
+        }
+        // A valid password-login session is also not an automatic grant
+        // to enroll passkeys or request a high-risk step-up proof.
+        configureSyntheticLogin(0L);
+        var state = bootstrap();
+        login(state);
+        mvc.perform(post("/api/v1/auth/webauthn/step-up")
+                        .session(state.session()).with(csrf())
+                        .header("Host", "console.lanveriq.internal")
+                        .header("Origin", "https://console.lanveriq.internal")
+                        .header("Sec-Fetch-Site", "same-origin"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
