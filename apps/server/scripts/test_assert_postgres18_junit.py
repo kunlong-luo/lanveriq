@@ -125,6 +125,8 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             "passkeyUserHandleIsStableGloballyUniqueAndReadThroughJpa",
             "passkeyIdIsGloballyUniqueAndOwnerPublicKeyAndRpAreImmutable",
             "passkeyCountersAndRevocationCannotRollBackOrResurrect",
+            "officialWebAuthnUserAdapterReadsOnlyActivePg18UserHandles",
+            "completeSpringWebAuthnCredentialAdapterIsStillFailClosedWithPg18Rows",
         )
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
