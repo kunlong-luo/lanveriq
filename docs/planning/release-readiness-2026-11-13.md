@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A9 — 审核公钥的 SQLite 不可变绑定与当前 mTLS 代际签名验证，L1/L2 同 SHA SUCCESS
+
+- **源码及证据：** [`c6a513d`](https://github.com/kunlong-luo/lanveriq/commit/c6a513d0565a7943cca2eb2fb43d17823ca0b16a)、[Rustfmt/Cargo 全量测试/Clippy #43540816853](https://github.com/kunlong-luo/lanveriq/actions/runs/43540816853)、[PG18 Testcontainers 八组事务与真实 Rust→Caddy→Tomcat 双跳 TLS1.3 + PG18 #43540816930](https://github.com/kunlong-luo/lanveriq/actions/runs/43540816930)、[RD-2 默认 OFF #43540816881](https://github.com/kunlong-luo/lanveriq/actions/runs/43540816881) **全部 SUCCESS，均为同一代码 SHA**。
+- **实现：** SQLx V8 不可变设备级审核 Ed25519 **公钥**（仅 32 字节、不含签名私钥），禁止 UPDATE/DELETE，并用 `heartbeat_reviewer_public_key_seen` 检测“曾固定过但记录不见了”；仅在从无心跳历史和本地 credential pin 的**显式离线**调用时初始化。新 `inspect_offline_review_against_local_key` 从 SQLite 取固定审核公钥并复查，再验证 A8 的签名；不信任签名凭据/HTTP 声称的公钥，不安装 credential pin、不消费审核凭据、不产生 ACK、不解隔离。
+- **真实隔离日志：** `PASS: real TLS-bound epoch and immutable SQLite reviewer key pin verify detached Ed25519 review; tampered review denied and ACK quarantine unchanged.` 已在真实 Rust TLS1.3→Caddy→Tomcat→PG18 合成链中出现；离线文件 SQLite 测试覆盖重启、重复固定/换钥、毁坏记录、旧心跳不能补绑及跨设备拒绝。
+- **边界与后续：** 初次写入 SQLite 的公钥**不能自动证明管理员身份或授权**，现阶段没有正式 CA/审核人公钥托管、证书签发审批与审计、公钥安全轮换/撤销。审核编号 `review_id` 的原子防重放消费必须与后续受授权首次 credential pin 安装同一 SQLite 事务完成，不得单独“消耗签名”或允许旧 pending 心跳自动转移。Pop!_OS24 实机 L3、正式上线、生产联网/采集/远控仍不批准；Issue #5 OPEN，v0.1 NOT RELEASE READY。
+
 ## 2026-11-13 A8 — Ed25519 first-pin detached review, L1/L2 same-SHA SUCCESS
 
 - Implementation: [8f94cc28](https://github.com/kunlong-luo/lanveriq/commit/8f94cc2877509f21723d4cba8d6ae4d5bc5bbff9), Rust L1 [#43428246769](https://github.com/kunlong-luo/lanveriq/actions/runs/43428246769), RD-2 [#43428246783](https://github.com/kunlong-luo/lanveriq/actions/runs/43428246783), real Linux double TLS1.3+PG18 [#43428246806](https://github.com/kunlong-luo/lanveriq/actions/runs/43428246806): ALL SUCCESS on exact same SHA.
