@@ -12,6 +12,8 @@ public enum AdminAction {
             "recording_reviewer"), false),
     VIEW_NETWORK(List.of("owner_security_admin", "it_operator"), true),
     ISSUE_ENROLLMENT(List.of("owner_security_admin"), false),
+    // A11-A: explicitly scoped reviewer permission; no HTTP or signing route.
+    REVIEW_FIRST_PIN(List.of("owner_security_admin"), false),
     REVOKE_DEVICE(List.of("owner_security_admin"), false);
 
     private final List<String> allowedRoleCodes;
