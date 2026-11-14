@@ -138,7 +138,7 @@ class PostgreSqlFirstPinDoubleReviewIT {
                             'active',clock_timestamp()-INTERVAL '1 hour',
                             clock_timestamp()+INTERVAL '1 day')
                     """).setParameter("device", device)
-                    .setParameter("fingerprint", "b".repeat(64))
+                    .setParameter("fingerprint", UUID.randomUUID().toString().replace("-", "").repeat(2))
                     .setParameter("serial", UUID.randomUUID().toString())
                     .setParameter("spki", "a".repeat(64)).executeUpdate();
         });
