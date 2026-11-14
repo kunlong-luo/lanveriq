@@ -353,6 +353,16 @@ class PostgreSqlFirstPinDoubleReviewIT {
         assertThrows(AccessDeniedException.class, () -> ledger.review(request));
 
         syntheticVerifier.override.set(new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                UUID.randomUUID(), first, request, UUID.randomUUID(), 0,
+                FirstPinReviewStepUpVerifier.REVIEW_ACTION, Instant.now(), "webauthn"));
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+
+        syntheticVerifier.override.set(new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                UUID.randomUUID(), first, request, device, 0,
+                "first_pin.issue", Instant.now(), "webauthn"));
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+
+        syntheticVerifier.override.set(new FirstPinReviewStepUpVerifier.VerifiedEvidence(
                 UUID.randomUUID(), first, request, device, 1,
                 FirstPinReviewStepUpVerifier.REVIEW_ACTION, Instant.now(), "webauthn"));
         assertThrows(AccessDeniedException.class, () -> ledger.review(request));
