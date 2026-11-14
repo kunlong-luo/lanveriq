@@ -33,7 +33,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceActivationIT": 5,
     "PostgreSqlDeviceInventoryIT": 11,
     "PostgreSqlCertificateRegistrationIT": 5,
-    "PostgreSqlFirstPinDoubleReviewIT": 6,
+    "PostgreSqlFirstPinDoubleReviewIT": 10,
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
@@ -76,6 +76,10 @@ REQUIRED_CASES = {
         "silentlySuppressedReviewAuditRollsBackVoteThenAllowsRetry",
         "postgresConstraintsRejectSkippedSecondStepAndHistoryMutation",
         "twoConcurrentSecondReviewsSerializeWithOnlyOneCommittedWinner",
+        "unverifiedOrMisboundStepUpNeverWritesAnApprovalOrAudit",
+        "expiredFutureOrWrongMethodStepUpIsRejectedAndDoesNotConsumeVote",
+        "oneStepUpProofCannotBeReplayedByAnotherIndependentReviewer",
+        "sqlCannotInsertEvidenceLessVoteEvenWithGroupPrivilege",
     },
     "PostgreSqlCertificateRegistrationIT": {
         "scopedOwnerReviewsAndRegistersOnlyPendingCredentialWithAudit",
@@ -196,7 +200,7 @@ def main() -> int:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
     print("PG18 synthetic JUnit evidence verified: all 9 Testcontainers classes, "
-          ">=66 passing tests across nine suites, including A11 double-review and Console security wiring; "
+          "at least 70 passing tests across nine suites, including A11 double-review and Console security wiring; "
           "no failed, errored or skipped cases.")
     return 0
 
