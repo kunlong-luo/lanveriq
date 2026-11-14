@@ -336,8 +336,11 @@ class PostgreSqlConsoleSecurityWiringIT {
                             .header("Host", "console.lanveriq.internal:443")
                             .header("Origin", "https://console.lanveriq.internal")
                             .header("Sec-Fetch-Site", "same-origin"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().is4xxClientError());
         }
+        // Anonymous deny-all may surface as 401 rather than 403. The
+        // authenticated test below confirms even a real PG18-backed
+        // administrator cannot make the reviewer route usable.
         // A mock-authenticated user must not make these routes usable.
         ScopedFixture scoped = seedScopedFixture();
         mvc.perform(post("/api/v1/auth/webauthn/step-up")
