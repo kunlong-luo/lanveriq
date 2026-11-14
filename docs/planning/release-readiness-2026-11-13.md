@@ -14,6 +14,12 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A11 trusted-administrator review/issuance — DESIGN ONLY, NOT IMPLEMENTED
+
+- **已写入验收合同：** [A11 管理员审核/信任根/撤销/可信时间/Agent 授权边界](../development/batch-a11-trusted-administrator-review-issuance.md)（设计提交 [`4bb1e319`](https://github.com/kunlong-luo/lanveriq/commit/4bb1e31989741b79aef0d4c380814ab5af9c43bd)）。
+- **下一项最小代码切片：** 在生产签发/联网/Agent 调用保持不可用的前提下，先实现服务端无签名无写库的审核身份与组织/设备权限策略、职责分离和负向单测；随后单独评审 v2 域隔离签名、密钥硬件托管、正式 CA、撤权/时间与 Linux 本地安装者权限。
+- **不能混淆：** 旧 Ed25519 `first-pin-review/v1`、A10 本地 reviewer key 与调用者提供的 `observed`/`now_unix` **都不构成**组织管理者的真实授权、可信 TLS 来源或可信时间证明；旧 pin/pending 不能追认。Issue #5 OPEN，真实 Pop!_OS L3 未批准，v0.1 NOT RELEASE READY。生产联网/采集/自动恢复/远控继续 OFF。
+
 ## 2026-11-14 A10 — SQLite 首次证书 pin 与审核 review_id 原子消耗，Linux L1/L2 同 SHA SUCCESS
 
 - **代码与真实 CI：** [`42a3a12f`](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)，[Rustfmt/Cargo 所有单测/Clippy #43543552496](https://github.com/kunlong-luo/lanveriq/actions/runs/43543552496)、[Linux 双跳 TLS1.3 Rust→Caddy→Tomcat→PG18 和 PG18 Testcontainers 八组事务 #43543552477](https://github.com/kunlong-luo/lanveriq/actions/runs/43543552477)、[RD-2 默认拒绝 #43543552507](https://github.com/kunlong-luo/lanveriq/actions/runs/43543552507)：**全部 SUCCESS，三个作业均为同一最终代码 SHA**。
