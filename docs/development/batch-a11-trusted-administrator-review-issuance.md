@@ -4,6 +4,13 @@
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
 
+## 2026-11-14 A11-A 首批代码（仅策略预判，L1 CI 待核实）
+
+- 源码基线 [`b681f872`](https://github.com/kunlong-luo/lanveriq/commit/b681f8726c656bb956b534c32d3a3dc6dc1e3664)（在 `main` 上连续提交）：`FirstPinReviewDryRunGate`（内部包级 Java 只读对象，无 `@Service`、无 HTTP 路由、无 DB 写入或签名接口）与 `FirstPinReviewDryRunGateTest`；`AdminAction.REVIEW_FIRST_PIN` 单独提供 owner_security_admin 组级动作，不复用设备 mTLS 身份。
+- 预判只读取 Spring Security 已认证的 `AdminPrincipal`，重新查询两个审核人的当前组权限，校验设备/组/租户/epoch/请求及策略和状态 generation，拒绝申请人自审、重复审核人、跨范围、损坏摘要、撤销、权限变化和不具备 MFA/重新认证证据的合成快照。没有完成**第一次**审核时固定拒绝，已经完成第一次但缺第二次审核时返回 `PENDING_SECOND_REVIEW`。
+- `APPROVED_FOR_SIGNING` 在该对象中仅是 **dry-run diagnostic**，绝不表示实际生产授权；当前模拟的 `State` **没有**从数据库读取的可信来源，没有真实 MFA/时钟与审计写入，无法作为签发、CA 注册、Agent pin 或隔离解除输入。不要将其接入现有 `ReviewedDeviceCertificateRegistrationService` 或 Agent `main.rs`。
+- 与 [Server unit tests #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438)、[RD-2 fail-closed #43568599424](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599424) 对应的状态须按 GitHub **最终结果**核实；本段创建时未宣称通过。后续仍需 PG18 事务持久审核、真正的双人身份/撤权竞态与签发权限隔离。
+
 ## 1. 边界、已具备能力与信任缺口
 
 A8–A10 已完成合成离线 Ed25519 `first-pin-review/v1` 签名验证、设备级 SQLite 审核公钥不变绑定、唯一 review_id 消耗与首次证书 pin 的同事务提交。L1、真实隔离 Rust→Caddy→Tomcat TLS1.3→PG18 L2、RD-2 OFF 在相同受测 SHA 通过。**它们没有管理员身份、组织信任根、私钥保管、发证审核、可信时间、吊销同步或已授权的 Linux Agent 安装调用边界。**
