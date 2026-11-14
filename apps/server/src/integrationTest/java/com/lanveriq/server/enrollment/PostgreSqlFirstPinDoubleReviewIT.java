@@ -550,11 +550,11 @@ class PostgreSqlFirstPinDoubleReviewIT {
     void expiredChallengeCannotBeConsumedEvenWithSyntheticVerifier() {
         login(first);
         var staged = challengeLedger(bound -> {});
-        var issued = issueChallenge(staged);
-        byte[] raw = Base64.getUrlDecoder().decode(issued.challengeBase64Url());
+        byte[] expiredRaw = new byte[32];
+        new java.security.SecureRandom().nextBytes(expiredRaw);
         byte[] digest;
         try {
-            digest = MessageDigest.getInstance("SHA-256").digest(raw);
+            digest = MessageDigest.getInstance("SHA-256").digest(expiredRaw);
         } catch (java.security.NoSuchAlgorithmException ex) {
             throw new IllegalStateException(ex);
         }
@@ -568,16 +568,13 @@ class PostgreSqlFirstPinDoubleReviewIT {
                             clock_timestamp()-INTERVAL '8 minutes')
                     RETURNING id
                     """).setParameter("actor", first).setParameter("request", request)
-                    .setParameter("device", device)
-                    .setParameter("digest", MessageDigest.isEqual(digest, raw)
-                            ? raw : java.util.Arrays.copyOf(digest, digest.length))
+                    .setParameter("device", device).setParameter("digest", digest)
                     .getSingleResult());
-        // A distinct synthetic expired nonce is required because challenge
-        // hashes are globally unique; use a new CSPRNG-derived value.
         assertTrue(old != null);
         assertThrows(AccessDeniedException.class, () -> tx(() ->
                 staged.consumeAfterVerifiedAssertion(old,
-                        issued.challengeBase64Url(), new byte[]{9})));
+                        Base64.getUrlEncoder().withoutPadding()
+                                .encodeToString(expiredRaw), new byte[]{9})));
         assertEquals(0L, countVotes());
     }
 
