@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -309,7 +308,7 @@ class ConsoleSessionBrowserFlowWebMvcTest {
             // This WebMvc slice has no global catch-all security chain; a
             // nonexistent WebAuthn handler may return 404 instead of 403.
             // Full Boot PG18 separately requires real deny-all 403.
-            mvc.perform(post(path).with(csrf())
+            mvc.perform(post(path).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                             .header("Host", "console.lanveriq.internal")
                             .header("Origin", "https://console.lanveriq.internal")
                             .header("Sec-Fetch-Site", "same-origin"))
@@ -318,7 +317,7 @@ class ConsoleSessionBrowserFlowWebMvcTest {
         for (String path : new String[]{
                 "/api/v1/auth/webauthn/register",
                 "/api/v1/auth/webauthn/step-up"}) {
-            mvc.perform(post(path).with(csrf())
+            mvc.perform(post(path).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                             .header("Host", "console.lanveriq.internal")
                             .header("Origin", "https://console.lanveriq.internal")
                             .header("Sec-Fetch-Site", "same-origin"))
@@ -330,7 +329,7 @@ class ConsoleSessionBrowserFlowWebMvcTest {
         var state = bootstrap();
         login(state);
         mvc.perform(post("/api/v1/auth/webauthn/step-up")
-                        .session(state.session()).with(csrf())
+                        .session(state.session()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .header("Host", "console.lanveriq.internal")
                         .header("Origin", "https://console.lanveriq.internal")
                         .header("Sec-Fetch-Site", "same-origin"))
