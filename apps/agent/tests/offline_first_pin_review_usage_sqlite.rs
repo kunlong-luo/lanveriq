@@ -56,49 +56,85 @@ async fn first_review_and_pin_commit_together_survive_restart_and_replay_fails()
     provision(&store, &signer).await;
     let (review, observed) = signed_review(&signer);
     let expected = HeartbeatCredentialPin::new(
-        device(), observed.credential_epoch_id, &observed.cert_sha256_fingerprint,
-    ).unwrap();
+        device(),
+        observed.credential_epoch_id,
+        &observed.cert_sha256_fingerprint,
+    )
+    .unwrap();
     assert!(matches!(
         store.initialize_heartbeat_credential_pin(&expected).await,
         Err(StoreError::HeartbeatConflict)
     ));
-    assert!(store.load_heartbeat_credential_pin(device()).await.unwrap().is_none());
-    store.install_first_pin_with_offline_review(&review, &observed, NOW)
+    assert!(
+        store
+            .load_heartbeat_credential_pin(device())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    store
+        .install_first_pin_with_offline_review(&review, &observed, NOW)
         .await
         .unwrap();
-    assert_eq!(store.load_heartbeat_credential_pin(device()).await.unwrap(), Some(expected.clone()));
+    assert_eq!(
+        store.load_heartbeat_credential_pin(device()).await.unwrap(),
+        Some(expected.clone())
+    );
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&review, &observed, NOW).await,
+        store
+            .install_first_pin_with_offline_review(&review, &observed, NOW)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
     let mut second = review.clone();
     second.review_id = Uuid::now_v7();
     second.signature_hex = hex::encode(signer.sign(&second.signing_payload().unwrap()).as_ref());
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&second, &observed, NOW).await,
+        store
+            .install_first_pin_with_offline_review(&second, &observed, NOW)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
     store.close().await;
 
     let store = OutboxStore::open(&path).await.unwrap();
-    assert_eq!(store.load_heartbeat_credential_pin(device()).await.unwrap(), Some(expected));
-    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await.unwrap();
+    assert_eq!(
+        store.load_heartbeat_credential_pin(device()).await.unwrap(),
+        Some(expected)
+    );
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display()))
+        .await
+        .unwrap();
     let usage: (String, String, String, String, i64) = sqlx::query_as(
         "SELECT review_id,device_id,credential_epoch_id,cert_sha256_fingerprint,applied_at_unix \
-         FROM heartbeat_first_pin_review_usage WHERE singleton=1"
-    ).fetch_one(&pool).await.unwrap();
+         FROM heartbeat_first_pin_review_usage WHERE singleton=1",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
     assert_eq!(usage.0, review.review_id.to_string());
     assert_eq!(usage.1, device().to_string());
     assert_eq!(usage.2, observed.credential_epoch_id.to_string());
     assert_eq!(usage.3, observed.cert_sha256_fingerprint);
     assert_eq!(usage.4, NOW as i64);
-    assert!(sqlx::query("DELETE FROM heartbeat_first_pin_review_usage")
-        .execute(&pool).await.is_err());
-    assert!(sqlx::query("UPDATE heartbeat_first_pin_review_usage SET review_id=?")
-        .bind(Uuid::now_v7().to_string()).execute(&pool).await.is_err());
+    assert!(
+        sqlx::query("DELETE FROM heartbeat_first_pin_review_usage")
+            .execute(&pool)
+            .await
+            .is_err()
+    );
+    assert!(
+        sqlx::query("UPDATE heartbeat_first_pin_review_usage SET review_id=?")
+            .bind(Uuid::now_v7().to_string())
+            .execute(&pool)
+            .await
+            .is_err()
+    );
     pool.close().await;
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&review, &observed, NOW).await,
+        store
+            .install_first_pin_with_offline_review(&review, &observed, NOW)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
 }
@@ -111,24 +147,32 @@ async fn no_trusted_local_key_or_bad_signature_writes_no_audit_and_no_pin() {
     let signer = signer();
     let (review, observed) = signed_review(&signer);
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&review, &observed, NOW).await,
+        store
+            .install_first_pin_with_offline_review(&review, &observed, NOW)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
     provision(&store, &signer).await;
     let bad_signer = signer();
     let (bad_review, _) = signed_review(&bad_signer);
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&bad_review, &observed, NOW).await,
+        store
+            .install_first_pin_with_offline_review(&bad_review, &observed, NOW)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
     let mut changed = review.clone();
     changed.review_id = Uuid::now_v7();
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&changed, &observed, NOW).await,
+        store
+            .install_first_pin_with_offline_review(&changed, &observed, NOW)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&review, &observed, NOW + 301).await,
+        store
+            .install_first_pin_with_offline_review(&review, &observed, NOW + 301)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
     let different = CurrentCredentialEpoch {
@@ -136,14 +180,26 @@ async fn no_trusted_local_key_or_bad_signature_writes_no_audit_and_no_pin() {
         ..observed.clone()
     };
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&review, &different, NOW).await,
+        store
+            .install_first_pin_with_offline_review(&review, &different, NOW)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
-    assert!(store.load_heartbeat_credential_pin(device()).await.unwrap().is_none());
+    assert!(
+        store
+            .load_heartbeat_credential_pin(device())
+            .await
+            .unwrap()
+            .is_none()
+    );
     store.close().await;
-    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await.unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display()))
+        .await
+        .unwrap();
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_first_pin_review_usage")
-        .fetch_one(&pool).await.unwrap();
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     assert_eq!(count, 0);
     pool.close().await;
 }
@@ -158,22 +214,46 @@ async fn old_heartbeat_history_blocks_review_consumption_and_immutable_pin() {
     let mut pending = HeartbeatCheckpoint::initial(device()).unwrap();
     let pending_id = Uuid::now_v7();
     pending.begin(true, 100, 30, pending_id).unwrap();
-    store.save_heartbeat_schedule_checkpoint(&pending, 0).await.unwrap();
+    store
+        .save_heartbeat_schedule_checkpoint(&pending, 0)
+        .await
+        .unwrap();
     pending.note_uncertain_outcome().unwrap();
-    store.save_heartbeat_schedule_checkpoint(&pending, 1).await.unwrap();
+    store
+        .save_heartbeat_schedule_checkpoint(&pending, 1)
+        .await
+        .unwrap();
     let (review, observed) = signed_review(&signer);
     assert!(matches!(
-        store.install_first_pin_with_offline_review(&review, &observed, NOW).await,
+        store
+            .install_first_pin_with_offline_review(&review, &observed, NOW)
+            .await,
         Err(StoreError::HeartbeatConflict)
     ));
-    assert!(store.load_heartbeat_credential_pin(device()).await.unwrap().is_none());
-    let recovery = store.load_heartbeat_schedule_recovery(device()).await.unwrap();
+    assert!(
+        store
+            .load_heartbeat_credential_pin(device())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let recovery = store
+        .load_heartbeat_schedule_recovery(device())
+        .await
+        .unwrap();
     assert_eq!(recovery.generation, 2);
-    assert_eq!(recovery.checkpoint.unwrap().pending_request_id, Some(pending_id));
+    assert_eq!(
+        recovery.checkpoint.unwrap().pending_request_id,
+        Some(pending_id)
+    );
     store.close().await;
-    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await.unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display()))
+        .await
+        .unwrap();
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_first_pin_review_usage")
-        .fetch_one(&pool).await.unwrap();
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     assert_eq!(count, 0);
     pool.close().await;
 }
@@ -186,20 +266,46 @@ async fn injected_pin_insert_failure_rolls_back_review_id_and_can_retry_exact_on
     let signer = signer();
     provision(&store, &signer).await;
     let (review, observed) = signed_review(&signer);
-    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await.unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display()))
+        .await
+        .unwrap();
     sqlx::query(
         "CREATE TRIGGER synthetic_fail_pin_insert BEFORE INSERT ON heartbeat_credential_pin \
-         BEGIN SELECT RAISE(ABORT, 'synthetic failure after review audit insertion'); END"
-    ).execute(&pool).await.unwrap();
-    assert!(store.install_first_pin_with_offline_review(&review, &observed, NOW).await.is_err());
+         BEGIN SELECT RAISE(ABORT, 'synthetic failure after review audit insertion'); END",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert!(
+        store
+            .install_first_pin_with_offline_review(&review, &observed, NOW)
+            .await
+            .is_err()
+    );
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_first_pin_review_usage")
-        .fetch_one(&pool).await.unwrap();
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     assert_eq!(count, 0);
-    assert!(store.load_heartbeat_credential_pin(device()).await.unwrap().is_none());
-    sqlx::query("DROP TRIGGER synthetic_fail_pin_insert").execute(&pool).await.unwrap();
-    store.install_first_pin_with_offline_review(&review, &observed, NOW).await.unwrap();
+    assert!(
+        store
+            .load_heartbeat_credential_pin(device())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    sqlx::query("DROP TRIGGER synthetic_fail_pin_insert")
+        .execute(&pool)
+        .await
+        .unwrap();
+    store
+        .install_first_pin_with_offline_review(&review, &observed, NOW)
+        .await
+        .unwrap();
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM heartbeat_first_pin_review_usage")
-        .fetch_one(&pool).await.unwrap();
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     assert_eq!(count, 1);
     pool.close().await;
 }
@@ -212,17 +318,26 @@ async fn direct_sql_pin_without_audit_is_rejected_and_review_audit_deletion_is_d
     let signer = signer();
     provision(&store, &signer).await;
     let (review, observed) = signed_review(&signer);
-    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await.unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display()))
+        .await
+        .unwrap();
     assert!(sqlx::query(
         "INSERT INTO heartbeat_credential_pin(singleton,device_id,credential_epoch_id,cert_sha256_fingerprint) \
          VALUES(1,?,?,?)"
     ).bind(device().to_string()).bind(observed.credential_epoch_id.to_string())
         .bind(&observed.cert_sha256_fingerprint).execute(&pool).await.is_err());
-    store.install_first_pin_with_offline_review(&review, &observed, NOW).await.unwrap();
+    store
+        .install_first_pin_with_offline_review(&review, &observed, NOW)
+        .await
+        .unwrap();
     sqlx::query("DROP TRIGGER heartbeat_first_pin_review_usage_no_delete")
-        .execute(&pool).await.unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
     sqlx::query("DELETE FROM heartbeat_first_pin_review_usage")
-        .execute(&pool).await.unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
     assert!(matches!(
         store.load_heartbeat_credential_pin(device()).await,
         Err(StoreError::HeartbeatConflict)

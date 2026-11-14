@@ -1,9 +1,6 @@
 //! All tests are offline, with file-backed SQLite; never call an Agent
 //! service, TLS socket, enrollment CA, telemetry or remote control.
 use lanveriq_agent::first_pin_review::OfflineFirstPinReview;
-use lanveriq_agent::transport::CurrentCredentialEpoch;
-use ring::rand::SystemRandom;
-use ring::signature::{Ed25519KeyPair, KeyPair};
 use lanveriq_agent::heartbeat_credential_pin::{
     HeartbeatCredentialContinuity, HeartbeatCredentialPin, HeartbeatEpochPreflightError,
     HeartbeatEpochPreflightObservation, inspect_explicit_heartbeat_epoch_preflight,
@@ -15,9 +12,12 @@ use lanveriq_agent::heartbeat_reconciliation::{
 use lanveriq_agent::heartbeat_runtime::{HeartbeatDriverError, run_explicit_heartbeat_once};
 use lanveriq_agent::heartbeat_schedule::HeartbeatCheckpoint;
 use lanveriq_agent::store::{OutboxStore, StoreError};
+use lanveriq_agent::transport::CurrentCredentialEpoch;
 use lanveriq_agent::transport::{
     CredentialEpochDisposition, DeliveryDisposition, HeartbeatLookupDisposition,
 };
+use ring::rand::SystemRandom;
+use ring::signature::{Ed25519KeyPair, KeyPair};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
 

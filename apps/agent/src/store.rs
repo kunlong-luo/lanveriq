@@ -1,11 +1,11 @@
 //! SQLx WAL outbox with synthetic events and local-only typed inventory.
 //! Neither path is connected to Agent service scheduling or network I/O.
+use crate::first_pin_review::{OfflineFirstPinReview, inspect_offline_first_pin_review};
 use crate::heartbeat_credential_pin::HeartbeatCredentialPin;
-use crate::first_pin_review::{inspect_offline_first_pin_review, OfflineFirstPinReview};
-use crate::transport::CurrentCredentialEpoch;
 use crate::heartbeat_schedule::HeartbeatCheckpoint;
 use crate::inventory::{InventorySnapshot, RawInventory};
 use crate::inventory_schedule::InventoryScheduleCheckpoint;
+use crate::transport::CurrentCredentialEpoch;
 use sha2::{Digest, Sha256};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 use sqlx::{Row, SqlitePool};
@@ -942,11 +942,13 @@ impl OutboxStore {
             )
             .fetch_optional(&mut *tx)
             .await?;
-            if audit != Some((
-                pin.device_id.to_string(),
-                pin.credential_epoch_id.to_string(),
-                pin.cert_sha256_fingerprint.clone(),
-            )) {
+            if audit
+                != Some((
+                    pin.device_id.to_string(),
+                    pin.credential_epoch_id.to_string(),
+                    pin.cert_sha256_fingerprint.clone(),
+                ))
+            {
                 return Err(StoreError::HeartbeatConflict);
             }
         }
@@ -1003,9 +1005,14 @@ impl OutboxStore {
             )
             .fetch_one(&mut *tx)
             .await?;
-        if key_seen != 1 || key_rows != 1 || heartbeat_seen != 0
-            || heartbeat_rows != 0 || pin_seen != 0 || pin_rows != 0
-            || review_seen != 0 || review_rows != 0
+        if key_seen != 1
+            || key_rows != 1
+            || heartbeat_seen != 0
+            || heartbeat_rows != 0
+            || pin_seen != 0
+            || pin_rows != 0
+            || review_seen != 0
+            || review_rows != 0
         {
             return Err(StoreError::HeartbeatConflict);
         }
@@ -1015,7 +1022,8 @@ impl OutboxStore {
         )
         .fetch_one(&mut *tx)
         .await?;
-        if key_row.0 != pin.device_id.to_string() || key_row.1.len() != 32
+        if key_row.0 != pin.device_id.to_string()
+            || key_row.1.len() != 32
             || key_row.1.iter().all(|byte| *byte == 0)
         {
             return Err(StoreError::HeartbeatConflict);
@@ -1025,9 +1033,12 @@ impl OutboxStore {
         // The unique review_id and device/epoch/DER fingerprint are consumed
         // in the same DB transaction as pin. A network GET or signature
         // observation ALONE never spends the review.
-        let signature_digest = format!("{:x}", Sha256::digest(
-            hex::decode(&review.signature_hex).map_err(|_| StoreError::HeartbeatConflict)?
-        ));
+        let signature_digest = format!(
+            "{:x}",
+            Sha256::digest(
+                hex::decode(&review.signature_hex).map_err(|_| StoreError::HeartbeatConflict)?
+            )
+        );
         let key_digest = format!("{:x}", Sha256::digest(&key_row.1));
         sqlx::query(
             "INSERT INTO heartbeat_first_pin_review_usage \
