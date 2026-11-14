@@ -122,6 +122,9 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             "bootDiscoversConditionalConsoleChainsAndBlocksAnonymousReads",
             "realPostgresGroupsAreIsolatedAtActualServletEndpoints",
             "fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency",
+            "passkeyUserHandleIsStableGloballyUniqueAndReadThroughJpa",
+            "passkeyIdIsGloballyUniqueAndOwnerPublicKeyAndRpAreImmutable",
+            "passkeyCountersAndRevocationCannotRollBackOrResurrect",
         )
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
