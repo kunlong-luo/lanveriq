@@ -1,5 +1,9 @@
 //! All tests are offline, with file-backed SQLite; never call an Agent
 //! service, TLS socket, enrollment CA, telemetry or remote control.
+use lanveriq_agent::first_pin_review::OfflineFirstPinReview;
+use lanveriq_agent::transport::CurrentCredentialEpoch;
+use ring::rand::SystemRandom;
+use ring::signature::{Ed25519KeyPair, KeyPair};
 use lanveriq_agent::heartbeat_credential_pin::{
     HeartbeatCredentialContinuity, HeartbeatCredentialPin, HeartbeatEpochPreflightError,
     HeartbeatEpochPreflightObservation, inspect_explicit_heartbeat_epoch_preflight,
@@ -25,16 +29,44 @@ fn pin() -> HeartbeatCredentialPin {
     HeartbeatCredentialPin::new(device(), Uuid::now_v7(), &"a".repeat(64)).unwrap()
 }
 
+async fn install_test_pin(store: &OutboxStore, pin: &HeartbeatCredentialPin) {
+    // Synthetic-only signature from a new in-memory reviewer key. This
+    // fixture has no administrator approval or production trust root.
+    let bytes = Ed25519KeyPair::generate_pkcs8(&SystemRandom::new()).unwrap();
+    let signer = Ed25519KeyPair::from_pkcs8(bytes.as_ref()).unwrap();
+    store
+        .initialize_offline_reviewer_public_key(pin.device_id, signer.public_key().as_ref())
+        .await
+        .unwrap();
+    let mut review = OfflineFirstPinReview {
+        schema_version: 1,
+        device_id: pin.device_id,
+        credential_epoch_id: pin.credential_epoch_id,
+        cert_sha256_fingerprint: pin.cert_sha256_fingerprint.clone(),
+        review_id: Uuid::now_v7(),
+        not_before_unix: 1_795_000_000,
+        expires_at_unix: 1_795_000_300,
+        signature_hex: String::new(),
+    };
+    review.signature_hex = hex::encode(signer.sign(&review.signing_payload().unwrap()).as_ref());
+    let observed = CurrentCredentialEpoch {
+        device_id: pin.device_id,
+        credential_epoch_id: pin.credential_epoch_id,
+        cert_sha256_fingerprint: pin.cert_sha256_fingerprint.clone(),
+    };
+    store
+        .install_first_pin_with_offline_review(&review, &observed, 1_795_000_010)
+        .await
+        .unwrap();
+}
+
 #[tokio::test]
 async fn pinned_epoch_survives_restart_and_legacy_sender_and_lookup_are_denied() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("pinned.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
     let identity = pin();
-    store
-        .initialize_heartbeat_credential_pin(&identity)
-        .await
-        .unwrap();
+    install_test_pin(&store, &identity).await;
     store.close().await;
 
     let restarted = OutboxStore::open(&path).await.unwrap();
@@ -84,10 +116,7 @@ async fn mismatch_and_wrong_device_never_rewrite_pinned_identity() {
         .await
         .unwrap();
     let identity = pin();
-    store
-        .initialize_heartbeat_credential_pin(&identity)
-        .await
-        .unwrap();
+    install_test_pin(&store, &identity).await;
     for alternate in [
         HeartbeatCredentialPin::new(device(), Uuid::now_v7(), &"a".repeat(64)).unwrap(),
         HeartbeatCredentialPin::new(device(), identity.credential_epoch_id, &"b".repeat(64))
@@ -150,10 +179,7 @@ async fn deleted_or_corrupted_pin_marker_never_looks_like_fresh_enrollment() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("tamper.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
-    store
-        .initialize_heartbeat_credential_pin(&pin())
-        .await
-        .unwrap();
+    install_test_pin(&store, &pin()).await;
     store.close().await;
 
     // SQLite's immutable DELETE trigger blocks ordinary deletion. Simulate
@@ -198,10 +224,7 @@ async fn pinned_epoch_blocks_direct_checkpoint_writer_inside_sqlite_transaction(
     checkpoint.begin(true, 100, 30, pending).unwrap();
 
     // Emulates a legacy driver holding a stale pre-pin checkpoint snapshot.
-    store
-        .initialize_heartbeat_credential_pin(&pin())
-        .await
-        .unwrap();
+    install_test_pin(&store, &pin()).await;
     assert!(matches!(
         store
             .save_heartbeat_schedule_checkpoint(&checkpoint, 0)
@@ -273,10 +296,7 @@ async fn matching_and_mismatching_existing_pins_are_only_diagnostic() {
     let path = dir.path().join("matching.sqlite");
     let store = OutboxStore::open(&path).await.unwrap();
     let identity = pin();
-    store
-        .initialize_heartbeat_credential_pin(&identity)
-        .await
-        .unwrap();
+    install_test_pin(&store, &identity).await;
     for (candidate, expected) in [
         (
             identity.clone(),
@@ -415,10 +435,7 @@ async fn concurrent_first_pin_is_stale_and_cannot_be_used_for_authorization() {
         .unwrap();
     let identity = pin();
     let result = inspect_explicit_heartbeat_epoch_preflight(&store, device(), true, |_| async {
-        store
-            .initialize_heartbeat_credential_pin(&identity)
-            .await
-            .unwrap();
+        install_test_pin(&store, &identity).await;
         Ok(observed(&identity))
     })
     .await
