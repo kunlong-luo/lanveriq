@@ -14,11 +14,18 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
-## 2026-11-14 A11-A — 内部管理员双人审核策略预判（代码已提交，Java L1 待最终核实）
+## 2026-11-14 A11-B — PostgreSQL 18 双审核不可变账本（默认 OFF，实际测试待核实）
+
+- **最新实现：** A11 独立文档与 [`a512ea2f`](https://github.com/kunlong-luo/lanveriq/commit/a512ea2fb91fe662e7ef14e20f0475aceebebd3b) 源码里程碑，Flyway V14 提供唯一证书代际请求、申请人及 session version、第一/第二个不同审核人的不可变记录、审核撤销占位和防跳步/自审/重复审批触发器。`FirstPinReviewLedgerService` Spring/JPA 内部事务同时要求设备当前有效证书、当前设备组 owner 权限、审核人账户未禁用和 session version 未改变，审核与普通管理员访问日志同事务提交；审计丢失触发回滚。
+- **默认隔离与权限不足：** 仅当 `lanveriq.first-pin-review.ledger-enabled=true` 才有内部 Bean；**没有** HTTP 审核路由、KMS/CA/签名、Agent 调用、自动恢复或证书注册接线。成功结果明确为 `TWO_REVIEWS_RECORDED_NOT_AUTHORIZED_TO_SIGN`，不可当发行许可。当前没有独立租户模型与正式 MFA/重认证、签发信任根、可信时间；`device_group_id` 不是跨组织租户隔离的充分证明。
+- **自动化验收待证据：** 第九套 `PostgreSqlFirstPinDoubleReviewIT` 定义六项真实 PostgreSQL 18 负向/并发/回滚用例并加入严格 JUnit evidence checker；[A11-only scoped PG18 L2 #43570485736](https://github.com/kunlong-luo/lanveriq/actions/runs/43570485736) 为独立隔离跑批，**结果未核实前不可声明通过**。A11-A 既有 [Java L1 #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438) 已成功；[RD-2 #43570485719](https://github.com/kunlong-luo/lanveriq/actions/runs/43570485719) 已在 A11-B milestone SHA 上 SUCCESS。V14 的 L2 及真实 Pop!_OS L3 单列。
+- **发布：** Batch A Issue #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/RD-2 全部默认关闭。
+
+## 2026-11-14 A11-A — 内部管理员双人审核策略预判（Java L1 SUCCESS）
 
 - **仅源码、非生产授权：** [受测候选 `b681f872`](https://github.com/kunlong-luo/lanveriq/commit/b681f8726c656bb956b534c32d3a3dc6dc1e3664) 在 Spring 服务端新增 `FirstPinReviewDryRunGate` 和负向 JUnit，并新增 `AdminAction.REVIEW_FIRST_PIN`。Gate **没有** Spring Bean/HTTP 入口、签名操作、数据库审核状态写入、CA 接入或 Agent 执行权。并且 `APPROVED_FOR_SIGNING` 仅为**只读 dry-run**，不能当签名许可。
 - **现有实现的真实边界：** Gate 从 Spring Security 读取审核人 `AdminPrincipal`，对当前设备组重新读取两个审核人的权限；合成 Snapshot/State 检查租户、设备、组、申请人、独立审核人、审核记录、策略版本和状态代际，以及 MFA/重新认证/撤销状态。这里的 State **尚未连接可信数据库或 IdP**，仅可作代码策略负向验证。不能凭输入布尔值赋权。
-- **CI：** [RD-2 default-OFF #43568599424](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599424) 已在 `b681f872` SUCCESS；[Java L1 #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438) 在本项记录时仍 PENDING，**未标记通过**。L2/Pop!_OS L3 均未为 A11-A 运行。
+- **CI：** [RD-2 default-OFF #43568599424](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599424) 已在 `b681f872` SUCCESS；[Java L1 #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438) 已完成 **SUCCESS**（精确源 SHA `b681f872`）。L2/Pop!_OS L3 均未为 A11-A 运行。
 - **下一步：** 可信持久化审核状态与事务期 RBAC/ABAC 二次验证、实际管理员 MFA/会话再认证、身份与凭证撤销/签发隔离、可信时间、Root-of-Trust/KMS 与 Pop!_OS 管理员授权执行。v0.1 NOT RELEASE READY，Issue #5 OPEN，生产联网/采集/自动恢复/RD-2 OFF。
 
 ## 2026-11-14 A11 trusted-administrator review/issuance — DESIGN ONLY, NOT IMPLEMENTED
