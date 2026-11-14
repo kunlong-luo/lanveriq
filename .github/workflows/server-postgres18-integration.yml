@@ -1,9 +1,18 @@
 name: PostgreSQL 18 integration (manual, synthetic-only)
 
-# Never runs on push/PR. No real employee data, certificates, credentials,
-# LAN access or monitored endpoints. Operator starts it explicitly.
+# A11 milestone-only main push paths run real disposable PG18 regression;
+# all other source/doc pushes remain manual. No real users, production secrets,
+# LAN endpoints, certificate issuers or monitored devices.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/server/src/main/resources/db/migration/V14__durable_first_pin_double_review.sql'
+      - 'apps/server/src/main/java/com/lanveriq/server/enrollment/FirstPinReviewLedgerService.java'
+      - 'apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlFirstPinDoubleReviewIT.java'
+      - 'apps/server/scripts/assert-postgres18-junit.py'
+      - '.github/workflows/server-postgres18-integration.yml'
 
 permissions:
   contents: read
@@ -38,7 +47,7 @@ jobs:
         # outputs can substitute for fresh database and lock evidence.
         run: ./gradlew --no-build-cache --rerun-tasks integrationTest --stacktrace
       # A zero-exit Gradle task alone does not prove each security gate ran.
-      # Require real Gradle JUnit XML for all eight Testcontainers classes,
+      # Require real Gradle JUnit XML for all nine Testcontainers classes,
       # the PostgreSQL 18.6/Flyway assertion, and all critical negative cases, including Console servlet security,
       # including first-admin bootstrap and session-audit atomic rollback.
       - name: Fail closed if mandatory PostgreSQL tests were skipped or missing
