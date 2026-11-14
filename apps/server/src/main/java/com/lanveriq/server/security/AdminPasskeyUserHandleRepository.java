@@ -12,5 +12,6 @@ import org.springframework.data.repository.Repository;
  */
 interface AdminPasskeyUserHandleRepository
         extends Repository<AdminPasskeyUserHandle, UUID> {
+    Optional<AdminPasskeyUserHandle> findById(UUID userId);
     Optional<AdminPasskeyUserHandle> findByUserHandle(byte[] userHandle);
 }
