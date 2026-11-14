@@ -430,7 +430,9 @@ class PostgreSqlDeviceActivationIT {
                 .schemas(schema).defaultSchema(schema)
                 .locations("classpath:db/migration")
                 .load();
-        assertEquals(4, upgraded.migrate().migrationsExecuted);
+        // V10-V13 preserve legacy request lineage; V14 adds the independent
+        // default-OFF administrator review ledger (no legacy backfill).
+        assertEquals(5, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);
