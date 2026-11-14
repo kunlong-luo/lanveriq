@@ -17,9 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
  * issuance, quarantine release or production approval consumer.
  *
  * The caller's Spring Security principal is checked against currently locked
- * PostgreSQL users and owner group grants on each step. These durable votes
- * are NOT MFA, an attested clock or cryptographic authorization. The terminal
- * status is a diagnostic ledger result ONLY.
+ * PostgreSQL users and owner group grants on each step. A11-C also requires
+ * a verifier receipt for the exact review action; the only production verifier
+ * is hard DENY. A passkey verifier is NOT implemented. The terminal status
+ * remains diagnostic ONLY, never certificate issuance authorization.
  */
 @Service
 @ConditionalOnProperty(prefix = "lanveriq.first-pin-review", name = "ledger-enabled",
@@ -30,9 +31,11 @@ class FirstPinReviewLedgerService {
     }
 
     private final EntityManager manager;
+    private final FirstPinReviewStepUpVerifier stepUp;
 
-    FirstPinReviewLedgerService(EntityManager manager) {
+    FirstPinReviewLedgerService(EntityManager manager, FirstPinReviewStepUpVerifier stepUp) {
         this.manager = Objects.requireNonNull(manager);
+        this.stepUp = Objects.requireNonNull(stepUp);
     }
 
     @Transactional
@@ -186,16 +189,47 @@ class FirstPinReviewLedgerService {
                 throw denied();
             }
         }
+        // Review reauthentication MUST be cryptographically verified by a
+        // separate authoritative verifier, bound to this exact principal,
+        // session version, device, review request and action. The only
+        // production implementation deliberately refuses every challenge.
+        // There is no caller-supplied "mfa_verified" or timestamp bypass.
+        var challenge = new FirstPinReviewStepUpVerifier.Challenge(
+                actor.userId(), requestId, deviceId, actor.sessionVersion(),
+                FirstPinReviewStepUpVerifier.REVIEW_ACTION);
+        var evidence = stepUp.verify(challenge);
+        if (evidence == null || evidence.proofId() == null
+                || evidence.proofId().equals(new UUID(0, 0))
+                || evidence.verifiedAt() == null
+                || !actor.userId().equals(evidence.actorId())
+                || !requestId.equals(evidence.requestId())
+                || !deviceId.equals(evidence.deviceId())
+                || actor.sessionVersion() != evidence.sessionVersion()
+                || !challenge.action().equals(evidence.action())
+                || !"webauthn".equals(evidence.method())) {
+            throw denied();
+        }
+
         int step = first == null ? 1 : 2;
-        int inserted = manager.createNativeQuery("""
+        var inserted = manager.createNativeQuery("""
                 INSERT INTO first_pin_review_approvals
-                    (request_id,step,reviewer_id,reviewer_session_version)
-                VALUES (:request,:step,:actor,:version)
+                    (request_id,step,reviewer_id,reviewer_session_version,
+                     step_up_proof_id,step_up_verified_at,step_up_method)
+                SELECT :request,:step,:actor,:version,:proof,
+                       CAST(:verified AS timestamptz),'webauthn'
+                WHERE CAST(:verified AS timestamptz)
+                        >= clock_timestamp()-INTERVAL '2 minutes'
+                  AND CAST(:verified AS timestamptz)
+                        <= clock_timestamp()+INTERVAL '5 seconds'
+                RETURNING request_id
                 """).setParameter("request", requestId)
                 .setParameter("step", step)
                 .setParameter("actor", actor.userId())
-                .setParameter("version", actor.sessionVersion()).executeUpdate();
-        if (inserted != 1) {
+                .setParameter("version", actor.sessionVersion())
+                .setParameter("proof", evidence.proofId())
+                .setParameter("verified", evidence.verifiedAt().toString())
+                .getResultList();
+        if (inserted.size() != 1) {
             throw denied();
         }
         audit(actor.userId(), requestId, group, "first_pin.review.vote");
