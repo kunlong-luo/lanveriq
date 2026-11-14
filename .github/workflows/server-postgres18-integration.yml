@@ -11,6 +11,7 @@ on:
       - 'apps/server/src/main/resources/db/migration/V14__durable_first_pin_double_review.sql'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/FirstPinReviewLedgerService.java'
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlFirstPinDoubleReviewIT.java'
+      - 'apps/server/src/integrationTest/java/com/lanveriq/server/events/PostgreSqlDeviceActivationIT.java'
       - 'apps/server/scripts/assert-postgres18-junit.py'
       - '.github/workflows/server-postgres18-integration.yml'
 
