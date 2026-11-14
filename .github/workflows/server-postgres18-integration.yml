@@ -24,9 +24,12 @@ on:
 permissions:
   contents: read
 
+# Keep manually requested acceptance independent. For scoped push
+# regressions only the newest main SHA matters; stop older duplicate Docker
+# runs instead of queuing expensive stale-SHA acceptance.
 concurrency:
-  group: lanveriq-manual-pg18-${{ github.ref }}
-  cancel-in-progress: false
+  group: lanveriq-pg18-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   postgres18-integration:
