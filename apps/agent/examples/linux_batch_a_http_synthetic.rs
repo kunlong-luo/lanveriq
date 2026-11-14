@@ -223,6 +223,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             return Err("synthetic tampered review signature was accepted".into());
         }
+        // A10: review must NOT be consumed to rewrite the identity of a
+        // previously transmitted/ambiguous request.
+        if store
+            .install_first_pin_with_offline_review(&signed_review, &verified_epoch, now)
+            .await
+            .is_ok()
+        {
+            return Err("historical ACK-loss review unexpectedly installed pin".into());
+        }
         if store.load_heartbeat_credential_pin(device).await?.is_some()
             || store
                 .load_heartbeat_schedule_recovery(device)
@@ -232,8 +241,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             return Err("synthetic review signature implicitly modified SQLite".into());
         }
+        // On a DIFFERENT freshly opened disposable SQLite file, prove
+        // exact same TLS-bound identity can be pinned only once, while
+        // audit usage and pin remain together across a process restart.
+        let reviewed_file = pki
+            .parent()
+            .ok_or("synthetic PKI parent missing")?
+            .join("synthetic-first-pin-reviewed.sqlite");
+        let clean = OutboxStore::open(&reviewed_file).await?;
+        clean
+            .initialize_offline_reviewer_public_key(device, reviewer.public_key().as_ref())
+            .await?;
+        clean
+            .install_first_pin_with_offline_review(&signed_review, &verified_epoch, now)
+            .await?;
+        if clean
+            .install_first_pin_with_offline_review(&signed_review, &verified_epoch, now)
+            .await
+            .is_ok()
+        {
+            return Err("synthetic review replay was consumed twice".into());
+        }
+        clean.close().await;
+        let clean = OutboxStore::open(&reviewed_file).await?;
+        let pinned = clean
+            .load_heartbeat_credential_pin(device)
+            .await?
+            .ok_or("synthetic reviewed identity missing after restart")?;
+        if pinned.credential_epoch_id != verified_epoch.credential_epoch_id
+            || pinned.cert_sha256_fingerprint != verified_epoch.cert_sha256_fingerprint
+        {
+            return Err("synthetic reviewed identity changed across restart".into());
+        }
+        clean.close().await;
         println!(
-            "PASS: real TLS-bound epoch and immutable SQLite reviewer key pin verify detached Ed25519 review; tampered review denied and ACK quarantine unchanged."
+            "PASS: real TLS-bound epoch, immutable local reviewer key, atomic SQLite first pin + unique review-ID consumption, replay denied, old ACK quarantine held."
         );
         let missing = Uuid::now_v7();
         assert_eq!(
