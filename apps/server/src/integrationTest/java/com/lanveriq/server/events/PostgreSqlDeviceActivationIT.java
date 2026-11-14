@@ -430,10 +430,11 @@ class PostgreSqlDeviceActivationIT {
                 .schemas(schema).defaultSchema(schema)
                 .locations("classpath:db/migration")
                 .load();
-        // V10-V13 preserve legacy request lineage; V14 adds the independent
-        // default-OFF review ledger and V15 adds untrusted-history step-up
-        // constraints (neither migration backfills legacy device requests).
-        assertEquals(6, upgraded.migrate().migrationsExecuted);
+        // V10-V13 preserve legacy request lineage; V14 and V15 add
+        // independent internal review/MFA-proof constraints; V16 stages
+        // non-authenticating passkey credential storage. None of these
+        // migrations silently enroll a legacy administrator or device.
+        assertEquals(7, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);
