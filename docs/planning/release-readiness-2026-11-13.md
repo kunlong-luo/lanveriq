@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A11-D2-C — V17 审核人一次性挑战 ledger（安全隔离，L2 待验收）
+
+- **V17 / Java25 / Spring JPA：** 新增 `admin_passkey_step_up_challenges`，仅持久化 CSPRNG 生成的 32 字节挑战的 SHA-256 摘要（绝不把明文 nonce、cookie 或 assertion 写库），固定 actor、session version、first-pin review request、device、`first_pin.review` 动作与短时有效期。PG CHECK/UPDATE/DELETE trigger 禁止延长有效期、转移归属、重复消费、恢复已用挑战或物理删库。数据层只是防重放储存，并非 WebAuthn 可信声明。
+- **无 Bean 的事务基础：** `StagedFirstPinPasskeyChallengeLedger` 未挂载 API/Bean，采用当前 Spring Security `AdminPrincipal` + PostgreSQL 设备/申请/证书/owner 角色/会话锁和真实审计，发放随机 challenge，消费必须重新绑定 nonce、设备、请求、演员和当前会话、未过期及未消费状态，并在独立 `FirstPinWebAuthnAssertionVerifier` 通过后原子更新消费和审计。**生产唯一 `DenyAllFirstPinWebAuthnAssertionVerifier` 永远拒绝，独立 Fake 只在 PG18 integrationTest 中存在。任何“消费成功”都没有返回 MFA 凭证/双人审核票或签发授权。**
+- **新真实 PG18 强制负向：** CSPRNG 摘要且生产强拒绝；跨审核人/错误挑战/空 assertion/重复消费拒绝；管理员 session 轮换/不可变 SQL 历史拒绝；过期 challenge 失败，即使合成验证器许可。历史 V9→V17 八次迁移验证同步升级；9 套 PG18 strict JUnit checker 新增 4 项强制测试，要求总计至少 80 项无失败/跳过。不会更改 Console、Agent、CA、RustDesk 任何生产默认关闭开关。
+- **验收状态按 SHA：** [`af54f0e9`](https://github.com/kunlong-luo/lanveriq/commit/af54f0e978f932b353cbd02c5d0ba576a81b83ba) [PG18 九套 #43587738106](https://github.com/kunlong-luo/lanveriq/actions/runs/43587738106) 与 [Java L1 #43587730437](https://github.com/kunlong-luo/lanveriq/actions/runs/43587730437) **需核对终态**，无 SUCCESS 不得宣称本切片验收。真正 WebAuthn4J 签名/UV/RP-Origin、完整 CredentialRecord/持久计数器、真实双审 MFA、签发/KMS、隔离租户、可信时间、Pop!_OS 24.04 L3 仍未实现。Issue #5 OPEN；v0.1 NOT RELEASE READY，生产 Agent 联网/采集/自动恢复和远控 OFF。
+
 ## 2026-11-14 A11-D2-B — Spring Security WebAuthn 官方接口适配（内部验证、未装配）
 
 - **代码新增：** `StagedJpaWebAuthnUserEntityRepository` 实现 `PublicKeyCredentialUserEntityRepository` 的精确 JDBC-independent 接口，使用 Spring Data JPA 当前 PostgreSQL user-handle → `users.id` 关联并重新核实账户状态；错误长度、缺用户、禁用账户均返回空，WebAuthn user handle 是数据库 opaque 二进制，不从登录名或浏览器推导。所有官方 save/delete 操作固定拒绝。
