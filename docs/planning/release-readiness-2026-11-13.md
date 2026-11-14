@@ -14,11 +14,11 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
-## 2026-11-14 A11-B — PostgreSQL 18 双审核不可变账本（默认 OFF，实际测试待核实）
+## 2026-11-14 A11-B — PostgreSQL 18 双审核不可变账本（隔离 L2 SUCCESS，默认 OFF）
 
 - **最新实现：** A11 独立文档与 [`a512ea2f`](https://github.com/kunlong-luo/lanveriq/commit/a512ea2fb91fe662e7ef14e20f0475aceebebd3b) 源码里程碑，Flyway V14 提供唯一证书代际请求、申请人及 session version、第一/第二个不同审核人的不可变记录、审核撤销占位和防跳步/自审/重复审批触发器。`FirstPinReviewLedgerService` Spring/JPA 内部事务同时要求设备当前有效证书、当前设备组 owner 权限、审核人账户未禁用和 session version 未改变，审核与普通管理员访问日志同事务提交；审计丢失触发回滚。
 - **默认隔离与权限不足：** 仅当 `lanveriq.first-pin-review.ledger-enabled=true` 才有内部 Bean；**没有** HTTP 审核路由、KMS/CA/签名、Agent 调用、自动恢复或证书注册接线。成功结果明确为 `TWO_REVIEWS_RECORDED_NOT_AUTHORIZED_TO_SIGN`，不可当发行许可。当前没有独立租户模型与正式 MFA/重认证、签发信任根、可信时间；`device_group_id` 不是跨组织租户隔离的充分证明。
-- **自动化验收待证据：** 第九套 `PostgreSqlFirstPinDoubleReviewIT` 定义六项真实 PostgreSQL 18 负向/并发/回滚用例并加入严格 JUnit evidence checker；[A11-only scoped PG18 L2 #43570485736](https://github.com/kunlong-luo/lanveriq/actions/runs/43570485736) 为独立隔离跑批，**结果未核实前不可声明通过**。A11-A 既有 [Java L1 #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438) 已成功；[RD-2 #43570485719](https://github.com/kunlong-luo/lanveriq/actions/runs/43570485719) 已在 A11-B milestone SHA 上 SUCCESS。V14 的 L2 及真实 Pop!_OS L3 单列。
+- **L2 精确验证：** 首次 [#43570485736 — FAILED](https://github.com/kunlong-luo/lanveriq/actions/runs/43570485736) 运行 77 项，5 项新 A11 测试因多个夹具共用固定模拟证书指纹违反全局唯一键而失败，1 项 V9 历史升级测试仍断言 V10–V13 四次迁移。已修复为每份独立指纹及 V10–V14 五次迁移，并给里程碑工作流覆盖历史升级路径。最终代码 [`34a50aaf`](https://github.com/kunlong-luo/lanveriq/commit/34a50aafdc397d709535b0c3c28493d0f89524fb) 的 [真实 PG18.6/Testcontainers 九套与强制 JUnit evidence #43571716873 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43571716873)：两项 CI 步骤均成功、九套无失败/错误/跳过，第九套包含双审核、自审/错组、撤权/会话变化、审计回滚、不可变约束和并发胜者六项测试。[RD-2 同 SHA #43571716881 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43571716881)。早期 [Java L1 #43568599438 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438)，但没有生产 MFA、独立租户、多因素再认证、独立签名根、CA 或实际 Pop!_OS L3；**不能**将 A11-B L2 等同 A11 完整上线批准。
 - **发布：** Batch A Issue #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/RD-2 全部默认关闭。
 
 ## 2026-11-14 A11-A — 内部管理员双人审核策略预判（Java L1 SUCCESS）
