@@ -53,6 +53,22 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_v17_challenge_evidence_cannot_disappear(self):
+        required = (
+            "challengeIsServerRandomHashedAndProductionVerifierCannotConsume",
+            "syntheticVerifiedChallengeIsOneUseAndBoundToActorSessionRequestAndAction",
+            "staleOrExpiredChallengeCannotBeSpentOrHistoryRewritten",
+            "expiredChallengeCannotBeConsumedEvenWithSyntheticVerifier",
+        )
+        for method in required:
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp), omit=("PostgreSqlFirstPinDoubleReviewIT", method))
+                errors = verify_reports(Path(tmp))
+                self.assertIn(
+                    "Missing mandatory test: PostgreSqlFirstPinDoubleReviewIT." + method,
+                    errors,
+                )
+
     def test_missing_required_case_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
             missing = ("PostgreSqlDeviceRevocationIT",
