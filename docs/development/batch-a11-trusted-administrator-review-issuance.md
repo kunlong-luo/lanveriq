@@ -1,8 +1,17 @@
 # Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
 
-> 状态：A11-A/B/C、D1、D2-A/B 隔离合成验收已完成；D2-C V17 一次性挑战安全切片待验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
+> 状态：A11-A/B/C、D1、D2-A/B/C 隔离合成验收已完成；D2-D1 V18 凭证记录与最新计数器防回退仍待完整 L2 验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
+
+## 2026-11-14 A11-D2-D1 — V18 凭证注册材料暂存与最新计数器原子门禁（未开放认证）
+
+- **原生官方字段协议：** 遵循 Spring Security `CredentialRecord` 的 `credentialId`、`userEntityUserId`、`publicKey`、`signatureCount`、`attestationObject`、`attestationClientDataJSON`、`transports`、`uvInitialized`、`backupEligible`、`backupState` 和显示名等独立字段契约（https://docs.spring.io/spring-security/reference/api/java/org/springframework/security/web/webauthn/api/CredentialRecord.html）。新 [V18](../../apps/server/src/main/resources/db/migration/V18__stage_complete_passkey_record_and_counter_provenance.sql) 存储补充注册对象和客户端 JSON、UV、传输方式等不可变阶段记录；与 V16 的全局 credential ID、管理员 user handle、公钥/备份状态和 server-side latest counter 以组合外键强绑定。不会回填 V16 旧行，也不允许跨管理员换 handle/RP ID 或更新/删除注册材料。
+- **可信等级是 `staging`：** 即使数据库行字段齐全，SQL 不能判断注册真实性，且测试刻意写入随机非有效 attestation 字节；`AdminPasskeyCredentialRecordStaging` + 仅有查询方法的 Spring Data JPA `Repository` 只读，**没有 Spring Security `CredentialRecord` 转换/登录 Bean/证书签发消费者**。生产 `StagedDenyAllWebAuthnCredentialRepository` 和两种 deny-all MFA/verifier 继续原样拒绝所有认证和审核。注册材料可能含隐私元数据，上线前必须审批数据最小化、保留期限及删除与审计策略。
+- **计数器独立防回退：** `StagedWebAuthnCounterGate` 同样不是 Bean/Service/HTTP 路由，不是密码学验证器。未来仅在**真实签名/UV/Origin/RP/挑战经 WebAuthn4J 验证后**，可在同一 PG18 事务中将计数器从服务器**当前最新值** `expected` CAS 更新至真实认证器报告的 `observed`。拒绝计数器回退/相等、错误 owner/RP/禁用账号/吊销凭证/不合规 backup 状态；任何审计缺失必须使事务回滚。只有 0→0 的同步 Passkey 明确返回 `NO_COUNTER_SIGNAL`（零写入、零审核权限），依靠未来真正签名的每次新挑战确保新鲜度。
+- **上游安全审查：** Spring Security WebAuthn [#19994](https://github.com/spring-projects/spring-security/issues/19994) 报告其断言计数器可能比较注册时历史值而非最新持久值（截至 2026-11-14 仍需核查官方修复状态）；在可靠解决并通过回归测试前不可启用默认 `Webauthn4JRelyingPartyOperations` 生产认证链。这里的独立 DB CAS 是**必要但不充分**的防御，不等于完成签名检查。
+- **真实测试门禁：** 在 `PostgreSqlConsoleSecurityWiringIT` 新增 4 项 PG18 约束与事务负向：注册材料组合外键/历史不可改、最新计数器两次 CAS 与 stale replay、零计数器/禁用/吊销无授权、审计触发器静默吞写时整笔事务回滚。旧 V9→V18 需执行 V10–V18 共 9 次迁移；9 套 JUnit checker 强制 Console ≥12 项，至少 84 条实际用例通过且无跳过。通过的源码编译或旧 V17 CI 不替代本轮 L2。
+- **验收候选：** [`fc8f935c`](https://github.com/kunlong-luo/lanveriq/commit/fc8f935cecc562a3307cad07548d991dbf778c11)，[Java L1 #43591751120](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751120)、[集成源码编译 #43591751092](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751092)、[RD-2 #43591751115](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751115) 已 **SUCCESS**（同 SHA）；[真实 PG18 #43591751129](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751129)、[Linux 隔离 #43591751178](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751178) 仍须最终验收。Issue #5 OPEN、v0.1 NOT RELEASE READY，真实 Agent/CA/签名/采集/远控一律 OFF。
 
 ## 2026-11-14 A11-D2-C — V17 单次挑战持久化与防重放（无生产 WebAuthn 通过路径）
 

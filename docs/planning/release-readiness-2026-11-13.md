@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A11-D2-D1 — V18 注册材料暂存、签名计数器最新值 CAS（待 PG18 L2）
+
+- **源代码：** [`fc8f935c`](https://github.com/kunlong-luo/lanveriq/commit/fc8f935cecc562a3307cad07548d991dbf778c11) 新增 V18 带约束的 `admin_passkey_credential_records_staging`，记录 Spring Security `CredentialRecord` 所需的注册 attestation object/clientDataJSON、UV/transport/label/用户句柄与 RP；通过组合外键绑定 V16 owner、credential ID、RP 和公钥，普通 SQL 不能替换历史。Spring Data JPA `@Immutable` 只读 Repository 暂存数据，不连接任何 `UserCredentialRepository` 认证能力；测试里暂存的随机字节不可当作可信 WebAuthn 注册。
+- **防重放：** 新无 Bean 的 `StagedWebAuthnCounterGate` 在真正 PostgreSQL 事务内对 V16 最新 `signature_count` 做严格 `expected→observed` CAS，约束 actor/RP/禁用/撤销与审计回滚；0/0 返回无授权的 `NO_COUNTER_SIGNAL`，不能用零计数器证明真实签名或新鲜度。新四项 PG18 强制测试 + V9→V18 9 个历史 Flyway 迁移，九套不少于 84 项测试的 JUnit 检查，均不得忽略。实际 WebAuthn 签名、UV、可信 origin、挑战和审核授权仍不可用。
+- **额外阻断项：** 官方 [Spring Security WebAuthn #19994](https://github.com/spring-projects/spring-security/issues/19994) 报告注册时计数器与最新持久计数器可能混用；要核实受影响版本、修复及真实认证器克隆计数器回归（含 0/0 passkeys），否则**不能**启用 `Webauthn4JRelyingPartyOperations`。V18 仅铺底，不能用 SQL CAS 代替密码学签名验证。注册元数据保留/隐私审查未完成。
+- **验收精确源码：** 同一 [`fc8f935c`](https://github.com/kunlong-luo/lanveriq/commit/fc8f935cecc562a3307cad07548d991dbf778c11) 的 [Java L1 #43591751120](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751120)、[集成源码编译 #43591751092](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751092)、[RD-2 #43591751115](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751115) 已 SUCCESS；[真实 PG18 #43591751129](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751129)、[Linux L2 #43591751178](https://github.com/kunlong-luo/lanveriq/actions/runs/43591751178) **待最终结果**。Batch A #5 OPEN；v0.1 NOT RELEASE READY；生产 Agent 联网/采集/自动恢复、CA 签发和远控 OFF。
+
 ## 2026-11-14 A11-D2-C — V17 审核人一次性挑战 ledger（安全隔离，L2 待验收）
 
 - **V17 / Java25 / Spring JPA：** 新增 `admin_passkey_step_up_challenges`，仅持久化 CSPRNG 生成的 32 字节挑战的 SHA-256 摘要（绝不把明文 nonce、cookie 或 assertion 写库），固定 actor、session version、first-pin review request、device、`first_pin.review` 动作与短时有效期。PG CHECK/UPDATE/DELETE trigger 禁止延长有效期、转移归属、重复消费、恢复已用挑战或物理删库。数据层只是防重放储存，并非 WebAuthn 可信声明。
