@@ -1,8 +1,17 @@
 # Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
 
-> 状态：DESIGN / NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
+> 状态：A11-A/B 合成验收已完成；A11-C 二次认证边界源码已提交、CI 待验收；完整管理员 MFA／可信签发 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
+
+## 2026-11-14 A11-C — 审核人二次认证可信证明边界（源码已提交，L1/L2 待验收）
+
+- **安全实情：** 当前 Console Spring Security 提供密码登录与会话版本撤销，**尚未实现真实 Passkey/WebAuthn 或企业 IdP MFA**。不能把用户提交的布尔 `mfa_verified`、客户端时间、普通登录或持有者角色当高风险审核通过的凭证。现有 `@ConditionalOnProperty(... ledger-enabled=true)` 的内部账本仍默认未装配。
+- **本次最小切片：** `FirstPinReviewStepUpVerifier` 定义要求独立验证器绑定 `actorId + requestId + deviceId + sessionVersion + first_pin.review` 的身份核验契约；唯一**生产**实现 `DenyAllFirstPinReviewStepUpVerifier` 直接拒绝所有请求，**没有**可用 WebAuthn 验证器、签名或 HTTP API。新增 V15 `first_pin_review_approvals.step_up_proof_id`（非空新票据、全局唯一）、验证时间和 `webauthn` 方法约束；不强制回填历史 V14 审核票据，这些旧票据均不能升级为生产授权。
+- 内部审核事务在锁定当前设备、证书、申请人和两名审核人当前角色/会话版本后才向验证器申请证据，拒绝空值、伪造其他管理员或请求/设备/会话/操作、非 `webauthn`、超出 PostgreSQL 相对时间窗口（超过过去两分钟或未来五秒）的票据；一份 `proof_id` 不能绑定两份成功投票。每票必须连同访问审计记录在一个事务中提交，任何失败都回滚。**PostgreSQL 时钟只做测试相对新鲜度，不代表受独立认证的可信时间。**
+- 合成 PG18 L2 测试引入仅存在于 `src/integrationTest` 的 `@Primary` 验证器替身，覆盖错身份/请求/设备、错误会话、缺少实际验证、过期/未来、密码代替 Passkey、重复 proof、绕过审核服务直插数据库；`src/main` 从未包含该替身。生产强拒绝另有 L1 单测。严格 PG18 九套 JUnit 证据门禁增加四项测试，现强制 A11 十项。
+- **源码候选：** [A11-C CI 里程碑 `5fbe22fc`](https://github.com/kunlong-luo/lanveriq/commit/5fbe22fced766146edc47118c9f85fd8b78dff58)。[PG18 真正 L2 #43573481713](https://github.com/kunlong-luo/lanveriq/actions/runs/43573481713) 与对应 L1 仍待最终检查，未宣称通过；[同源码 RD-2 #43573481597](https://github.com/kunlong-luo/lanveriq/actions/runs/43573481597) SUCCESS。
+- **不可越级：** 需要企业授权的真实 WebAuthn 注册/挑战/挑战消费、独立审核人强认证、可撤销凭证与组织租户隔离、受托管签名根/CA/可信时钟以及 Pop!_OS24 L3 才能设计生产审核/发证。现阶段没有可用生产审核入口，成功的合成 `TWO_REVIEWS_RECORDED_NOT_AUTHORIZED_TO_SIGN` **绝对不是签发许可**。
 
 ## 2026-11-14 A11-B V14 PostgreSQL 双人审核账本（L2 同 SHA SUCCESS，内部默认关闭）
 
