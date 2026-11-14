@@ -1,8 +1,16 @@
 # Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
 
-> 状态：A11-A/B/C 合成隔离测试已通过；A11-D1 官方 WebAuthn 依赖和默认拒绝负向测试待验收；真正的 MFA/Passkey step-up、可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
+> 状态：A11-A/B/C 与 D1 默认拒绝合成隔离验收已完成；A11-D2-A V16 Passkey JPA 持久化基础待验收；真正 MFA/Passkey step-up、可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
+
+## 2026-11-14 A11-D2-A — PostgreSQL 18 Passkey 身份/公钥不可变存储（非可用认证）
+
+- **已提交源码：** Flyway [V16](../../apps/server/src/main/resources/db/migration/V16__stage_administrator_passkey_credential_storage.sql) 新增 `admin_passkey_user_handles`：将 `users.id` 唯一映射到 32 字节、不含登录名或 UUID 明文的 opaque WebAuthn `user.id`；默认**没有历史回填**、没有可用注册或身份申请 API。新增 `admin_passkey_credentials`，要求 credential ID 全局唯一、owner 绑定已有句柄、RP ID/COSE 公钥、计数器、backup 状态和成对吊销标记。数据库触发器禁止身份/公钥/RP 偷换、计数器/验证时间回退、凭证吊销逆转、句柄改写以及历史凭证物理删除；不对有数据库超级用户或修改脚本权限的主体宣称密码学防篡改。
+- **JPA 阶段：** `AdminPasskeyUserHandle`/`AdminPasskeyCredential` 仅是 `@Immutable` 只读 Hibernate Entity，`AdminPasskeyUserHandleRepository`/`AdminPasskeyCredentialRepository` 使用 Spring Data JPA 而不是手写应用 JDBC。**尚未**实现官方 `PublicKeyCredentialUserEntityRepository` 和 `UserCredentialRepository` 适配或生产 `Webauthn4JRelyingPartyOperations`；这些数据库行只有库存语义，绝非已注册的可信 Passkey，也不能用于登录、签发或审核。生产 `DenyAllFirstPinReviewStepUpVerifier` 继续固定拒绝。
+- **真实数据库负向门禁：** 原有 `PostgreSqlConsoleSecurityWiringIT` 新增三项 PG18 测试：32-byte handle 及唯一约束、credential ID 全球唯一/跨管理员转移与公钥改写拒绝、签名计数器下降/备份状态违约/撤销逆转拒绝；通过 JPA 真正读取库存，失败更新必须完整回滚。V9 旧数据库升级迁移期望同步为 V10–V16 共七次，严格 JUnit evidence checker 在九套中要求新增三项（不准静默漏跑）。
+- **范围限制：** 当前没有 WebAuthn 密码学 assertion/attestation 验证、注册挑战或消费、凭证 lifecycle 业务流程、RP ID/Origin 生产配置、用户验证 UV 要求、签名计数器基于真实认证器的更新、跨设备备份策略和实际管理员 L3。未来所有写入必须由正式 Passkey 验证器经安全审查后专门启用；**绝不能把测试写库 helpers 暴露为 API/管理员自助注册入口。**
+- **验收未预先宣告：** [V16 源码候选 `1f611749`](https://github.com/kunlong-luo/lanveriq/commit/1f611749f9c92f196f85ec8e91b5bfd9d3456ac8)；[真实 PG18 L2 #43578226960](https://github.com/kunlong-luo/lanveriq/actions/runs/43578226960) 正在排队/运行，结果待确认。任何 Flyway/JPA validation/testcase 失败均要修复，不得关掉数据完整性约束。此阶段不解除 Issue #5、v0.1 NOT RELEASE READY；Agent 联网、采集、自动恢复、远控、真实证书签发仍 OFF。
 
 ## 2026-11-14 A11-D1 — 官方 Spring Security WebAuthn 引擎预装（端点仍不可用）
 
