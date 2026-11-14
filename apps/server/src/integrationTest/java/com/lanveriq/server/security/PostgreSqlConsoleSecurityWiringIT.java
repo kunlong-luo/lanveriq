@@ -1,6 +1,9 @@
 package com.lanveriq.server.security;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.security.SecureRandom;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import jakarta.persistence.EntityManager;
@@ -77,6 +81,12 @@ class PostgreSqlConsoleSecurityWiringIT {
 
     @Autowired
     private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private AdminPasskeyUserHandleRepository passkeyHandles;
+
+    @Autowired
+    private AdminPasskeyCredentialRepository passkeyCredentials;
 
     @Test
     void bootDiscoversConditionalConsoleChainsAndBlocksAnonymousReads()
@@ -318,6 +328,144 @@ class PostgreSqlConsoleSecurityWiringIT {
         mvc.perform(scopedGet("/api/v1/devices", data.secondAdmin()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    // V16 durable storage tests use random bytes and synthetic COSE-like
+    // payloads solely to exercise DB constraints. No WebAuthn credential,
+    // cryptographic assertion, verified user or production route is created.
+    private byte[] syntheticPasskeyBytes(int length) {
+        byte[] data = new byte[length];
+        new SecureRandom().nextBytes(data);
+        return data;
+    }
+
+    private void tx(Runnable action) {
+        new TransactionTemplate(transactionManager)
+                .executeWithoutResult(ignored -> action.run());
+    }
+
+    private UUID passkeyFixture(byte[] handle) {
+        return new TransactionTemplate(transactionManager).execute(ignored -> {
+            UUID user = (UUID) entityManager.createNativeQuery("""
+                    INSERT INTO users(normalized_login,password_hash)
+                    VALUES (:login,'synthetic-passkey-NO-LOGIN') RETURNING id
+                    """).setParameter("login", "synthetic-passkey-" + UUID.randomUUID())
+                    .getSingleResult();
+            entityManager.createNativeQuery("""
+                    INSERT INTO admin_passkey_user_handles (user_id,user_handle)
+                    VALUES (:user,:handle)
+                    """).setParameter("user", user).setParameter("handle", handle)
+                    .executeUpdate();
+            return user;
+        });
+    }
+
+    private void insertPasskeyCredential(byte[] id, UUID user, byte[] cose) {
+        entityManager.createNativeQuery("""
+                INSERT INTO admin_passkey_credentials
+                    (credential_id,user_id,rp_id,credential_public_key_cose)
+                VALUES (:id,:user,'console.lanveriq.internal',:cose)
+                """).setParameter("id", id).setParameter("user", user)
+                .setParameter("cose", cose).executeUpdate();
+    }
+
+    @Test
+    void passkeyUserHandleIsStableGloballyUniqueAndReadThroughJpa() {
+        byte[] handle = syntheticPasskeyBytes(32);
+        UUID owner = passkeyFixture(handle);
+        var stored = passkeyHandles.findById(owner).orElseThrow();
+        assertArrayEquals(handle, stored.userHandle());
+        assertEquals(owner, passkeyHandles.findByUserHandle(handle)
+                .orElseThrow().userId());
+
+        assertThrows(RuntimeException.class, () -> tx(() -> {
+            UUID other = (UUID) entityManager.createNativeQuery("""
+                    INSERT INTO users(normalized_login,password_hash)
+                    VALUES (:login,'synthetic-passkey-NO-LOGIN') RETURNING id
+                    """).setParameter("login", "synthetic-passkey-" + UUID.randomUUID())
+                    .getSingleResult();
+            entityManager.createNativeQuery("""
+                    INSERT INTO admin_passkey_user_handles(user_id,user_handle)
+                    VALUES (:user,:handle)
+                    """).setParameter("user", other)
+                    .setParameter("handle", handle).executeUpdate();
+        }));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_user_handles
+                           SET user_handle=:replacement WHERE user_id=:owner
+                        """).setParameter("replacement", syntheticPasskeyBytes(32))
+                        .setParameter("owner", owner).executeUpdate()));
+        assertArrayEquals(handle, passkeyHandles.findById(owner)
+                .orElseThrow().userHandle());
+    }
+
+    @Test
+    void passkeyIdIsGloballyUniqueAndOwnerPublicKeyAndRpAreImmutable() {
+        UUID first = passkeyFixture(syntheticPasskeyBytes(32));
+        UUID second = passkeyFixture(syntheticPasskeyBytes(32));
+        byte[] id = syntheticPasskeyBytes(64);
+        tx(() -> insertPasskeyCredential(id, first, syntheticPasskeyBytes(128)));
+        assertEquals(first, passkeyCredentials.findByUserId(first)
+                .getFirst().userId());
+        assertEquals(0, passkeyCredentials.findByUserId(second).size());
+
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                insertPasskeyCredential(id, second, syntheticPasskeyBytes(128))));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credentials SET user_id=:other
+                        WHERE credential_id=:id
+                        """).setParameter("other", second)
+                        .setParameter("id", id).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credentials
+                           SET credential_public_key_cose=:forged
+                         WHERE credential_id=:id
+                        """).setParameter("forged", syntheticPasskeyBytes(128))
+                        .setParameter("id", id).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        DELETE FROM admin_passkey_credentials
+                        WHERE credential_id=:id
+                        """).setParameter("id", id).executeUpdate()));
+    }
+
+    @Test
+    void passkeyCountersAndRevocationCannotRollBackOrResurrect() {
+        UUID owner = passkeyFixture(syntheticPasskeyBytes(32));
+        byte[] id = syntheticPasskeyBytes(64);
+        tx(() -> insertPasskeyCredential(id, owner, syntheticPasskeyBytes(128)));
+        tx(() -> entityManager.createNativeQuery("""
+                UPDATE admin_passkey_credentials
+                   SET signature_count=5,last_verified_at=clock_timestamp()
+                 WHERE credential_id=:id
+                """).setParameter("id", id).executeUpdate());
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credentials SET signature_count=4
+                         WHERE credential_id=:id
+                        """).setParameter("id", id).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credentials SET backup_state=true
+                         WHERE credential_id=:id
+                        """).setParameter("id", id).executeUpdate()));
+        tx(() -> entityManager.createNativeQuery("""
+                UPDATE admin_passkey_credentials
+                   SET revoked_at=clock_timestamp(),revoked_by=:owner
+                 WHERE credential_id=:id
+                """).setParameter("id", id)
+                .setParameter("owner", owner).executeUpdate());
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credentials
+                           SET revoked_at=NULL,revoked_by=NULL
+                         WHERE credential_id=:id
+                        """).setParameter("id", id).executeUpdate()));
+        assertTrue(passkeyCredentials.findByUserId(owner)
+                .getFirst().revoked());
     }
 
     @Test
