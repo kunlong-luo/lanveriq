@@ -136,6 +136,21 @@ class PostgresEvidenceGateTest(unittest.TestCase):
                 errors = verify_reports(Path(tmp))
                 self.assertIn(f"Missing mandatory test: {cls}.{method}", errors)
 
+    def test_ninth_a11_double_review_suite_and_security_negatives_are_mandatory(self):
+        cls = "PostgreSqlFirstPinDoubleReviewIT"
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            synthetic_reports(directory)
+            (directory / f"TEST-{packages[cls]}.{cls}.xml").unlink()
+            errors = verify_reports(directory)
+            self.assertTrue(any(f"{cls}: only 0 passing tests" in error
+                                for error in errors))
+        for name in sorted(mandatory[cls]):
+            with self.subTest(method=name), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp), omit=(cls, name))
+                self.assertIn(f"Missing mandatory test: {cls}.{name}",
+                              verify_reports(Path(tmp)))
+
     def test_mismatched_gradle_suite_and_case_class_are_rejected(self):
         cls = "PostgreSqlAdminAuditAtomicityIT"
         with tempfile.TemporaryDirectory() as tmp:
