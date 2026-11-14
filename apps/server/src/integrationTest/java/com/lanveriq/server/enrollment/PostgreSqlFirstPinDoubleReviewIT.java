@@ -7,6 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.lanveriq.server.security.AdminPrincipal;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
+import java.util.concurrent.atomic.AtomicReference;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -33,6 +39,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * principals and credentials. No signer, CA, HTTP, Agent or production data.
  */
 @Testcontainers
+@Import(PostgreSqlFirstPinDoubleReviewIT.SyntheticStepUpConfig.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
         "lanveriq.bootstrap.enabled=false",
         "lanveriq.console.auth.enabled=false",
@@ -54,6 +61,47 @@ class PostgreSqlFirstPinDoubleReviewIT {
 
     @Autowired
     private FirstPinReviewLedgerService ledger;
+
+    @Autowired
+    private SyntheticStepUpVerifier syntheticVerifier;
+
+    /**
+     * Synthetic tests ONLY: this mock is not and must never become a
+     * production MFA/passkey implementation.
+     */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class SyntheticStepUpConfig {
+        @Bean
+        @Primary
+        SyntheticStepUpVerifier syntheticStepUpVerifier() {
+            return new SyntheticStepUpVerifier();
+        }
+    }
+
+    static class SyntheticStepUpVerifier implements FirstPinReviewStepUpVerifier {
+        final AtomicReference<VerifiedEvidence> override = new AtomicReference<>();
+        volatile boolean deny;
+
+        @Override
+        public VerifiedEvidence verify(Challenge challenge) {
+            if (deny) {
+                throw new AccessDeniedException("Synthetic reviewer reauthentication denied");
+            }
+            var custom = override.get();
+            if (custom != null) {
+                return custom;
+            }
+            return new VerifiedEvidence(UUID.randomUUID(), challenge.actorId(),
+                    challenge.requestId(), challenge.deviceId(),
+                    challenge.sessionVersion(), challenge.action(),
+                    Instant.now(), "webauthn");
+        }
+
+        void reset() {
+            deny = false;
+            override.set(null);
+        }
+    }
 
     private UUID group;
     private UUID device;
@@ -118,6 +166,7 @@ class PostgreSqlFirstPinDoubleReviewIT {
 
     @BeforeEach
     void syntheticFixture() {
+        syntheticVerifier.reset();
         tx(() -> {
             group = group();
             UUID otherGroup = group();
@@ -282,6 +331,87 @@ class PostgreSqlFirstPinDoubleReviewIT {
                         """).setParameter("request", request).executeUpdate()));
         assertEquals(1L, countVotes());
         assertEquals(1L, countVoteAudit());
+    }
+
+    @Test
+    void unverifiedOrMisboundStepUpNeverWritesAnApprovalOrAudit() {
+        login(first);
+        syntheticVerifier.deny = true;
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        assertEquals(0L, countVotes());
+        assertEquals(0L, countVoteAudit());
+
+        syntheticVerifier.deny = false;
+        syntheticVerifier.override.set(new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                UUID.randomUUID(), applicant, request, device, 0,
+                FirstPinReviewStepUpVerifier.REVIEW_ACTION, Instant.now(), "webauthn"));
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+
+        syntheticVerifier.override.set(new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                UUID.randomUUID(), first, UUID.randomUUID(), device, 0,
+                FirstPinReviewStepUpVerifier.REVIEW_ACTION, Instant.now(), "webauthn"));
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+
+        syntheticVerifier.override.set(new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                UUID.randomUUID(), first, request, device, 1,
+                FirstPinReviewStepUpVerifier.REVIEW_ACTION, Instant.now(), "webauthn"));
+        assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        assertEquals(0L, countVotes());
+        assertEquals(0L, countVoteAudit());
+    }
+
+    @Test
+    void expiredFutureOrWrongMethodStepUpIsRejectedAndDoesNotConsumeVote() {
+        login(first);
+        for (var evidence : List.of(
+                new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                        UUID.randomUUID(), first, request, device, 0,
+                        FirstPinReviewStepUpVerifier.REVIEW_ACTION,
+                        Instant.now().minusSeconds(300), "webauthn"),
+                new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                        UUID.randomUUID(), first, request, device, 0,
+                        FirstPinReviewStepUpVerifier.REVIEW_ACTION,
+                        Instant.now().plusSeconds(90), "webauthn"),
+                new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                        UUID.randomUUID(), first, request, device, 0,
+                        FirstPinReviewStepUpVerifier.REVIEW_ACTION,
+                        Instant.now(), "password"))) {
+            syntheticVerifier.override.set(evidence);
+            assertThrows(AccessDeniedException.class, () -> ledger.review(request));
+        }
+        syntheticVerifier.reset();
+        assertEquals(0L, countVotes());
+        assertEquals(0L, countVoteAudit());
+    }
+
+    @Test
+    void oneStepUpProofCannotBeReplayedByAnotherIndependentReviewer() {
+        login(first);
+        var proof = UUID.randomUUID();
+        syntheticVerifier.override.set(new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                proof, first, request, device, 0,
+                FirstPinReviewStepUpVerifier.REVIEW_ACTION, Instant.now(), "webauthn"));
+        ledger.review(request);
+        login(second);
+        syntheticVerifier.override.set(new FirstPinReviewStepUpVerifier.VerifiedEvidence(
+                proof, second, request, device, 0,
+                FirstPinReviewStepUpVerifier.REVIEW_ACTION, Instant.now(), "webauthn"));
+        assertThrows(RuntimeException.class, () -> ledger.review(request));
+        assertEquals(1L, countVotes());
+        assertEquals(1L, countVoteAudit());
+    }
+
+    @Test
+    void sqlCannotInsertEvidenceLessVoteEvenWithGroupPrivilege() {
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                manager.createNativeQuery("""
+                    INSERT INTO first_pin_review_approvals
+                      (request_id,step,reviewer_id,reviewer_session_version)
+                    VALUES (:request,1,:reviewer,0)
+                    """).setParameter("request", request)
+                    .setParameter("reviewer", first).executeUpdate()));
+        assertEquals(0L, countVotes());
+        assertEquals(0L, countVoteAudit());
     }
 
     @Test
