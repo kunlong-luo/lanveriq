@@ -1,7 +1,7 @@
 package com.lanveriq.server.security;
 
 import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.Repository;
 
 /**
  * Persistent inventory only. No unverified row is an authentication result.
@@ -9,6 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * before using an assertion, and re-check account disable/session revocation.
  */
 interface AdminPasskeyCredentialRepository
-        extends JpaRepository<AdminPasskeyCredential, byte[]> {
+        extends Repository<AdminPasskeyCredential, byte[]> {
     List<AdminPasskeyCredential> findByUserId(java.util.UUID userId);
 }
