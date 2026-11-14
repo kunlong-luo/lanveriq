@@ -330,11 +330,12 @@ class ConsoleSessionBrowserFlowWebMvcTest {
         configureSyntheticLogin(0L);
         var state = bootstrap();
         login(state);
-        mvc.perform(post("/api/v1/auth/webauthn/step-up")
-                        .session(state.session()).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
-                        .header("Host", "console.lanveriq.internal")
-                        .header("Origin", "https://console.lanveriq.internal")
-                        .header("Sec-Fetch-Site", "same-origin"))
+        // Login rotates the server's CSRF token; use the actual renewed
+        // HttpSessionCsrfTokenRepository token (not a test-postprocessor
+        // shortcut) so denial proves authorization, not failed CSRF.
+        var renewed = csrf(state.session());
+        mvc.perform(consolePost("/api/v1/auth/webauthn/step-up",
+                        renewed.session(), renewed.token()))
                 .andExpect(status().isForbidden());
     }
 
