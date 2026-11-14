@@ -4,13 +4,13 @@
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
 
-## 2026-11-14 A11-B V14 PostgreSQL 双人审核账本（独立默认关闭，L2 尚待验收）
+## 2026-11-14 A11-B V14 PostgreSQL 双人审核账本（L2 同 SHA SUCCESS，内部默认关闭）
 
 - 代码里程碑 [`a512ea2f`](https://github.com/kunlong-luo/lanveriq/commit/a512ea2fb91fe662e7ef14e20f0475aceebebd3b)。新增 Flyway [V14](../../apps/server/src/main/resources/db/migration/V14__durable_first_pin_double_review.sql)：设备/证书 epoch/CSR SPKI/申请者和申请会话版本的单次不可变请求、两次独立审核人签收、撤销占位账本、唯一防重复和审批顺序触发器，以及 UPDATE/DELETE 禁止触发器。**这不是对数据库超级用户的防篡改证明。**
 - 新增 `FirstPinReviewLedgerService`，必须显式设置仅测试用的 `lanveriq.first-pin-review.ledger-enabled=true` 才会创建 Bean；默认**没有 Bean、没有 HTTP 路由**。内部 Spring 事务重新锁定真实设备/当前证书及用户/组角色授权，按 UUID 稳定顺序锁定申请人和两个审核人的当前身份与会话版本，原子记录审核投票和 `admin_access_log`；审计被触发器丢弃会回滚整笔投票。**不连接签发方、CA、Agent、TLS Epoch 本地 pin 或隔离解除。**
 - 结果类型 `TWO_REVIEWS_RECORDED_NOT_AUTHORIZED_TO_SIGN` 特意不返回生产签名授权；只有数据库中的**两个**独立审核投票，不等于真实管理员 MFA/重新认证、组织审批、信任根、可信时间或正式签发批准。现有模型按 **device_group_id** 授权，尚未实现 A11 方案中的独立 `tenant_id` 真实隔离，必须单列上线阻断项。
 - [`PostgreSqlFirstPinDoubleReviewIT`](../../apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlFirstPinDoubleReviewIT.java) 在一次性 PG18.6 Testcontainers 中覆盖两次签收/自审/错组/重放、撤权和 session 版本变化、审计故障整事务回滚、不可变 SQL 触发器与并发二次审核只能有一个胜者。审计证据脚本必须检查**九套** Testcontainers 及六个 A11 方法。为避免额外每次 push 都跑昂贵测试，PG18 workflow 新增仅匹配 A11 特定文件和 workflow 的 milestone push 条件。
-- **L1/L2 按实际 GH run 结果判定：** [完整 PG18 九套候选 #43570485736](https://github.com/kunlong-luo/lanveriq/actions/runs/43570485736) 在本段初写时尚未验收；未出 `SUCCESS` 不得声称 V14 迁移成功。真实 Pop!_OS24 L3、组织管理员/强认证、HSM/KMS、证书签发及生产部署全部未批准。Batch A #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控 OFF。
+- **真实验收结果（精确源码与证据）：** 首轮 [PG18 #43570485736](https://github.com/kunlong-luo/lanveriq/actions/runs/43570485736) **FAILED：77 项执行、6 项失败**，其中五项是测试重复使用固定模拟证书指纹违反全局唯一键，另一个是升级测试仍要求 V9→V13 的四次迁移。修复夹具指纹隔离和 V9→V14 五次迁移计数后，`main` 精确源码 [`34a50aaf`](https://github.com/kunlong-luo/lanveriq/commit/34a50aafdc397d709535b0c3c28493d0f89524fb) 对应 [PG18.6 九套真实 Testcontainers #43571716873 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43571716873)：`integrationTest` 与强制 JUnit evidence checker **双双 SUCCESS**，日志证明九个类、全部关键 A11 六用例，**零失败/错误/跳过**。[同 SHA RD-2 #43571716881 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/43571716881)。上述不代表生产 MFA、正式管理员、HSM/KMS、签发或 Pop!_OS24 L3；Issue #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控 OFF。
 
 ## 2026-11-14 A11-A 首批代码（仅策略预判，L1 SUCCESS）
 
