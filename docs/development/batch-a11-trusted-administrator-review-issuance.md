@@ -4,12 +4,20 @@
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
 
-## 2026-11-14 A11-A 首批代码（仅策略预判，L1 CI 待核实）
+## 2026-11-14 A11-B V14 PostgreSQL 双人审核账本（独立默认关闭，L2 尚待验收）
+
+- 代码里程碑 [`a512ea2f`](https://github.com/kunlong-luo/lanveriq/commit/a512ea2fb91fe662e7ef14e20f0475aceebebd3b)。新增 Flyway [V14](../../apps/server/src/main/resources/db/migration/V14__durable_first_pin_double_review.sql)：设备/证书 epoch/CSR SPKI/申请者和申请会话版本的单次不可变请求、两次独立审核人签收、撤销占位账本、唯一防重复和审批顺序触发器，以及 UPDATE/DELETE 禁止触发器。**这不是对数据库超级用户的防篡改证明。**
+- 新增 `FirstPinReviewLedgerService`，必须显式设置仅测试用的 `lanveriq.first-pin-review.ledger-enabled=true` 才会创建 Bean；默认**没有 Bean、没有 HTTP 路由**。内部 Spring 事务重新锁定真实设备/当前证书及用户/组角色授权，按 UUID 稳定顺序锁定申请人和两个审核人的当前身份与会话版本，原子记录审核投票和 `admin_access_log`；审计被触发器丢弃会回滚整笔投票。**不连接签发方、CA、Agent、TLS Epoch 本地 pin 或隔离解除。**
+- 结果类型 `TWO_REVIEWS_RECORDED_NOT_AUTHORIZED_TO_SIGN` 特意不返回生产签名授权；只有数据库中的**两个**独立审核投票，不等于真实管理员 MFA/重新认证、组织审批、信任根、可信时间或正式签发批准。现有模型按 **device_group_id** 授权，尚未实现 A11 方案中的独立 `tenant_id` 真实隔离，必须单列上线阻断项。
+- [`PostgreSqlFirstPinDoubleReviewIT`](../../apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlFirstPinDoubleReviewIT.java) 在一次性 PG18.6 Testcontainers 中覆盖两次签收/自审/错组/重放、撤权和 session 版本变化、审计故障整事务回滚、不可变 SQL 触发器与并发二次审核只能有一个胜者。审计证据脚本必须检查**九套** Testcontainers 及六个 A11 方法。为避免额外每次 push 都跑昂贵测试，PG18 workflow 新增仅匹配 A11 特定文件和 workflow 的 milestone push 条件。
+- **L1/L2 按实际 GH run 结果判定：** [完整 PG18 九套候选 #43570485736](https://github.com/kunlong-luo/lanveriq/actions/runs/43570485736) 在本段初写时尚未验收；未出 `SUCCESS` 不得声称 V14 迁移成功。真实 Pop!_OS24 L3、组织管理员/强认证、HSM/KMS、证书签发及生产部署全部未批准。Batch A #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控 OFF。
+
+## 2026-11-14 A11-A 首批代码（仅策略预判，L1 SUCCESS）
 
 - 源码基线 [`b681f872`](https://github.com/kunlong-luo/lanveriq/commit/b681f8726c656bb956b534c32d3a3dc6dc1e3664)（在 `main` 上连续提交）：`FirstPinReviewDryRunGate`（内部包级 Java 只读对象，无 `@Service`、无 HTTP 路由、无 DB 写入或签名接口）与 `FirstPinReviewDryRunGateTest`；`AdminAction.REVIEW_FIRST_PIN` 单独提供 owner_security_admin 组级动作，不复用设备 mTLS 身份。
 - 预判只读取 Spring Security 已认证的 `AdminPrincipal`，重新查询两个审核人的当前组权限，校验设备/组/租户/epoch/请求及策略和状态 generation，拒绝申请人自审、重复审核人、跨范围、损坏摘要、撤销、权限变化和不具备 MFA/重新认证证据的合成快照。没有完成**第一次**审核时固定拒绝，已经完成第一次但缺第二次审核时返回 `PENDING_SECOND_REVIEW`。
 - `APPROVED_FOR_SIGNING` 在该对象中仅是 **dry-run diagnostic**，绝不表示实际生产授权；当前模拟的 `State` **没有**从数据库读取的可信来源，没有真实 MFA/时钟与审计写入，无法作为签发、CA 注册、Agent pin 或隔离解除输入。不要将其接入现有 `ReviewedDeviceCertificateRegistrationService` 或 Agent `main.rs`。
-- 与 [Server unit tests #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438)、[RD-2 fail-closed #43568599424](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599424) 对应的状态须按 GitHub **最终结果**核实；本段创建时未宣称通过。后续仍需 PG18 事务持久审核、真正的双人身份/撤权竞态与签发权限隔离。
+- 与 [Server unit tests #43568599438](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599438)、[RD-2 fail-closed #43568599424](https://github.com/kunlong-luo/lanveriq/actions/runs/43568599424) 对应的最终结果均为 **SUCCESS（源 SHA b681f872）**；此项仅 L1，不代表真实 PG18/签发验收。后续仍需 PG18 事务持久审核、真正的双人身份/撤权竞态与签发权限隔离。
 
 ## 1. 边界、已具备能力与信任缺口
 
