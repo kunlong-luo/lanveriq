@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-14 A11-D2-A — Passkey 用户句柄/凭证数据层（未启用认证、L2 待验收）
+
+- **main V16 + JPA**：新增服务端 `users.id` → 唯一 32 字节 opaque WebAuthn 用户句柄；`admin_passkey_credentials` 为每个用户存储全局唯一 credential ID、COSE 公钥、RP ID、签名计数器与备份标志、成对吊销。PostgreSQL 检查与 UPDATE/DELETE 触发器禁止同句柄多用户、同 credential ID 多 owner、公钥/RP/owner 改写、计数器/验证时间倒退、已撤销凭证恢复；Spring `@Immutable` JPA entities + `JpaRepository` 暂只供内部读取，不存在注册 API、WebAuthn 成功登录或数据库记录直接提升管理员身份的逻辑。
+- **事实边界：** V16 是供日后 `PublicKeyCredentialUserEntityRepository`/`UserCredentialRepository` 正式适配的数据底座，**不是**这两个接口的完整可用实现，更没有真实 WebAuthn4J assertion、userVerification、服务器挑战/单次消费、RP ID/Origin 生产绑定、实际 credential 注册/吊销流程或任何审核批准。唯一生产 step-up verifier 保持 DenyAll。测试使用合成非密码学字节；不能将测试写库当经过验证的 Passkey。
+- **新负向 L2：** `PostgreSqlConsoleSecurityWiringIT` 增加三个 PG18 案例验证不可变句柄、凭证归属与唯一性、计数器/备份/吊销单调性；JPA 读取通过真实 PostgreSQL。V9→V16 历史升级需七次迁移且不自动创建 Passkey；九套 PG18 严格证据验证器必须检查新增三方法，不许跳过。
+- **精确验收候选：** [`1f611749`](https://github.com/kunlong-luo/lanveriq/commit/1f611749f9c92f196f85ec8e91b5bfd9d3456ac8)、[PG18 九套 #43578226960](https://github.com/kunlong-luo/lanveriq/actions/runs/43578226960) **尚待终态核实**。完成前不写 L2 PASS，不把 A11-D1 的旧 WebAuthn 依赖验收当成 V16 成功。Issue #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控 OFF。
+
 ## 2026-11-14 A11-D1 — 官方 WebAuthn/Passkey 验证引擎依赖已接入（不等于 MFA 上线）
 
 - **技术选型：** 依赖 BOM 管理的官方 `org.springframework.security:spring-security-webauthn`（Spring Security WebAuthn4J 验证能力），与 Spring Boot 4.1.2 / Java 25 / Gradle 对齐；不自行实现 FIDO/COSE/CBOR/签名原语，也不引入双重认证框架。官方指南 https://docs.spring.io/spring-security/reference/servlet/authentication/passkeys.html 。
