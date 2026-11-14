@@ -314,6 +314,8 @@ class ConsoleSessionBrowserFlowWebMvcTest {
                             .header("Sec-Fetch-Site", "same-origin"))
                     .andExpect(status().is4xxClientError());
         }
+        // Anonymous auth-chain denial may be a 401 challenge rather than
+        // 403; the logged-in assertion below must still be rejected.
         for (String path : new String[]{
                 "/api/v1/auth/webauthn/register",
                 "/api/v1/auth/webauthn/step-up"}) {
@@ -321,7 +323,7 @@ class ConsoleSessionBrowserFlowWebMvcTest {
                             .header("Host", "console.lanveriq.internal")
                             .header("Origin", "https://console.lanveriq.internal")
                             .header("Sec-Fetch-Site", "same-origin"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().is4xxClientError());
         }
         // A valid password-login session is also not an automatic grant
         // to enroll passkeys or request a high-risk step-up proof.
