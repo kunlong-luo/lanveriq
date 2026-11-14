@@ -14,6 +14,8 @@
 - **验收仍待结果：** 首个 A11-C 源码 [5fbe22fc](https://github.com/kunlong-luo/lanveriq/commit/5fbe22fced766146edc47118c9f85fd8b78dff58) 对应 [PG18 L2 #43573481713](https://github.com/kunlong-luo/lanveriq/actions/runs/43573481713) 尚在运行；追加的历史拒绝代码 [PG18 L2 #43573608284](https://github.com/kunlong-luo/lanveriq/actions/runs/43573608284)、[Java L1 #43573616690](https://github.com/kunlong-luo/lanveriq/actions/runs/43573616690) 状态须以最终 GitHub 结果核实，**不得提前宣称通过**。[同最终 L1 源码 RD-2 #43573616715](https://github.com/kunlong-luo/lanveriq/actions/runs/43573616715) SUCCESS。
 - **不可越级：** 需要企业授权的真实 WebAuthn 注册/挑战/挑战消费、独立审核人强认证、可撤销凭证与组织租户隔离、受托管签名根/CA/可信时钟以及 Pop!_OS24 L3 才能设计生产审核/发证。现阶段没有可用生产审核入口，成功的合成 `TWO_REVIEWS_RECORDED_NOT_AUTHORIZED_TO_SIGN` **绝对不是签发许可**。
 
+- **最新合成测试补齐：** [`7e4ad3b1`](https://github.com/kunlong-luo/lanveriq/commit/7e4ad3b18f4a7d5d731152e074f3dea5c2a8aa2c) 增加错误设备 UUID 和错误高危审核动作的真实 PG18 拒绝验证，修正已有测试实际覆盖范围；[最新九套 PG18 #43573695132](https://github.com/kunlong-luo/lanveriq/actions/runs/43573695132) 和 [Java L1 #43573695114](https://github.com/kunlong-luo/lanveriq/actions/runs/43573695114) 需核对最终状态，**未获得 Success 前不标记最终验收**；[RD-2 同 SHA #43573695190](https://github.com/kunlong-luo/lanveriq/actions/runs/43573695190) 已 SUCCESS。历史票据拒绝和错误动作/设备的修复没有开启正式签发路径。
+
 ## 2026-11-14 A11-B V14 PostgreSQL 双人审核账本（L2 同 SHA SUCCESS，内部默认关闭）
 
 - 代码里程碑 [`a512ea2f`](https://github.com/kunlong-luo/lanveriq/commit/a512ea2fb91fe662e7ef14e20f0475aceebebd3b)。新增 Flyway [V14](../../apps/server/src/main/resources/db/migration/V14__durable_first_pin_double_review.sql)：设备/证书 epoch/CSR SPKI/申请者和申请会话版本的单次不可变请求、两次独立审核人签收、撤销占位账本、唯一防重复和审批顺序触发器，以及 UPDATE/DELETE 禁止触发器。**这不是对数据库超级用户的防篡改证明。**
