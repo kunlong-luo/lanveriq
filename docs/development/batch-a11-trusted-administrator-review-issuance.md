@@ -1,0 +1,79 @@
+# Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
+
+> 状态：DESIGN / NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
+>
+> 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
+
+## 1. 边界、已具备能力与信任缺口
+
+A8–A10 已完成合成离线 Ed25519 `first-pin-review/v1` 签名验证、设备级 SQLite 审核公钥不变绑定、唯一 review_id 消耗与首次证书 pin 的同事务提交。L1、真实隔离 Rust→Caddy→Tomcat TLS1.3→PG18 L2、RD-2 OFF 在相同受测 SHA 通过。**它们没有管理员身份、组织信任根、私钥保管、发证审核、可信时间、吊销同步或已授权的 Linux Agent 安装调用边界。**
+
+当前 `install_first_pin_with_offline_review(review, observed, now_unix)` 的 `observed` 和 `now_unix` 均可由调用者提供。现有本地 SQLite 审核公钥初次写入并不能证明组织已授权该公钥。**不得**将该方法直接连接常驻 `main.rs`、HTTP 接口、用户自选公钥、单纯签名成功的 UI 或自动恢复任务。A10 的已有旧 pin/旧 pending 均维持 fail-closed，不允许签发追认或静默迁移。
+
+## 2. 分层架构与权限
+
+| 层 | 允许职责 | 禁止事项 |
+| --- | --- | --- |
+| Console/Spring 审核 API | 经独立登录会话、组织/设备级 RBAC+ABAC、强认证和审计创建待审请求；查询状态 | 通过 Agent mTLS 冒充管理员；把浏览器传入的公钥、指纹或时间当最终证明 |
+| 审核策略服务 | 校验 `tenant_id`、`device_id`、权限、签发/撤权策略版本、两人复核要求、CSR 与现有证书状态 | 审核人与被审核请求之间的绕权；未经审批直接签名 |
+| 独立审核签名方 | 仅在授权策略决定通过后对明确域隔离、带唯一 ID 和有效期的审核负载签名，记录不可变签发审计 | 在 Web/Agent/CI/仓库/日志持有生产签名私钥 |
+| PKI/CA 发证方 | 独立验证批准、CSR 公钥/持有证明、身份/有效期/用途；签发 mTLS 设备证书；支持吊销 | 把审核人签名直接当作 X.509 CA 签名；从用户提供 CSR 自动发证 |
+| Agent 主服务（默认 IDLE） | 已授权后仅按最小权限读取状态与运行受约束心跳 | 直接使用审核签发私钥、管理根信任、隐式安装首 pin、自动解除隔离/轮换或远控 |
+| 专用本地安装/审核工具（尚未实现） | 显式管理员监督下验证安装包/策略/根公钥，验证真实 TLS 来源与签名审核、可信时钟及吊销，再请求 A10 SQLite 原子事务 | 从 HTTP 响应或 CLI 随意接受 `observed`/`now_unix` 而宣称已授权 |
+
+**身份分离：** 设备的 P-256 CSR/mTLS 身份、管理员登录身份、审核授权签名密钥、CA 签发密钥、服务端 ACK 都是**不同信任域**。会话 cookie、设备证书、代理头、操作员签名不能相互替代。
+
+## 3. A11–A14 最小实现顺序（不允许越级）
+
+### A11-A：审核身份与只读授权决定（优先，离线合成）
+
+- 定义强类型 `ReviewDecision`：`Denied` / `PendingSecondReview` / `ApprovedForSigning`，而非布尔签名成功；只有由**服务端从已认证身份构造**的请求上下文可参与策略决策。
+- 需要 `tenant_id`、`device_id`、`request_id`、`requested_action=first_pin`、CSR SPKI/leaf DER 摘要、管理员主体 ID、授权范围、MFA/重新认证证据、策略版本与事务期内的设备/凭证状态。
+- 生产签发至少两人分离（请求人与批准者不可相同，批准人与发证服务职责分离）；可先对合成策略与角色测试，不宣称真实 IdP/MFA 已接入。角色授权失效、跨租户、会话注销、跨设备、重复审核、权限变化竞争等均必须拒绝。
+- 在完成服务端角色/审核审计之前，**不新增签名发放或 Agent 调用入口**。
+
+### A11-B：根信任与受控签发（随后）
+
+- 生产审核签名密钥和 CA 密钥分离，优先采用组织管理的非导出 HSM/KMS/PKCS#11 密钥；实际算法须先验证供应商及接口支持：**不能假设 TPM 2.0 原生支持 Ed25519**。当前 A8 Ed25519 v1 可以继续用于临时合成测试，不等于生产托管方案已批准。
+- Agent 应通过受控安装物料/签名策略单独锚定**组织根公钥与租户/设备授权范围**（root-of-trust bootstrap），固定本地 SQLite 的任意审核公钥不得自动升级为组织信任根。私钥不下发 Agent、不进 GitHub Actions secrets 的普通日志、不写仓库。
+- 新签发负载必须包含：独立域隔离与 `schema_version`、`issuer_key_id`、`tenant_id`、`device_id`、`credential_epoch_id`、证书 DER SHA256、CSR SPKI SHA256、`review_id`、审核操作者身份/角色及策略标识、`issued_at`、`not_before`、`expires_at`、防重放 challenge/nonce、动作类型和签名。
+- **协议升级选择：** 上述字段不在 A8 `first-pin-review/ed25519/v1` 的签名负载中。需要新域名/新版本 **v2** 与双端 Golden Fixture，**不可**把 v2 新字段作为未签名 JSON 附加到 v1，亦不可静默认为旧 v1 审核有效。
+- CA 验证 CSR 所有权及设备注册范围，发证与授权审核均写服务端不可变审计链；不记录私钥、令牌明文、敏感设备资产。
+
+### A11-C：吊销、时效与防时钟回拨
+
+- **至少三条相互独立的撤销路径：** 管理员审核资格/审核签名密钥撤销；一次性 review grant 撤销；设备 mTLS 证书撤销/停用。签发前和最终消耗前都必须校验最新撤销状态、租户/设备绑定和策略版本，防止 TOCTOU。
+- 吊销信息必须具有签名版本、单调递增 epoch、可审计发布时间和可信有效截止；旧版本、无效签名、未知签发者、撤销信息不可用或已过新鲜度阈值时**禁止新授权**。已被撤权的 Agent 不得靠缓存旧 grant 重新绑定。
+- 不能仅用 `SystemTime::now()`、Agent 可改系统时钟、HTTP 返回 `server_time` 或 SQLite 写入时间宣称“可信时间”。设计可验证的服务器签名时间/挑战响应与单调状态，结合系统时钟回拨检测；无可信时间证明则**拒绝新的首次 pin/轮换**。离线环境需要明确、经管理员监督的可信时间方案；不能降级为接受任意传入 `now_unix`。
+- 证书已吊销、密钥丢失、授权过期只会进入暂停/隔离；不触发静默发新证书、清理 UUID 或继续联网。
+
+### A11-D：Agent 授权调用边界（最后接线）
+
+- Pop!_OS 非 root systemd 主进程继续 `PrivateNetwork=yes`、禁止默认采集/上传/远控；审核安装能力留在单独的显式、可审计、最小权限本地管理路径，不能由应用内可控 JSON/环境变量直接开启。
+- 由**实际使用的 Reqwest/Rustls 客户端证书 DER 与通过认证的 TLS 连接上下文**得到证书指纹/epoch 证明，禁止安装方信任外部输入的 `observed`。服务端 epoch GET 结果仅为证书状态观察，不是授权、原 POST ACK 或签名发证证明。
+- 只有同时通过管理员授权、信任根链、有效 grant、撤销状态、可信时间、真实 TLS 身份、SQLx 原子防重放后才考虑首 pin。旧 pending/quarantine、A10 之前历史 pin 均**不得追认/自动解除**。
+- Linux OS 层需单独验证 root/operator 管理的安装凭据、文件 ownership/mode、服务隔离、审计、防篡改/重启策略；不得把 SQLite 触发器误作对 root 或磁盘管理员的不可篡改保证。
+
+## 4. 强制负向测试清单
+
+| 测试类别 | 必须拒绝或保持的不变量 |
+| --- | --- |
+| 管理员授权 | 未登录、伪造 session/header、无权限、跨租户/设备、已撤权、错误 MFA、请求人自审/单人绕双审 |
+| 信任根 | grant 自带公钥、未知 `issuer_key_id`、本地先行假 pin、旧 v1 冒充 v2、审核密钥更换/撤销 |
+| 签发绑定 | CSR/证书公钥不符、错设备/epoch/fingerprint、额外字段、非 canonical 编码、签名字段篡改 |
+| 时间 | 未来/过期 grant、离线时钟倒退、重启回拨、恶意伪造服务时间、过期/乱序撤销快照 |
+| 竞争/撤销 | 审核通过后签发前撤权；签发后首次消耗前撤权；并发 review_id；签名与原子 pin 的回滚 |
+| Agent 权限 | 默认 IDLE；无安装权限不能调用 A10；外部可控 `observed` 被拒；旧 ACK 未决依旧隔离 |
+| 网络/存储 | TLS1.2、错 CA/SNI/Host/身份、HTTP 401/403/409/5xx、不确定 ACK、破坏 SQLite seen、存储失败 |
+| 发布守卫 | RD-2 仍默认 OFF；没有生产密钥/真实设备/公网请求；仅合成 fixture，无自动安装和采集 |
+
+**验收分级：** L1 Rust/Java policy + sqlite 文件型/重启/并发，优先红灯负例；L2 一次性 Ubuntu 24.04 Rust→Caddy→Tomcat TLS1.3 + PG18 + 合成 CA/签发权限及撤销竞态；L3 真实 Pop!_OS 24.04 仅在独立批准、设备所有者知情同意、密钥托管/日志/隐私审查后执行。CI 必须记录相同代码 SHA 和每个 workflow/job；只在里程碑触发昂贵 L2，不把编译或 Mock 测试当 L2/L3。
+
+## 5. A11 第一份可编码切片及 Done 判定
+
+1. 先实现**无签名/无网络/无写库**的管理员审核策略内核与严格 DTO，验证主体/设备/租户/角色和双审规则；生产调用端保持未接线。
+2. 覆盖第 4 节的身份、跨租户、自审、被撤权、权限版本竞争负向；同时验证现有 A10 任何旧授权都不能自动升级。
+3. L1 CI 与 RD-2 default-deny 绿灯后，再开始 v2 可信签名材料、KMS/PKCS#11 适配评审及独立发证。
+4. 完成每个切片后更新 release ledger 与 Issue #5 的**精确 SHA/CI/未完成项**，不能笼统标记 Batch A 已完成。
+
+**发布结论：** A11 的文档/单测或未来的合成签发 SUCCESS 均不等于生产信任根实际托管、受控组织审批或 Pop!_OS L3；v0.1 继续 NOT RELEASE READY，Issue #5 保持 OPEN。生产联网、采集、自动恢复、RustDesk 远控全部保持关闭。
