@@ -100,7 +100,7 @@ class FirstPinReviewDryRunGateTest {
         login(SECOND, true);
         var noReview = request(TENANT, DEVICE, GROUP, APPLICANT, null, null,
                 "first_pin", CSR, 11, 7);
-        assertEquals(PENDING_SECOND_REVIEW, gate.inspect(noReview, state(false, false)));
+        assertEquals(DENIED, gate.inspect(noReview, state(false, false)));
         var firstOnly = request(TENANT, DEVICE, GROUP, APPLICANT, FIRST, null,
                 "first_pin", CSR, 11, 7);
         assertEquals(PENDING_SECOND_REVIEW, gate.inspect(firstOnly, state(true, false)));
