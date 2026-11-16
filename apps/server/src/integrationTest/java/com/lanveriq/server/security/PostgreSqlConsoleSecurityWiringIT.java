@@ -705,6 +705,20 @@ class PostgreSqlConsoleSecurityWiringIT {
     }
 
     @Test
+    void realPostgresBootCannotAutoInstallStagedWebAuthn4JVerifierOrTrustSource()
+            throws Exception {
+        // The new bridge is intentionally package-private, NOT a Spring
+        // @Bean/@Component, even when the full PostgreSQL + Servlet stack
+        // discovers and creates every other application security bean.
+        assertTrue(context.getBeansOfType(Class.forName(
+                "com.lanveriq.server.enrollment.StagedWebAuthn4JAssertionVerifier"))
+                .isEmpty());
+        assertTrue(context.getBeansOfType(Class.forName(
+                "com.lanveriq.server.enrollment.StagedWebAuthn4JAssertionVerifier$TrustedCredentialSource"))
+                .isEmpty());
+    }
+
+    @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is
         // crucial; a WebMvcTest alone could silently omit an auto-configured

@@ -53,6 +53,15 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_untrusted_webauthn4j_cannot_autowire_into_real_boot_context(self):
+        method = "realPostgresBootCannotAutoInstallStagedWebAuthn4JVerifierOrTrustSource"
+        with tempfile.TemporaryDirectory() as tmp:
+            synthetic_reports(Path(tmp), omit=("PostgreSqlConsoleSecurityWiringIT", method))
+            self.assertIn(
+                "Missing mandatory test: PostgreSqlConsoleSecurityWiringIT." + method,
+                verify_reports(Path(tmp)),
+            )
+
     def test_v18_full_record_and_latest_counter_evidence_cannot_disappear(self):
         required = (
             "stagedCredentialRecordEnforcesOwnerHandleAndRpWithoutEnablingAuthentication",

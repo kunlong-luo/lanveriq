@@ -19,6 +19,8 @@ on:
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/StagedFirstPinPasskeyChallengeLedger.java'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/FirstPinWebAuthnAssertionVerifier.java'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/DenyAllFirstPinWebAuthnAssertionVerifier.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/enrollment/StagedWebAuthn4JAssertionVerifier.java'
+      - 'apps/server/src/test/java/com/lanveriq/server/enrollment/StagedWebAuthn4JAssertionVerifierTest.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/AdminPasskeyUserHandle.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/AdminPasskeyCredential.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/AdminPasskeyUserHandleRepository.java'
