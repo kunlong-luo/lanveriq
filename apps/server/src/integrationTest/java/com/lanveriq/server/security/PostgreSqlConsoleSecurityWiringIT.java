@@ -1067,6 +1067,143 @@ class PostgreSqlConsoleSecurityWiringIT {
         }
     }
 
+    private byte[] makeUntrustedCandidateCredential(UUID actor) {
+        byte[] id = syntheticPasskeyBytes(64);
+        byte[] handle = passkeyHandles.findById(actor).orElseThrow().userHandle();
+        tx(() -> {
+            insertPasskeyCredential(id, actor, syntheticPasskeyBytes(128));
+            entityManager.createNativeQuery("""
+                    INSERT INTO admin_passkey_credential_records_staging
+                        (credential_id,user_id,rp_id,user_handle,
+                         registration_attestation_object,registration_client_data_json,
+                         uv_initialized,display_label,registration_tracking_id,
+                         registered_session_version)
+                    VALUES (:credential,:actor,'console.lanveriq.internal',:handle,
+                            :attestation,:client,true,'untrusted-only',:tracking,0)
+                    """).setParameter("credential", id).setParameter("actor", actor)
+                    .setParameter("handle", handle)
+                    .setParameter("attestation", syntheticPasskeyBytes(256))
+                    .setParameter("client", syntheticPasskeyBytes(128))
+                    .setParameter("tracking", UUID.randomUUID()).executeUpdate();
+        });
+        return id;
+    }
+
+    @Test
+    void untrustedCandidateRequiresConsumedChallengeAndNeverGrantsAuthentication()
+            throws Exception {
+        UUID owner = registrationOwner();
+        byte[] credential = makeUntrustedCandidateCredential(owner);
+        byte[] payload = syntheticPasskeyBytes(96);
+        registrationActor(owner, 0);
+        try {
+            var ledger = registrationLedger(input -> {});
+            var writer = new StagedPasskeyRegistrationCandidateLedger(entityManager);
+            var issued = issueRegistration(ledger);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    writer.stageUntrusted(issued.id(), credential, payload)));
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id
+                    """).setParameter("id", issued.id()).getSingleResult()).longValue());
+
+            // The synthetic verifier checks DB serialization only, and
+            // NEVER makes these bytes a trusted authenticator key.
+            tx(() -> {
+                ledger.consume(issued.id(), issued.nonceBase64Url(), new byte[]{1});
+                writer.stageUntrusted(issued.id(), credential, payload);
+            });
+            Object[] row = (Object[]) entityManager.createNativeQuery("""
+                    SELECT evidence_grade,registration_response_sha256
+                    FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id
+                    """).setParameter("id", issued.id()).getSingleResult();
+            assertEquals("untrusted_candidate", row[0]);
+            assertArrayEquals(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(payload), (byte[]) row[1]);
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE principal_id=:owner AND resource_id=:id
+                      AND action='admin.passkey.registration.candidate.untrusted'
+                    """).setParameter("owner", owner).setParameter("id", issued.id())
+                    .getSingleResult()).longValue());
+            assertTrue(context.getBeansOfType(StagedPasskeyRegistrationCandidateLedger.class)
+                    .isEmpty());
+            assertTrue(context.getBeansOfType(UserCredentialRepository.class)
+                    .values().stream()
+                    .noneMatch(bean -> !(bean instanceof StagedDenyAllWebAuthnCredentialRepository)));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void candidateCannotBeReboundToOtherOwnerCredentialOrRotatedSession() {
+        UUID owner = registrationOwner();
+        UUID outsider = registrationOwner();
+        byte[] credential = makeUntrustedCandidateCredential(owner);
+        byte[] foreignCredential = makeUntrustedCandidateCredential(outsider);
+        registrationActor(owner, 0);
+        try {
+            var ledger = registrationLedger(input -> {});
+            var issued = issueRegistration(ledger);
+            consumeRegistration(ledger, issued, new byte[]{1});
+            var writer = new StagedPasskeyRegistrationCandidateLedger(entityManager);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    writer.stageUntrusted(issued.id(),foreignCredential,new byte[]{1})));
+            registrationActor(outsider, 0);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    writer.stageUntrusted(issued.id(),credential,new byte[]{1})));
+            registrationActor(owner, 0);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1
+                    WHERE id=:user
+                    """).setParameter("user",owner).executeUpdate());
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    writer.stageUntrusted(issued.id(),credential,new byte[]{1})));
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id
+                    """).setParameter("id", issued.id()).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void candidateReceiptCannotReplayDeleteOrUpgradeUntrustedAssurance() {
+        UUID owner = registrationOwner();
+        byte[] credential = makeUntrustedCandidateCredential(owner);
+        registrationActor(owner, 0);
+        try {
+            var ledger = registrationLedger(input -> {});
+            var writer = new StagedPasskeyRegistrationCandidateLedger(entityManager);
+            var issued = issueRegistration(ledger);
+            tx(() -> {
+                ledger.consume(issued.id(), issued.nonceBase64Url(), new byte[]{1});
+                writer.stageUntrusted(issued.id(), credential, new byte[]{4,5});
+            });
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    writer.stageUntrusted(issued.id(),credential,new byte[]{6})));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_registration_candidates_staging
+                        SET evidence_grade='verified' WHERE challenge_id=:id
+                        """).setParameter("id", issued.id()).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_passkey_registration_candidates_staging
+                        WHERE challenge_id=:id
+                        """).setParameter("id", issued.id()).executeUpdate()));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id AND evidence_grade='untrusted_candidate'
+                    """).setParameter("id", issued.id()).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
     @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is

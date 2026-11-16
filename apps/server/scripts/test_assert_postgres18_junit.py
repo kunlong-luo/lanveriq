@@ -53,6 +53,20 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_v20_untrusted_candidate_never_disappears_from_pg_evidence(self):
+        for method in (
+            "untrustedCandidateRequiresConsumedChallengeAndNeverGrantsAuthentication",
+            "candidateCannotBeReboundToOtherOwnerCredentialOrRotatedSession",
+            "candidateReceiptCannotReplayDeleteOrUpgradeUntrustedAssurance",
+        ):
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp),
+                                  omit=("PostgreSqlConsoleSecurityWiringIT", method))
+                self.assertIn(
+                    "Missing mandatory test: PostgreSqlConsoleSecurityWiringIT." + method,
+                    verify_reports(Path(tmp)),
+                )
+
     def test_v19_registration_nonce_and_revocation_freeze_are_mandatory(self):
         mandatory = (
             "registrationNonceIsCSPRNGHashOnlyAndProductionHasNoTrustedPromotion",
