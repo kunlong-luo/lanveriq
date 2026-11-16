@@ -71,6 +71,20 @@ class StagedWebAuthn4JAssertionVerifierTest {
                 localhost, authenticator, java.util.List.of(signedAssertion.getCredentialId()),
                 true, true));
 
+        // Verify REAL WebAuthn4J origin + RP hash rejection using the exact
+        // same signed challenge and credential. This is not a mock verifier.
+        var pinnedLanveriq = com.webauthn4j.server.ServerProperty.builder()
+                .origin(new com.webauthn4j.data.client.Origin(
+                        "https://console.lanveriq.internal"))
+                .rpId("console.lanveriq.internal")
+                .challenge(expectedChallenge).build();
+        assertThrows(com.webauthn4j.verifier.exception.VerificationException.class,
+                () -> manager.verify(signedAssertion,
+                        new com.webauthn4j.data.AuthenticationParameters(
+                                pinnedLanveriq, authenticator,
+                                java.util.List.of(signedAssertion.getCredentialId()),
+                                true, true)));
+
         // The same *validly signed* fixture is invalid for Lanveriq's
         // fixed https origin/RP ID; a caller cannot override the origin
         // with forged request headers or its own clientData JSON.
