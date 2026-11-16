@@ -53,6 +53,16 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_v20_atomic_rollback_must_have_real_pg18_junit_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            synthetic_reports(Path(tmp),
+                              omit=("PostgreSqlConsoleSecurityWiringIT",
+                                    "failedUntrustedCandidateInsertRollsBackChallengeAndBothAudits"))
+            self.assertIn(
+                "Missing mandatory test: PostgreSqlConsoleSecurityWiringIT.failedUntrustedCandidateInsertRollsBackChallengeAndBothAudits",
+                verify_reports(Path(tmp)),
+            )
+
     def test_v20_untrusted_candidate_never_disappears_from_pg_evidence(self):
         for method in (
             "untrustedCandidateRequiresConsumedChallengeAndNeverGrantsAuthentication",
