@@ -14,6 +14,13 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-16 A11-D2-D4 — V20 未受信任注册候选溯源（隔离 L1/L2 已验收）
+
+- **完成内容：** V20 `admin_passkey_registration_candidates_staging` 只记录 `untrusted_candidate` 和响应 SHA-256 摘要；V19 已消费 challenge 的管理员身份、会话、RP 与 V16/V18 当前凭证的数据库 FK 绑定；真实 PG18 INSERT 守卫拒绝未消费/已过期挑战、跨账户改绑、失效会话、吊销凭证与缺失候选基础数据。唯一索引阻断重复绑定，不可修改/删除历史，证据等级不得升级。
+- **内部事务：** `StagedPasskeyRegistrationCandidateLedger` 无 Spring Bean/HTTP/Agent 调用；测试以合成 verifier 证明挑战消费与候选写入可在 PG18 单事务绑定，异常/审计失败回滚。不产生可信 WebAuthn 认证凭证、第一设备双人审核票、可信 CA 或签发许可。
+- **验收同 SHA [`17f6d7f5`](https://github.com/kunlong-luo/lanveriq/commit/17f6d7f599cd7bfbeb0175ab2577cfcf326be426)：** [Java 单元测试 #43827200172](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200172)、[集成源码编译 #43827200135](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200135)、[真实 PG18 九套+严格证据 #43827200129](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200129)、[Linux Caddy/Tomcat TLS1.3+PG18 #43827200148](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200148)、[RD-2 #43827200226](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200226) 均 **SUCCESS**；V9→V20 共 11 个迁移，PG18 九套证据门禁累计至少 92 项，Console ≥20。
+- **发布判定不变：** 尚无生产验证的 WebAuthn 注册证明/attestation trust root、真实凭证映射与可信来源、正式密码学 MFA/签发事务、真实 Pop!_OS L3、证书运营和 KMS。Spring Security #19994 计数器问题仍需解决。Issue #5 OPEN、v0.1 NOT RELEASE READY；生产网络/采集/自动恢复/真实证书签发/远控 OFF。
+
 ## 2026-11-16 A11-D2-D3 — V19 注册挑战与撤销后不可变保护（PG18 L2 已通过）
 
 - **实施范围：** [`b559a1cb`](https://github.com/kunlong-luo/lanveriq/commit/b559a1cbe735ac227f10d58d00ea227ac7f9f3dd) 新增 V19 单独的 WebAuthn 注册 nonce 账本（32 字节安全随机数只存 SHA-256，绑定管理员/会话/RP/HTTPS Origin/短期有效期/一次性不可逆消费）、非 Bean 的 PG18 锁保护签发与消费服务，以及非 Bean 的官方 WebAuthn4J 注册响应验证桥。服务器校验 UP+UV+ES256 和固定 RP/Origin；**不产生任何正式可信凭证记录**，V18 现有合成公钥没有自动信任路径。

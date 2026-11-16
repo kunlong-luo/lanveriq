@@ -1,8 +1,16 @@
 # Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
 
-> 状态：A11-A/B/C、D1、D2-A/B/C 隔离合成验收已完成；D2-D1/D2/D3 安全基础均已通过隔离 L1/L2 验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-16。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
+> 状态：A11-A/B/C、D1、D2-A/B/C 隔离合成验收已完成；D2-D1/D2/D3/D4 安全基础均已通过隔离 L1/L2 验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-16。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
+
+## 2026-11-16 A11-D2-D4 — V20 仅供验收的注册候选溯源（L1/L2 已通过，绝非可信凭证）
+
+- **功能边界：** [V20](../../apps/server/src/main/resources/db/migration/V20__stage_passkey_registration_candidate_lineage.sql) 新建追加式 `admin_passkey_registration_candidates_staging`，复合外键将 `V19 registration_challenge (id,actor,session_version,rp)` 与 `V16/V18 credential_id+user_id+rp_id` 关联，注册响应仅保留 SHA-256 摘要；V20 数据库 INSERT 守卫核对挑战曾在有效期内消费、当前主体的 DB 会话版本/owner 角色/未禁用状态、凭证未吊销和对应 V18 暂存记录。挑战一对一、凭证唯一，不允许更新/删除历史，不允许提升证据级别：`evidence_grade = 'untrusted_candidate'` **SQL CHECK 固定**。
+- **内部服务：** `StagedPasskeyRegistrationCandidateLedger.stageUntrusted` 是无 `@Component/@Bean/@Service` 的内部阶段方法，明确要求与 V19 nonce 消费在**同一 PG18 事务**内执行，强制记录 `admin_access_log`；任何异常或审计丢失须由 Spring 事务回滚。**这个接口只生成未验证的候选**，不输出 Spring Security `CredentialRecord`、`VerifiedEvidence`、可信登录/审核证明或签发授权。原有 V18 合成行不得被解释为可信 Passkey。生产所有 WebAuthn 登录/第一设备审核/CA 仍默认拒绝。
+- **真实 PG18 拒绝与原子性证据：** `PostgreSqlConsoleSecurityWiringIT` 覆盖未消费挑战/跨账户凭证不准绑定、会话旋转后拒绝、同一 nonce/credential 重复绑定拒绝、候选篡改和删除失败、`UNTRUSTED` 不可提升；在 V20 先前提交还包含合成审计失败时回滚候选记录的测试。历史 V9→V20 执行 11 次迁移；九套严格 JUnit XML 门禁 Console 至少 20 项，所有九套累计至少 92 项，不允许跳过或丢失关键用例。
+- **同一代码 SHA 已验收：** [`17f6d7f5`](https://github.com/kunlong-luo/lanveriq/commit/17f6d7f599cd7bfbeb0175ab2577cfcf326be426)：[Java L1 #43827200172](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200172) **SUCCESS**、[PG18 集成源码编译 #43827200135](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200135) **SUCCESS**、[真实 PG18 九套及严格 evidence checker #43827200129](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200129) **SUCCESS**、[Linux 双跳 TLS1.3+PG18 #43827200148](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200148) **SUCCESS**（两个隔离 job 通过）、[RD-2 #43827200226](https://github.com/kunlong-luo/lanveriq/actions/runs/43827200226) **SUCCESS**。上述仅 L1/L2 合成验收，未证明正式 attestation 信任策略、真实 Pop!_OS L3、安全审核人 MFA/双人签发或生产运营。
+- **剩余门槛：** 经签名与可信注册策略验证的真实 Passkey/COSE 凭证安全入库、信任根管理与注册来源认证、RP/Origin/UV 实机测试、注册证明与 V19 原子持久化、V17 审核挑战+V16 最新计数器 CAS+双审证据在单事务完成、撤销/可信时间/真实 CA/KMS/签发审计与实机 L3。Spring Security [signCount 上游问题 #19994](https://github.com/spring-projects/spring-security/issues/19994) 在核实修复及回归测试之前仍为阻断项。Issue #5 OPEN；v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控与证书签发 OFF。
 
 ## 2026-11-16 A11-D2-D3 — V19 可信注册前置挑战与撤销冻结（真实 PG18 L2 通过）
 
