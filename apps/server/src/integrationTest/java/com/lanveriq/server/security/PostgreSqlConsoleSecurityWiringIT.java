@@ -894,6 +894,179 @@ class PostgreSqlConsoleSecurityWiringIT {
                 """).setParameter("id",id).getSingleResult()).longValue());
     }
 
+    // V20 uses ONLY synthetic bytes for V16/V18; receipt state is always
+    // untrusted_candidate and never becomes an authorized login credential.
+    private void syntheticRegistrationRows(UUID owner, byte[] id) {
+        byte[] handle = (byte[]) entityManager.createNativeQuery("""
+                SELECT user_handle FROM admin_passkey_user_handles
+                WHERE user_id=:actor
+                """).setParameter("actor",owner).getSingleResult();
+        tx(() -> {
+            insertPasskeyCredential(id,owner,syntheticPasskeyBytes(128));
+            entityManager.createNativeQuery("""
+                    INSERT INTO admin_passkey_credential_records_staging
+                      (credential_id,user_id,rp_id,user_handle,
+                       registration_attestation_object,registration_client_data_json,
+                       uv_initialized,display_label,registration_tracking_id,
+                       registered_session_version)
+                    VALUES (:id,:owner,'console.lanveriq.internal',:handle,
+                            :attestation,:client,true,'synthetic-untrusted',:tracking,0)
+                    """).setParameter("id",id).setParameter("owner",owner)
+                    .setParameter("handle",handle)
+                    .setParameter("attestation",syntheticPasskeyBytes(256))
+                    .setParameter("client",syntheticPasskeyBytes(128))
+                    .setParameter("tracking",UUID.randomUUID()).executeUpdate();
+        });
+    }
+
+    @Test
+    void consumedRegistrationStagesOnlyImmutableUntrustedCandidateAndAudit() throws Exception {
+        UUID owner = registrationOwner();
+        byte[] credential = syntheticPasskeyBytes(64);
+        syntheticRegistrationRows(owner,credential);
+        registrationActor(owner,0);
+        try {
+            var nonceLedger = registrationLedger(input -> {});
+            var intake = new StagedPasskeyRegistrationCandidateLedger(entityManager);
+            var issued = issueRegistration(nonceLedger);
+            byte[] response = syntheticPasskeyBytes(512);
+            tx(() -> {
+                nonceLedger.consume(issued.id(),issued.nonceBase64Url(),response);
+                intake.stageUntrusted(issued.id(),credential,response);
+            });
+            Object[] record = (Object[]) entityManager.createNativeQuery("""
+                    SELECT evidence_grade, registration_response_sha256
+                    FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id
+                    """).setParameter("id",issued.id()).getSingleResult();
+            assertEquals("untrusted_candidate",record[0]);
+            assertArrayEquals(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(response),(byte[])record[1]);
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE resource_id=:id
+                      AND action='admin.passkey.registration.candidate.untrusted'
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_registration_candidates_staging
+                        SET evidence_grade='trusted' WHERE challenge_id=:id
+                        """).setParameter("id",issued.id()).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_passkey_registration_candidates_staging
+                        WHERE challenge_id=:id
+                        """).setParameter("id",issued.id()).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    intake.stageUntrusted(issued.id(),credential,response)));
+            assertTrue(context.getBeansOfType(
+                    StagedPasskeyRegistrationCandidateLedger.class).isEmpty());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void unconsumedRegistrationCannotBeStagedEvenWithSyntheticV16V18Rows() {
+        UUID owner = registrationOwner();
+        byte[] credential = syntheticPasskeyBytes(64);
+        syntheticRegistrationRows(owner,credential);
+        registrationActor(owner,0);
+        try {
+            var issued = issueRegistration(registrationLedger(input -> {}));
+            var intake = new StagedPasskeyRegistrationCandidateLedger(entityManager);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    intake.stageUntrusted(issued.id(),credential,new byte[]{1})));
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void invalidRegistrationCandidateRollsBackConsumedChallengeAndAuditAtomically() {
+        UUID owner = registrationOwner();
+        byte[] credential = syntheticPasskeyBytes(64);
+        syntheticRegistrationRows(owner,credential);
+        registrationActor(owner,0);
+        try {
+            var nonce = registrationLedger(input -> {});
+            var intake = new StagedPasskeyRegistrationCandidateLedger(entityManager);
+            var issued = issueRegistration(nonce);
+            assertThrows(RuntimeException.class, () -> tx(() -> {
+                nonce.consume(issued.id(),issued.nonceBase64Url(),new byte[]{1});
+                intake.stageUntrusted(issued.id(),syntheticPasskeyBytes(64),
+                        new byte[]{1});
+            }));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_challenges
+                    WHERE id=:id AND consumed_at IS NULL
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE resource_id=:id AND action IN
+                    ('admin.passkey.registration.candidate.untrusted',
+                     'admin.passkey.registration.challenge.consume.staged')
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            // Same nonce remains retryable only because the ENTIRE failed
+            // transaction rolled back; then valid candidate can be staged.
+            tx(() -> {
+                nonce.consume(issued.id(),issued.nonceBase64Url(),new byte[]{1});
+                intake.stageUntrusted(issued.id(),credential,new byte[]{1});
+            });
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id AND evidence_grade='untrusted_candidate'
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void registrationCandidateDeniesWrongActorAndRotatedSessionOrRevokedKey() {
+        UUID owner = registrationOwner();
+        UUID outsider = registrationOwner();
+        byte[] credential = syntheticPasskeyBytes(64);
+        syntheticRegistrationRows(owner,credential);
+        registrationActor(owner,0);
+        try {
+            var nonce = registrationLedger(input -> {});
+            var intake = new StagedPasskeyRegistrationCandidateLedger(entityManager);
+            var issued = issueRegistration(nonce);
+            consumeRegistration(nonce,issued,new byte[]{1});
+            registrationActor(outsider,0);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    intake.stageUntrusted(issued.id(),credential,new byte[]{1})));
+            registrationActor(owner,0);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1
+                    WHERE id=:owner
+                    """).setParameter("owner",owner).executeUpdate());
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    intake.stageUntrusted(issued.id(),credential,new byte[]{1})));
+            // Rotation is irreversible and historical V19 nonce is useless.
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE admin_passkey_credentials SET
+                      revoked_at=clock_timestamp(),revoked_by=:actor
+                    WHERE credential_id=:credential
+                    """).setParameter("actor",owner)
+                    .setParameter("credential",credential).executeUpdate());
+            registrationActor(owner,1);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    intake.stageUntrusted(issued.id(),credential,new byte[]{1})));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
     @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is
