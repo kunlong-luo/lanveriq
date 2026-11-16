@@ -37,7 +37,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
-    "PostgreSqlConsoleSecurityWiringIT": 20,
+    "PostgreSqlConsoleSecurityWiringIT": 21,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -126,6 +126,7 @@ REQUIRED_CASES = {
         "untrustedCandidateRequiresConsumedChallengeAndNeverGrantsAuthentication",
         "candidateCannotBeReboundToOtherOwnerCredentialOrRotatedSession",
         "candidateReceiptCannotReplayDeleteOrUpgradeUntrustedAssurance",
+        "failedUntrustedCandidateInsertRollsBackChallengeAndBothAudits",
     },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
