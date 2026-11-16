@@ -1205,6 +1205,51 @@ class PostgreSqlConsoleSecurityWiringIT {
     }
 
     @Test
+    void failedUntrustedCandidateInsertRollsBackChallengeAndBothAudits() {
+        UUID owner = registrationOwner();
+        byte[] credential = makeUntrustedCandidateCredential(owner);
+        registrationActor(owner, 0);
+        try {
+            var ledger = registrationLedger(input -> {});
+            var writer = new StagedPasskeyRegistrationCandidateLedger(entityManager);
+            var issued = issueRegistration(ledger);
+            assertThrows(RuntimeException.class, () -> tx(() -> {
+                ledger.consume(issued.id(), issued.nonceBase64Url(), new byte[]{1});
+                // A nonexistent credential must cause V20 FK/guard failure,
+                // rolling back the *same transaction's* nonce consumption.
+                writer.stageUntrusted(issued.id(), syntheticPasskeyBytes(64),
+                        new byte[]{1});
+            }));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_challenges
+                    WHERE id=:id AND consumed_at IS NULL
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE resource_id=:id AND action IN (
+                        'admin.passkey.registration.challenge.consume.staged',
+                        'admin.passkey.registration.candidate.untrusted')
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            // This is a fresh retry ONLY because failed consumption rolled
+            // back. A committed valid consumption is irreversible.
+            tx(() -> {
+                ledger.consume(issued.id(), issued.nonceBase64Url(), new byte[]{1});
+                writer.stageUntrusted(issued.id(), credential, new byte[]{1});
+            });
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_candidates_staging
+                    WHERE challenge_id=:id AND evidence_grade='untrusted_candidate'
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is
         // crucial; a WebMvcTest alone could silently omit an auto-configured
