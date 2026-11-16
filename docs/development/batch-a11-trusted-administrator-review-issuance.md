@@ -4,6 +4,12 @@
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
 
+### 2026-11-17 D4-B1 — attestation policy shape only (NOT cryptographic verification)
+
+- New package-private, unregistered `StagedAttestationAdmissionPolicy` provides a **fail-closed policy-shape guard**. No approved root is configured by default; `none` and self-attestation are rejected, and missing chain/metadata/revocation/UP/UV flags or an unapproved SHA-256 root fingerprint deny admission. Its five JUnit tests use **synthetic values only**. A passing synthetic decision is **not** a WebAuthn4J verified attestation or trusted enrollment.
+- **Critical trust boundary:** `VerifiedAttestation` is a temporary internal data contract, not an unforgeable type. Its booleans and fingerprint MUST NOT be populated from browser JSON, V18/V20 rows, or an unverified caller. No production consumer or Bean exists. Before real trust admission, replace/encapsulate this shape behind strict official WebAuthn4J certificate-path and attestation verification, authenticated trust-anchor/metadata administration, current revocation status and PG18 immutable evidence with atomic audit. Do not promote V20.
+- This step adds **no Flyway migration, trusted source, login, reviewer step-up, issuer, CA or production endpoint**. It is L1-only until exact-SHA CI passes. v0.1 NOT RELEASE READY; Agent network/collection/auto-recovery/remote and signing remain OFF.
+
 ## 2026-11-17 A11-D2-D4-B — 注册凭证可信来源与证明策略（实施合同，未实现）
 
 > **状态：BLOCKED / 仅设计与 L1 输入门禁。** 已有 V19/V20 只证明服务端挑战与 `untrusted_candidate` 来源绑定；WebAuthn4J 注册仪式 `verify()` 成功不等于硬件/组织 attestation 可信，也不授权登录、双审或签发。不得把 V20 的 `evidence_grade` 改为 `trusted`，不得把合成 V16/V18 数据直接装载进生产 `TrustedCredentialSource`。除明确写出的后续受控验收外，所有生产开关仍 OFF。
