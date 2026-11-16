@@ -40,7 +40,8 @@ final class StagedWebAuthn4JRegistrationVerifier
 
     @Override
     public void verify(StagedPasskeyRegistrationChallengeLedger.BoundRegistration input) {
-        if (input == null || input.actorId() == null || input.challengeBase64Url() == null
+        if (input == null || input.actorId() == null || input.sessionVersion() < 0
+                || input.challengeBase64Url() == null
                 || input.untrustedAttestation() == null
                 || input.untrustedAttestation().length < 1
                 || input.untrustedAttestation().length > 32768) {

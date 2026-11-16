@@ -4,6 +4,33 @@
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
 
+## 2026-11-17 A11-D2-D4-B — 注册凭证可信来源与证明策略（实施合同，未实现）
+
+> **状态：BLOCKED / 仅设计与 L1 输入门禁。** 已有 V19/V20 只证明服务端挑战与 `untrusted_candidate` 来源绑定；WebAuthn4J 注册仪式 `verify()` 成功不等于硬件/组织 attestation 可信，也不授权登录、双审或签发。不得把 V20 的 `evidence_grade` 改为 `trusted`，不得把合成 V16/V18 数据直接装载进生产 `TrustedCredentialSource`。除明确写出的后续受控验收外，所有生产开关仍 OFF。
+
+### 1. 必须分离的四种证明
+
+1. **注册仪式有效：** 服务端发起并在数据库中当前有效、未消费的 V19 随机 nonce；WebAuthn4J 解析并验证 `webauthn.create`、固定 HTTPS Origin/RP ID、UP+UV、可接受算法和注册响应；当前 actor/session/handle、凭证 ID、公钥和备份标志与数据库事务绑定。不得信任浏览器传入的 `verified` 或 `rpId`，不得使用 `WebAuthnManager.createNonStrictWebAuthnManager()` 的宽松 attestation 结果来声称认证器来源可信。
+2. **认证器来源可信：** 独立的版本化组织 attestation policy 决定哪些证明格式、设备类别和根证书可接受。对于高权限的 `owner_security_admin` 审核凭证，**默认拒绝** `none`、self-attestation、未知/过期/撤销或不符合组织策略的证明；仅凭 AAGUID、浏览器声明、V18 数据或证书链存在均不构成可信结论。严格采用 WebAuthn4J 官方 `AttestationStatementVerifier` 和 `CertPathTrustworthinessVerifier`/组织批准的 `TrustAnchorRepository`，链路须绑定经审核的根、有效元数据状态、证书有效性与适当撤销/新鲜度检查。是否允许平台同步 Passkey 作为**低权限登录**，必须与高权限审核/签发策略分开审议，不能自动继承。
+3. **管理员当前有权使用：** 经独立事务重新锁定真实账户、`session_version`、角色与租户/设备范围，检查注册人和将来审核人的强认证及撤权；注册成功本身不得成为第一设备审核票据。
+4. **实际签发获批：** 以后仍必须另行消耗 V17 一次性审核挑战、使用最新持久 `signCount`、独立两人审核、真实审计、批准策略版本、KMS/HSM 和正式 CA。即便上面三步均通过，也不能跳过签发前的撤权和可信时间检查。
+
+### 2. 持久化准入协议与禁止升级边界
+
+- 先建立明确命名的 `VerifiedRegistrationEvidence` / `AttestationTrustDecision` 强类型结果，再设计后续 **独立新迁移** 的持久证据表，不能通过修改 V20 历史或新增一列简单布尔 `trusted` 追认旧数据。只有由服务端调用的严格验证/策略流程可以创建新证据，且该调用端目前不存在；不能允许 JSON/HTTP/测试 fake 直接写出“verified”。
+- 证据必须绑定 V19 challenge ID、V20 candidate ID 与响应 SHA-256、真实 WebAuthn4J 验证出的 credential ID/COSE 公钥/userHandle、RP/Origin、actor/session、UP/UV、注册时 counter、备份状态、attestation format/type、根证书指纹/可信锚版本、策略版本和决策审计 ID。对不一致的 V16/V18 字段以及历史合成候选一律拒绝；不得沿用合成候选的认证权限。
+- 要求一个可回滚的 PG18 事务：锁定当前挑战、管理员权限、凭证唯一性与凭证撤销状态；调用独立严格验证和策略决定；以数据库服务器时间确认有效期；仅在全部约束满足时写入**新的**不可变证明与审计，并单次消费 nonce；任何错误包括审计丢失、撤权竞争和并发重复提交均回滚。将密码学验证产物与刚锁定的输入/摘要做确定性绑定，阻断“验证 A、持久化 B”的 TOCTOU。
+- 可信来源读取应具有单独的显式业务许可门禁，只读取经过审核且当前未撤销的独立证据，**不**把 V20 或 V18 staging 当成 fallback。根/策略/元数据撤销时阻止新的高权限认证和审核；必须有可审计的失效及恢复流程，不能静默追认。
+- Attestation 可能暴露设备标识/供应商信息：在正式注册前必须批准隐私告知、最少留存字段、保存期限、访问控制、加密和删除/审计例外。生产 trust anchor 及其密钥管理不得依赖 GitHub Actions 模拟密钥、浏览器指定根证书或 Agent 设备密钥。
+
+### 3. 验收门禁（不能以编译或合成证明替代）
+
+- **L1**：真实 WebAuthn4J 注册正反向向量（含可信根/错误根/格式 `none`/self、origin/RP、nonce replay、UP/UV、算法和非法 UTF-8）；使用库提供的严格验证器而非自制 CBOR/COSE/证书链解析；检查注册结果无法绕开组织 attestation 策略；输入负版本应在密码学解析前拒绝。
+- **L2**：真实 PostgreSQL 18 一致性和回滚，包括两名管理员交叉注册、停用/撤角色/会话轮换、相同 ID 并发、挑战过期与二次消费、验证后撤权、审核日志缺失、V20 历史不可修改以及“合成 V18 不能转为可信”。将新必测方法加入严格 JUnit XML 证据门禁，记录单一代码 SHA 和每个 workflow/job 状态。
+- **L3**：经设备持有人批准的 Pop!_OS 24.04 浏览器/认证器实机验证、组织根和元数据轮换/撤销、生产级密钥托管与独立两人审核；未完成前 **v0.1 NOT RELEASE READY**，生产 Agent 联网、采集、自动恢复、远控与 CA 签发继续关闭。
+
+**资料依据：** [WebAuthn Level 3 — Registration and Attestation](https://www.w3.org/TR/webauthn-3/)、[WebAuthn4J 官方严格 attestation 配置](https://webauthn4j.github.io/webauthn4j/en/)、[FIDO Alliance attestation 与 AAGUID 注意事项](https://fidoalliance.org/wp-content/uploads/2024/06/EDWG_Attestation-White-Paper_2024-1.pdf)。[Spring Security signCount issue #19994](https://github.com/spring-projects/spring-security/issues/19994) 在没有确定修复与同版本回归前仍是默认 RP 认证接线阻断项。
+
 ### 2026-11-16 D4-A 追加验收：V19+V20 单事务失败回滚强制门禁
 
 - **新增不能跳过的负向测试：** `failedUntrustedCandidateInsertRollsBackChallengeAndBothAudits` 在真正 PostgreSQL 18 同一 Spring 事务中，先由合成 verifier 消费 V19 注册挑战，再故意提交一个不存在的 credential ID 导致 V20 FK/插入拒绝。整个事务回滚必须同时恢复 V19 `consumed_at=NULL`，撤回消费审计与候选审计，且不留下任何候选记录；随后仍在有效期内用正确合成暂存凭证重试才可形成**不可信**候选。这条测试不会把合成数据提升成真实 attestation。

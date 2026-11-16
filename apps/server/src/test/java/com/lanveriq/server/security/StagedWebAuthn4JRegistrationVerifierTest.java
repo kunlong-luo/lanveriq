@@ -45,6 +45,14 @@ class StagedWebAuthn4JRegistrationVerifierTest {
     }
 
     @Test
+    void rejectsNegativeActorSessionVersionBeforeParsing() {
+        assertThrows(AccessDeniedException.class,
+                () -> verifier.verify(new StagedPasskeyRegistrationChallengeLedger.BoundRegistration(
+                        actor, -1L, nonce, "{}".getBytes(StandardCharsets.UTF_8))));
+        verifyNoInteractions(manager);
+    }
+
+    @Test
     void rejectsNoncanonicalOrWrongLengthNonceBeforeParsing() {
         byte[] fixture = "{}".getBytes(StandardCharsets.UTF_8);
         assertThrows(AccessDeniedException.class,
