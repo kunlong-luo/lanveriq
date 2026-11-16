@@ -18,7 +18,7 @@
 
 - **内容：** 在已通过 L2 的 V16–V18 存储与计数器基础上，新增 WebAuthn4J 官方 `WebAuthnManager` 的独立内部验证桥。源代码固定 HTTPS Origin/RP，要求 UP/UV、32 字节服务端挑战、规范 UTF-8、当前账户与句柄/公钥 ID 绑定、WebAuthn4J 已知凭证当前 counter 与服务器最新持久计数器一致；只返回诊断观察值，**未提供**已授权审核证明，未使用客户端自行申报的认证标志。
 - **尚未满足：** 尚无经过实际 WebAuthn4J **注册验证**的可信凭证库 `TrustedCredentialSource`；V18 合成 attestation 行仍不可读取为可信记录；没有 V17 challenge 与 V16 counter 的同一事务联动，也没有实际浏览器 Passkey/硬件认证器的已通过正向生产级测试。由于 [Spring Security #19994](https://github.com/spring-projects/spring-security/issues/19994) 最新计数器漏洞未解决，Spring Security 的默认 RP 认证链仍保持 OFF。
-- **证据在验收中：** [候选 SHA `b34e3821`](https://github.com/kunlong-luo/lanveriq/commit/b34e38211ef67f788c3c35dd01e4f56268f8d6bb)，[Java L1 #43810441500](https://github.com/kunlong-luo/lanveriq/actions/runs/43810441500)、[真实 PG18 #43810441485](https://github.com/kunlong-luo/lanveriq/actions/runs/43810441485) 待结果；新增真实 signed upstream WebAuthn4J fixture + PG18 full Boot 无自动装配负向。Issue #5 OPEN，v0.1 NOT RELEASE READY；生产联网/采集/自动恢复/证书签发/远控均 OFF。
+- **L1/L2 已验证：** [候选 SHA `b34e3821`](https://github.com/kunlong-luo/lanveriq/commit/b34e38211ef67f788c3c35dd01e4f56268f8d6bb)，[Java L1 #43810441500](https://github.com/kunlong-luo/lanveriq/actions/runs/43810441500)、[真实 PG18 #43810441485](https://github.com/kunlong-luo/lanveriq/actions/runs/43810441485) 均 **SUCCESS**（含强制 PostgreSQL 证据门禁）；新增真实 signed upstream WebAuthn4J fixture + PG18 full Boot 无自动装配负向。Issue #5 OPEN，v0.1 NOT RELEASE READY；生产联网/采集/自动恢复/证书签发/远控均 OFF。
 
 ## 2026-11-14 A11-D2-D1 — V18 注册材料暂存、签名计数器最新值 CAS（PG18 L2 已通过）
 
