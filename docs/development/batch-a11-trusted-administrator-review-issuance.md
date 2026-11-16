@@ -1,8 +1,17 @@
 # Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
 
-> 状态：A11-A/B/C、D1、D2-A/B/C 隔离合成验收已完成；D2-D1 V18 凭证记录与最新计数器防回退已通过隔离 L2 验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-14。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
+> 状态：A11-A/B/C、D1、D2-A/B/C 隔离合成验收已完成；D2-D1/D2/D3 安全基础均已通过隔离 L1/L2 验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-16。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
+
+## 2026-11-16 A11-D2-D3 — V19 可信注册前置挑战与撤销冻结（真实 PG18 L2 通过）
+
+- **代码：** [`b559a1cb`](https://github.com/kunlong-luo/lanveriq/commit/b559a1cbe735ac227f10d58d00ea227ac7f9f3dd) 新增 [Flyway V19](../../apps/server/src/main/resources/db/migration/V19__stage_administrator_passkey_registration_challenges.sql)，独立于 V17 **审核挑战** 的 V19 **注册挑战**；对管理员 `users.id + session_version`、精确 `console.lanveriq.internal` RP、`https://console.lanveriq.internal` Origin、32 字节 CSPRNG SHA-256 摘要、有效期/一次消费做数据库完整性与不可变约束。真实 nonce 仅在请求时返回一次；消费只能从 `NULL` 变为有效 `consumed_at`，不可换人、延长有效期、删除、重复使用。
+- **服务端验证：** `StagedPasskeyRegistrationChallengeLedger` 是包私有**非 Bean / 非 Service / 非 Controller** 的 PG18 事务基础，使用当前 `AdminPrincipal` 和数据库锁核对账户未禁用、当前会话版本、不可变 V16 user handle 与 `owner_security_admin` 授权，再签发 nonce；消费时重新核对管理员、会话、摘要和有效期，调用注入的验证器，然后以 PG 原子消费和强制审计提交。任何失败均拒绝且事务回滚。合成验证器仅在 `src/integrationTest` 临时注入，**不能代表密码学注册**；消费成功既不生成可信凭证记录，也不产生审核票、MFA 凭证或签发许可。
+- **官方 WebAuthn4J：** `StagedWebAuthn4JRegistrationVerifier` 使用官方 `WebAuthnManager.parseRegistrationResponseJSON/verify`，约束服务端 32 字节挑战、固定 RP/HTTPS Origin、`UP=true`、`UV=true`、ES256 公钥算法。严格 UTF-8 和有界注册响应；异常默认拒绝。此处尚未实现生产级 **attestation 信任链策略**、注册仪式的审计准入、可信注册结果 V16/V18 一致性写入，任何现有合成行不能被提升为 `TrustedCredentialSource`。默认生产 WebAuthn 登录/first-pin 双审仍彻底关闭。
+- **向前修复 V16 撤销后变更漏洞：** `CREATE OR REPLACE FUNCTION guard_admin_passkey_credential_update` 保留原 V16 触发器/迁移历史，拒绝任何 `OLD.revoked_at IS NOT NULL` 行的后续更新（包括计数器递增、备份状态和幂等更新），但仍允许第一次按 V16 规则完成吊销。不能靠 SQL 代替数据库超级用户权限控制、KMS/审计和可信时间。
+- **PG18 强制验收：** `PostgreSqlConsoleSecurityWiringIT` 新增四项注册 nonce 摘要/官方拒绝、跨管理员/重复消费、会话版本旋转/历史不可变、已吊销凭证全部状态冻结。V9→V19 历史升级需 10 次 Flyway；9 套严格证据门禁 Console ≥17 项、合计 ≥89 项有效测试、禁止跳过/缺项/失败。新增 L1 证据门禁回归测试，不用编译取代数据库证据。
+- **同 SHA 已确认：** [Java L1 #43811201232](https://github.com/kunlong-luo/lanveriq/actions/runs/43811201232) **SUCCESS**、[PG18 集成源码编译 #43811201238](https://github.com/kunlong-luo/lanveriq/actions/runs/43811201238) **SUCCESS**、[RD-2 默认拒绝 #43811201202](https://github.com/kunlong-luo/lanveriq/actions/runs/43811201202) **SUCCESS**、[真实 PG18.6 九套 #43811201225](https://github.com/kunlong-luo/lanveriq/actions/runs/43811201225) **SUCCESS**（`integrationTest` 和严格 JUnit evidence checker 双通过）。[Linux 双跳 #43811201228](https://github.com/kunlong-luo/lanveriq/actions/runs/43811201228) 需核对最终结论。**仅 L1/L2 合成隔离证据，不是实际受信任的注册/认证/签发或真实 Pop!_OS 24.04 L3**。Issue #5 OPEN；v0.1 NOT RELEASE READY，生产网络、采集、自动恢复、远控与 CA 签发继续 OFF。
 
 ## 2026-11-16 A11-D2-D2 — 原生 WebAuthn4J 断言密码学验证桥接（仅内部，生产硬拒绝）
 
