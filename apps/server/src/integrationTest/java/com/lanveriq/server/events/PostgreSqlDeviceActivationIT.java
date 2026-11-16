@@ -433,9 +433,10 @@ class PostgreSqlDeviceActivationIT {
         // V10-V13 preserve legacy request lineage; V14/V15 add
         // internal review/MFA-proof constraints, V16 stages non-authenticating
         // passkey inventory, V17 an untrusted one-use challenge ledger,
-        // and V18 an unauthenticated complete credential staging record.
+        // V18 an unauthenticated complete credential staging record,
+        // and V19 a non-authorizing registration nonce plus revoked-state freeze.
         // None silently enroll an administrator or enable passkey signing.
-        assertEquals(9, upgraded.migrate().migrationsExecuted);
+        assertEquals(10, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);

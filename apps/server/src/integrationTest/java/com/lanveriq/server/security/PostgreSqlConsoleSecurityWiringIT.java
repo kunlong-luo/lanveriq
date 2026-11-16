@@ -718,6 +718,182 @@ class PostgreSqlConsoleSecurityWiringIT {
                 .isEmpty());
     }
 
+    // V19: stage-only registration challenge; NEVER issues any trusted
+    // CredentialRecord, first-pin MFA proof or production certificate.
+    private void registrationActor(UUID actor, long version) {
+        org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                        new AdminPrincipal(actor, "synthetic-registration-NO-LOGIN",
+                                "synthetic-NO-LOGIN", true, version),
+                        null, List.of()));
+    }
+
+    private UUID registrationOwner() {
+        UUID id = passkeyFixture(syntheticPasskeyBytes(32));
+        tx(() -> {
+            UUID group = syntheticGroup();
+            entityManager.createNativeQuery("""
+                    INSERT INTO user_role_scopes(user_id,role_id,device_group_id)
+                    SELECT :user,r.id,:group FROM roles r
+                    WHERE r.code='owner_security_admin'
+                    """).setParameter("user", id).setParameter("group", group)
+                    .executeUpdate();
+        });
+        return id;
+    }
+
+    private StagedPasskeyRegistrationChallengeLedger registrationLedger(
+            StagedPasskeyRegistrationChallengeLedger.RegistrationProofVerifier verifier) {
+        return new StagedPasskeyRegistrationChallengeLedger(entityManager, verifier);
+    }
+
+    private StagedPasskeyRegistrationChallengeLedger.IssuedChallenge issueRegistration(
+            StagedPasskeyRegistrationChallengeLedger service) {
+        return new TransactionTemplate(transactionManager)
+                .execute(ignored -> service.issue());
+    }
+
+    private void consumeRegistration(StagedPasskeyRegistrationChallengeLedger service,
+            StagedPasskeyRegistrationChallengeLedger.IssuedChallenge issued, byte[] response) {
+        tx(() -> service.consume(issued.id(), issued.nonceBase64Url(), response));
+    }
+
+    @Test
+    void registrationNonceIsCSPRNGHashOnlyAndProductionHasNoTrustedPromotion() throws Exception {
+        UUID owner = registrationOwner();
+        registrationActor(owner, 0);
+        try {
+            var service = registrationLedger(new StagedWebAuthn4JRegistrationVerifier(
+                    com.webauthn4j.WebAuthnManager.createNonStrictWebAuthnManager()));
+            var issued = issueRegistration(service);
+            byte[] raw = java.util.Base64.getUrlDecoder().decode(issued.nonceBase64Url());
+            assertEquals(32, raw.length);
+            assertEquals(43, issued.nonceBase64Url().length());
+            byte[] digest = (byte[]) entityManager.createNativeQuery("""
+                    SELECT challenge_sha256 FROM admin_passkey_registration_challenges
+                    WHERE id=:id
+                    """).setParameter("id", issued.id()).getSingleResult();
+            assertArrayEquals(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(raw), digest);
+            assertThrows(AccessDeniedException.class, () ->
+                    consumeRegistration(service, issued, "{}".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_challenges
+                    WHERE id=:id AND consumed_at IS NULL
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_credentials WHERE user_id=:owner
+                    """).setParameter("owner",owner).getSingleResult()).longValue());
+            assertTrue(context.getBeansOfType(StagedPasskeyRegistrationChallengeLedger.class)
+                    .isEmpty());
+            assertTrue(context.getBeansOfType(StagedWebAuthn4JRegistrationVerifier.class)
+                    .isEmpty());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void registrationNonceCannotCrossActorsOrReplayEvenWithSyntheticTestVerifier() {
+        UUID owner = registrationOwner();
+        UUID other = registrationOwner();
+        var ledger = registrationLedger(input -> {
+            assertEquals(owner, input.actorId());
+            assertEquals(0L, input.sessionVersion());
+        });
+        try {
+            registrationActor(owner, 0);
+            var issued = issueRegistration(ledger);
+            registrationActor(other, 0);
+            assertThrows(AccessDeniedException.class, () ->
+                    consumeRegistration(ledger, issued, new byte[]{1}));
+            registrationActor(owner, 0);
+            assertThrows(AccessDeniedException.class, () -> tx(() ->
+                    ledger.consume(issued.id(), "A".repeat(43), new byte[]{1})));
+            consumeRegistration(ledger, issued, new byte[]{1});
+            assertThrows(AccessDeniedException.class, () ->
+                    consumeRegistration(ledger, issued, new byte[]{1}));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_challenges
+                    WHERE id=:id AND consumed_at IS NOT NULL
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_credentials
+                    WHERE user_id IN (:first,:second)
+                    """).setParameter("first",owner).setParameter("second",other)
+                    .getSingleResult()).longValue());
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE principal_id=:owner
+                      AND action='admin.passkey.registration.challenge.consume.staged'
+                    """).setParameter("owner",owner).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void registrationRotatedSessionAndImmutableNonceHistoryFailClosed() {
+        UUID owner = registrationOwner();
+        registrationActor(owner, 0);
+        try {
+            var ledger = registrationLedger(input -> {});
+            var issued = issueRegistration(ledger);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                            UPDATE admin_passkey_registration_challenges
+                            SET expires_at=clock_timestamp()+INTERVAL '3 minutes'
+                            WHERE id=:id
+                            """).setParameter("id",issued.id()).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                            DELETE FROM admin_passkey_registration_challenges
+                            WHERE id=:id
+                            """).setParameter("id",issued.id()).executeUpdate()));
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1
+                    WHERE id=:actor
+                    """).setParameter("actor",owner).executeUpdate());
+            assertThrows(AccessDeniedException.class, () -> issueRegistration(ledger));
+            assertThrows(AccessDeniedException.class, () ->
+                    consumeRegistration(ledger, issued, new byte[]{2}));
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_registration_challenges
+                    WHERE id=:id AND consumed_at IS NOT NULL
+                    """).setParameter("id",issued.id()).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void revocationFreezesAllSubsequentPasskeyCredentialStateInV19() {
+        UUID owner = passkeyFixture(syntheticPasskeyBytes(32));
+        byte[] id = syntheticPasskeyBytes(64);
+        tx(() -> insertPasskeyCredential(id,owner,syntheticPasskeyBytes(128)));
+        tx(() -> entityManager.createNativeQuery("""
+                UPDATE admin_passkey_credentials
+                SET revoked_at=clock_timestamp(),revoked_by=:owner
+                WHERE credential_id=:id
+                """).setParameter("owner",owner).setParameter("id",id).executeUpdate());
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credentials
+                           SET signature_count=signature_count+1
+                         WHERE credential_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+        assertThrows(RuntimeException.class, () -> tx(() ->
+                entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_credentials
+                           SET backup_state=backup_state
+                         WHERE credential_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT signature_count FROM admin_passkey_credentials
+                WHERE credential_id=:id AND revoked_at IS NOT NULL
+                """).setParameter("id",id).getSingleResult()).longValue());
+    }
+
     @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is

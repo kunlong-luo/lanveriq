@@ -37,7 +37,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
-    "PostgreSqlConsoleSecurityWiringIT": 13,
+    "PostgreSqlConsoleSecurityWiringIT": 17,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -119,6 +119,10 @@ REQUIRED_CASES = {
         "counterlessCredentialProvidesNoAuthorizationAndDisabledOrRevokedOwnerDenies",
         "silentlySuppressedCounterAuditRollsBackSignatureUpdate",
         "realPostgresBootCannotAutoInstallStagedWebAuthn4JVerifierOrTrustSource",
+        "registrationNonceIsCSPRNGHashOnlyAndProductionHasNoTrustedPromotion",
+        "registrationNonceCannotCrossActorsOrReplayEvenWithSyntheticTestVerifier",
+        "registrationRotatedSessionAndImmutableNonceHistoryFailClosed",
+        "revocationFreezesAllSubsequentPasskeyCredentialStateInV19",
     },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
@@ -215,7 +219,7 @@ def main() -> int:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
     print("PG18 synthetic JUnit evidence verified: all 9 Testcontainers classes, "
-          "at least 85 passing tests across nine suites, including A11 double-review and Console security wiring; "
+          "at least 89 passing tests across nine suites, including A11 double-review and Console security wiring; "
           "no failed, errored or skipped cases.")
     return 0
 
