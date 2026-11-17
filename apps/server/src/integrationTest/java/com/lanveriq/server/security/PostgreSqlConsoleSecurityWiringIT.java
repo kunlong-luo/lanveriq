@@ -1809,6 +1809,254 @@ class PostgreSqlConsoleSecurityWiringIT {
         }
     }
 
+
+    private void disqualifySyntheticRoot(UUID proposalId,
+            StagedAttestationRootDisqualificationLedger.Reason reason) {
+        tx(() -> new StagedAttestationRootDisqualificationLedger(entityManager)
+                .disqualifyUntrustedCandidate(proposalId, reason));
+    }
+
+    @Test
+    void rootDisqualificationStopsNewOrSecondScreeningWithoutRewritingHistory() {
+        UUID proposer = registrationOwner();
+        UUID reviewer1 = scopedRootReviewer(proposer);
+        UUID reviewer2 = scopedRootReviewer(proposer);
+        registrationActor(proposer, 0);
+        try {
+            UUID early = stageSyntheticRoot(syntheticOfflineRootDer());
+            UUID late = stageSyntheticRoot(syntheticOfflineRootDer());
+            disqualifySyntheticRoot(early,
+                    StagedAttestationRootDisqualificationLedger.Reason.OPERATOR_WITHDRAWAL);
+            registrationActor(reviewer1, 0);
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(early, 1));
+            screenSyntheticRoot(late, 1);
+            registrationActor(proposer, 0);
+            disqualifySyntheticRoot(late,
+                    StagedAttestationRootDisqualificationLedger.Reason.SUSPECTED_COMPROMISE);
+            registrationActor(reviewer2, 0);
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(late, 2));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_screenings_staging
+                    WHERE proposal_id=:id
+                    """).setParameter("id",late).getSingleResult()).longValue());
+            for (UUID id : java.util.List.of(early, late)) {
+                assertEquals("untrusted_proposal", entityManager.createNativeQuery("""
+                        SELECT trust_state
+                        FROM admin_passkey_attestation_root_proposals_staging
+                        WHERE proposal_id=:id
+                        """).setParameter("id",id).getSingleResult());
+                assertEquals("disqualified_untrusted", entityManager.createNativeQuery("""
+                        SELECT decision_state
+                        FROM admin_passkey_attestation_root_disqualifications_staging
+                        WHERE proposal_id=:id
+                        """).setParameter("id",id).getSingleResult());
+            }
+            assertTrue(context.getBeansOfType(StagedAttestationRootDisqualificationLedger.class)
+                    .isEmpty());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void rootDisqualificationRejectsUnscopedRotatedAndDisabledActors() {
+        UUID proposer = registrationOwner();
+        UUID unscoped = passkeyFixture(syntheticPasskeyBytes(32));
+        registrationActor(proposer, 0);
+        try {
+            UUID id = stageSyntheticRoot(syntheticOfflineRootDer());
+            registrationActor(unscoped, 0);
+            assertThrows(RuntimeException.class, () -> disqualifySyntheticRoot(id,
+                    StagedAttestationRootDisqualificationLedger.Reason.OPERATOR_WITHDRAWAL));
+            registrationActor(proposer, 0);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1 WHERE id=:id
+                    """).setParameter("id",proposer).executeUpdate());
+            assertThrows(RuntimeException.class, () -> disqualifySyntheticRoot(id,
+                    StagedAttestationRootDisqualificationLedger.Reason.OPERATOR_WITHDRAWAL));
+            registrationActor(proposer, 1);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET disabled_at=clock_timestamp() WHERE id=:id
+                    """).setParameter("id",proposer).executeUpdate());
+            assertThrows(RuntimeException.class, () -> disqualifySyntheticRoot(id,
+                    StagedAttestationRootDisqualificationLedger.Reason.SUSPECTED_COMPROMISE));
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_disqualifications_staging
+                    WHERE proposal_id=:id
+                    """).setParameter("id",id).getSingleResult()).longValue());
+            // Emergency disqualification remains possible by another active
+            // owner even if the original proposer has been removed.
+            UUID recovery = registrationOwner();
+            registrationActor(recovery, 0);
+            disqualifySyntheticRoot(id,
+                    StagedAttestationRootDisqualificationLedger.Reason.SUSPECTED_COMPROMISE);
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void rootDisqualificationCannotForgeFingerprintReplayOrErase() {
+        UUID proposer = registrationOwner();
+        registrationActor(proposer, 0);
+        try {
+            UUID id = stageSyntheticRoot(syntheticOfflineRootDer());
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        INSERT INTO admin_passkey_attestation_root_disqualifications_staging
+                          (proposal_id,disqualified_by,disqualifier_session_version,
+                           certificate_sha256,reason_code)
+                        VALUES (:id,:actor,0,:wrong,'operator_withdrawal')
+                        """).setParameter("id",id).setParameter("actor",proposer)
+                    .setParameter("wrong",syntheticPasskeyBytes(32)).executeUpdate()));
+            disqualifySyntheticRoot(id,
+                    StagedAttestationRootDisqualificationLedger.Reason.OPERATOR_WITHDRAWAL);
+            assertThrows(RuntimeException.class, () -> disqualifySyntheticRoot(id,
+                    StagedAttestationRootDisqualificationLedger.Reason.METADATA_STATUS_CHANGED));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_attestation_root_disqualifications_staging
+                        SET decision_state='trusted' WHERE proposal_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_passkey_attestation_root_disqualifications_staging
+                        WHERE proposal_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_disqualifications_staging
+                    WHERE proposal_id=:id AND decision_state='disqualified_untrusted'
+                    """).setParameter("id",id).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void suppressedRootDisqualificationAuditRollsBackAndAllowsRetry() {
+        UUID proposer = registrationOwner();
+        registrationActor(proposer, 0);
+        try {
+            UUID id = stageSyntheticRoot(syntheticOfflineRootDer());
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                    CREATE FUNCTION a11_root_disqualification_suppress_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                        IF NEW.action='admin.passkey.root.candidate.disqualified_untrusted'
+                        THEN RETURN NULL; END IF;
+                        RETURN NEW;
+                    END;
+                    $$
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    CREATE TRIGGER a11_root_disqualification_suppress_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_root_disqualification_suppress_audit()
+                    """).executeUpdate();
+            });
+            try {
+                assertThrows(IllegalStateException.class, () -> disqualifySyntheticRoot(id,
+                        StagedAttestationRootDisqualificationLedger.Reason.OPERATOR_WITHDRAWAL));
+                assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_passkey_attestation_root_disqualifications_staging
+                        WHERE proposal_id=:id
+                        """).setParameter("id",id).getSingleResult()).longValue());
+            } finally {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS a11_root_disqualification_suppress_audit
+                        ON admin_access_log
+                        """).executeUpdate();
+                    entityManager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS a11_root_disqualification_suppress_audit()
+                        """).executeUpdate();
+                });
+            }
+            disqualifySyntheticRoot(id,
+                    StagedAttestationRootDisqualificationLedger.Reason.OPERATOR_WITHDRAWAL);
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_disqualifications_staging
+                    WHERE proposal_id=:id
+                    """).setParameter("id",id).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void concurrentRootScreeningWaitsForDisqualificationAndRejects() throws Exception {
+        UUID proposer = registrationOwner();
+        UUID reviewer = scopedRootReviewer(proposer);
+        registrationActor(proposer, 0);
+        UUID id;
+        try {
+            id = stageSyntheticRoot(syntheticOfflineRootDer());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        var locked = new java.util.concurrent.CountDownLatch(1);
+        var finish = new java.util.concurrent.CountDownLatch(1);
+        var attempted = new java.util.concurrent.CountDownLatch(1);
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var disqualifier = executor.submit(() -> {
+                registrationActor(proposer, 0);
+                try {
+                    tx(() -> {
+                        entityManager.createNativeQuery("""
+                                SELECT proposal_id
+                                FROM admin_passkey_attestation_root_proposals_staging
+                                WHERE proposal_id=:id FOR UPDATE
+                                """).setParameter("id",id).getSingleResult();
+                        locked.countDown();
+                        try {
+                            if (!finish.await(20, java.util.concurrent.TimeUnit.SECONDS)) {
+                                throw new IllegalStateException("synthetic lock release absent");
+                            }
+                        } catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(interrupted);
+                        }
+                        new StagedAttestationRootDisqualificationLedger(entityManager)
+                                .disqualifyUntrustedCandidate(id,
+                                    StagedAttestationRootDisqualificationLedger.Reason
+                                            .OPERATOR_WITHDRAWAL);
+                    });
+                    return true;
+                } finally {
+                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                }
+            });
+            assertTrue(locked.await(15, java.util.concurrent.TimeUnit.SECONDS));
+            var screening = executor.submit(() -> {
+                registrationActor(reviewer, 0);
+                attempted.countDown();
+                try {
+                    screenSyntheticRoot(id, 1);
+                    return false;
+                } catch (RuntimeException expected) {
+                    return true;
+                } finally {
+                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                }
+            });
+            assertTrue(attempted.await(15, java.util.concurrent.TimeUnit.SECONDS));
+            finish.countDown();
+            assertTrue(disqualifier.get(25, java.util.concurrent.TimeUnit.SECONDS));
+            assertTrue(screening.get(25, java.util.concurrent.TimeUnit.SECONDS));
+        } finally {
+            finish.countDown();
+        }
+        assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_passkey_attestation_root_screenings_staging
+                WHERE proposal_id=:id
+                """).setParameter("id",id).getSingleResult()).longValue());
+        assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_passkey_attestation_root_disqualifications_staging
+                WHERE proposal_id=:id
+                """).setParameter("id",id).getSingleResult()).longValue());
+    }
+
     @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is

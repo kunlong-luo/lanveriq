@@ -16,6 +16,14 @@
 
 **2026-11-17 V23 B4-B 同一源码 SHA 验收进展：** [`5f236584`](https://github.com/kunlong-luo/lanveriq/commit/5f2365842b641d20043eb69d1b7f809751c7917d) 的 [真实 PostgreSQL 18.6 九套事务 #44096805607](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805607) **SUCCESS**（Testcontainers/Flyway 真实事务和强制 JUnit evidence 两步均通过）；[Java L1 #44096805132](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805132)、[PG18 集成源码编译 #44096805283](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805283)、[RD-2 #44096805633](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805633) 均 **SUCCESS**。同 SHA [Linux TLS1.3+PG18 #44096805126](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805126) 的 PG18 安全事务 job 及 Caddy→Tomcat TLS1.3 双跳合成 job 均已 **SUCCESS**，完整 Linux workflow **SUCCESS**（同一源码 SHA，仅隔离 L2）。V23 仅保存独立两人 `screened_untrusted` 候选筛查，**不构成受信任根批准、MFA 或签发授权**。仍缺 MDS 签名/吊销/可信时间/审核人强认证/Pop!_OS L3；Issue #5 OPEN、v0.1 NOT READY，所有生产操作 OFF。
 
+### 2026-11-17 D4-B4-C1 — V24 未可信根提案永久取消资格（本提交 CI PENDING）
+
+- **性质与边界：** V24 Flyway 新增不可变的 `admin_passkey_attestation_root_disqualifications_staging`，每个 V22 提案唯一，固定 `decision_state='disqualified_untrusted'`、限定原因码、绑定 PostgreSQL 生成的原证书 SHA-256 和管理员身份/会话；服务器覆写时间戳。这只会永久**终止未受信任提案后续筛查**，不是正式 CA/PKIX/OCSP/CRL 的根证书吊销、受信任来源撤销或 WebAuthn 鉴权。
+- **持久阻断和并发：** V23 原始复核入口新增 AFTER-order `BEFORE INSERT` 数据库守卫（名称按 PostgreSQL 字母序在旧守卫之后），复核与取消资格均首先 `FOR UPDATE` 锁住同一 V22 提案，再检测已提交取消资格。因此先取消资格再复核必拒绝，先复核再取消资格则保留历史但立即封存后续复核；重复取消资格、UPDATE/DELETE 全拒绝。根提案永远为 `untrusted_proposal`，已复核历史永远为 `screened_untrusted`。
+- **安全管理员应急取消资格：** 当前任一有效 `owner_security_admin` 可以发起组织级**只拒绝**的取消资格，即使提交人已停用；数据库强制账户启用、会话版本与权限。内部非 Bean `StagedAttestationRootDisqualificationLedger` 仅接受服务器提案 UUID 和封闭 Reason 枚举，指纹从 V22 读取，不接受来自客户端的可信决策、证书链、元数据状态或时钟声明。必须与审计日志在同一 PG18 事务，吞没审计则回滚。没有 HTTP/API、受信根读取器、生产 credential/CA/KMS/Agent 调用。
+- **强制验收：** 新增五项真实 PG18 测试：取消资格阻止第一或第二复核而保留历史；无权/会话旋转/停用拒绝与有效管理员应急取消资格；伪造 digest/重复/修改删除拒绝；丢失审计回滚及重试；两个线程同一根提案行锁下的筛查/取消资格并发序列化。九套 JUnit Console 最少 39、总计至少 111 项且五项方法必须存在且无失败/跳过；V9→V24 历史迁移数 15；main 自动触发真 PG18。**本提交尚未验收**，必须核对同一源码 SHA 的真实 CI。
+- **余下阻断：** V24 不实施已批准根的撤销、FIDO MDS JWT/JWS 签名与刷新、OCSP/CRL、可信时间源或真正的管理员 WebAuthn/MFA 签名审核，均仍须独立设计及 L2/L3。根仓库继续空集；生产设备联网、采集、自动恢复、远控和签发 OFF，v0.1 未获上线批准。
+
 ### 2026-11-17 D4-B4-B — V23 双人独立离线筛查（不是信任根批准，CI PENDING）
 
 - **仅筛查，不授信：** Flyway V23 新建 `admin_passkey_attestation_root_screenings_staging`，只能记录 `screened_untrusted`、step 1/2、当前管理员及 session_version、V22 数据库生成的证书 SHA-256。V22 根提案永远保留 `untrusted_proposal`；没有 `approved`、`trusted`、`active` 或可给 WebAuthn4J 消费的根记录。双人签收不是 WebAuthn 强认证、MFA、签名或 KMS/CA 授权。

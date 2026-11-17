@@ -438,9 +438,10 @@ class PostgreSqlDeviceActivationIT {
         // V20 untrusted registration candidates, and V21 immutable
         // NOT-TRUSTED attestation rejection receipts, and V22 adds only
         // untrusted offline root proposals; V23 stores independently scoped
-        // untrusted reviewer screenings only, never trust-anchor approvals.
+        // untrusted reviewer screenings only; V24 permanently disqualifies
+        // candidates and serializes against any later screening, never roots.
         // None silently enroll an administrator or enable passkey signing.
-        assertEquals(14, upgraded.migrate().migrationsExecuted);
+        assertEquals(15, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);

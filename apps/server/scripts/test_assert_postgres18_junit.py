@@ -53,6 +53,22 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_v24_terminal_disqualification_tests_cannot_disappear(self):
+        for method in (
+            "rootDisqualificationStopsNewOrSecondScreeningWithoutRewritingHistory",
+            "rootDisqualificationRejectsUnscopedRotatedAndDisabledActors",
+            "rootDisqualificationCannotForgeFingerprintReplayOrErase",
+            "suppressedRootDisqualificationAuditRollsBackAndAllowsRetry",
+            "concurrentRootScreeningWaitsForDisqualificationAndRejects",
+        ):
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp),
+                                  omit=("PostgreSqlConsoleSecurityWiringIT", method))
+                self.assertIn(
+                    "Missing mandatory test: PostgreSqlConsoleSecurityWiringIT." + method,
+                    verify_reports(Path(tmp)),
+                )
+
     def test_v23_two_independent_screenings_remain_mandatory(self):
         for method in (
             "independentRootScreeningsStayUntrustedAndBoundToCertificate",

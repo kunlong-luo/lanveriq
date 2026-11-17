@@ -26,6 +26,12 @@
 
 **2026-11-17 V23 B4-B 同一源码 SHA 验收进展：** [`5f236584`](https://github.com/kunlong-luo/lanveriq/commit/5f2365842b641d20043eb69d1b7f809751c7917d) 的 [真实 PostgreSQL 18.6 九套事务 #44096805607](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805607) **SUCCESS**（Testcontainers/Flyway 真实事务和强制 JUnit evidence 两步均通过）；[Java L1 #44096805132](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805132)、[PG18 集成源码编译 #44096805283](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805283)、[RD-2 #44096805633](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805633) 均 **SUCCESS**。同 SHA [Linux TLS1.3+PG18 #44096805126](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805126) 的 PG18 安全事务 job 及 Caddy→Tomcat TLS1.3 双跳合成 job 均已 **SUCCESS**，完整 Linux workflow **SUCCESS**（同一源码 SHA，仅隔离 L2）。V23 仅保存独立两人 `screened_untrusted` 候选筛查，**不构成受信任根批准、MFA 或签发授权**。仍缺 MDS 签名/吊销/可信时间/审核人强认证/Pop!_OS L3；Issue #5 OPEN、v0.1 NOT READY，所有生产操作 OFF。
 
+## 2026-11-17 A11-D2-D4-C1 V24 未可信根候选永久取消资格（CI PENDING）
+
+- Flyway V24 新建不可变、每提案仅一次的 `disqualified_untrusted` 拒绝账本（管理员身份、会话、DB 证书 digest、原因、服务器记录时间）；与 V23 双审共享 V22 提案 `FOR UPDATE` 锁，取消资格后禁止任何后续筛查，但绝不修改旧历史或启用根。内部非 Bean 同事务强制审计；即使原提交人已撤权，当前安全管理员仍可执行组织级否决。
+- 新增五项真实 PG18 原子/撤权/重复/并发/审计负向测试、严格 JUnit 证据门禁（Console ≥39，九套 ≥111）及 V9→V24 迁移数量 15。所有变更和 A11 文档与本账本在同一代码提交，**CI 尚为 PENDING，不得提前宣称 L2**。
+- 本项不是生产 CRL/OCSP、FIDO MDS/可信时间、已批准根的撤销、真正 MFA/双人签发审批或 Pop!_OS24 L3。WebAuthn4J trust-anchor 集合仍为空；Issue #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控/发行方 OFF。
+
 ## 2026-11-17 A11-D2-D4-B4-B V23 双人独立离线根筛查（CI PENDING）
 
 - 新建 Flyway V23：不可变的 `screened_untrusted` 筛查记录仅绑定 V22 提案、证书 SHA-256、当前审核人 session 与独立双审步骤；事务锁确保两个审核人互异、不是提交人，并具有相同当前 `owner_security_admin` 组授权，检查提交人及首审人会话/撤权。禁止升级、重复、跳步或删除。
