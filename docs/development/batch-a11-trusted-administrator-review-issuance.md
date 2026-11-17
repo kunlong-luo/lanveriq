@@ -6,6 +6,13 @@
 
 **B2 同 SHA 自动 CI 验收补记（2026-11-17）：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 的 [Java 单元测试 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852) 与 [RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822) **均 SUCCESS**。仅 L1 编译/单测与远控拒绝检查；没有运行该提交的真实 PG18 L2、签名证书链的可信正向验收或者 Pop!_OS L3。以上不会构成上线批准。
 
+### 2026-11-17 D4-B3 — V21 未可信 attestation 拒绝回执（**仅隔离待验收**）
+
+- **原子来源链：** 新增 Flyway V21 `admin_passkey_attestation_rejections_staging`，通过 V20 新增复合唯一键与六字段复合外键，绑定 **V19 挑战 ID、当前管理员/会话、固定 RP、凭证 ID、原始注册响应 SHA-256**；SQL 插入守卫重新核对已消费 nonce、有效时间、当前所有者身份与权限、凭证未吊销。唯一回执、`evidence_grade='not_trusted'`、`rejection_code='trust_roots_unconfigured'` 均由 SQL CHECK 固定，UPDATE/DELETE 被历史不可变触发器拒绝。禁止 SQL 将此表提升为可信证明。无原始响应、硬件标识或私钥复制。
+- **非 Bean 隔离写入：** `StagedAttestationRejectionLedger.recordUnconfiguredTrustRoots` 只接收服务器挑战 ID，从数据库 V20 复制全套来源，不接受浏览器提交的 `verified`、AAGUID、证书链结论或任意信任根/策略 ID；必须与调用方在真实事务内执行，写入 `admin_access_log` `outcome='denied'`，审计缺失则回滚回执。该服务不验证密码学 attestation，不能创建 CredentialRecord、MFA、first-pin 审核票或 CA 签发。
+- **L2 强制负向测试：** 真实 PostgreSQL 18 集成套件新增缺失候选拒绝、复合来源/无信任回执、重复及更改/删除拒绝、跨管理员及会话旋转拒绝、审计 INSERT 被吞没时回滚并仅在恢复后重试。九套 evidence checker 要求 Console ≥25、总体 ≥97（原九套要求 ≥93），四项新用例不得缺失。工作流 main push 包含 V21 迁移及服务路径自动触发真 PG18，不依赖用户手工运行。
+- **状态：** 本提交 CI 仍未验证，严格声明 `PENDING`；V20 始终 `untrusted_candidate`，V21 始终 `not_trusted`。**这不是“可信证明已落库”**，真正 WebAuthn4J attestation 与受管理的根/MDS/CRL/OCSP、完整 PG18 正向可信证据仍未实施。生产 Agent/联网/采集/自动恢复/远控/签发 OFF；v0.1 不批准上线。
+
 ### 2026-11-17 D4-B2 — 严格 WebAuthn4J 证书路径验证器配置（无信任根、未接线）
 
 - 新增非 Bean 的 `StagedStrictAttestationWebAuthn4JFactory`，使用官方 `WebAuthnManager` 显式构造：**仅** `PackedAttestationStatementVerifier`，官方 `DefaultCertPathTrustworthinessVerifier`，强制启用证书状态撤销检查与禁止客户端全链，明确拒绝 self-attestation；**不包含** `NoneAttestationStatementVerifier`、`NullPackedAttestationStatementVerifier`、`NullCertPathTrustworthinessVerifier` 等弱验证实现。官方实现说明警告，混入 no-op 验证器会造成认证器证明绕过（[WebAuthn4J 官方参考](https://webauthn4j.github.io/webauthn4j/en/)）。

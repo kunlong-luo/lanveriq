@@ -16,6 +16,12 @@
 
 **B2 代码精确 SHA 验收补记：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 已通过 [Java L1 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852)、[RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822)，全部与此代码 SHA 一致。**未新增真实 PG18 容器测试、可信 attestation 正向证明或 L3**，不得把源码编译称为数据库验收。本次仅文档补录，不改变安全开关。
 
+## 2026-11-17 A11-D2-D4-B3 — V21 独立拒绝证据链（PENDING 同 SHA CI）
+
+- **代码与数据库：** Flyway V21 新增唯一、不可变的 `admin_passkey_attestation_rejections_staging`；复合外键锁定 V20 未可信候选的挑战、所有者/会话、RP、凭证和响应 SHA-256，数据库 INSERT 守卫重验账户/角色/nonce/撤销状态；仅允许 `not_trusted / trust_roots_unconfigured`，不允许直接转换为已验证凭证。
+- **隔离调用与审计：** 新非 Bean `StagedAttestationRejectionLedger` 从 V20 读取得到完整记录，不接受浏览器提供的来源认可标志；若 `admin_access_log` 的拒绝审计缺失，事务回滚。四项真实 PG18 负向用例已写入强制 JUnit 证据检查，Console ≥25 且九套 ≥97；GitHub main push 自动运行 PG18。提交时为 **PENDING**，严禁用编译替代真实 PG18 通过。
+- **发布判断：** V21 只保存 **attestation 未获得信任** 的回执，未接真实根证书/MDS/证书状态、未实现可信正向签名验证、管理员双审或 KMS/CA、Pop!_OS 24.04 L3。Issue #5 保持 OPEN，v0.1 NOT RELEASE READY；生产开关持续 OFF。
+
 ## 2026-11-17 A11-D2-D4-B1/B2 注册证明信任边界（未批准上线）
 
 - **B1 已同 SHA L1 验收：** `c1d57a95` 新增非 Bean `StagedAttestationAdmissionPolicy` 及合成负向测试。Java [#43970694508](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694508)、PG18 集成源码编译 [#43970694600](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694600)、RD-2 [#43970694571](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694571) 均 **SUCCESS**。合成标志不可作为密码学证据，B1 仅形状门禁，不是可信 attestation。

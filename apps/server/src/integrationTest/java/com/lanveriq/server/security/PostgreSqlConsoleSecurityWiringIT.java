@@ -1249,6 +1249,177 @@ class PostgreSqlConsoleSecurityWiringIT {
         }
     }
 
+
+    // V21 is deliberately a rejection-only ledger. It does not make any
+    // synthetic V16/V18/V20 material trusted or authorize credential login.
+    private UUID syntheticV21Candidate(UUID actor) {
+        byte[] credential = makeUntrustedCandidateCredential(actor);
+        var nonce = registrationLedger(input -> {}); // synthetic, test-only
+        var issued = issueRegistration(nonce);
+        tx(() -> {
+            nonce.consume(issued.id(), issued.nonceBase64Url(), new byte[]{1});
+            new StagedPasskeyRegistrationCandidateLedger(entityManager)
+                    .stageUntrusted(issued.id(), credential, new byte[]{1});
+        });
+        return issued.id();
+    }
+
+    @Test
+    void attestationRejectionRequiresV20CandidateAndRecordsOnlyNotTrusted() {
+        UUID actor = registrationOwner();
+        registrationActor(actor, 0);
+        try {
+            var ledger = new StagedAttestationRejectionLedger(entityManager);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    ledger.recordUnconfiguredTrustRoots(UUID.randomUUID())));
+            UUID nonce = syntheticV21Candidate(actor);
+            tx(() -> ledger.recordUnconfiguredTrustRoots(nonce));
+            Object[] row = (Object[]) entityManager.createNativeQuery("""
+                    SELECT rejection.evidence_grade,rejection.rejection_code,
+                           rejection.registration_response_sha256,
+                           candidate.registration_response_sha256
+                    FROM admin_passkey_attestation_rejections_staging rejection
+                    JOIN admin_passkey_registration_candidates_staging candidate
+                      ON candidate.challenge_id=rejection.challenge_id
+                    WHERE rejection.challenge_id=:nonce
+                    """).setParameter("nonce", nonce).getSingleResult();
+            assertEquals("not_trusted", row[0]);
+            assertEquals("trust_roots_unconfigured", row[1]);
+            assertArrayEquals((byte[]) row[3], (byte[]) row[2]);
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE principal_id=:actor AND resource_id=:nonce
+                      AND action='admin.passkey.attestation.untrusted_no_roots'
+                      AND outcome='denied'
+                    """).setParameter("actor", actor).setParameter("nonce", nonce)
+                    .getSingleResult()).longValue());
+            assertTrue(context.getBeansOfType(StagedAttestationRejectionLedger.class)
+                    .isEmpty());
+            assertTrue(context.getBeansOfType(UserCredentialRepository.class)
+                    .values().stream()
+                    .noneMatch(bean -> !(bean instanceof StagedDenyAllWebAuthnCredentialRepository)));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void attestationRejectionCannotReplayUpgradeOrEraseHistory() {
+        UUID actor = registrationOwner();
+        registrationActor(actor, 0);
+        try {
+            UUID nonce = syntheticV21Candidate(actor);
+            var ledger = new StagedAttestationRejectionLedger(entityManager);
+            tx(() -> ledger.recordUnconfiguredTrustRoots(nonce));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    ledger.recordUnconfiguredTrustRoots(nonce)));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_attestation_rejections_staging
+                        SET evidence_grade='trusted' WHERE challenge_id=:nonce
+                        """).setParameter("nonce", nonce).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_attestation_rejections_staging
+                        SET rejection_code='verified' WHERE challenge_id=:nonce
+                        """).setParameter("nonce", nonce).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_passkey_attestation_rejections_staging
+                        WHERE challenge_id=:nonce
+                        """).setParameter("nonce", nonce).executeUpdate()));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_rejections_staging
+                    WHERE challenge_id=:nonce AND evidence_grade='not_trusted'
+                    """).setParameter("nonce", nonce).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void attestationRejectionDeniesForeignActorAndRotatedSession() {
+        UUID actor = registrationOwner();
+        UUID other = registrationOwner();
+        registrationActor(actor, 0);
+        try {
+            UUID nonce = syntheticV21Candidate(actor);
+            var ledger = new StagedAttestationRejectionLedger(entityManager);
+            registrationActor(other, 0);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    ledger.recordUnconfiguredTrustRoots(nonce)));
+            registrationActor(actor, 0);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1
+                    WHERE id=:actor
+                    """).setParameter("actor", actor).executeUpdate());
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    ledger.recordUnconfiguredTrustRoots(nonce)));
+            registrationActor(actor, 1);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    ledger.recordUnconfiguredTrustRoots(nonce)));
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_rejections_staging
+                    WHERE challenge_id=:nonce
+                    """).setParameter("nonce", nonce).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void suppressedAttestationRejectionAuditRollsBackReceiptThenAllowsRetry() {
+        UUID actor = registrationOwner();
+        registrationActor(actor, 0);
+        try {
+            UUID nonce = syntheticV21Candidate(actor);
+            var ledger = new StagedAttestationRejectionLedger(entityManager);
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                    CREATE FUNCTION a11_attestation_suppress_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $
+                    BEGIN
+                        IF NEW.action='admin.passkey.attestation.untrusted_no_roots' THEN
+                            RETURN NULL;
+                        END IF;
+                        RETURN NEW;
+                    END;
+                    $
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    CREATE TRIGGER a11_attestation_suppress_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_attestation_suppress_audit()
+                    """).executeUpdate();
+            });
+            try {
+                assertThrows(IllegalStateException.class, () -> tx(() ->
+                        ledger.recordUnconfiguredTrustRoots(nonce)));
+                assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_passkey_attestation_rejections_staging
+                        WHERE challenge_id=:nonce
+                        """).setParameter("nonce", nonce).getSingleResult()).longValue());
+            } finally {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                            DROP TRIGGER IF EXISTS a11_attestation_suppress_audit
+                            ON admin_access_log
+                            """).executeUpdate();
+                    entityManager.createNativeQuery("""
+                            DROP FUNCTION IF EXISTS a11_attestation_suppress_audit()
+                            """).executeUpdate();
+                });
+            }
+            tx(() -> ledger.recordUnconfiguredTrustRoots(nonce));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_rejections_staging
+                    WHERE challenge_id=:nonce AND evidence_grade='not_trusted'
+                    """).setParameter("nonce", nonce).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
     @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is
