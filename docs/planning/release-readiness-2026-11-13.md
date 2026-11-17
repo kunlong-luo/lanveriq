@@ -22,10 +22,12 @@
 
 **V22 首轮真实 PG18 失败与修复（代码复验待完成）：** 首轮 [源 SHA `803c8721`](https://github.com/kunlong-luo/lanveriq/commit/803c8721f3669967249a0494a0186c01fa9a5993) 的 [PG18 #44086285547](https://github.com/kunlong-luo/lanveriq/actions/runs/44086285547) 执行 116 个用例，其中 1 项审计抑制测试在临时创建 PL/pgSQL 函数时因 Java 夹具中的双美元定界符被错误替换为单美元而失败。故该 SHA **不得判定 L2 通过**；Java L1 #44086285517、源码编译 #44086285554、RD-2 #44086285635 同 SHA SUCCESS，但不能替代失败的 PG18。已在本次修复中恢复正确定界符，安全约束、4 项必测用例与证据门禁均保留；增加不溢出的合成证书 serial 生成方式。新 SHA 的 PG18 和 Linux 仍需独立确认。
 
-## 2026-11-17 A11-D2-D4-B4-A V22 离线根证书候选管理（PENDING L1/L2）
+**V22 B4-A 同一源码 SHA L1/L2 验收（2026-11-17）：** [`7f6d0b6c`](https://github.com/kunlong-luo/lanveriq/commit/7f6d0b6c880197e727b730360b071ea554b88a16) 的 [真实 PG18 九套 #44086622096](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622096) **SUCCESS**（Testcontainers/Flyway 事务测试及严格 JUnit XML 证据门禁两个 steps 均成功）；[Linux TLS1.3+PG18 #44086622378](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622378) **SUCCESS**（真实 PG18 安全事务及 Caddy→Tomcat 双跳 TLS1.3 两个独立 jobs 均成功）；[Java L1 #44086622202](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622202)、[PG18 集成源码编译 #44086622113](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622113)、[RD-2 #44086622133](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622133) **均 SUCCESS**。首轮代码 [`803c8721`](https://github.com/kunlong-luo/lanveriq/commit/803c8721f3669967249a0494a0186c01fa9a5993) 的 [PG18 #44086285547](https://github.com/kunlong-luo/lanveriq/actions/runs/44086285547) **FAILED（116 项 1 失败）**，由 `7f6d0b6c` 修复夹具后才完整通过，历史失败保留。V22 仅离线 **`untrusted_proposal`** 存储与回滚验收，WebAuthn4J 根仍空；不是组织/FIDO 认可、生产可信时间/撤销/元数据、真实 Passkey MFA/双审、CA/KMS、Pop!_OS L3 或上线批准。生产功能持续 OFF；Issue #5 OPEN，v0.1 NOT RELEASE READY。
+
+## 2026-11-17 A11-D2-D4-B4-A V22 离线根证书候选管理（隔离 L1/L2 PASS）
 
 - 新增 PG18 V22 **未受信任根证书提案**，只允许 `untrusted_proposal`，数据库生成 SHA-256 证书指纹、凭证 DER 不可变、重复根不可重用；管理员/会话/有效角色验证 + 同事务强制审计。JDK 证书解析自签 CA/规范 DER，不把自签名误作 FIDO/组织认可。WebAuthn4J 正式根仓库继续空集，所有权限与生产安全开关关闭。
-- 新增四项真实 PG18 负向事务用例及失效审计回滚、严格 JUnit 九套 Console ≥29、总 ≥101；更新 V9→V22 13 次迁移断言和自动触发路径。**本 SHA CI 尚未完成**；不得声称已通过或 L3。
+- 新增四项真实 PG18 负向事务用例及失效审计回滚、严格 JUnit 九套 Console ≥29、总 ≥101；更新 V9→V22 13 次迁移断言和自动触发路径。**修复后源码 `7f6d0b6c` 的真实 PG18、Linux、Java、集成编译及 RD-2 均 SUCCESS**（详情见当日验收补记）；仍非 L3。
 - 尚需签名 FIDO Metadata Service、双人独立审核及授权、可信时间/撤销、真正受信验证结果、可信凭证存储、WebAuthn MFA 与签发 KMS/CA。Issue #5 OPEN；v0.1 NOT RELEASE READY。
 
 ## 2026-11-17 A11-D2-D4-B3 — V21 独立拒绝证据链（PENDING 同 SHA CI）

@@ -12,12 +12,14 @@
 
 **V22 首轮真实 PG18 失败与修复（代码复验待完成）：** 首轮 [源 SHA `803c8721`](https://github.com/kunlong-luo/lanveriq/commit/803c8721f3669967249a0494a0186c01fa9a5993) 的 [PG18 #44086285547](https://github.com/kunlong-luo/lanveriq/actions/runs/44086285547) 执行 116 个用例，其中 1 项审计抑制测试在临时创建 PL/pgSQL 函数时因 Java 夹具中的双美元定界符被错误替换为单美元而失败。故该 SHA **不得判定 L2 通过**；Java L1 #44086285517、源码编译 #44086285554、RD-2 #44086285635 同 SHA SUCCESS，但不能替代失败的 PG18。已在本次修复中恢复正确定界符，安全约束、4 项必测用例与证据门禁均保留；增加不溢出的合成证书 serial 生成方式。新 SHA 的 PG18 和 Linux 仍需独立确认。
 
-### 2026-11-17 D4-B4-A — V22 离线受信根候选暂存（本提交 L1/L2 待验证）
+**V22 B4-A 同一源码 SHA L1/L2 验收（2026-11-17）：** [`7f6d0b6c`](https://github.com/kunlong-luo/lanveriq/commit/7f6d0b6c880197e727b730360b071ea554b88a16) 的 [真实 PG18 九套 #44086622096](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622096) **SUCCESS**（Testcontainers/Flyway 事务测试及严格 JUnit XML 证据门禁两个 steps 均成功）；[Linux TLS1.3+PG18 #44086622378](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622378) **SUCCESS**（真实 PG18 安全事务及 Caddy→Tomcat 双跳 TLS1.3 两个独立 jobs 均成功）；[Java L1 #44086622202](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622202)、[PG18 集成源码编译 #44086622113](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622113)、[RD-2 #44086622133](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622133) **均 SUCCESS**。首轮代码 [`803c8721`](https://github.com/kunlong-luo/lanveriq/commit/803c8721f3669967249a0494a0186c01fa9a5993) 的 [PG18 #44086285547](https://github.com/kunlong-luo/lanveriq/actions/runs/44086285547) **FAILED（116 项 1 失败）**，由 `7f6d0b6c` 修复夹具后才完整通过，历史失败保留。V22 仅离线 **`untrusted_proposal`** 存储与回滚验收，WebAuthn4J 根仍空；不是组织/FIDO 认可、生产可信时间/撤销/元数据、真实 Passkey MFA/双审、CA/KMS、Pop!_OS L3 或上线批准。生产功能持续 OFF；Issue #5 OPEN，v0.1 NOT RELEASE READY。
+
+### 2026-11-17 D4-B4-A — V22 离线受信根候选暂存（修复 SHA L1/L2 已验收）
 
 - **严格区分候选与信任：** Flyway V22 新增 `admin_passkey_attestation_root_proposals_staging`，只容纳未受信任的离线根证书候选；`trust_state='untrusted_proposal'`、`source='offline_candidate'` 固定为 SQL CHECK；根证书 DER/数据库计算的 SHA-256 指纹必须一一对应，重复根拒绝，UPDATE/DELETE 受不可变触发器约束。不存在 `approved`、`active`、`trusted` 状态，WebAuthn4J `TrustAnchorRepository` 仍始终返回空集。
 - **标准密码学库入库前检查：** 非 Bean `StagedAttestationRootCertificateInspector` 使用 JDK X.509/PKIX 证书 API 解析原始规范 DER，要求 V3、CA BasicConstraints、keyCertSign、主体等于签发人、有效期、自签名正确；不写自制 ASN.1/CBOR/COSE。注意：自签名只能说明签名自洽，**并不证明认证器制造商/组织受信**；JVM 时间也未达到生产可信时间标准。
 - **审计/撤权与默认拒绝：** 包私有 `StagedAttestationRootProposalLedger` 核对当前安全管理员、会话版本与未停用状态，数据库 INSERT 锁读当前账户与权限；审计丢失时必须事务回滚。没有控制器、Spring Bean、HTTP 入口、审批通过 API、受信根读取或签发调用。
-- **L1/L2 门禁：** 新增损坏/非规范 DER 的 L1 拒绝；真实 PG18 新增四项：自签 CA 离线候选的指纹与未信任状态、重放/升级/删除拒绝、撤角色/轮换会话/停用拒绝、审计插入被抑制时原子回滚及重试。原历史 V9→当前迁移数从 12→13；九套严格 JUnit Console ≥29、总计 ≥101。GitHub Actions 自动触发真实 PG18 和 Linux TLS 合成隔离工作流；**本提交的 exact-SHA CI 结果尚未取得，不得标已通过**。
+- **L1/L2 门禁：** 新增损坏/非规范 DER 的 L1 拒绝；真实 PG18 新增四项：自签 CA 离线候选的指纹与未信任状态、重放/升级/删除拒绝、撤角色/轮换会话/停用拒绝、审计插入被抑制时原子回滚及重试。原历史 V9→当前迁移数从 12→13；九套严格 JUnit Console ≥29、总计 ≥101。GitHub Actions 自动触发真实 PG18 和 Linux TLS 合成隔离工作流；**修复 SHA `7f6d0b6c` 的 exact-SHA L1/L2 已成功；详见本页当日验收补记**。
 - **剩余阻断：** FIDO MDS 签名源与组织 CA 信任根人工双人审核、OCSP/CRL、元数据状态/可信时间、管理员 WebAuthn 注册真实正向 attestation、原子可信证据、撤销、L3、隐私及 KMS/CA 都未实现。V22 不能给 V20/V21 或任何 Passkey 赋予权限；v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控/发行方 OFF。
 
 ### 2026-11-17 D4-B3 — V21 未可信 attestation 拒绝回执（**仅隔离待验收**）
