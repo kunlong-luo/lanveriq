@@ -26,10 +26,12 @@
 
 **2026-11-17 V23 B4-B 同一源码 SHA 验收进展：** [`5f236584`](https://github.com/kunlong-luo/lanveriq/commit/5f2365842b641d20043eb69d1b7f809751c7917d) 的 [真实 PostgreSQL 18.6 九套事务 #44096805607](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805607) **SUCCESS**（Testcontainers/Flyway 真实事务和强制 JUnit evidence 两步均通过）；[Java L1 #44096805132](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805132)、[PG18 集成源码编译 #44096805283](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805283)、[RD-2 #44096805633](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805633) 均 **SUCCESS**。同 SHA [Linux TLS1.3+PG18 #44096805126](https://github.com/kunlong-luo/lanveriq/actions/runs/44096805126) 的 PG18 安全事务 job 及 Caddy→Tomcat TLS1.3 双跳合成 job 均已 **SUCCESS**，完整 Linux workflow **SUCCESS**（同一源码 SHA，仅隔离 L2）。V23 仅保存独立两人 `screened_untrusted` 候选筛查，**不构成受信任根批准、MFA 或签发授权**。仍缺 MDS 签名/吊销/可信时间/审核人强认证/Pop!_OS L3；Issue #5 OPEN、v0.1 NOT READY，所有生产操作 OFF。
 
-## 2026-11-17 A11-D2-D4-C1 V24 未可信根候选永久取消资格（CI PENDING）
+**2026-11-17 A11-D2-D4-C1 V24 同一源码 SHA L1/L2 验收：** [`d3dde003`](https://github.com/kunlong-luo/lanveriq/commit/d3dde003b06ec4010d5fb51c08f17b1eb958f22e) 的 [真实 PG18 九套 #44101712278](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712278) **SUCCESS**，其中 Testcontainers/Flyway 真数据库事务及严格 JUnit XML evidence 两步均成功；[Linux Caddy→Tomcat TLS1.3 + PG18 #44101712406](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712406) **SUCCESS**，PG18 安全事务证据与真实双跳 TLS1.3 两个独立 jobs 均成功；[Java L1 #44101712267](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712267)、[PG18 集成源码编译 #44101712100](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712100)、[RD-2 #44101712220](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712220) **均 SUCCESS**（均为同一源码 SHA）。V24 仅是 V22 **未可信离线候选**的永久取消资格、V23 后续筛查阻断、审计原子性和并发序列化；不是 FIDO MDS、真实管理员 MFA、已批准 trust anchor 的撤销、可信时钟、PKIX OCSP/CRL、签发或 Pop!_OS24 实机 L3。**生产 Agent/联网/采集/自动恢复/远控/发行方保持 OFF，v0.1 NOT RELEASE READY，Issue #5 OPEN。**
+
+## 2026-11-17 A11-D2-D4-C1 V24 未可信根候选永久取消资格（同 SHA L1/L2 PASS）
 
 - Flyway V24 新建不可变、每提案仅一次的 `disqualified_untrusted` 拒绝账本（管理员身份、会话、DB 证书 digest、原因、服务器记录时间）；与 V23 双审共享 V22 提案 `FOR UPDATE` 锁，取消资格后禁止任何后续筛查，但绝不修改旧历史或启用根。内部非 Bean 同事务强制审计；即使原提交人已撤权，当前安全管理员仍可执行组织级否决。
-- 新增五项真实 PG18 原子/撤权/重复/并发/审计负向测试、严格 JUnit 证据门禁（Console ≥39，九套 ≥111）及 V9→V24 迁移数量 15。所有变更和 A11 文档与本账本在同一代码提交，**CI 尚为 PENDING，不得提前宣称 L2**。
+- 新增五项真实 PG18 原子/撤权/重复/并发/审计负向测试、严格 JUnit 证据门禁（Console ≥39，九套 ≥111）及 V9→V24 迁移数量 15。所有变更和 A11 文档与本账本在同一代码提交，**源码 SHA `d3dde003` 的真实 PG18/L2、Linux TLS1.3、Java L1、集成编译、RD-2 五项均已 SUCCESS；非真实设备 L3**。
 - 本项不是生产 CRL/OCSP、FIDO MDS/可信时间、已批准根的撤销、真正 MFA/双人签发审批或 Pop!_OS24 L3。WebAuthn4J trust-anchor 集合仍为空；Issue #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控/发行方 OFF。
 
 ## 2026-11-17 A11-D2-D4-B4-B V23 双人独立离线根筛查（CI PENDING）
