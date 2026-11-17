@@ -20,6 +20,8 @@
 
 **V21 B3 最终复验状态（按修复后精确源码 SHA 记账）：** [`134cc758`](https://github.com/kunlong-luo/lanveriq/commit/134cc7580c2ea7616909288d48b76431ee2192f4) 的 [真实 PostgreSQL 18 九套 #44011548316](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548316) **SUCCESS**，其中 Testcontainers/Flyway 真实事务和 mandatory JUnit evidence checker 两个 job steps 均 SUCCESS；[Java L1 #44011548328](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548328)、[PG18 集成源码编译 #44011548311](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548311)、[RD-2 #44011548315](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548315) **均 SUCCESS**。同 SHA [Linux 双跳 #44011548309](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548309) 的 PG18 九套安全事务 job 和 Caddy→Tomcat TLS1.3 双跳合成 job **均 SUCCESS**，该 Linux workflow 整体 **SUCCESS**（同一源码 SHA）；这仍然不是 Pop!_OS 真实设备 L3。以上仅证明 **V21 未可信拒绝回执** 的合成 L1/L2 验收，不是可信 attestation/root/MDS、真正 Passkey 登录、管理员审核 MFA、CA/KMS 或 Pop!_OS L3。v0.1 不批准上线，生产功能 OFF。
 
+**V22 首轮真实 PG18 失败与修复（代码复验待完成）：** 首轮 [源 SHA `803c8721`](https://github.com/kunlong-luo/lanveriq/commit/803c8721f3669967249a0494a0186c01fa9a5993) 的 [PG18 #44086285547](https://github.com/kunlong-luo/lanveriq/actions/runs/44086285547) 执行 116 个用例，其中 1 项审计抑制测试在临时创建 PL/pgSQL 函数时因 Java 夹具中的双美元定界符被错误替换为单美元而失败。故该 SHA **不得判定 L2 通过**；Java L1 #44086285517、源码编译 #44086285554、RD-2 #44086285635 同 SHA SUCCESS，但不能替代失败的 PG18。已在本次修复中恢复正确定界符，安全约束、4 项必测用例与证据门禁均保留；增加不溢出的合成证书 serial 生成方式。新 SHA 的 PG18 和 Linux 仍需独立确认。
+
 ## 2026-11-17 A11-D2-D4-B4-A V22 离线根证书候选管理（PENDING L1/L2）
 
 - 新增 PG18 V22 **未受信任根证书提案**，只允许 `untrusted_proposal`，数据库生成 SHA-256 证书指纹、凭证 DER 不可变、重复根不可重用；管理员/会话/有效角色验证 + 同事务强制审计。JDK 证书解析自签 CA/规范 DER，不把自签名误作 FIDO/组织认可。WebAuthn4J 正式根仓库继续空集，所有权限与生产安全开关关闭。

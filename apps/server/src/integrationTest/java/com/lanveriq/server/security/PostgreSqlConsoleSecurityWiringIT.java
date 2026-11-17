@@ -1430,7 +1430,7 @@ class PostgreSqlConsoleSecurityWiringIT {
                     "CN=synthetic-untrusted-root-" + UUID.randomUUID());
             var now = java.time.Instant.now();
             var builder = new org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder(
-                    subject, java.math.BigInteger.valueOf(Math.abs(new SecureRandom().nextLong()) + 1),
+                    subject, new java.math.BigInteger(80, new SecureRandom()).add(java.math.BigInteger.ONE),
                     java.util.Date.from(now.minusSeconds(86400)),
                     java.util.Date.from(now.plusSeconds(86400 * 30L)),
                     subject, keys.getPublic());
@@ -1559,13 +1559,13 @@ class PostgreSqlConsoleSecurityWiringIT {
             tx(() -> {
                 entityManager.createNativeQuery("""
                     CREATE FUNCTION a11_root_proposal_suppress_audit()
-                    RETURNS trigger LANGUAGE plpgsql AS $
+                    RETURNS trigger LANGUAGE plpgsql AS $$
                     BEGIN
                         IF NEW.action='admin.passkey.attestation.root.untrusted_proposal'
                         THEN RETURN NULL; END IF;
                         RETURN NEW;
                     END;
-                    $
+                    $$
                     """).executeUpdate();
                 entityManager.createNativeQuery("""
                     CREATE TRIGGER a11_root_proposal_suppress_audit
