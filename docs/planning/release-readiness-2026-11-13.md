@@ -18,6 +18,8 @@
 
 **V21 初次真实 PG18 L2 失败与修复待复验：** [`d92ef99c`](https://github.com/kunlong-luo/lanveriq/commit/d92ef99c770090c46e742e1055dc4d6a8c5e3d50) 的 [PG18 #44011309005](https://github.com/kunlong-luo/lanveriq/actions/runs/44011309005) / [Linux PG18 #44011308933](https://github.com/kunlong-luo/lanveriq/actions/runs/44011308933) 因 *测试实现的两个问题* 失败，**不构成 L2 验收**：审计抑制测试 PL/pgSQL 定界符误写、历史 V9 升级迁移计数未随 V21 调整（11→12）。本轮前向修正测试和九套 ≥97 证据输出文案；V21 DB 约束、全部四项负向测试及生产默认拒绝均未放宽。新 SHA 需单独成功才算验收。
 
+**V21 B3 最终复验状态（按修复后精确源码 SHA 记账）：** [`134cc758`](https://github.com/kunlong-luo/lanveriq/commit/134cc7580c2ea7616909288d48b76431ee2192f4) 的 [真实 PostgreSQL 18 九套 #44011548316](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548316) **SUCCESS**，其中 Testcontainers/Flyway 真实事务和 mandatory JUnit evidence checker 两个 job steps 均 SUCCESS；[Java L1 #44011548328](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548328)、[PG18 集成源码编译 #44011548311](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548311)、[RD-2 #44011548315](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548315) **均 SUCCESS**。同 SHA [Linux 双跳 #44011548309](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548309) 的 PG18 job SUCCESS，但 Caddy→Tomcat TLS1.3 job 截至此处仍 IN PROGRESS，不能声称整体 Linux workflow 成功。以上仅证明 **V21 未可信拒绝回执** 的合成 L1/L2 验收，不是可信 attestation/root/MDS、真正 Passkey 登录、管理员审核 MFA、CA/KMS 或 Pop!_OS L3。v0.1 不批准上线，生产功能 OFF。
+
 ## 2026-11-17 A11-D2-D4-B3 — V21 独立拒绝证据链（PENDING 同 SHA CI）
 
 - **代码与数据库：** Flyway V21 新增唯一、不可变的 `admin_passkey_attestation_rejections_staging`；复合外键锁定 V20 未可信候选的挑战、所有者/会话、RP、凭证和响应 SHA-256，数据库 INSERT 守卫重验账户/角色/nonce/撤销状态；仅允许 `not_trusted / trust_roots_unconfigured`，不允许直接转换为已验证凭证。

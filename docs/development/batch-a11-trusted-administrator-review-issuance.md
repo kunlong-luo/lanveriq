@@ -16,6 +16,8 @@
 
 ；旧 V9 升级测试的迁移数仍为 V20 的 11 而未更新到 V21 的 12。已修复两处测试缺陷并同步校正 JUnit gate 文案（九套至少 97 项），不改 V21 SQL 安全守卫、强制用例或生产开关。**此修复提交的真实 CI 仍需通过才可标为 L2 accepted**。
 
+**V21 B3 最终复验状态（按修复后精确源码 SHA 记账）：** [`134cc758`](https://github.com/kunlong-luo/lanveriq/commit/134cc7580c2ea7616909288d48b76431ee2192f4) 的 [真实 PostgreSQL 18 九套 #44011548316](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548316) **SUCCESS**，其中 Testcontainers/Flyway 真实事务和 mandatory JUnit evidence checker 两个 job steps 均 SUCCESS；[Java L1 #44011548328](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548328)、[PG18 集成源码编译 #44011548311](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548311)、[RD-2 #44011548315](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548315) **均 SUCCESS**。同 SHA [Linux 双跳 #44011548309](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548309) 的 PG18 job SUCCESS，但 Caddy→Tomcat TLS1.3 job 截至此处仍 IN PROGRESS，不能声称整体 Linux workflow 成功。以上仅证明 **V21 未可信拒绝回执** 的合成 L1/L2 验收，不是可信 attestation/root/MDS、真正 Passkey 登录、管理员审核 MFA、CA/KMS 或 Pop!_OS L3。v0.1 不批准上线，生产功能 OFF。
+
 ### 2026-11-17 D4-B3 — V21 未可信 attestation 拒绝回执（**仅隔离待验收**）
 
 - **原子来源链：** 新增 Flyway V21 `admin_passkey_attestation_rejections_staging`，通过 V20 新增复合唯一键与六字段复合外键，绑定 **V19 挑战 ID、当前管理员/会话、固定 RP、凭证 ID、原始注册响应 SHA-256**；SQL 插入守卫重新核对已消费 nonce、有效时间、当前所有者身份与权限、凭证未吊销。唯一回执、`evidence_grade='not_trusted'`、`rejection_code='trust_roots_unconfigured'` 均由 SQL CHECK 固定，UPDATE/DELETE 被历史不可变触发器拒绝。禁止 SQL 将此表提升为可信证明。无原始响应、硬件标识或私钥复制。
