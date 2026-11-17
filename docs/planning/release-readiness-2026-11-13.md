@@ -14,6 +14,8 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+**B2 代码精确 SHA 验收补记：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 已通过 [Java L1 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852)、[RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822)，全部与此代码 SHA 一致。**未新增真实 PG18 容器测试、可信 attestation 正向证明或 L3**，不得把源码编译称为数据库验收。本次仅文档补录，不改变安全开关。
+
 ## 2026-11-17 A11-D2-D4-B1/B2 注册证明信任边界（未批准上线）
 
 - **B1 已同 SHA L1 验收：** `c1d57a95` 新增非 Bean `StagedAttestationAdmissionPolicy` 及合成负向测试。Java [#43970694508](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694508)、PG18 集成源码编译 [#43970694600](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694600)、RD-2 [#43970694571](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694571) 均 **SUCCESS**。合成标志不可作为密码学证据，B1 仅形状门禁，不是可信 attestation。

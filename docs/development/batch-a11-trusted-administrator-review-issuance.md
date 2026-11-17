@@ -4,6 +4,8 @@
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
 
+**B2 同 SHA 自动 CI 验收补记（2026-11-17）：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 的 [Java 单元测试 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852) 与 [RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822) **均 SUCCESS**。仅 L1 编译/单测与远控拒绝检查；没有运行该提交的真实 PG18 L2、签名证书链的可信正向验收或者 Pop!_OS L3。以上不会构成上线批准。
+
 ### 2026-11-17 D4-B2 — 严格 WebAuthn4J 证书路径验证器配置（无信任根、未接线）
 
 - 新增非 Bean 的 `StagedStrictAttestationWebAuthn4JFactory`，使用官方 `WebAuthnManager` 显式构造：**仅** `PackedAttestationStatementVerifier`，官方 `DefaultCertPathTrustworthinessVerifier`，强制启用证书状态撤销检查与禁止客户端全链，明确拒绝 self-attestation；**不包含** `NoneAttestationStatementVerifier`、`NullPackedAttestationStatementVerifier`、`NullCertPathTrustworthinessVerifier` 等弱验证实现。官方实现说明警告，混入 no-op 验证器会造成认证器证明绕过（[WebAuthn4J 官方参考](https://webauthn4j.github.io/webauthn4j/en/)）。
