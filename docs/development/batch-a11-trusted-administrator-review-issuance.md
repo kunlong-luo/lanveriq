@@ -6,17 +6,17 @@
 
 **B2 同 SHA 自动 CI 验收补记（2026-11-17）：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 的 [Java 单元测试 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852) 与 [RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822) **均 SUCCESS**。仅 L1 编译/单测与远控拒绝检查；没有运行该提交的真实 PG18 L2、签名证书链的可信正向验收或者 Pop!_OS L3。以上不会构成上线批准。
 
-**2026-11-17 V21 PG18 首轮失败诊断与修复（回归待确认）：** 初次提交 [`d92ef99c`](https://github.com/kunlong-luo/lanveriq/commit/d92ef99c770090c46e742e1055dc4d6a8c5e3d50) 的 [真实 PG18 #44011309005](https://github.com/kunlong-luo/lanveriq/actions/runs/44011309005) 与 [Linux PG18 job #44011308933](https://github.com/kunlong-luo/lanveriq/actions/runs/44011308933) **FAILED / 不验收**。九套真实数据库用例已执行 112 项，其中两个失败：新增审计拦截测试中的 PL/pgSQL `$` 错写为 `# Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
-
-> 状态：A11-A/B/C、D1、D2-A/B/C 隔离合成验收已完成；D2-D1/D2/D3/D4 安全基础均已通过隔离 L1/L2 验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-16。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
->
-> 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
-
-**B2 同 SHA 自动 CI 验收补记（2026-11-17）：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 的 [Java 单元测试 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852) 与 [RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822) **均 SUCCESS**。仅 L1 编译/单测与远控拒绝检查；没有运行该提交的真实 PG18 L2、签名证书链的可信正向验收或者 Pop!_OS L3。以上不会构成上线批准。
-
-；旧 V9 升级测试的迁移数仍为 V20 的 11 而未更新到 V21 的 12。已修复两处测试缺陷并同步校正 JUnit gate 文案（九套至少 97 项），不改 V21 SQL 安全守卫、强制用例或生产开关。**此修复提交的真实 CI 仍需通过才可标为 L2 accepted**。
+**2026-11-17 V21 历史失败说明：** 初次提交 `d92ef99c` 的真实 PG18 曾因测试用 PL/pgSQL 定界符及 V21 迁移数量断言失败；随后修复 SHA `134cc758` 的完整 PG18、Linux TLS、Java 和 RD-2 同 SHA 验收通过。历史失败保留，不改变新迁移的真实 L2 结论。
 
 **V21 B3 最终复验状态（按修复后精确源码 SHA 记账）：** [`134cc758`](https://github.com/kunlong-luo/lanveriq/commit/134cc7580c2ea7616909288d48b76431ee2192f4) 的 [真实 PostgreSQL 18 九套 #44011548316](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548316) **SUCCESS**，其中 Testcontainers/Flyway 真实事务和 mandatory JUnit evidence checker 两个 job steps 均 SUCCESS；[Java L1 #44011548328](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548328)、[PG18 集成源码编译 #44011548311](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548311)、[RD-2 #44011548315](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548315) **均 SUCCESS**。同 SHA [Linux 双跳 #44011548309](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548309) 的 PG18 九套安全事务 job 和 Caddy→Tomcat TLS1.3 双跳合成 job **均 SUCCESS**，该 Linux workflow 整体 **SUCCESS**（同一源码 SHA）；这仍然不是 Pop!_OS 真实设备 L3。以上仅证明 **V21 未可信拒绝回执** 的合成 L1/L2 验收，不是可信 attestation/root/MDS、真正 Passkey 登录、管理员审核 MFA、CA/KMS 或 Pop!_OS L3。v0.1 不批准上线，生产功能 OFF。
+
+### 2026-11-17 D4-B4-A — V22 离线受信根候选暂存（本提交 L1/L2 待验证）
+
+- **严格区分候选与信任：** Flyway V22 新增 `admin_passkey_attestation_root_proposals_staging`，只容纳未受信任的离线根证书候选；`trust_state='untrusted_proposal'`、`source='offline_candidate'` 固定为 SQL CHECK；根证书 DER/数据库计算的 SHA-256 指纹必须一一对应，重复根拒绝，UPDATE/DELETE 受不可变触发器约束。不存在 `approved`、`active`、`trusted` 状态，WebAuthn4J `TrustAnchorRepository` 仍始终返回空集。
+- **标准密码学库入库前检查：** 非 Bean `StagedAttestationRootCertificateInspector` 使用 JDK X.509/PKIX 证书 API 解析原始规范 DER，要求 V3、CA BasicConstraints、keyCertSign、主体等于签发人、有效期、自签名正确；不写自制 ASN.1/CBOR/COSE。注意：自签名只能说明签名自洽，**并不证明认证器制造商/组织受信**；JVM 时间也未达到生产可信时间标准。
+- **审计/撤权与默认拒绝：** 包私有 `StagedAttestationRootProposalLedger` 核对当前安全管理员、会话版本与未停用状态，数据库 INSERT 锁读当前账户与权限；审计丢失时必须事务回滚。没有控制器、Spring Bean、HTTP 入口、审批通过 API、受信根读取或签发调用。
+- **L1/L2 门禁：** 新增损坏/非规范 DER 的 L1 拒绝；真实 PG18 新增四项：自签 CA 离线候选的指纹与未信任状态、重放/升级/删除拒绝、撤角色/轮换会话/停用拒绝、审计插入被抑制时原子回滚及重试。原历史 V9→当前迁移数从 12→13；九套严格 JUnit Console ≥29、总计 ≥101。GitHub Actions 自动触发真实 PG18 和 Linux TLS 合成隔离工作流；**本提交的 exact-SHA CI 结果尚未取得，不得标已通过**。
+- **剩余阻断：** FIDO MDS 签名源与组织 CA 信任根人工双人审核、OCSP/CRL、元数据状态/可信时间、管理员 WebAuthn 注册真实正向 attestation、原子可信证据、撤销、L3、隐私及 KMS/CA 都未实现。V22 不能给 V20/V21 或任何 Passkey 赋予权限；v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控/发行方 OFF。
 
 ### 2026-11-17 D4-B3 — V21 未可信 attestation 拒绝回执（**仅隔离待验收**）
 

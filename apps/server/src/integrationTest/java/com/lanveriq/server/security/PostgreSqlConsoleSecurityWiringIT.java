@@ -1420,6 +1420,183 @@ class PostgreSqlConsoleSecurityWiringIT {
         }
     }
 
+
+    private byte[] syntheticOfflineRootDer() {
+        try {
+            var generator = java.security.KeyPairGenerator.getInstance("EC");
+            generator.initialize(new java.security.spec.ECGenParameterSpec("secp256r1"));
+            var keys = generator.generateKeyPair();
+            var subject = new org.bouncycastle.asn1.x500.X500Name(
+                    "CN=synthetic-untrusted-root-" + UUID.randomUUID());
+            var now = java.time.Instant.now();
+            var builder = new org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder(
+                    subject, java.math.BigInteger.valueOf(Math.abs(new SecureRandom().nextLong()) + 1),
+                    java.util.Date.from(now.minusSeconds(86400)),
+                    java.util.Date.from(now.plusSeconds(86400 * 30L)),
+                    subject, keys.getPublic());
+            builder.addExtension(org.bouncycastle.asn1.x509.Extension.basicConstraints,
+                    true, new org.bouncycastle.asn1.x509.BasicConstraints(true));
+            builder.addExtension(org.bouncycastle.asn1.x509.Extension.keyUsage,
+                    true, new org.bouncycastle.asn1.x509.KeyUsage(
+                            org.bouncycastle.asn1.x509.KeyUsage.keyCertSign
+                            | org.bouncycastle.asn1.x509.KeyUsage.cRLSign));
+            return new org.bouncycastle.cert.jcajce.JcaX509CertificateConverter()
+                    .getCertificate(builder.build(
+                            new org.bouncycastle.operator.jcajce.JcaContentSignerBuilder(
+                                    "SHA256withECDSA").build(keys.getPrivate())))
+                    .getEncoded();
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to build synthetic CA fixture", e);
+        }
+    }
+
+    private UUID stageSyntheticRoot(byte[] der) {
+        return new TransactionTemplate(transactionManager).execute(ignored ->
+                new StagedAttestationRootProposalLedger(entityManager,
+                        java.time.Clock.systemUTC()).stageOfflineUntrustedRoot(der));
+    }
+
+    @Test
+    void attestationRootProposalPersistsOnlyUntrustedCanonicalDerAndSha256() throws Exception {
+        UUID owner = registrationOwner();
+        byte[] der = syntheticOfflineRootDer();
+        registrationActor(owner, 0);
+        try {
+            UUID id = stageSyntheticRoot(der);
+            Object[] result = (Object[]) entityManager.createNativeQuery("""
+                    SELECT submitted_by,submitted_session_version,certificate_der,
+                           certificate_sha256,trust_state,source
+                    FROM admin_passkey_attestation_root_proposals_staging
+                    WHERE proposal_id=:id
+                    """).setParameter("id", id).getSingleResult();
+            assertEquals(owner, result[0]);
+            assertEquals(0L, ((Number) result[1]).longValue());
+            assertArrayEquals(der, (byte[]) result[2]);
+            assertArrayEquals(java.security.MessageDigest.getInstance("SHA-256").digest(der),
+                    (byte[]) result[3]);
+            assertEquals("untrusted_proposal", result[4]);
+            assertEquals("offline_candidate", result[5]);
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE principal_id=:actor AND resource_id=:id
+                      AND action='admin.passkey.attestation.root.untrusted_proposal'
+                      AND outcome='allowed'
+                    """).setParameter("actor", owner).setParameter("id", id)
+                    .getSingleResult()).longValue());
+            assertTrue(context.getBeansOfType(StagedAttestationRootProposalLedger.class)
+                    .isEmpty());
+            assertTrue(context.getBeansOfType(StagedStrictAttestationWebAuthn4JFactory.class)
+                    .isEmpty());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void attestationRootProposalCannotReplayUpgradeOrDelete() {
+        UUID owner = registrationOwner();
+        byte[] der = syntheticOfflineRootDer();
+        registrationActor(owner, 0);
+        try {
+            UUID id = stageSyntheticRoot(der);
+            assertThrows(RuntimeException.class, () -> stageSyntheticRoot(der));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_attestation_root_proposals_staging
+                        SET trust_state='approved' WHERE proposal_id=:id
+                        """).setParameter("id", id).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_attestation_root_proposals_staging
+                        SET certificate_der=:der WHERE proposal_id=:id
+                        """).setParameter("id", id)
+                    .setParameter("der", syntheticOfflineRootDer()).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_passkey_attestation_root_proposals_staging
+                        WHERE proposal_id=:id
+                        """).setParameter("id", id).executeUpdate()));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_proposals_staging
+                    WHERE proposal_id=:id AND trust_state='untrusted_proposal'
+                    """).setParameter("id", id).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void attestationRootProposalRejectsRotatedDisabledAndUnscopedActor() {
+        UUID owner = registrationOwner();
+        UUID another = passkeyFixture(syntheticPasskeyBytes(32));
+        registrationActor(another, 0);
+        try {
+            assertThrows(RuntimeException.class,
+                    () -> stageSyntheticRoot(syntheticOfflineRootDer()));
+            registrationActor(owner, 0);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1 WHERE id=:actor
+                    """).setParameter("actor", owner).executeUpdate());
+            assertThrows(RuntimeException.class,
+                    () -> stageSyntheticRoot(syntheticOfflineRootDer()));
+            registrationActor(owner, 1);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET disabled_at=clock_timestamp() WHERE id=:actor
+                    """).setParameter("actor", owner).executeUpdate());
+            assertThrows(RuntimeException.class,
+                    () -> stageSyntheticRoot(syntheticOfflineRootDer()));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void suppressedAttestationRootProposalAuditRollsBackInsert() {
+        UUID owner = registrationOwner();
+        registrationActor(owner, 0);
+        byte[] der = syntheticOfflineRootDer();
+        try {
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                    CREATE FUNCTION a11_root_proposal_suppress_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $
+                    BEGIN
+                        IF NEW.action='admin.passkey.attestation.root.untrusted_proposal'
+                        THEN RETURN NULL; END IF;
+                        RETURN NEW;
+                    END;
+                    $
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    CREATE TRIGGER a11_root_proposal_suppress_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_root_proposal_suppress_audit()
+                    """).executeUpdate();
+            });
+            try {
+                assertThrows(IllegalStateException.class, () -> stageSyntheticRoot(der));
+                assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_passkey_attestation_root_proposals_staging
+                        WHERE certificate_sha256=sha256(:der)
+                        """).setParameter("der", der).getSingleResult()).longValue());
+            } finally {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS a11_root_proposal_suppress_audit
+                        ON admin_access_log
+                        """).executeUpdate();
+                    entityManager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS a11_root_proposal_suppress_audit()
+                        """).executeUpdate();
+                });
+            }
+            UUID id = stageSyntheticRoot(der);
+            assertNotNull(id);
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
     @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is

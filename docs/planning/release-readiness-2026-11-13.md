@@ -20,6 +20,12 @@
 
 **V21 B3 最终复验状态（按修复后精确源码 SHA 记账）：** [`134cc758`](https://github.com/kunlong-luo/lanveriq/commit/134cc7580c2ea7616909288d48b76431ee2192f4) 的 [真实 PostgreSQL 18 九套 #44011548316](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548316) **SUCCESS**，其中 Testcontainers/Flyway 真实事务和 mandatory JUnit evidence checker 两个 job steps 均 SUCCESS；[Java L1 #44011548328](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548328)、[PG18 集成源码编译 #44011548311](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548311)、[RD-2 #44011548315](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548315) **均 SUCCESS**。同 SHA [Linux 双跳 #44011548309](https://github.com/kunlong-luo/lanveriq/actions/runs/44011548309) 的 PG18 九套安全事务 job 和 Caddy→Tomcat TLS1.3 双跳合成 job **均 SUCCESS**，该 Linux workflow 整体 **SUCCESS**（同一源码 SHA）；这仍然不是 Pop!_OS 真实设备 L3。以上仅证明 **V21 未可信拒绝回执** 的合成 L1/L2 验收，不是可信 attestation/root/MDS、真正 Passkey 登录、管理员审核 MFA、CA/KMS 或 Pop!_OS L3。v0.1 不批准上线，生产功能 OFF。
 
+## 2026-11-17 A11-D2-D4-B4-A V22 离线根证书候选管理（PENDING L1/L2）
+
+- 新增 PG18 V22 **未受信任根证书提案**，只允许 `untrusted_proposal`，数据库生成 SHA-256 证书指纹、凭证 DER 不可变、重复根不可重用；管理员/会话/有效角色验证 + 同事务强制审计。JDK 证书解析自签 CA/规范 DER，不把自签名误作 FIDO/组织认可。WebAuthn4J 正式根仓库继续空集，所有权限与生产安全开关关闭。
+- 新增四项真实 PG18 负向事务用例及失效审计回滚、严格 JUnit 九套 Console ≥29、总 ≥101；更新 V9→V22 13 次迁移断言和自动触发路径。**本 SHA CI 尚未完成**；不得声称已通过或 L3。
+- 尚需签名 FIDO Metadata Service、双人独立审核及授权、可信时间/撤销、真正受信验证结果、可信凭证存储、WebAuthn MFA 与签发 KMS/CA。Issue #5 OPEN；v0.1 NOT RELEASE READY。
+
 ## 2026-11-17 A11-D2-D4-B3 — V21 独立拒绝证据链（PENDING 同 SHA CI）
 
 - **代码与数据库：** Flyway V21 新增唯一、不可变的 `admin_passkey_attestation_rejections_staging`；复合外键锁定 V20 未可信候选的挑战、所有者/会话、RP、凭证和响应 SHA-256，数据库 INSERT 守卫重验账户/角色/nonce/撤销状态；仅允许 `not_trusted / trust_roots_unconfigured`，不允许直接转换为已验证凭证。
