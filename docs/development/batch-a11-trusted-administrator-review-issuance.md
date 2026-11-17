@@ -14,6 +14,14 @@
 
 **V22 B4-A 同一源码 SHA L1/L2 验收（2026-11-17）：** [`7f6d0b6c`](https://github.com/kunlong-luo/lanveriq/commit/7f6d0b6c880197e727b730360b071ea554b88a16) 的 [真实 PG18 九套 #44086622096](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622096) **SUCCESS**（Testcontainers/Flyway 事务测试及严格 JUnit XML 证据门禁两个 steps 均成功）；[Linux TLS1.3+PG18 #44086622378](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622378) **SUCCESS**（真实 PG18 安全事务及 Caddy→Tomcat 双跳 TLS1.3 两个独立 jobs 均成功）；[Java L1 #44086622202](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622202)、[PG18 集成源码编译 #44086622113](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622113)、[RD-2 #44086622133](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622133) **均 SUCCESS**。首轮代码 [`803c8721`](https://github.com/kunlong-luo/lanveriq/commit/803c8721f3669967249a0494a0186c01fa9a5993) 的 [PG18 #44086285547](https://github.com/kunlong-luo/lanveriq/actions/runs/44086285547) **FAILED（116 项 1 失败）**，由 `7f6d0b6c` 修复夹具后才完整通过，历史失败保留。V22 仅离线 **`untrusted_proposal`** 存储与回滚验收，WebAuthn4J 根仍空；不是组织/FIDO 认可、生产可信时间/撤销/元数据、真实 Passkey MFA/双审、CA/KMS、Pop!_OS L3 或上线批准。生产功能持续 OFF；Issue #5 OPEN，v0.1 NOT RELEASE READY。
 
+### 2026-11-17 D4-B4-B — V23 双人独立离线筛查（不是信任根批准，CI PENDING）
+
+- **仅筛查，不授信：** Flyway V23 新建 `admin_passkey_attestation_root_screenings_staging`，只能记录 `screened_untrusted`、step 1/2、当前管理员及 session_version、V22 数据库生成的证书 SHA-256。V22 根提案永远保留 `untrusted_proposal`；没有 `approved`、`trusted`、`active` 或可给 WebAuthn4J 消费的根记录。双人签收不是 WebAuthn 强认证、MFA、签名或 KMS/CA 授权。
+- **PostgreSQL 原子边界：** insert trigger 锁定 V22 根提案为串行化点，并检查证书摘要完全一致、提交人与审查人不同、双方当前未禁用且会话没有轮换、两者存在共同 `owner_security_admin` 设备组授权。step 2 还要求 step 1 当前仍有效的另一名审核人、同组当前授权，防止撤权后继承旧复核。相同提案的 step/审核人唯一且全部 UPDATE/DELETE 拒绝；数据库 owner/superuser 攻击不在此隔离模型范围。
+- **非 Bean 限定服务：** `StagedAttestationRootScreeningLedger` 仅接收服务器端提案 ID 与 step，不接受浏览器提交的 root 指纹、trusted/approved 开关、元数据结果和时间字段，必须与审计同一事务；日志 INSERT 被丢弃则回滚。无 HTTP/Agent 调用、root reader、认证凭证发布或信任锚更新。
+- **测试门禁：** 真实 PG18 新增 5 项：两名同组审核人及永久未受信任结果、提交人自审/跨组/跳步/重复拒绝、审核人撤权和 session 轮换拒绝、SQL 假指纹和变更/删除拒绝、静默吞审计时回滚重试。V9→V23 迁移数量 14；JUnit 九套 Console 至少 34、总计 106；main push 自动触发真实 PG18 和 Linux TLS。**本源码 SHA 的 L1/L2 尚待验收。**
+- **上线仍阻断：** 真实 FIDO MDS 签名与可信时间、根证书审查人 MFA/双人签名、组织级根批准/吊销、实时 CRL/OCSP、可信 registration evidence、Pop!_OS L3 和发行方 KMS 均未完成；全生产开关 OFF，v0.1 NOT RELEASE READY。
+
 ### 2026-11-17 D4-B4-A — V22 离线受信根候选暂存（修复 SHA L1/L2 已验收）
 
 - **严格区分候选与信任：** Flyway V22 新增 `admin_passkey_attestation_root_proposals_staging`，只容纳未受信任的离线根证书候选；`trust_state='untrusted_proposal'`、`source='offline_candidate'` 固定为 SQL CHECK；根证书 DER/数据库计算的 SHA-256 指纹必须一一对应，重复根拒绝，UPDATE/DELETE 受不可变触发器约束。不存在 `approved`、`active`、`trusted` 状态，WebAuthn4J `TrustAnchorRepository` 仍始终返回空集。

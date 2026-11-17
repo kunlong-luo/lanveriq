@@ -1597,6 +1597,218 @@ class PostgreSqlConsoleSecurityWiringIT {
         }
     }
 
+
+    private UUID scopedRootReviewer(UUID proposer) {
+        UUID reviewer = passkeyFixture(syntheticPasskeyBytes(32));
+        tx(() -> entityManager.createNativeQuery("""
+                INSERT INTO user_role_scopes(user_id,role_id,device_group_id)
+                SELECT :reviewer,scope.role_id,scope.device_group_id
+                FROM user_role_scopes scope JOIN roles r ON r.id=scope.role_id
+                WHERE scope.user_id=:proposer AND r.code='owner_security_admin'
+                """).setParameter("reviewer", reviewer)
+                .setParameter("proposer", proposer).executeUpdate());
+        return reviewer;
+    }
+
+    private void screenSyntheticRoot(UUID id, int step) {
+        tx(() -> new StagedAttestationRootScreeningLedger(entityManager)
+                .screenUntrustedCandidate(id, step));
+    }
+
+    @Test
+    void independentRootScreeningsStayUntrustedAndBoundToCertificate() {
+        UUID proposer = registrationOwner();
+        UUID first = scopedRootReviewer(proposer);
+        UUID second = scopedRootReviewer(proposer);
+        registrationActor(proposer, 0);
+        try {
+            UUID id = stageSyntheticRoot(syntheticOfflineRootDer());
+            registrationActor(first, 0);
+            screenSyntheticRoot(id, 1);
+            registrationActor(second, 0);
+            screenSyntheticRoot(id, 2);
+            var entries = entityManager.createNativeQuery("""
+                    SELECT reviewer_id,screening_state,certificate_sha256
+                    FROM admin_passkey_attestation_root_screenings_staging
+                    WHERE proposal_id=:id ORDER BY step
+                    """).setParameter("id", id).getResultList();
+            assertEquals(2, entries.size());
+            Object[] one = (Object[]) entries.get(0);
+            Object[] two = (Object[]) entries.get(1);
+            assertEquals(first, one[0]);
+            assertEquals(second, two[0]);
+            assertEquals("screened_untrusted", one[1]);
+            assertEquals("screened_untrusted", two[1]);
+            assertArrayEquals((byte[]) one[2], (byte[]) two[2]);
+            assertEquals("untrusted_proposal", entityManager.createNativeQuery("""
+                    SELECT trust_state FROM admin_passkey_attestation_root_proposals_staging
+                    WHERE proposal_id=:id
+                    """).setParameter("id", id).getSingleResult());
+            assertEquals(2L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE resource_id=:id
+                      AND action IN ('admin.passkey.root.screening.untrusted.step1',
+                                     'admin.passkey.root.screening.untrusted.step2')
+                    """).setParameter("id", id).getSingleResult()).longValue());
+            assertTrue(context.getBeansOfType(StagedAttestationRootScreeningLedger.class)
+                    .isEmpty());
+            assertTrue(context.getBeansOfType(
+                    StagedStrictAttestationWebAuthn4JFactory.class).isEmpty());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void rootScreeningRejectsSelfReviewForeignScopeSkippedAndRepeatedSteps() {
+        UUID proposer = registrationOwner();
+        UUID first = scopedRootReviewer(proposer);
+        UUID second = scopedRootReviewer(proposer);
+        UUID outsider = registrationOwner();
+        registrationActor(proposer, 0);
+        try {
+            UUID id = stageSyntheticRoot(syntheticOfflineRootDer());
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 1));
+            registrationActor(outsider, 0);
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 1));
+            registrationActor(second, 0);
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 2));
+            registrationActor(first, 0);
+            screenSyntheticRoot(id, 1);
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 1));
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 2));
+            registrationActor(second, 0);
+            screenSyntheticRoot(id, 2);
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 2));
+            assertEquals(2L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_screenings_staging
+                    WHERE proposal_id=:id
+                    """).setParameter("id",id).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void rootScreeningDeniesRotatedProposerAndRevokedFirstReviewer() {
+        UUID proposer = registrationOwner();
+        UUID first = scopedRootReviewer(proposer);
+        UUID second = scopedRootReviewer(proposer);
+        registrationActor(proposer, 0);
+        try {
+            UUID id = stageSyntheticRoot(syntheticOfflineRootDer());
+            registrationActor(first, 0);
+            screenSyntheticRoot(id, 1);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1 WHERE id=:actor
+                    """).setParameter("actor", first).executeUpdate());
+            registrationActor(second, 0);
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 2));
+            tx(() -> entityManager.createNativeQuery("""
+                    DELETE FROM user_role_scopes WHERE user_id=:actor
+                    """).setParameter("actor", first).executeUpdate());
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 2));
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1 WHERE id=:actor
+                    """).setParameter("actor", proposer).executeUpdate());
+            assertThrows(RuntimeException.class, () -> screenSyntheticRoot(id, 2));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_screenings_staging
+                    WHERE proposal_id=:id
+                    """).setParameter("id",id).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void rootScreeningSqlCannotForgeDigestUpgradeOrErase() {
+        UUID proposer = registrationOwner();
+        UUID first = scopedRootReviewer(proposer);
+        registrationActor(proposer, 0);
+        try {
+            UUID id = stageSyntheticRoot(syntheticOfflineRootDer());
+            registrationActor(first, 0);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        INSERT INTO admin_passkey_attestation_root_screenings_staging
+                          (proposal_id,step,reviewer_id,reviewer_session_version,
+                           certificate_sha256)
+                        VALUES (:id,1,:actor,0,:wrong)
+                        """).setParameter("id",id).setParameter("actor",first)
+                    .setParameter("wrong",syntheticPasskeyBytes(32)).executeUpdate()));
+            screenSyntheticRoot(id, 1);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_passkey_attestation_root_screenings_staging
+                        SET screening_state='approved' WHERE proposal_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_passkey_attestation_root_screenings_staging
+                        WHERE proposal_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_screenings_staging
+                    WHERE proposal_id=:id AND screening_state='screened_untrusted'
+                    """).setParameter("id",id).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void suppressedRootScreeningAuditRollsBackStepAndAllowsRetry() {
+        UUID proposer = registrationOwner();
+        UUID first = scopedRootReviewer(proposer);
+        registrationActor(proposer, 0);
+        try {
+            UUID id = stageSyntheticRoot(syntheticOfflineRootDer());
+            registrationActor(first, 0);
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                    CREATE FUNCTION a11_root_screening_suppress_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                        IF NEW.action='admin.passkey.root.screening.untrusted.step1'
+                        THEN RETURN NULL; END IF;
+                        RETURN NEW;
+                    END;
+                    $$
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    CREATE TRIGGER a11_root_screening_suppress_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_root_screening_suppress_audit()
+                    """).executeUpdate();
+            });
+            try {
+                assertThrows(IllegalStateException.class, () -> screenSyntheticRoot(id, 1));
+                assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_passkey_attestation_root_screenings_staging
+                        WHERE proposal_id=:id
+                        """).setParameter("id",id).getSingleResult()).longValue());
+            } finally {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS a11_root_screening_suppress_audit
+                        ON admin_access_log
+                        """).executeUpdate();
+                    entityManager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS a11_root_screening_suppress_audit()
+                        """).executeUpdate();
+                });
+            }
+            screenSyntheticRoot(id, 1);
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_passkey_attestation_root_screenings_staging
+                    WHERE proposal_id=:id AND screening_state='screened_untrusted'
+                    """).setParameter("id",id).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
     @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is

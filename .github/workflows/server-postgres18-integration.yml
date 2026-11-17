@@ -17,6 +17,8 @@ on:
       - 'apps/server/src/main/resources/db/migration/V20__stage_passkey_registration_candidate_lineage.sql'
       - 'apps/server/src/main/resources/db/migration/V21__stage_immutable_untrusted_attestation_rejections.sql'
       - 'apps/server/src/main/resources/db/migration/V22__stage_offline_attestation_root_proposals.sql'
+      - 'apps/server/src/main/resources/db/migration/V23__stage_independent_untrusted_root_screenings.sql'
+      - 'apps/server/src/main/java/com/lanveriq/server/security/StagedAttestationRootScreeningLedger.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedAttestationRootProposalLedger.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedAttestationRootCertificateInspector.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedAttestationRejectionLedger.java'

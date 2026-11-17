@@ -24,6 +24,12 @@
 
 **V22 B4-A 同一源码 SHA L1/L2 验收（2026-11-17）：** [`7f6d0b6c`](https://github.com/kunlong-luo/lanveriq/commit/7f6d0b6c880197e727b730360b071ea554b88a16) 的 [真实 PG18 九套 #44086622096](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622096) **SUCCESS**（Testcontainers/Flyway 事务测试及严格 JUnit XML 证据门禁两个 steps 均成功）；[Linux TLS1.3+PG18 #44086622378](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622378) **SUCCESS**（真实 PG18 安全事务及 Caddy→Tomcat 双跳 TLS1.3 两个独立 jobs 均成功）；[Java L1 #44086622202](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622202)、[PG18 集成源码编译 #44086622113](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622113)、[RD-2 #44086622133](https://github.com/kunlong-luo/lanveriq/actions/runs/44086622133) **均 SUCCESS**。首轮代码 [`803c8721`](https://github.com/kunlong-luo/lanveriq/commit/803c8721f3669967249a0494a0186c01fa9a5993) 的 [PG18 #44086285547](https://github.com/kunlong-luo/lanveriq/actions/runs/44086285547) **FAILED（116 项 1 失败）**，由 `7f6d0b6c` 修复夹具后才完整通过，历史失败保留。V22 仅离线 **`untrusted_proposal`** 存储与回滚验收，WebAuthn4J 根仍空；不是组织/FIDO 认可、生产可信时间/撤销/元数据、真实 Passkey MFA/双审、CA/KMS、Pop!_OS L3 或上线批准。生产功能持续 OFF；Issue #5 OPEN，v0.1 NOT RELEASE READY。
 
+## 2026-11-17 A11-D2-D4-B4-B V23 双人独立离线根筛查（CI PENDING）
+
+- 新建 Flyway V23：不可变的 `screened_untrusted` 筛查记录仅绑定 V22 提案、证书 SHA-256、当前审核人 session 与独立双审步骤；事务锁确保两个审核人互异、不是提交人，并具有相同当前 `owner_security_admin` 组授权，检查提交人及首审人会话/撤权。禁止升级、重复、跳步或删除。
+- 新包私有非 Bean 服务只登记两步筛查及其强制审计；不装配正式根或注册验证器、不生成 MFA 或 CA 授权。新增 5 项真实 PG18 负向事务和 JUnit 严格证据用例，Console ≥34、九套 ≥106；历史 V9→V23 迁移计数修正为 14。**本提交同 SHA CI 尚未验证；不得提前标通过。**
+- 仍缺受可信身份约束的真实两人 MFA/签名审批、FIDO MDS/OCSP/CRL/根撤销与可信时间、正向 attestation 和 Pop!_OS24 L3。v0.1 未获上线批准，联网/采集/远控/自动恢复/签发 OFF。Issue #5 OPEN。
+
 ## 2026-11-17 A11-D2-D4-B4-A V22 离线根证书候选管理（隔离 L1/L2 PASS）
 
 - 新增 PG18 V22 **未受信任根证书提案**，只允许 `untrusted_proposal`，数据库生成 SHA-256 证书指纹、凭证 DER 不可变、重复根不可重用；管理员/会话/有效角色验证 + 同事务强制审计。JDK 证书解析自签 CA/规范 DER，不把自签名误作 FIDO/组织认可。WebAuthn4J 正式根仓库继续空集，所有权限与生产安全开关关闭。
