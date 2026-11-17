@@ -6,6 +6,16 @@
 
 **B2 同 SHA 自动 CI 验收补记（2026-11-17）：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 的 [Java 单元测试 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852) 与 [RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822) **均 SUCCESS**。仅 L1 编译/单测与远控拒绝检查；没有运行该提交的真实 PG18 L2、签名证书链的可信正向验收或者 Pop!_OS L3。以上不会构成上线批准。
 
+**2026-11-17 V21 PG18 首轮失败诊断与修复（回归待确认）：** 初次提交 [`d92ef99c`](https://github.com/kunlong-luo/lanveriq/commit/d92ef99c770090c46e742e1055dc4d6a8c5e3d50) 的 [真实 PG18 #44011309005](https://github.com/kunlong-luo/lanveriq/actions/runs/44011309005) 与 [Linux PG18 job #44011308933](https://github.com/kunlong-luo/lanveriq/actions/runs/44011308933) **FAILED / 不验收**。九套真实数据库用例已执行 112 项，其中两个失败：新增审计拦截测试中的 PL/pgSQL `$` 错写为 `# Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
+
+> 状态：A11-A/B/C、D1、D2-A/B/C 隔离合成验收已完成；D2-D1/D2/D3/D4 安全基础均已通过隔离 L1/L2 验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-16。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。
+>
+> 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
+
+**B2 同 SHA 自动 CI 验收补记（2026-11-17）：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 的 [Java 单元测试 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852) 与 [RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822) **均 SUCCESS**。仅 L1 编译/单测与远控拒绝检查；没有运行该提交的真实 PG18 L2、签名证书链的可信正向验收或者 Pop!_OS L3。以上不会构成上线批准。
+
+；旧 V9 升级测试的迁移数仍为 V20 的 11 而未更新到 V21 的 12。已修复两处测试缺陷并同步校正 JUnit gate 文案（九套至少 97 项），不改 V21 SQL 安全守卫、强制用例或生产开关。**此修复提交的真实 CI 仍需通过才可标为 L2 accepted**。
+
 ### 2026-11-17 D4-B3 — V21 未可信 attestation 拒绝回执（**仅隔离待验收**）
 
 - **原子来源链：** 新增 Flyway V21 `admin_passkey_attestation_rejections_staging`，通过 V20 新增复合唯一键与六字段复合外键，绑定 **V19 挑战 ID、当前管理员/会话、固定 RP、凭证 ID、原始注册响应 SHA-256**；SQL 插入守卫重新核对已消费 nonce、有效时间、当前所有者身份与权限、凭证未吊销。唯一回执、`evidence_grade='not_trusted'`、`rejection_code='trust_roots_unconfigured'` 均由 SQL CHECK 固定，UPDATE/DELETE 被历史不可变触发器拒绝。禁止 SQL 将此表提升为可信证明。无原始响应、硬件标识或私钥复制。

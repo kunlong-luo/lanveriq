@@ -16,6 +16,8 @@
 
 **B2 代码精确 SHA 验收补记：** [`e35380c5`](https://github.com/kunlong-luo/lanveriq/commit/e35380c5de28093f0adffc33a077570f8aa4a58c) 已通过 [Java L1 #44008193882](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193882)、[PG18 集成源码编译 #44008193852](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193852)、[RD-2 #44008193822](https://github.com/kunlong-luo/lanveriq/actions/runs/44008193822)，全部与此代码 SHA 一致。**未新增真实 PG18 容器测试、可信 attestation 正向证明或 L3**，不得把源码编译称为数据库验收。本次仅文档补录，不改变安全开关。
 
+**V21 初次真实 PG18 L2 失败与修复待复验：** [`d92ef99c`](https://github.com/kunlong-luo/lanveriq/commit/d92ef99c770090c46e742e1055dc4d6a8c5e3d50) 的 [PG18 #44011309005](https://github.com/kunlong-luo/lanveriq/actions/runs/44011309005) / [Linux PG18 #44011308933](https://github.com/kunlong-luo/lanveriq/actions/runs/44011308933) 因 *测试实现的两个问题* 失败，**不构成 L2 验收**：审计抑制测试 PL/pgSQL 定界符误写、历史 V9 升级迁移计数未随 V21 调整（11→12）。本轮前向修正测试和九套 ≥97 证据输出文案；V21 DB 约束、全部四项负向测试及生产默认拒绝均未放宽。新 SHA 需单独成功才算验收。
+
 ## 2026-11-17 A11-D2-D4-B3 — V21 独立拒绝证据链（PENDING 同 SHA CI）
 
 - **代码与数据库：** Flyway V21 新增唯一、不可变的 `admin_passkey_attestation_rejections_staging`；复合外键锁定 V20 未可信候选的挑战、所有者/会话、RP、凭证和响应 SHA-256，数据库 INSERT 守卫重验账户/角色/nonce/撤销状态；仅允许 `not_trusted / trust_roots_unconfigured`，不允许直接转换为已验证凭证。

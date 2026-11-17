@@ -1377,14 +1377,14 @@ class PostgreSqlConsoleSecurityWiringIT {
             tx(() -> {
                 entityManager.createNativeQuery("""
                     CREATE FUNCTION a11_attestation_suppress_audit()
-                    RETURNS trigger LANGUAGE plpgsql AS $
+                    RETURNS trigger LANGUAGE plpgsql AS $$
                     BEGIN
                         IF NEW.action='admin.passkey.attestation.untrusted_no_roots' THEN
                             RETURN NULL;
                         END IF;
                         RETURN NEW;
                     END;
-                    $
+                    $$
                     """).executeUpdate();
                 entityManager.createNativeQuery("""
                     CREATE TRIGGER a11_attestation_suppress_audit

@@ -435,9 +435,10 @@ class PostgreSqlDeviceActivationIT {
         // passkey inventory, V17 an untrusted one-use challenge ledger,
         // V18 an unauthenticated complete credential staging record,
         // V19 a non-authorizing registration nonce plus revoked-state freeze,
-        // and V20 untrusted registration candidate lineage only.
+        // V20 untrusted registration candidates, and V21 immutable
+        // NOT-TRUSTED attestation rejection receipts only.
         // None silently enroll an administrator or enable passkey signing.
-        assertEquals(11, upgraded.migrate().migrationsExecuted);
+        assertEquals(12, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);

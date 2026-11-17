@@ -227,7 +227,7 @@ def main() -> int:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
     print("PG18 synthetic JUnit evidence verified: all 9 Testcontainers classes, "
-          "at least 96 passing tests across nine suites, including A11 double-review and Console security wiring; "
+          "at least 97 passing tests across nine suites, including A11 double-review and Console security wiring; "
           "no failed, errored or skipped cases.")
     return 0
 
