@@ -4,6 +4,12 @@
 >
 > 来源：[上线差距账本](../planning/release-readiness-2026-11-13.md)、[Batch A #5](https://github.com/kunlong-luo/lanveriq/issues/5)、[A10 受测源码 42a3a12f](https://github.com/kunlong-luo/lanveriq/commit/42a3a12f1654834fbef138b049d7ffe870330728)。
 
+### 2026-11-17 D4-B2 — 严格 WebAuthn4J 证书路径验证器配置（无信任根、未接线）
+
+- 新增非 Bean 的 `StagedStrictAttestationWebAuthn4JFactory`，使用官方 `WebAuthnManager` 显式构造：**仅** `PackedAttestationStatementVerifier`，官方 `DefaultCertPathTrustworthinessVerifier`，强制启用证书状态撤销检查与禁止客户端全链，明确拒绝 self-attestation；**不包含** `NoneAttestationStatementVerifier`、`NullPackedAttestationStatementVerifier`、`NullCertPathTrustworthinessVerifier` 等弱验证实现。官方实现说明警告，混入 no-op 验证器会造成认证器证明绕过（[WebAuthn4J 官方参考](https://webauthn4j.github.io/webauthn4j/en/)）。
+- 根仓库两个查找路径（AAGUID 与 U2F key identifier）永远返回空集，**没有批准的根、OCSP/CRL 源、元数据管理或真实注册权限**。此代码只构建一个保守的验证器；即便语法/签名校验通过，也不得视作完整可信注册。未来不可通过任意外部输入直接注入根；必须另行设计与验收版本化受控根/元数据/撤销服务。
+- 同步新增 L1 拒绝与配置测试；提交时 CI 尚待本 SHA 结果。没有修改现有 V20 `untrusted_candidate`、注册凭证消费者、first-pin 两人审核、发行方或 Spring Security WebAuthn 开关。**v0.1 未获上线批准**，生产网络/采集/自动恢复/远控/证书签发 OFF。
+
 ### 2026-11-17 D4-B1 — attestation policy shape only (NOT cryptographic verification)
 
 - New package-private, unregistered `StagedAttestationAdmissionPolicy` provides a **fail-closed policy-shape guard**. No approved root is configured by default; `none` and self-attestation are rejected, and missing chain/metadata/revocation/UP/UV flags or an unapproved SHA-256 root fingerprint deny admission. Its five JUnit tests use **synthetic values only**. A passing synthetic decision is **not** a WebAuthn4J verified attestation or trusted enrollment.

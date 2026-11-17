@@ -14,6 +14,12 @@
 - v0.2 活动/安全审计和复杂报表；v0.3 经批准录制/审批/回放/删除，均不阻塞 Linux 设备管理 v0.1；若合同将其列为首发功能，则按相应独立发布门槛验收。
 - 本次仅文档：生产 Agent 网络/采集、真实设备与员工数据、Console 正式业务开关、CA 私钥/公网入口与 RustDesk 一律保持默认关闭。不得自动部署。
 
+## 2026-11-17 A11-D2-D4-B1/B2 注册证明信任边界（未批准上线）
+
+- **B1 已同 SHA L1 验收：** `c1d57a95` 新增非 Bean `StagedAttestationAdmissionPolicy` 及合成负向测试。Java [#43970694508](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694508)、PG18 集成源码编译 [#43970694600](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694600)、RD-2 [#43970694571](https://github.com/kunlong-luo/lanveriq/actions/runs/43970694571) 均 **SUCCESS**。合成标志不可作为密码学证据，B1 仅形状门禁，不是可信 attestation。
+- **B2 本轮实现：** 新增包私有、非 Bean 的 WebAuthn4J *strict* manager 工厂，仅声明官方 packed attestation，禁止 self/none/no-op；官方 PKIX 路径验证器打开 revocation check，且 AAGUID/U2F 所有根查找 **总是空集**，因此生产没有凭据可信准入路径。新增 L1 测试，待精确提交 SHA 的新 CI 才能验收。尚未接入已签名 FIDO MDS、受控根、有效 CRL/OCSP、PG18 正式可信证据、设备 L3；不要把配置通过称为真实来源验证。
+- V20 历史依然固定 `untrusted_candidate`；不产生 `TrustedCredentialSource`、审核票、CA/KMS 签发或实际身份授权。**NOT RELEASE READY**；Agent 联网/采集/自动恢复/远控与 CA OFF，Issue #5 OPEN。
+
 ## 2026-11-16 V20 D4-A 追加验收 — 同事务失败回滚（真实 PG18 Success）
 
 - **修复与负向实测：** 新增 `failedUntrustedCandidateInsertRollsBackChallengeAndBothAudits`，在真实 PG18 同一事务内先以测试专用 fake verifier 消费 V19 nonce，再故意让 V20 写入未知凭证而失败；必须同时撤销消费状态、消费审计、候选审计，且候选记录为零。失败回滚后才允许在有效期内用正确的**合成未可信凭证**重试。这只验证原子性，不能证明 attestation 可信，也不开放登录或审核权限。
