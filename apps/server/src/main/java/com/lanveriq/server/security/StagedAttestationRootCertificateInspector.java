@@ -42,6 +42,13 @@ final class StagedAttestationRootCertificateInspector {
             if (usage == null || usage.length <= 5 || !usage[5]) {
                 throw denied();
             }
+            // Java's X509Certificate.verify checks only the signature, not
+            // whether a critical extension has been understood. A proposed
+            // CA carrying unknown critical semantics must fail closed even
+            // in this permanently untrusted offline staging lane.
+            if (cert.hasUnsupportedCriticalExtension()) {
+                throw denied();
+            }
             cert.checkValidity(Date.from(clock.instant()));
             cert.verify(cert.getPublicKey()); // proof of self-signature, NOT provenance
             return untrustedDer.clone();

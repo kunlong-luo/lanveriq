@@ -1,3 +1,5 @@
+> **2026-11-19 A11 B4 offline CA parser fail-closed regression (CI PENDING):** JDK X.509 self-signature verification does not by itself enforce unknown critical extension semantics. The offline **UNTRUSTED** root candidate inspector now rejects `hasUnsupportedCriticalExtension()`; deterministic ephemeral EC/P-256 self-signed synthetic CA tests cover accepted structural proposal bytes, unknown critical OID rejection, absent CA signing usage and appended DER rejection. No approved FIDO MDS/trust root, trusted issuer, live revocation, reviewer MFA, CA signer or production credential acceptance is created. L1 and RD-2 guard require exact source SHA results; no new L2/L3 triggered solely for this parser regression. Agent/network/inventory/remote/issuer OFF; Batch A #5 OPEN, RD-2 #3 BLOCKED, release NOT READY.
+
 # Batch A11 — 可信管理员审核与签发安全设计（实现前验收合同）
 
 > 状态：A11-A/B/C、D1、D2-A/B/C 隔离合成验收已完成；D2-D1/D2/D3/D4 安全基础均已通过隔离 L1/L2 验收；真正 MFA/Passkey step-up 和可信签发仍 NOT IMPLEMENTED / NOT RELEASE READY；2026-11-16。仅针对 **Pop!_OS 24.04 Linux-first** 首发路线。本文不批准启动生产 Agent、网络/采集/自动恢复/远控，不批准生成真实 CA/审核私钥或生产注册令牌。所有新增实现先在 `main` 上以合成环境、默认拒绝、负向测试先行推进。

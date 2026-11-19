@@ -1,3 +1,5 @@
+> **2026-11-19 A11 B4 offline CA parser fail-closed regression (CI PENDING):** JDK X.509 self-signature verification does not by itself enforce unknown critical extension semantics. The offline **UNTRUSTED** root candidate inspector now rejects `hasUnsupportedCriticalExtension()`; deterministic ephemeral EC/P-256 self-signed synthetic CA tests cover accepted structural proposal bytes, unknown critical OID rejection, absent CA signing usage and appended DER rejection. No approved FIDO MDS/trust root, trusted issuer, live revocation, reviewer MFA, CA signer or production credential acceptance is created. L1 and RD-2 guard require exact source SHA results; no new L2/L3 triggered solely for this parser regression. Agent/network/inventory/remote/issuer OFF; Batch A #5 OPEN, RD-2 #3 BLOCKED, release NOT READY.
+
 # Lanveriq v0.1 Linux-first 上线差距与验收状态
 
 **基准：2026-11-13 · `main` [`758f8d9a`](https://github.com/kunlong-luo/lanveriq/commit/758f8d9a9bdedad04db656a5d685871b38ed3af9)。**
