@@ -19,6 +19,8 @@ on:
       - 'apps/server/src/main/resources/db/migration/V22__stage_offline_attestation_root_proposals.sql'
       - 'apps/server/src/main/resources/db/migration/V23__stage_independent_untrusted_root_screenings.sql'
       - 'apps/server/src/main/resources/db/migration/V24__disqualify_untrusted_attestation_root_candidates.sql'
+      - 'apps/server/src/main/java/com/lanveriq/server/security/StagedOfflineSignedFidoMdsEnvelopeInspector.java'
+      - 'apps/server/src/test/java/com/lanveriq/server/security/StagedOfflineSignedFidoMdsEnvelopeInspectorTest.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedAttestationRootDisqualificationLedger.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedAttestationRootScreeningLedger.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedAttestationRootProposalLedger.java'

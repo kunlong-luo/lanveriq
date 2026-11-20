@@ -35,6 +35,9 @@ dependencies {
     implementation 'org.flywaydb:flyway-database-postgresql'
     // Maintained PKCS#10 parser and verifier; never parse ASN.1/CSR by hand.
     implementation 'org.bouncycastle:bcpkix-jdk18on:1.86'
+    // Mature JOSE library for offline synthetic FIDO-shaped JWS regression.
+    // NOT a production FIDO MDS verifier: no signed-root custody/PKIX/CRL.
+    implementation 'com.nimbusds:nimbus-jose-jwt:10.10'
     // Maintained token-bucket algorithm and bounded, expiring local cache.
     implementation 'com.bucket4j:bucket4j_jdk17-core:8.21.0'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.3.1'

@@ -2058,6 +2058,19 @@ class PostgreSqlConsoleSecurityWiringIT {
     }
 
     @Test
+    void offlineSignedMdsInspectorIsNotInstalledOrTrustedByRealPgBoot() {
+        assertTrue(context.getBeansOfType(
+                StagedOfflineSignedFidoMdsEnvelopeInspector.class).isEmpty());
+        assertTrue(context.getBeansOfType(
+                StagedStrictAttestationWebAuthn4JFactory.class).isEmpty());
+        assertTrue(context.getBeansOfType(
+                StagedAttestationRootDisqualificationLedger.class).isEmpty());
+        assertTrue(context.getBeansOfType(UserCredentialRepository.class)
+                .values().stream().noneMatch(bean ->
+                    !(bean instanceof StagedDenyAllWebAuthnCredentialRepository)));
+    }
+
+    @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is
         // crucial; a WebMvcTest alone could silently omit an auto-configured

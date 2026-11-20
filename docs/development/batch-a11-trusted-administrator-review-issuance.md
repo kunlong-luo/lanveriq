@@ -20,6 +20,13 @@
 
 **2026-11-17 A11-D2-D4-C1 V24 同一源码 SHA L1/L2 验收：** [`d3dde003`](https://github.com/kunlong-luo/lanveriq/commit/d3dde003b06ec4010d5fb51c08f17b1eb958f22e) 的 [真实 PG18 九套 #44101712278](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712278) **SUCCESS**，其中 Testcontainers/Flyway 真数据库事务及严格 JUnit XML evidence 两步均成功；[Linux Caddy→Tomcat TLS1.3 + PG18 #44101712406](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712406) **SUCCESS**，PG18 安全事务证据与真实双跳 TLS1.3 两个独立 jobs 均成功；[Java L1 #44101712267](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712267)、[PG18 集成源码编译 #44101712100](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712100)、[RD-2 #44101712220](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712220) **均 SUCCESS**（均为同一源码 SHA）。V24 仅是 V22 **未可信离线候选**的永久取消资格、V23 后续筛查阻断、审计原子性和并发序列化；不是 FIDO MDS、真实管理员 MFA、已批准 trust anchor 的撤销、可信时钟、PKIX OCSP/CRL、签发或 Pop!_OS24 实机 L3。**生产 Agent/联网/采集/自动恢复/远控/发行方保持 OFF，v0.1 NOT RELEASE READY，Issue #5 OPEN。**
 
+### 2026-11-20 D4-B4-C2 — 仅隔离合成 FIDO 形状 JWS 签名筛查（CI PENDING）
+
+- **规范与成熟组件：** 参照 [FIDO MDS 3.1.1](https://fidoalliance.org/specs/mds/fido-metadata-service-v3.1.1-rd-20251016.html)，使用 Nimbus JOSE/JWT **10.10** 验证合成 ES256 JWS 签名，不自己实现 ECDSA/JWS。验证 `iat` 头部、形状字段 `no` / `legalHeader` / `entries`、合成时钟下 48 小时窗口、5 分钟未来容差、传入的上次观测 serial 后恰好 +1。新版规范不允许依赖 `nextUpdate` 永远存在；本阶段不据此决定可用性。禁止无边界大输入、错误签名、篡改、跳号/重放、过期/未来声明。
+- **严格的不授信边界：** `StagedOfflineSignedFidoMdsEnvelopeInspector` 仅包内、非 Bean；签名公钥由测试调用方提供、**不是已审批的 FIDO MDS 信任根**。拒绝使用 JWS 自述 `kid` / `jwk` / `jku` / `x5u` / `x5c` 和 critical headers 来获取或改变签名密钥。不包含 X.509 PKIX/CRL/OCSP 和 FIDO 真实在线 MDS 下载；因此当前**无法处理/信任真实 MDS BLOB**，即使合成签名验证成功，返回的类型仍为 `UntrustedEnvelope`，没有授权/准入布尔或信任仓库读取出口。
+- **测试：** 5 项 Java JUnit 覆盖真实 ephemeral P-256 ES256 签名与 digest、错签名/改 payload、重放/跳号/过期/未来、头部注入/缺 iat、错误结构/超大输入；真实 PG18 Console 非 Bean 且 credential repository 仍拒绝的启动检查新增强制用例，九套 Console ≥40、总 ≥112。构建依赖和集成测试路径自动触发 PG18 回归；需以同一源码 SHA 的 workflow 结果明确标注 L1/L2。
+- **下一上线门槛：** 通过明确组织与 FIDO 认可的独立信任根托管、签名 x5c/x5u 链 PKIX 与实时证书撤销、可信时间/元数据更新序号持久化、元数据条目状态、真实审核人 WebAuthn MFA、正式 attestation 证据事务与 Pop!_OS24 L3 才可考虑生产；V22–V24 仍未可信、无生产授权，所有生产开关 OFF，v0.1 NOT RELEASE READY。
+
 ### 2026-11-17 D4-B4-C1 — V24 未可信根提案永久取消资格（同 SHA L1/L2 PASS）
 
 - **性质与边界：** V24 Flyway 新增不可变的 `admin_passkey_attestation_root_disqualifications_staging`，每个 V22 提案唯一，固定 `decision_state='disqualified_untrusted'`、限定原因码、绑定 PostgreSQL 生成的原证书 SHA-256 和管理员身份/会话；服务器覆写时间戳。这只会永久**终止未受信任提案后续筛查**，不是正式 CA/PKIX/OCSP/CRL 的根证书吊销、受信任来源撤销或 WebAuthn 鉴权。

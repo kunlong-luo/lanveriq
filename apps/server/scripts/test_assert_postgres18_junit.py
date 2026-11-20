@@ -53,6 +53,16 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_offline_signed_mds_inspector_cannot_be_automounted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            synthetic_reports(Path(tmp),
+                              omit=("PostgreSqlConsoleSecurityWiringIT",
+                                    "offlineSignedMdsInspectorIsNotInstalledOrTrustedByRealPgBoot"))
+            self.assertIn(
+                "Missing mandatory test: PostgreSqlConsoleSecurityWiringIT.offlineSignedMdsInspectorIsNotInstalledOrTrustedByRealPgBoot",
+                verify_reports(Path(tmp)),
+            )
+
     def test_v24_terminal_disqualification_tests_cannot_disappear(self):
         for method in (
             "rootDisqualificationStopsNewOrSecondScreeningWithoutRewritingHistory",

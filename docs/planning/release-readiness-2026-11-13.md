@@ -30,6 +30,12 @@
 
 **2026-11-17 A11-D2-D4-C1 V24 同一源码 SHA L1/L2 验收：** [`d3dde003`](https://github.com/kunlong-luo/lanveriq/commit/d3dde003b06ec4010d5fb51c08f17b1eb958f22e) 的 [真实 PG18 九套 #44101712278](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712278) **SUCCESS**，其中 Testcontainers/Flyway 真数据库事务及严格 JUnit XML evidence 两步均成功；[Linux Caddy→Tomcat TLS1.3 + PG18 #44101712406](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712406) **SUCCESS**，PG18 安全事务证据与真实双跳 TLS1.3 两个独立 jobs 均成功；[Java L1 #44101712267](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712267)、[PG18 集成源码编译 #44101712100](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712100)、[RD-2 #44101712220](https://github.com/kunlong-luo/lanveriq/actions/runs/44101712220) **均 SUCCESS**（均为同一源码 SHA）。V24 仅是 V22 **未可信离线候选**的永久取消资格、V23 后续筛查阻断、审计原子性和并发序列化；不是 FIDO MDS、真实管理员 MFA、已批准 trust anchor 的撤销、可信时钟、PKIX OCSP/CRL、签发或 Pop!_OS24 实机 L3。**生产 Agent/联网/采集/自动恢复/远控/发行方保持 OFF，v0.1 NOT RELEASE READY，Issue #5 OPEN。**
 
+## 2026-11-20 A11-D4-B4-C2 离线合成签名元数据包安全门禁（CI PENDING）
+
+- 新增非 Bean 的 Nimbus JOSE/JWT ES256 合成 JWS 验签筛查（未可信），严格 `iat`、序列号递增、短窗口/输入大小/签名校验；禁止 JWS 自带密钥 URL/证书链绕过，也不强制逐渐废弃的 `nextUpdate`。5 项真实生成签名的 Java 负向测试 + 真实 PG18 容器确认该类不成为 Spring 安全服务，JUnit strict evidence Console ≥40、总 ≥112。
+- **特别警告：** 构造时给入的 signer key 只是本地测试密钥，没有 FIDO x5c/x5u 链、组织认可的根、证书状态与可信时间；这不是完整 FIDO MDS 签名来源验证，更不是正式 metadata 读取/更新、AAGUID 根授信、生产用户 WebAuthn 登记或管理员 MFA。所有 V22–V24 候选仍未可信，WebAuthn4J root set 为空。
+- **同源码 SHA CI 尚未验证；不可标 L2/L3**。未来须独立真实 MDS、撤销/时钟、独立签名审核和实机验证。Issue #5 OPEN，v0.1 NOT RELEASE READY，生产联网/采集/自动恢复/远控/发行方 OFF。
+
 ## 2026-11-17 A11-D2-D4-C1 V24 未可信根候选永久取消资格（同 SHA L1/L2 PASS）
 
 - Flyway V24 新建不可变、每提案仅一次的 `disqualified_untrusted` 拒绝账本（管理员身份、会话、DB 证书 digest、原因、服务器记录时间）；与 V23 双审共享 V22 提案 `FOR UPDATE` 锁，取消资格后禁止任何后续筛查，但绝不修改旧历史或启用根。内部非 Bean 同事务强制审计；即使原提交人已撤权，当前安全管理员仍可执行组织级否决。
