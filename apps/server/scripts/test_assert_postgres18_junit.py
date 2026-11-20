@@ -53,6 +53,23 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_v25_untrusted_metadata_monotonic_evidence_cannot_disappear(self):
+        for method in (
+            "syntheticMdsObservationsMaintainImmutableDigestChainAndAudit",
+            "syntheticMdsObservationsRejectReplayedSkippedAndForgedPredecessor",
+            "syntheticMdsObservationsDenyUnscopedDisabledAndRotatedSessions",
+            "syntheticMdsSqlCannotEraseOrPromoteUntrustedHistory",
+            "syntheticMdsObservationSwallowedAuditRollsBackThenRetries",
+            "syntheticMdsConcurrentFirstObservationHasOneCommittedWinner",
+        ):
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp),
+                                  omit=("PostgreSqlConsoleSecurityWiringIT", method))
+                self.assertIn(
+                    "Missing mandatory test: PostgreSqlConsoleSecurityWiringIT." + method,
+                    verify_reports(Path(tmp)),
+                )
+
     def test_offline_pkix_signer_never_becomes_a_trust_source(self):
         with tempfile.TemporaryDirectory() as tmp:
             synthetic_reports(Path(tmp),

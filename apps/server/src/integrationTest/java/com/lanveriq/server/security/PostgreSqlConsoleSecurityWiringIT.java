@@ -2080,6 +2080,312 @@ class PostgreSqlConsoleSecurityWiringIT {
                 StagedStrictAttestationWebAuthn4JFactory.class).isEmpty());
     }
 
+
+    private static java.security.KeyPair syntheticMdsSigner() {
+        try {
+            var generator = java.security.KeyPairGenerator.getInstance("EC");
+            generator.initialize(new java.security.spec.ECGenParameterSpec("secp256r1"));
+            return generator.generateKeyPair();
+        } catch (java.security.GeneralSecurityException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private static String syntheticMdsJws(java.security.KeyPair key, long sequence) {
+        try {
+            var header = new com.nimbusds.jose.JWSHeader.Builder(
+                    com.nimbusds.jose.JWSAlgorithm.ES256)
+                    .customParam("iat", java.time.Instant.now().getEpochSecond()).build();
+            String payload = "{\"legalHeader\":\"test-synthetic-untrusted\","
+                    + "\"no\":" + sequence + ",\"entries\":[]}";
+            var signed = new com.nimbusds.jose.JWSObject(header,
+                    new com.nimbusds.jose.Payload(payload));
+            signed.sign(new com.nimbusds.jose.crypto.ECDSASigner(
+                    (java.security.interfaces.ECPrivateKey) key.getPrivate()));
+            return signed.serialize();
+        } catch (com.nimbusds.jose.JOSEException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private UUID syntheticMdsStream() {
+        return new TransactionTemplate(transactionManager).execute(ignored ->
+                new StagedOfflineFidoMdsObservationLedger(entityManager,
+                        java.time.Clock.systemUTC()).openSyntheticUntrustedStream());
+    }
+
+    private UUID observeSyntheticMds(UUID stream, String jws,
+            java.security.interfaces.ECPublicKey signer) {
+        return new TransactionTemplate(transactionManager).execute(ignored ->
+                new StagedOfflineFidoMdsObservationLedger(entityManager,
+                        java.time.Clock.systemUTC())
+                        .observeSyntheticOnly(stream, jws, signer));
+    }
+
+    @Test
+    void syntheticMdsObservationsMaintainImmutableDigestChainAndAudit() {
+        UUID actor = registrationOwner();
+        registrationActor(actor, 0);
+        try {
+            UUID stream = syntheticMdsStream();
+            var key = syntheticMdsSigner();
+            var publicKey = (java.security.interfaces.ECPublicKey) key.getPublic();
+            String firstJws = syntheticMdsJws(key, 1);
+            String secondJws = syntheticMdsJws(key, 2);
+            UUID first = observeSyntheticMds(stream, firstJws, publicKey);
+            UUID second = observeSyntheticMds(stream, secondJws, publicKey);
+            var records = entityManager.createNativeQuery("""
+                    SELECT sequence_no,previous_jws_sha256,jws_sha256,observation_state
+                    FROM admin_fido_mds_untrusted_observations_staging
+                    WHERE stream_id=:stream ORDER BY sequence_no
+                    """).setParameter("stream",stream).getResultList();
+            assertEquals(2, records.size());
+            Object[] one = (Object[]) records.get(0);
+            Object[] two = (Object[]) records.get(1);
+            assertEquals(1L, ((Number) one[0]).longValue());
+            assertEquals(2L, ((Number) two[0]).longValue());
+            assertNull(one[1]);
+            assertArrayEquals((byte[]) one[2], (byte[]) two[1]);
+            assertEquals("observed_untrusted", one[3]);
+            assertEquals("observed_untrusted", two[3]);
+            assertEquals(32, ((byte[]) two[2]).length);
+            assertEquals(3L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE resource_id IN (:stream,:first,:second)
+                      AND action LIKE 'admin.passkey.mds.untrusted.%'
+                    """).setParameter("stream",stream)
+                    .setParameter("first",first)
+                    .setParameter("second",second)
+                    .getSingleResult()).longValue());
+            assertTrue(context.getBeansOfType(StagedOfflineFidoMdsObservationLedger.class)
+                    .isEmpty());
+            assertTrue(context.getBeansOfType(
+                    StagedStrictAttestationWebAuthn4JFactory.class).isEmpty());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void syntheticMdsObservationsRejectReplayedSkippedAndForgedPredecessor() {
+        UUID actor = registrationOwner();
+        registrationActor(actor, 0);
+        try {
+            UUID stream = syntheticMdsStream();
+            var key = syntheticMdsSigner();
+            var signer = (java.security.interfaces.ECPublicKey) key.getPublic();
+            String first = syntheticMdsJws(key,1);
+            String second = syntheticMdsJws(key,2);
+            observeSyntheticMds(stream,first,signer);
+            assertThrows(RuntimeException.class, () -> observeSyntheticMds(stream,first,signer));
+            assertThrows(RuntimeException.class, () ->
+                    observeSyntheticMds(stream,syntheticMdsJws(key,3),signer));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        INSERT INTO admin_fido_mds_untrusted_observations_staging
+                          (stream_id,sequence_no,previous_jws_sha256,jws_sha256,
+                           synthetic_claimed_issued_at,observed_by,
+                           observer_session_version)
+                        VALUES (:stream,2,:wrong,:digest,clock_timestamp(),:actor,0)
+                        """).setParameter("stream",stream)
+                    .setParameter("wrong",syntheticPasskeyBytes(32))
+                    .setParameter("digest",syntheticPasskeyBytes(32))
+                    .setParameter("actor",actor).executeUpdate()));
+            observeSyntheticMds(stream,second,signer);
+            assertEquals(2L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_fido_mds_untrusted_observations_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void syntheticMdsObservationsDenyUnscopedDisabledAndRotatedSessions() {
+        UUID owner = registrationOwner();
+        UUID stranger = registrationOwner();
+        UUID revoked = scopedRootReviewer(owner);
+        UUID unscoped = passkeyFixture(syntheticPasskeyBytes(32));
+        registrationActor(owner,0);
+        try {
+            UUID stream = syntheticMdsStream();
+            var key = syntheticMdsSigner();
+            String jws = syntheticMdsJws(key,1);
+            var signer = (java.security.interfaces.ECPublicKey) key.getPublic();
+            registrationActor(stranger,0);
+            assertThrows(RuntimeException.class, () -> observeSyntheticMds(stream,jws,signer));
+            registrationActor(unscoped,0);
+            assertThrows(RuntimeException.class, () -> observeSyntheticMds(stream,jws,signer));
+            registrationActor(revoked,0);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1 WHERE id=:id
+                    """).setParameter("id",revoked).executeUpdate());
+            assertThrows(RuntimeException.class, () -> observeSyntheticMds(stream,jws,signer));
+            registrationActor(owner,0);
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET disabled_at=clock_timestamp() WHERE id=:id
+                    """).setParameter("id",owner).executeUpdate());
+            registrationActor(revoked,1);
+            assertThrows(RuntimeException.class, () -> observeSyntheticMds(stream,jws,signer));
+            assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_fido_mds_untrusted_observations_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void syntheticMdsSqlCannotEraseOrPromoteUntrustedHistory() {
+        UUID owner = registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID stream = syntheticMdsStream();
+            var signer = syntheticMdsSigner();
+            observeSyntheticMds(stream,syntheticMdsJws(signer,1),
+                    (java.security.interfaces.ECPublicKey) signer.getPublic());
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_fido_mds_untrusted_observations_staging
+                        SET observation_state='trusted' WHERE stream_id=:stream
+                        """).setParameter("stream",stream).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_fido_mds_untrusted_observations_staging
+                        WHERE stream_id=:stream
+                        """).setParameter("stream",stream).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_fido_mds_untrusted_streams_staging
+                        WHERE stream_id=:stream
+                        """).setParameter("stream",stream).executeUpdate()));
+            assertEquals("synthetic_untrusted", entityManager.createNativeQuery("""
+                    SELECT stream_state FROM admin_fido_mds_untrusted_streams_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream).getSingleResult());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void syntheticMdsObservationSwallowedAuditRollsBackThenRetries() {
+        UUID owner = registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID stream = syntheticMdsStream();
+            var key = syntheticMdsSigner();
+            String jws = syntheticMdsJws(key,1);
+            var pub = (java.security.interfaces.ECPublicKey) key.getPublic();
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                    CREATE FUNCTION a11_mds_untrusted_suppress_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                      IF NEW.action='admin.passkey.mds.untrusted.observation'
+                        THEN RETURN NULL; END IF;
+                      RETURN NEW;
+                    END;
+                    $$
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    CREATE TRIGGER a11_mds_untrusted_suppress_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_mds_untrusted_suppress_audit()
+                    """).executeUpdate();
+            });
+            try {
+                assertThrows(IllegalStateException.class, () ->
+                        observeSyntheticMds(stream,jws,pub));
+                assertEquals(0L, ((Number) entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_fido_mds_untrusted_observations_staging
+                        WHERE stream_id=:stream
+                        """).setParameter("stream",stream).getSingleResult()).longValue());
+            } finally {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS a11_mds_untrusted_suppress_audit
+                        ON admin_access_log
+                        """).executeUpdate();
+                    entityManager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS a11_mds_untrusted_suppress_audit()
+                        """).executeUpdate();
+                });
+            }
+            observeSyntheticMds(stream,jws,pub);
+            assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_fido_mds_untrusted_observations_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void syntheticMdsConcurrentFirstObservationHasOneCommittedWinner() throws Exception {
+        UUID owner = registrationOwner();
+        registrationActor(owner,0);
+        UUID stream;
+        try {
+            stream = syntheticMdsStream();
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        var key = syntheticMdsSigner();
+        var publicKey = (java.security.interfaces.ECPublicKey) key.getPublic();
+        String firstJws = syntheticMdsJws(key,1);
+        String competingJws = syntheticMdsJws(syntheticMdsSigner(),1);
+        var otherKey = syntheticMdsSigner();
+        // Use each job's independent real ES256 signed JWS; only a single
+        // stream sequence=1 may be committed under V25 FOR UPDATE.
+        String secondJws = syntheticMdsJws(otherKey,1);
+        var otherPublicKey = (java.security.interfaces.ECPublicKey) otherKey.getPublic();
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var a = executor.submit(() -> {
+                registrationActor(owner,0);
+                try {
+                    start.await();
+                    observeSyntheticMds(stream,firstJws,publicKey);
+                    return true;
+                } catch (RuntimeException expected) {
+                    return false;
+                } finally {
+                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                }
+            });
+            var b = executor.submit(() -> {
+                registrationActor(owner,0);
+                try {
+                    start.await();
+                    observeSyntheticMds(stream,secondJws,otherPublicKey);
+                    return true;
+                } catch (RuntimeException expected) {
+                    return false;
+                } finally {
+                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                }
+            });
+            start.countDown();
+            assertEquals(1, (a.get(25, java.util.concurrent.TimeUnit.SECONDS) ? 1 : 0)
+                    + (b.get(25, java.util.concurrent.TimeUnit.SECONDS) ? 1 : 0));
+        }
+        assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_fido_mds_untrusted_observations_staging
+                WHERE stream_id=:stream
+                """).setParameter("stream",stream).getSingleResult()).longValue());
+        assertEquals(1L, ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log log
+                JOIN admin_fido_mds_untrusted_observations_staging obs
+                  ON obs.observation_id=log.resource_id
+                WHERE obs.stream_id=:stream
+                  AND log.action='admin.passkey.mds.untrusted.observation'
+                """).setParameter("stream",stream).getSingleResult()).longValue());
+    }
+
     @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is

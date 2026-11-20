@@ -440,8 +440,9 @@ class PostgreSqlDeviceActivationIT {
         // untrusted offline root proposals; V23 stores independently scoped
         // untrusted reviewer screenings only; V24 permanently disqualifies
         // candidates and serializes against any later screening, never roots.
+        // V25 only stages monotonic untrusted synthetic metadata observations.
         // None silently enroll an administrator or enable passkey signing.
-        assertEquals(15, upgraded.migrate().migrationsExecuted);
+        assertEquals(16, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);

@@ -24,6 +24,14 @@
 
 **2026-11-20 A11-D4-C3 PKIX/CRL 同源 SHA L1/L2 验收（合成且未可信）：** [`2e2b5ce6`](https://github.com/kunlong-luo/lanveriq/commit/2e2b5ce638f2dcd8135f4c43cd05f77cd447113d) 的 [Java JUnit #44726238523](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238523)、[真实 PostgreSQL 18 九套与强制 JUnit evidence #44726238492](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238492)、[PG18 集成源码编译 #44726238496](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238496)、[Linux 双跳 TLS1.3 + PG18 #44726238423](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238423)、[RD-2 fail-closed #44726238561](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238561) **五项全部 SUCCESS**。PG18 工作流的实际 Testcontainers/Flyway 与 mandatory XML evidence 两步成功；Linux 工作流的 PG18 安全事务与 Caddy→Tomcat TLS1.3 两个独立 job 成功。新增 5 组真实临时合成 CA/CRL Java 回归及 1 项 PG18 非 Bean 检查，不提供 FIDO 已批准信任根、官方签名链、可信 CRL/OCSP 来源、可信时间、真实 MFA/签发或 Pop!_OS24 实机 L3。返回仅 `UntrustedChain`，WebAuthn4J approved root 集合仍空。Issue #5 OPEN、v0.1 NOT RELEASE READY，生产 Agent 联网/采集/自动恢复/远控/签发保持 OFF。
 
+### 2026-11-20 A11-D4-C4 — V25 离线合成 MDS 版本持久单调账本（本代码 SHA CI PENDING）
+
+- **独立未可信观测流：** PG18 Flyway V25 新建不可变 `admin_fido_mds_untrusted_streams_staging` 与 `admin_fido_mds_untrusted_observations_staging`，只支持 `synthetic_untrusted` / `observed_untrusted` 固定状态。每条流由当前 `owner_security_admin` 创建；观测人必须与当前有效创建人同组、启用且会话未轮换。不能成为 FIDO 根、WebAuthn4J 注册授权或任何正式 MDS 缓存。
+- **事务单调和防分叉：** 每次 INSERT 先 `FOR UPDATE` 锁住流行，再检查该流前一次观测：第一条 seq 只能 1 且无前摘要，之后 seq 必须恰好 +1 且 `previous_jws_sha256` 必须完全等于前一条 PostgreSQL SHA256 摘要；同流 seq 和 digest 均唯一；不可 UPDATE/DELETE。数据库仅从参数 `compactJws` 的 UTF-8 字节计算 SHA-256，不在表中存储原始签名包；服务器 DB clock 设置 receipt 时间并做合成的 48 小时/5 分钟检查。**DB clock 未经生产可信时间验收，数据库也不能验证真实签名来源。**
+- **非 Bean 内部事务：** `StagedOfflineFidoMdsObservationLedger` 调用 Nimbus JWS 的 C2 合成 verifier，验证过测试公钥、序号及时间后写入未可信观测；PG trigger 再在单一行锁内重检。创建流及每一观测均必须同事务写入 `admin_access_log`，静默丢弃审计则回滚。签名公钥是临时合成测试数据，不由 FIDO 认可。
+- **负向强制验收：** 新增 6 项真实 PG18 Testcontainers 测试：连贯 digest/审计、回放/跳号/伪前摘要、权限/撤权/轮换、UPDATE/DELETE/伪可信状态拒绝、吞审计回滚与重试、两个线程争抢首号只产生一项成功和一项审计。JUnit 9 套 Console≥47、合计≥119，V9→V25 迁移计数 16。main push 启动 PG18/L1/Linux 合成工作流；本代码 SHA 必须逐项确认。
+- **后续上线阻断：** 官方 FIDO MDS 根与签名来源治理、MDS `x5c` 官方签名链绑定、可信 CRL/OCSP 与可信时间、新鲜度和状态策略、真实管理员 MFA、组织信任锚批准/撤销与 Pop!_OS 24.04 L3 全未完成。所有生产联网/采集/自动恢复/远控/签发 OFF；Issue #5 OPEN，v0.1 NOT RELEASE READY。
+
 ### 2026-11-20 D4-B4-C3 — 离线合成 MDS 签名证书链 PKIX + CRL 强制失败门禁（同 SHA L1/L2 PASS）
 
 - **标准工具，不自造 PKIX：** 增加非 Spring Bean、包内可见的 `StagedOfflineFidoMdsSigningChainInspector`，调用 Java 25 `CertPathValidator(PKIX)`、`PKIXRevocationChecker` 与预加载 CRL 的 `CollectionCertStore`。证书路径由 signer 开始，最多 4 层，不允许将锚点本身当作签名叶证书。只有测试调用方明确提供**合成根证书**，不加载系统 CA 或 V22–V24 离线候选。必须端实体 digitalSignature、CA keyCertSign、根自签/有效期/关键扩展、签名发行人和 CRL 时间范围成立。

@@ -34,6 +34,12 @@
 
 **2026-11-20 A11-D4-C3 PKIX/CRL 同源 SHA L1/L2 验收（合成且未可信）：** [`2e2b5ce6`](https://github.com/kunlong-luo/lanveriq/commit/2e2b5ce638f2dcd8135f4c43cd05f77cd447113d) 的 [Java JUnit #44726238523](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238523)、[真实 PostgreSQL 18 九套与强制 JUnit evidence #44726238492](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238492)、[PG18 集成源码编译 #44726238496](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238496)、[Linux 双跳 TLS1.3 + PG18 #44726238423](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238423)、[RD-2 fail-closed #44726238561](https://github.com/kunlong-luo/lanveriq/actions/runs/44726238561) **五项全部 SUCCESS**。PG18 工作流的实际 Testcontainers/Flyway 与 mandatory XML evidence 两步成功；Linux 工作流的 PG18 安全事务与 Caddy→Tomcat TLS1.3 两个独立 job 成功。新增 5 组真实临时合成 CA/CRL Java 回归及 1 项 PG18 非 Bean 检查，不提供 FIDO 已批准信任根、官方签名链、可信 CRL/OCSP 来源、可信时间、真实 MFA/签发或 Pop!_OS24 实机 L3。返回仅 `UntrustedChain`，WebAuthn4J approved root 集合仍空。Issue #5 OPEN、v0.1 NOT RELEASE READY，生产 Agent 联网/采集/自动恢复/远控/签发保持 OFF。
 
+## 2026-11-20 A11-D4-C4 V25 未可信 MDS 观测流防回退（本代码 SHA CI PENDING）
+
+- PostgreSQL 18 V25 新建每流不可变的 **synthetic-untrusted-only** 版本与 SHA256 前驱观测账本；流锁 `FOR UPDATE` 原子化检查 seq 从 1 连续递增及上一摘要严格相等，拒绝重放/跳号/分叉，创建者/观测人当前同组安全管理员权限与 session 必须有效。原始 JWS 不入库，摘要在 PG18 数据库根据传入的合成 JWS 参数计算，服务器生成记录时间。独立非 Bean 内部服务先用临时测试公钥做 Nimbus JWS 合成验证，再原子写入日志，任何审计缺失须回滚。
+- 新增六项真实 PG18 事务负向与并发测试，九套 Console≥47、合计≥119 严格 JUnit evidence，V9→V25 历史升级数 16；与 A11 文档在同一次源码提交。**代码尚未获同 SHA CI 验收，不能提前标记 L2。**
+- **重要限制：** 合成的从 1 连续编号不等于真实 FIDO MDS BLOB 版本/序列号策略；数据库没有真实的已批准 FIDO 根、PKIX 撤销在线状态、受信时钟、元数据签名来源证明或 WebAuthn 强身份/MFA。账本永远未可信、不可授权/签发；v0.1 NOT RELEASE READY、Issue #5 OPEN，生产 Agent/联网/采集/远控/恢复/签发 OFF。
+
 ## 2026-11-20 A11-D4-B4-C3 离线合成签名证书链与硬失败撤销检查（同 SHA L1/L2 PASS）
 
 - 使用 JDK 25 PKIX `CertPathValidator` 与 `PKIXRevocationChecker`（`PREFER_CRLS`、`NO_FALLBACK`、无 `SOFT_FAIL`），本地预加载 CRL 的合成 EC 根与签名叶证书，严格证书有效期/KeyUsage/CRL 签名及新鲜度；无 CRL、已吊销、错根、假 CRL、过期均拒绝。新类非 Bean，结果只叫 `UntrustedChain`，不能导入正式受信根。

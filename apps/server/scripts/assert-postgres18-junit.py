@@ -37,7 +37,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
-    "PostgreSqlConsoleSecurityWiringIT": 41,
+    "PostgreSqlConsoleSecurityWiringIT": 47,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -147,6 +147,12 @@ REQUIRED_CASES = {
         "concurrentRootScreeningWaitsForDisqualificationAndRejects",
         "offlineSignedMdsInspectorIsNotInstalledOrTrustedByRealPgBoot",
         "offlinePkixMdsSigningInspectorNeverBecomesApprovedSpringTrustSource",
+        "syntheticMdsObservationsMaintainImmutableDigestChainAndAudit",
+        "syntheticMdsObservationsRejectReplayedSkippedAndForgedPredecessor",
+        "syntheticMdsObservationsDenyUnscopedDisabledAndRotatedSessions",
+        "syntheticMdsSqlCannotEraseOrPromoteUntrustedHistory",
+        "syntheticMdsObservationSwallowedAuditRollsBackThenRetries",
+        "syntheticMdsConcurrentFirstObservationHasOneCommittedWinner",
     },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
@@ -243,7 +249,7 @@ def main() -> int:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
     print("PG18 synthetic JUnit evidence verified: all 9 Testcontainers classes, "
-          "at least 113 passing tests across nine suites, including A11 double-review and Console security wiring; "
+          "at least 119 passing tests across nine suites, including A11 double-review and Console security wiring; "
           "no failed, errored or skipped cases.")
     return 0
 
