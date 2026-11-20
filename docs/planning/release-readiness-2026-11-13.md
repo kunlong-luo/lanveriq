@@ -32,6 +32,12 @@
 
 **2026-11-20 A11-D4-B4-C2 exact-SHA synthetic JWS L1/L2 ACCEPTED (NOT FIDO MDS trust):** source [`4a2e7ee9`](https://github.com/kunlong-luo/lanveriq/commit/4a2e7ee9e41406385be671bca94e6ca18ca3a4b5) has same-SHA **SUCCESS** [Java JUnit #44713641467](https://github.com/kunlong-luo/lanveriq/actions/runs/44713641467), [real PG18 Testcontainers + mandatory JUnit XML #44713641171](https://github.com/kunlong-luo/lanveriq/actions/runs/44713641171), [PG18 source compile #44713641509](https://github.com/kunlong-luo/lanveriq/actions/runs/44713641509), [Linux double TLS1.3 plus PG18 #44713641202](https://github.com/kunlong-luo/lanveriq/actions/runs/44713641202) (both independent jobs SUCCESS), and [RD-2 fail-closed #44713641125](https://github.com/kunlong-luo/lanveriq/actions/runs/44713641125). Nimbus JOSE/JWT 10.10 merely verifies ephemeral **synthetic, untrusted** ES256 JWS shape + iat/serial anti-replay; explicitly rejects self-advertised x5c/x5u/jwk/kid and cannot process real FIDO MDS certificates. There is no FIDO-approved signer chain, production trustworthy time, persistent MDS last-seen serial/refresh, CRL/OCSP, MDS authenticator status evaluation, approved trust anchor, real reviewer MFA, CA/KMS, or Pop!_OS24 L3. WebAuthn4J trust roots remain EMPTY; candidate V22–V24 still never trusted. v0.1 NOT RELEASE READY, Issue #5 OPEN, production networking/collection/auto-recovery/remote/issuer OFF.
 
+## 2026-11-20 A11-D4-B4-C3 离线合成签名证书链与硬失败撤销检查（CI PENDING）
+
+- 使用 JDK 25 PKIX `CertPathValidator` 与 `PKIXRevocationChecker`（`PREFER_CRLS`、`NO_FALLBACK`、无 `SOFT_FAIL`），本地预加载 CRL 的合成 EC 根与签名叶证书，严格证书有效期/KeyUsage/CRL 签名及新鲜度；无 CRL、已吊销、错根、假 CRL、过期均拒绝。新类非 Bean，结果只叫 `UntrustedChain`，不能导入正式受信根。
+- 五组 Java 临时真实证书/CRL 测试及一项 PG18 Boot 默认拒绝测试；严格九套门禁 Console ≥41、总 ≥113，自动触发 L1/L2。适用 A11 文档与上线差距账本在同一代码提交更新。**该提交 CI PENDING；不能提前记验收通过。**
+- **仍然缺失** 官方 FIDO MDS 根治理、真实 JWT `x5c/x5u` 和在线获取策略、可信 CRL/OCSP、受信任时间和单调 metadata 缓存、WebAuthn 真实管理员 MFA/授权、Pop!_OS24 L3。无生产根批准或信任链准入，v0.1 NOT RELEASE READY，生产所有功能 OFF，Issue #5 OPEN。
+
 ## 2026-11-20 A11-D4-B4-C2 离线合成签名元数据包安全门禁（隔离 L1/L2 PASS）
 
 - 新增非 Bean 的 Nimbus JOSE/JWT ES256 合成 JWS 验签筛查（未可信），严格 `iat`、序列号递增、短窗口/输入大小/签名校验；禁止 JWS 自带密钥 URL/证书链绕过，也不强制逐渐废弃的 `nextUpdate`。5 项真实生成签名的 Java 负向测试 + 真实 PG18 容器确认该类不成为 Spring 安全服务，JUnit strict evidence Console ≥40、总 ≥112。

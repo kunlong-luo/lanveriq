@@ -53,6 +53,16 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             self.assertIn("No Gradle integration JUnit XML reports found",
                           verify_reports(Path(tmp)))
 
+    def test_offline_pkix_signer_never_becomes_a_trust_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            synthetic_reports(Path(tmp),
+                              omit=("PostgreSqlConsoleSecurityWiringIT",
+                                    "offlinePkixMdsSigningInspectorNeverBecomesApprovedSpringTrustSource"))
+            self.assertIn(
+                "Missing mandatory test: PostgreSqlConsoleSecurityWiringIT.offlinePkixMdsSigningInspectorNeverBecomesApprovedSpringTrustSource",
+                verify_reports(Path(tmp)),
+            )
+
     def test_offline_signed_mds_inspector_cannot_be_automounted(self):
         with tempfile.TemporaryDirectory() as tmp:
             synthetic_reports(Path(tmp),

@@ -2071,6 +2071,16 @@ class PostgreSqlConsoleSecurityWiringIT {
     }
 
     @Test
+    void offlinePkixMdsSigningInspectorNeverBecomesApprovedSpringTrustSource() {
+        assertTrue(context.getBeansOfType(
+                StagedOfflineFidoMdsSigningChainInspector.class).isEmpty());
+        assertTrue(context.getBeansOfType(
+                StagedOfflineSignedFidoMdsEnvelopeInspector.class).isEmpty());
+        assertTrue(context.getBeansOfType(
+                StagedStrictAttestationWebAuthn4JFactory.class).isEmpty());
+    }
+
+    @Test
     void fullBootPostgresNeverAutoMountsPasskeyRoutesFromDependency() throws Exception {
         // A11-D1: proving real component-scanned Boot servlet security is
         // crucial; a WebMvcTest alone could silently omit an auto-configured
