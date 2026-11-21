@@ -10,7 +10,7 @@
 
 ## Canonical frontend — current versus historical records
 
-- **[NXT-26 Base UI Select consistency and isolated Chromium gate](development/frontend-base-ui-select-nxt26.md)** — replace browser-native group/sort menus with the existing Base UI component in the shared directory; disabled by default, synthetic fixture only for real interaction verification.
+- **[NXT-26 Base UI Select consistency — four same-SHA workflows passed](development/frontend-base-ui-select-nxt26.md)** — replace browser-native group/sort menus with the existing Base UI component in the shared directory; disabled by default, synthetic fixture only for real interaction verification.
 
 
 - **[Run the one and only Next.js UI](../apps/web/README.md)** — Node 24, pinned pnpm 12, `cd apps/web && corepack pnpm dev`, `http://127.0.0.1:3100/overview`; disabled login/API and disconnected public preview.

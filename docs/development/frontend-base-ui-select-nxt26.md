@@ -1,6 +1,12 @@
 # NXT-26 — Base UI dropdowns for the device directory
 
-**Date:** 2026-11-21 · **Branch:** `main` · **Source:** `apps/web` Next.js 16.4.5 / React 19 / Tailwind 4 / Base UI React 1.9.0 · **Status:** isolated source/browser acceptance pending until exact-SHA CI is checked. **Release:** v0.1 NOT RELEASE READY.
+**Date:** 2026-11-21 · **Branch:** `main` · **Source:** `apps/web` Next.js 16.4.5 / React 19 / Tailwind 4 / Base UI React 1.9.0 · **Status:** four same-functional-SHA isolated CI successes on `0750f6b5`; production OFF. **Release:** v0.1 NOT RELEASE READY.
+
+## Final NXT-26 isolated acceptance
+
+**NXT-26 exact-source acceptance PASSED:** functional SHA [`0750f6b55c0bc9a69416e6014485dcf213ba1406`](https://github.com/kunlong-luo/lanveriq/commit/0750f6b55c0bc9a69416e6014485dcf213ba1406) passed all four same-SHA workflows: [Next.js frozen install, tests, typecheck, build and HTTP #44879640236](https://github.com/kunlong-luo/lanveriq/actions/runs/44879640236), [real Chromium 11 pages, 15 screenshots and CI-only popup/group/sort/keyboard/revocation acceptance #44879640279](https://github.com/kunlong-luo/lanveriq/actions/runs/44879640279), [disconnected public Pages build and deployment #44879640285](https://github.com/kunlong-luo/lanveriq/actions/runs/44879640285), and [RD-2 default OFF #44879640264](https://github.com/kunlong-luo/lanveriq/actions/runs/44879640264). Visual artifact `nxt18-visual-qa-0750f6b55c0bc9a69416e6014485dcf213ba1406` (ID `14697451711`). This is isolated UI/source acceptance, NOT live admin auth/device access, production release or physical Pop!_OS acceptance.
+
+The first two Chromium fixture failures are historical below. The final run targeted only `.lv-select-popup[data-open]` and passed real selection, filtering, sorting, page replacement, revocation, keyboard, mobile and no-cookie/no-API checks.
 
 ## Why this change
 
