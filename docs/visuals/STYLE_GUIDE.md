@@ -1,6 +1,6 @@
 # Lanveriq visual language and production rules
 
-**Status:** Design assets, not live UI. English architectural prose is canonical; the stakeholder posters use concise Simplified Chinese. The eight SVGs in [assets](assets/) are the source of truth for the **illustrations**.
+**Status:** Historical design posters, not current product UI. The eight SVGs in [assets](assets/) remain canonical for **illustrations only**. Current Next.js Console UI direction is [Craftwork-inspired Console](CONSOLE_CRAFTWORK_DIRECTION.md) and `apps/web-next/src/app/console-polish.css`, not this poster palette.
 
 ## Unified canvas
 - **1600 × 900 (16:9)** viewBox for every product poster.
@@ -36,7 +36,7 @@ Endpoint: `Rust Agent`, `Tokio`, `SQLite WAL`, `HTTPS REST`; optional Tauri 2 us
 
 Server: `Java 25`, `Spring Boot 4`, `Spring Security`, `PostgreSQL 18`, `Flyway`, `Caddy`, `Docker Compose`.
 
-Dashboard: `React + Vite + TypeScript`, `pnpm Workspace`, `Tailwind CSS 4`, `shadcn/ui + Radix UI`, `Lucide React`, `Motion`, `TanStack Query`, `REST + WSS`. Next.js and Electron are **not** part of the current MVP design; no AI, Redis, Kafka, Kubernetes, or external cloud is required.
+Dashboard (canonical): `Next.js 16 App Router`, `React 19`, `TypeScript 7`, `pnpm 12`, `Tailwind CSS 4`, `Base UI + owned shadcn-style components`, `Lucide React`, `TanStack Query`. `apps/web` (Vite) is legacy reference only. Real browser REST/session and WSS are **not enabled** on public disconnected preview; no production device connectivity has been authorized.
 
 ## Review / change process
 1. Identify impact through [Content Matrix](CONTENT_MATRIX.md).

@@ -32,6 +32,8 @@ test('visual refinement stays a CSS-only accessible layer', () => {
   assert.match(theme, /--background:\s*#f5f7fa/i);
   assert.match(theme, /--lan-violet:\s*#4d5fc9/i);
   assert.match(theme, /\.bc-overview \.overview-hero/);
+  assert.match(theme, /--lan-editorial-surface:\s*#fff/i);
+  assert.match(theme, /background:\s*radial-gradient\(circle at 88% 19%/);
   assert.match(theme, /\.bc-console \.nav-item\.selected/);
   assert.match(theme, /\.lv-hero-guardrails/);
   assert.match(theme, /@media\s*\(max-width:\s*750px\)/);

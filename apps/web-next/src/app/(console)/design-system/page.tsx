@@ -15,7 +15,7 @@ export default function DesignSystem() {
   return <section className="page bc-design-system">
     <div className="title-row">
       <SectionHeading eyebrow="DESIGN FOUNDATION / B + C" title="设计系统"
-        description="Lanveriq 的统一视觉规范：企业运维优先的信息架构、克制的海军蓝与靛蓝识别，以及可访问的组件。仅供产品设计评审。" />
+        description="Lanveriq 的统一视觉规范：参考 Craftwork 的留白、编辑式排版与轻盈卡片层级，保留 Lanveriq 独立视觉语言、真实权限边界与可访问组件。仅供产品设计评审。" />
       <span className="bc-design-version"><Palette size={16} aria-hidden="true" /> DESIGN PREVIEW / V2</span>
     </div>
     <div className="bc-section-label"><div><span>01 / BRAND FOUNDATION</span><h2>品牌色彩</h2></div></div>

@@ -115,8 +115,8 @@ def check_browser(page, blocked):
             "bc_activity_chart_must_not_invent_time_series")
     require(page.evaluate(
         "getComputedStyle(document.querySelector('.overview-hero')).color") ==
-            "rgb(255, 255, 255)",
-            "nxt20_dark_operational_hero_stylesheet_not_loaded")
+            "rgb(23, 34, 53)",
+            "nxt21_editorial_light_hero_stylesheet_not_loaded")
     require(page.locator(".metric-card").count() == 4,
             "designed_overview_four_unknown_metrics")
     for metric in page.locator(".metric-card").all():
