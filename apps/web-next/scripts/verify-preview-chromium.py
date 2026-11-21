@@ -221,7 +221,7 @@ def check_viewports(browser):
                             "designed_heading_hidden_at_" + str(width))
                     require(page.evaluate(
                         "getComputedStyle(document.documentElement).getPropertyValue('--background').trim()") ==
-                            "#f8f8fc", "nxt16_canonical_theme_token_missing")
+                            "#f5f7fa", "nxt20_canonical_operations_theme_token_missing")
                     if width in (320, 390):
                         columns = page.locator(".bc-overview .metric-grid").evaluate(
                             "(el) => getComputedStyle(el).gridTemplateColumns.trim().split(/\\s+/).length")

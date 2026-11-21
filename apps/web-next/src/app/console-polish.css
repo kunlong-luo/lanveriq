@@ -450,6 +450,10 @@ body { background: var(--background); }
   .bc-overview .metric-card { min-height: 172px; }
   .bc-overview .metric-card-bottom { align-items: start; }
 }
+@media (max-width: 360px) {
+  /* 320px needs one readable metric column, not two squeezed cards. */
+  .bc-overview .metric-grid { grid-template-columns: minmax(0,1fr); }
+}
 @media (prefers-reduced-motion: reduce) {
   .bc-console .nav-item,
   .bc-console .metric-card,

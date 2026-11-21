@@ -46,7 +46,7 @@ try {
     const html = await response.text();
     if (!html.includes(label)) throw new Error(route + ': missing ' + label);
     const requiredMarkup = {
-      '/overview': ['设备连接分布', '采集与库存覆盖', '设备数据尚未连接'],
+      '/overview': ['设备连接分布', '采集与库存覆盖', '设备数据尚未连接', '设备采集', '未启用'],
       '/monitoring': ['监控中心', '心跳接收状态', '连接状态'],
       '/devices': ['搜索终端名称、系统或设备组', '设备数据尚未连接'],
       '/devices/00000000-0000-7000-8000-000000000001': [
@@ -56,7 +56,7 @@ try {
       '/alerts': ['规划模块', '告警数据尚未连接', '未连接 · 不展示假数据'],
       '/policies': ['规划模块', '策略服务尚未接入', '不向终端下发规则'],
       '/reports': ['规划模块', '尚无经过授权的报表数据', '不绘制虚构百分比'],
-      '/design-system': ['设计系统', '#6A5BFF', '组件和状态样式'],
+      '/design-system': ['设计系统', '#4D5FC9', '组件和状态样式'],
       '/settings': ['发布与安全验收', 'PostgreSQL 18', '待完成'],
     }[route] ?? [];
     for (const marker of requiredMarkup) {
