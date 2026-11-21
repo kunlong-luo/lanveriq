@@ -270,6 +270,9 @@ def check_viewports(browser):
                             "document.documentElement.scrollHeight > window.innerHeight + 100"),
                             "overview_no_vertical_content_for_scroll_regression")
                         page.evaluate("window.scrollTo(0, 0)")
+                        # NXT-28: the sidebar now owns its own wheel scroll.
+                        # Put the pointer over content before asserting page scroll.
+                        page.mouse.move(900, 250)
                         page.mouse.wheel(0, 650)
                         page.wait_for_function("window.scrollY > 0", timeout=4000)
                         page.evaluate("window.scrollTo(0, 0)")
