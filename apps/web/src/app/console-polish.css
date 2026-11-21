@@ -687,3 +687,84 @@ body { background: var(--background); }
   .bc-console .lv-select-trigger { transition: none; }
   .lv-select-trigger[data-popup-open] .lv-select-caret svg { transition: none; }
 }
+
+/* NXT-27 — one authoritative empty-evidence presentation across monitoring
+ * and device detail. These are notes, not live alerts or inferred telemetry.
+ * Detail tabs inherit their native Base UI keyboard behavior unchanged. */
+.lv-evidence-notice {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 9px;
+  max-width: 100%;
+  color: #5e7188;
+}
+.lv-evidence-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #dfe7f2;
+  border-radius: 12px;
+  background: #eff4fb;
+  color: #506a95;
+}
+.lv-evidence-notice--restricted .lv-evidence-icon {
+  border-color: #f0e2cd;
+  background: #fff7e9;
+  color: #92672f;
+}
+.lv-evidence-notice--unverified .lv-evidence-icon {
+  border-color: #dfe7ee;
+  background: #f3f6f9;
+  color: #60768e;
+}
+.lv-evidence-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: #22364c;
+}
+.lv-evidence-description {
+  max-width: 520px;
+  margin: 0;
+  color: #6a7b90;
+  font-size: 12px;
+  line-height: 1.75;
+}
+.lv-evidence-notice--chart {
+  justify-items: center;
+  width: min(94%, 260px);
+  padding: 15px 17px;
+  border: 1px solid #e2e9f2;
+  border-radius: 13px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 8px 24px rgba(23,34,53,.055);
+  text-align: center;
+}
+.lv-evidence-notice--chart .lv-evidence-icon {
+  width: 36px;
+  height: 36px;
+}
+.lv-evidence-notice--chart .lv-evidence-title { font-size: 12px; }
+.lv-evidence-notice--chart .lv-evidence-description { font-size: 11px; }
+.lv-evidence-value {
+  color: #697d93;
+  font-weight: 660;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.detail-summary-item .lv-evidence-value {
+  font-size: 13px;
+  color: #526981;
+}
+.placeholder-stack .lv-evidence-value {
+  margin-left: auto;
+  font-size: 11px;
+}
+@media (max-width: 750px) {
+  .detail-tab-content .lv-evidence-notice {
+    max-width: 100%;
+  }
+  .lv-evidence-notice--chart { width: min(94%, 260px); }
+}

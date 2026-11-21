@@ -1,7 +1,8 @@
 'use client';
 
 import { Tabs } from '@base-ui/react/tabs';
-import { Activity, Cpu, HardDrive, LockKeyhole, Network } from 'lucide-react';
+import { Activity, Cpu, Network } from 'lucide-react';
+import { EvidenceNotice, type EvidenceStatus } from './ui/evidence-state';
 import { Card, CardHeader, CardTitle, CardDescription } from './ui/card';
 
 const tabs = [
@@ -12,16 +13,19 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]['id'];
 
-const descriptions: Record<TabId, { title: string; message: string }> = {
+const descriptions: Record<TabId, { status: EvidenceStatus; title: string; message: string }> = {
   hardware: {
+    status: 'unconnected',
     title: '硬件资产未连接',
     message: 'CPU、内存、磁盘、操作系统均需来自通过授权的库存快照，不能使用占位硬件参数。',
   },
   network: {
+    status: 'restricted',
     title: '网络信息受限',
     message: 'IP、MAC、网卡等敏感字段需要后端按设备组与数据类别分别授权，当前不显示。',
   },
   health: {
+    status: 'unverified',
     title: '尚无可信健康证据',
     message: '未收到已授权的服务器心跳与采集覆盖信息，不能推断设备在线或离线。',
   },
@@ -48,11 +52,8 @@ export function DeviceDetailTabs() {
       {tabs.map(({ id }) => {
         const detail = descriptions[id];
         return <Tabs.Panel key={id} value={id} className="detail-tab-content">
-          <span className="state-icon" aria-hidden="true">
-            {id === 'network' ? <LockKeyhole size={22}/> :
-              id === 'hardware' ? <HardDrive size={22}/> : <Activity size={22}/>}
-          </span>
-          <strong>{detail.title}</strong><p>{detail.message}</p>
+          <EvidenceNotice status={detail.status} title={detail.title}
+            description={detail.message} />
         </Tabs.Panel>;
       })}
     </Tabs.Root>

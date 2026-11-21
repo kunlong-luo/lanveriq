@@ -82,3 +82,29 @@ test('NXT-26 directory controls use accessible Base UI Select, no native dropdow
   assert.match(chromium, /get_by_role\("option"/);
   assert.doesNotMatch(chromium, /\.select_option\(|native-select/);
 });
+
+test('NXT-27 shared evidence states are static, scoped and consistent across pages', () => {
+  const state = read('src/components/ui/evidence-state.tsx');
+  const monitoring = read('src/components/health-sections.tsx');
+  const detailTabs = read('src/components/device-detail-tabs.tsx');
+  const detailPage = read('src/app/(console)/devices/[id]/page.tsx');
+  const chromium = read('scripts/verify-preview-chromium.py');
+  const css = read('src/app/console-polish.css');
+  const legacyCss = read('src/app/lanveriq-bc.css');
+  for (const token of ['unconnected', 'restricted', 'unverified', 'role="note"']) {
+    assert.ok(state.includes(token), 'evidence-state missing '+token);
+  }
+  assert.doesNotMatch(state, /fetch\(|axios|WebSocket|localStorage|sessionStorage|staged-console|useEffect|useState|navigator\./);
+  assert.match(monitoring, /import \{ EvidenceNotice, EvidenceValue \}/);
+  assert.match(monitoring, /<EvidenceNotice status="unconnected" variant="chart"/);
+  assert.match(detailTabs, /status: 'restricted'/);
+  assert.match(detailTabs, /status: 'unverified'/);
+  assert.match(detailTabs, /<EvidenceNotice status=\{detail.status\}/);
+  assert.match(detailPage, /<EvidenceValue context=\{label\}/);
+  assert.doesNotMatch(detailPage, /fetch\(|WebSocket|cookies\(|headers\(/);
+  assert.match(css, /\.lv-evidence-notice--restricted/);
+  assert.match(css, /\.lv-evidence-value/);
+  assert.doesNotMatch(legacyCss, /\.bc-chart-message/);
+  assert.match(chromium, /nxt27_health_must_not_infer_online_or_offline/);
+  assert.match(chromium, /nxt27_monitoring_unexpected_network/);
+});

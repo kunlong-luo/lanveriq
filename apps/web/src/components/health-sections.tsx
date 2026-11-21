@@ -1,5 +1,6 @@
 import { Activity, Clock3, HardDrive, Monitor, ShieldCheck, WifiOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { EvidenceNotice, EvidenceValue } from './ui/evidence-state';
 
 const metrics = [
   { name: '已授权设备总数', Icon: Monitor, description: '尚未获取授权设备列表' },
@@ -55,9 +56,9 @@ export function InventoryFreshness() {
     <CardHeader><CardTitle>采集与库存覆盖</CardTitle>
       <CardDescription>只读展示待接入的数据新鲜度与队列概览。</CardDescription></CardHeader>
     <CardContent className="placeholder-stack">
-      <div><HardDrive size={19} aria-hidden="true"/><span>最新库存快照</span><strong>未连接</strong></div>
-      <div><Activity size={19} aria-hidden="true"/><span>心跳接收状态</span><strong>未连接</strong></div>
-      <div><Clock3 size={19} aria-hidden="true"/><span>待发送队列统计</span><strong>未连接</strong></div>
+      <div><HardDrive size={19} aria-hidden="true"/><span>最新库存快照</span><EvidenceValue context="最新库存快照" /></div>
+      <div><Activity size={19} aria-hidden="true"/><span>心跳接收状态</span><EvidenceValue context="心跳接收状态" /></div>
+      <div><Clock3 size={19} aria-hidden="true"/><span>待发送队列统计</span><EvidenceValue context="待发送队列统计" /></div>
     </CardContent>
   </Card>;
 }
@@ -74,11 +75,8 @@ export function ActivityTrend() {
     </CardHeader>
     <CardContent className="bc-activity-content">
       <div className="bc-empty-chart" role="img" aria-label="暂无经过授权的设备活动趋势数据">
-        <span className="bc-chart-message">
-          <Activity size={20} aria-hidden="true" />
-          <strong>未连接数据源</strong>
-          <small>当前不绘制虚构心跳或趋势曲线</small>
-        </span>
+        <EvidenceNotice status="unconnected" variant="chart"
+          title="未连接数据源" description="当前不绘制虚构心跳或趋势曲线" />
       </div>
       <p className="bc-chart-footnote"><Clock3 size={15} aria-hidden="true" />
         时间窗口、分组和聚合规则需要基于真实授权事件。</p>

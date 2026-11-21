@@ -194,7 +194,25 @@ def check_browser(page, blocked):
     require(page.get_by_role("button", name="添加设备（未开放）").is_disabled(),
             "real_device_add_must_remain_disabled")
 
+    # NXT-27: the same evidence vocabulary is rendered in monitoring and
+    # device detail, without fabricating counts or polling protected APIs.
+    page.goto(BASE + "/monitoring", wait_until="networkidle")
+    require(page.locator(
+        '.bc-activity-card .lv-evidence-notice[data-evidence-status="unconnected"]'
+    ).count() == 1, "nxt27_monitoring_evidence_missing")
+    require(page.locator(".placeholder-stack .lv-evidence-value").count() == 3,
+            "nxt27_monitoring_inventory_values_not_shared")
+    require(page.get_by_text("未连接数据源").count() == 1,
+            "nxt27_monitoring_must_not_fabricate_trend")
+    require(not blocked, "nxt27_monitoring_unexpected_network")
+
     page.goto(BASE + DETAIL, wait_until="networkidle")
+    require(page.locator(
+        '.detail-summary-item .lv-evidence-value[data-evidence-status="unconnected"]'
+    ).count() == 3, "nxt27_detail_summary_values_not_shared")
+    require(page.locator(
+        '.detail-tab-content .lv-evidence-notice[data-evidence-status="unconnected"]'
+    ).count() == 1, "nxt27_hardware_evidence_missing")
     hardware = page.get_by_role("tab", name="硬件")
     require(hardware.get_attribute("aria-selected") == "true",
             "initial_hardware_tab")
@@ -207,6 +225,13 @@ def check_browser(page, blocked):
             "keyboard_tab_focus")
     require(page.get_by_role("tabpanel").get_by_text("网络信息受限").count() == 1,
             "network_tab_confidentiality_message")
+    require(page.get_by_role("tabpanel").locator(
+        '.lv-evidence-notice[data-evidence-status="restricted"]'
+    ).count() == 1, "nxt27_network_must_be_marked_restricted")
+    page.get_by_role("tab", name="健康").click()
+    require(page.get_by_role("tabpanel").locator(
+        '.lv-evidence-notice[data-evidence-status="unverified"]'
+    ).count() == 1, "nxt27_health_must_not_infer_online_or_offline")
     require(page.get_by_role("button", name="撤销证书").is_disabled(),
             "revoke_action_must_be_disabled")
     require(page.get_by_role("button", name="申请刷新资产").is_disabled(),

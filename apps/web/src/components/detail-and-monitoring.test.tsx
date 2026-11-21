@@ -21,12 +21,19 @@ describe('NXT-02 read-only monitoring and detail presentation', () => {
     expect(inventory).toContain('最新库存快照');
     expect(inventory).toContain('心跳接收状态');
     expect(inventory).toContain('待发送队列统计');
+    expect(inventory).toContain('aria-label="最新库存快照：未连接"');
+    expect(inventory).toContain('aria-label="心跳接收状态：未连接"');
+    expect(inventory).toContain('aria-label="待发送队列统计：未连接"');
+    expect(inventory).not.toContain('0 台');
   });
   it('does not invent a heartbeat trend when the data source is disconnected', () => {
     const html = renderToStaticMarkup(<ActivityTrend />);
     expect(html).toContain('设备活动趋势');
     expect(html).toContain('暂无经过授权的设备活动趋势数据');
     expect(html).toContain('不绘制虚构心跳或趋势曲线');
+    expect(html).toContain('data-evidence-status="unconnected"');
+    expect(html).toContain('lv-evidence-notice--chart');
+    expect(html).toContain('role="note"');
     expect(html).not.toContain('<svg class="recharts');
   });
 
@@ -38,6 +45,10 @@ describe('NXT-02 read-only monitoring and detail presentation', () => {
     expect(html).toContain('role="tabpanel"');
     expect(html).toContain('硬件资产未连接');
     expect(html).toContain('网络');
+    expect(html).toContain('data-evidence-status="unconnected"');
+    // Inactive Base UI panels may be unmounted at SSR; Chromium tests
+    // select Network/Health and assert their restricted/unverified semantics.
+    expect(html).toContain('lv-evidence-notice--detail');
     expect(html).toContain('健康');
     expect(html).not.toContain('Intel Core');
   });

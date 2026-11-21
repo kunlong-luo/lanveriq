@@ -1035,21 +1035,6 @@ body { background:#f8f8fc; color:var(--foreground); }
       transparent calc(75% - .5px),#e8e5f0 75%,transparent calc(75% + .5px)),
     linear-gradient(140deg,#fcfbff,#f8f6ff);
 }
-.bc-chart-message {
-  display:grid;
-  justify-items:center;
-  gap:8px;
-  padding:16px;
-  width:min(95%,245px);
-  text-align:center;
-  border:1px solid #e4ddf7;
-  border-radius:13px;
-  background:#ffffffee;
-  box-shadow:0 10px 24px #44327e14;
-  color:#6f59cb;
-}
-.bc-chart-message strong { color:#352b57; font-size:12px; }
-.bc-chart-message small { color:#9b94aa; font-size:10px; line-height:1.6; }
 .bc-chart-footnote {
   display:flex;
   align-items:flex-start;

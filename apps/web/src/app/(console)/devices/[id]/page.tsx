@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Clock3, HardDrive, RefreshCcw } from 'lucide-react';
 import { SectionHeading } from '@/components/section-heading';
 import { DeviceDetailTabs } from '@/components/device-detail-tabs';
+import { EvidenceValue } from '@/components/ui/evidence-state';
 import { isCanonicalUuid } from '@/lib/uuid';
 
 
@@ -27,7 +28,7 @@ export default async function DeviceDetail({ params }: Readonly<{ params: Promis
     </div>
     <div className="detail-summary-grid">{summary.map(({label, Icon}) => (
       <div className="detail-summary-item" key={label}><Icon size={19} aria-hidden="true" />
-        <small>{label}</small><strong>未连接</strong></div>
+        <small>{label}</small><EvidenceValue context={label} /></div>
     ))}</div>
     <DeviceDetailTabs />
     <section className="disabled-actions" aria-label="不可用的设备操作">
