@@ -53,6 +53,8 @@ jobs:
         run: |
           set -euo pipefail
           pnpm install --frozen-lockfile
+          node scripts/verify-single-ui.mjs
+          node --test scripts/test_verify_single_ui.mjs
           pnpm run verify:routes
           node --test scripts/test_prepare_pages_export.mjs
           pnpm test

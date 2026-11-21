@@ -1,3 +1,5 @@
+> **2026-11-21 NXT-23 single-front-end consolidation (CI PENDING):** The obsolete `apps/web` Vite source tree and `.github/workflows/web-unit.yml` are removed. The only runnable UI is `apps/web-next` on `127.0.0.1:3100`; Next.js staged CSRF/session/authorized-reader/contract/typechecking counterparts remain isolated, not enabled. Root and Chinese readmes, IDEA instructions, and Next.js CI now explicitly reject stale `5173` launch instructions and legacy UI resurrection. v0.1 remains NOT RELEASE READY, production capabilities OFF.
+
 # Lanveriq
 
 > **2026-11-08 LAN/WAN + RustDesk architecture direction:** Adopt an independent RustDesk hbbs/hbbr remote-access plane, reuse its client/protocol/NAT/ICE/relay rather than developing our own, and preserve Lanveriq Next.js + Spring + Rust Agent business correctness. The target supports both LAN (private split DNS) and authorized WAN (VPN first; public HTTPS Console requires separate release/security approval) behind **one owned Console HTTPS hostname**. **This is a decision and unactivated network test scaffold, not an Internet-accessible production service.** See [ADR-0011](docs/architecture/adrs/0011-rustdesk-dual-network-access.md), [dual-network runbook](docs/operations/dual-network-acceptance.md), [deployment](docs/architecture/deployment.md) and [read-only network probe](deploy/network/verify_dual_access.py). The [opt-in RustDesk OSS pilot](docs/operations/rustdesk-pilot.md) pins the official 1.1.16 image digest with isolated Compose and CI-local binary smoke testing; it has **not** been enabled on any real LAN/WAN endpoint. RustDesk software/license/API integration, trusted DNS/CA, independent LAN+WAN acceptance and existing A–E v0.1 gates remain OPEN. Public GitHub Pages stays disconnected.
@@ -19,7 +21,7 @@ The **three product components** are **Web**, **Server**, and **Agent**. Postgre
 
 | Component | Path and technology | What runs today? |
 |---|---|---|
-| Web admin dashboard (primary) | `apps/web-next`: Next.js **16.4.5** App Router / React 19 / TypeScript 7 / Tailwind 4 / Lucide / shadcn-style components | Verified static disconnected management preview, seven pages, disabled login and asset/device operations; [public GitHub Pages preview](https://kunlong-luo.github.io/lanveriq/). NO real login, business API, or Agent access. `apps/web` is now legacy Vite reference only. |
+| Web admin dashboard (primary) | `apps/web-next`: Next.js **16.4.5** App Router / React 19 / TypeScript 7 / Tailwind 4 / Lucide / shadcn-style components | Verified static disconnected management preview, seven pages, disabled login and asset/device operations; [public GitHub Pages preview](https://kunlong-luo.github.io/lanveriq/). NO real login, business API, or Agent access. The former `apps/web` Vite runtime was removed; its Git history remains available. |
 | API and admin server | `apps/server`, Java 25 / Spring Boot 4.1.2 / Gradle / JPA / Flyway | A buildable Spring Boot process with health checks; other business routes default to denial. Real DB/security approval pending. |
 | Endpoint Agent | `apps/agent`, Rust 1.94 / Tokio / SQLx SQLite WAL / Reqwest-rustls | Builds and starts an **idle** process; **no automatic monitoring, inventory collection, or uploads**. |
 | PostgreSQL (dependency) | PostgreSQL 18.x (18.6 for manual acceptance); Flyway V1–V8 | Reuse dedicated `lanveriq` database in existing `spark-postgres`; full PG18.6 integration acceptance pending. |
@@ -44,7 +46,7 @@ pnpm build
 pnpm dev
 ```
 
-The Next.js server binds `127.0.0.1:3100`; no Spring session or business data is connected. **Never submit real credentials to the disabled login screen.** The legacy Vite `apps/web` directory remains solely for historical reference and existing migration regressions, not as the recommended Web entry point.
+The Next.js server binds `127.0.0.1:3100`; no Spring session or business data is connected. **Never submit real credentials to the disabled login screen.** The historical Vite `apps/web` source and workflow were removed; only `apps/web-next` starts a frontend.
 
 ## Prerequisites
 
@@ -286,7 +288,7 @@ Run that only against disposable, explicitly authorized Docker-backed synthetic 
 
 - **Backend:** a local development Spring process and buildable Boot JAR — **not** a reviewed production application server.
 - **Agent:** a compiled **idle** binary, plus an **experimental** Linux systemd unit. No approved automatic installation, device collection, upload or Windows installer.
-- **Frontend:** a React/Vite synthetic-data preview builds and can probe **anonymous Spring health only** in local development; it is **not** an authenticated, business-API-connected or deployable management console.
+- **Frontend:** only the disconnected Next.js preview builds. No authenticated business API, live database health indicator, real-device data or deployable production management console is enabled.
 - **Infrastructure:** no deployable Docker Compose file, production-ready Caddy configuration, real certificate provisioning, completed backup/restore drill, or production-ready network policy.
 
 **Do not run an invented `docker compose up -d` command: no Compose stack exists yet.**
@@ -338,7 +340,7 @@ No real device enrollment, user-activity collection, automated uploads, monitori
 | Foreground idle Agent | `Ctrl+C`; remove only your copied test TOML | Does not uninstall any OS service |
 | Linux experimental systemd Agent | Instructions below | Remove only files you installed and verified |
 | Windows test SCM service | No supported installer/uninstaller yet; if manually created, stop/delete the exact known test service using Windows SCM and review its ACLs/data | Never delete an unknown service name |
-| Local Web preview | Stop `pnpm dev` with `Ctrl+C` | Remove only generated `apps/web/node_modules` and `apps/web/dist` if needed; do not touch shared Docker volumes |
+| Local Web preview | Stop `pnpm dev` with `Ctrl+C` | Only remove generated `apps/web-next/.next` / `apps/web-next/node_modules` if absolutely necessary; do not touch shared Docker volumes |
 | Production backend/DB/Caddy | **No approved one-command uninstall** | Backup, retention, key revocation and audit controls required |
 
 For a Linux Agent **installed using exactly the isolated-VM commands above**, confirm file ownership and paths first, then:
@@ -375,26 +377,45 @@ DROP ROLE lanveriq;
 
 Do **not** delete `iot_farm`, stop `spark-postgres` or remove its `postgres-data` volume. Your existing pg_dump/Kopia/R2 backup workflow may back up only `iot_farm`; independently confirm whether the new `lanveriq` DB is covered.
 
-## Local Web synthetic preview
+## Local Web preview — the ONLY runnable frontend
 
-Node.js 24 + pnpm 12; no backend or Docker is contacted:
+Use Node.js 24 and pinned pnpm 12. The repository has **one** frontend:
+`apps/web-next` (Next.js 16 App Router). The historical `apps/web` Vite
+tree and its separate CI workflow were deleted after verifying their staged
+HTTPS/session/read-projection coverage already exists in Next.js. The former
+Vite health-only proxy and fictitious demo device view are intentionally not
+ported to the active console.
+
+From the repository root:
 
 ~~~bash
-cd apps/web
+git switch main
+git pull --ff-only origin main
+cd apps/web-next
 corepack enable
-corepack prepare pnpm@12.0.0 --activate
-pnpm install --frozen-lockfile
-pnpm test && pnpm build
-pnpm dev
+corepack pnpm install --frozen-lockfile
+corepack pnpm dev
 ~~~
 
-Open **http://127.0.0.1:5173**. Stop with `Ctrl+C`. The generated `apps/web/pnpm-lock.yaml` is now committed; local and CI installs use `--frozen-lockfile`, rejecting dependency manifest drift. See [Web README](apps/web/README.md).
+Open **http://127.0.0.1:3100/overview**. Stop with `Ctrl+C`. No backend,
+PostgreSQL or Agent is required; all device data remains disconnected,
+credentials are disabled, and the command palette navigates only local public
+pages. `5173` and `vite` are no longer supported UI entry points. If an
+obsolete process is still running on your machine, stop it separately; deleting
+its checked-in files does not stop processes or remove untracked local
+`node_modules`. See [canonical Next.js guide](apps/web-next/README.md).
 
 ## Frontend progress
 
-**The React app now exists as a synthetic-business-data UI preview with a local-only anonymous Spring health check.** It includes overview, Monitoring Center, interactive demonstration device filtering, Radix detail tabs, enrollment explanation, settings, and a **disabled-by-default sign-in visual preview** at `/login` (no credentials collected). The **actual Springdoc → Orval generated client is now compiled against the Web project's pinned dependencies in backend CI**, but this is build-time only. A staged native-fetch HTTPS same-origin CSRF/session transport has synthetic negative tests but is **not imported by the UI**. It has **no real login/session, Orval runtime business API connection, WSS, live telemetry or usable device commands**. The top bar and overview perform one anonymous health GET, with manual retry and no interval polling; start Java on port 8080 and `pnpm dev`, or use `LANVERIQ_WEB_HEALTH_PORT=18081 pnpm dev` if Java uses 18081. shadcn/ui configuration and a Card component foundation are now in the Vite app. See [Web runbook](apps/web/README.md). PostgreSQL and TLS/session acceptance remain separate gates.
-
-See [frontend design system](docs/development/frontend-design-system.md), [dashboard UX](docs/development/dashboard-ux.md), [roadmap](docs/planning/roadmap.md), and [architecture drawings](docs/diagrams/README.md).
+Next.js 16.4.5 / React 19 / TypeScript 7 / Tailwind 4 is the only mainline
+console. Public Pages is a read-only disconnected design preview, not a
+production login or device monitoring tool. The staged same-origin HTTPS
+session transport, authorized read projections, Springdoc/Orval contract
+checks and their negative tests remain unmounted and protected in
+`apps/web-next`; they are **not** permissions to enable production networking.
+See [frontend design system](docs/development/frontend-design-system.md),
+[dashboard UX](docs/development/dashboard-ux.md), [roadmap](docs/planning/roadmap.md),
+and [architecture drawings](docs/diagrams/README.md).
 
 ## License and contributing
 

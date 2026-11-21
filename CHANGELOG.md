@@ -1,3 +1,9 @@
+## 2026-11-21 — NXT-23 Remove obsolete Vite app; make Next.js sole Web UI (CI pending)
+
+- Remove 32 tracked files under legacy `apps/web` and the legacy Vite-only `web-unit.yml` workflow. Do not delete the Git history. Canonical `apps/web-next` already has separately staged CSRF/session/read-only projection and a generated Springdoc/Orval contract bridge; no business APIs are connected.
+- Normalize English/Chinese root READMEs and IDEA launch guidance to `apps/web-next`, `http://127.0.0.1:3100/overview`. Remove conflicting `5173` launch recipe and untrue Vite health-only runtime claims.
+- Add `verify-single-ui.mjs` plus negative fixture tests to both Next.js fast source workflow and disconnected static Pages workflow. All production capabilities remain disabled. Exact-SHA CI pending.
+
 ## 2026-11-21 — NXT-22 keyboard-first local workspace navigation (exact-SHA UI acceptance)
 
 - Replace disabled Console header search with an accessible Base UI Dialog command palette for nine allowlisted public preview pages. Add Ctrl/⌘+K, local filtering, Escape, mobile >=44px trigger and negative empty state; real-device or business search is **not enabled**.

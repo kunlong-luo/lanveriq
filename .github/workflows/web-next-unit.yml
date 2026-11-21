@@ -35,6 +35,11 @@ jobs:
       - name: Fail closed on dependency drift (frozen pnpm lockfile)
         working-directory: apps/web-next
         run: pnpm install --frozen-lockfile
+      - name: Enforce one canonical Next.js UI and no legacy Vite runner
+        working-directory: apps/web-next
+        run: |
+          node scripts/verify-single-ui.mjs
+          node --test scripts/test_verify_single_ui.mjs
       - name: Regress transitive source-level authentication isolation (NO runtime)
         working-directory: apps/web-next
         run: node --test scripts/test_runtime_isolation.mjs

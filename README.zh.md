@@ -1,3 +1,5 @@
+> **2026-11-21 NXT-23 单前端收敛（CI 待确认）：** 旧 `apps/web` Vite UI 与 `.github/workflows/web-unit.yml` 已从主线删除，最新的唯一主前端是 `apps/web-next`（Next.js 16.4.5，端口 3100）。登录/只读 API/契约的安全负向测试已在 Next.js 侧保留，且仍不接入真实业务。所有本地运行说明统一到 3100；原 5173 入口已废弃。真实设备、生产联网、采集、自动恢复、远控与证书签发持续关闭；v0.1 NOT RELEASE READY。
+
 > **2026-11-21 NXT-22 UI 快捷导航已通过隔离验收：** 已在 Next.js 16 控制台启用仅限页面跳转的顶部搜索，支持 `Ctrl/⌘ + K`、中文/英文页面筛选、`Esc` 关闭和移动端搜索按钮。功能提交 [`18284b10`](https://github.com/kunlong-luo/lanveriq/commit/18284b101f9baf31a13024de1671918305534310) 已通过 [Next.js 快速测试](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877638)、[真实 Chromium + 15 张截图](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877578)、[脱离业务数据的静态 Pages](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877610) 和 [RD-2 默认关闭](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877615)。**这不是设备/用户/业务全局搜索，不访问真实 API，不授权生产上线。** v0.1 继续 NOT RELEASE READY；实际联网、采集、自动恢复、远控、证书签发全部保持关闭。
 
 > **2026-11-21 最新状态：** 3 个历史分支均已安全纳入 `main` 并经 [一次性清理 CI](https://github.com/kunlong-luo/lanveriq/actions/runs/44873229717) 删除；远端现仅有 `main`。Next.js 16 控制台已参考 [Craftwork](https://craftwork.design/) 完成原创浅色编辑式 UI 改造，功能提交 [`e43886a3`](https://github.com/kunlong-luo/lanveriq/commit/e43886a3be9524f82961a09f409df3edb7af9b0c) 的 Next 构建/源码检查、真实 Chromium/15 张截图、隔离 Pages 和 RD-2 默认拒绝测试全部通过。**这仅是脱离业务数据的静态预览，不是生产上线授权**；v0.1 尚未批准，真实联网、终端采集、自动恢复、远程控制与证书签发继续关闭。
@@ -19,7 +21,7 @@
 
 ## 当前主前端：Next.js App Router
 
-正式前端源码统一以 [`apps/web-next`](apps/web-next/README.md) 为准，Next.js 已升级到 **16.4.5 稳定安全修复版**，并保留 Node.js 24、pnpm 12 和独立锁文件。旧的 `apps/web` React/Vite 前端退出主线，仅用于迁移对照与回归测试，不再作为新功能开发入口。
+正式前端源码统一以 [`apps/web-next`](apps/web-next/README.md) 为准，Next.js 已升级到 **16.4.5 稳定安全修复版**，并保留 Node.js 24、pnpm 12 和独立锁文件。历史 `apps/web` React/Vite 前端及工作流已从当前源码移除，仅保留 Git 历史，避免本地启动两套不同 UI。
 
 本地运行（当前只有未连接数据的预览）：
 
@@ -89,7 +91,7 @@ cd apps/server
 ./gradlew test
 ~~~
 
-React 由 `apps/web` 的 pnpm 管理；Rust 由 `apps/agent/Cargo.toml` 和本目录的 `Cargo.lock` 独立管理。它们都不需要 Gradle。完整步骤见 [IDEA 导入指南](docs/development/intellij-idea.md)。
+Web 由 `apps/web-next` 的 pnpm 管理；Rust 由 `apps/agent/Cargo.toml` 和本目录的 `Cargo.lock` 独立管理。它们都不需要 Gradle。完整步骤见 [IDEA 导入指南](docs/development/intellij-idea.md)。
 
 ## 三、本地运行：直接复用已有 spark-db
 
@@ -324,9 +326,9 @@ sudo systemctl --no-pager status lanveriq-agent
 
 ### 正式生产部署：尚不可执行
 
-计划采用 **Caddy + 私有 Next.js App Router（SSR/RSC）+ Spring Boot + 私网 PostgreSQL** 的中心端候选拓扑，以及独立 Windows/Linux 原生 Agent。原 `apps/web` 的 Vite 静态演示仍保持不接入生产；Next.js 正式路由、Caddy 网络隔离和真实登录尚未验收。正式部署前至少需要：
+计划采用 **Caddy + 私有 Next.js App Router（SSR/RSC）+ Spring Boot + 私网 PostgreSQL** 的中心端候选拓扑，以及独立 Windows/Linux 原生 Agent。旧版 Vite 静态演示已从源码移除；Next.js 正式路由、Caddy 网络隔离和真实登录尚未验收。正式部署前至少需要：
 
-1. 完成 `apps/web`、构建并验证真实登录/设备列表/监控总览页面。
+1. 完成 `apps/web-next` 的真实鉴权/授权对接，并验收登录、设备列表和监控总览。
 2. 提供经审查的 Compose、专用数据库卷与备份/恢复、保密配置和受限网络；PostgreSQL 不对局域网发布端口。
 3. 验收 Caddy HTTPS、控制台 Host/Origin/CSRF/cookie、独立 Agent mTLS/上游 TLS 信任边界、证书轮换与密钥保存。
 4. 完成 PostgreSQL 18.6 的 **7 类 / 至少 58 用例**真实集成测试，以及 Windows/Linux 安装、停用和权限验收。
@@ -343,7 +345,7 @@ sudo systemctl --no-pager status lanveriq-agent
 | 前台 Agent | `Ctrl+C` | 删除自己创建的临时 TOML 即可 |
 | Linux 实验性 Agent systemd | 见下方命令 | 只删除由本 README 示例安装的文件 |
 | Windows SCM Agent | 目前**没有**正式安装/卸载包 | 若已手动注册测试服务，须先按实际服务名停止、删除 SCM 服务，并经管理员确认后清理二进制/配置 |
-| Web 本地预览 | 在 `pnpm dev` 终端按 `Ctrl+C` | 可清理本地生成的 `apps/web/node_modules` 与 `apps/web/dist`，不得触碰共享 Docker 数据卷 |
+| Web 本地预览 | 在 `pnpm dev` 终端按 `Ctrl+C` | 仅按需清理 `apps/web-next/.next` 缓存；不得触碰共享 Docker 数据卷 |
 | 正式中心端 | **尚未提供一键卸载** | 后续必须先备份、验明数据所有者、遵守留存/审计与密钥撤销流程 |
 
 **仅当你已在测试 VM 按上节命令安装 systemd 服务时**，执行以下卸载（先确认没有其他应用在使用这些路径）：
@@ -380,27 +382,44 @@ DROP ROLE lanveriq;
 
 **绝对不要删除 `iot_farm`、停止 `spark-postgres` 或清理 `postgres-data` 卷。** 你的原有 pg_dump/Kopia/R2 备份设置可能只覆盖 `iot_farm`；不要假设它已包括新建的 `lanveriq` 数据库，需单独核实。
 
-## 六、Web 本地预览运行
+## 六、唯一 Web UI：Next.js 本地运行
 
-React Web 可作为**全部业务数据均为合成数据**的前端预览启动；无需后端也能浏览。若要看到真实 Spring Boot 健康状态，须同时运行 IDEA 后端（默认 8080），Vite 仅代理匿名 `/actuator/health`；首次安装依赖需要访问包仓库：
+已移除历史 `apps/web` Vite 前端与独立旧版 CI。**现在只允许启动
+`apps/web-next`：Next.js 16.4.5 / React 19 / Tailwind 4，固定本地端口 3100。**
+旧代码可通过 Git 历史追溯，不再提供第二个前端的依赖、Vite 代理或启动指令。
+
+在仓库根目录运行（Node.js 24 + pnpm 12）：
 
 ~~~bash
-cd apps/web
+git switch main
+git pull --ff-only origin main
+cd apps/web-next
 corepack enable
-corepack prepare pnpm@12.0.0 --activate
-pnpm install --frozen-lockfile
-pnpm test
-pnpm build
-pnpm dev
+corepack pnpm install --frozen-lockfile
+corepack pnpm dev
 ~~~
 
-浏览器打开 **http://127.0.0.1:5173**，按 `Ctrl+C` 停止。顶栏和概览页会做一次只读后端健康检查，可手动点击“重新检查”。若 IDEA 后端监听的是 `18081`，应在运行前端时使用 `LANVERIQ_WEB_HEALTH_PORT=18081 pnpm dev`；默认使用 `8080`。健康检查通过**不代表业务登录或设备数据已接通**。`apps/web/pnpm-lock.yaml` 已由 CI 生成并提交，Web CI 使用 `--frozen-lockfile` 进行可复现安装，发现锁文件与声明依赖不一致会直接失败。页面包括 `/overview`、`/monitoring`、`/devices`、设备详情、`/enrollment`、`/settings` 和 **`/login` 管理员登录预览**。登录账号/密码输入框和提交按钮均禁用，不接收真实密码。真正的注册、撤销、Agent 下发和登录都明确禁用。另已添加未接入 UI 的 HTTPS 同源、CSRF、Session 请求适配器及合成错误/令牌测试；这不是实际浏览器登录验收。详见 [Web README](apps/web/README.md)。
+访问 **http://127.0.0.1:3100/overview**，按 `Ctrl+C` 停止。只运行
+未连接的静态/本地设计预览，无需启动 Spring、PostgreSQL、Redis 或 Agent。
+不再提供 5173 端口的旧版 UI，也不提供 Vite 的匿名后端健康检查。
+顶栏快捷搜索仅搜索本地预览页面；真实账号登录、设备搜索、采集和远控均禁用。
+
+如果本机此前已运行旧版 Vite 进程，请在其终端手动停止；Git 删除代码
+不会自动停止现有进程，或清除本机未跟踪的旧目录、依赖文件。
+有关 Next.js 安装、测试和安全范围，参见
+[唯一主前端文档](apps/web-next/README.md)。
 
 ## 七、前端进度和下一步
 
-截至当前仓库检查：**`apps/web` 已建立并完成可构建的合成数据演示页面**，包括设备搜索、Radix 详情选项卡、监控中心与系统设置；全部示例设备均为虚构；页面仅通过 Vite 本地代理查询 Spring Boot 健康状态，不加载任何真实设备信息，也不能进行远程下发或设备撤销。已加入 shadcn/ui 卡片组件基础、Tailwind 4 主题变量和导入别名，仍保留原有 Vite/React 技术架构。已增加 Springdoc → Orval 生成客户端与 **Web 实际 TypeScript / TanStack Query 依赖的构建期编译校验**，但尚无真实浏览器 API、Cookie、CSRF 或会话联调。前端规划见 [设计系统](docs/development/frontend-design-system.md) 与 [管理后台 UX](docs/development/dashboard-ux.md)。
+原 Vite 的同源 HTTPS、CSRF/Session、授权设备投影和 Springdoc/Orval
+构建期类型验证，在 `apps/web-next` 已有独立受控实现及单元/负向测试，
+因此不保留第二套可运行 UI。先前 Vite 匿名健康代理、模拟在线终端
+没有合并到新 UI，避免假数据和意外访问后端。
 
-建议的后续交付顺序是：完成真实 PG18、Caddy/TLS 和浏览器会话负向验收；随后再启用有权限范围的 Orval 实时查询、登录/登出 Cookie/CSRF 与 WSS 重新同步。构建期生成的登录客户端**不等于**安全会话可以投入使用。验收前不可对外宣布“可安装并开始监控”。
+下一步仍需完成真实 PG18、受信任的 Caddy/TLS/浏览器会话负向验收、
+真实管理员 WebAuthn MFA、FIDO MDS 根链、密钥托管以及 Pop!_OS 24.04
+实机测试，才能另行评估正式授权查询。当前 v0.1 NOT RELEASE READY。
+正式采集、设备操作、自动恢复、远控、证书签发继续默认关闭。
 
 ## 八、文档与许可
 
