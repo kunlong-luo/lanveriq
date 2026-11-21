@@ -41,7 +41,7 @@ export const documentationRequirements = [
   },
   {
     path: 'docs/operations/release.md',
-    required: ['2026-11-21 UI-only acceptance update', 'apps/web'],
+    required: ['2026-11-21 现行发布边界', 'apps/web', 'CURRENT_STATUS.md'],
     forbidden: [],
   },
   {
