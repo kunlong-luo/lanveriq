@@ -24,6 +24,7 @@ PACKAGES = {
     "PostgreSqlDeviceDirectoryIT": "com.lanveriq.server.devices",
     "PostgreSqlAdminAuditAtomicityIT": "com.lanveriq.server.security",
     "PostgreSqlConsoleSecurityWiringIT": "com.lanveriq.server.security",
+    "PostgreSqlRoleSeparationIT": "com.lanveriq.server.security",
 }
 
 # Minimum discovered tests in nine independent Testcontainers classes.
@@ -38,6 +39,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
     "PostgreSqlConsoleSecurityWiringIT": 65,
+    "PostgreSqlRoleSeparationIT": 4,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -172,6 +174,12 @@ REQUIRED_CASES = {
         "v29ConcurrentSameOwnerFenceGenesisCommitsExactlyOne",
         "v29DisposableReaderRoleCannotDmlTruncateOrDisableSecurityTriggers",
     },
+    "PostgreSqlRoleSeparationIT": {
+        "migratorOwnsAllFlywayMigrationsAndRuntimeHasNarrowAppWrite",
+        "runtimeCannotInheritOrSetMigratorAndCannotUseDdlOrTruncate",
+        "runtimeCannotMutateUntrustedHistoryAuditOrFlywayDespiteLimitedDml",
+        "futureMigratorObjectsNeverImplicitlyGrantRuntimeAccess",
+    },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
         "suppressedBootstrapAuditRollsBackUserGroupAndGrant",
@@ -266,8 +274,9 @@ def main() -> int:
         for error in errors:
             print("PG18 EVIDENCE BLOCKED: " + error, file=sys.stderr)
         return 1
-    print("PG18 synthetic JUnit evidence verified: all 9 Testcontainers classes, "
-          "at least 119 passing tests across nine suites, including A11 double-review and Console security wiring; "
+    print(f"PG18 synthetic JUnit evidence verified: all {len(PACKAGES)} "
+          f"Testcontainers classes, at least {sum(MIN_COUNTS.values())} "
+          "passing tests including separate migrator/runtime PG18 privileges; "
           "no failed, errored or skipped cases.")
     return 0
 

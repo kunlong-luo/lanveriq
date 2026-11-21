@@ -66,6 +66,8 @@ jobs:
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_verify_generated_openapi.py'
       - name: Self-test strict FIDO source-time JUnit evidence guard
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_assert_fido_source_time_junit.py'
+      - name: Verify opt-in role-separation profile has no migration secret or HTTP
+        run: python3 -m unittest discover -s apps/server/scripts -p 'test_db_runtime_separation_profile.py'
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test

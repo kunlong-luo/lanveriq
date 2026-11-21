@@ -48,6 +48,18 @@ class PostgresEvidenceGateTest(unittest.TestCase):
             synthetic_reports(Path(tmp))
             self.assertEqual([], verify_reports(Path(tmp)))
 
+    def test_db_role_split_mandatory_real_pg18_cases_cannot_disappear(self):
+        role = "PostgreSqlRoleSeparationIT"
+        self.assertEqual(4, minimums[role])
+        self.assertEqual(4, len(mandatory[role]))
+        for method in sorted(mandatory[role]):
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp), omit=(role, method))
+                self.assertIn(
+                    "Missing mandatory test: " + role + "." + method,
+                    verify_reports(Path(tmp)),
+                )
+
     def test_no_reports_cannot_claim_success(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertIn("No Gradle integration JUnit XML reports found",

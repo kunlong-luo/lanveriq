@@ -1,0 +1,28 @@
+# EXPLICIT, OFFLINE-ONLY role separation acceptance profile.
+# Not enabled in default boot / release; DO NOT attach to production endpoints.
+# Use a separately provisioned runtime SQL role with NO schema ownership,
+# NO DDL/TRUNCATE and NO membership in the migration-owner role.
+# Migration is a separate, reviewed process: this JVM never loads its secret.
+spring:
+  config:
+    activate:
+      on-profile: db-runtime-separation-acceptance
+  main:
+    web-application-type: none
+  datasource:
+    # Keep the same local-only URL as the default developer configuration.
+    # Missing explicit runtime username/password must fail configuration.
+    username: ${LANVERIQ_DB_RUNTIME_USER}
+    password: ${LANVERIQ_DB_RUNTIME_PASSWORD}
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
+
+# All regular Agent, remote, console and issuer gates retain DEFAULT OFF.
+# Role membership, security grants and data protection are proven separately
+# on disposable PG18 in PostgreSqlRoleSeparationIT.
