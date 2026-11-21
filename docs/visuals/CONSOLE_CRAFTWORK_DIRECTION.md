@@ -17,11 +17,11 @@ The canonical front end is already Next.js 16 App Router / React 19 / Tailwind 4
 - Keep skip link, `aria-current`, visible keyboard focus, Base UI mobile focus-managed Dialog and reduced-motion behavior.
 - Native right-edge scrollbar is visually hidden, but wheel, touch, keyboard and programmatic scrolling stay enabled.
 
-## NXT-22 — Local workspace command palette (CI PENDING)
+## NXT-22 — Local workspace command palette (same-SHA accepted)
 
 - Header search is an enabled **page-only** quick navigation control (desktop and mobile >=44px), with `Ctrl/⌘ + K`, Escape and Base UI Dialog focus handling. It filters only the nine checked-in public `consoleRoutes`; direct device search, login, network calls and session state are deliberately outside the implementation.
 - No new dependency, API handler, telemetry or persistent client storage. Device search and all business actions remain disabled.
-- Source/route Vitest, visual source gate, full Next.js build, real Chromium keyboard/mobile interactions, disconnected Pages export and RD-2 default-OFF must pass on the **exact functionality SHA** before acceptance. Historical NXT-21 results remain distinct.
+- Functional SHA `18284b101f9baf31a13024de1671918305534310` passed **four independent same-SHA workflows**: [Next.js frozen pnpm/route source + unit/typecheck/build/HTTP #44873877638](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877638), [real Chromium keyboard/mobile/filter/negative API plus 15 visual captures #44873877578](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877578), [disconnected static Pages export/deploy #44873877610](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877610), and [RD-2 fail-closed default OFF #44873877615](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877615). Screenshots artifact: `nxt18-visual-qa-18284b101f9baf31a13024de1671918305534310` (ID `14695495812`). This remains only a disconnected UI acceptance, not authorization for real production sessions or devices. Historical NXT-21 results remain distinct.
 
 ## Safety and verification
 
