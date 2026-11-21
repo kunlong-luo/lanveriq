@@ -294,17 +294,33 @@ class PostgreSqlRoleSeparationIT {
      */
     private static org.springframework.context.ConfigurableApplicationContext
             runtimeSpring() {
-        return new SpringApplicationBuilder(LanveriqServerApplication.class)
+        var context=new SpringApplicationBuilder(LanveriqServerApplication.class)
                 .web(WebApplicationType.NONE)
                 .properties(
                         "spring.profiles.active=db-runtime-separation-acceptance",
                         "LANVERIQ_DB_RUNTIME_USER="+RUNTIME,
                         "LANVERIQ_DB_RUNTIME_PASSWORD="+RUNTIME_PW,
-                        "spring.datasource.url="+postgres.getJdbcUrl(),
+                        // application.yml resolves LANVERIQ_DB_URL at config-data
+                        // precedence; SpringApplicationBuilder.properties() sets
+                        // LOWEST precedence defaults. Using spring.datasource.url
+                        // here would silently fall back to 127.0.0.1:5432.
+                        "LANVERIQ_DB_URL="+postgres.getJdbcUrl(),
                         "lanveriq.bootstrap.enabled=false",
                         "lanveriq.console.auth.enabled=false",
                         "spring.main.banner-mode=off")
                 .run();
+        try {
+            assertEquals(postgres.getJdbcUrl(),
+                    context.getEnvironment().getProperty("spring.datasource.url"),
+                    "Spring runtime must be bound to the disposable PG18 URL");
+            assertEquals(RUNTIME,
+                    context.getEnvironment().getProperty("spring.datasource.username"),
+                    "Spring runtime must not inherit migrator or bootstrap login");
+            return context;
+        } catch(RuntimeException | AssertionError unexpected) {
+            context.close();
+            throw unexpected;
+        }
     }
 
     @Test
@@ -314,6 +330,9 @@ class PostgreSqlRoleSeparationIT {
         try(var ctx=runtimeSpring()) {
             assertTrue(ctx.getBeansOfType(Flyway.class).isEmpty(),
                     "long-running runtime must never start a migrator Flyway Bean");
+            assertEquals(postgres.getJdbcUrl(),
+                    ctx.getEnvironment().getProperty("spring.datasource.url"),
+                    "real runtime Spring DataSource must use the disposable PG18 URL");
             var bean=ctx.getBean(AdminSessionRevocationService.class);
             var principal=new AdminPrincipal(scope.owner(),"synthetic.owner",
                     "synthetic-no-secret",true,0);
