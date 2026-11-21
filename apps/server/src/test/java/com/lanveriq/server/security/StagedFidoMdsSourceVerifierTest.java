@@ -353,6 +353,160 @@ class StagedFidoMdsSourceVerifierTest {
         }
     }
 
+
+    private static StagedFidoMdsIndependentReviewSeal.ReviewClaim reviewClaim(
+            StagedFidoMdsSourceVerifier.UntrustedSourceEvidence evidence,
+            String source, Instant validFrom, Instant expiresAt, long sequence) {
+        return new StagedFidoMdsIndependentReviewSeal.ReviewClaim(
+                source, evidence.checkedAt(), validFrom, expiresAt,
+                sequence, evidence.blobNumber(), evidence.signedTimeSequence(),
+                evidence.leafSha256(), evidence.blobSha256(),
+                evidence.rootSha256(), evidence.crlEvidenceSha256(),
+                evidence.timeKeySha256(), evidence.signedTimeProofSha256());
+    }
+
+    private static StagedFidoMdsIndependentReviewSeal.SignedReview signReview(
+            StagedFidoMdsIndependentReviewSeal.ReviewClaim claim,
+            PrivateKey first, PrivateKey second) throws Exception {
+        byte[] message = StagedFidoMdsIndependentReviewSeal.transcript(claim);
+        Signature a = Signature.getInstance("Ed25519");
+        a.initSign(first);
+        a.update(message);
+        Signature b = Signature.getInstance("Ed25519");
+        b.initSign(second);
+        b.update(message);
+        return new StagedFidoMdsIndependentReviewSeal.SignedReview(
+                claim, a.sign(), b.sign());
+    }
+
+    @Test
+    void independentPinnedReviewerKeysBindExactUntrustedSourceAndRejectSelfAssertion()
+            throws Exception {
+        // Both JWS algorithms exercise the ACTUAL PKIX, signed CRL and time
+        // verifier before the new independent provenance guard returns.
+        for (boolean rsa : new boolean[]{false, true}) {
+            Fixture f = fixture(rsa);
+            X509CRL crl = f.freshCrl();
+            String jws = f.jws(51, false);
+            var time = f.time(9, NOW, jws, List.of(crl));
+            var rawUntrusted = verifier.inspectOfflineOnly(
+                    jws, f.claimedPolicy(), time, List.of(crl), 50, 8);
+            KeyPair reviewerA = key("Ed25519");
+            KeyPair reviewerB = key("Ed25519");
+            KeyPair attacker = key("Ed25519");
+            var separatelyPinned = new StagedFidoMdsIndependentReviewSeal
+                    .PinnedReviewKeys(reviewerA.getPublic(),
+                    fingerprint(reviewerA.getPublic().getEncoded()),
+                    reviewerB.getPublic(),
+                    fingerprint(reviewerB.getPublic().getEncoded()));
+            var claimed = reviewClaim(rawUntrusted,
+                    StagedFidoMdsIndependentReviewSeal.EXPECTED_MDS_SOURCE,
+                    NOW.minusSeconds(90), NOW.plusSeconds(3600), 7);
+            var signed = signReview(claimed, reviewerA.getPrivate(),
+                    reviewerB.getPrivate());
+            assertEquals(51, verifier.inspectWithIndependentReviewOfflineOnly(
+                    jws, f.claimedPolicy(), time, List.of(crl), 50, 8,
+                    separatelyPinned, signed, 6).blobNumber());
+
+            // Caller can self-assert a fake root and even correctly sign
+            // the JWS/time, but cannot forge either separately pinned key.
+            var forgedByCaller = signReview(claimed, attacker.getPrivate(),
+                    attacker.getPrivate());
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            separatelyPinned, forgedByCaller, 6));
+            var justOneRealKey = signReview(claimed, reviewerA.getPrivate(),
+                    attacker.getPrivate());
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            separatelyPinned, justOneRealKey, 6));
+            var duplicatedSigner = new StagedFidoMdsIndependentReviewSeal
+                    .PinnedReviewKeys(reviewerA.getPublic(),
+                    fingerprint(reviewerA.getPublic().getEncoded()),
+                    reviewerA.getPublic(),
+                    fingerprint(reviewerA.getPublic().getEncoded()));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            duplicatedSigner, signed, 6));
+            var wrongPin = new StagedFidoMdsIndependentReviewSeal
+                    .PinnedReviewKeys(reviewerA.getPublic(), "0".repeat(64),
+                    reviewerB.getPublic(),
+                    fingerprint(reviewerB.getPublic().getEncoded()));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            wrongPin, signed, 6));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            null, signed, 6));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            separatelyPinned, null, 6));
+            // Freshness/anti-replay is a conditional local check only:
+            // there is no durable official review ledger configured.
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            separatelyPinned, signed, 7));
+
+            var expired = signReview(reviewClaim(rawUntrusted,
+                    StagedFidoMdsIndependentReviewSeal.EXPECTED_MDS_SOURCE,
+                    NOW.minusSeconds(3600), NOW.minusSeconds(1), 8),
+                    reviewerA.getPrivate(), reviewerB.getPrivate());
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            separatelyPinned, expired, 6));
+            var overlong = signReview(reviewClaim(rawUntrusted,
+                    StagedFidoMdsIndependentReviewSeal.EXPECTED_MDS_SOURCE,
+                    NOW.minusSeconds(60), NOW.plusSeconds(86400 * 8L), 8),
+                    reviewerA.getPrivate(), reviewerB.getPrivate());
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            separatelyPinned, overlong, 6));
+            var wrongSource = signReview(reviewClaim(rawUntrusted,
+                    "https://attacker.invalid/", NOW.minusSeconds(90),
+                    NOW.plusSeconds(3600), 8),
+                    reviewerA.getPrivate(), reviewerB.getPrivate());
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), time, List.of(crl), 50, 8,
+                            separatelyPinned, wrongSource, 6));
+
+            // Both JWSs are independently genuinely signed and time-bound,
+            // but the old review's signature cannot bless a new BLOB.
+            String secondJws = f.jws(52, false);
+            var secondTime = f.time(10, NOW, secondJws, List.of(crl));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(secondJws,
+                            f.claimedPolicy(), secondTime, List.of(crl),
+                            51, 9, separatelyPinned, signed, 6));
+            // A replaced valid CRL with independently renewed signed-time
+            // evidence likewise cannot reuse the previous review approval.
+            X509CRL replacement = f.freshCrl();
+            assertTrue(!fingerprint(crl.getEncoded()).equals(
+                    fingerprint(replacement.getEncoded())));
+            var replacedTime = f.time(10, NOW, jws, List.of(replacement));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithIndependentReviewOfflineOnly(jws,
+                            f.claimedPolicy(), replacedTime,
+                            List.of(replacement), 50, 9,
+                            separatelyPinned, signed, 6));
+
+            byte[] mutableCopy = signed.firstSignature();
+            mutableCopy[0] ^= (byte) 0xff;
+            assertEquals(51, verifier.inspectWithIndependentReviewOfflineOnly(
+                    jws, f.claimedPolicy(), time, List.of(crl), 50, 8,
+                    separatelyPinned, signed, 6).blobNumber());
+        }
+    }
+
     @Test
     void rejectsMissingApprovalMismatchedPinAndNoRevocationEvidence()
             throws Exception {

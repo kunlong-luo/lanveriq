@@ -1,3 +1,9 @@
+## 2026-11-21 — A11-D4-C12 independent pinned source-review signature boundary (CI pending)
+
+- Add a package-private, unmounted governance proof requiring TWO distinct separately pinned Ed25519 verification keys over exactly the synthetic JWS, leaf/root, CRL hashes, time-key/proof, claimed official-source URL and expiry/review-sequence evidence. Refuse self-asserted roots without the independent seals; preserve existing crypto/PKIX/CRL/time/JSON gates.
+- Add genuine ES256/RS256 signed-fixture negative proof and mandate ten executed real Gradle verifier JUnit methods; source-only/no real FIDO or production keys. [D4-C12 acceptance plan](docs/security/fido-mds-independent-provenance-d4-c12-2026-11-21.md).
+- **Source submitted, new-SHA CI PENDING.** Neither two test keys nor public documentation is actual FIDO/organizational approval. Real signer provenance, trusted time, CRL custody, reviewer WebAuthn MFA, OS L3 and production release remain OPEN/OFF.
+
 ## 2026-11-21 — A11-D4-C11 strict raw signed-JWS JSON parsing (5/5 exact-SHA CI PASS)
 
 - Block duplicate JSON member names in ORIGINAL compact JWS header/payload bytes at any nesting depth using built-in Jackson 3 strict streaming parser, including encoded-key collisions. Prevent mismatch between parsers' discarded first/last values.

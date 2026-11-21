@@ -312,6 +312,38 @@ final class StagedFidoMdsSourceVerifier {
         }
     }
 
+    /**
+     * C12 opt-in EXTRA scrutiny for already untrusted, synthetic evidence.
+     * The two governance verification keys MUST come from a separate,
+     * preapproved custody channel, not from the submitted MDS BLOB or
+     * from the same untrusted caller. There are deliberately NO provisioned
+     * real governance keys or approved official R46 root.
+     *
+     * This method cannot promote the result beyond UntrustedSourceEvidence.
+     * The older inspectOfflineOnly remains a test primitive and MUST NEVER
+     * be reused as a production authority or trust source.
+     */
+    UntrustedSourceEvidence inspectWithIndependentReviewOfflineOnly(
+            String compactJws, ExternalApproval claimedOutOfBandApproval,
+            SignedTimeEvidence time, List<X509CRL> offlineCrls,
+            long lastObservedBlobNumber, long lastObservedTimeSequence,
+            StagedFidoMdsIndependentReviewSeal.PinnedReviewKeys
+                    independentlyProvisionedGovernanceKeys,
+            StagedFidoMdsIndependentReviewSeal.SignedReview signedReview,
+            long lastObservedGovernanceReviewSequence) {
+        // First verify JWS, pinned synthetic PKIX path, revocation, status
+        // structure and exact-JWS signed time. No result escapes yet.
+        UntrustedSourceEvidence untrusted = inspectOfflineOnly(
+                compactJws, claimedOutOfBandApproval, time, offlineCrls,
+                lastObservedBlobNumber, lastObservedTimeSequence);
+        // Even crypto-valid untrusted evidence is withheld until BOTH
+        // independent pinned reviewer keys validate the same exact data.
+        StagedFidoMdsIndependentReviewSeal.requireIndependentReviewOnly(
+                independentlyProvisionedGovernanceKeys,
+                signedReview, untrusted, lastObservedGovernanceReviewSequence);
+        return untrusted;
+    }
+
     private static boolean verifySignedTime(
             PublicKey signedBy, SignedTimeEvidence evidence,
             String jwsSha, String rootSha, String crlSha, String timeKeySha)

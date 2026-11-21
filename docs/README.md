@@ -31,6 +31,8 @@
 
 ## 4. 安全、测试、运维与合规
 
+- **D4-C12 两个独立审核公钥与离线来源绑定（CI 待验收）：** [完整安全契约](security/fido-mds-independent-provenance-d4-c12-2026-11-21.md)，仅合成未可信证据，不能视为真实 FIDO 来源或签发授权。
+
 - **D4-C11 最新签名 JSON 安全检查（5/5 同 SHA 合成 CI PASS）：** [原始签名 JWS 的重复 JSON 字段拒绝](security/fido-mds-duplicate-json-d4-c11-2026-11-21.md)；此门禁仅验证合成未可信材料，不是受批准的 FIDO 来源。
 
 - **安全：** [D4-C10 唯一标识门禁](security/fido-mds-duplicate-identifiers-d4-c10-2026-11-21.md) · [D4-C9 条目形状门禁](security/fido-mds-payload-screen-d4-c9-2026-11-21.md) · [RBAC 矩阵](security/authorization-matrix.md) · [威胁模型](security/threat-model.md) · [隐私/告知](security/privacy-and-consent.md) · [数据留存](security/data-retention.md)。

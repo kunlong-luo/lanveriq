@@ -20,6 +20,7 @@ REQUIRED = frozenset({
     "cryptographicallyValidButMalformedEntryShapesAreDenied",
     "cryptographicallyValidDuplicateModelIdsStillRejectBeforeUntrustedEvidence",
     "signedJwsWithDuplicateJsonFieldsAtAnyDepthRejectsEvenWithValidTimeAndCrl",
+    "independentPinnedReviewerKeysBindExactUntrustedSourceAndRejectSelfAssertion",
 })
 DEFAULT_REPORT = Path("apps/server/build/test-results/test") / f"TEST-{CLASS}.xml"
 
