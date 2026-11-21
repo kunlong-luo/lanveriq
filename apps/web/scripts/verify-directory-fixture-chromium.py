@@ -57,6 +57,9 @@ def verify(browser, width):
         require(page.locator(".device-table tbody th[scope='row']").count() == 2,
                 "accessible_device_row_headers_missing")
         sorting.click()
+        # Base UI portals/positions the list after the click event. Wait for
+        # the actual visible popup instead of racing an immediate DOM probe.
+        page.locator(".lv-select-popup").wait_for(state="visible", timeout=7000)
         require(page.get_by_role("listbox").is_visible(),
                 "base_ui_sort_popup_not_visible")
         page.get_by_role("option", name="设备名称 Z–A").click()
@@ -98,6 +101,7 @@ def verify(browser, width):
                 "clear_filters_must_restore_authorized_page")
 
         group.click()
+        page.locator(".lv-select-popup").wait_for(state="visible", timeout=7000)
         require(page.get_by_role("listbox").is_visible(),
                 "base_ui_group_popup_not_visible")
         page.get_by_role("option", name="CI测试组甲").click()

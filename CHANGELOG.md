@@ -1,9 +1,10 @@
-## 2026-11-21 — NXT-26 Replace device-directory native selects with Base UI (CI pending)
+## 2026-11-21 — NXT-26 Replace device-directory native selects with Base UI (browser gate under repair)
 
 - Replace the two `NativeSelect` dropdowns in the one shared `DeviceDirectory` with controlled Base UI React 1.9 `Select` popups, including labels, keyboard focus, item indicators, viewport-safe overlays and 44px touch controls. Reuse installed dependency; no custom dropdown logic or new packages.
 - Retire the unused native-select component; bring the text input focus token into the current indigo palette. Apply new dropdown styles in `console-polish.css` without changing backend or adding real-data access.
 - Strengthen Vitest/source probes, real disconnected Chromium layout checks and the disposable authenticated-page **synthetic** browser fixture for popup selection, sorting, page replacement, permission revocation and safe reset. See [NXT-26 acceptance](docs/development/frontend-base-ui-select-nxt26.md).
-- Real API/login, RustDesk, collection, recovery and certificate issuance remain OFF. v0.1 NOT RELEASE READY. Exact functional SHA CI pending.
+- First real Chromium [#44879221414](https://github.com/kunlong-luo/lanveriq/actions/runs/44879221414) passed the normal UI/screenshot gates but failed its later CI-only sort-popup visibility check, leaving exact-SHA acceptance **OPEN**. The fixture now waits for the actual portal mount before checking ARIA options rather than racing an immediate DOM probe; no safety or interaction assertions are removed. New exact-SHA rerun required.
+- Real API/login, RustDesk, collection, recovery and certificate issuance remain OFF. v0.1 NOT RELEASE READY.
 
 ## 2026-11-21 — NXT-25 Web documentation consistency and regression gate (four same-SHA CI successes)
 

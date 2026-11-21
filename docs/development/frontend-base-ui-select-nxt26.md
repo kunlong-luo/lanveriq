@@ -14,6 +14,10 @@ The device directory shared by `/overview`, `/monitoring` and `/devices` still u
 - `apps/web/src/components/ui/input.tsx`: uses the current indigo focus token `#4D5FC9` in place of the obsolete purple.
 - Retires the old unused `apps/web/src/components/ui/native-select.tsx` component. The historical native-only CSS selectors in the existing B+C stylesheet do not apply to the new Base UI triggers, which get the final `console-polish.css` styles.
 
+## Chromium fixture timing regression — first NXT-26 run
+
+The first same-source Chromium workflow [#44879221414](https://github.com/kunlong-luo/lanveriq/actions/runs/44879221414) **failed the CI-only synthetic fixture** at `base_ui_sort_popup_not_visible` after calling `sorting.click()`. The ordinary Next.js build, Vitest, normal disconnected Chromium route checks and 15 screenshots **passed**, as did independent [Next L1 #44879221402](https://github.com/kunlong-luo/lanveriq/actions/runs/44879221402), [Pages #44879221409](https://github.com/kunlong-luo/lanveriq/actions/runs/44879221409) and [RD-2 #44879221422](https://github.com/kunlong-luo/lanveriq/actions/runs/44879221422). This failure prevents NXT-26 from being considered accepted. The first repair replaces an immediate `is_visible()` probe with Playwright's bounded wait for the real `.lv-select-popup` portal and retains the subsequent ARIA listbox and actual option-selection checks. If it still fails, investigate runtime behavior rather than bypassing the interaction or claiming UI acceptance.
+
 ## Safety and acceptance checks
 
 1. Vitest and static markup: disabled unconnected filters, authorized-only table counts, explicit `role=combobox` and accessible names; no native `<select>`; deny/signed-out states never show previous rows.
