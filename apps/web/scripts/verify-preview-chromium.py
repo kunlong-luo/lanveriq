@@ -360,6 +360,67 @@ def check_viewports(browser):
             context.close()
 
 
+def check_compact_navigation(browser):
+    """NXT-28: low-height desktop and mobile navigation must remain reachable."""
+    for width in (1024, 390):
+        height = 520
+        context = browser.new_context(
+            viewport={"width": width, "height": height},
+            reduced_motion="reduce", service_workers="block",
+            accept_downloads=False,
+        )
+        try:
+            blocked = gate(context)
+            page = context.new_page()
+            page.on("websocket", lambda _: blocked.append("unexpected_websocket"))
+            response = page.goto(BASE + "/overview", wait_until="networkidle", timeout=25000)
+            require(response is not None and response.status == 200,
+                    "nxt28_compact_route_http_failure")
+            if width == 1024:
+                scroller = page.locator(".bc-console .sidebar")
+                require(scroller.is_visible(), "nxt28_desktop_sidebar_missing")
+                require(scroller.evaluate(
+                    "(el) => getComputedStyle(el).overflowY === 'auto' "
+                    "&& el.scrollHeight > el.clientHeight"),
+                    "nxt28_short_desktop_sidebar_must_scroll")
+                scroller.evaluate("(el) => { el.scrollTop = el.scrollHeight; }")
+                require(scroller.evaluate("(el) => el.scrollTop > 0"),
+                        "nxt28_short_desktop_last_link_unreachable")
+                require(scroller.locator('a[href="/design-system"]').bounding_box()["y"]
+                        < height, "nxt28_short_desktop_last_link_clipped")
+                require(scroller.evaluate(
+                    "(el) => getComputedStyle(el).scrollbarWidth === 'none'"),
+                    "nxt28_desktop_native_scrollbar_visible")
+            else:
+                menu = page.get_by_role("button", name="打开导航")
+                menu.click()
+                drawer = page.get_by_role("dialog", name="Lanveriq 移动端主导航")
+                require(drawer.is_visible(), "nxt28_short_mobile_drawer_missing")
+                require(drawer.evaluate(
+                    "(el) => getComputedStyle(el).overflowY === 'auto' "
+                    "&& el.scrollHeight > el.clientHeight"),
+                    "nxt28_short_mobile_drawer_must_scroll")
+                require(drawer.evaluate(
+                    "(el) => getComputedStyle(el).scrollbarWidth === 'none'"),
+                    "nxt28_mobile_native_scrollbar_visible")
+                require(drawer.locator(".nav-item.selected").evaluate(
+                    "(el) => getComputedStyle(el).backgroundColor") ==
+                        "rgb(23, 34, 53)", "nxt28_mobile_theme_mismatch")
+                drawer.evaluate("(el) => { el.scrollTop = el.scrollHeight; }")
+                require(drawer.evaluate("(el) => el.scrollTop > 0"),
+                        "nxt28_short_mobile_last_link_unreachable")
+                require(drawer.locator('a[href="/design-system"]').bounding_box()["y"]
+                        < height, "nxt28_short_mobile_last_link_clipped")
+                page.keyboard.press("Escape")
+                drawer.wait_for(state="hidden", timeout=5000)
+                require(menu.evaluate("(el) => document.activeElement === el"),
+                        "nxt28_short_mobile_escape_focus_not_restored")
+            require(not blocked, "nxt28_compact_unexpected_network")
+            require(context.cookies() == [], "nxt28_compact_unexpected_cookie")
+        finally:
+            context.close()
+
+
 def main():
     require(len(sys.argv) == 1, "unexpected_args")
     from playwright.sync_api import sync_playwright
@@ -374,9 +435,10 @@ def main():
             finally:
                 context.close()
             check_viewports(browser)
+            check_compact_navigation(browser)
             print("NXT-14 CHROMIUM PASS: 11 real Next.js routes, no API/WSS/external "
                   "network or cookie, disabled login/operations, keyboard tabs/mobile drawer/focus, "
-                  "320-1440px and reduced motion.")
+                  "320-1440px, 520px-high navigation and reduced motion.")
             print("NOT PROVEN: screen reader/manual visual parity, Caddy HTTPS, Spring "
                   "login/CSRF/RBAC, PostgreSQL browser sessions or real device operations.")
         finally:

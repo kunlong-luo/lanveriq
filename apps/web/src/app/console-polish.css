@@ -768,3 +768,47 @@ body { background: var(--background); }
   }
   .lv-evidence-notice--chart { width: min(94%, 260px); }
 }
+
+/* NXT-28 — accessible short-window navigation; same visual language on
+ * desktop and Base UI mobile dialog. Hide native *internal* scrollbars only:
+ * wheel, touch, keyboard scrolling and dialog focus remain functional. */
+.bc-console .sidebar {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+.bc-console .sidebar::-webkit-scrollbar { display: none; }
+.bc-mobile-sheet {
+  background: #fff;
+  color: #546275;
+  border-inline-end: 1px solid #e5e9f0;
+  scrollbar-width: none;
+}
+.bc-mobile-sheet::-webkit-scrollbar { display: none; }
+.bc-mobile-sheet .brand-mark { background: #172235; box-shadow: 0 4px 12px rgba(23,34,53,.09); }
+.bc-mobile-sheet .brand strong { color: #182538; }
+.bc-mobile-sheet .brand small { color: #8995a5; }
+.bc-mobile-sheet .nav-label { color: #9ba5b2; }
+.bc-mobile-sheet .nav-item { color: #667285; font-weight: 590; border-radius: 10px; }
+.bc-mobile-sheet .nav-item:hover:not(.selected) { background: #f2f5fa; color: #253957; }
+.bc-mobile-sheet .nav-item.selected {
+  color: #fff;
+  background: #172235;
+  box-shadow: 0 5px 14px rgba(23,34,53,.085);
+}
+.bc-mobile-sheet .nav-item.selected svg:first-child { color: #c8d7ff; }
+.bc-mobile-sheet .bc-close-nav {
+  border-color: #e5e9f0;
+  background: #f7f9fc;
+  color: #42566e;
+}
+.bc-mobile-sheet .sidebar-notice {
+  border-color: #e3eaf5;
+  background: #f4f7fb;
+  color: #5972a8;
+}
+.bc-mobile-sheet .sidebar-notice strong { color: #2e4567; }
+.bc-mobile-sheet .sidebar-notice small { color: #79899d; }
+.bc-mobile-sheet .bc-sidebar-signoff { color: #9ca8b9; }
+

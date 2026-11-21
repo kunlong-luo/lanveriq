@@ -108,3 +108,20 @@ test('NXT-27 shared evidence states are static, scoped and consistent across pag
   assert.match(chromium, /nxt27_health_must_not_infer_online_or_offline/);
   assert.match(chromium, /nxt27_monitoring_unexpected_network/);
 });
+
+test('NXT-28 compact navigation scrolls without native bars and uses one visual theme', () => {
+  const css = read('src/app/console-polish.css');
+  const chromium = read('scripts/verify-preview-chromium.py');
+  assert.match(css, /NXT-28/);
+  assert.match(css, /\.bc-console \.sidebar\s*\{\s*overflow-y: auto;/);
+  assert.match(css, /\.bc-console \.sidebar::-webkit-scrollbar\s*\{ display: none;/);
+  assert.match(css, /\.bc-mobile-sheet\s*\{\s*background: #fff;/);
+  assert.match(css, /\.bc-mobile-sheet \.nav-item\.selected\s*\{\s*color: #fff;\s*background: #172235;/);
+  assert.match(css, /\.bc-mobile-sheet::-webkit-scrollbar\s*\{ display: none;/);
+  assert.match(chromium, /def check_compact_navigation\(browser\):/);
+  assert.match(chromium, /check_compact_navigation\(browser\)/);
+  assert.match(chromium, /nxt28_short_desktop_sidebar_must_scroll/);
+  assert.match(chromium, /nxt28_short_mobile_drawer_must_scroll/);
+  assert.match(chromium, /nxt28_short_mobile_escape_focus_not_restored/);
+  assert.doesNotMatch(css, /\.bc-console \.sidebar\s*\{[^}]*overflow-y:\s*hidden/i);
+});
