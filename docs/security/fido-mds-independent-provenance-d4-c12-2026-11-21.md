@@ -1,6 +1,6 @@
 # A11-D4-C12 — independent offline FIDO MDS source-review seal
 
-**2026-11-21 | `main` | New source change: CI PENDING | v0.1 NOT RELEASE READY.**
+**2026-11-21 | `main` | 5/5 exact-functional-SHA synthetic CI SUCCESS | v0.1 NOT RELEASE READY.**
 
 ## Why the previous root-pin claim is insufficient
 
@@ -21,6 +21,14 @@ This step introduces an **additional, still-untrusted, package-private offline g
 - Genuine disposable ES256 and RS256 signing leaf/CA and CRL/PKIX, exact JWS/time proof, two independent real Ed25519 governance signatures; valid fixtures must return only `UntrustedSourceEvidence`.
 - Rejection of caller-minted alternative signatures, one real signer plus attacker, duplicated key/pin, missing keys/proof, incorrect authority pin, replayed review sequence, expired/overlong review validity, forged source, replaced **independently signed valid JWS**, replaced fresh signed CRL/time and mutable signature buffers.
 - Java 25 real Gradle test XML gate now requires `independentPinnedReviewerKeysBindExactUntrustedSourceAndRejectSelfAssertion`; **ten** mandatory real verifier methods, not self-written XML or source-existence checks. Cohesive L2 actual PostgreSQL 18.6 Testcontainers and frontend/RD-2 default-OFF gates must be verified **at the new exact source SHA** before marking accepted.
+
+## Exact-SHA CI acceptance — 5/5 SUCCESS
+
+[functional SHA `2d39d694`](https://github.com/kunlong-luo/lanveriq/commit/2d39d694fb1724f47276a1ef2f4a94d424580895) passed **5/5 exact-SHA synthetic CI workflows**: [Java 25/Gradle and real JUnit XML showing all TEN mandatory source-time/provenance methods #44895483823](https://github.com/kunlong-luo/lanveriq/actions/runs/44895483823), [PostgreSQL 18.6 Testcontainers real synthetic transactions + mandatory JUnit guard #44895483791](https://github.com/kunlong-luo/lanveriq/actions/runs/44895483791), [PostgreSQL integration source compile #44895483778](https://github.com/kunlong-luo/lanveriq/actions/runs/44895483778), [Next.js frozen fast unit/type/build #44895483732](https://github.com/kunlong-luo/lanveriq/actions/runs/44895483732), and [RD-2 fail-closed default-OFF #44895483711](https://github.com/kunlong-luo/lanveriq/actions/runs/44895483711).
+
+GitHub server-unit logs show `BUILD SUCCESSFUL` and **`PASS: real Gradle JUnit evidence includes all 10 required synthetic offline source-time tests`**. The PostgreSQL workflow ran both actual PostgreSQL 18.6 Testcontainers transactions and its mandatory XML evidence check, not just a source compile. This authenticates the *test executions* for `2d39d694` only; it does not authenticate FIDO origin, governance key custody, independent human reviewers, source CRL URLs or real device release.
+
+These are **synthetic offline tests only**: NO independently approved official FIDO R46 trust anchor, signer/CRL distribution provenance, government/organization-held reviewer key provisioning, production trusted time, persistent source review or official MDS ingestion, real admin WebAuthn MFA, CA/KMS signing or Pop!_OS 24.04 physical acceptance. Production networking, collection, auto-recovery, remote control and issuer OFF; v0.1 NOT RELEASE READY.
 
 ## Official source and remaining production blockers
 
