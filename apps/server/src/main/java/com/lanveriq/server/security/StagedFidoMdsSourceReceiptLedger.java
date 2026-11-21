@@ -11,7 +11,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * A11-D4-C5/V26: transaction-scoped, NOT-a-Bean append-only storage for
  * screening evidence only. V26 SQL locks the V25 synthetic stream, enforces
  * live actor/session, monotonic BLOB/time sequence, immutable root/time pins
- * and database-owned chained digest. V27 automatically writes and checks\n * the linked database audit even for direct SQL inserts. An out-of-band asserted fingerprint
+ * and database-owned chained digest. V27 automatically writes and checks
+ * the linked database audit even for direct SQL inserts. An out-of-band asserted fingerprint
  * is NOT approved FIDO trust. No verifier or credential/issuer consumer.
  */
 final class StagedFidoMdsSourceReceiptLedger {

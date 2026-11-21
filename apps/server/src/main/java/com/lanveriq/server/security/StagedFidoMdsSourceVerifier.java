@@ -40,8 +40,10 @@ import java.util.Set;
 import org.springframework.security.access.AccessDeniedException;
 
 /**
- * A11-D4-C5: offline cryptographic source-checking primitive for FIDO MDS3
- * shaped JWS with x5c, explicit pinned root, signed time and CRL evidence.
+ * A11-D4-C6: offline cryptographic source-checking primitive for FIDO MDS3
+ * shaped JWS with x5c, explicit pinned root, signed time and CRL evidence.\n * V28 uses a domain-separated v2 time signature over the EXACT signed JWS,
+ * approved-shaped anchor digest, sorted CRL DER digest, time-key digest,
+ * timestamp AND monotonic sequence. Old unbound v1 proofs are rejected.
  *
  * IMPORTANT: This is NOT an approved MDS trust store or trusted time source.
  * All external approvals, root/time key custody, CRL acquisition and durable
@@ -52,12 +54,19 @@ import org.springframework.security.access.AccessDeniedException;
 final class StagedFidoMdsSourceVerifier {
     private static final int MAX_JWS_LENGTH = 32 * 1024 * 1024;
     private static final long MAX_IAT_AGE_SECONDS = 60L * 86400L;
-    private static final String TIME_DOMAIN = "lanveriq/fido-mds/trusted-time/v1\n";
+    private static final String TIME_DOMAIN = "lanveriq/fido-mds/source-time/v2\n";
 
     record ExternalApproval(X509Certificate anchor, String anchorSha256,
                             PublicKey timeKey, String timeKeySha256) {}
 
-    record SignedTimeEvidence(Instant checkedAt, long sequence, byte[] signature) {}
+    record SignedTimeEvidence(Instant checkedAt, long sequence, byte[] signature) {
+        SignedTimeEvidence {
+            signature = signature == null ? null : signature.clone();
+        }
+        @Override public byte[] signature() {
+            return signature == null ? null : signature.clone();
+        }
+    }
 
     record UntrustedSourceEvidence(long blobNumber, long signedTimeSequence,
                                    Instant checkedAt, String leafSha256,
@@ -75,6 +84,9 @@ final class StagedFidoMdsSourceVerifier {
         if (compactJws == null || compactJws.length() < 20
                 || compactJws.length() > MAX_JWS_LENGTH
                 || claimedOutOfBandApproval == null || time == null
+                || time.checkedAt() == null || time.signature() == null
+                || time.signature().length == 0 || time.sequence() <= 0
+                || time.sequence() <= lastObservedTimeSequence
                 || claimedOutOfBandApproval.anchor() == null
                 || claimedOutOfBandApproval.timeKey() == null
                 || offlineCrls == null || offlineCrls.isEmpty()
@@ -96,9 +108,7 @@ final class StagedFidoMdsSourceVerifier {
                     || !validPin(claimedOutOfBandApproval.timeKeySha256())
                     || !rootFingerprint.equals(claimedOutOfBandApproval.anchorSha256())
                     || !timeKeyFingerprint.equals(
-                            claimedOutOfBandApproval.timeKeySha256())
-                    || !verifySignedTime(claimedOutOfBandApproval.timeKey(),
-                            time, lastObservedTimeSequence)) {
+                            claimedOutOfBandApproval.timeKeySha256())) {
                 throw denied();
             }
             Instant checkedAt = time.checkedAt();
@@ -274,14 +284,18 @@ final class StagedFidoMdsSourceVerifier {
                 }
             }
             crlHashes.sort(String::compareTo);
+            String crlEvidenceSha = sha256(String.join(":", crlHashes).getBytes(
+                    StandardCharsets.US_ASCII));
+            String jwsSha = sha256(compactJws.getBytes(StandardCharsets.US_ASCII));
+            if (!verifySignedTime(claimedOutOfBandApproval.timeKey(),
+                    time, jwsSha, rootFingerprint, crlEvidenceSha,
+                    timeKeyFingerprint)) {
+                throw denied();
+            }
             return new UntrustedSourceEvidence(blobNo, time.sequence(), checkedAt,
                     sha256(signerFirstChain.getFirst().getEncoded()),
-                    sha256(compactJws.getBytes(StandardCharsets.US_ASCII)),
-                    rootFingerprint,
-                    sha256(String.join(":", crlHashes).getBytes(
-                            StandardCharsets.US_ASCII)),
-                    timeKeyFingerprint,
-                    sha256(time.signature()));
+                    jwsSha, rootFingerprint, crlEvidenceSha,
+                    timeKeyFingerprint, sha256(time.signature()));
         } catch (GeneralSecurityException | ParseException | JOSEException
                 | IllegalArgumentException | DateTimeException error) {
             throw denied();
@@ -289,19 +303,22 @@ final class StagedFidoMdsSourceVerifier {
     }
 
     private static boolean verifySignedTime(
-            PublicKey signedBy, SignedTimeEvidence evidence, long lastSeq)
+            PublicKey signedBy, SignedTimeEvidence evidence,
+            String jwsSha, String rootSha, String crlSha, String timeKeySha)
             throws GeneralSecurityException {
-        if (evidence.checkedAt() == null || evidence.signature() == null
-                || evidence.signature().length == 0 || evidence.sequence() <= lastSeq
-                || evidence.sequence() <= 0
-                || (!"Ed25519".equalsIgnoreCase(signedBy.getAlgorithm())
-                    && !"EdDSA".equalsIgnoreCase(signedBy.getAlgorithm()))) {
+        if (!"Ed25519".equalsIgnoreCase(signedBy.getAlgorithm())
+                && !"EdDSA".equalsIgnoreCase(signedBy.getAlgorithm())) {
             return false;
         }
+        // A time claim without binding to precisely the verified materials
+        // could be replayed with another valid BLOB or a newer/different CRL.
+        // All values are lowercase SHA-256 hex, except UTC ISO-8601 Instant.
+        String transcript = TIME_DOMAIN + evidence.checkedAt() + "\n"
+                + evidence.sequence() + "\n" + jwsSha + "\n"
+                + rootSha + "\n" + crlSha + "\n" + timeKeySha + "\n";
         var verifier = Signature.getInstance("Ed25519");
         verifier.initVerify(signedBy);
-        verifier.update((TIME_DOMAIN + evidence.checkedAt().getEpochSecond()
-                + "\n" + evidence.sequence()).getBytes(StandardCharsets.US_ASCII));
+        verifier.update(transcript.getBytes(StandardCharsets.US_ASCII));
         return verifier.verify(evidence.signature());
     }
 

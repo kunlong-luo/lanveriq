@@ -64,6 +64,10 @@ jobs:
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_assert_postgres18_junit.py'
       - name: Unit-test Springdoc contract validator (invented JSON, no DB)
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_verify_generated_openapi.py'
+      - name: Self-test strict FIDO source-time JUnit evidence guard
+        run: python3 -m unittest discover -s apps/server/scripts -p 'test_assert_fido_source_time_junit.py'
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test
+      - name: Fail closed unless all FIDO source-time v2 negative tests executed
+        run: python3 apps/server/scripts/assert-fido-source-time-junit.py

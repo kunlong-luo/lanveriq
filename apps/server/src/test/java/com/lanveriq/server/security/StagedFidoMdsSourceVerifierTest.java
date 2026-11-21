@@ -110,6 +110,29 @@ class StagedFidoMdsSourceVerifierTest {
         }
 
         StagedFidoMdsSourceVerifier.SignedTimeEvidence time(
+                long seq, Instant at, String compactJws, List<X509CRL> crls)
+                throws Exception {
+            var crlHashes = new java.util.ArrayList<String>();
+            for (X509CRL current : crls) {
+                crlHashes.add(fingerprint(current.getEncoded()));
+            }
+            crlHashes.sort(String::compareTo);
+            var crlEvidence = fingerprint(
+                    String.join(":", crlHashes).getBytes(StandardCharsets.US_ASCII));
+            var transcript = "lanveriq/fido-mds/source-time/v2\n"
+                    + at + "\n" + seq + "\n"
+                    + fingerprint(compactJws.getBytes(StandardCharsets.US_ASCII)) + "\n"
+                    + fingerprint(root.getEncoded()) + "\n"
+                    + crlEvidence + "\n"
+                    + fingerprint(timeKey.getPublic().getEncoded()) + "\n";
+            var sig = Signature.getInstance("Ed25519");
+            sig.initSign(timeKey.getPrivate());
+            sig.update(transcript.getBytes(StandardCharsets.US_ASCII));
+            return new StagedFidoMdsSourceVerifier.SignedTimeEvidence(
+                    at, seq, sig.sign());
+        }
+
+        StagedFidoMdsSourceVerifier.SignedTimeEvidence unboundLegacyTime(
                 long seq, Instant at) throws Exception {
             var sig = Signature.getInstance("Ed25519");
             sig.initSign(timeKey.getPrivate());
@@ -166,7 +189,8 @@ class StagedFidoMdsSourceVerifierTest {
             Fixture f, String jws, X509CRL crl, long lastNo, long lastTime)
             throws Exception {
         return verifier.inspectOfflineOnly(jws, f.claimedPolicy(),
-                f.time(9, NOW), List.of(crl), lastNo, lastTime);
+                f.time(9, NOW, jws, List.of(crl)), List.of(crl),
+                lastNo, lastTime);
     }
 
     @Test
@@ -192,14 +216,16 @@ class StagedFidoMdsSourceVerifierTest {
         var wrongPin = new StagedFidoMdsSourceVerifier.ExternalApproval(
                 policy.anchor(), "0".repeat(64), policy.timeKey(),
                 policy.timeKeySha256());
+        var sourceCrl = f.freshCrl();
+        var proof = f.time(9, NOW, jws, List.of(sourceCrl));
         assertThrows(AccessDeniedException.class, () ->
-                verifier.inspectOfflineOnly(jws, null, f.time(9, NOW),
-                        List.of(f.freshCrl()), 0, 8));
+                verifier.inspectOfflineOnly(jws, null, proof,
+                        List.of(sourceCrl), 0, 8));
         assertThrows(AccessDeniedException.class, () ->
-                verifier.inspectOfflineOnly(jws, wrongPin, f.time(9, NOW),
-                        List.of(f.freshCrl()), 0, 8));
+                verifier.inspectOfflineOnly(jws, wrongPin, proof,
+                        List.of(sourceCrl), 0, 8));
         assertThrows(AccessDeniedException.class, () ->
-                verifier.inspectOfflineOnly(jws, policy, f.time(9, NOW),
+                verifier.inspectOfflineOnly(jws, policy, proof,
                         List.of(), 0, 8));
     }
 
@@ -276,7 +302,8 @@ class StagedFidoMdsSourceVerifierTest {
         var rootCrl = crl(r46, newRoot.getPrivate(),
                 null, NOW.plusSeconds(86400));
         var evidence = verifier.inspectOfflineOnly(jws.serialize(),
-                f.claimedPolicy(), f.time(9, NOW),
+                f.claimedPolicy(), f.time(9, NOW, jws.serialize(),
+                        List.of(issuerCrl, rootCrl)),
                 List.of(issuerCrl, rootCrl), 1, 8);
         assertEquals(2, evidence.blobNumber());
         assertTrue(evidence.toString().contains("Untrusted"));
@@ -313,5 +340,110 @@ class StagedFidoMdsSourceVerifierTest {
         String forged = original[0] + "." + replacement[1] + "." + original[2];
         assertThrows(AccessDeniedException.class, () ->
                 inspect(f, forged, f.freshCrl(), 2, 8));
+    }
+
+    @Test
+    void sourceTimeV2BindsExactJwsEvenWhenBothJwsSignaturesAreValid()
+            throws Exception {
+        Fixture f=fixture(false);
+        String first=f.jws(41,false);
+        String second=f.jws(42,false);
+        X509CRL crl=f.freshCrl();
+        var original=f.time(9,NOW,first,List.of(crl));
+        assertEquals(41,verifier.inspectOfflineOnly(first,f.claimedPolicy(),
+                original,List.of(crl),40,8).blobNumber());
+        // The old v1 proof contained only time and sequence, so could be
+        // replayed against a different still-valid JWS. v2 must fail.
+        assertThrows(AccessDeniedException.class,() ->
+                verifier.inspectOfflineOnly(second,f.claimedPolicy(),
+                        original,List.of(crl),40,8));
+        assertEquals(42,verifier.inspectOfflineOnly(second,f.claimedPolicy(),
+                f.time(10,NOW,second,List.of(crl)),
+                List.of(crl),41,9).blobNumber());
+    }
+
+    @Test
+    void sourceTimeV2BindsExactCrlBytesAndOrderIndependentCrlSet()
+            throws Exception {
+        Fixture f=fixture(false);
+        String jws=f.jws(41,false);
+        X509CRL first=f.freshCrl();
+        X509CRL second=f.freshCrl();
+        // A valid reissued CRL is not interchangeable with the CRL
+        // whose DER fingerprint was covered by the signed time proof.
+        assertTrue(!fingerprint(first.getEncoded())
+                .equals(fingerprint(second.getEncoded())));
+        var original=f.time(9,NOW,jws,List.of(first));
+        assertEquals(41,verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                original,List.of(first),40,8).blobNumber());
+        assertThrows(AccessDeniedException.class,() ->
+                verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                        original,List.of(second),40,8));
+        var multi=f.time(10,NOW,jws,List.of(first,second));
+        assertEquals(41,verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                multi,List.of(second,first),40,9).blobNumber());
+    }
+
+    @Test
+    void sourceTimeV2BindsRootFingerprintDespiteSameRootKeyAndIssuer()
+            throws Exception {
+        Fixture f=fixture(false);
+        String jws=f.jws(41,false);
+        X509CRL crl=f.freshCrl();
+        X509Certificate reissuedRoot=certificate(f.issuer(),
+                f.caKey().getPrivate(),f.issuer(),f.caKey(),true,
+                KeyUsage.keyCertSign | KeyUsage.cRLSign,null);
+        assertTrue(!fingerprint(f.root().getEncoded())
+                .equals(fingerprint(reissuedRoot.getEncoded())));
+        var reissuedPolicy=new StagedFidoMdsSourceVerifier.ExternalApproval(
+                reissuedRoot,fingerprint(reissuedRoot.getEncoded()),
+                f.timeKey().getPublic(),
+                fingerprint(f.timeKey().getPublic().getEncoded()));
+        var original=f.time(9,NOW,jws,List.of(crl));
+        assertEquals(41,verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                original,List.of(crl),40,8).blobNumber());
+        assertThrows(AccessDeniedException.class,() ->
+                verifier.inspectOfflineOnly(jws,reissuedPolicy,
+                        original,List.of(crl),40,8));
+        var reissuedFixture=new Fixture(f.signerKey(),f.caKey(),f.timeKey(),
+                f.issuer(),reissuedRoot,f.signerCert(),false);
+        assertEquals(41,verifier.inspectOfflineOnly(jws,reissuedPolicy,
+                reissuedFixture.time(9,NOW,jws,List.of(crl)),
+                List.of(crl),40,8).blobNumber());
+    }
+
+    @Test
+    void sourceTimeV2RejectsLegacyUnboundTimestampSequenceMutationAndMutableProof()
+            throws Exception {
+        Fixture f=fixture(false);
+        String jws=f.jws(41,false);
+        X509CRL crl=f.freshCrl();
+        assertThrows(AccessDeniedException.class,() ->
+                verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                        f.unboundLegacyTime(9,NOW),List.of(crl),40,8));
+        var valid=f.time(9,NOW,jws,List.of(crl));
+        assertThrows(AccessDeniedException.class,() ->
+                verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                        new StagedFidoMdsSourceVerifier.SignedTimeEvidence(
+                                NOW.plusSeconds(1),9,valid.signature()),
+                        List.of(crl),40,8));
+        assertThrows(AccessDeniedException.class,() ->
+                verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                        new StagedFidoMdsSourceVerifier.SignedTimeEvidence(
+                                NOW,10,valid.signature()),
+                        List.of(crl),40,8));
+
+        byte[] extracted=valid.signature();
+        extracted[0]^=(byte)0xff;
+        // Record accessor returns a defensive copy: no caller can change
+        // what was signed after verification begins.
+        assertEquals(41,verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                valid,List.of(crl),40,8).blobNumber());
+        var array=valid.signature();
+        var copied=new StagedFidoMdsSourceVerifier.SignedTimeEvidence(
+                NOW,9,array);
+        array[0]^=(byte)0xff;
+        assertEquals(41,verifier.inspectOfflineOnly(jws,f.claimedPolicy(),
+                copied,List.of(crl),40,8).blobNumber());
     }
 }
