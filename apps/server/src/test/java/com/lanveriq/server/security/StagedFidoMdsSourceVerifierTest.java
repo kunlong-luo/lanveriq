@@ -307,6 +307,52 @@ class StagedFidoMdsSourceVerifierTest {
         }
     }
 
+
+    @Test
+    void signedJwsWithDuplicateJsonFieldsAtAnyDepthRejectsEvenWithValidTimeAndCrl()
+            throws Exception {
+        String guid = "00000000-0000-7000-8000-000000000001";
+        String entry = "{\"aaguid\":\"" + guid + "\","
+                + "\"metadataStatement\":{\"description\":\"SYNTHETIC\"},"
+                + "\"statusReports\":[],"
+                + "\"timeOfLastStatusChange\":\"2026-11-20\"}";
+        // All payloads below are signed by genuine disposable ES256/RS256
+        // test keys and bound to an exact JWS+CRL+root Ed25519 time proof.
+        String[] ambiguous = {
+                // Two top-level 'entries' + 'no' members:
+                "[],\"no\":44,\"entries\":[]",
+                // Duplicate member within the same metadata entry:
+                "[{\"aaguid\":\"" + guid + "\",\"aaguid\":\"" + guid + "\","
+                        + "\"metadataStatement\":{\"description\":\"SYNTHETIC\"},"
+                        + "\"statusReports\":[],"
+                        + "\"timeOfLastStatusChange\":\"2026-11-20\"}]",
+                // Status names are both syntactically valid; parser must
+                // not discard a REVOKED report through last-wins semantics.
+                "[{\"aaguid\":\"" + guid + "\","
+                        + "\"metadataStatement\":{\"description\":\"SYNTHETIC\"},"
+                        + "\"statusReports\":[{\"status\":\"REVOKED\","
+                        + "\"status\":\"FIDO_CERTIFIED\"}],"
+                        + "\"timeOfLastStatusChange\":\"2026-11-20\"}]",
+                // Duplicate property in a previously ignored extension:
+                "[" + entry.substring(0, entry.length() - 1)
+                        + ",\"futureExtension\":{\"foo\":1,\"foo\":2}}]"
+        };
+        for (boolean rsa : new boolean[]{false, true}) {
+            Fixture f = fixture(rsa);
+            X509CRL crl = f.freshCrl();
+            for (String entries : ambiguous) {
+                String jws = f.jwsWithEntries(48, false, entries);
+                var signedTime = f.time(9, NOW, jws, List.of(crl));
+                assertThrows(AccessDeniedException.class, () ->
+                        verifier.inspectOfflineOnly(jws, f.claimedPolicy(),
+                                signedTime, List.of(crl), 47, 8));
+            }
+            // A signed unambiguous entry is still untrusted evidence only.
+            String valid = f.jwsWithEntries(48, false, "[" + entry + "]");
+            assertEquals(48, inspect(f, valid, crl, 47, 8).blobNumber());
+        }
+    }
+
     @Test
     void rejectsMissingApprovalMismatchedPinAndNoRevocationEvidence()
             throws Exception {

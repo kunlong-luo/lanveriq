@@ -122,6 +122,11 @@ final class StagedFidoMdsSourceVerifier {
             }
             anchor.verify(anchor.getPublicKey());
 
+            // D4-C11: parse ORIGINAL compact segments strictly before Nimbus
+            // maps can collapse repeated header/payload JSON member names.
+            // Signature, PKIX/CRL, checked time and provenance gates remain
+            // independent and mandatory; this is only a structural denial.
+            StagedFidoMdsStrictJsonScreen.requireUnambiguousCompactJws(compactJws);
             JWSObject jws = JWSObject.parse(compactJws);
             var header = jws.getHeader();
             if ((!JWSAlgorithm.ES256.equals(header.getAlgorithm())

@@ -1,3 +1,9 @@
+## 2026-11-21 — A11-D4-C11 strict raw signed-JWS JSON parsing (CI pending)
+
+- Block duplicate JSON member names in ORIGINAL compact JWS header/payload bytes at any nesting depth using built-in Jackson 3 strict streaming parser, including encoded-key collisions. Prevent mismatch between parsers' discarded first/last values.
+- Integrate with unmounted offline FIDO source verifier; test genuine signed disposable ES256/RS256 BLOBs containing duplicate root/entry/status/extension keys and retain unique synthetic untrusted evidence.
+- [D4-C11 security and CI gate](docs/security/fido-mds-duplicate-json-d4-c11-2026-11-21.md). **Exact new SHA CI pending**. No FIDO root trust, admin MFA, physical Pop!_OS authorization or production switches; v0.1 NOT RELEASE READY.
+
 ## 2026-11-21 — Documentation authority and current-state reorganization
 
 - Establish [one current-status and exact-SHA CI authority](docs/CURRENT_STATUS.md), replace the oversized docs landing index with a topic-oriented [navigation page](docs/README.md), and preserve its full prior version in [historical archive](docs/governance/documentation-index-snapshot-2026-11-21.md). No historical evidence was deleted.

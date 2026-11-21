@@ -31,6 +31,8 @@
 
 ## 4. 安全、测试、运维与合规
 
+- **D4-C11 最新新增安全检查（CI 待验收）：** [原始签名 JWS 的重复 JSON 字段拒绝](security/fido-mds-duplicate-json-d4-c11-2026-11-21.md)；此门禁仅验证合成未可信材料，不是受批准的 FIDO 来源。
+
 - **安全：** [D4-C10 唯一标识门禁](security/fido-mds-duplicate-identifiers-d4-c10-2026-11-21.md) · [D4-C9 条目形状门禁](security/fido-mds-payload-screen-d4-c9-2026-11-21.md) · [RBAC 矩阵](security/authorization-matrix.md) · [威胁模型](security/threat-model.md) · [隐私/告知](security/privacy-and-consent.md) · [数据留存](security/data-retention.md)。
 - **测试：** [总策略](testing/strategy.md) · [总矩阵](testing/test-matrix.md) · [PG18 合成验收](testing/server-postgres18-manual.md) · [Console 会话验收](testing/console-session-manual.md) · [网络/TLS+Agent](testing/linux-caddy-spring-pg18-rust-csr.md) · [Pop!_OS 实机验收](testing/linux-popos24-agent-acceptance.md)。
 - **运维：** [开发安装](operations/installation.md) · [发布与升级/回滚](operations/release.md) · [备份恢复](operations/backup.md) · [监控](operations/monitoring.md) · [排障](operations/troubleshooting.md) · [RustDesk 隔离试验](operations/rustdesk-pilot.md)。
