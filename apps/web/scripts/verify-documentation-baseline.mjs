@@ -53,7 +53,7 @@ export const documentationRequirements = [
   {
     path: 'docs/CURRENT_STATUS.md',
     required: ['v0.1 NOT RELEASE READY', 'D4-C10', 'NXT-28', 'Pop!_OS 24.04',
-      '2368163e588e6e94f74a748bdc6e162b9c4c6b9a', 'production', 'main'],
+      '2368163e588e6e94f74a748bdc6e162b9c4c6b9a', '生产联网', 'main'],
     forbidden: [/^\*\*发布状态：v0\.1 RELEASE READY/m],
   },
 ];
