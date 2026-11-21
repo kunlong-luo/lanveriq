@@ -11,7 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * A11-D4-C5/V26: transaction-scoped, NOT-a-Bean append-only storage for
  * screening evidence only. V26 SQL locks the V25 synthetic stream, enforces
  * live actor/session, monotonic BLOB/time sequence, immutable root/time pins
- * and database-owned chained digest. An out-of-band asserted fingerprint
+ * and database-owned chained digest. V27 automatically writes and checks\n * the linked database audit even for direct SQL inserts. An out-of-band asserted fingerprint
  * is NOT approved FIDO trust. No verifier or credential/issuer consumer.
  */
 final class StagedFidoMdsSourceReceiptLedger {
@@ -88,16 +88,10 @@ final class StagedFidoMdsSourceReceiptLedger {
         if (receipts.size() != 1 || !(receipts.getFirst() instanceof UUID id)) {
             throw denied();
         }
-        int inserted = manager.createNativeQuery("""
-                INSERT INTO admin_access_log(principal_id,resource_id,action,outcome)
-                VALUES (:actor,:receipt,'admin.passkey.mds.source.untrusted.receipt','allowed')
-                """).setParameter("actor", admin.userId())
-                .setParameter("receipt", id).executeUpdate();
-        if (inserted != 1) {
-            // Required to be in the SAME DB transaction; caller must not
-            // swallow this failure and commit the untrusted evidence alone.
-            throw new IllegalStateException("Untrusted MDS receipt audit missing");
-        }
+        // V27 AFTER INSERT trigger inserts this receipt's audit inside the
+        // same PostgreSQL transaction, even for direct SQL writers. When an
+        // audit is suppressed the trigger raises, aborting the receipt.
+        // Do NOT insert a second audit record from this Java path.
         return id;
     }
 

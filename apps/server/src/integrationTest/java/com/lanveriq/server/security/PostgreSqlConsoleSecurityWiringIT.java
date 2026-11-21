@@ -2587,4 +2587,181 @@ class PostgreSqlConsoleSecurityWiringIT {
             org.springframework.security.core.context.SecurityContextHolder.clearContext();
         }
     }
+
+    // V27: raw SQL bypasses the non-Bean Java service. PostgreSQL itself must
+    // create one audit row or reject the receipt transaction. All fixtures
+    // remain synthetic UNTRUSTED; no official FIDO signature is supplied.
+    private UUID v27RawInsertSourceReceipt(UUID stream, UUID actor) {
+        var ids = entityManager.createNativeQuery("""
+                INSERT INTO admin_fido_mds_source_receipts_staging
+                  (stream_id,receipt_sequence,blob_no,signed_time_sequence,
+                   signed_time_at,leaf_sha256,jws_sha256,root_sha256,
+                   crl_evidence_sha256,time_key_sha256,signed_time_proof_sha256,
+                   previous_receipt_sha256,observed_by,observer_session_version)
+                VALUES (:stream,1,1,10,clock_timestamp(),
+                        decode(repeat('11',32),'hex'),
+                        decode(repeat('a1',32),'hex'),
+                        decode(repeat('55',32),'hex'),
+                        decode(repeat('22',32),'hex'),
+                        decode(repeat('33',32),'hex'),
+                        decode(repeat('44',32),'hex'),
+                        NULL,:actor,0)
+                RETURNING receipt_id
+                """).setParameter("stream",stream).setParameter("actor",actor)
+                .getResultList();
+        assertEquals(1,ids.size());
+        return (UUID)ids.getFirst();
+    }
+
+    private UUID v27RawInsertCommitted(UUID stream, UUID actor) {
+        return new TransactionTemplate(transactionManager).execute(ignored ->
+                v27RawInsertSourceReceipt(stream,actor));
+    }
+
+    private long v27AuditCount(UUID receipt) {
+        return ((Number)entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                WHERE resource_id=:id
+                  AND action='admin.passkey.mds.source.untrusted.receipt'
+                  AND outcome='allowed'
+                """).setParameter("id",receipt).getSingleResult()).longValue();
+    }
+
+    private long v27AllAuditCount() {
+        return ((Number) entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                WHERE action='admin.passkey.mds.source.untrusted.receipt'
+                """).getSingleResult()).longValue();
+    }
+
+    @Test
+    void v27DirectSqlSourceReceiptMustHaveDbOwnedAudit() {
+        UUID actor=registrationOwner();
+        registrationActor(actor,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            // Do NOT call the Java ledger or manually insert any audit.
+            UUID receipt=v27RawInsertCommitted(stream,actor);
+            assertEquals(1L,v27AuditCount(receipt));
+            assertEquals(actor,entityManager.createNativeQuery("""
+                    SELECT principal_id FROM admin_access_log
+                    WHERE resource_id=:id
+                      AND action='admin.passkey.mds.source.untrusted.receipt'
+                    """).setParameter("id",receipt).getSingleResult());
+            assertEquals("source_untrusted",entityManager.createNativeQuery("""
+                    SELECT evidence_state
+                    FROM admin_fido_mds_source_receipts_staging
+                    WHERE receipt_id=:id
+                    """).setParameter("id",receipt).getSingleResult());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v27SuppressedAuditAbortsDirectSqlAndLedgerThenAllowsSafeRetry() {
+        UUID actor=registrationOwner();
+        registrationActor(actor,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            long originalAuditCount=v27AllAuditCount();
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                    CREATE FUNCTION a11_v27_suppress_source_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                      IF NEW.action='admin.passkey.mds.source.untrusted.receipt'
+                        THEN RETURN NULL; END IF;
+                      RETURN NEW;
+                    END;
+                    $$
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    CREATE TRIGGER a11_v27_suppress_source_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_v27_suppress_source_audit()
+                    """).executeUpdate();
+            });
+            try {
+                assertThrows(RuntimeException.class, () ->
+                        v27RawInsertCommitted(stream,actor));
+                assertThrows(RuntimeException.class, () ->
+                        saveUntrustedSourceReceipt(stream,
+                            sourceReceiptEvidenceSynthetic(1,10,"55".repeat(32))));
+                assertEquals(0L,((Number)entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_fido_mds_source_receipts_staging
+                        WHERE stream_id=:stream
+                        """).setParameter("stream",stream).getSingleResult()).longValue());
+                assertEquals(originalAuditCount,v27AllAuditCount());
+            } finally {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS a11_v27_suppress_source_audit
+                        ON admin_access_log
+                        """).executeUpdate();
+                    entityManager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS a11_v27_suppress_source_audit()
+                        """).executeUpdate();
+                });
+            }
+            UUID safe=v27RawInsertCommitted(stream,actor);
+            assertEquals(1L,v27AuditCount(safe));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v27SourceAuditCannotBeUpdatedDeletedOrTruncated() {
+        UUID actor=registrationOwner();
+        registrationActor(actor,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            UUID receipt=v27RawInsertCommitted(stream,actor);
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_access_log SET action='rebound'
+                        WHERE resource_id=:receipt
+                          AND action='admin.passkey.mds.source.untrusted.receipt'
+                        """).setParameter("receipt",receipt).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_access_log
+                        WHERE resource_id=:receipt
+                          AND action='admin.passkey.mds.source.untrusted.receipt'
+                        """).setParameter("receipt",receipt).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        TRUNCATE TABLE admin_access_log
+                        """).executeUpdate()));
+            assertEquals(1L,v27AuditCount(receipt));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v27SourceAuditAndReceiptRollbackTogetherOnTransactionFailure() {
+        UUID actor=registrationOwner();
+        registrationActor(actor,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            long originalAuditCount=v27AllAuditCount();
+            assertThrows(IllegalStateException.class, () ->
+                    new TransactionTemplate(transactionManager).execute(ignored -> {
+                        UUID pending=v27RawInsertSourceReceipt(stream,actor);
+                        assertEquals(1L,v27AuditCount(pending));
+                        throw new IllegalStateException("synthetic rollback before COMMIT");
+                    }));
+            assertEquals(0L,((Number)entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_fido_mds_source_receipts_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream).getSingleResult()).longValue());
+            assertEquals(originalAuditCount,v27AllAuditCount());
+            UUID retry=v27RawInsertCommitted(stream,actor);
+            assertEquals(1L,v27AuditCount(retry));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
 }

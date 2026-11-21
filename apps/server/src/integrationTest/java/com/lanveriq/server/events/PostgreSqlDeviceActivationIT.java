@@ -442,9 +442,10 @@ class PostgreSqlDeviceActivationIT {
         // candidates and serializes against any later screening, never roots.
         // V25 only stages monotonic untrusted synthetic metadata observations.
         // V26 appends source-evidence receipts, still NOT trusted FIDO metadata.
-        // None silently enroll an administrator or enable passkey signing.
-        // The V9 -> V26 upgrade executes the 17 forward migrations V10..V26.
-        assertEquals(17, upgraded.migrate().migrationsExecuted);
+        // V27 requires a database-written audit for each source receipt.
+        // Neither version enables administrator passkeys or signing.
+        // The V9 -> V27 upgrade executes 18 forward migrations V10..V27.
+        assertEquals(18, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);

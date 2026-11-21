@@ -37,7 +37,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
-    "PostgreSqlConsoleSecurityWiringIT": 51,
+    "PostgreSqlConsoleSecurityWiringIT": 55,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -157,6 +157,10 @@ REQUIRED_CASES = {
         "syntheticSourceReceiptsRejectReplayTimeRollbackAnchorSwapAndForgedPredecessor",
         "syntheticSourceReceiptHistoryNeverPromotesMutatesOrDeletes",
         "syntheticSourceReceiptRejectsRotatedOwnerSessionWithoutSideEffect",
+        "v27DirectSqlSourceReceiptMustHaveDbOwnedAudit",
+        "v27SuppressedAuditAbortsDirectSqlAndLedgerThenAllowsSafeRetry",
+        "v27SourceAuditCannotBeUpdatedDeletedOrTruncated",
+        "v27SourceAuditAndReceiptRollbackTogetherOnTransactionFailure",
     },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
