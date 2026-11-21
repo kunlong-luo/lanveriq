@@ -1,9 +1,10 @@
-## 2026-11-21 — NXT-28 compact-height navigation consistency (CI pending)
+## 2026-11-21 — NXT-28 compact-height navigation consistency (four exact-SHA CI successes)
 
-- Add explicit independent scroll for the desktop Next.js sidebar and hide only its native scrollbar. Keep document wheel/touch/keyboard scrolling fully available.
-- Align the existing Base UI mobile navigation drawer with the canonical white/ink design tokens instead of the old lavender menu styling; retain native Dialog focus behavior and disabled production data flows.
-- Add a real Chromium gate for 1024×520 and 390×520, including last-link scrolling, scrollbar rules, Escape focus return and negative network/cookie checks, plus fast source regression. [NXT-28 acceptance contract](docs/development/frontend-compact-navigation-nxt28-2026-11-21.md).
-- **CI pending on the implementation SHA; no production authorization.** v0.1 NOT RELEASE READY; production networking, collection, recovery, remote and CA signing remain OFF.
+- **NXT-28 functional acceptance:** [functional SHA `e76cd345`](https://github.com/kunlong-luo/lanveriq/commit/e76cd34505dd8e49833ab9c0b61421288c43c353) passed FOUR same-SHA checks: [Next.js L1 #44882686781](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686781), [real Chromium #44882686713](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686713), [disconnected Pages build/deploy #44882686808](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686808), and [RD-2 default-OFF #44882686775](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686775). Chromium screenshot artifact: `nxt18-visual-qa-e76cd34505dd8e49833ab9c0b61421288c43c353` (ID `14698677524`). These tests cover the disconnected single `apps/web` UI only.
+- Make desktop Next.js sticky navigation independently scrollable in short windows while hiding its native internal bar, without clipping document scrolling.
+- Align the Base UI mobile sheet with the canonical white/ink tokens, preserving focus trap, Escape return and scroll gestures. Add Chromium 1024×520 / 390×520 checks, CSS source regression and no-network/cookie assertions.
+- The first browser run exposed an old wheel test targeting screen coordinate (0,0), now occupied by the scrolling sidebar. Adjusted the wheel test to target the main content, verified the independent sidebar separately, and reran all four gates on functional SHA `e76cd345`.
+- [NXT-28 implementation/acceptance](docs/development/frontend-compact-navigation-nxt28-2026-11-21.md). **v0.1 NOT RELEASE READY**: official FIDO provenance/trusted time, admin WebAuthn and Pop!_OS physical gates remain open; production networking, collection, recovery, remote and CA signing OFF.
 
 ## 2026-11-21 — A11-D4-C9 FIDO MDS offline BLOB entry-shape gate (5/5 same-SHA CI PASS)
 
