@@ -32,6 +32,10 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.X509v2CRLBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CRLConverter;
@@ -62,13 +66,19 @@ class StagedFidoMdsSourceVerifierTest {
 
     private static X509Certificate certificate(
             X500Name issuer, PrivateKey signer, X500Name subject,
-            KeyPair holder, boolean ca, int usage) throws Exception {
+            KeyPair holder, boolean ca, int usage, String dnsName) throws Exception {
         var builder = new JcaX509v3CertificateBuilder(
                 issuer, serial(), Date.from(NOW.minusSeconds(86400)),
                 Date.from(NOW.plusSeconds(86400 * 20)), subject, holder.getPublic());
         builder.addExtension(Extension.basicConstraints, true,
                 new BasicConstraints(ca));
         builder.addExtension(Extension.keyUsage, true, new KeyUsage(usage));
+        if (!ca) {
+            builder.addExtension(Extension.subjectAlternativeName, false,
+                    new GeneralNames(new GeneralName(GeneralName.dNSName, dnsName)));
+            builder.addExtension(Extension.extendedKeyUsage, false,
+                    new ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth));
+        }
         return new JcaX509CertificateConverter().getCertificate(
                 builder.build(new JcaContentSignerBuilder("SHA256withECDSA")
                         .build(signer)));
@@ -145,10 +155,10 @@ class StagedFidoMdsSourceVerifierTest {
         KeyPair time = key("Ed25519");
         X500Name issuer = new X500Name("CN=TEST-ONLY-NOT-FIDO-APPROVED");
         var root = certificate(issuer, ca.getPrivate(), issuer, ca,
-                true, KeyUsage.keyCertSign | KeyUsage.cRLSign);
+                true, KeyUsage.keyCertSign | KeyUsage.cRLSign, null);
         var leaf = certificate(issuer, ca.getPrivate(),
                 new X500Name("CN=TEST-ONLY-MDS-SIGNER"), signer,
-                false, KeyUsage.digitalSignature);
+                false, KeyUsage.digitalSignature, "mds.fidoalliance.org");
         return new Fixture(signer, ca, time, issuer, root, leaf, rsa);
     }
 
@@ -225,6 +235,67 @@ class StagedFidoMdsSourceVerifierTest {
                         new StagedFidoMdsSourceVerifier.SignedTimeEvidence(
                                 NOW, 9, new byte[]{1, 2, 3}),
                         List.of(f.freshCrl()), 9, 8));
+    }
+
+    @Test
+    void threeCertificateR46CrossChainUsesVerifiedApprovedRootPath()
+            throws Exception {
+        KeyPair newRoot = key("EC");
+        KeyPair intermediate = key("EC");
+        KeyPair leaf = key("EC");
+        KeyPair legacyRoot = key("EC");
+        KeyPair timeKey = key("Ed25519");
+        X500Name r46 = new X500Name("CN=SYNTHETIC-R46-NOT-OFFICIAL");
+        X500Name r3 = new X500Name("CN=SYNTHETIC-R3-NOT-OFFICIAL");
+        X500Name issuingCa = new X500Name("CN=SYNTHETIC-MDS-ISSUER");
+        var root = certificate(r46, newRoot.getPrivate(), r46, newRoot, true,
+                KeyUsage.keyCertSign | KeyUsage.cRLSign, null);
+        var intermediateCert = certificate(r46, newRoot.getPrivate(),
+                issuingCa, intermediate, true,
+                KeyUsage.keyCertSign | KeyUsage.cRLSign, null);
+        var leafCert = certificate(issuingCa, intermediate.getPrivate(),
+                new X500Name("CN=mds.fidoalliance.org"), leaf, false,
+                KeyUsage.digitalSignature, "mds.fidoalliance.org");
+        // The x5c[2] cross certificate is issued by a separate legacy root.
+        // A path anchored to an independently approved new root ends at
+        // x5c[1], without trusting this optional compatibility certificate.
+        var crossCert = certificate(r3, legacyRoot.getPrivate(), r46, newRoot,
+                true, KeyUsage.keyCertSign | KeyUsage.cRLSign, null);
+        Fixture f = new Fixture(leaf, newRoot, timeKey, r46,
+                root, leafCert, false);
+        var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .customParam("iat", NOW.getEpochSecond())
+                .x509CertChain(List.of(Base64.encode(leafCert.getEncoded()),
+                        Base64.encode(intermediateCert.getEncoded()),
+                        Base64.encode(crossCert.getEncoded()))).build();
+        var jws = new JWSObject(header, new Payload(
+                "{\"legalHeader\":\"test-only terms\",\"no\":2,\"entries\":[]}"));
+        jws.sign(new ECDSASigner((ECPrivateKey) leaf.getPrivate()));
+        var issuerCrl = crl(issuingCa, intermediate.getPrivate(),
+                null, NOW.plusSeconds(86400));
+        var rootCrl = crl(r46, newRoot.getPrivate(),
+                null, NOW.plusSeconds(86400));
+        var evidence = verifier.inspectOfflineOnly(jws.serialize(),
+                f.claimedPolicy(), f.time(9, NOW),
+                List.of(issuerCrl, rootCrl), 1, 8);
+        assertEquals(2, evidence.blobNumber());
+        assertTrue(evidence.toString().contains("Untrusted"));
+    }
+
+    @Test
+    void publicCaChainWithWrongMdsDnsSanCannotImpersonateFidoSigner()
+            throws Exception {
+        Fixture f = fixture(false);
+        var fake = certificate(f.issuer(), f.caKey().getPrivate(),
+                new X500Name("CN=mds.fidoalliance.org"), f.signerKey(),
+                false, KeyUsage.digitalSignature, "attacker.invalid");
+        var impersonator = new Fixture(f.signerKey(), f.caKey(), f.timeKey(),
+                f.issuer(), f.root(), fake, false);
+        // Even a valid signature and otherwise valid PKIX/CRL chain cannot
+        // pass based on a CN or public CA alone.
+        assertThrows(AccessDeniedException.class, () ->
+                inspect(impersonator, impersonator.jws(3, false),
+                        impersonator.freshCrl(), 2, 8));
     }
 
     @Test

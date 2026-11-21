@@ -154,6 +154,26 @@ final class StagedFidoMdsSourceVerifier {
                     if (cert.getBasicConstraints() >= 0 || !permits(cert, 0)) {
                         throw denied();
                     }
+                    // GlobalSign R46 is a general-purpose public CA.
+                    // An arbitrary certificate under it is NOT a FIDO signer.
+                    // Verify the exact official MDS DNS identity in the SAN
+                    // and the expected TLS signer EKU; CN is insufficient.
+                    boolean officialDnsName = false;
+                    var names = cert.getSubjectAlternativeNames();
+                    if (names != null) {
+                        for (var name : names) {
+                            if (name.size() >= 2 && Integer.valueOf(2).equals(name.get(0))
+                                    && name.get(1) instanceof String dns
+                                    && "mds.fidoalliance.org".equalsIgnoreCase(dns)) {
+                                officialDnsName = true;
+                            }
+                        }
+                    }
+                    var extendedUsages = cert.getExtendedKeyUsage();
+                    if (!officialDnsName || extendedUsages == null
+                            || !extendedUsages.contains("1.3.6.1.5.5.7.3.1")) {
+                        throw denied();
+                    }
                 } else if (cert.getBasicConstraints() < 0 || !permits(cert, 5)) {
                     throw denied();
                 }
