@@ -18,6 +18,7 @@ REQUIRED = frozenset({
     "sourceTimeV2RejectsLegacyUnboundTimestampSequenceMutationAndMutableProof",
     "signedValidFidoShapedEntriesRemainUntrustedAfterStructureScreen",
     "cryptographicallyValidButMalformedEntryShapesAreDenied",
+    "cryptographicallyValidDuplicateModelIdsStillRejectBeforeUntrustedEvidence",
 })
 DEFAULT_REPORT = Path("apps/server/build/test-results/test") / f"TEST-{CLASS}.xml"
 

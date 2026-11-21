@@ -265,6 +265,48 @@ class StagedFidoMdsSourceVerifierTest {
         }
     }
 
+
+    @Test
+    void cryptographicallyValidDuplicateModelIdsStillRejectBeforeUntrustedEvidence()
+            throws Exception {
+        // Each envelope is correctly signed by a disposable MDS-shaped
+        // signer; the Ed25519 time proof also binds the exact JWS and CRL.
+        // Repeated identifiers must fail even with valid PKIX/JWS evidence.
+        String guidEntry = """
+                {"aaguid":"ABCDEF12-0000-7000-8000-000000000001",
+                 "metadataStatement":{"description":"SYNTHETIC"},
+                 "statusReports":[{"status":"REVOKED"}],
+                 "timeOfLastStatusChange":"2026-11-20"}
+                """.strip();
+        String guidCase = guidEntry.replace("ABCDEF12", "abcdef12");
+        String u2fEntry = """
+                {"attestationCertificateKeyIdentifiers":["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+                 "metadataStatement":{"description":"SYNTHETIC-U2F"},
+                 "statusReports":[],
+                 "timeOfLastStatusChange":"2026-11-20"}
+                """.strip();
+        String[] repeated = {
+                "[" + guidEntry + "," + guidCase + "]",
+                "[" + u2fEntry + "," + u2fEntry + "]"
+        };
+        for (boolean rsa : new boolean[]{false, true}) {
+            Fixture f = fixture(rsa);
+            X509CRL crl = f.freshCrl();
+            for (String entries : repeated) {
+                String jws = f.jwsWithEntries(43, false, entries);
+                var signedTime = f.time(9, NOW, jws, List.of(crl));
+                assertThrows(AccessDeniedException.class, () ->
+                        verifier.inspectOfflineOnly(jws, f.claimedPolicy(),
+                                signedTime, List.of(crl), 42, 8));
+            }
+            // Distinct models still yield UNTRUSTED evidence, never a grant.
+            String distinct = "[" + guidEntry + ","
+                    + guidEntry.replace("ABCDEF12", "12345678") + "]";
+            String jws = f.jwsWithEntries(43, false, distinct);
+            assertEquals(43, inspect(f, jws, crl, 42, 8).blobNumber());
+        }
+    }
+
     @Test
     void rejectsMissingApprovalMismatchedPinAndNoRevocationEvidence()
             throws Exception {

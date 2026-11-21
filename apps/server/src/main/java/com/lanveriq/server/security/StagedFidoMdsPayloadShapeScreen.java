@@ -4,8 +4,11 @@ import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.security.access.AccessDeniedException;
 
 /**
@@ -32,6 +35,11 @@ final class StagedFidoMdsPayloadShapeScreen {
             throw denied();
         }
         LocalDate observedDay = checkedAt.atZone(ZoneOffset.UTC).toLocalDate();
+        // D4-C10: a BLOB containing duplicate model identifiers is
+        // ambiguous for any downstream status/metadata lookup. Fail closed
+        // BEFORE returning even untrusted source evidence. Keep separate
+        // domains for UAF/CTAP/U2F and normalize case-insensitive hex.
+        Set<String> observedIdentifiers = new HashSet<>();
         for (Object raw : entries) {
             if (!(raw instanceof Map<?, ?> entry)) {
                 throw denied();
@@ -45,12 +53,18 @@ final class StagedFidoMdsPayloadShapeScreen {
                         || !aaid.matches("[0-9a-fA-F]{4}#[0-9a-fA-F]{4}")) {
                     throw denied();
                 }
+                if (!observedIdentifiers.add("aaid:" + aaid.toUpperCase(Locale.ROOT))) {
+                    throw denied();
+                }
                 identifiers++;
             }
             if (entry.containsKey("aaguid")) {
                 if (!(entry.get("aaguid") instanceof String aaguid)
                         || !aaguid.matches(
                         "(?i)[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) {
+                    throw denied();
+                }
+                if (!observedIdentifiers.add("aaguid:" + aaguid.toLowerCase(Locale.ROOT))) {
                     throw denied();
                 }
                 identifiers++;
@@ -64,7 +78,8 @@ final class StagedFidoMdsPayloadShapeScreen {
                 }
                 for (Object fingerprint : fingerprints) {
                     if (!(fingerprint instanceof String value)
-                            || !value.matches("[0-9a-f]{40}")) {
+                            || !value.matches("[0-9a-f]{40}")
+                            || !observedIdentifiers.add("u2f:" + value)) {
                         throw denied();
                     }
                 }

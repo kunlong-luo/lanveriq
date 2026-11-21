@@ -56,6 +56,58 @@ class StagedFidoMdsPayloadShapeScreenTest {
         // The above NEVER licenses registration. All records remain untrusted.
     }
 
+
+    @Test
+    void rejectsRepeatedModelIdentifiersAcrossEntriesAndWithinU2fLists() {
+        var first = entry();
+        var identical = entry();
+        rejected(List.of(first, identical));
+
+        // AAGUID and AAID are hex identifiers; case differences must not
+        // create distinct models during later metadata/status interpretation.
+        first.put("aaguid", "ABCDEF12-0000-7000-8000-000000000001");
+        identical.put("aaguid", "abcdef12-0000-7000-8000-000000000001");
+        rejected(List.of(first, identical));
+
+        var uaf1 = entry();
+        uaf1.remove("aaguid");
+        uaf1.put("aaid", "A123#B456");
+        var uaf2 = entry();
+        uaf2.remove("aaguid");
+        uaf2.put("aaid", "a123#b456");
+        rejected(List.of(uaf1, uaf2));
+
+        var u2f1 = entry();
+        u2f1.remove("aaguid");
+        u2f1.put("attestationCertificateKeyIdentifiers", List.of("a".repeat(40)));
+        var u2f2 = entry();
+        u2f2.remove("aaguid");
+        u2f2.put("attestationCertificateKeyIdentifiers",
+                List.of("b".repeat(40), "a".repeat(40)));
+        rejected(List.of(u2f1, u2f2));
+
+        var duplicateWithinOneEntry = entry();
+        duplicateWithinOneEntry.remove("aaguid");
+        duplicateWithinOneEntry.put("attestationCertificateKeyIdentifiers",
+                List.of("a".repeat(40), "a".repeat(40)));
+        rejected(List.of(duplicateWithinOneEntry));
+    }
+
+    @Test
+    void uniqueMixedModelFamiliesRemainOpaqueAndUntrusted() {
+        var aaguid = entry();
+        var aaid = entry();
+        aaid.remove("aaguid");
+        aaid.put("aaid", "A123#B456");
+        var u2f = entry();
+        u2f.remove("aaguid");
+        u2f.put("attestationCertificateKeyIdentifiers",
+                List.of("a".repeat(40), "b".repeat(40)));
+        assertDoesNotThrow(() -> StagedFidoMdsPayloadShapeScreen
+                .requireUntrustedEntryShapes(List.of(aaguid, aaid, u2f), NOW));
+        // Structural acceptance cannot grant real authenticator admission.
+    }
+
     @Test
     void rejectsMissingMalformedAndAmbiguousIdentity() {
         rejected(null);

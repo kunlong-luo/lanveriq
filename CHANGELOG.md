@@ -1,3 +1,9 @@
+## 2026-11-21 — A11-D4-C10 signed MDS duplicate-model denial (CI pending)
+
+- Reject reused normalized AAGUID, AAID and U2F attestation certificate identifiers within the same signed BLOB; deny ambiguity before producing even an `UntrustedSourceEvidence` record. Preserve unknown status opacity and distinct multi-model input.
+- Add genuine offline synthetic ES256/RS256 + PKIX/CRL + Ed25519 signed-time integration negatives, standalone model-boundary tests and mandatory real Gradle JUnit XML gate.
+- [D4-C10 implementation and outstanding approval steps](docs/security/fido-mds-duplicate-identifiers-d4-c10-2026-11-21.md). **CI PENDING**; no official FIDO provenance, trusted time/CRL acquisition, WebAuthn MFA or Pop!_OS 24.04 acceptance. v0.1 **NOT RELEASE READY**, production networking/collection/recovery/remote/CA OFF.
+
 ## 2026-11-21 — NXT-28 compact-height navigation consistency (four exact-SHA CI successes)
 
 - **NXT-28 functional acceptance:** [functional SHA `e76cd345`](https://github.com/kunlong-luo/lanveriq/commit/e76cd34505dd8e49833ab9c0b61421288c43c353) passed FOUR same-SHA checks: [Next.js L1 #44882686781](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686781), [real Chromium #44882686713](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686713), [disconnected Pages build/deploy #44882686808](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686808), and [RD-2 default-OFF #44882686775](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686775). Chromium screenshot artifact: `nxt18-visual-qa-e76cd34505dd8e49833ab9c0b61421288c43c353` (ID `14698677524`). These tests cover the disconnected single `apps/web` UI only.
