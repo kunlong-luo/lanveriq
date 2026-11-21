@@ -423,7 +423,7 @@ body { background: var(--background); }
 /* Preserve native keyboard, touch and wheel scroll. Only the desktop
  * navigation disappears under the existing accessible Base UI mobile sheet. */
 @media (max-width: 1100px) {
-  .bc-console .sidebar { width: 218px; min-width: 218px; }
+  .bc-console .sidebar { width: 224px; min-width: 224px; }
   .bc-console .main-content { padding-inline: 24px; }
 }
 @media (max-width: 750px) {

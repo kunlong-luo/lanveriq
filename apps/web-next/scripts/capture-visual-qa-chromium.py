@@ -117,8 +117,8 @@ def run():
                                 "missing preview-only warning")
                         page.evaluate("async () => { await document.fonts.ready; return true; }")
                         metrics = measure(page)
-                        require(metrics["rootBackground"] == "#f8f8fc" and
-                                metrics["rootViolet"] == "#6a5bff",
+                        require(metrics["rootBackground"] == "#f5f7fa" and
+                                metrics["rootViolet"] == "#4d5fc9",
                                 "brand tokens changed on " + route)
                         require(metrics["documentWidth"] <= width + 2,
                                 "document horizontal overflow on " + route + " " + label)
