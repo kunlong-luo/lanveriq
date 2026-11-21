@@ -1,6 +1,6 @@
 # NXT-14 — B+C approved design prototype to Next.js implementation
 
-**2026-11-07. Scope:** First implementation pass translating the standalone `lanveriq-bc-interactive-prototype.html` into the canonical `apps/web-next` Next.js 16.4.5 App Router. The user explicitly requested design-before-code, reviewed the B+C prototype and then asked to continue. **Visual implementation does not constitute business or production approval.**
+**2026-11-07. Scope:** First implementation pass translating the standalone `lanveriq-bc-interactive-prototype.html` into the canonical `apps/web` Next.js 16.4.5 App Router. The user explicitly requested design-before-code, reviewed the B+C prototype and then asked to continue. **Visual implementation does not constitute business or production approval.**
 
 ## Source of truth and intent
 

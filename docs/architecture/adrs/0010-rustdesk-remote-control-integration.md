@@ -4,7 +4,7 @@
 
 ## 背景与现状
 
-Lanveriq 当前有三个真实代码入口：Rust 1.94 的 apps/agent（SQLx SQLite outbox、reqwest/rustls mTLS、心跳/资产/ACK 的待接线组件）、Java 25/Spring Boot 4.1.2 的 apps/server（设备身份与授权、JPA/PostgreSQL18）、Next.js 16/React19 的 apps/web-next（独立预览与部分受保护接口）。目前**没有已实现的远程桌面数据通道或 RustDesk 集成**，也不存在可供替换的 Lanveriq P2P、屏幕采集或中继组件。当前 Agent 主循环尚未接通真实数据采集/上传。
+Lanveriq 当前有三个真实代码入口：Rust 1.94 的 apps/agent（SQLx SQLite outbox、reqwest/rustls mTLS、心跳/资产/ACK 的待接线组件）、Java 25/Spring Boot 4.1.2 的 apps/server（设备身份与授权、JPA/PostgreSQL18）、Next.js 16/React19 的 apps/web（独立预览与部分受保护接口）。目前**没有已实现的远程桌面数据通道或 RustDesk 集成**，也不存在可供替换的 Lanveriq P2P、屏幕采集或中继组件。当前 Agent 主循环尚未接通真实数据采集/上传。
 
 现有 [ADR-0006](0006-agent-rest-dashboard-ws.md) 与 [ADR-0009](0009-agent-transport-selection.md) 决定的是**可靠设备管理业务通道**；交互式远程桌面是不同的数据面，不能用屏幕流代替持久化事件/库存 ACK。此前口头建议的“全面改为 gRPC”**不是现有实现决策**；保留 v0.1 已有 REST/JSON+mTLS，只有量化指标达到 ADR-0009 条件才另行批准迁移。
 

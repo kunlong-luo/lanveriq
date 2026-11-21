@@ -77,7 +77,7 @@ the Java health check.
 
 | Product component | Planned execution site | State |
 |---|---|---|
-| Next.js App Router admin Web (primary) | `apps/web-next`, Next.js 16.4.5 standalone localhost preview; separate public disconnected GitHub Pages static export | Main UI builds and Pages preview pass CI; live API, session, WSS and real device access remain OFF. The older `apps/web` Vite code is legacy reference only |
+| Next.js App Router admin Web (primary) | `apps/web`, Next.js 16.4.5 standalone localhost preview; separate public disconnected GitHub Pages static export | Main UI builds and Pages preview pass CI; live API, session, WSS and real device access remain OFF. The older `apps/web` Vite code is legacy reference only |
 | Java Spring Boot server | Server host, behind accepted HTTPS/TLS ingress | Buildable local development process; privileged business endpoints default OFF |
 | Rust endpoint Agent | Native managed Windows/Linux endpoint | Idle binary, standalone synthetic libraries and OS test-only service unit; no live enrollment/upload |
 | PostgreSQL 18 | Private server network / synthetic Docker on loopback | Database migration source written; manual integration acceptance pending |

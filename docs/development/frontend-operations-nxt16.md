@@ -1,7 +1,7 @@
 # NXT-16 — Operational density and canonical B+C tokens
 
 **Date:** 2026-11-07  
-**Runtime:** `apps/web-next` Next.js 16.4.5 / React 19.2 / Base UI 1.9.0 / Tailwind 4 / shadcn-style source-owned components.  
+**Runtime:** `apps/web` Next.js 16.4.5 / React 19.2 / Base UI 1.9.0 / Tailwind 4 / shadcn-style source-owned components.  
 **Scope:** Public isolated design preview only. **No production login, real API, business data, authorized session or Agent functions enabled.**
 
 ## Product design decision

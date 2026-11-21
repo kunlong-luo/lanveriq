@@ -11,7 +11,7 @@ const gates = [
 ];
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     gates.some(key => process.env[key] !== '1') ||
-    basename(process.cwd()) !== 'web-next') {
+    basename(process.cwd()) !== 'web') {
   throw new Error('Refusing synthetic auth fixture outside explicit isolated CI gates');
 }
 const multiAdmin = process.env.LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE ?? '0';

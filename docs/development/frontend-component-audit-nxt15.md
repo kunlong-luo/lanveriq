@@ -1,7 +1,7 @@
 # NXT-15 — Mainstream SaaS layout and reusable component audit
 
 **Date:** 2026-11-07  
-**Target:** Canonical `apps/web-next` Next.js 16.4.5 / React 19.2 / TypeScript 7 / Tailwind 4, public disconnected design preview only.
+**Target:** Canonical `apps/web` Next.js 16.4.5 / React 19.2 / TypeScript 7 / Tailwind 4, public disconnected design preview only.
 
 ## Architecture decision
 

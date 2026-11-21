@@ -1,6 +1,6 @@
 # Lanveriq visual language and production rules
 
-**Status:** Historical design posters, not current product UI. The eight SVGs in [assets](assets/) remain canonical for **illustrations only**. Current Next.js Console UI direction is [Craftwork-inspired Console](CONSOLE_CRAFTWORK_DIRECTION.md) and `apps/web-next/src/app/console-polish.css`, not this poster palette.
+**Status:** Historical design posters, not current product UI. The eight SVGs in [assets](assets/) remain canonical for **illustrations only**. Current Next.js Console UI direction is [Craftwork-inspired Console](CONSOLE_CRAFTWORK_DIRECTION.md) and `apps/web/src/app/console-polish.css`, not this poster palette.
 
 ## Unified canvas
 - **1600 × 900 (16:9)** viewBox for every product poster.

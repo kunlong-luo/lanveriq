@@ -165,13 +165,13 @@ jobs:
         with:
           version: '12.0.0'
           runtime: node@24
-          working-directory: apps/web-next
+          working-directory: apps/web
           install: true
           require-lockfile: true
           cache: false
       - name: Build default disabled-login preview (optionally add disposable auth fixture)
         if: ${{ github.event_name == 'push' || inputs.nextjs_same_origin_probe }}
-        working-directory: apps/web-next
+        working-directory: apps/web
         env:
           NEXT_TELEMETRY_DISABLED: '1'
           LANVERIQ_SYNTHETIC_BROWSER_PROBE: ${{ (github.event_name == 'push' || inputs.browser_probe) && '1' || '0' }}
@@ -221,7 +221,7 @@ jobs:
             LANVERIQ_SYNTHETIC_EDGE_SECRET="$(openssl rand -hex 32)"
             [[ "$LANVERIQ_SYNTHETIC_EDGE_SECRET" =~ ^[a-f0-9]{64}$ ]] || exit 1
             (
-              cd apps/web-next
+              cd apps/web
               pnpm exec next start --hostname 127.0.0.1 --port 3100
             ) > "$RUNNER_TEMP/lanveriq-nextjs-synthetic.log" 2>&1 &
             next_pid=$!
@@ -239,7 +239,7 @@ jobs:
             [[ "$ready" == 1 ]] || { echo "FAIL: isolated Next.js did not become ready"; exit 1; }
             # Direct loopback and non-loopback TCP negatives MUST run before
             # Caddy starts: no browser business session may be created here.
-            python3 apps/web-next/scripts/verify-synthetic-nextjs-origin.py
+            python3 apps/web/scripts/verify-synthetic-nextjs-origin.py
           fi
           bash apps/server/scripts/verify-agent-upstream-tls.sh
           {

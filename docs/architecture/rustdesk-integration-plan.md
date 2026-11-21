@@ -6,13 +6,13 @@
 
 ## 1. 本次代码库盘点
 
-2026-11-08 审阅 main 的仓库树（共 592 个 tree entries）、apps/agent/Cargo.toml、apps/web-next/package.json、架构 ADR 与协议基线，GitHub 仓库代码搜索尚未发现 RustDesk 集成。下述状态必须区分**有源码**、**已接通运行时**和**真实设备已验收**。
+2026-11-08 审阅 main 的仓库树（共 592 个 tree entries）、apps/agent/Cargo.toml、apps/web/package.json、架构 ADR 与协议基线，GitHub 仓库代码搜索尚未发现 RustDesk 集成。下述状态必须区分**有源码**、**已接通运行时**和**真实设备已验收**。
 
 | 领域/路径 | 实际状态 | 决策 |
 | --- | --- | --- |
 | apps/agent/src/{transport,store,inventory}.rs | 有 HTTPS/mTLS、SQLite、资产、严格 ACK；服务主循环未启用 | 保留、按 Batch A/B 接线 |
 | apps/server/.../enrollment,events,security | 有证书/管理员/事件/库存域与合成测试；尚无远控 session API | 保留，日后独立增 remote 域 |
-| apps/web-next/src/app/(console) | 有 B+C 控制台多页面；远控非已实现路由 | 保留，新入口 default OFF |
+| apps/web/src/app/(console) | 有 B+C 控制台多页面；远控非已实现路由 | 保留，新入口 default OFF |
 | deploy/caddy/Caddyfile.reference | 现有 console/enroll/agent TLS 参考，生产未批准 | 不重用 agent 证书信任域服务远控；隔离部署 |
 | 独立 RustDesk hbbs/hbbr | 未添加到 Lanveriq | 选定候选上游；等待锁版本隔离 PoC |
 | RustDesk 客户端/嵌入 Web | 未添加到 Lanveriq | 单独安装/隔离验证；不声称 OSS 内有受权嵌入 SDK |

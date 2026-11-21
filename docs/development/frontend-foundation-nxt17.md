@@ -1,7 +1,7 @@
 # NXT-17 — Consolidated B+C theme and isolated authorized-directory interaction acceptance
 
 **Date:** 2026-11-08  
-**Scope:** Canonical `apps/web-next` Next.js 16.4.5 + React 19 + TypeScript 7 + Tailwind 4 + Base UI 1.9.0.  
+**Scope:** Canonical `apps/web` Next.js 16.4.5 + React 19 + TypeScript 7 + Tailwind 4 + Base UI 1.9.0.  
 **Release boundary:** Public GitHub Pages continues to be a disconnected, noncredentialed design preview. No real PostgreSQL/Redis/Spring/Agent reads and no device operations.
 
 ## Design and CSS decision
@@ -32,7 +32,7 @@ The `scripts/install-synthetic-directory-fixture.mjs` installer will create a di
 
 - The runner is GitHub Actions (`GITHUB_ACTIONS=true`).
 - `LANVERIQ_NXT17_BROWSER_FIXTURE=1` is explicitly set for the synthetic-only step.
-- The working directory is `apps/web-next`, the static preview routes already exist, and the test route has not been mounted.
+- The working directory is `apps/web`, the static preview routes already exist, and the test route has not been mounted.
 - The ordinary preview has first passed frozen dependency installation, source isolation, unit tests, Next.js production build and the **real Chromium disconnected UI** checks.
 
 The browser workflow then runs a **second temporary build** and starts the generated route only on `127.0.0.1:3100`. Real Chromium checks:

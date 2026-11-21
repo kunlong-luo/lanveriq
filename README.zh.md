@@ -1,4 +1,6 @@
-> **2026-11-21 NXT-23 单前端收敛（四条同源码 CI 全部通过，不代表上线）：** 旧 `apps/web` Vite UI 与 `.github/workflows/web-unit.yml` 已从主线删除，最新的唯一主前端是 `apps/web-next`（Next.js 16.4.5，端口 3100）。登录/只读 API/契约的安全负向测试已在 Next.js 侧保留，且仍不接入真实业务。所有本地运行说明统一到 3100；原 5173 入口已废弃。真实设备、生产联网、采集、自动恢复、远控与证书签发持续关闭；v0.1 NOT RELEASE READY。**NXT-23 exact-source UI acceptance:** functional commit [`e54af66aa7803b43c2b85a6bff7efd419b44a428`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428) passed all FOUR same-SHA workflows: [Next.js frozen pnpm, single-UI guard, tests/typecheck/build/HTTP #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [actual Chromium 11 routes/keyboard/mobile/screenshots #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [disconnected static Pages export+deploy #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 default OFF #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193). Visual artifact `nxt18-visual-qa-e54af66aa7803b43c2b85a6bff7efd419b44a428` (ID `14695855747`). This is not production authorization.
+> **2026-11-21 NXT-24 主前端目录已改为 `apps/web`（CI 待确认）：** 现在直接在仓库根目录执行 `cd apps/web && corepack pnpm dev`，访问 `http://127.0.0.1:3100/overview`。此目录是原 `apps/web-next` 的 **Next.js 16** 项目完整迁移，**不是**恢复旧的 Vite；对应测试、GitHub Actions、Pages 发布和安全隔离路径一起同步。历史提交记录保留。v0.1 仍然 NOT RELEASE READY，生产联网、采集、恢复、远控和证书签发全部关闭。
+
+> **2026-11-21 NXT-23 单前端收敛（四条同源码 CI 全部通过，不代表上线）：** 旧 `apps/web` Vite UI 与 `.github/workflows/web-unit.yml` 已从主线删除，最新的唯一主前端是 `apps/web`（Next.js 16.4.5，端口 3100）。登录/只读 API/契约的安全负向测试已在 Next.js 侧保留，且仍不接入真实业务。所有本地运行说明统一到 3100；原 5173 入口已废弃。真实设备、生产联网、采集、自动恢复、远控与证书签发持续关闭；v0.1 NOT RELEASE READY。**NXT-23 exact-source UI acceptance:** functional commit [`e54af66aa7803b43c2b85a6bff7efd419b44a428`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428) passed all FOUR same-SHA workflows: [Next.js frozen pnpm, single-UI guard, tests/typecheck/build/HTTP #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [actual Chromium 11 routes/keyboard/mobile/screenshots #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [disconnected static Pages export+deploy #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 default OFF #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193). Visual artifact `nxt18-visual-qa-e54af66aa7803b43c2b85a6bff7efd419b44a428` (ID `14695855747`). This is not production authorization.
 
 > **2026-11-21 NXT-22 UI 快捷导航已通过隔离验收：** 已在 Next.js 16 控制台启用仅限页面跳转的顶部搜索，支持 `Ctrl/⌘ + K`、中文/英文页面筛选、`Esc` 关闭和移动端搜索按钮。功能提交 [`18284b10`](https://github.com/kunlong-luo/lanveriq/commit/18284b101f9baf31a13024de1671918305534310) 已通过 [Next.js 快速测试](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877638)、[真实 Chromium + 15 张截图](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877578)、[脱离业务数据的静态 Pages](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877610) 和 [RD-2 默认关闭](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877615)。**这不是设备/用户/业务全局搜索，不访问真实 API，不授权生产上线。** v0.1 继续 NOT RELEASE READY；实际联网、采集、自动恢复、远控、证书签发全部保持关闭。
 
@@ -13,20 +15,20 @@
 > **2026-11-08 最新研发基准：**以 [v0.1 A–E 业务批次、L1/L2/L3 分级测试](docs/planning/v0.1-batched-delivery-plan-2026-11-08.md) 为正式执行方案：A 注册/证书/心跳入库，B 库存与离线恢复，C 正式授权 Next.js，D WSS/事件，E Windows/Linux/安全/运维。**批次 A1 只完成默认关闭的心跳 HTTP 源码与严格 Rust ACK，不是设备上线、生产登录或完整心跳闭环。** [设备通信协议与成熟组件选型](docs/architecture/device-communication-stack.md) · [REST/gRPC/MQTT 评估 ADR](docs/architecture/adrs/0009-agent-transport-selection.md) · [本轮文档查漏补缺](docs/governance/documentation-audit-2026-11-08.md)。当前 Rust Agent HTTP 客户端只配置 **TLS1.2 最低版本**，外部 Agent→Caddy 是否强制 TLS1.3 仍需独立验证。所有真实终端/员工数据与实际 PKI/授权登录均保持未批准、未启用。
 
 
-> **2026-11-08 当前状态：v0.1 开发中，尚不能生产上线。** Java 25/Spring Boot 4/JPA/Flyway/PG18、Rust SQLx SQLite/reqwest 和 Next.js 16.4.5 **已有实际源码、合成数据库/HTTPS/浏览器测试记录**。Batch A1 新增**双默认关闭**的设备心跳 POST 与严格 Rust ACK，Java MockMvc、Rust Linux/Windows 单测通过。**Agent 运行服务仍为空闲循环**，尚未连通真实证书注册、受控自动上传或实际设备采集；唯一主前端 `apps/web-next` 的 B+C 页面与公开 GitHub Pages 仍断开业务登录/真实数据。必须把 Agent→Caddy→Tomcat→PG18→授权 Next.js 全链路、生产 PKI/网络隔离、合法授权、OS 试点和恢复演练视为 **未完成**；以前合成 PG18/Caddy/Chromium 的成功不代表新心跳入口或正式上线已获批准。
+> **2026-11-08 当前状态：v0.1 开发中，尚不能生产上线。** Java 25/Spring Boot 4/JPA/Flyway/PG18、Rust SQLx SQLite/reqwest 和 Next.js 16.4.5 **已有实际源码、合成数据库/HTTPS/浏览器测试记录**。Batch A1 新增**双默认关闭**的设备心跳 POST 与严格 Rust ACK，Java MockMvc、Rust Linux/Windows 单测通过。**Agent 运行服务仍为空闲循环**，尚未连通真实证书注册、受控自动上传或实际设备采集；唯一主前端 `apps/web` 的 B+C 页面与公开 GitHub Pages 仍断开业务登录/真实数据。必须把 Agent→Caddy→Tomcat→PG18→授权 Next.js 全链路、生产 PKI/网络隔离、合法授权、OS 试点和恢复演练视为 **未完成**；以前合成 PG18/Caddy/Chromium 的成功不代表新心跳入口或正式上线已获批准。
 
-**Next.js 公开静态预览已部署：** [打开 GitHub Pages](https://kunlong-luo.github.io/lanveriq/)。[自动部署 #42364974627](https://github.com/kunlong-luo/lanveriq/actions/runs/42364974627) 已成功，首页、概览、登录演示页面的公开 HTTP 检查均为 200。GitHub Pages **仅展示只读、未连接数据的 UI**：登录按钮不可用，不提供 Next.js 服务端鉴权、Spring Boot、PostgreSQL、真实设备数据或 Agent 操作。它不是正式后台部署，也不允许输入真实凭据。开发中的独立 Next.js 项目在 [`apps/web-next`](apps/web-next/README.md)；实际生产网络隔离与登录体验仍需另外验收。
+**Next.js 公开静态预览已部署：** [打开 GitHub Pages](https://kunlong-luo.github.io/lanveriq/)。[自动部署 #42364974627](https://github.com/kunlong-luo/lanveriq/actions/runs/42364974627) 已成功，首页、概览、登录演示页面的公开 HTTP 检查均为 200。GitHub Pages **仅展示只读、未连接数据的 UI**：登录按钮不可用，不提供 Next.js 服务端鉴权、Spring Boot、PostgreSQL、真实设备数据或 Agent 操作。它不是正式后台部署，也不允许输入真实凭据。开发中的独立 Next.js 项目在 [`apps/web`](apps/web/README.md)；实际生产网络隔离与登录体验仍需另外验收。
 
 ![Lanveriq 架构概念图](docs/visuals/assets/01-overview.svg)
 
 ## 当前主前端：Next.js App Router
 
-正式前端源码统一以 [`apps/web-next`](apps/web-next/README.md) 为准，Next.js 已升级到 **16.4.5 稳定安全修复版**，并保留 Node.js 24、pnpm 12 和独立锁文件。历史 `apps/web` React/Vite 前端及工作流已从当前源码移除，仅保留 Git 历史，避免本地启动两套不同 UI。
+正式前端源码统一以 [`apps/web`](apps/web/README.md) 为准，Next.js 已升级到 **16.4.5 稳定安全修复版**，并保留 Node.js 24、pnpm 12 和独立锁文件。历史 `apps/web` React/Vite 前端及工作流已从当前源码移除，仅保留 Git 历史，避免本地启动两套不同 UI。
 
 本地运行（当前只有未连接数据的预览）：
 
 ```bash
-cd apps/web-next
+cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
 pnpm install --frozen-lockfile
@@ -45,7 +47,7 @@ pnpm dev
 
 | 组件 | 仓库位置 / 技术 | 当前状态 | 运行方式 |
 |---|---|---|---|
-| 管理前端 Web（主项目） | `apps/web-next`：**Next.js 16.4.5 App Router**、React 19、TypeScript 7、Tailwind 4、Lucide、shadcn/ui 风格组件 | 已实现不接入真实数据的页面并发布 [GitHub Pages](https://kunlong-luo.github.io/lanveriq/)；真实登录、业务 API、终端采集和设备操作均关闭 | `cd apps/web-next && pnpm dev`（本机预览） |
+| 管理前端 Web（主项目） | `apps/web`：**Next.js 16.4.5 App Router**、React 19、TypeScript 7、Tailwind 4、Lucide、shadcn/ui 风格组件 | 已实现不接入真实数据的页面并发布 [GitHub Pages](https://kunlong-luo.github.io/lanveriq/)；真实登录、业务 API、终端采集和设备操作均关闭 | `cd apps/web && pnpm dev`（本机预览） |
 | 管理后端 Server | `apps/server`：Java 25、Spring Boot 4.1.2、Gradle、JPA/Hibernate、Flyway | 可单独构建并连接**合成测试数据库**；业务接口默认拒绝，部分功能仅源码/测试状态 | `./gradlew bootRun` |
 | 终端 Agent | `apps/agent`：Rust 1.94、Tokio、SQLx/SQLite WAL、Reqwest/rustls | 可编译、启动、停止；运行时**不采集、不上传、不监控** | `cargo run --locked -p lanveriq-agent -- --config <绝对路径>` |
 | 数据库（基础设施） | PostgreSQL 18.x；真实验收使用 18.6 | Flyway V1–V8 已编写；可复用 `spark-postgres` 中的专用 `lanveriq` 库 | 现有 Docker Compose，无需额外持久容器 |
@@ -91,7 +93,7 @@ cd apps/server
 ./gradlew test
 ~~~
 
-Web 由 `apps/web-next` 的 pnpm 管理；Rust 由 `apps/agent/Cargo.toml` 和本目录的 `Cargo.lock` 独立管理。它们都不需要 Gradle。完整步骤见 [IDEA 导入指南](docs/development/intellij-idea.md)。
+Web 由 `apps/web` 的 pnpm 管理；Rust 由 `apps/agent/Cargo.toml` 和本目录的 `Cargo.lock` 独立管理。它们都不需要 Gradle。完整步骤见 [IDEA 导入指南](docs/development/intellij-idea.md)。
 
 ## 三、本地运行：直接复用已有 spark-db
 
@@ -328,7 +330,7 @@ sudo systemctl --no-pager status lanveriq-agent
 
 计划采用 **Caddy + 私有 Next.js App Router（SSR/RSC）+ Spring Boot + 私网 PostgreSQL** 的中心端候选拓扑，以及独立 Windows/Linux 原生 Agent。旧版 Vite 静态演示已从源码移除；Next.js 正式路由、Caddy 网络隔离和真实登录尚未验收。正式部署前至少需要：
 
-1. 完成 `apps/web-next` 的真实鉴权/授权对接，并验收登录、设备列表和监控总览。
+1. 完成 `apps/web` 的真实鉴权/授权对接，并验收登录、设备列表和监控总览。
 2. 提供经审查的 Compose、专用数据库卷与备份/恢复、保密配置和受限网络；PostgreSQL 不对局域网发布端口。
 3. 验收 Caddy HTTPS、控制台 Host/Origin/CSRF/cookie、独立 Agent mTLS/上游 TLS 信任边界、证书轮换与密钥保存。
 4. 完成 PostgreSQL 18.6 的 **7 类 / 至少 58 用例**真实集成测试，以及 Windows/Linux 安装、停用和权限验收。
@@ -345,7 +347,7 @@ sudo systemctl --no-pager status lanveriq-agent
 | 前台 Agent | `Ctrl+C` | 删除自己创建的临时 TOML 即可 |
 | Linux 实验性 Agent systemd | 见下方命令 | 只删除由本 README 示例安装的文件 |
 | Windows SCM Agent | 目前**没有**正式安装/卸载包 | 若已手动注册测试服务，须先按实际服务名停止、删除 SCM 服务，并经管理员确认后清理二进制/配置 |
-| Web 本地预览 | 在 `pnpm dev` 终端按 `Ctrl+C` | 仅按需清理 `apps/web-next/.next` 缓存；不得触碰共享 Docker 数据卷 |
+| Web 本地预览 | 在 `pnpm dev` 终端按 `Ctrl+C` | 仅按需清理 `apps/web/.next` 缓存；不得触碰共享 Docker 数据卷 |
 | 正式中心端 | **尚未提供一键卸载** | 后续必须先备份、验明数据所有者、遵守留存/审计与密钥撤销流程 |
 
 **仅当你已在测试 VM 按上节命令安装 systemd 服务时**，执行以下卸载（先确认没有其他应用在使用这些路径）：
@@ -385,7 +387,7 @@ DROP ROLE lanveriq;
 ## 六、唯一 Web UI：Next.js 本地运行
 
 已移除历史 `apps/web` Vite 前端与独立旧版 CI。**现在只允许启动
-`apps/web-next`：Next.js 16.4.5 / React 19 / Tailwind 4，固定本地端口 3100。**
+`apps/web`：Next.js 16.4.5 / React 19 / Tailwind 4，固定本地端口 3100。**
 旧代码可通过 Git 历史追溯，不再提供第二个前端的依赖、Vite 代理或启动指令。
 
 在仓库根目录运行（Node.js 24 + pnpm 12）：
@@ -393,7 +395,7 @@ DROP ROLE lanveriq;
 ~~~bash
 git switch main
 git pull --ff-only origin main
-cd apps/web-next
+cd apps/web
 corepack enable
 corepack pnpm install --frozen-lockfile
 corepack pnpm dev
@@ -407,12 +409,12 @@ corepack pnpm dev
 如果本机此前已运行旧版 Vite 进程，请在其终端手动停止；Git 删除代码
 不会自动停止现有进程，或清除本机未跟踪的旧目录、依赖文件。
 有关 Next.js 安装、测试和安全范围，参见
-[唯一主前端文档](apps/web-next/README.md)。
+[唯一主前端文档](apps/web/README.md)。
 
 ## 七、前端进度和下一步
 
 原 Vite 的同源 HTTPS、CSRF/Session、授权设备投影和 Springdoc/Orval
-构建期类型验证，在 `apps/web-next` 已有独立受控实现及单元/负向测试，
+构建期类型验证，在 `apps/web` 已有独立受控实现及单元/负向测试，
 因此不保留第二套可运行 UI。先前 Vite 匿名健康代理、模拟在线终端
 没有合并到新 UI，避免假数据和意外访问后端。
 

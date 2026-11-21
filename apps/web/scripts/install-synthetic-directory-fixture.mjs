@@ -8,7 +8,7 @@ import { basename, join, resolve } from 'node:path';
  */
 if (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.LANVERIQ_NXT17_BROWSER_FIXTURE !== '1' ||
-    basename(process.cwd()) !== 'web-next') {
+    basename(process.cwd()) !== 'web') {
   throw new Error('NXT-17 refuses to mount synthetic directory outside isolated CI');
 }
 const root = resolve(process.cwd());

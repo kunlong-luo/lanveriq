@@ -1,7 +1,7 @@
 # NXT-19 — Accessible asset directory and authorized-page interaction
 
 **Date:** 2026-11-08  
-**Implementation:** `apps/web-next` Next.js 16.4.5 / React 19 / Base UI 1.9.0 / shadcn-style source-owned controls.  
+**Implementation:** `apps/web` Next.js 16.4.5 / React 19 / Base UI 1.9.0 / shadcn-style source-owned controls.  
 **Release boundary:** The public static Next.js preview remains disconnected. No real login, session, business API, Agent operations, database access or user data is enabled.
 
 ## Scope

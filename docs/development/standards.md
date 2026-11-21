@@ -3,7 +3,7 @@
 **当前仓库已包含可编译代码**，不再是只有文档的脚手架。主线：
 - `apps/server/`：Java 25/Spring Boot 4.1.2/Gradle Groovy，Hibernate/JPA + Flyway + PostgreSQL 18；API/Agent 入口仍需要逐项安全验收。
 - `apps/agent/`：Rust/Cargo、SQLx SQLite/Reqwest/mTLS 源码；运行时仍为空闲循环，不能宣称实际注册或采集已上线。
-- `apps/web-next/`：**唯一主线前端**，Next.js 16.4.5 App Router / React 19 / Tailwind4 / Base UI React/shadcn-style 源码组件；GitHub Pages 是断开式静态预览。
+- `apps/web/`：**唯一主线前端**，Next.js 16.4.5 App Router / React 19 / Tailwind4 / Base UI React/shadcn-style 源码组件；GitHub Pages 是断开式静态预览。
 - `apps/web/`：历史 React/Vite 候选，仅作兼容/迁移参考，不新增正式功能。
 - `deploy/caddy/`：安全边界与合成参考配置，不是已批准的生产 ingress。
 - `docs/`：技术决议、方案/实施状态、测试证据、运维和安全法律审批。**不要把尚未创建的 `apps/desktop`、独立 `crates/`、`packages/ui`、`compose.yaml` 画成实际项目结构。**

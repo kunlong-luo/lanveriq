@@ -1,7 +1,7 @@
 # NXT-18 — B+C visual-system refinements and responsive screenshot evidence
 
 **Date:** 2026-11-08  
-**Project:** `apps/web-next` (Next.js 16.4.5 / React 19 / TypeScript 7 / Base UI 1.9.0).  
+**Project:** `apps/web` (Next.js 16.4.5 / React 19 / TypeScript 7 / Base UI 1.9.0).  
 **Scope:** The disconnected preview, source-only CSS governance and responsive visual quality. **This does not activate authentication, business data, PostgreSQL/Redis, real Agent access or device operations.**
 
 ## Theme refactor: exactly scoped CSS edits

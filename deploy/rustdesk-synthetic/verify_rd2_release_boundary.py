@@ -63,7 +63,7 @@ def verify(root: Path) -> list[str]:
                     problems.append(f"remote session Spring mapping present: {src.relative_to(root)}")
                     break
 
-    appdir = root / "apps/web-next/src/app"
+    appdir = root / "apps/web/src/app"
     if not appdir.is_dir():
         problems.append("Next.js App Router source tree missing")
     else:

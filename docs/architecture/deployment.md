@@ -2,7 +2,7 @@
 
 **2026-11-08 新的网络方向：** 用户已批准“内网和外网都能使用，并优先直接复用 RustDesk 远程控制底座”。执行权威是 [ADR-0011 RustDesk + LAN/WAN](adrs/0011-rustdesk-dual-network-access.md) 和 [独立双网络验收手册](../operations/dual-network-acceptance.md)。下面原始 D0 私有 LAN 主机与 `*.lanveriq.internal` 配置仍是**历史/合成验收基线**，不是新的生产或公网部署方案。新的候选方案使用同一个被正式持有的 Console FQDN，LAN 私网 DNS、WAN 受批准的 VPN（公网 Console 入口需另行安全批准），RustDesk 独立 hbbs/hbbr 外网/内网远控，不暴露后台 Java/Next.js/PG/Redis。代码中并未部署正式 VPN、DNS、公网入口或 RustDesk；业务入口默认关闭、真实授权与 v0.1 A–E 门槛继续适用。
 
-**2026-11-08 部署状态更新：** 正式发布方案仍只是候选；`apps/web-next` 是主 Next.js，GitHub Pages 是断开式静态预览，Caddy 参考模板不授权直接部署。完整 Caddy/Tomcat/PG18/Chromium 有以前的**合成安全成功记录**，但新 Batch A1 heartbeat POST **未进行真正 Agent 网络 L2**。代理服务器到 Spring 的 TLSv1.3-only **不能证明** Agent→Caddy 也只协商 TLSv1.3（Rust 客户端目前 min TLS1.2，Caddy 外部版本策略待验收）；上线前要经受控 CA/网络隔离、双向握手/降级、撤销/重放、真实设备/隐私和恢复演练。具体见 [设备协议与 P0 差距](device-communication-stack.md) 与 [v0.1 发布门槛](../operations/release.md)。
+**2026-11-08 部署状态更新：** 正式发布方案仍只是候选；`apps/web` 是主 Next.js，GitHub Pages 是断开式静态预览，Caddy 参考模板不授权直接部署。完整 Caddy/Tomcat/PG18/Chromium 有以前的**合成安全成功记录**，但新 Batch A1 heartbeat POST **未进行真正 Agent 网络 L2**。代理服务器到 Spring 的 TLSv1.3-only **不能证明** Agent→Caddy 也只协商 TLSv1.3（Rust 客户端目前 min TLS1.2，Caddy 外部版本策略待验收）；上线前要经受控 CA/网络隔离、双向握手/降级、撤销/重放、真实设备/隐私和恢复演练。具体见 [设备协议与 P0 差距](device-communication-stack.md) 与 [v0.1 发布门槛](../operations/release.md)。
 
 
 ## Starter host (proposed)

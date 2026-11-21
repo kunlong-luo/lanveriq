@@ -1,4 +1,6 @@
-> **2026-11-21 NXT-23 single-front-end consolidation (FOUR EXACT-SHA UI CI PASS, NOT PRODUCTION):** The obsolete `apps/web` Vite source tree and `.github/workflows/web-unit.yml` are removed. The only runnable UI is `apps/web-next` on `127.0.0.1:3100`; Next.js staged CSRF/session/authorized-reader/contract/typechecking counterparts remain isolated, not enabled. Root and Chinese readmes, IDEA instructions, and Next.js CI now explicitly reject stale `5173` launch instructions and legacy UI resurrection. **NXT-23 exact-source UI acceptance:** functional commit [`e54af66aa7803b43c2b85a6bff7efd419b44a428`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428) passed all FOUR same-SHA workflows: [Next.js frozen pnpm, single-UI guard, tests/typecheck/build/HTTP #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [actual Chromium 11 routes/keyboard/mobile/screenshots #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [disconnected static Pages export+deploy #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 default OFF #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193). Visual artifact `nxt18-visual-qa-e54af66aa7803b43c2b85a6bff7efd419b44a428` (ID `14695855747`). This is not production authorization. v0.1 remains NOT RELEASE READY, production capabilities OFF.
+> **2026-11-21 NXT-24 canonical Web directory rename (CI PENDING):** The already-accepted Next.js 16/React 19 console has moved **from `apps/web-next` to `apps/web`**. The former Vite code that previously used the `apps/web` name was deleted in NXT-23 and has **not returned**. Only Next.js starts on `127.0.0.1:3100` using `cd apps/web && corepack pnpm dev`; matching CI, static Pages, synthetic isolation and documents were migrated. Historical commit references preserve evidence, not alternate runnable UIs. v0.1 still NOT RELEASE READY; production networking, collection, recovery, remote access and CA issuance stay OFF.
+
+> **2026-11-21 NXT-23 single-front-end consolidation (FOUR EXACT-SHA UI CI PASS, NOT PRODUCTION):** The obsolete `apps/web` Vite source tree and `.github/workflows/web-unit.yml` are removed. The only runnable UI is `apps/web` on `127.0.0.1:3100`; Next.js staged CSRF/session/authorized-reader/contract/typechecking counterparts remain isolated, not enabled. Root and Chinese readmes, IDEA instructions, and Next.js CI now explicitly reject stale `5173` launch instructions and legacy UI resurrection. **NXT-23 exact-source UI acceptance:** functional commit [`e54af66aa7803b43c2b85a6bff7efd419b44a428`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428) passed all FOUR same-SHA workflows: [Next.js frozen pnpm, single-UI guard, tests/typecheck/build/HTTP #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [actual Chromium 11 routes/keyboard/mobile/screenshots #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [disconnected static Pages export+deploy #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 default OFF #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193). Visual artifact `nxt18-visual-qa-e54af66aa7803b43c2b85a6bff7efd419b44a428` (ID `14695855747`). This is not production authorization. v0.1 remains NOT RELEASE READY, production capabilities OFF.
 
 # Lanveriq
 
@@ -8,10 +10,10 @@
 
 **LAN-first, self-hosted asset health and audit platform for workplace endpoints with lawful notice and authorization.**
 
-> **2026-11-08 current development plan:** [v0.1 feature batches A–E and three-tier CI](docs/planning/v0.1-batched-delivery-plan-2026-11-08.md) now govern work: A device enrollment/PKI/heartbeat→PG18; B inventory/offline recovery; C authorized Next.js; D WSS/events; E platform/security/release. The `apps/web-next` B+C preview remains disconnected; Agent service is still idle. **Batch A1 has a default-OFF mTLS-gated heartbeat POST source and strict Rust ACK, not the completed end-to-end device loop.** See [canonical device protocol and gRPC/MQTT decision](docs/architecture/device-communication-stack.md), [ADR-0009](docs/architecture/adrs/0009-agent-transport-selection.md), and [documentation audit](docs/governance/documentation-audit-2026-11-08.md). The Rust transport currently configures a **TLS 1.2 minimum**; end-to-end TLS1.3-only, production key custody and Agent→Caddy→PG18 integration remain OPEN. Existing successful isolated PostgreSQL/Caddy/Chromium checks are historical synthetic evidence, not authorization to enable real device collection.
+> **2026-11-08 current development plan:** [v0.1 feature batches A–E and three-tier CI](docs/planning/v0.1-batched-delivery-plan-2026-11-08.md) now govern work: A device enrollment/PKI/heartbeat→PG18; B inventory/offline recovery; C authorized Next.js; D WSS/events; E platform/security/release. The `apps/web` B+C preview remains disconnected; Agent service is still idle. **Batch A1 has a default-OFF mTLS-gated heartbeat POST source and strict Rust ACK, not the completed end-to-end device loop.** See [canonical device protocol and gRPC/MQTT decision](docs/architecture/device-communication-stack.md), [ADR-0009](docs/architecture/adrs/0009-agent-transport-selection.md), and [documentation audit](docs/governance/documentation-audit-2026-11-08.md). The Rust transport currently configures a **TLS 1.2 minimum**; end-to-end TLS1.3-only, production key custody and Agent→Caddy→PG18 integration remain OPEN. Existing successful isolated PostgreSQL/Caddy/Chromium checks are historical synthetic evidence, not authorization to enable real device collection.
 
 
-> **Status as of 2026-11-08 — v0.1 development, NOT a production-ready endpoint monitoring product.** Java 25/Spring Boot 4 with Flyway/JPA/PostgreSQL18 has real source and **some isolated PG18/Caddy/Chromium acceptance runs**; Batch A1 adds a **dual-default-OFF Agent heartbeat POST** and Rust strictly typed heartbeat ACK, verified in unit/MockMvc/Linux/Windows tests. **The Rust service binary is still idle**, without enrollment/key custody, automatic network uploads or authorized real-device collection. Next.js 16.4.5 `apps/web-next` remains the only canonical B+C UI; GitHub Pages is a disconnected static showcase with no login or live business data. The **new Agent→Caddy→Tomcat→PG18→protected Next.js** business loop, production CA custody, deployment isolation, legal/organizational privacy and real Windows/Linux pilot remain **OPEN**. Earlier synthetic PG18/TLS/console successes do not prove this new route or authorize real data.
+> **Status as of 2026-11-08 — v0.1 development, NOT a production-ready endpoint monitoring product.** Java 25/Spring Boot 4 with Flyway/JPA/PostgreSQL18 has real source and **some isolated PG18/Caddy/Chromium acceptance runs**; Batch A1 adds a **dual-default-OFF Agent heartbeat POST** and Rust strictly typed heartbeat ACK, verified in unit/MockMvc/Linux/Windows tests. **The Rust service binary is still idle**, without enrollment/key custody, automatic network uploads or authorized real-device collection. Next.js 16.4.5 `apps/web` remains the only canonical B+C UI; GitHub Pages is a disconnected static showcase with no login or live business data. The **new Agent→Caddy→Tomcat→PG18→protected Next.js** business loop, production CA custody, deployment isolation, legal/organizational privacy and real Windows/Linux pilot remain **OPEN**. Earlier synthetic PG18/TLS/console successes do not prove this new route or authorize real data.
 
 ![Architecture concept (not a screenshot of the product)](docs/visuals/assets/01-overview.svg)
 
@@ -21,7 +23,7 @@ The **three product components** are **Web**, **Server**, and **Agent**. Postgre
 
 | Component | Path and technology | What runs today? |
 |---|---|---|
-| Web admin dashboard (primary) | `apps/web-next`: Next.js **16.4.5** App Router / React 19 / TypeScript 7 / Tailwind 4 / Lucide / shadcn-style components | Verified static disconnected management preview, seven pages, disabled login and asset/device operations; [public GitHub Pages preview](https://kunlong-luo.github.io/lanveriq/). NO real login, business API, or Agent access. The former `apps/web` Vite runtime was removed; its Git history remains available. |
+| Web admin dashboard (primary) | `apps/web`: Next.js **16.4.5** App Router / React 19 / TypeScript 7 / Tailwind 4 / Lucide / shadcn-style components | Verified static disconnected management preview, seven pages, disabled login and asset/device operations; [public GitHub Pages preview](https://kunlong-luo.github.io/lanveriq/). NO real login, business API, or Agent access. The former `apps/web` Vite runtime was removed; its Git history remains available. |
 | API and admin server | `apps/server`, Java 25 / Spring Boot 4.1.2 / Gradle / JPA / Flyway | A buildable Spring Boot process with health checks; other business routes default to denial. Real DB/security approval pending. |
 | Endpoint Agent | `apps/agent`, Rust 1.94 / Tokio / SQLx SQLite WAL / Reqwest-rustls | Builds and starts an **idle** process; **no automatic monitoring, inventory collection, or uploads**. |
 | PostgreSQL (dependency) | PostgreSQL 18.x (18.6 for manual acceptance); Flyway V1–V8 | Reuse dedicated `lanveriq` database in existing `spark-postgres`; full PG18.6 integration acceptance pending. |
@@ -35,7 +37,7 @@ Candidate central topology: **Caddy HTTPS → private Next.js App Router (HTML/R
 Visit [Lanveriq GitHub Pages](https://kunlong-luo.github.io/lanveriq/) for the publicly deployed, read-only static showcase. For a local private Next.js preview:
 
 ```bash
-cd apps/web-next
+cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
 pnpm install --frozen-lockfile
@@ -46,7 +48,7 @@ pnpm build
 pnpm dev
 ```
 
-The Next.js server binds `127.0.0.1:3100`; no Spring session or business data is connected. **Never submit real credentials to the disabled login screen.** The historical Vite `apps/web` source and workflow were removed; only `apps/web-next` starts a frontend.
+The Next.js server binds `127.0.0.1:3100`; no Spring session or business data is connected. **Never submit real credentials to the disabled login screen.** The historical Vite `apps/web` source and workflow were removed; only `apps/web` starts a frontend.
 
 ## Prerequisites
 
@@ -76,7 +78,7 @@ cd apps/server
 ./gradlew test
 ~~~
 
-Windows PowerShell uses `cd apps/server` followed by `.\gradlew.bat test`. The primary Next.js App Router frontend is a standalone pnpm app under `apps/web-next`; the Rust package is controlled by `apps/agent/Cargo.toml`. Neither is a Java Gradle module. See the [IDEA import guide](docs/development/intellij-idea.md); importing and unit testing do not need a running database or any device monitoring.
+Windows PowerShell uses `cd apps/server` followed by `.\gradlew.bat test`. The primary Next.js App Router frontend is a standalone pnpm app under `apps/web`; the Rust package is controlled by `apps/agent/Cargo.toml`. Neither is a Java Gradle module. See the [IDEA import guide](docs/development/intellij-idea.md); importing and unit testing do not need a running database or any device monitoring.
 
 ## 1. Reuse your existing `spark-db` PostgreSQL instance
 
@@ -340,7 +342,7 @@ No real device enrollment, user-activity collection, automated uploads, monitori
 | Foreground idle Agent | `Ctrl+C`; remove only your copied test TOML | Does not uninstall any OS service |
 | Linux experimental systemd Agent | Instructions below | Remove only files you installed and verified |
 | Windows test SCM service | No supported installer/uninstaller yet; if manually created, stop/delete the exact known test service using Windows SCM and review its ACLs/data | Never delete an unknown service name |
-| Local Web preview | Stop `pnpm dev` with `Ctrl+C` | Only remove generated `apps/web-next/.next` / `apps/web-next/node_modules` if absolutely necessary; do not touch shared Docker volumes |
+| Local Web preview | Stop `pnpm dev` with `Ctrl+C` | Only remove generated `apps/web/.next` / `apps/web/node_modules` if absolutely necessary; do not touch shared Docker volumes |
 | Production backend/DB/Caddy | **No approved one-command uninstall** | Backup, retention, key revocation and audit controls required |
 
 For a Linux Agent **installed using exactly the isolated-VM commands above**, confirm file ownership and paths first, then:
@@ -380,7 +382,7 @@ Do **not** delete `iot_farm`, stop `spark-postgres` or remove its `postgres-data
 ## Local Web preview — the ONLY runnable frontend
 
 Use Node.js 24 and pinned pnpm 12. The repository has **one** frontend:
-`apps/web-next` (Next.js 16 App Router). The historical `apps/web` Vite
+`apps/web` (Next.js 16 App Router). The historical `apps/web` Vite
 tree and its separate CI workflow were deleted after verifying their staged
 HTTPS/session/read-projection coverage already exists in Next.js. The former
 Vite health-only proxy and fictitious demo device view are intentionally not
@@ -391,7 +393,7 @@ From the repository root:
 ~~~bash
 git switch main
 git pull --ff-only origin main
-cd apps/web-next
+cd apps/web
 corepack enable
 corepack pnpm install --frozen-lockfile
 corepack pnpm dev
@@ -403,7 +405,7 @@ credentials are disabled, and the command palette navigates only local public
 pages. `5173` and `vite` are no longer supported UI entry points. If an
 obsolete process is still running on your machine, stop it separately; deleting
 its checked-in files does not stop processes or remove untracked local
-`node_modules`. See [canonical Next.js guide](apps/web-next/README.md).
+`node_modules`. See [canonical Next.js guide](apps/web/README.md).
 
 ## Frontend progress
 
@@ -412,7 +414,7 @@ console. Public Pages is a read-only disconnected design preview, not a
 production login or device monitoring tool. The staged same-origin HTTPS
 session transport, authorized read projections, Springdoc/Orval contract
 checks and their negative tests remain unmounted and protected in
-`apps/web-next`; they are **not** permissions to enable production networking.
+`apps/web`; they are **not** permissions to enable production networking.
 See [frontend design system](docs/development/frontend-design-system.md),
 [dashboard UX](docs/development/dashboard-ux.md), [roadmap](docs/planning/roadmap.md),
 and [architecture drawings](docs/diagrams/README.md).

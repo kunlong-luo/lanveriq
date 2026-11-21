@@ -11,7 +11,7 @@ All new visual elements are **first-party CSS/JSX**. No remote fonts, images, ex
 
 ## Files and design decisions
 
-- `apps/web-next/src/app/craftwork-theme.css` is a separate, reversible presentation layer imported **after** `globals.css` from the root layout. Reuse its warm neutral surfaces, charcoal headings, lilac accents and lime highlight rather than adding another competing CSS theme.
+- `apps/web/src/app/craftwork-theme.css` is a separate, reversible presentation layer imported **after** `globals.css` from the root layout. Reuse its warm neutral surfaces, charcoal headings, lilac accents and lime highlight rather than adding another competing CSS theme.
 - The navigation layout retains the canonical `src/lib/console-navigation.ts`, real Next.js `Link` navigation, current-page `aria-current`, keyboard skip link and focus-visible rings. The light sidebar and warm header share spacing/radius tokens.
 - `src/app/(console)/overview/page.tsx` uses an editorial bento hierarchy: decorative **CSS-only**, screen-reader-hidden hero artwork; prominent heading and two real local navigation links; three grouped sections (status, insights, assets).
 - `src/components/health-sections.tsx` retains actual **unknown/unconnected** metrics with `—` placeholders, clearly labeled `未连接` badges and no invented device records, percentages, heartbeat timestamps or counters.

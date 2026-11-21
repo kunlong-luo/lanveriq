@@ -10,7 +10,7 @@
 | Java 后端 | **Java 25 LTS + Gradle 9.8.2 Groovy DSL + Spring Boot 4.1.2**、Spring Security/WebMVC、JPA/Hibernate、Flyway、Actuator | 单体模块化架构，非 Maven；仅启用受审核的 REST 子路由，不允许全局 /api/v1/** 通配放开 |
 | Java 身份/限流/CSR | Spring Security、Bouncy Castle `bcpkix-jdk18on 1.86`、Bucket4j、Caffeine | 复用库完成 PKCS#10/证书、限流和短期缓存；本地生成/设备 CA 审批及部署尚待复核 |
 | 服务端数据库 | PostgreSQL 18、Flyway、Hibernate/JPA；可选 Redis/Lettuce **默认 OFF** | PostgreSQL 是唯一规范存储；Redis 仅可用于 best-effort TTL 提示/健康检查，不作持久 ACK、设备身份或权限源 |
-| Web 控制台 | **Next.js 16.4.5 App Router + React 19.2.0 + TypeScript 7.0.2 + Node 24 + pnpm 12.0.0** | `apps/web-next` 唯一前端主线；`apps/web` Vite 8 是历史迁移参考，不再新增功能 |
+| Web 控制台 | **Next.js 16.4.5 App Router + React 19.2.0 + TypeScript 7.0.2 + Node 24 + pnpm 12.0.0** | `apps/web` 唯一前端主线；`apps/web` Vite 8 是历史迁移参考，不再新增功能 |
 | 组件与状态 | **Base UI React 1.9.0** + 项目内可维护的 shadcn-style 源码组件、Tailwind 4.3.3、Lucide 1.61.0、TanStack Query 5.105.0 | 当前已安装；不要把 Radix、Motion、TanStack Table、Sonner、Zustand、Recharts 等**尚未安装**的候选写成已完成 |
 | 类型生成 | Springdoc 3.2.0 → **Orval（后端 CI 契约候选）** → Fetch/TanStack Query、锁定 Next 依赖类型校验 | 已在合成契约检查跑通过；正式 Next.js 不挂载真实 API hooks；见 [NXT-20](frontend-backend-directory-nxt20.md) |
 | 浏览器实时通信 | Spring WebSocket + WSS 方案（同源、管理员会话、RBAC）、React Query 收到提示后 refetch | **设计已选，真实 WSS 业务链路未上线**；不用于 Agent 数据 ACK |

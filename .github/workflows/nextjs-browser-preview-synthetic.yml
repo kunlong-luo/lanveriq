@@ -11,8 +11,8 @@ on:
     tags:
       - 'acceptance/v0.1-*'
     paths:
-      - 'apps/web-next/src/**'
-      - 'apps/web-next/scripts/**'
+      - 'apps/web/src/**'
+      - 'apps/web/scripts/**'
       - '.github/workflows/nextjs-browser-preview-synthetic.yml'
   workflow_dispatch:
 
@@ -39,12 +39,12 @@ jobs:
         with:
           version: '12.0.0'
           runtime: node@24
-          working-directory: apps/web-next
+          working-directory: apps/web
           install: true
           require-lockfile: true
           cache: false
       - name: Build authentic Next.js production preview (no live APIs)
-        working-directory: apps/web-next
+        working-directory: apps/web
         run: |
           pnpm install --frozen-lockfile
           pnpm run verify:routes
@@ -58,12 +58,12 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/lanveriq-nxt02-playwright"
           "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" -m pip install --disable-pip-version-check 'playwright==1.64.1'
           "$RUNNER_TEMP/lanveriq-nxt02-playwright/bin/python" -m playwright install --with-deps chromium
-          python3 -m py_compile apps/web-next/scripts/verify-preview-chromium.py
-          python3 -m py_compile apps/web-next/scripts/capture-visual-qa-chromium.py
-          python3 -m py_compile apps/web-next/scripts/verify-directory-fixture-chromium.py
-          python3 -m unittest discover -s apps/web-next/scripts -p 'test_verify_preview_chromium.py'
+          python3 -m py_compile apps/web/scripts/verify-preview-chromium.py
+          python3 -m py_compile apps/web/scripts/capture-visual-qa-chromium.py
+          python3 -m py_compile apps/web/scripts/verify-directory-fixture-chromium.py
+          python3 -m unittest discover -s apps/web/scripts -p 'test_verify_preview_chromium.py'
       - name: Run true Chromium UI, keyboard and network-isolation checks
-        working-directory: apps/web-next
+        working-directory: apps/web
         shell: bash
         run: |
           set -euo pipefail
@@ -103,7 +103,7 @@ jobs:
           retention-days: 7
           compression-level: 6
       - name: Verify interactive local filters in a disposable CI-only directory route
-        working-directory: apps/web-next
+        working-directory: apps/web
         shell: bash
         env:
           LANVERIQ_NXT17_BROWSER_FIXTURE: '1'

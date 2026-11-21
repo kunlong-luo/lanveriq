@@ -28,7 +28,7 @@ class RemoteReleaseBoundaryTest(unittest.TestCase):
             "class Synthetic { void noop() {} }\n",
         )
         self.write(
-            "apps/web-next/src/app/page.tsx",
+            "apps/web/src/app/page.tsx",
             "export default function Page() { return null; }\n",
         )
         self.caddy = self.write(
@@ -68,7 +68,7 @@ class RemoteReleaseBoundaryTest(unittest.TestCase):
 
     def test_nextjs_remote_route_is_blocked(self) -> None:
         self.write(
-            "apps/web-next/src/app/(console)/devices/remote-control/page.tsx",
+            "apps/web/src/app/(console)/devices/remote-control/page.tsx",
             "export default function P() {return null;}\n",
         )
         self.assertTrue(any("Next.js route" in i for i in verify(self.root)))

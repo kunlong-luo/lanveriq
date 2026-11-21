@@ -7,9 +7,9 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = ROOT / "apps/web-next/scripts/verify-preview-chromium.py"
+SCRIPT = ROOT / "apps/web/scripts/verify-preview-chromium.py"
 WORKFLOW = ROOT / ".github/workflows/nextjs-browser-preview-synthetic.yml"
-LOGIN = ROOT / "apps/web-next/src/components/login-preview.tsx"
+LOGIN = ROOT / "apps/web/src/components/login-preview.tsx"
 
 
 class NextPreviewChromiumSourceTest(unittest.TestCase):
@@ -56,10 +56,10 @@ class NextPreviewChromiumSourceTest(unittest.TestCase):
         self.assertIn("'acceptance/v0.1-*'", workflow)
         self.assertIn("    branches: [main]", workflow)
         self.assertIn("    paths:", workflow)
-        self.assertIn("'apps/web-next/src/**'", workflow)
-        self.assertIn("'apps/web-next/scripts/**'", workflow)
+        self.assertIn("'apps/web/src/**'", workflow)
+        self.assertIn("'apps/web/scripts/**'", workflow)
         self.assertIn("'.github/workflows/nextjs-browser-preview-synthetic.yml'", workflow)
-        for forbidden in ("apps/server/", "apps/agent/", "apps/web/"):
+        for forbidden in ("apps/server/", "apps/agent/", "apps/web-next/"):
             self.assertNotIn("      - '" + forbidden, workflow)
         self.assertIn("cancel-in-progress: false", workflow)
         self.assertNotIn("  pull_request:", workflow)

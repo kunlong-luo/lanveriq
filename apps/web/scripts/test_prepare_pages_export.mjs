@@ -7,7 +7,7 @@ import { preparePagesExport } from './prepare-pages-export.mjs';
 
 function makeWorkspace(callback) {
   const temp = mkdtempSync(join(tmpdir(), 'lanveriq-pages-test-'));
-  const root = join(temp, 'web-next');
+  const root = join(temp, 'web');
   const detail = join(root, 'src/app/(console)/devices/[id]');
   mkdirSync(detail, { recursive: true });
   const marker = 'notFound();\nconst title = "设备详情（未连接）";';

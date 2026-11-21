@@ -61,9 +61,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p apps/web-next/.generated-contract/model
-          cp -a apps/server/contract-client-check/generated/. apps/web-next/.generated-contract/
-          cd apps/web-next
+          mkdir -p apps/web/.generated-contract/model
+          cp -a apps/server/contract-client-check/generated/. apps/web/.generated-contract/
+          cd apps/web
           pnpm install --frozen-lockfile
           pnpm exec tsc --noEmit --project tsconfig.contract.json
       - name: Upload generated typechecked client (never deploy)

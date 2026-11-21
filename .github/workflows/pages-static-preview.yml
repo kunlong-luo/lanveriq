@@ -12,10 +12,10 @@ on:
     tags:
       - 'acceptance/v0.1-*'
     paths:
-      - 'apps/web-next/src/**'
-      - 'apps/web-next/scripts/**'
-      - 'apps/web-next/package.json'
-      - 'apps/web-next/pnpm-lock.yaml'
+      - 'apps/web/src/**'
+      - 'apps/web/scripts/**'
+      - 'apps/web/package.json'
+      - 'apps/web/pnpm-lock.yaml'
       - '.github/workflows/pages-static-preview.yml'
   workflow_dispatch:
 
@@ -44,12 +44,12 @@ jobs:
         with:
           version: '12.0.0'
           runtime: node@24
-          working-directory: apps/web-next
+          working-directory: apps/web
           install: true
           require-lockfile: true
           cache: false
       - name: Test the unmodified, disconnected App Router source
-        working-directory: apps/web-next
+        working-directory: apps/web
         run: |
           set -euo pipefail
           pnpm install --frozen-lockfile
@@ -60,7 +60,7 @@ jobs:
           pnpm test
           pnpm typecheck
       - name: Export only public static pages (no dynamic device routes)
-        working-directory: apps/web-next
+        working-directory: apps/web
         run: |
           set -euo pipefail
           node scripts/prepare-pages-export.mjs
@@ -72,7 +72,7 @@ jobs:
       - name: Upload only the verified static export
         uses: actions/upload-pages-artifact@v4
         with:
-          path: apps/web-next/out
+          path: apps/web/out
 
   deploy:
     runs-on: ubuntu-latest

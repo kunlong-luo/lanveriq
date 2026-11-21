@@ -1,6 +1,6 @@
 # NXT-21 — Craftwork-inspired Lanveriq Console
 
-**Date:** 2026-11-21. **Scope:** disconnected `apps/web-next` visual showroom. **CI:** accepted at functional SHA `e43886a3be9524f82961a09f409df3edb7af9b0c` (four independent same-SHA successes).
+**Date:** 2026-11-21. **Scope:** disconnected `apps/web` visual showroom. **CI:** accepted at functional SHA `e43886a3be9524f82961a09f409df3edb7af9b0c` (four independent same-SHA successes).
 
 ## Reference and originality
 

@@ -1,6 +1,6 @@
 """Reject test-only Next.js auth route activation outside explicit CI flags.
 
-Uses an invented temporary web-next workspace and Node's standard library.
+Uses an invented temporary web workspace and Node's standard library.
 No real app files, credentials, network, browser or Docker are accessed.
 """
 import os
@@ -20,7 +20,7 @@ FLAGS = (
 class SyntheticFixtureInstallerTest(unittest.TestCase):
     def test_fails_closed_without_all_three_flags_or_ci_runner(self):
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp) / "web-next"
+            root = Path(temp) / "web"
             (root / "src/app/(auth)/login").mkdir(parents=True)
             (root / "src/synthetic-only-auth-probe.tsx").write_text(
                 "// fake disposable workspace", encoding="utf-8")
@@ -57,7 +57,7 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
 
     def test_fourth_flag_is_explicit_and_multi_admin_route_is_never_ordinary(self):
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp) / "web-next"
+            root = Path(temp) / "web"
             (root / "src/app/(auth)/login").mkdir(parents=True)
             (root / "src/synthetic-only-auth-probe.tsx").write_text(
                 "// source-only test", encoding="utf-8")
@@ -88,7 +88,7 @@ class SyntheticFixtureInstallerTest(unittest.TestCase):
             self.assertFalse((root / "src/proxy.ts").exists())
 
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp) / "web-next"
+            root = Path(temp) / "web"
             (root / "src/app/(auth)/login").mkdir(parents=True)
             (root / "src/synthetic-only-auth-probe.tsx").write_text(
                 "// source-only test", encoding="utf-8")

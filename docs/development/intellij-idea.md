@@ -1,3 +1,5 @@
+> **NXT-24 / 2026-11-21:** 最新唯一主前端是 **`apps/web`（Next.js 16）**，不是历史上的 Vite；仓库中的 `apps/web-next` 已改名并删除旧目录。请在 `apps/web` 安装锁定依赖后使用 `corepack pnpm dev`，浏览器访问 `http://127.0.0.1:3100/overview`。生产 API、采集和远控保持关闭。
+
 # IntelliJ IDEA 导入 Lanveriq（仅后端使用 Gradle）
 
 **工程结构：** 仓库根目录 `lanveriq/` **不是 Gradle 工程**，不提供根级 `settings.gradle` / `gradlew`。Java 后端 `apps/server/` 自带独立 Gradle 9.8.2 Wrapper。Rust 和 Web 分别由 Cargo、pnpm 管理。
@@ -38,7 +40,7 @@ Java 25 / Gradle 9.8.2 初次同步需要访问 Gradle Plugin Portal、Maven Cen
 
 ## 同仓库的其他项目
 
-- **唯一 Web UI**：`apps/web-next`（Next.js 16.4.5 / React 19 / Tailwind 4），使用 Node.js 24 + pnpm 12，在该目录运行 `corepack pnpm install --frozen-lockfile`、`corepack pnpm dev`；浏览器打开 `http://127.0.0.1:3100/overview`。旧版 Vite `apps/web` 已从当前源码移除，5173 端口不再是产品 UI。当前仅断开业务数据的预览，不登录真实管理员或设备。
+- **唯一 Web UI**：`apps/web`（Next.js 16.4.5 / React 19 / Tailwind 4），使用 Node.js 24 + pnpm 12，在该目录运行 `corepack pnpm install --frozen-lockfile`、`corepack pnpm dev`；浏览器打开 `http://127.0.0.1:3100/overview`。旧版 Vite `apps/web` 已从当前源码移除，5173 端口不再是产品 UI。当前仅断开业务数据的预览，不登录真实管理员或设备。
 - **Rust Agent**：独立 Rust 工程在 `apps/agent/Cargo.toml`，`apps/agent/Cargo.lock` 锁定依赖，`apps/agent/rust-toolchain.toml` 固定 Rust 1.94。根据 IDEA 的具体版本与插件支持来选择 Rust 插件，或另用 RustRover。
 - **Java 后端**：`apps/server` 中 Spring Boot 4.1.2、JPA/Hibernate、Flyway 均通过独立 Gradle 工程维护。导入工程不需要运行 `bootRun`，更不需要触碰共享 `spark-db`。
 

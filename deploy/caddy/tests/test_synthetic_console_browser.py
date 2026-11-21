@@ -381,13 +381,13 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         browser = BROWSER.read_text(encoding="utf-8")
         harness = HARNESS.read_text(encoding="utf-8")
-        installer = (ROOT / "apps/web-next/scripts/install-synthetic-auth-fixture.mjs"
+        installer = (ROOT / "apps/web/scripts/install-synthetic-auth-fixture.mjs"
                      ).read_text(encoding="utf-8")
-        route_guard = (ROOT / "apps/web-next/scripts/verify-route-contract.mjs"
+        route_guard = (ROOT / "apps/web/scripts/verify-route-contract.mjs"
                        ).read_text(encoding="utf-8")
-        source = (ROOT / "apps/web-next/src/synthetic-only-auth-probe.tsx"
+        source = (ROOT / "apps/web/src/synthetic-only-auth-probe.tsx"
                   ).read_text(encoding="utf-8")
-        normal_page = (ROOT / "apps/web-next/src/app/(auth)/login/page.tsx"
+        normal_page = (ROOT / "apps/web/src/app/(auth)/login/page.tsx"
                        ).read_text(encoding="utf-8")
 
         self.assertIn("src/app/synthetic-auth-probe", route_guard)
@@ -429,7 +429,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("route_boundary_forged_edge_header_still_spring_401", browser)
         # The next server refuses direct HTTP without a secret generated
         # specifically for one disposable run, not a client cookie.
-        installer = (ROOT / "apps/web-next/scripts/install-synthetic-auth-fixture.mjs"
+        installer = (ROOT / "apps/web/scripts/install-synthetic-auth-fixture.mjs"
                      ).read_text(encoding="utf-8")
         self.assertIn("timingSafeEqual", installer)
         self.assertIn("process.env.LANVERIQ_SYNTHETIC_EDGE_SECRET", installer)
@@ -439,7 +439,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("matcher: ['/synthetic-console-route/:path*']", installer)
         self.assertIn("return new NextResponse('Not found', {status: 404", installer)
         self.assertIn("'Cache-Control': 'no-store'", installer)
-        origin = (ROOT / "apps/web-next/scripts/verify-synthetic-nextjs-origin.py"
+        origin = (ROOT / "apps/web/scripts/verify-synthetic-nextjs-origin.py"
                   ).read_text(encoding="utf-8")
         self.assertIn("direct_origin_rsc_prefetch_must_404", origin)
         self.assertIn("direct_origin_forged_cookie_must_404", origin)
@@ -464,17 +464,17 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertNotIn('X-Lanveriq-Synthetic-Edge-Token', reference)
         self.assertNotIn('synthetic-console-route', reference)
         self.assertIn("route_boundary_real_browser_post_metadata", browser)
-        staged_route = (ROOT / "apps/web-next/src/staged-console-route-boundary.tsx"
+        staged_route = (ROOT / "apps/web/src/staged-console-route-boundary.tsx"
                         ).read_text(encoding="utf-8")
         self.assertIn("data-route-state={status}", staged_route)
         self.assertIn("auth.session()", staged_route)
         self.assertIn("isConsistentScopedDirectoryPage(page, metrics)", staged_route)
         self.assertIn("controller.abort()", staged_route)
         self.assertIn('href={ROOT + \'/\' + item.id}', staged_route)
-        guard = (ROOT / "apps/web-next/scripts/verify-route-contract.mjs"
+        guard = (ROOT / "apps/web/scripts/verify-route-contract.mjs"
                  ).read_text(encoding="utf-8")
         self.assertIn("src/app/synthetic-console-route", guard)
-        self.assertFalse((ROOT / "apps/web-next/src/app/synthetic-console-route").exists())
+        self.assertFalse((ROOT / "apps/web/src/app/synthetic-console-route").exists())
         self.assertIn("candidate_console_revoked_scope_no_rows", browser)
         self.assertIn("candidate_console_disabled_metrics_cleared", browser)
         self.assertIn("candidate_console_hidden_tab_erases_rows", browser)
@@ -482,7 +482,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("candidate_console_hidden_tab_erases_identity", browser)
         self.assertIn("candidate_console_hidden_tab_requires_logout", browser)
         self.assertIn("SYNTHETIC CONSOLE LIFECYCLE PASS", browser)
-        candidate = (ROOT / "apps/web-next/src/staged-console-workspace.tsx"
+        candidate = (ROOT / "apps/web/src/staged-console-workspace.tsx"
                      ).read_text(encoding="utf-8")
         self.assertIn("operationEpoch.current += 1", candidate)
         self.assertIn('role="tablist"', candidate)
@@ -494,7 +494,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("key={principal} state={directory}", candidate)
         self.assertIn("epoch !== operationEpoch.current", candidate)
         self.assertIn("isConsistentScopedDirectoryPage(page, parsed)", candidate)
-        overview = (ROOT / "apps/web-next/src/lib/staged-console-overview.ts"
+        overview = (ROOT / "apps/web/src/lib/staged-console-overview.ts"
                     ).read_text(encoding="utf-8")
         self.assertIn("overview.total < visible", overview)
         self.assertIn("return overview.total === visible", overview)
@@ -504,17 +504,17 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("status === 'locked'", candidate)
         self.assertIn("response === 'signed_out' ? 'signed_out' : 'locked'", candidate)
         # The candidate is not activated by ordinary Next.js pages.
-        self.assertFalse((ROOT / "apps/web-next/src/app/synthetic-console-candidate").exists())
+        self.assertFalse((ROOT / "apps/web/src/app/synthetic-console-candidate").exists())
         self.assertIn("SYNTHETIC STAGED CONSOLE UI PASS", browser)
-        installer = (ROOT / "apps/web-next/scripts/install-synthetic-auth-fixture.mjs"
+        installer = (ROOT / "apps/web/scripts/install-synthetic-auth-fixture.mjs"
                      ).read_text(encoding="utf-8")
-        guard = (ROOT / "apps/web-next/scripts/verify-route-contract.mjs"
+        guard = (ROOT / "apps/web/scripts/verify-route-contract.mjs"
                  ).read_text(encoding="utf-8")
         self.assertIn("src/app/synthetic-console-candidate", installer)
         self.assertIn("src/app/synthetic-console-candidate", guard)
         self.assertIn("staged-console-workspace", guard)
-        self.assertFalse((ROOT / "apps/web-next/src/app/synthetic-console-candidate").exists())
-        self.assertFalse((ROOT / "apps/web-next/src/app/synthetic-multi-admin-probe").exists())
+        self.assertFalse((ROOT / "apps/web/src/app/synthetic-console-candidate").exists())
+        self.assertFalse((ROOT / "apps/web/src/app/synthetic-multi-admin-probe").exists())
         self.assertIn("GITHUB_ACTIONS", installer)
         self.assertIn("synthetic_auth_ui_probe:", workflow)
         self.assertIn("verify:routes", workflow)
@@ -529,7 +529,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         self.assertIn("createStagedConsoleReader", source)
         self.assertNotIn("synthetic-only-auth-probe", normal_page)
         self.assertFalse(
-            (ROOT / "apps/web-next/src/app/synthetic-auth-probe").exists())
+            (ROOT / "apps/web/src/app/synthetic-auth-probe").exists())
         self.assertIn("LANVERIQ_SYNTHETIC_AUTH_UI_PROBE", workflow)
         self.assertNotIn("LANVERIQ_CONSOLE_AUTH_ENABLED", workflow)
         self.assertNotIn("ignore_https_errors=True", browser)
@@ -538,7 +538,7 @@ class SyntheticChromiumGateTest(unittest.TestCase):
         browser = BROWSER.read_text(encoding="utf-8")
         sql = (ROOT / "apps/server/scripts/seed-synthetic-multi-admin.sql"
                ).read_text(encoding="utf-8")
-        ui = (ROOT / "apps/web-next/src/synthetic-only-multi-admin-probe.tsx"
+        ui = (ROOT / "apps/web/src/synthetic-only-multi-admin-probe.tsx"
               ).read_text(encoding="utf-8")
         limiter = (ROOT / "apps/server/src/main/java/com/lanveriq/server/security/ConsoleLoginRateLimiter.java"
                    ).read_text(encoding="utf-8")

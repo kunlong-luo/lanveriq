@@ -14,7 +14,7 @@ export function preparePagesExport({
 } = {}) {
   if (env.GITHUB_ACTIONS !== 'true' ||
       env.LANVERIQ_PAGES_STATIC_EXPORT !== '1' ||
-      basename(root) !== 'web-next') {
+      basename(root) !== 'web') {
     throw new Error('Pages export fixture requires explicit GitHub Actions/static gates');
   }
   const source = resolve(root, 'src/app/(console)/devices/[id]');

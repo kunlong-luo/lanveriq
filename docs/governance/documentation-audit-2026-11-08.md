@@ -1,6 +1,6 @@
 # Lanveriq 文档一致性与设备协议审查（2026-11-08）
 
-**审查类型：**现有 `main` 仓库的核心产品/架构/研发/安全/验收文档与真实 `Cargo.toml`、`build.gradle`、`apps/web-next/package.json`、Agent/Java/TLS 源码、GitHub Actions 触发策略之间的一致性复核。  
+**审查类型：**现有 `main` 仓库的核心产品/架构/研发/安全/验收文档与真实 `Cargo.toml`、`build.gradle`、`apps/web/package.json`、Agent/Java/TLS 源码、GitHub Actions 触发策略之间的一致性复核。  
 **结论：**已修复一批 **P0/P1 文档事实矛盾**并确立协议推荐基线；**不等于完整 121 份文档已逐行校对、运行代码/生产发布获准**。旧的 D0/NXT 测试记录应标明日期，不应删除历史失败或把早期 PASS 当作新增功能的测试证据。
 
 ## 1. 版本与单一事实来源
@@ -8,7 +8,7 @@
 | 主题 | 当前权威文档 | 不再作为现状使用 |
 | --- | --- | --- |
 | **产品优先级/上线边界** | [v0.1 A–E 批次交付计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md)、[路线图](../planning/roadmap.md)、[DoD](../planning/definition-of-done.md) | 2026-10-30/11-01 的逐任务排期、设计图、静态预览完成率 |
-| **实际前后端依赖** | [技术栈真实基线](../development/technology.md) + `apps/web-next/package.json`、`apps/agent/Cargo.toml`、`apps/server/build.gradle` | “没有代码/依赖安装”、React/Vite 是正式前端、所有候选库均已安装 |
+| **实际前后端依赖** | [技术栈真实基线](../development/technology.md) + `apps/web/package.json`、`apps/agent/Cargo.toml`、`apps/server/build.gradle` | “没有代码/依赖安装”、React/Vite 是正式前端、所有候选库均已安装 |
 | **设备传输协议/安全** | [设备协议栈事实与选型](../architecture/device-communication-stack.md)、[ADR-0009](../architecture/adrs/0009-agent-transport-selection.md)、[设备注册](../architecture/enrollment-bootstrap.md) | 只说“自研设备协议”、将 MQTT QoS 当 PG18 commit、将完整 TLS1.3 当既有事实 |
 | **业务和持久 ACK** | [Agent outbox](../architecture/agent-persistence.md)、[事件幂等](../architecture/event-delivery.md)、[REST/Agent 载荷](../architecture/api-contract.md) | 仅看 HTTP 200 就清队列；用 UI/WebSocket 状态替代服务器数据库时间 |
 | **认证、权限和隐私** | [RBAC](../security/authorization-matrix.md)、[威胁模型](../security/threat-model.md)、[开放决策](open-decisions.md) | “本地网络 = 可信”，默认 ON、任何合成测试代表员工同意 |
