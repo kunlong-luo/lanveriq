@@ -12,7 +12,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 
-# Bind evidence to all nine Java Testcontainers classes and Gradle XML paths.
+# Bind evidence to all ten Java Testcontainers classes and Gradle XML paths.
 # A duplicate simple class name in another package is not database evidence.
 PACKAGES = {
     "PostgreSqlEventIngestionIT": "com.lanveriq.server.events",
@@ -27,7 +27,7 @@ PACKAGES = {
     "PostgreSqlRoleSeparationIT": "com.lanveriq.server.security",
 }
 
-# Minimum discovered tests in nine independent Testcontainers classes.
+# Minimum discovered tests in ten independent Testcontainers classes.
 # Review increases when acceptance cases are added; never lower to hide skips.
 MIN_COUNTS = {
     "PostgreSqlEventIngestionIT": 20,
@@ -39,7 +39,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
     "PostgreSqlConsoleSecurityWiringIT": 65,
-    "PostgreSqlRoleSeparationIT": 4,
+    "PostgreSqlRoleSeparationIT": 6,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -179,6 +179,8 @@ REQUIRED_CASES = {
         "runtimeCannotInheritOrSetMigratorAndCannotUseDdlOrTruncate",
         "runtimeCannotMutateUntrustedHistoryAuditOrFlywayDespiteLimitedDml",
         "futureMigratorObjectsNeverImplicitlyGrantRuntimeAccess",
+        "realSpringJpaSessionRevocationRollsBackIfRuntimeCannotWriteAudit",
+        "realSpringJpaRevocationCannotCommitWithoutSessionVersionUpdateGrant",
     },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",

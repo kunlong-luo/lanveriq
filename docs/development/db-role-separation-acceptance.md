@@ -5,6 +5,25 @@
 **Status: isolated privilege rehearsal. NOT production role provisioning, not a release gate approval.**  
 Functional scope: `apps/server/src/integrationTest/java/com/lanveriq/server/security/PostgreSqlRoleSeparationIT.java` and `application-db-runtime-separation-acceptance.yml`. No production password, production role or connected DB is created/modified by this work. Issue #5 stays OPEN; v0.1 is NOT RELEASE READY.
 
+## DB-ROLE-02 · first actual Spring JPA write-path privilege rehearsal (2026-11-21, CI pending)
+
+**Scope: one genuine application path, not the complete permission matrix.** The existing `AdminSessionRevocationService.revokeAll` → `JpaAdminSessionRevocationRepository.rotateAllSessions` is exercised by an actual Spring Boot application context, Spring Data JPA/Hibernate entity manager and `@Transactional` advice under a **separately authenticated PostgreSQL 18 runtime login**. Test data are synthetic; the context runs with the opt-in `db-runtime-separation-acceptance` profile: `WebApplicationType.NONE`, no Flyway Bean, no actual Agent/console HTTP, and no migration secret in the Spring process. Flyway V1–V29 schema remains owned by a separate non-superuser migrator, which alone seeds synthetic users, group and role scopes.
+
+Exact PostgreSQL permissions needed by this **one real JPA transaction**, added only in disposable Testcontainers after the DB-ROLE-01 baseline:
+
+| Table | SQL permission | Why it is required | Remaining risk |
+|---|---|---|---|
+| `users` | `SELECT(id,disabled_at,session_version)` | Lock issuer and target, verify active issuer and session epoch | Runtime can read these columns for any row; row-level scoping is still in application service |
+| `users` | `UPDATE(session_version)` | Atomically rotate the authenticated target's session epoch | Direct runtime SQL could rotate another account; this is **not production approval** |
+| `roles` | `SELECT(id,code)` | Check owner security role | No membership mutation |
+| `user_role_scopes` | `SELECT(user_id,role_id,device_group_id)` | Recheck live group assignment inside transaction | SELECT alone is not a complete row-lock privilege |
+| `user_role_scopes` | `UPDATE(granted_at)` | PostgreSQL `FOR SHARE OF issuer_scope,target_scope` row-lock authorization; narrow metadata-column concession | **Production risk:** would permit changing grant timestamps directly; redesign/approved DB function or safer grant boundary needed |
+| `admin_access_log` | `INSERT` only **temporarily during positive test** | Commit accountable `admin.sessions.revoke` audit alongside session version | A production runtime able to insert arbitrary audit rows is too broad without further trigger/function constraints |
+
+Test one deliberately begins with **no audit INSERT grant**, invokes the actual JPA service under an authenticated synthetic `AdminPrincipal`, requires PostgreSQL SQLSTATE `42501` and verifies zero committed session-version increment/audit. It then temporarily grants only `INSERT` on `admin_access_log`, invokes the **same real Spring service**, verifies version increases exactly once plus exactly one matching audit, and proves that DELETE/SELECT-audit, password-hash UPDATE and trigger disable are still forbidden. Revoking audit INSERT again must deny a subsequent call with **no partial increment**. Test two revokes `UPDATE(session_version)` and asserts the real service cannot commit, then restores the test grant. Both tests require evidence from the real PG18 JUnit XML gate; **`PostgreSqlRoleSeparationIT` minimum increases from four to six named cases**.
+
+The test-only `UPDATE(granted_at)` and generic audit `INSERT` privileges are intentionally called out as unresolved security concessions. Before any production runtime GRANT manifest can be used, replace/limit these via reviewed PG18 transaction boundary, approved row-level/column-level mechanisms and/or a narrowly authorized `SECURITY DEFINER` interface with explicit owner, search path, input checks and independent audit validation. Never grant broad UPDATE or ALL on `users`, `user_role_scopes` or `admin_access_log` simply to make Hibernate tests pass. Real role permissions must also be validated for every remaining JPA service, startup schema validation, Flyway upgrade, restore and credential rotation. No production role/secret or default JVM configuration changes are made.
+
 ## Actual tested PostgreSQL 18 design
 
 In a disposable `postgres:18.6` Testcontainers database, a one-use bootstrap principal creates two separate **LOGIN, NOINHERIT, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOREPLICATION, NOBYPASSRLS** SQL identities with separate synthetic passwords. The bootstrap principal revokes PUBLIC database CONNECT and schema permissions, grants the non-superuser migrator `CONNECT` plus schema `USAGE,CREATE` and gives runtime `CONNECT` plus `USAGE` only. The migrator executes **all real V1–V29 Flyway migrations** and owns their tables. The runtime is *never* a member of the migrator role, has no object ownership and cannot `SET ROLE` to the migrator.

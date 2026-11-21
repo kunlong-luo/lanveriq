@@ -7,6 +7,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
+import com.lanveriq.server.LanveriqServerApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -104,6 +109,16 @@ class PostgreSqlRoleSeparationIT {
                     TO lanveriq_runtime_synthetic
                     """);
             sql(owner,"GRANT SELECT,INSERT ON device_groups TO lanveriq_runtime_synthetic");
+            // DB-ROLE-02: exact column dependencies of the existing
+            // JpaAdminSessionRevocationRepository. This is TEST-ONLY.
+            sql(owner,"GRANT SELECT (id,disabled_at,session_version) ON users TO lanveriq_runtime_synthetic");
+            sql(owner,"GRANT UPDATE (session_version) ON users TO lanveriq_runtime_synthetic");
+            sql(owner,"GRANT SELECT (id,code) ON roles TO lanveriq_runtime_synthetic");
+            sql(owner,"GRANT SELECT (user_id,role_id,device_group_id) ON user_role_scopes TO lanveriq_runtime_synthetic");
+            // Postgres SELECT ... FOR SHARE OF scope needs UPDATE privilege
+            // on at least one column of its row-locked table. The metadata
+            // column concession is not approved for production grants.
+            sql(owner,"GRANT UPDATE (granted_at) ON user_role_scopes TO lanveriq_runtime_synthetic");
         }
     }
 
@@ -198,6 +213,181 @@ class PostgreSqlRoleSeparationIT {
                         """));
             } finally {
                 sql(owner,"DROP TABLE a11_role_future_synthetic");
+            }
+        }
+    }
+
+    private record SyntheticRevocationScope(UUID owner, UUID target, UUID group) {}
+
+    private static SyntheticRevocationScope syntheticRevocationScope()
+            throws SQLException {
+        try(Connection owner=migrator()) {
+            owner.setAutoCommit(false);
+            try {
+                UUID group=(UUID)one(owner,"""
+                        INSERT INTO device_groups(name)
+                        VALUES ('role-scope-${random}')
+                        RETURNING id
+                        """.replace("${random}",UUID.randomUUID().toString()));
+                UUID issuer=(UUID)one(owner,"""
+                        INSERT INTO users(normalized_login,password_hash)
+                        VALUES ('issuer-${random}','synthetic-do-not-authenticate')
+                        RETURNING id
+                        """.replace("${random}",UUID.randomUUID().toString()));
+                UUID target=(UUID)one(owner,"""
+                        INSERT INTO users(normalized_login,password_hash)
+                        VALUES ('target-${random}','synthetic-do-not-authenticate')
+                        RETURNING id
+                        """.replace("${random}",UUID.randomUUID().toString()));
+                sql(owner,"""
+                        INSERT INTO user_role_scopes(user_id,role_id,device_group_id)
+                        SELECT '${issuer}'::uuid,id,'${group}'::uuid
+                        FROM roles WHERE code='owner_security_admin'
+                        """.replace("${issuer}",issuer.toString())
+                            .replace("${group}",group.toString()));
+                sql(owner,"""
+                        INSERT INTO user_role_scopes(user_id,role_id,device_group_id)
+                        SELECT '${target}'::uuid,id,'${group}'::uuid
+                        FROM roles WHERE code='it_operator'
+                        """.replace("${target}",target.toString())
+                            .replace("${group}",group.toString()));
+                owner.commit();
+                return new SyntheticRevocationScope(issuer,target,group);
+            } catch(SQLException | RuntimeException failure) {
+                owner.rollback();
+                throw failure;
+            }
+        }
+    }
+
+    private static long sessionVersion(UUID target) throws SQLException {
+        try(Connection owner=migrator()) {
+            return ((Number)one(owner,"""
+                    SELECT session_version FROM users WHERE id='${id}'::uuid
+                    """.replace("${id}",target.toString()))).longValue();
+        }
+    }
+
+    private static long sessionAudits(UUID target) throws SQLException {
+        try(Connection owner=migrator()) {
+            return ((Number)one(owner,"""
+                    SELECT count(*) FROM admin_access_log
+                    WHERE resource_id='${id}'::uuid AND action='admin.sessions.revoke'
+                    """.replace("${id}",target.toString()))).longValue();
+        }
+    }
+
+    private static void assertPermissionDeniedInCauseChain(Throwable thrown) {
+        for(Throwable at=thrown;at!=null;at=at.getCause()) {
+            if(at instanceof SQLException sql && "42501".equals(sql.getSQLState())) {
+                return;
+            }
+        }
+        fail("Expected PostgreSQL SQLSTATE 42501 privilege denial in actual JPA exception chain");
+    }
+
+    /**
+     * Start the actual Spring Boot/JPA service with the opted-in runtime-only
+     * profile. The JVM receives no migration password, no Flyway Bean and no
+     * HTTP server. The server's real JPA transaction and authorization SQL
+     * execute over an independently authenticated PostgreSQL runtime login.
+     */
+    private static org.springframework.context.ConfigurableApplicationContext
+            runtimeSpring() {
+        return new SpringApplicationBuilder(LanveriqServerApplication.class)
+                .web(WebApplicationType.NONE)
+                .properties(
+                        "spring.profiles.active=db-runtime-separation-acceptance",
+                        "LANVERIQ_DB_RUNTIME_USER="+RUNTIME,
+                        "LANVERIQ_DB_RUNTIME_PASSWORD="+RUNTIME_PW,
+                        "spring.datasource.url="+postgres.getJdbcUrl(),
+                        "lanveriq.bootstrap.enabled=false",
+                        "lanveriq.console.auth.enabled=false",
+                        "spring.main.banner-mode=off")
+                .run();
+    }
+
+    @Test
+    void realSpringJpaSessionRevocationRollsBackIfRuntimeCannotWriteAudit()
+            throws Exception {
+        var scope=syntheticRevocationScope();
+        try(var ctx=runtimeSpring()) {
+            assertTrue(ctx.getBeansOfType(Flyway.class).isEmpty(),
+                    "long-running runtime must never start a migrator Flyway Bean");
+            var bean=ctx.getBean(AdminSessionRevocationService.class);
+            var principal=new AdminPrincipal(scope.owner(),"synthetic.owner",
+                    "synthetic-no-secret",true,0);
+            var authentication=new UsernamePasswordAuthenticationToken(
+                    principal,"synthetic-test",principal.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            try {
+                // Real JPA must reach the audit INSERT with a live scoped owner.
+                // The role lacks only audit INSERT: target UPDATE MUST rollback.
+                var failAudit=assertThrows(RuntimeException.class,() ->
+                        bean.revokeAll(scope.target(),scope.group()));
+                assertPermissionDeniedInCauseChain(failAudit);
+                assertEquals(0L,sessionVersion(scope.target()));
+                assertEquals(0L,sessionAudits(scope.target()));
+
+                try(Connection owner=migrator()) {
+                    sql(owner,"GRANT INSERT ON admin_access_log TO lanveriq_runtime_synthetic");
+                }
+                try {
+                    // Same Spring service, same restricted database login:
+                    // a narrowly authorized complete transaction now commits.
+                    assertEquals(1L,bean.revokeAll(scope.target(),scope.group()));
+                    assertEquals(1L,sessionVersion(scope.target()));
+                    assertEquals(1L,sessionAudits(scope.target()));
+                    try(Connection app=runtime()) {
+                        blocked(app,"DELETE FROM admin_access_log WHERE false");
+                        blocked(app,"SELECT * FROM admin_access_log");
+                        blocked(app,"UPDATE users SET password_hash='x' WHERE false");
+                        blocked(app,"ALTER TABLE users DISABLE TRIGGER ALL");
+                    }
+                } finally {
+                    try(Connection owner=migrator()) {
+                        sql(owner,"REVOKE INSERT ON admin_access_log FROM lanveriq_runtime_synthetic");
+                    }
+                }
+                var deniedAgain=assertThrows(RuntimeException.class,() ->
+                        bean.revokeAll(scope.target(),scope.group()));
+                assertPermissionDeniedInCauseChain(deniedAgain);
+                assertEquals(1L,sessionVersion(scope.target()));
+                assertEquals(1L,sessionAudits(scope.target()));
+            } finally {
+                SecurityContextHolder.clearContext();
+            }
+        }
+    }
+
+    @Test
+    void realSpringJpaRevocationCannotCommitWithoutSessionVersionUpdateGrant()
+            throws Exception {
+        var scope=syntheticRevocationScope();
+        try(Connection owner=migrator()) {
+            sql(owner,"REVOKE UPDATE (session_version) ON users FROM lanveriq_runtime_synthetic");
+        }
+        try {
+            try(var ctx=runtimeSpring()) {
+                var bean=ctx.getBean(AdminSessionRevocationService.class);
+                var principal=new AdminPrincipal(scope.owner(),"synthetic.owner",
+                        "synthetic-no-secret",true,0);
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(principal,
+                                "synthetic-test",principal.getAuthorities()));
+                try {
+                    var denied=assertThrows(RuntimeException.class,() ->
+                            bean.revokeAll(scope.target(),scope.group()));
+                    assertPermissionDeniedInCauseChain(denied);
+                    assertEquals(0L,sessionVersion(scope.target()));
+                    assertEquals(0L,sessionAudits(scope.target()));
+                } finally {
+                    SecurityContextHolder.clearContext();
+                }
+            }
+        } finally {
+            try(Connection owner=migrator()) {
+                sql(owner,"GRANT UPDATE (session_version) ON users TO lanveriq_runtime_synthetic");
             }
         }
     }

@@ -50,8 +50,8 @@ class PostgresEvidenceGateTest(unittest.TestCase):
 
     def test_db_role_split_mandatory_real_pg18_cases_cannot_disappear(self):
         role = "PostgreSqlRoleSeparationIT"
-        self.assertEqual(4, minimums[role])
-        self.assertEqual(4, len(mandatory[role]))
+        self.assertEqual(6, minimums[role])
+        self.assertEqual(6, len(mandatory[role]))
         for method in sorted(mandatory[role]):
             with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
                 synthetic_reports(Path(tmp), omit=(role, method))
