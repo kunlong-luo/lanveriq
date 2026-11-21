@@ -1,8 +1,8 @@
-## 2026-11-21 — NXT-23 Remove obsolete Vite app; make Next.js sole Web UI (CI pending)
+## 2026-11-21 — NXT-23 Remove obsolete Vite app; make Next.js sole Web UI (four same-SHA UI CI successes)
 
 - Remove 32 tracked files under legacy `apps/web` and the legacy Vite-only `web-unit.yml` workflow. Do not delete the Git history. Canonical `apps/web-next` already has separately staged CSRF/session/read-only projection and a generated Springdoc/Orval contract bridge; no business APIs are connected.
 - Normalize English/Chinese root READMEs and IDEA launch guidance to `apps/web-next`, `http://127.0.0.1:3100/overview`. Remove conflicting `5173` launch recipe and untrue Vite health-only runtime claims.
-- Add `verify-single-ui.mjs` plus negative fixture tests to both Next.js fast source workflow and disconnected static Pages workflow. All production capabilities remain disabled. Exact-SHA CI pending.
+- Add `verify-single-ui.mjs` plus negative fixture tests to both Next.js fast source workflow and disconnected static Pages workflow. All production capabilities remain disabled. **NXT-23 exact-source UI acceptance:** functional commit [`e54af66aa7803b43c2b85a6bff7efd419b44a428`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428) passed all FOUR same-SHA workflows: [Next.js frozen pnpm, single-UI guard, tests/typecheck/build/HTTP #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [actual Chromium 11 routes/keyboard/mobile/screenshots #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [disconnected static Pages export+deploy #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 default OFF #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193). Visual artifact `nxt18-visual-qa-e54af66aa7803b43c2b85a6bff7efd419b44a428` (ID `14695855747`). This is not production authorization.
 
 ## 2026-11-21 — NXT-22 keyboard-first local workspace navigation (exact-SHA UI acceptance)
 

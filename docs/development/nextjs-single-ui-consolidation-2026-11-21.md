@@ -1,6 +1,6 @@
 # NXT-23 — Single canonical Next.js UI, legacy Vite removal
 
-**Date:** 2026-11-21. **Target:** `main` only. **Acceptance:** pending exact source SHA L1, Chromium, Pages and RD-2 CI. **Release:** v0.1 NOT RELEASE READY.
+**Date:** 2026-11-21. **Target:** `main` only. **Acceptance:** four independent same-SHA UI CI passes on `e54af66aa7803b43c2b85a6bff7efd419b44a428`. **Release:** v0.1 NOT RELEASE READY.
 
 ## Decision
 
@@ -50,4 +50,4 @@ Open `http://127.0.0.1:3100/overview`. The 5173 port is no longer a repository-b
 
 ## CI evidence
 
-The initial change requires fresh same-source-SHA results from Next.js L1, Chromium (11 routes and 320–1440px screenshot and keyboard checks), public static Pages and RD-2. Historical success from NXT-22 does not transfer to this deletion.
+**NXT-23 exact-source UI acceptance:** functional commit [`e54af66aa7803b43c2b85a6bff7efd419b44a428`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428) passed all FOUR same-SHA workflows: [Next.js frozen pnpm, single-UI guard, tests/typecheck/build/HTTP #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [actual Chromium 11 routes/keyboard/mobile/screenshots #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [disconnected static Pages export+deploy #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 default OFF #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193). Visual artifact `nxt18-visual-qa-e54af66aa7803b43c2b85a6bff7efd419b44a428` (ID `14695855747`). This is not production authorization. Previous NXT-22 success was not reused; these are new results for the exact NXT-23 source. Runtime production readiness is still blocked.
