@@ -43,18 +43,24 @@ class NextPreviewChromiumSourceTest(unittest.TestCase):
             with self.subTest(denied=value):
                 self.assertFalse(allows(value))
 
-    def test_browser_only_on_explicit_milestone_or_dispatch_and_inert_login(self):
+    def test_browser_auto_only_for_ui_main_or_explicit_acceptance_and_inert_login(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         login = LOGIN.read_text(encoding="utf-8")
         script = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", workflow)
-        # Owner-approved L3 v0.1 checks run on explicit acceptance tags
-        # or workflow dispatch, not on every stylesheet/React source commit.
+        # Disconnected Chromium UI QA runs on specifically scoped main UI
+        # changes, tag or dispatch. Never on backend/Agent/docs-only changes.
+        # This remains a UI test, not v0.1 release or device L3 acceptance.
         self.assertIn("  push:", workflow)
         self.assertIn("    tags:", workflow)
         self.assertIn("'acceptance/v0.1-*'", workflow)
-        self.assertNotIn("    branches: [main]", workflow)
-        self.assertNotIn("    paths:", workflow)
+        self.assertIn("    branches: [main]", workflow)
+        self.assertIn("    paths:", workflow)
+        self.assertIn("'apps/web-next/src/**'", workflow)
+        self.assertIn("'apps/web-next/scripts/**'", workflow)
+        self.assertIn("'.github/workflows/nextjs-browser-preview-synthetic.yml'", workflow)
+        for forbidden in ("apps/server/", "apps/agent/", "apps/web/"):
+            self.assertNotIn("      - '" + forbidden, workflow)
         self.assertIn("cancel-in-progress: false", workflow)
         self.assertNotIn("  pull_request:", workflow)
         self.assertIn("playwright==1.64.1", workflow)
