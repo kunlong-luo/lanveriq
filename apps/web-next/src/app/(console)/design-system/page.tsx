@@ -3,20 +3,20 @@ import { SectionHeading } from '@/components/section-heading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const palette = [
-  { name: 'Brand / 主品牌', value: '#6A5BFF', tone: 'purple' },
-  { name: 'Support / 辅助', value: '#3882F6', tone: 'blue' },
-  { name: 'Accent / 点缀', value: '#C9FF6A', tone: 'lime' },
-  { name: 'Ink / 主文字', value: '#1C1A2E', tone: 'ink' },
-  { name: 'Canvas / 页面底色', value: '#F8F8FC', tone: 'canvas' },
-  { name: 'Border / 分隔', value: '#EAE8F4', tone: 'border' },
+  { name: 'Brand / 主品牌', value: '#4D5FC9', tone: 'purple' },
+  { name: 'Support / 辅助', value: '#4669D1', tone: 'blue' },
+  { name: 'Accent / 点缀', value: '#CEF4E5', tone: 'lime' },
+  { name: 'Ink / 主文字', value: '#172235', tone: 'ink' },
+  { name: 'Canvas / 页面底色', value: '#F5F7FA', tone: 'canvas' },
+  { name: 'Border / 分隔', value: '#E4E9F0', tone: 'border' },
 ] as const;
 
 export default function DesignSystem() {
   return <section className="page bc-design-system">
     <div className="title-row">
       <SectionHeading eyebrow="DESIGN FOUNDATION / B + C" title="设计系统"
-        description="Lanveriq 的统一视觉规范：专业企业信息架构、紫蓝品牌识别与可访问的交互组件。仅供产品设计评审。" />
-      <span className="bc-design-version"><Palette size={16} aria-hidden="true" /> DESIGN PREVIEW / V1</span>
+        description="Lanveriq 的统一视觉规范：企业运维优先的信息架构、克制的海军蓝与靛蓝识别，以及可访问的组件。仅供产品设计评审。" />
+      <span className="bc-design-version"><Palette size={16} aria-hidden="true" /> DESIGN PREVIEW / V2</span>
     </div>
     <div className="bc-section-label"><div><span>01 / BRAND FOUNDATION</span><h2>品牌色彩</h2></div></div>
     <Card className="bc-token-panel">
@@ -45,7 +45,7 @@ export default function DesignSystem() {
         <CardContent className="bc-spacing-demo">
           {[4,8,12,16,24,32].map(n => <div className="bc-spacing-row" key={n}>
             <span>{n}px</span><i style={{ width: n * 5 }} /></div>)}
-          <p>卡片圆角 20px · 按钮 12px · 控件最小触控区域 44px</p>
+          <p>卡片圆角 15px · 按钮 10px · 控件最小触控区域 44px</p>
         </CardContent></Card>
     </div>
     <div className="bc-section-label"><div><span>03 / COMPONENT CONTRACT</span><h2>组件和状态样式</h2></div></div>

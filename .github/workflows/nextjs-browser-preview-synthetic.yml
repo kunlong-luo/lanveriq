@@ -1,14 +1,19 @@
 name: Next.js real Chromium UI preview (milestone, synthetic-only)
 
-# Milestone-only real Chromium keyboard, responsive and safe-route checks for
-# the canonical Next.js App Router. The browser sees only the production-built
-# disconnected 127.0.0.1:3100 preview. NO Spring/PG18/Agent services, real
-# credentials, monitoring or deployment. This is NOT a console-auth approval.
+# Real Chromium keyboard, responsive and safe-route checks for the canonical
+# Next.js App Router. UI-only main changes now trigger autonomous visual QA;
+# server/Agent/docs-only changes do not. The browser sees only the built
+# disconnected 127.0.0.1:3100 preview; NO Spring/PG18/Agent, credentials,
+# monitoring or deployment. This is NOT physical-device L3/release approval.
 on:
-  # L3 only: avoid rebuilding/booting Chromium for each UI source commit.
   push:
+    branches: [main]
     tags:
       - 'acceptance/v0.1-*'
+    paths:
+      - 'apps/web-next/src/**'
+      - 'apps/web-next/scripts/**'
+      - '.github/workflows/nextjs-browser-preview-synthetic.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,457 @@
+/*
+ * NXT-20 / operations-first Next.js visual refinement.
+ *
+ * Scoped presentation layer for the existing App Router + shadcn/Base UI
+ * workspace. Source-only CSS: no fake telemetry, APIs or credential behavior.
+ * Preserve native scrollbar hiding WITHOUT disabling document scrolling.
+ * Auth pages retain their independent visual and keyboard behavior.
+ */
+:root {
+  --lan-ink: #172235;
+  --foreground: #172235;
+  --background: #f5f7fa;
+  --card: #fff;
+  --card-foreground: #1b2738;
+  --border: #e4e9f0;
+  --muted-foreground: #657389;
+  --lan-stroke: #e5e9f1;
+  --lan-violet: #4d5fc9;
+  --lan-lime: #cef4e5;
+  --bc-blue: #4669d1;
+  --bc-violet: #4d5fc9;
+  --bc-purple-dark: #354a9f;
+  --bc-radius: 16px;
+  --bc-shadow: 0 2px 9px rgba(21,34,51,.025);
+}
+body { background: var(--background); }
+::selection { color: #132b43; background: #dce6f9; }
+:where(a,button,input,select):focus-visible {
+  outline: 3px solid #647fe9;
+  outline-offset: 3px;
+}
+
+/* Stable, quiet navigation. Every page retains its actual App Router route. */
+.bc-console .sidebar {
+  width: 242px;
+  min-width: 242px;
+  padding: 24px 14px 18px;
+  background: #fff;
+  border-right: 1px solid #e5e9f0;
+  color: #546275;
+}
+.bc-console .brand {
+  gap: 12px;
+  padding: 4px 10px 36px;
+}
+.bc-console .brand-mark {
+  width: 39px;
+  height: 39px;
+  border-radius: 12px;
+  color: #fff;
+  background: #233a5f;
+  box-shadow: none;
+}
+.bc-console .brand strong {
+  color: #182538;
+  font-size: 21px;
+  letter-spacing: -.06em;
+}
+.bc-console .brand small {
+  color: #8995a5;
+  letter-spacing: .1em;
+}
+.bc-console .nav-label {
+  color: #9ba5b2;
+  font-size: 10px;
+  letter-spacing: .13em;
+  margin-bottom: 12px;
+}
+.bc-console .navigation { gap: 4px; }
+.bc-console .nav-item {
+  min-height: 43px;
+  border-radius: 10px;
+  padding: 11px 12px;
+  color: #667285;
+  font-size: 13px;
+  font-weight: 590;
+  transition: background-color .16s ease,color .16s ease;
+}
+.bc-console .nav-item svg { opacity: .87; }
+.bc-console .nav-item:hover {
+  transform: none;
+  background: #f2f5fa;
+  color: #253957;
+}
+.bc-console .nav-item.selected {
+  color: #233b6b;
+  background: #e9effd;
+  box-shadow: inset 3px 0 #536ecd;
+}
+.bc-console .nav-item.selected svg:first-child { color: #4968c5; }
+.bc-console .sidebar-notice {
+  padding: 14px;
+  border: 1px solid #e3eaf5;
+  border-radius: 12px;
+  background: #f4f7fb;
+  color: #5972a8;
+}
+.bc-console .sidebar-notice strong { color: #2e4567; }
+.bc-console .sidebar-notice small { color: #79899d; }
+.bc-console .bc-sidebar-signoff {
+  color: #9ca8b9;
+  font-size: 9px;
+}
+
+/* The action header is secondary to the work surface, not a promo banner. */
+.bc-console .topbar {
+  height: 69px;
+  min-height: 69px;
+  padding: 0 clamp(20px,2.6vw,40px);
+  background: rgba(255,255,255,.94);
+  border-bottom: 1px solid #e5e9f1;
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+}
+.bc-console .breadcrumb { color: #8c99aa; }
+.bc-console .breadcrumb strong { color: #33465f; }
+.bc-console .backend-state {
+  background: #f7f8fa;
+  border: 1px solid #e6ebf1;
+  color: #65768e;
+  font-weight: 600;
+}
+.bc-console .icon-button,
+.bc-console .bc-global-search {
+  border-color: #e7ebf2;
+  color: #6e7c90;
+  background: #f7f9fc;
+  box-shadow: none;
+}
+.bc-console .demo-avatar {
+  color: #35517c;
+  background: #e9effa;
+  border-radius: 10px;
+}
+.bc-console .main-content {
+  max-width: 1510px;
+  padding: 26px clamp(20px,2.6vw,40px) 60px;
+}
+.bc-console .warning-banner {
+  padding: 12px 16px;
+  border-color: #e0e8f1;
+  background: #edf3fa;
+  color: #365879;
+  border-radius: 12px;
+  line-height: 1.55;
+  font-size: 11px;
+}
+.bc-console .warning-banner > span:last-child { color: #647993; }
+.bc-console .bc-preview-label {
+  background: #fff;
+  color: #587398;
+  border-color: #dce7f3;
+}
+.bc-console .page { gap: 22px; }
+.bc-console .footer {
+  color: #94a1b2;
+  border-top: 1px solid #e5e9f1;
+  background: transparent;
+}
+.bc-console .page .section-heading .eyebrow {
+  color: #6780a3;
+  letter-spacing: .12em;
+}
+.bc-console .page .section-heading h1 {
+  color: #1b2b43;
+  letter-spacing: -.047em;
+}
+.bc-console .page .section-description { color: #6e7d90; }
+.bc-console .secondary-action {
+  border: 1px solid #dfe6ee;
+  color: #304762;
+  background: #fff;
+  border-radius: 10px;
+}
+.bc-console .primary-action {
+  border: 1px solid #24466f;
+  color: #fff;
+  background: #24466f;
+  border-radius: 10px;
+}
+.bc-console .primary-action:not(:disabled):hover {
+  background: #1a3558;
+  transform: none;
+}
+
+/* Replace decorative purple/lime laptop illustration with real, sober
+ * operational boundaries. No invented dashboards or hardware imagery. */
+.bc-overview .overview-hero {
+  min-height: 299px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  border: 1px solid #223a59;
+  color: #fff;
+  border-radius: 20px;
+  background: linear-gradient(108deg,#152a45 0%,#1e3857 70%,#263e5d 100%);
+  box-shadow: 0 12px 26px rgba(20,38,60,.07);
+}
+.bc-overview .overview-hero::before {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse at 89% 88%,rgba(81,136,186,.16),transparent 40%),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size: auto, 52px 52px;
+}
+.bc-overview .overview-hero::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  right: -140px;
+  top: -250px;
+  width: 560px;
+  height: 560px;
+  border: 1px solid rgba(213,230,247,.1);
+  border-radius: 50%;
+  box-shadow: 0 0 0 68px rgba(213,230,247,.025),0 0 0 137px rgba(213,230,247,.018);
+}
+.lv-hero-guardrails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 17px;
+  margin: 19px 0 2px;
+  color: #b3c5da;
+  font-size: 11px;
+  font-weight: 530;
+}
+.lv-hero-guardrails span { display: inline-flex; align-items: baseline; gap: 7px; }
+.lv-hero-guardrails span + span::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-right: 8px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: #7696b9;
+}
+.lv-hero-guardrails strong { color: #e0ebf8; font-weight: 720; }
+.bc-overview .overview-hero-content {
+  width: 100%;
+  max-width: 970px;
+  min-height: 297px;
+  padding: clamp(26px,3.2vw,46px) clamp(26px,3.8vw,54px);
+  gap: 0;
+}
+.bc-overview .hero-topline { margin-bottom: 22px; }
+.bc-overview .bc-hero-tag {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(225,237,251,.14);
+  color: #cfdced;
+}
+.bc-overview .bc-hero-tag-lime {
+  background: rgba(163,222,207,.11);
+  border-color: rgba(163,222,207,.17);
+  color: #c9efe3;
+}
+.bc-overview .section-heading h1 {
+  color: #fff !important;
+  max-width: 700px;
+  font-size: clamp(32px,3.5vw,46px);
+  font-weight: 740;
+  letter-spacing: -.055em;
+}
+.bc-overview .overview-hero .section-description {
+  color: #c0cede;
+  max-width: 760px;
+  margin-top: 12px;
+  line-height: 1.7;
+  font-size: 13px;
+}
+.bc-overview .bc-hero-slogan { display: none; }
+.bc-overview .hero-actions {
+  margin-top: auto;
+  padding-top: 25px;
+  gap: 22px;
+}
+.bc-overview .hero-primary-action {
+  min-height: 43px;
+  border: 1px solid #cfe7ff;
+  border-radius: 10px;
+  padding: 10px 16px;
+  color: #173452;
+  background: #e6f2ff;
+  font-weight: 750;
+  box-shadow: none;
+}
+.bc-overview .hero-primary-action:hover {
+  background: #fff;
+  transform: none;
+}
+.bc-overview .hero-text-action { color: #d8e5f2; }
+.bc-overview .hero-text-action:hover { color: #fff; }
+.bc-overview .overview-section-title { margin-top: 4px; }
+.bc-overview .section-index {
+  color: #7086a5;
+  letter-spacing: .11em;
+}
+.bc-overview .overview-section-title h2 {
+  color: #1d2b40;
+  font-size: 18px;
+  font-weight: 740;
+  letter-spacing: -.035em;
+}
+.bc-overview .section-aside { color: #8794a5; }
+
+/* Operational cards: concise numbers, subtle separators, no fake colored
+ * ring or simulated activity. Unknown is visually neutral and accessible. */
+.bc-console [data-slot="card"] {
+  border: 1px solid #e3e8f0;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(25,38,56,.025);
+}
+.bc-overview .metric-grid { gap: 13px; }
+.bc-overview .metric-card {
+  min-height: 169px;
+  gap: 10px !important;
+  padding: 21px 0;
+  transform: none;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.bc-overview .metric-card::after { display: none; }
+.bc-overview .metric-card:hover {
+  transform: none;
+  border-color: #cbd7e6;
+  box-shadow: 0 5px 16px rgba(25,38,56,.045);
+}
+.bc-overview .metric-card [data-slot="card-header"] { padding: 0 20px; }
+.bc-overview .metric-card [data-slot="card-content"] { padding: 0 20px; }
+.bc-overview .metric-card-upper { align-items: center; margin-bottom: 9px; }
+.bc-overview .metric-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f0f4fa;
+  color: #54739d;
+}
+.bc-overview .metric-card-number { color: #aeb9c6; }
+.bc-overview .metric-card [data-slot="card-description"] {
+  color: #5e6e82;
+  font-size: 12px;
+}
+.bc-overview .metric-placeholder {
+  font-size: 30px;
+  font-weight: 690;
+  color: #66788e;
+}
+.bc-overview .metric-hint { color: #8a97a7; }
+.bc-overview .metric-card-unconnected {
+  border-color: #e2e8ef;
+  color: #72829a;
+  background: #f5f7fa;
+}
+.bc-overview .bc-insight-grid { gap: 14px; }
+.bc-overview .bc-insight-grid [data-slot="card"] { min-width: 0; }
+.bc-overview .bc-insight-grid [data-slot="card-title"] {
+  color: #203249;
+  font-size: 15px;
+}
+.bc-overview .bc-insight-grid [data-slot="card-description"] {
+  color: #8290a2;
+  font-size: 11px;
+}
+.bc-overview .bc-insight-grid .connectivity-empty-bar {
+  border-color: #eef2f6;
+  box-shadow: inset 0 0 0 1px #e6ebf0;
+}
+.bc-overview .bc-insight-grid .connectivity-legend i {
+  background: #cbd5e1;
+}
+.bc-overview .bc-insight-grid .bc-connectivity-visual { gap: 12px; }
+.bc-overview .bc-empty-chart {
+  background: repeating-linear-gradient(to bottom,#fff 0,#fff 39px,#edf1f6 40px);
+  border-color: #edf1f6;
+}
+.bc-overview .directory-panel { overflow: hidden; }
+.bc-console .device-table tbody th.device-row-heading,
+.bc-console .device-table tbody th.device-row-heading strong {
+  color: #28394e;
+}
+.bc-console .directory-toolbar [data-slot="card-title"] {
+  color: #1f3047;
+  font-size: 16px;
+}
+
+/* Route-level pages use the same operational hierarchy as the overview.
+ * The public design-system swatches remain truthful to the active tokens. */
+.bc-console .bc-module-hero,
+.bc-console .bc-assets-workspace-head,
+.bc-console .page:not(.overview-page) > .section-heading {
+  border: 1px solid #e2e8f1;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: none;
+}
+.bc-console .bc-module-hero h1 { color: #192a40; }
+.bc-console .bc-module-hero .eyebrow,
+.bc-console .bc-assets-workspace-head .eyebrow { color: #667fa5; }
+.bc-console .bc-module-tag {
+  border-color: #dae4f1;
+  background: #eff4fb;
+  color: #47658d;
+}
+.bc-console .bc-module-notice {
+  background: #f3f7fc;
+  color: #536b88;
+  border-color: #e0e8f3;
+}
+.bc-console .bc-assets-access-state,
+.bc-console .bc-readonly-pill {
+  background: #f2f6fb;
+  color: #5f738e;
+  border-color: #dfe7f2;
+}
+.bc-console .bc-section-label h2 { color: #20334c; }
+.bc-console .bc-section-label > div > span { color: #7790af; }
+.bc-swatch-purple { background: #4d5fc9; }
+.bc-swatch-blue { background: #4669d1; }
+.bc-swatch-lime { background: #cef4e5; }
+.bc-swatch-ink { background: #172235; }
+.bc-swatch-canvas { background: #f5f7fa; }
+.bc-swatch-border { background: #e4e9f0; }
+
+/* Preserve native keyboard, touch and wheel scroll. Only the desktop
+ * navigation disappears under the existing accessible Base UI mobile sheet. */
+@media (max-width: 1100px) {
+  .bc-console .sidebar { width: 218px; min-width: 218px; }
+  .bc-console .main-content { padding-inline: 24px; }
+}
+@media (max-width: 750px) {
+  .bc-console .sidebar { display: none; }
+  .bc-console .topbar { height: 63px; min-height: 63px; padding: 0 16px; }
+  .bc-console .main-content { padding: 17px 14px 46px; }
+  .bc-overview .overview-hero { min-height: 0; border-radius: 16px; }
+  .bc-overview .overview-hero-content { min-height: 275px; padding: 26px 23px; }
+  .bc-overview .overview-hero::after { right: -410px; }
+  .lv-hero-guardrails { gap: 9px 12px; font-size: 10px; }
+  .bc-overview .metric-grid { gap: 11px; }
+  .bc-overview .metric-card { min-height: 155px; }
+  .bc-overview .overview-section-title { align-items: flex-start; }
+  .bc-overview .section-aside { max-width: 45%; font-size: 10px; }
+  .bc-mobile-sheet { background: #fff; }
+}
+@media (max-width: 430px) {
+  .bc-overview .overview-hero-content { padding: 23px 19px; }
+  .bc-overview .overview-hero .section-heading h1 { font-size: 32px; }
+  .bc-overview .hero-actions { gap: 14px; }
+  .bc-overview .metric-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .bc-overview .metric-card [data-slot="card-header"],
+  .bc-overview .metric-card [data-slot="card-content"] { padding-inline: 14px; }
+  .bc-overview .metric-card { min-height: 172px; }
+  .bc-overview .metric-card-bottom { align-items: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bc-console .nav-item,
+  .bc-console .metric-card,
+  .bc-console .hero-primary-action { transition: none; }
+}

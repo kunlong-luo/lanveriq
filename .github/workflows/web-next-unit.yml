@@ -41,6 +41,9 @@ jobs:
       - name: Verify native scrollbar hidden without disabling page scrolling
         working-directory: apps/web-next
         run: node --test scripts/test_viewport_scrollbar.mjs
+      - name: Verify the canonical Next.js operations visual contract
+        working-directory: apps/web-next
+        run: node --test scripts/test_console_visual_source.mjs
       - name: Check no API proxy or reachable credential route
         working-directory: apps/web-next
         run: pnpm run verify:routes

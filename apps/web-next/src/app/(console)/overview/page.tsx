@@ -7,9 +7,9 @@ import {
 import { DeviceDirectory } from '@/components/device-directory';
 
 /**
- * NXT-14: B+C approved standalone prototype translated to real App Router
- * components. Artwork is original CSS, never a chart of measured data.
- * No dynamic fixtures, external media, credentials, API or cookies.
+ * NXT-20: operations-first Next.js overview. The large decorative illustration
+ * is removed in favor of grounded capability boundaries and calmer visual
+ * hierarchy. No device counts, APIs, credentials or synthetic telemetry.
  */
 export default function Overview() {
   return <section className="page overview-page bc-overview">
@@ -21,7 +21,11 @@ export default function Overview() {
         </div>
         <SectionHeading eyebrow="LANVERIQ / CONTROL CENTER" title="设备运行概览"
           description="企业终端与 IT 资产管理工作区。统一梳理连接状态、库存健康及安全边界，为未来正式数据接入建立清晰的管理体验。" />
-        <p className="bc-hero-slogan">统一监控 · 安全管理 · 高效运维</p>
+        <div className="lv-hero-guardrails" aria-label="当前预览能力边界">
+          <span><strong>资产查询</strong> 仅展示页面结构</span>
+          <span><strong>远程连接</strong> 未启用</span>
+          <span><strong>设备采集</strong> 未启用</span>
+        </div>
         <div className="hero-actions">
           <Link className="hero-primary-action" href="/devices">
             查看终端资产 <ArrowUpRight size={17} aria-hidden="true" />
@@ -31,18 +35,7 @@ export default function Overview() {
           </Link>
         </div>
       </div>
-      <div className="hero-artwork" aria-hidden="true">
-        <div className="bc-illustration-glow" />
-        <div className="bc-illustration-orbit" />
-        <div className="bc-illustration-platform" />
-        <div className="bc-illustration-laptop"><div className="bc-laptop-screen">
-          <span className="bc-laptop-mark" /><strong>Lanveriq</strong>
-        </div></div>
-        <div className="bc-illustration-keyboard" />
-        <div className="bc-illustration-shield"><ShieldCheck size={37} /></div>
-        <div className="bc-illustration-server"><span/><span/><span/></div>
-        <div className="bc-illustration-float"><span/><span/><span/></div>
-      </div>
+
     </div>
     <div className="overview-section-title">
       <div><span className="section-index">01 / OVERVIEW</span><h2>工作区概览</h2></div>

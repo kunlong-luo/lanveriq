@@ -92,7 +92,7 @@ def check_browser(page, blocked):
             require(page.locator("main input:not([disabled])").count() == 0,
                     "planned_module_must_not_enable_business_inputs")
         if route == "/design-system":
-            require(page.get_by_text("#6A5BFF").count() == 1,
+            require(page.get_by_text("#4D5FC9").count() == 1,
                     "design_token_palette_missing")
         require(not blocked, "blocked_network_request")
     require(page.context.cookies() == [], "preview_must_not_set_session_cookie")
@@ -104,8 +104,10 @@ def check_browser(page, blocked):
             "designed_overview_hero_missing")
     require(page.locator(".overview-hero h1").inner_text() == "设备运行概览",
             "designed_hero_must_keep_accessible_page_heading")
-    require(page.locator(".overview-hero .hero-artwork[aria-hidden='true']").count() == 1,
-            "decorative_artwork_must_be_hidden_from_screen_readers")
+    require(page.locator(".overview-hero .hero-artwork").count() == 0,
+            "operational_overview_must_not_include_old_cartoon_illustration")
+    require(page.locator(".lv-hero-guardrails").count() == 1,
+            "operational_overview_must_show_real_preview_boundaries")
     require(page.locator(".bc-insight-grid > [data-slot='card']").count() == 3,
             "bc_dashboard_three_distinct_insight_panels")
     require(page.locator(".bc-empty-chart").get_attribute("aria-label") ==
@@ -113,8 +115,8 @@ def check_browser(page, blocked):
             "bc_activity_chart_must_not_invent_time_series")
     require(page.evaluate(
         "getComputedStyle(document.querySelector('.overview-hero')).color") ==
-            "rgb(28, 26, 46)",
-            "bc_light_hero_stylesheet_not_loaded")
+            "rgb(255, 255, 255)",
+            "nxt20_dark_operational_hero_stylesheet_not_loaded")
     require(page.locator(".metric-card").count() == 4,
             "designed_overview_four_unknown_metrics")
     for metric in page.locator(".metric-card").all():
