@@ -25,6 +25,7 @@ import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.time.Instant;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -61,7 +62,9 @@ final class StagedFidoMdsSourceVerifier {
     record UntrustedSourceEvidence(long blobNumber, long signedTimeSequence,
                                    Instant checkedAt, String leafSha256,
                                    String blobSha256, String rootSha256,
-                                   String crlEvidenceSha256) {
+                                   String crlEvidenceSha256,
+                                   String timeKeySha256,
+                                   String signedTimeProofSha256) {
         // Intentionally NO trusted, attestation-admission or MFA permission.
     }
 
@@ -276,9 +279,11 @@ final class StagedFidoMdsSourceVerifier {
                     sha256(compactJws.getBytes(StandardCharsets.US_ASCII)),
                     rootFingerprint,
                     sha256(String.join(":", crlHashes).getBytes(
-                            StandardCharsets.US_ASCII)));
+                            StandardCharsets.US_ASCII)),
+                    timeKeyFingerprint,
+                    sha256(time.signature()));
         } catch (GeneralSecurityException | ParseException | JOSEException
-                | IllegalArgumentException error) {
+                | IllegalArgumentException | DateTimeException error) {
             throw denied();
         }
     }

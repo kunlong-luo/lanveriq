@@ -2420,4 +2420,171 @@ class PostgreSqlConsoleSecurityWiringIT {
                 .andExpect(status().isForbidden());
     }
 
+
+    // D4-C5/V26: deliberately constructed UNTRUSTED source receipts; these
+    // integration fixtures DO NOT claim official FIDO signature provenance.
+    private static StagedFidoMdsSourceVerifier.UntrustedSourceEvidence
+            sourceReceiptEvidenceSynthetic(long number, long timeSeq,
+                    String rootFingerprint) {
+        return new StagedFidoMdsSourceVerifier.UntrustedSourceEvidence(
+                number, timeSeq, java.time.Instant.now(), "11".repeat(32),
+                java.lang.String.format("%064x",number + 111),
+                rootFingerprint, "22".repeat(32),
+                "33".repeat(32), "44".repeat(32));
+    }
+
+    private UUID saveUntrustedSourceReceipt(UUID stream,
+            StagedFidoMdsSourceVerifier.UntrustedSourceEvidence evidence) {
+        return new TransactionTemplate(transactionManager).execute(ignored ->
+                new StagedFidoMdsSourceReceiptLedger(entityManager)
+                        .appendUntrustedOnly(stream,evidence));
+    }
+
+    @Test
+    void syntheticSourceReceiptsBindRootTimeCrlBlobAndPredecessorAtomically() {
+        UUID owner = registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID stream = syntheticMdsStream();
+            UUID one = saveUntrustedSourceReceipt(stream,
+                    sourceReceiptEvidenceSynthetic(40, 100, "55".repeat(32)));
+            UUID two = saveUntrustedSourceReceipt(stream,
+                    sourceReceiptEvidenceSynthetic(41, 101, "55".repeat(32)));
+            var records = entityManager.createNativeQuery("""
+                    SELECT receipt_sequence,blob_no,signed_time_sequence,
+                           previous_receipt_sha256,receipt_sha256,
+                           evidence_state,root_sha256,time_key_sha256,
+                           crl_evidence_sha256,signed_time_proof_sha256
+                    FROM admin_fido_mds_source_receipts_staging
+                    WHERE stream_id=:stream ORDER BY receipt_sequence
+                    """).setParameter("stream",stream).getResultList();
+            assertEquals(2,records.size());
+            Object[] first=(Object[])records.get(0);
+            Object[] second=(Object[])records.get(1);
+            assertEquals(1L,((Number)first[0]).longValue());
+            assertEquals(2L,((Number)second[0]).longValue());
+            assertEquals(40L,((Number)first[1]).longValue());
+            assertEquals(41L,((Number)second[1]).longValue());
+            assertEquals(100L,((Number)first[2]).longValue());
+            assertEquals(101L,((Number)second[2]).longValue());
+            assertNull(first[3]);
+            assertArrayEquals((byte[])first[4],(byte[])second[3]);
+            assertEquals(32,((byte[])second[4]).length);
+            assertEquals("source_untrusted",first[5]);
+            assertEquals("source_untrusted",second[5]);
+            assertArrayEquals((byte[])first[6],(byte[])second[6]);
+            assertArrayEquals((byte[])first[7],(byte[])second[7]);
+            assertEquals(32,((byte[])second[8]).length);
+            assertEquals(32,((byte[])second[9]).length);
+            assertEquals(2L,((Number)entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE resource_id IN (:one,:two)
+                      AND action='admin.passkey.mds.source.untrusted.receipt'
+                    """).setParameter("one",one).setParameter("two",two)
+                    .getSingleResult()).longValue());
+            assertTrue(context.getBeansOfType(StagedFidoMdsSourceReceiptLedger.class)
+                    .isEmpty());
+            assertTrue(context.getBeansOfType(StagedFidoMdsSourceVerifier.class)
+                    .isEmpty());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void syntheticSourceReceiptsRejectReplayTimeRollbackAnchorSwapAndForgedPredecessor() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            saveUntrustedSourceReceipt(stream,
+                    sourceReceiptEvidenceSynthetic(40,100,"55".repeat(32)));
+            assertThrows(RuntimeException.class, () -> saveUntrustedSourceReceipt(
+                    stream,sourceReceiptEvidenceSynthetic(40,101,"55".repeat(32))));
+            assertThrows(RuntimeException.class, () -> saveUntrustedSourceReceipt(
+                    stream,sourceReceiptEvidenceSynthetic(41,100,"55".repeat(32))));
+            assertThrows(RuntimeException.class, () -> saveUntrustedSourceReceipt(
+                    stream,sourceReceiptEvidenceSynthetic(41,101,"66".repeat(32))));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        INSERT INTO admin_fido_mds_source_receipts_staging
+                          (stream_id,receipt_sequence,blob_no,signed_time_sequence,
+                           signed_time_at,leaf_sha256,jws_sha256,root_sha256,
+                           crl_evidence_sha256,time_key_sha256,
+                           signed_time_proof_sha256,previous_receipt_sha256,
+                           observed_by,observer_session_version)
+                        SELECT stream_id,receipt_sequence+1,blob_no+1,
+                               signed_time_sequence+1,clock_timestamp(),
+                               leaf_sha256,decode(repeat('ab',32),'hex'),
+                               root_sha256,crl_evidence_sha256,time_key_sha256,
+                               signed_time_proof_sha256,
+                               decode(repeat('ef',32),'hex'),
+                               observed_by,observer_session_version
+                        FROM admin_fido_mds_source_receipts_staging
+                        WHERE stream_id=:stream
+                        """).setParameter("stream",stream).executeUpdate()));
+            saveUntrustedSourceReceipt(stream,
+                    sourceReceiptEvidenceSynthetic(41,101,"55".repeat(32)));
+            assertEquals(2L,((Number)entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_fido_mds_source_receipts_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void syntheticSourceReceiptHistoryNeverPromotesMutatesOrDeletes() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            UUID id=saveUntrustedSourceReceipt(stream,
+                    sourceReceiptEvidenceSynthetic(1,10,"55".repeat(32)));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_fido_mds_source_receipts_staging
+                        SET evidence_state='trusted' WHERE receipt_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_fido_mds_source_receipts_staging
+                        SET root_sha256=decode(repeat('00',32),'hex')
+                        WHERE receipt_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_fido_mds_source_receipts_staging
+                        WHERE receipt_id=:id
+                        """).setParameter("id",id).executeUpdate()));
+            assertEquals("source_untrusted",entityManager.createNativeQuery("""
+                    SELECT evidence_state FROM admin_fido_mds_source_receipts_staging
+                    WHERE receipt_id=:id
+                    """).setParameter("id",id).getSingleResult());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void syntheticSourceReceiptRejectsRotatedOwnerSessionWithoutSideEffect() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1
+                    WHERE id=:owner
+                    """).setParameter("owner",owner).executeUpdate());
+            assertThrows(RuntimeException.class, () -> saveUntrustedSourceReceipt(
+                    stream,sourceReceiptEvidenceSynthetic(1,10,"55".repeat(32))));
+            assertEquals(0L,((Number)entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_fido_mds_source_receipts_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
 }
