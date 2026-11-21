@@ -1,6 +1,4 @@
-> **2026-11-21 UI-only acceptance update:** The sole browser frontend is Next.js 16 at [`apps/web`](../../apps/web/README.md), not a separate Vite/`apps/web-next` app. [NXT-24](../development/nextjs-path-rename-nxt24-2026-11-21.md) passed five same-SHA **disconnected UI/source** workflows on `6ed47c47`. Public Pages is auto-published on scoped `apps/web` UI-only changes, while production network, authenticated Console API, official FIDO MDS trust chain, true WebAuthn MFA and physical Pop!_OS 24.04 L3 remain **NOT ACCEPTED**. Historical statements below about purely manual Pages deployment or Vite refer to earlier dates.
-
-> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](../planning/release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+> **2026-11-21 现行发布边界：** 以 [CURRENT_STATUS](../CURRENT_STATUS.md) 和 [Linux-first 发布账本](../planning/release-readiness-2026-11-13.md) 的最新证据为准：D4-C10 FIDO 元数据拒绝检查已通过 5/5 **合成** CI，NXT-28 单一 Next.js 断开式预览已通过 4/4；这些不能替代真实 FIDO 来源审批、管理员 WebAuthn、Pop!_OS 24.04 L3、正式业务授权、签名发行/备份恢复。**没有任何生产发布批准；所有生产联网、采集、自动恢复、远控、CA 签发保持关闭。** 本文件旧 2026-11-08/13 片段保留为历史。
 
 # Lightweight pre-release and migration plan
 

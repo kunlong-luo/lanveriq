@@ -1,12 +1,9 @@
 # Cross-platform and protocol verification matrix
 
-**2026-11-08 活动门禁：** 旧测试矩阵中的“manual-only / CI unit-only”描述需按受批准的 [L1/L2/L3](strategy.md) 理解：每日相关源码检查、完整业务批次结束的 synthetic PG18/Caddy/Agent 集成、明确验收 tag/dispatch 下的 Chromium/Windows/Linux。批次 A1 heartbeat HTTP 仅有 JUnit/MockMvc 和 Rust ACK 的 L1 证据，**不应标记真实 mTLS 与 PG18 已打通**；P0 增加 Agent→Caddy TLS 版本/双证书/伪造头/失效证书/跨设备/断网重复 ACK 负例，参见 [协议风险清单](../architecture/device-communication-stack.md)。
-
-
-**Status:** planned checks, **not executed**. During early v0.x, automatic GitHub Actions runs **unit tests and compilation** only; a separate explicitly manually dispatched synthetic Testcontainers PostgreSQL 18 workflow is available, but its execution must be evidenced before any database gate is marked PASS. All real OS/browser/LAN validation below is **manual** and tracked in [Manual Acceptance](manual-acceptance.md). E2E automation is postponed.
+**当前状态（2026-11-21）：** 本文件是**场景与覆盖计划矩阵**，不是“所有自动化未执行”的实时结论。实际完成程度以 [CURRENT_STATUS](../CURRENT_STATUS.md)、[L1/L2/L3](strategy.md) 和每项 GitHub Actions 功能 SHA 为准。已执行：Linux 隔离 Rust→Caddy/Tomcat TLS1.3→PG18/ACK、PG18.6 Testcontainers、Next.js Chromium 等**合成**检查；最新 D4-C10 5/5 同 SHA CI PASS。**未执行/未批准：Pop!_OS 24.04 实机 L3、生产登录/设备链路、可信 FIDO MDS 官方来源和发布批准。** 下方单元/手动表格的 `Planned` 表示对应 **OS 实机和业务端到端验收未通过**，不否定已有隔离 CI。
 
 ## Platform coverage
-| Case | Windows 11 x64 | Pop!_OS 24.04 KDE/X11 | Pop!_OS 24.04 KDE/Wayland | Method / milestone |
+| Case | Windows 11 x64 | Pop!_OS 24.04 主机（实际会话待核对） | 备用 X11/Wayland 会话（条件性） | Method / milestone |
 |---|---|---|---|---|
 | Agent native service starts/stops | Planned | Planned | Planned | Manual v0.1 |
 | CA root/hostname verified, invalid trust refused | Planned | Planned | Planned | Manual v0.1 |
@@ -24,7 +21,7 @@
 | Screen lock/logout creates gap | Planned v0.3 | Planned v0.3 | Planned v0.3 | Manual v0.3 |
 | Installer upgrades/uninstalls | Planned v0.4 | Planned v0.4 | Planned v0.4 | Manual v0.4 |
 
-**Initial Linux test device:** Pop!_OS 24.04 LTS x86_64, KDE Plasma 5.27.12/KWin, NVIDIA RTX 4050 Laptop, kernel 7.2.6-76070206-generic as reported by the maintainer. **Session protocol has not been confirmed**; X11/Wayland columns are separate conditional test cases, not evidence that both sessions were tested. Record `echo $XDG_SESSION_TYPE`, portal backend and versions before marking results. These cells do **not** promise supported status.
+**历史报告的候选测试设备（尚未现场确认或通过 L3）：** Pop!_OS 24.04 LTS x86_64, KDE Plasma 5.27.12/KWin, NVIDIA RTX 4050 Laptop, kernel 7.2.6-76070206-generic as reported by the maintainer. **Session protocol has not been confirmed**; 表格中 Linux 两列是条件性测试范围，**不是**两种桌面会话均已安装或验收的证据。 Record `echo $XDG_SESSION_TYPE`, portal backend and versions before marking results. These cells do **not** promise supported status.
 
 ## Device inventory unit/manual cases
 See [inventory checklist INV-01–16](device-inventory-checklist.md) for hardware/NIC field accuracy, rate-limited sampling, snapshot retries, authorization and OS-specific unavailability.

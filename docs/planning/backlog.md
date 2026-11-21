@@ -1,3 +1,5 @@
+> **当前阅读提示（2026-11-21）：** 本文件是原始**历史 issue/ticket 资料**，其中“尚无 PG18/TLS 真实容器结果”“未建 Next.js”等只反映当时。最新核实的功能状态、D4-C10/NXT-28 精确 SHA 及待办门槛见 [CURRENT_STATUS](../CURRENT_STATUS.md)；本表不再承担验收账本职责，不得直接据此重做已验证功能或启用生产。
+
 > **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
 
 # Issue-ready prioritized backlog

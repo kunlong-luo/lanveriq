@@ -1,6 +1,4 @@
-> **NXT-24 UI infrastructure update (2026-11-21):** the frontend source and CI are now exclusively [`apps/web`](../../apps/web/README.md); [NXT-24 five-workflow verification](../development/nextjs-path-rename-nxt24-2026-11-21.md) passed at `6ed47c47`. The launch path/visual preview is implemented, but **authorized WebAuthn/login, FIDO MDS trust chain, real Agent→UI/device operations and Pop!_OS physical acceptance remain OPEN**. The roadmap milestones below are product goals rather than evidence of operational readiness.
-
-> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+> **2026-11-21 当前执行状态：** [CURRENT_STATUS 实际代码/CI 与 P0 阻塞表](../CURRENT_STATUS.md) 是唯一最新事实入口。本文件的 2026-11-08 目标时间线与 NXT 阶段描述保留为**有日期的路线图基线**，不是当前已完成/未完成清单。D4-C10 离线签名元数据重复标识符校验已通过五条同 SHA 合成 CI；NXT-28 断开式 Web UI 也已验收。**仍无正式 FIDO 来源批准、管理员真实 WebAuthn MFA、Pop!_OS L3、生产联网/采集/远控/签发，v0.1 NOT RELEASE READY。**
 
 # Lanveriq delivery roadmap — v0.1 business-loop priority
 

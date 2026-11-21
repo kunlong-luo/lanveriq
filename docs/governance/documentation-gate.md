@@ -1,3 +1,5 @@
+> **2026-11-21 最新文档优先级：** [CURRENT_STATUS](../CURRENT_STATUS.md) 是“当下源码/同 SHA CI/实机/上线审批”唯一权威事实；[docs/README](../README.md) 负责导航；本 D0 文件仅证明**2026-10-30 技术设计允许开始编码**。功能验收见里程碑细则，历史快照保留原貌。任何新 PASS 必须注明功能 SHA、完整 CI run、隔离/实机/生产范围，不得继承别的 SHA 或把单元/容器/Chromium 视为生产批准。v0.1 NOT RELEASE READY。
+
 # D0 — documentation-before-code gate
 
 > **2026-11-21 CURRENT FRAMEWORK OVERRIDE:** D0 approved the 2026-10-30 **initial** React/Vite choice, which is **superseded** by [ADR-0008](../architecture/adrs/0008-nextjs-app-router-console.md) and [NXT-24 five-SHA source acceptance](../development/nextjs-path-rename-nxt24-2026-11-21.md). Today the **only frontend is Next.js 16 under `apps/web`**; do not interpret old D0 checkboxes or historical `React/Vite/Orval as selected` language as authorization to recreate Vite or mount real credentials. NXT-23 removed the old Vite source, and NXT-24 renamed Next.js from `apps/web-next`. All production/privacy/PKI/physical acceptance remains separately blocked.

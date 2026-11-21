@@ -1,122 +1,37 @@
-> **2026-11-21 D4-C10 duplicate FIDO MDS identifiers — 5/5 SAME-SHA SYNTHETIC CI SUCCESS, PRODUCTION OFF:** [functional SHA `2368163e`](https://github.com/kunlong-luo/lanveriq/commit/2368163e588e6e94f74a748bdc6e162b9c4c6b9a) passed **5/5 exact-SHA synthetic CI gates**: [Java 25/Gradle unit and 8 required real JUnit XML methods #44893055170](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055170), [PostgreSQL 18.6 Testcontainers synthetic transactions #44893055206](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055206), [PostgreSQL integration-source compile #44893055072](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055072), [Next.js frozen install/tests/typecheck/build #44893055069](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055069), and [RD-2 default-OFF #44893055089](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055089). These tests use disposable synthetic PKIX/CRLs/signers, NOT official FIDO provenance, production trusted time or live MFA. [D4-C10 exact acceptance and blockers](security/fido-mds-duplicate-identifiers-d4-c10-2026-11-21.md). No official FIDO trusted root, time, MDS source ingestion, real WebAuthn MFA or Pop!_OS physical acceptance; v0.1 NOT RELEASE READY.
+# Lanveriq 文档导航 / Documentation home
 
-> **2026-11-21 NXT-28 compact navigation — FOUR EXACT-SHA CI SUCCESSES (production OFF):** [Compact-height navigation acceptance](development/frontend-compact-navigation-nxt28-2026-11-21.md) unified desktop/mobile white/ink navigation and tested internal scrolling/keyboard focus at 1024×520 and 390×520 without APIs or cookies. [functional SHA `e76cd345`](https://github.com/kunlong-luo/lanveriq/commit/e76cd34505dd8e49833ab9c0b61421288c43c353) passed FOUR same-SHA checks: [Next.js L1 #44882686781](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686781), [real Chromium #44882686713](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686713), [disconnected Pages build/deploy #44882686808](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686808), and [RD-2 default-OFF #44882686775](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686775). Chromium screenshot artifact: `nxt18-visual-qa-e76cd34505dd8e49833ab9c0b61421288c43c353` (ID `14698677524`). This accepts only the disconnected UI, not v0.1 production.
+**更新日期：2026-11-21** · **单一现行状态入口：[CURRENT_STATUS.md](CURRENT_STATUS.md)** · **发布状态：v0.1 NOT RELEASE READY**。本页只负责导航，不重复维护某个阶段的 CI 结论；所有“已通过/仍未完成”以状态页及其精确源码 SHA 为准。旧文档标题、日期和旧目录名是历史事实，不自动代表今天仍有效。
 
-> **2026-11-21 A11-D4-C9 current security work (5/5 exact-source CI PASS; PRODUCTION OFF):** [FIDO MDS payload-entry structural screening and signed synthetic JUnit gates](security/fido-mds-payload-screen-d4-c9-2026-11-21.md) are now the most recent server-side trust-chain work. This is **not** the older D4-C8/V29 database history guard and is **not** official FIDO root approval. Live WebAuthn MFA, Pop!_OS 24.04 hardware acceptance, collection, remote access and CA signing remain blocked.
+> **2026-11-21 current Web baseline:** `apps/web` 是唯一 **Next.js 16.4.5** UI（`127.0.0.1:3100`）；旧 Vite 已删除、`apps/web-next` 已在 NXT-24 迁移。参见 [NXT-24 路径与 CI 原始记录](development/nextjs-path-rename-nxt24-2026-11-21.md)。当前浏览器预览是 **断开式静态/本地 UI**，不含正式业务数据、登录、远控、采集或证书签发。
 
-> **D4-C9 exact-source acceptance — 5/5 SUCCESS:** functional SHA [`4dc3b5f1`](https://github.com/kunlong-luo/lanveriq/commit/4dc3b5f19d8d125d528e2c2eccf1905fb375e34d) passed [Java 25 / Gradle L1 #44881397946](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397946) (real JUnit XML proved **all seven mandatory verifier tests** executed), [PostgreSQL 18.6 Testcontainers real synthetic transactions #44881397931](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397931), [PostgreSQL integration source compile #44881397981](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397981), [Next.js fast source/build/HTTP #44881397980](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397980), and [RD-2 remote default-OFF #44881397956](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397956). These cover **ephemeral synthetic signers/keys, offline signed-time claim and untrusted records only**; they do NOT establish an approved official FIDO signing source, licensed MDS usage, trusted time, source CRL provenance, live WebAuthn MFA or production readiness. **v0.1 NOT RELEASE READY**.
+## 1. 新成员从这里开始
 
-> **NXT-27 frontend evidence-state implementation (FOUR EXACT-SHA CI PASS; non-production):** Shared read-only status components now cover monitoring and device detail without inventing device data. [NXT-27 implementation and acceptance](development/frontend-evidence-state-nxt27-2026-11-21.md). The only frontend remains `apps/web` Next.js on loopback port 3100, with all production capabilities OFF. [NXT-27 Chromium success #44880424398](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424398); [same-SHA details](development/frontend-evidence-state-nxt27-2026-11-21.md).
+| 我要做什么 | 当前权威文档 | 限制 |
+| --- | --- | --- |
+| 看项目当前真实进度、阻塞项、CI | **[CURRENT_STATUS](CURRENT_STATUS.md)** · [Linux-first 上线验收账本](planning/release-readiness-2026-11-13.md) | 不能把隔离合成 CI 当上线批准 |
+| 了解产品范围 | [需求](product/requirements.md) · [功能闭环](product/functional-closure.md) · [用户故事](product/user-stories.md) · [非功能需求](product/nonfunctional.md) | 需求不等于已实现 |
+| 本地启动唯一 Web | [apps/web README](../apps/web/README.md) · [安装/开发指引](operations/installation.md) | 不运行已删除的 Vite / web-next |
+| 开发 Java / Rust / Web | [工程目录规范](development/standards.md) · [当前真实依赖](development/technology.md) · [复用优先](development/reuse-first-policy.md) · [AGENTS.md](../AGENTS.md) | Java 用 Gradle/JPA；不重造组件 |
+| 执行自动化与实机验收 | [L1/L2/L3 策略](testing/strategy.md) · [测试矩阵](testing/test-matrix.md) · [Pop!_OS 24.04 L3](testing/linux-popos24-agent-acceptance.md) | CI 不能代替真实 Pop!_OS |
+| 审查安全与发布 | [FIDO MDS D4-C10](security/fido-mds-duplicate-identifiers-d4-c10-2026-11-21.md) · [身份与访问](security/identity-and-access.md) · [发布门禁](operations/release.md) | v0.1 NOT RELEASE READY |
 
-> **NXT-25 docs verification — passed:** **NXT-25 exact-source checks PASSED:** implementation SHA [`b37797d9da5d9d622df39c968b92547c2f00402d`](https://github.com/kunlong-luo/lanveriq/commit/b37797d9da5d9d622df39c968b92547c2f00402d) passed [Next.js L1 with documentation negative tests #44877774039](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774039), [real Chromium/UI/network isolation and 15 screenshots #44877774015](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774015), [disconnected static Pages build+deploy #44877774094](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774094) and [RD-2 remote default-OFF #44877774084](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774084), **all on the same SHA**. Chromium artifact `nxt18-visual-qa-b37797d9da5d9d622df39c968b92547c2f00402d` (ID `14697086467`). This is documentation/preview-source acceptance, NOT release or live system approval.
+## 2. 架构与关键决议
 
-> **2026-11-21 current Web baseline:** Only `apps/web` is runnable, containing **Next.js 16.4.5 / React 19 / Tailwind 4 / Base UI**, localhost port **3100**, public Pages **disconnected**. The old Vite app was removed at NXT-23, then Next.js moved from temporary `apps/web-next` into `apps/web` at NXT-24. [Exact-five-workflow NXT-24 verification](development/nextjs-path-rename-nxt24-2026-11-21.md) passed at functional SHA `6ed47c47`; it does **not** prove WebAuthn MFA, FIDO MDS source-chain acceptance, live device API, real Pop!_OS 24.04 acceptance or release readiness. See [canonical UI README](../apps/web/README.md).
+- [系统结构](architecture/system-overview.md) · [组件与边界](architecture/components.md) · [部署](architecture/deployment.md) · [协议栈与 TLS/ACK](architecture/device-communication-stack.md) · [Agent 持久化](architecture/agent-persistence.md) · [设备身份](architecture/device-identity.md) · [设备库存](architecture/device-inventory.md) · [事件交付](architecture/event-delivery.md)。
+- [API 契约](architecture/api-contract.md) · [WebSocket 契约](architecture/websocket-contract.md) · [健康/缺口状态](architecture/health-and-gap-semantics.md) · [配置策略](architecture/policy-configuration.md) · [数据模型](architecture/data-model.md)。
+- **现行关键 ADR：** [0007 成熟生态优先](architecture/adrs/0007-mature-ecosystem-first.md) · [0008 Next.js](architecture/adrs/0008-nextjs-app-router-console.md) · [0009 设备协议](architecture/adrs/0009-agent-transport-selection.md) · [0010 RustDesk 候选](architecture/adrs/0010-rustdesk-remote-control-integration.md) · [0011 双网访问规划](architecture/adrs/0011-rustdesk-dual-network-access.md)。其余 [ADR 0001–0006](architecture/adrs/0001-monorepo.md) 保留各自历史决议范围，不得覆盖已明确取代的技术选型。
+- [全部工程 Mermaid 图](diagrams/README.md) · [示意图与可编辑 SVG](visuals/README.md) 只表达设计/方案，不应作为实机或线上功能证据。
 
-> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](planning/release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+## 3. 实施与前端
 
-# Lanveriq — documentation index
+- **Linux-first 执行：** [A–E 批次计划](planning/v0.1-batched-delivery-plan-2026-11-08.md) · [当前路线图](planning/roadmap.md) · [需求 backlog（含历史 ticket）](planning/backlog.md) · [历史实施顺序](planning/v0.1-implementation-sequence.md) · [Definition of Done](planning/definition-of-done.md)。
+- **前端现行实现：** [设计系统与真实 CSS token](development/frontend-design-system.md) · [NXT-28 低高度侧栏/移动端](development/frontend-compact-navigation-nxt28-2026-11-21.md) · [NXT-27 数据证据状态](development/frontend-evidence-state-nxt27-2026-11-21.md) · [NXT-26 Base UI Select](development/frontend-base-ui-select-nxt26.md)。
+- **Web 迁移历史：** [NXT-23/NXT-24 单入口整理](development/nextjs-single-ui-consolidation-2026-11-21.md) · [NXT-24 改名](development/nextjs-path-rename-nxt24-2026-11-21.md) · [NXT-18 视觉验收](development/frontend-visual-regression-nxt18.md)。旧的 Vite 指令仅可作历史。
+- **子系统设计：** [监控中心](development/monitoring-center.md) · [后台/Agent 技术栈](development/backend-stack.md) · [Rust Agent](development/rust-agent-stack.md) · [管理员审核/签发阶段计划](development/batch-a11-trusted-administrator-review-issuance.md)。
 
-**Current baseline (2026-11-08):** D0 technical design approved; implemented Java 25/Spring Boot/PG18 unit & synthetic integration slices, Rust SQLx/reqwest + Linux/Windows tests, and canonical Next.js B+C disconnected preview. Batch A1 has a default-OFF Agent heartbeat POST source/strict Rust ACK, **but device registration→Agent runtime→Caddy→PG18→authorized UI is not yet an integrated product**. Full synthetic and real-device legal/operational releases are separate. Active [batch plan](planning/v0.1-batched-delivery-plan-2026-11-08.md), [actual stack](development/technology.md) and [2026-11-08 doc audit](governance/documentation-audit-2026-11-08.md). Historical runbook statuses must be read as timestamped evidence, not the most recent result. See [中文介绍](../README.zh.md).
+## 4. 安全、测试、运维与合规
 
-## Canonical frontend — current versus historical records
-
-- **[NXT-26 Base UI Select consistency — four same-SHA workflows passed](development/frontend-base-ui-select-nxt26.md)** — replace browser-native group/sort menus with the existing Base UI component in the shared directory; disabled by default, synthetic fixture only for real interaction verification.
-
-
-- **[Run the one and only Next.js UI](../apps/web/README.md)** — Node 24, pinned pnpm 12, `cd apps/web && corepack pnpm dev`, `http://127.0.0.1:3100/overview`; disabled login/API and disconnected public preview.
-- **[NXT-24 path rename and five-workflow CI evidence](development/nextjs-path-rename-nxt24-2026-11-21.md)** — active `apps/web`, `web-unit.yml`, Chromium, GitHub Pages and RD-2/Java safety checks.
-- **[NXT-23/NXT-24 one-UI history and current source guards](development/nextjs-single-ui-consolidation-2026-11-21.md)** — explains why the old Vite `apps/web` was removed and the name later reused by Next.js. This avoids an obsolete instruction to delete the current `web-unit.yml`.
-- **[Current stack](development/technology.md)** · **[engineering conventions](development/standards.md)** · **[current visual source and tokens](development/frontend-design-system.md)** · **[ADR-0008 framework authority](architecture/adrs/0008-nextjs-app-router-console.md)**.
-- **Historical only:** 2026-10 and early 2026-11 Vite/NXT-01—03 notes and screenshots are not current launch commands or production acceptance records.
-
-## Product
-- [Requirements and scope](product/requirements.md)
-- [Functional closure by milestone](product/functional-closure.md)
-- [User stories and flows](product/user-stories.md)
-- [Quality requirements](product/nonfunctional.md)
-
-## Architecture
-- [System overview and trust boundaries](architecture/system-overview.md)
-- [Component decomposition](architecture/components.md)
-- [Storage and event models](architecture/data-model.md)
-- [Device identity: UUIDv7 enrollment, re-enrollment and replacement](architecture/device-identity.md)
-- [Hardware/OS/network inventory and sampling](architecture/device-inventory.md)
-- [Agent local persistence and outbox](architecture/agent-persistence.md)
-- [Event delivery and idempotency contract](architecture/event-delivery.md)
-- [Configuration and collection policy](architecture/policy-configuration.md)
-- [Independent health and coverage semantics](architecture/health-and-gap-semantics.md)
-- **[Canonical device communication protocol / TLS/ACK review](architecture/device-communication-stack.md)** — implemented reqwest/rustls + Caddy + Spring/PG18, historical TLS1.2-minimum gap (isolated TLS1.3 L2 now passed), gRPC/MQTT comparison and remaining release gates.
-- **[ADR-0010: RustDesk remote session reuse (proposed)](architecture/adrs/0010-rustdesk-remote-control-integration.md)**, [isolated RD-0—RD-3 plan](architecture/rustdesk-integration-plan.md) and **[RD-2 server-enforced authorization acceptance](architecture/rustdesk-rd2-security-acceptance.md)** — genuine OSS/client synthetic CI has passed rendezvous and relay tests, but **no approved remote-desktop session or production integration**; Pro/OSS/AGPL and fail-closed release gates remain open.
-- [REST and event API contract](architecture/api-contract.md)
-- [Dashboard WebSocket protocol](architecture/websocket-contract.md)
-- [LAN bootstrap and device enrollment](architecture/enrollment-bootstrap.md)
-- [Screen recording pipeline](architecture/recording.md)
-- [Platform feature matrix](architecture/platform-matrix.md)
-- [Deployment and LAN topology](architecture/deployment.md)
-- [ADR 0001: Monorepo and modular monolith](architecture/adrs/0001-monorepo.md)
-- [ADR 0002: PostgreSQL and SQLite](architecture/adrs/0002-postgres-sqlite.md)
-- [ADR 0003: Authorized recording](architecture/adrs/0003-disclosed-capture.md)
-- [ADR 0004: Historical direct-main CI policy (L1/L2/L3 supersedes test cadence)](architecture/adrs/0004-rapid-main-development.md)
-- [ADR 0005: REST + WebSocket from v0.1](architecture/adrs/0005-rest-plus-websocket.md)
-- [ADR 0006: Agent REST vs dashboard WS responsibilities](architecture/adrs/0006-agent-rest-dashboard-ws.md)
-- [ADR 0007: Mature ecosystem before custom infrastructure](architecture/adrs/0007-mature-ecosystem-first.md)
-- [ADR 0008: Canonical Next.js App Router decision (supersedes old Vite)](architecture/adrs/0008-nextjs-app-router-console.md)
-- [ADR 0009: Device protocol stack recommendation (REST/mTLS vs gRPC/MQTT)](architecture/adrs/0009-agent-transport-selection.md)
-
-## Product infographics / 产品彩图
-- [Eight coordinated editable SVG posters](visuals/README.md) for non-technical audiences, including overview, flow, stack, features, enrollment, dashboard, recovery and privacy.
-- [Asset manifest](visuals/ASSET_MANIFEST.md) · [Visual design rules](visuals/STYLE_GUIDE.md) · [Content consistency matrix](visuals/CONTENT_MATRIX.md). These are **concept images** and not finished UI screenshots.
-
-## Architecture drawings
-- [All Mermaid drawings and sources](diagrams/README.md): system context, components, LAN deployment, enrollment, event delivery, WebSocket, video, RBAC, PostgreSQL/Agent SQLite models, outbox, WSS lifecycle, dashboard navigation, health states, trust boundaries and retention.
-
-## Engineering
-- **Mandatory reuse-first principle for future work:** [Repository AGENTS.md](../AGENTS.md) · [Reusable-component / dependency policy](development/reuse-first-policy.md) · [ADR-0007](architecture/adrs/0007-mature-ecosystem-first.md)
-- [Technology selection](development/technology.md)
-- [Spring Boot/Gradle backend stable-version and dependency decisions](development/backend-stack.md)
-- [Gradle 9.8.2 Groovy DSL example (documentation only)](development/backend-gradle-reference.md)
-- [Pagevela reference: reuse and differences](development/pagevela-reference.md)
-- [Repository layout and conventions](development/standards.md)
-- [Dashboard UI/UX contract](development/dashboard-ux.md)
-- [Dedicated Monitoring Center design](development/monitoring-center.md)
-- [Recording & Playback Center design](development/recording-playback-center.md)
-- [IntelliJ IDEA import: link the standalone Gradle backend under apps/server](development/intellij-idea.md)
-- [Frontend design system and generated REST client](development/frontend-design-system.md)
-- [Rust Agent dependency stack and service runtime](development/rust-agent-stack.md) · [AGT-01 source](../apps/agent/README.md) · [Windows/Linux manual service acceptance](testing/agent-lifecycle-manual.md) · [SQLite WAL/outbox manual acceptance](testing/agent-sqlite-manual.md) · [mTLS/heartbeat/batch-ACK manual acceptance](testing/agent-transport-manual.md) · [SRV-03 PostgreSQL event acceptance](testing/server-event-ingestion-manual.md) · [HB-01 heartbeat acceptance](testing/server-heartbeat-manual.md) · [SRV-02 certificate activation acceptance](testing/server-cert-activation-manual.md) · [SRV-02 signed certificate registration acceptance](testing/server-cert-registration-manual.md) · [SRV-02 Caddy Agent ingress identity gate](testing/agent-ingress-identity-manual.md) · [INV-02 latest inventory acceptance](testing/server-inventory-manual.md)
-- **[Approved v0.1 batched delivery / three-tier testing plan (2026-11-08)](planning/v0.1-batched-delivery-plan-2026-11-08.md)** — feature-first A/B/C/D/E milestones, path-filtered fast CI, batch integration and milestone acceptance.
-- [Batch A first heartbeat source and default-off security boundary](development/batch-a-first-heartbeat-implementation.md) — committed HTTP ingress and Agent typed ACK; full Agent→TLS→PG18 business loop still pending.
-- **[Current Linux-first launch readiness, 2026-11-13](planning/release-readiness-2026-11-13.md)**
-- [Development roadmap](planning/roadmap.md)
-- [v0.1 implementation sequence](planning/v0.1-implementation-sequence.md)
-- [Issue-sized backlog](planning/backlog.md)
-- **[L1/L2/L3 active testing and milestone acceptance](testing/strategy.md)**
-- [Hands-on real-device manual acceptance](testing/manual-acceptance.md)
-- [Real disposable PostgreSQL 18.6 Testcontainers acceptance (historical failures superseded by #41290838250; new Batch A heartbeat route NOT yet E2E)](testing/server-postgres18-manual.md)
-- [Cross-platform and WebSocket test matrix](testing/test-matrix.md)
-- [Device inventory unit/manual acceptance cases](testing/device-inventory-checklist.md) · [Rust INV-01 on-demand asset collector acceptance](testing/agent-inventory-manual.md)
-- [Default-off console browser login/Origin/CSRF manual acceptance (not executed)](testing/console-session-manual.md)
-- [Definition of done](planning/definition-of-done.md)
-
-## Security and operations
-- [Notice, purpose and privacy](security/privacy-and-consent.md)
-- [Device identity and administrative RBAC](security/identity-and-access.md)
-- [SRV-02-REV manual device/certificate revocation acceptance — default OFF, synthetic-only](testing/server-device-revocation-manual.md)
-- [Role/action permission matrix](security/authorization-matrix.md)
-- [Threat model](security/threat-model.md)
-- [Retention and deletion](security/data-retention.md)
-- [Installation and operations](operations/installation.md)
-- [Backup and recovery](operations/backup.md)
-- [Incident and monitoring plan](operations/monitoring.md)
-- [Troubleshooting runbook](operations/troubleshooting.md)
-- [Lightweight release and upgrade plan](operations/release.md)
-
-## Governance
-- [D0 technical decision/sign-off package — **approved for V0.1 coding**](governance/d0-decision-package-2026-10-30.md): four selected technical baselines, negative tests and dated Git owner approval record.
-- [Final documentation closure review: conceptual closure vs D0 blockers (2026-10-30)](governance/final-closure-review-2026-10-30.md)
-- [Cross-document / diagram / SVG consistency review — historical 2026-10-30](governance/documentation-review-2026-10-30.md)
-- **[Document consistency/security audit — 2026-11-08](governance/documentation-audit-2026-11-08.md)**
-- [Open decisions](governance/open-decisions.md)
-- [Docs-before-code gate](governance/documentation-gate.md)
-- [Contributing](../CONTRIBUTING.md) · [Security reporting](../SECURITY.md) · [Changelog](../CHANGELOG.md)
-
-**Working rule (2026-11-08):** v0.1 P0 development in batches A–E; path-filtered quick L1 on every relevant source commit, scoped L2 integration at module boundary, complete L3 Chromium/PG18/Windows/Linux on explicit acceptance tag/dispatch. Historical unit-only/direct-main ADRs are not active instructions. Do not enable real employee/device collection or production enrollment without explicit legal/organization approval, approved key custody and actual PKI/OS/RBAC/restore/performance acceptance. v0.2 audit and v0.3 recording remain independently gated.
+- **安全：** [D4-C10 唯一标识门禁](security/fido-mds-duplicate-identifiers-d4-c10-2026-11-21.md) · [D4-C9 条目形状门禁](security/fido-mds-payload-screen-d4-c9-2026-11-21.md) · [RBAC 矩阵](security/authorization-matrix.md) · [威胁模型](security/threat-model.md) · [隐私/告知](security/privacy-and-consent.md) · [数据留存](security/data-retention.md)。
+- **测试：** [总策略](testing/strategy.md) · [总矩阵](testing/test-matrix.md) · [PG18 合成验收](testing/server-postgres18-manual.md) · [Console 会话验收](testing/console-session-manual.md) · [网络/TLS+Agent](testing/linux-caddy-spring-pg18-rust-csr.md) · [Pop!_OS 实机验收](testing/linux-popos24-agent-acceptance.md)。
+- **运维：** [开发安装](operations/installation.md) · [发布与升级/回滚](operations/release.md) · [备份恢复](operations/backup.md) · [监控](operations/monitoring.md) · [排障](operations/troubleshooting.md) · [RustDesk 隔离试验](operations/rustdesk-pilot.md)。
+- **决议/历史：** [D0 技术批准（仅源码开发）](governance/d0-decision-package-2026-10-30.md) · [待决事项](governance/open-decisions.md) · [文档准入规则](governance/documentation-gate.md) · [2026-11-08 文档审计](governance/documentation-audit-2026-11-08.md) · [完整旧版导航与证据快照](governance/documentation-index-snapshot-2026-11-21.md)。[变更日志](../CHANGELOG.md) / [安全报告](../SECURITY.md)。
