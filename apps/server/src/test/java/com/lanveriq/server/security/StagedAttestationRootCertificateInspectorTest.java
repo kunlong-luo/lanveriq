@@ -83,6 +83,20 @@ class StagedAttestationRootCertificateInspectorTest {
     }
 
     @Test
+    void rejectsCandidateOutsideItsValidityWindowUsingInjectedClock() throws Exception {
+        byte[] candidate = offlineSyntheticCa(false, true);
+        var before = new StagedAttestationRootCertificateInspector(
+                Clock.fixed(Instant.parse("2024-12-31T23:59:59Z"), java.time.ZoneOffset.UTC));
+        var after = new StagedAttestationRootCertificateInspector(
+                Clock.fixed(Instant.parse("2030-01-01T00:00:01Z"), java.time.ZoneOffset.UTC));
+        var during = new StagedAttestationRootCertificateInspector(
+                Clock.fixed(Instant.parse("2027-01-01T00:00:00Z"), java.time.ZoneOffset.UTC));
+        assertThrows(AccessDeniedException.class, () -> before.inspectUntrustedDer(candidate));
+        assertThrows(AccessDeniedException.class, () -> after.inspectUntrustedDer(candidate));
+        assertArrayEquals(candidate, during.inspectUntrustedDer(candidate));
+    }
+
+    @Test
     void rejectsMissingCaSigningUsageAndTrailingDer() throws Exception {
         byte[] wrongUsage = offlineSyntheticCa(false, false);
         assertThrows(AccessDeniedException.class, () -> inspector.inspectUntrustedDer(wrongUsage));
