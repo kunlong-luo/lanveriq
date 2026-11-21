@@ -1,5 +1,8 @@
 # D0 — documentation-before-code gate
 
+> **2026-11-21 CURRENT FRAMEWORK OVERRIDE:** D0 approved the 2026-10-30 **initial** React/Vite choice, which is **superseded** by [ADR-0008](../architecture/adrs/0008-nextjs-app-router-console.md) and [NXT-24 five-SHA source acceptance](../development/nextjs-path-rename-nxt24-2026-11-21.md). Today the **only frontend is Next.js 16 under `apps/web`**; do not interpret old D0 checkboxes or historical `React/Vite/Orval as selected` language as authorization to recreate Vite or mount real credentials. NXT-23 removed the old Vite source, and NXT-24 renamed Next.js from `apps/web-next`. All production/privacy/PKI/physical acceptance remains separately blocked.
+
+
 > **2026-11-08 历史文档提醒：** 本页记录 **2026-10-30 D0 批准**及早期每一次测试/故障经过。它不是 2026-11-08 的实时代码/CI 状态汇总；下面“待执行/尚无集成结果”和“unit-only”可能已被后来真实 PG18/浏览器验收或 [L1/L2/L3 批量测试](../testing/strategy.md) 超越。当前文档发现/修复见 [2026-11-08 查漏补缺报告](documentation-audit-2026-11-08.md)。D0 源码批准**不等于**组织/法律/PKI/真实设备/生产批准。
 
 

@@ -40,7 +40,7 @@ Java 25 / Gradle 9.8.2 初次同步需要访问 Gradle Plugin Portal、Maven Cen
 
 ## 同仓库的其他项目
 
-- **唯一 Web UI**：`apps/web`（Next.js 16.4.5 / React 19 / Tailwind 4），使用 Node.js 24 + pnpm 12，在该目录运行 `corepack pnpm install --frozen-lockfile`、`corepack pnpm dev`；浏览器打开 `http://127.0.0.1:3100/overview`。旧版 Vite `apps/web` 已从当前源码移除，5173 端口不再是产品 UI。当前仅断开业务数据的预览，不登录真实管理员或设备。
+- **唯一 Web UI**：`apps/web`（Next.js 16.4.5 / React 19 / Tailwind 4），使用 Node.js 24 + pnpm 12，在该目录运行 `corepack pnpm install --frozen-lockfile`、`corepack pnpm dev`；浏览器打开 `http://127.0.0.1:3100/overview`。原先占用这个目录的旧版 Vite 已被删除，其 Next.js 替代品从 `apps/web-next` 迁移到此目录；5173 不再是产品 UI 端口。当前仅断开业务数据的预览，不登录真实管理员或设备。
 - **Rust Agent**：独立 Rust 工程在 `apps/agent/Cargo.toml`，`apps/agent/Cargo.lock` 锁定依赖，`apps/agent/rust-toolchain.toml` 固定 Rust 1.94。根据 IDEA 的具体版本与插件支持来选择 Rust 插件，或另用 RustRover。
 - **Java 后端**：`apps/server` 中 Spring Boot 4.1.2、JPA/Hibernate、Flyway 均通过独立 Gradle 工程维护。导入工程不需要运行 `bootRun`，更不需要触碰共享 `spark-db`。
 

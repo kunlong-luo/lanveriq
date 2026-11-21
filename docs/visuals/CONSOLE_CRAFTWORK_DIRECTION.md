@@ -6,7 +6,9 @@
 
 Use https://craftwork.design/ only as a directional reference: whitespace, editorial typography, crisp hairline borders, modular cards and restrained accents. Keep Lanveriq's own layout, routes, components, copy and brand. No copied Craftwork screenshots, images, font files, paid UI kits or unlicensed assets.
 
-The canonical front end is already Next.js 16 App Router / React 19 / Tailwind 4 / Base UI Dialog; Vite is legacy only.
+The canonical frontend is **Next.js 16 App Router / React 19 / Tailwind 4 / Base UI Dialog at `apps/web`**. Legacy Vite was removed (NXT-23) and the former `apps/web-next` migration directory renamed to `apps/web` (NXT-24); it is no longer a separate build or launch option. The current palette is implemented by `apps/web/src/app/console-polish.css`.
+
+**NXT-24 same-SHA UI acceptance:** [Next.js #44876019214](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019214), [Chromium + screenshots #44876019297](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019297), [Pages #44876019222](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019222), [RD-2 #44876019189](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019189), [Java unit #44876019234](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019234) passed at functional SHA `6ed47c47`. NXT-21/22 records below remain valid for their **original historical SHAs**, not as current path names.
 
 ## Visual contract
 

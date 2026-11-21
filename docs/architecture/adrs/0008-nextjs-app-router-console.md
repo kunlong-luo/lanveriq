@@ -1,9 +1,12 @@
 # ADR-0008 — Next.js App Router as the canonical LAN frontend
 
+> **Current interpretation (NXT-24, 2026-11-21):** The approved framework and sole runnable frontend is **Next.js 16.4.5 in `apps/web`** (`@lanveriq/web`, Node 24, pnpm 12, 127.0.0.1:3100). The initial Vite app has been **deleted from the active tree** (NXT-23), and temporary `apps/web-next` has been renamed (NXT-24). Current workflows: [Next.js L1](../../../.github/workflows/web-unit.yml), [Chromium](../../../.github/workflows/nextjs-browser-preview-synthetic.yml) and [public static Pages](../../../.github/workflows/pages-static-preview.yml). [NXT-24 full audit](../../development/nextjs-path-rename-nxt24-2026-11-21.md) records five same-SHA accepted checks on functional SHA `6ed47c47`. **Everything below labeled NXT-01/02/03 is a dated migration record, not a competing current entry point.** Production auth, official FIDO trust, real data and Pop!_OS physical acceptance remain unapproved.
+
+
 **Framework authority (2026-11-08):** This ADR supersedes the original React/Vite choice wherever it appears in pre-Next.js docs. 11 disconnected static preview routes are source-implemented. Source-owned Base UI React components and B+C light design replace the early hypothetical Radix-only palette. The current plan uses [L1/L2/L3 batch acceptance](../../planning/v0.1-batched-delivery-plan-2026-11-08.md); this changes CI timing, not API/identity/privacy authorization. Historical NXT-02/NXT-03 evidence below is retained as a dated record.
 
 
-**Updated decision, 2026-11-07:** The maintainer requested a project-wide switch to Next.js. `apps/web` has become the **canonical frontend source** on Next.js **16.4.5 stable**, with a pinned regenerated pnpm lockfile, 11-page B+C disconnected preview, scoped automatic **L1** Next.js build/HTTP checks, milestone-only Chromium/HTTPS checks, and a public **disconnected GitHub Pages static export**. The legacy `apps/web` React/Vite project remains only as temporary reversible source/contract-test reference. This changes the **framework and developer entry point**, not actual production activation. The normal `/login` remains disabled, and no real Spring API, private account, device or Agent is connected. Full Caddy/Next.js production topology and organization/privacy approvals are independent open gates.
+**Updated decision, 2026-11-07:** The maintainer requested a project-wide switch to Next.js. `apps/web` has become the **canonical frontend source** on Next.js **16.4.5 stable**, with a pinned regenerated pnpm lockfile, 11-page B+C disconnected preview, scoped automatic **L1** Next.js build/HTTP checks, milestone-only Chromium/HTTPS checks, and a public **disconnected GitHub Pages static export**. The legacy React/Vite implementation was subsequently removed in NXT-23, and the Next.js source was renamed from the temporary `apps/web-next` location to **`apps/web`** in NXT-24. It remains disconnected. This changes the **framework and developer entry point**, not actual production activation. The normal `/login` remains disabled, and no real Spring API, private account, device or Agent is connected. Full Caddy/Next.js production topology and organization/privacy approvals are independent open gates.
 
 **Migration parity:** All publicly visible first-stage workspace routes (`overview`, `monitoring`, `devices`, `enrollment`, `settings`, `login`) render in the canonical Next app. Dynamic device details remain deliberately unconnected; GitHub Pages static export excludes the dynamic route because Pages cannot host authenticated Next.js SSR/RSC. Previous Vite fake device counts are **not** migrated as apparent live data. The Springdoc → Orval typechecking path in Server CI already checks Next.js locked dependencies.
 
@@ -22,9 +25,7 @@ React, TypeScript, Tailwind, shadcn/ui, Radix, Lucide, TanStack Query and
 Springdoc → Orval client approach. This supersedes the earlier *frontend
 framework target*, not the D0 transport/privacy/security decisions.
 
-The Next.js migration is a **separate reviewed development milestone**,
-not a claim that `apps/web` is already a Next.js application. No change
-to production access is authorized by selecting a framework.
+**Historical 2026-11-01 acceptance condition:** the Next.js migration was originally a separate reviewed milestone; at that date the target had **not yet** replaced Vite. **Current status:** NXT-23 removed the Vite runtime, and NXT-24 completed the move to the single Next.js `apps/web` tree. No production access is authorized by the framework migration.
 
 ## LAN topology and trust boundary
 
@@ -53,9 +54,9 @@ to production access is authorized by selecting a framework.
 
 ## Migration / acceptance sequence
 
-1. **NXT-01:** Create an isolated Next.js App Router candidate, pin an
+1. **NXT-01 (historical, completed):** Create an isolated Next.js App Router candidate, pin an
    officially supported Next.js version with Node 24, React, TypeScript
-   and a generated `pnpm-lock.yaml`. Preserve the working Vite preview.
+   and a generated `pnpm-lock.yaml`. At that stage Vite was retained **temporarily**, not as the present canonical app.
    Do not manually fabricate dependency resolution or bypass a frozen
    install. Establish genuine Next.js build/unit/test CI.
 2. **NXT-02:** Port layout, navigation and existing shadcn/ui components;
@@ -69,7 +70,7 @@ to production access is authorized by selecting a framework.
    tests, Caddy/Spring/browser HTTPS session/CSRF/cookie/RBAC/Origin tests
    and UI end-to-end tests with synthetic administrators. Only then seek
    explicit approval to enable real administrator/device reads.
-5. **Cutover:** Switch the default frontend only after the candidate's
+5. **Cutover (completed at NXT-24 for the UI directory, not for production auth):** Switch the default frontend only after the candidate's
    frozen dependency CI, accessibility and route-parity checks succeed.
    Remove Vite dependencies/proxy in the same reviewed cutover, update
    operations documentation, and retain a reversible path. Never claim
@@ -82,8 +83,7 @@ boundaries to a LAN-only project. These must be measured and hardened rather
 than assumed safe. shadcn/ui is React-based and does not itself require
 Next.js; migration is a maintainer product preference, **not** a fix for
 backend authorization or a shortcut around the currently failing manual
-PostgreSQL gate. The existing React/Vite code remains the running preview
-until the candidate passes its own tests and is explicitly switched.
+PostgreSQL gate. This paragraph originally described a pre-cutover gate. **That UI-directory cutover is now complete:** only Next.js runs at `apps/web`, while actual authenticated device access remains disabled.
 
 ## References
 
@@ -97,7 +97,7 @@ until the candidate passes its own tests and is explicitly switched.
 
 The isolated `apps/web` Next.js 16.4.3 App Router application now exists with Node 24, pnpm 12, React 19, TypeScript, Tailwind 4 and editable shadcn/ui-compatible Card components. Its actual `pnpm-lock.yaml` was generated by pnpm in a one-time GitHub Actions job, then committed on `main`. The temporary write-capable bootstrap workflow was **deleted** and replaced with a read-only frozen-install workflow.
 
-[Next.js CI #41287394823](https://github.com/kunlong-luo/lanveriq/actions/runs/41287394823) succeeded at SHA `8add324b869a14488822c4a3076efb77eb257835`: Node 24/pnpm 12 frozen install, route guards, component tests, TypeScript typecheck, Next.js production build and running HTTP smoke tests of seven preview paths, no business proxy and disabled login. This is source/preview acceptance only; it does **not** verify Caddy HTTPS, cookies, Spring Security or real PostgreSQL 18. The original `apps/web` Vite preview remains the default and has not been cut over.
+[Next.js CI #41287394823](https://github.com/kunlong-luo/lanveriq/actions/runs/41287394823) succeeded at SHA `8add324b869a14488822c4a3076efb77eb257835`: Node 24/pnpm 12 frozen install, route guards, component tests, TypeScript typecheck, Next.js production build and running HTTP smoke tests of seven preview paths, no business proxy and disabled login. This is source/preview acceptance only; it does **not** verify Caddy HTTPS, cookies, Spring Security or real PostgreSQL 18. At this historical 2026-11-01 checkpoint Vite had not yet been cut over. **Do not interpret that old status as current:** NXT-24 completed the source/UI-directory cutover.
 
 ## NXT-02 core-page automated checkpoint (2026-11-01)
 

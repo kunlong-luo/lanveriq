@@ -21,6 +21,8 @@
 
 ![Lanveriq 架构概念图](docs/visuals/assets/01-overview.svg)
 
+**2026-11-21 文档同步入口：** [现行 `apps/web` Next.js 使用说明](apps/web/README.md) · [NXT-24 路径迁移与五条同 SHA CI 证据](docs/development/nextjs-path-rename-nxt24-2026-11-21.md) · [NXT-23/24 单 UI 清理的历史与现行安全规则](docs/development/nextjs-single-ui-consolidation-2026-11-21.md) · [当前技术栈](docs/development/technology.md) · [真实 CSS 色值](docs/development/frontend-design-system.md)。注意旧 Vite 源码和工作流已从主线移除，**当前同名 `apps/web` 与 `web-unit.yml` 是新 Next.js**，不能再按 NXT-23 旧检查规则删除。
+
 ## 当前主前端：Next.js App Router
 
 正式前端源码统一以 [`apps/web`](apps/web/README.md) 为准，Next.js 已升级到 **16.4.5 稳定安全修复版**，并保留 Node.js 24、pnpm 12 和独立锁文件。历史 `apps/web` React/Vite 前端及工作流已从当前源码移除，仅保留 Git 历史，避免本地启动两套不同 UI。

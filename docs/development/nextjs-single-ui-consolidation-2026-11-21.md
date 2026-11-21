@@ -1,45 +1,37 @@
-> **NXT-24 update:** The NXT-23 removal concerned the *old Vite contents* of apps/web. On 2026-11-21 the accepted Next.js frontend was moved from its former directory to **apps/web**, reusing the now-free name. This file documents the prior cleanup; current launch/CI path is apps/web. Production remains disabled.
+# NXT-23 / NXT-24 — One canonical Next.js UI (historical migration audit)
 
-# NXT-23 — Single canonical Next.js UI, legacy Vite removal
+**Date:** 2026-11-21 · **Branch:** `main` only · **Current source:** `apps/web` · **Release:** **NOT RELEASE READY**.
 
-**Date:** 2026-11-21. **Target:** `main` only. **Acceptance:** four independent same-SHA UI CI passes on `e54af66aa7803b43c2b85a6bff7efd419b44a428`. **Release:** v0.1 NOT RELEASE READY.
+> This document distinguishes two *separate* commits. NXT-23 **removed the old Vite application** that originally occupied `apps/web` while Next.js still lived at `apps/web-next`. NXT-24 **renamed the accepted Next.js tree to `apps/web`**. Consequently `apps/web` and `.github/workflows/web-unit.yml` now **exist again**, but both contain **Next.js**, not Vite. Treating their presence as an error would be an obsolete NXT-23-only rule.
 
-## Decision
+## Current source of truth
 
-Lanveriq has only **one runnable product frontend**: `apps/web`, Next.js 16.4.5 App Router / React 19 / Tailwind 4 / Base UI, on `127.0.0.1:3100`. The pre-migration Vite `apps/web` subtree and its dedicated `web-unit.yml` workflow were deleted from the active Git tree. Their complete earlier source, tests and commit history remain recoverable using Git history, but they are no longer supported launch targets or release candidates. No branch or PR is created for the cleanup.
-
-This resolves the contradictory `3100` vs `5173` launch recipes. The public GitHub Pages site remains a **read-only disconnected design export**, not an operational management endpoint.
-
-## Cross-project feature review before deletion
-
-| Former Vite responsibility | Canonical Next.js counterpart / disposition |
+| Concern | Active location / contract |
 | --- | --- |
-| App shell, device directory, monitoring, enrollment, settings and disabled login | App Router pages in `apps/web/src/app`; `console-shell.tsx`, `device-directory.tsx`, `login-preview.tsx`; visual and unit tests |
-| HTTPS-only browser session and CSRF request adapter, not mounted in Vite | `src/lib/staged-console-auth.ts` + isolated negative tests; **not imported from UI routes** |
-| Restricted read-only device queries | `src/lib/staged-console-read.ts` + tests; no API proxy, session or live hook |
-| Strict server-authorized device projection, unavailable/forbidden states | `src/lib/console-device-projection.ts` and `device-directory.tsx` + tests; connection/status is not inferred |
-| Generated Springdoc → Orval TypeScript contract | `apps/server/contract-client-check` and `apps/web/contract-check`; milestone-only type gate |
-| Vite's anonymous health proxy and fictional demo device records | **Intentionally retired**. Neither was a verified operational device service. Do not reproduce dummy online counters or connect the public UI to Spring. |
-| Vite-specific pnpm lockfile, Vite executable, `web-unit.yml` | **Deleted**; Next.js retains its independently locked package, L1 tests, real Chromium gate and Pages export |
+| Frontend | `apps/web`, package `@lanveriq/web`, Next.js **16.4.5**, React **19**, Tailwind **4**, Base UI |
+| Local developer command | `cd apps/web && corepack pnpm install --frozen-lockfile && corepack pnpm dev` |
+| Browser | `http://127.0.0.1:3100/overview`; loopback only |
+| Fast UI CI | `.github/workflows/web-unit.yml` — **Next.js** frozen install, guards, Vitest, typecheck, build, HTTP |
+| Real synthetic browser QA | `.github/workflows/nextjs-browser-preview-synthetic.yml`, Playwright/Chromium; disconnected preview |
+| Public static showcase | `.github/workflows/pages-static-preview.yml`, export from `apps/web/out`, GitHub Pages |
+| Contract checking | `apps/server/contract-client-check` + `apps/web/contract-check`, milestone-only generated Orval types |
+| Staged restricted runtime | `apps/web/src/lib/staged-console-auth.ts`, `staged-console-read.ts`, `console-device-projection.ts`; **unmounted** |
+| Source safety guard | `apps/web/scripts/verify-single-ui.mjs` with `test_verify_single_ui.mjs` |
 
-These are corresponding security boundaries and tests, **not** a statement that every old test is byte-for-byte identical. The retained Next.js negative regression suite is the authority for subsequent UI changes. No production login, collection, upload, remote control, certificate issuance, auto-recovery, WSS or device access is enabled by this consolidation.
+The active single-UI guard rejects **reintroduced `apps/web-next`**, `web-next-unit.yml`, Vite configs/dependencies or Vite dev commands inside `apps/web`, and stale readme instructions that launch `apps/web-next` or port 5173. It **requires** the Next.js `apps/web` manifest and **requires** the Next.js `web-unit.yml` workflow. This is the precise current behavior of the checked-in script, not the outdated negative checks in the first NXT-23 audit.
 
-## Automated guard
+## Source migration and evidence
 
-`apps/web/scripts/verify-single-ui.mjs` rejects:
+- **NXT-23:** [functional SHA `e54af66a`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428). Removed **32 tracked legacy Vite files** and the **old Vite** `web-unit.yml` workflow; Next.js was still at `apps/web-next`. Same-SHA [Next L1 #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [Chromium #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [Pages #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193) passed. These links refer to the **historical pre-rename source layout**.
+- **NXT-24:** [functional SHA `6ed47c47`](https://github.com/kunlong-luo/lanveriq/commit/6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c). Moved entire Next.js application to `apps/web`; recreated `web-unit.yml` for **Next.js**. Same-SHA [Next L1 #44876019214](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019214), [real Chromium #44876019297](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019297), [disconnected Pages #44876019222](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019222), [RD-2 #44876019189](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019189) and [Java server unit #44876019234](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019234) passed. NXT-24 Chromium screenshots: `nxt18-visual-qa-6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c` (artifact ID `14695613816`).
+- Historical Vite source and tests remain available through Git history only; **do not** reintroduce its anonymous health proxy, fabricated device activity or inactive credentials into the running Next.js UI.
 
-1. Reintroduction of `apps/web` as a second executable frontend.
-2. Reintroduction of `.github/workflows/web-unit.yml`.
-3. An unexpected canonical `apps/web` package, development command or build command.
-4. README launch commands pointing back to `cd apps/web`, `http://127.0.0.1:5173`, or deleted `apps/web/README.md`.
+## Pop!_OS 24.04 local development
 
-Negative fixture tests are in `apps/web/scripts/test_verify_single_ui.mjs`. The guard runs in both the rapid Next.js workflow and the public static Pages build. All existing Next.js source-level runtime isolation / no-API routes and RD-2 fail-closed checks remain mandatory.
-
-## Pop!_OS 24.04 local launch
-
-From your local repository root, ensure you do not have uncommitted work before pulling:
+From the repository root, protect local changes before updating:
 
 ```bash
+git status --short
 git switch main
 git pull --ff-only origin main
 cd apps/web
@@ -48,8 +40,8 @@ corepack pnpm install --frozen-lockfile
 corepack pnpm dev
 ```
 
-Open `http://127.0.0.1:3100/overview`. The 5173 port is no longer a repository-backed application. A locally running older Vite process or ignored/untracked old files will not be stopped or removed by a Git commit; check the old terminal and stop it manually. Do **not** delete shared Docker databases, state volumes, private configuration, or device secrets as part of UI cleanup.
+Visit `http://127.0.0.1:3100/overview`. The former Vite **5173** server is not part of this repository; older local processes must be stopped manually. Do not remove unrelated files, credentials, shared Docker volumes or databases when updating the UI. See the [NXT-24 migration contract](nextjs-path-rename-nxt24-2026-11-21.md) and the [canonical developer README](../../apps/web/README.md).
 
-## CI evidence
+## Safety and release boundaries
 
-**NXT-23 exact-source UI acceptance:** functional commit [`e54af66aa7803b43c2b85a6bff7efd419b44a428`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428) passed all FOUR same-SHA workflows: [Next.js frozen pnpm, single-UI guard, tests/typecheck/build/HTTP #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [actual Chromium 11 routes/keyboard/mobile/screenshots #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [disconnected static Pages export+deploy #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 default OFF #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193). Visual artifact `nxt18-visual-qa-e54af66aa7803b43c2b85a6bff7efd419b44a428` (ID `14695855747`). This is not production authorization. Previous NXT-22 success was not reused; these are new results for the exact NXT-23 source. Runtime production readiness is still blocked.
+GitHub Pages remains a **public, disconnected static UI design showcase**; the ordinary Next.js local preview is also disconnected. The command palette navigates only allowlisted local pages; device search and all business operations remain unavailable. Real administrator WebAuthn MFA, official FIDO MDS provenance, trusted time/revocation, production Caddy topology, authenticated device reads, Agent collection, auto-recovery, RustDesk sessions, CA issuance and **physical Pop!_OS 24.04 acceptance** require separate validation and authorization. A successful static UI/Chromium CI run does not grant production permission.

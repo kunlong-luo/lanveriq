@@ -1,3 +1,5 @@
+> **NXT-24 implementation reconciliation (2026-11-21):** This file describes the historical NXT-14 design implementation, **not** the current CSS cascade or unfinished work. The only active UI is Next.js 16 in `apps/web`, with `globals.css` → `lanveriq-bc.css` → `console-polish.css` imported from `src/app/layout.tsx`; the old standalone `craftwork-theme.css` no longer exists. The header command palette is an enabled **local page-navigation-only** Base UI Dialog (NXT-22), not a business search. The original decorative laptop art was removed in NXT-20/21. Current code/visual guard: [Craftwork direction](../visuals/CONSOLE_CRAFTWORK_DIRECTION.md), [NXT-24 accepted migration](nextjs-path-rename-nxt24-2026-11-21.md); **real credentials, device APIs, collection and remote control remain disabled**.
+
 # NXT-14 — B+C approved design prototype to Next.js implementation
 
 **2026-11-07. Scope:** First implementation pass translating the standalone `lanveriq-bc-interactive-prototype.html` into the canonical `apps/web` Next.js 16.4.5 App Router. The user explicitly requested design-before-code, reviewed the B+C prototype and then asked to continue. **Visual implementation does not constitute business or production approval.**
@@ -29,9 +31,9 @@ The four planned modules are visually identified in the canonical `src/lib/conso
 
 ## Component and styling architecture
 
-- `src/app/lanveriq-bc.css` is a **temporary override layer** imported after the existing `craftwork-theme.css`. This preserves historical pass gates while translating the approved prototype. Once browser screenshot comparison is complete, consolidate the stacked style sheets into an isolated token/system layer instead of accumulating additional overrides.
-- `src/components/console-shell.tsx` drives all navigation from one typed list, maintains accessible `aria-current`, supports a dismissible mobile drawer with Escape and a backdrop, and keeps global search / real notifications disabled.
-- `src/app/(console)/overview/page.tsx` uses CSS-only, `aria-hidden` decorative laptop/shield/server artwork and **does not** show real device figures.
+- **Historical NXT-14 implementation only:** `src/app/lanveriq-bc.css` originally layered over `craftwork-theme.css`. **Current NXT-24:** the active cascade is `globals.css`, `lanveriq-bc.css`, then `console-polish.css`; `craftwork-theme.css` has been removed. No competing additional theme should be added without source/style and real Chromium review.
+- `src/components/console-shell.tsx` drives all navigation from one typed list, maintains accessible `aria-current`, supports a dismissible mobile drawer with Escape and a backdrop; since NXT-22 the topbar search opens an allowlisted **local page-only** command palette. Business/device search and real notifications remain disabled.
+- `src/app/(console)/overview/page.tsx` used NXT-14 CSS-only, `aria-hidden` laptop/shield/server art (subsequently removed by NXT-20/21); the current editorial CSS-only hero still **does not** show real device figures.
 - `src/components/health-sections.tsx` adds `ActivityTrend`, an accessible labeled **empty** trend frame (no fabricated curve), while keeping connections, inventory and queue independent.
 - `src/components/planned-console-page.tsx` provides a reusable, server-rendered informational layout for planned-only modules without synthetic rows, actions, credentials, external data or browser storage.
 - `src/components/login-preview.tsx` preserves `type="text" disabled`, `type="password" disabled`, the disabled login button, explicit no-credentials banner and **no `form`**.

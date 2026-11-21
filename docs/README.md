@@ -1,8 +1,18 @@
+> **2026-11-21 current Web baseline:** Only `apps/web` is runnable, containing **Next.js 16.4.5 / React 19 / Tailwind 4 / Base UI**, localhost port **3100**, public Pages **disconnected**. The old Vite app was removed at NXT-23, then Next.js moved from temporary `apps/web-next` into `apps/web` at NXT-24. [Exact-five-workflow NXT-24 verification](development/nextjs-path-rename-nxt24-2026-11-21.md) passed at functional SHA `6ed47c47`; it does **not** prove WebAuthn MFA, FIDO MDS source-chain acceptance, live device API, real Pop!_OS 24.04 acceptance or release readiness. See [canonical UI README](../apps/web/README.md).
+
 > **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](planning/release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
 
 # Lanveriq — documentation index
 
 **Current baseline (2026-11-08):** D0 technical design approved; implemented Java 25/Spring Boot/PG18 unit & synthetic integration slices, Rust SQLx/reqwest + Linux/Windows tests, and canonical Next.js B+C disconnected preview. Batch A1 has a default-OFF Agent heartbeat POST source/strict Rust ACK, **but device registration→Agent runtime→Caddy→PG18→authorized UI is not yet an integrated product**. Full synthetic and real-device legal/operational releases are separate. Active [batch plan](planning/v0.1-batched-delivery-plan-2026-11-08.md), [actual stack](development/technology.md) and [2026-11-08 doc audit](governance/documentation-audit-2026-11-08.md). Historical runbook statuses must be read as timestamped evidence, not the most recent result. See [中文介绍](../README.zh.md).
+
+## Canonical frontend — current versus historical records
+
+- **[Run the one and only Next.js UI](../apps/web/README.md)** — Node 24, pinned pnpm 12, `cd apps/web && corepack pnpm dev`, `http://127.0.0.1:3100/overview`; disabled login/API and disconnected public preview.
+- **[NXT-24 path rename and five-workflow CI evidence](development/nextjs-path-rename-nxt24-2026-11-21.md)** — active `apps/web`, `web-unit.yml`, Chromium, GitHub Pages and RD-2/Java safety checks.
+- **[NXT-23/NXT-24 one-UI history and current source guards](development/nextjs-single-ui-consolidation-2026-11-21.md)** — explains why the old Vite `apps/web` was removed and the name later reused by Next.js. This avoids an obsolete instruction to delete the current `web-unit.yml`.
+- **[Current stack](development/technology.md)** · **[engineering conventions](development/standards.md)** · **[current visual source and tokens](development/frontend-design-system.md)** · **[ADR-0008 framework authority](architecture/adrs/0008-nextjs-app-router-console.md)**.
+- **Historical only:** 2026-10 and early 2026-11 Vite/NXT-01—03 notes and screenshots are not current launch commands or production acceptance records.
 
 ## Product
 - [Requirements and scope](product/requirements.md)

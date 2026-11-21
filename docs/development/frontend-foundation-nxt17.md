@@ -1,3 +1,5 @@
+> **NXT-24 current cascade clarification (2026-11-21):** This document records the **historical NXT-17 two-file consolidation**. A later NXT-20/21 styling pass added `src/app/console-polish.css` as the final authoring layer. The **current** `apps/web/src/app/layout.tsx` imports `globals.css` → `lanveriq-bc.css` → `console-polish.css`, in that order; `craftwork-theme.css` remains removed. Current token truth: [design-system baseline](frontend-design-system.md) and [Craftwork direction](../visuals/CONSOLE_CRAFTWORK_DIRECTION.md). No business connectivity is implied by any CSS consolidation.
+
 # NXT-17 — Consolidated B+C theme and isolated authorized-directory interaction acceptance
 
 **Date:** 2026-11-08  

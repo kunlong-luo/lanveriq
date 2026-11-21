@@ -1,3 +1,5 @@
+> **Current NXT-24 browser status (2026-11-21):** the only runnable frontend is **Next.js at `apps/web`**, not the earlier Vite preview or temporary `apps/web-next`. [Same-SHA real Chromium UI #44876019297](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019297) passed on functional SHA `6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c`, together with [Next L1 #44876019214](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019214) and [static Pages #44876019222](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019222). These establish **disconnected public preview behavior only**, not physical Pop!_OS accessibility acceptance, live WebAuthn login, real device access or production deployment. The following 2026-11-01/02/04 notes are **historical test progression**, not instructions to keep Vite runnable.
+
 # Next.js NXT-02 — manual browser and visual parity acceptance
 
 **2026-11-04 NEXT PENDING GATE — joint Next.js + Spring HTTPS Chromium acceptance:** The independent [Console Chromium security #41781439307](https://github.com/kunlong-luo/lanveriq/actions/runs/41781439307) passed at `4e6a938381a384df77b868b029012d377d8a7de8` after actual Caddy→Spring/Tomcat→PostgreSQL 18.6 login/CSRF/session checks with `browser_probe=true` and **`nextjs_same_origin_probe=false`**. This closes the *isolated backend-facing Chromium Console* gate, not Next.js co-hosting. The NXT-02 [isolated real Chromium Next.js preview #41442430936](https://github.com/kunlong-luo/lanveriq/actions/runs/41442430936) independently passed on its own earlier SHA and had disabled auth, no live API/WS, and no real database. To test their actual combination, a **new** operator-run `.github/workflows/console-https-synthetic.yml` must select the latest reviewed `main` with **`browser_probe=true` and `nextjs_same_origin_probe=true`**. Its generated disposable Caddy config serves Next.js UI and Spring APIs under one synthetic Console HTTPS origin, validates route headings/navigation, disabled login, zero unintended business requests/session cookies from UI, and a separate synthetic browser Spring login/logout. Even a green combined run will not prove activated Next.js runtime auth/data hooks, nonempty multi-group RBAC, OS Agent, production readiness, or human accessibility review. Do not mount staged Next.js real auth/device transports until the next explicit review gate.
@@ -18,7 +20,7 @@ frontend cutover from unit tests and HTTP smoke alone.
 Baseline: [Next.js CI #41288117979](https://github.com/kunlong-luo/lanveriq/actions/runs/41288117979)
 on Git SHA `427242286b0af9e5bb3b4d151484c47d296560f8`.
 Run only the isolated `apps/web` candidate on localhost, with
-the **existing Vite app kept intact**, against no real backends.
+the **then-existing Vite app kept intact** (NXT-01 historical condition; Vite removed in NXT-23), against no real backends.
 No administrator credentials or real employee/device records are used.
 
 ## Independent manual browser matrix
@@ -36,7 +38,7 @@ No administrator credentials or real employee/device records are used.
 | Screen reader | Major routes, table, status alerts, login | Correct H1, landmarks, table caption, labels and live messages |
 | Reduced motion | System reduce-motion mode | No unnecessary transitions; accessible focus indicators remain |
 | Security | Network inspection | No real /api/v1, /actuator business proxy, cookie, websocket, screen or remote-control request |
-| Regression | Original apps/web preview | Old Vite routes still build and work independently |
+| Regression (current) | Only `apps/web` Next.js can start | `verify-single-ui.mjs` rejects Vite/`apps/web-next`; no legacy 5173 server; verify route safety, Chromium navigation and disabled login |
 
 Capture sanitized per-browser/OS evidence, viewport screenshots
 and any keyboard/accessibility findings without usernames, tokens,

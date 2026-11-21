@@ -32,6 +32,8 @@ The **three product components** are **Web**, **Server**, and **Agent**. Postgre
 
 Candidate central topology: **Caddy HTTPS → private Next.js App Router (HTML/RSC/static) and independent Spring Boot API over mTLS → private PostgreSQL**. Caddy must authorize protected HTML/RSC through Spring before proxying, with the internal Next.js origin inaccessible to LAN clients. **This is not yet a deployable production topology.** The Rust Agent runs natively on expressly authorized endpoints, not centrally in Docker. GitHub Pages hosts only an isolated public static preview. See [deployment architecture](docs/architecture/deployment.md).
 
+**Canonical documentation (updated 2026-11-21):** [Web README](apps/web/README.md) · [NXT-24 migration](docs/development/nextjs-path-rename-nxt24-2026-11-21.md) · [single-UI migration audit](docs/development/nextjs-single-ui-consolidation-2026-11-21.md) · [current CSS tokens](docs/development/frontend-design-system.md). Ignore any old Git-history Vite 5173 instructions; `apps/web` is Next.js and `.github/workflows/web-unit.yml` is its Next.js fast test.
+
 ## Primary Next.js frontend (public preview only)
 
 Visit [Lanveriq GitHub Pages](https://kunlong-luo.github.io/lanveriq/) for the publicly deployed, read-only static showcase. For a local private Next.js preview:
@@ -48,7 +50,7 @@ pnpm build
 pnpm dev
 ```
 
-The Next.js server binds `127.0.0.1:3100`; no Spring session or business data is connected. **Never submit real credentials to the disabled login screen.** The historical Vite `apps/web` source and workflow were removed; only `apps/web` starts a frontend.
+The Next.js server binds `127.0.0.1:3100`; no Spring session or business data is connected. **Never submit real credentials to the disabled login screen.** The former Vite implementation was deleted from the active tree in NXT-23; the current `apps/web` folder and its `web-unit.yml` workflow were then populated with **Next.js** in NXT-24. Only this Next.js package starts a frontend.
 
 ## Prerequisites
 

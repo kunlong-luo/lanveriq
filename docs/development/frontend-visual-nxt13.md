@@ -1,3 +1,5 @@
+> **NXT-24 historical note (2026-11-21):** This is a preserved NXT-13 design/CI record. Current frontend: `apps/web` Next.js 16 with the NXT-20/21 operational CSS and NXT-22 page-only search; [current visual contract](../visuals/CONSOLE_CRAFTWORK_DIRECTION.md). No Vite or `craftwork-theme.css` runtime remains. Production services are still disabled.
+
 # NXT-13 — Next.js management console visual refresh
 
 **Date:** 2026-11-07  
@@ -11,7 +13,7 @@ All new visual elements are **first-party CSS/JSX**. No remote fonts, images, ex
 
 ## Files and design decisions
 
-- `apps/web/src/app/craftwork-theme.css` is a separate, reversible presentation layer imported **after** `globals.css` from the root layout. Reuse its warm neutral surfaces, charcoal headings, lilac accents and lime highlight rather than adding another competing CSS theme.
+- **Historical NXT-13 only:** `craftwork-theme.css` was once a separate presentation layer. **It no longer exists.** The current Next.js `apps/web/src/app/layout.tsx` imports `globals.css`, `lanveriq-bc.css`, then `console-polish.css`; follow the [current Craftwork visual contract](../visuals/CONSOLE_CRAFTWORK_DIRECTION.md), not this removed filename.
 - The navigation layout retains the canonical `src/lib/console-navigation.ts`, real Next.js `Link` navigation, current-page `aria-current`, keyboard skip link and focus-visible rings. The light sidebar and warm header share spacing/radius tokens.
 - `src/app/(console)/overview/page.tsx` uses an editorial bento hierarchy: decorative **CSS-only**, screen-reader-hidden hero artwork; prominent heading and two real local navigation links; three grouped sections (status, insights, assets).
 - `src/components/health-sections.tsx` retains actual **unknown/unconnected** metrics with `—` placeholders, clearly labeled `未连接` badges and no invented device records, percentages, heartbeat timestamps or counters.

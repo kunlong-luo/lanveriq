@@ -1,11 +1,15 @@
 # Frontend design system — canonical Next.js App Router, live integration pending
 
-**当前规范覆盖旧提案（2026-11-08）：** 正式维护的 UI 只有 `apps/web`：Next.js 16.4.5 / React 19 / Tailwind 4 / **Base UI React** 和项目内 shadcn-style 组件。当前获选 **B+C 浅色主题**（`#F8F8FC` 背景、`#6A5BFF` 紫色主品牌、`#3882F6` 蓝、`#C9FF6A` 青柠点缀、`#1C1A2E` 深色文本）；以下 2026-10/早期 11 的 **蓝色 Vite/Radix 配色和功能清单是迁移历史，不再具有实施优先级**。真正受授权的登录/设备查询依旧默认关闭，公开 Pages 仅断开预览。按 [v0.1 批次计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md) 暂缓非必要视觉微调；新增依赖以 [实际 manifest](../../apps/web/package.json) 为准。
+**2026-11-21 唯一现行 UI 规范：** `apps/web` 是 Next.js 16.4.5 / React 19 / Tailwind 4 / **Base UI React 1.9.0** + 项目内 shadcn-style 组件（旧 Vite 已删除，`apps/web-next` 目录已改名）。**当前有效的 NXT-20/21 视觉 token 以 `apps/web/src/app/console-polish.css` 为准**：画布 `#F5F7FA`、卡片 `#FFFFFF`、墨色 `#172235`、靛蓝 `#4D5FC9`、浅薄荷 `#CEF4E5`。原 B+C `#F8F8FC` / `#6A5BFF` / 青柠方案与早期 Radix/Vite 提案均为历史，不能作为现行截图/主题验收基准。请参见 [NXT-21 实际视觉规范](../visuals/CONSOLE_CRAFTWORK_DIRECTION.md)、[NXT-24 迁移](nextjs-path-rename-nxt24-2026-11-21.md)。真正受授权的登录/设备查询依旧默认关闭，公开 Pages 仅断开预览。按 [v0.1 批次计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md) 暂缓非必要视觉微调；新增依赖以 [实际 manifest](../../apps/web/package.json) 为准。
 
 
-**NXT-12 framework cutover (2026-11-07):** Use `apps/web` **Next.js 16.4.5 stable** as the only forward-development UI app. Its Next.js App Router pages, Tailwind 4/shadcn-style components, TanStack Query, build-time Orval types and GitHub Pages static showcase have passed relevant locked-build/source gates. The original `apps/web` Vite project and its localhost-only anonymous health proxy are **legacy reference**, not a current product endpoint. Do not copy Vite-only development proxy logic into Next.js, or mount a credentialed route to replicate historical demo data. No real session, business data, Agent telemetry or production proxy deployment is authorized by this framework cutover; retain NXT-10/NXT-11 Caddy/Spring security acceptance.
+**NXT-12 framework cutover (2026-11-07):** Use `apps/web` **Next.js 16.4.5 stable** as the only forward-development UI app. Its Next.js App Router pages, Tailwind 4/shadcn-style components, TanStack Query, build-time Orval types and GitHub Pages static showcase have passed relevant locked-build/source gates. The old Vite UI/proxy have been removed from the current tree (NXT-23), and the Next.js UI moved from `apps/web-next` to `apps/web` (NXT-24). They remain accessible only as historical Git content, not a runnable product endpoint. Do not copy Vite-only development proxy logic into Next.js, or mount a credentialed route to replicate historical demo data. No real session, business data, Agent telemetry or production proxy deployment is authorized by this framework cutover; retain NXT-10/NXT-11 Caddy/Spring security acceptance.
 
 
+
+## Historical checkpoints (2026-10 to early 2026-11; not active instructions)
+
+The following first-slice logs reflect source and CI **as of their original dates**. Directory names were reused during NXT-24; where an old paragraph mentions the Vite `apps/web`, it means the **deleted** Vite program, not today's Next.js package. Do not run earlier Vite build/proxy instructions or use stale old CSS colors.
 
 **WEB-01 local health-only slice (2026-11-01):** The Vite React preview now uses an exact-path localhost development proxy for anonymous Spring Boot `GET /actuator/health`, with a non-polling TanStack Query and manual refresh. It never proxies `/api` or activates login/device endpoints. The source repo contains the shadcn/ui `components.json`, local Card composition and Tailwind 4 semantic tokens; this is an incremental style foundation, not a Next.js migration. It must display unavailable if Spring is down and must not present the synthetic metrics as live. The production static build has no Vite proxy. Real browser auth/business queries remain blocked by pending PG18/TLS/session acceptance.
 
@@ -21,19 +25,21 @@
 
 **Backend auth client contract preparation:** Real Spring Security form login and logout are now described through a conditional Springdoc customizer, and the real CSRF Controller exposes a typed response, allowing Orval to generate authenticated API mutations rather than writing bespoke login API calls in React. Neither production auth nor the frontend is enabled. [CI #41262871704](https://github.com/kunlong-luo/lanveriq/actions/runs/41262871704) passed the complete backend Springdoc/Orval/TypeScript gate for five GET operations plus login/logout POST mutations. Actual real browser/Caddy/TLS/PostgreSQL gates remain open.
 
-## Stack
-- **pnpm Workspace** for JS/TS dependencies in a monorepo; Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, **not** an application framework.
+## Stack — current manifests versus future options
+- **Independent pnpm 12 package/lockfile in `apps/web`** (and a separate `apps/server/contract-client-check`); this repository does **not** use a root pnpm workspace to build all languages. Cargo owns Rust; **Gradle** owns Java. pnpm is a package manager, not an application framework.
 - **Canonical today:** Next.js 16.4.5 App Router + React 19 + TypeScript, with Node.js 24 for local/private serving and a separate GitHub Pages static-only export. Vite/React Router are legacy migration material. Do not enable SSR authenticated-data fetching or production authorization by framework selection alone. [ADR-0008](../architecture/adrs/0008-nextjs-app-router-console.md).
-- **Tailwind CSS 4 + shadcn/ui + Radix UI** for accessible editable components; retain a modest shared UI package only once both Dashboard and Tauri require it.
+- **Installed:** Tailwind CSS 4 + Base UI React 1.9.0 + source-owned shadcn-style components, not the historical Radix dependency. A shared UI package is not yet present or needed.
 - **Lucide React** as primary stroke-based UI icon library; use explicitly approved/logos where necessary. Avoid installing multiple overlapping icon packs.
-- **Motion** as the single intentional animation library; CSS transitions for simple hover/focus, Motion for dialogs or route transitions. Respect `prefers-reduced-motion`.
+- **Installed behavior:** small native CSS transitions with `prefers-reduced-motion` support; **Motion is not installed** and is optional only after measured need.
 - **Springdoc OpenAPI → Orval → generated TypeScript REST clients and TanStack Query hooks** rather than manually repeating request DTOs and API functions. Generation is done from an approved local OpenAPI artifact, not from an anonymously exposed production API endpoint. See [Orval](https://orval.dev/).
-- **TanStack Query** owns REST server state; WSS status hints invalidate/refetch Query. **TanStack Table** for sortable/filterable device lists; avoid a second state copy in Zustand.
-- **Sonner** for notifications; **React Hook Form + Zod** only for nontrivial forms. **Recharts** for v0.2 event/status trends, **TanStack Virtual** only when row counts justify it. **i18next** for bilingual UI when locale selection becomes a feature.
+- **Installed but unconnected:** TanStack Query 5 has an isolated provider/state boundary; authenticated REST hooks and WSS invalidation are **not live**. **TanStack Table and Zustand are not installed**; current directory uses project-owned display components and only authorized in-memory rows.
+- **Future candidates only (not installed):** Sonner, React Hook Form/Zod, Recharts, TanStack Table/Virtual, i18next and Motion. Add a dependency only with an approved feature, licensing review and corresponding tests.
 - Keep strict API authorization on Spring Boot, not in React component visibility. A UI badge never proves monitoring or employee inactivity.
 
-## UX token baseline
-Primary blue `#2563EB`, green `#159A69` (healthy), orange `#E88816` (warning), red `#DC4A55` (failure), violet `#7C3AED` (dashboard accent), navy `#0B2447`, background `#F3F7FD`. Use labels **and** colors for status. The conceptual SVG tokens are **targets** and may require accessibility contrast adjustments in real UI.
+## UX token baseline — checked-in current CSS
+- Canvas `#F5F7FA`, surfaces `#FFFFFF`, foreground/ink `#172235`, border `#E4E9F0`, indigo accent `#4D5FC9`, decorative mint `#CEF4E5`; authoritative location is `src/app/console-polish.css` imported **after** `lanveriq-bc.css` in `src/app/layout.tsx`.
+- Unavailable/unknown is displayed as `—` or an explicit unconnected explanation, **never fake zeros or green online status**. Status is always communicated with words and icons, not color alone.
+- Early blue/orange/lime and SVG palette proposals are **historical reference**, not the current UI CSS contract.
 
 ## Motion and performance
 - Default button/hover transitions in CSS, typically 120–200 ms.
@@ -44,22 +50,22 @@ Primary blue `#2563EB`, green `#159A69` (healthy), orange `#E88816` (warning), r
 ## Phase-controlled dependencies
 | Phase | Actual need | Install when implementing |
 |---|---|---|
-| v0.1 | React/Vite, pnpm, Tailwind, shadcn UI, Lucide, **Orval-generated Query client**, Router, forms for enrollment/login, Sonner, targeted Motion | only required packages/components |
+| v0.1 (current) | Next.js App Router, pnpm 12, React19, Tailwind4, Base UI, Lucide; **Orval client only in offline build contract**; disabled login and disconnected directory | no new runtime deps or real API without security gates |
 | v0.2 | Timeline charts, large table, internationalization | Recharts, Virtual/i18next as warranted |
 | v0.3 | Tauri 2 desktop companion and authorized recording UX | optional shared UI package, no Electron |
 | v1.0 | more sophisticated validation/testing | review/test expansion after MVP |
 
 ## Dependency governance
-Use [ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md) for ecosystem admission; do not hand-edit generated API client files. Pin versions/lockfiles **when app scaffolds are actually added**; no pretend package.json or GitHub CI jobs before implementation. Prefer official package documentation and licensing audit before commercialization. Keep examples synthetic and avoid copying Pagevela's unrelated editor/PWA modules.
+Use [ADR-0007](../architecture/adrs/0007-mature-ecosystem-first.md) for ecosystem admission; do not hand-edit generated API client files. **The existing Next.js package and lockfile are already checked in**; use frozen install and verified exact-SHA CI. Do not add undocumented packages or publish generated clients with credentials. Prefer official package documentation and licensing audit before commercialization. Keep examples synthetic and avoid copying Pagevela's unrelated editor/PWA modules.
 
 
-**WEB-01 staged browser session transport:** `apps/web/src/auth/sessionTransport.ts` uses only built-in fetch/URLSearchParams with HTTPS-only canonical origin, same-origin cookies, no-store, redirect rejection, CSRF refresh after session fixation, and fail-closed 401/403/429/503 handling. It is **not imported by the running UI** and the `/login` form remains disabled. Tests inject only in-memory HTTP stubs; real Origin/Cookie/Caddy/PG18 acceptance is still mandatory.
+**Historical Vite WEB-01 staged browser session transport:** the removed `apps/web/src/auth/sessionTransport.ts` (available in Git history only) used built-in fetch/URLSearchParams with HTTPS-only canonical origin, same-origin cookies, no-store, redirect rejection, CSRF refresh after session fixation, and fail-closed 401/403/429/503 handling. It is **not imported by the running UI** and the `/login` form remains disabled. Tests inject only in-memory HTTP stubs; real Origin/Cookie/Caddy/PG18 acceptance is still mandatory.
 
-**WEB-01 deterministic dependency baseline (2026-11-01):** `apps/web/pnpm-lock.yaml` is checked in, generated by the one-time CI bootstrap that passed unit tests and the Vite build. The standard Web workflow must use `pnpm install --frozen-lockfile` and must keep GitHub Actions `contents: read`. The bootstrap workflow, which briefly required elevated write permission to pin the lockfile, must be removed. This does not close the browser login, Caddy/TLS, WSS, or genuine PostgreSQL integration gates.
+**Historical Vite WEB-01 lockfile (2026-11-01):** the original Vite-specific `apps/web/pnpm-lock.yaml` was generated by the first bootstrap and verified against Vite; it is **not** the current Next.js lockfile. The **current** `apps/web/pnpm-lock.yaml` belongs to Next.js and is independently locked/tested. The standard Web workflow must use `pnpm install --frozen-lockfile` and must keep GitHub Actions `contents: read`. The bootstrap workflow, which briefly required elevated write permission to pin the lockfile, must be removed. This does not close the browser login, Caddy/TLS, WSS, or genuine PostgreSQL integration gates.
 
 **WEB-01-AUTH-PREVIEW + Orval compilation bridge (2026-11-01):** `/login` displays a standalone administrator sign-in screen, but both fields and submit button are disabled, with no credential state or network call. In backend Java CI, the actual Springdoc-generated OpenAPI is passed to Orval 8; the generated TypeScript is copied (uncommitted) into `apps/web/.generated-contract/`, then compiled with `apps/web/tsconfig.contract.json` against the actual locked Web versions of TypeScript and TanStack Query. `apps/web/contract-check/typecheck.ts` imports typed CSRF/login/logout/session and scoped health operations. This establishes **type compatibility only**, not an enabled browser authentication sequence. No real Caddy TLS, browser Origin/CSRF/cookie, RBAC, PostgreSQL or WSS acceptance is implied.
 
-**NXT-01 isolated Next.js candidate verified (2026-11-01):** The separate `apps/web` package now provides a disabled-login/zero-real-data Next.js 16.4.3 App Router UI with its pnpm-generated and checked-in frozen lockfile. [CI #41287394823](https://github.com/kunlong-luo/lanveriq/actions/runs/41287394823) passed Node 24 install, unit tests, route guards, TypeScript, production build and actual preview HTTP smoke. A temporary write-capable lockfile bootstrap has been removed. The Vite `apps/web` remains the default preview; full NXT-02 route/design parity, authenticated Orval integration, manual PG18/Caddy/browser and cutover are NOT done.
+**Historical NXT-01 isolated Next.js candidate (2026-11-01):** The candidate, then at `apps/web-next` and now renamed into `apps/web`, provided a disabled-login/zero-real-data Next.js 16.4.3 App Router UI with its pnpm-generated and checked-in frozen lockfile. [CI #41287394823](https://github.com/kunlong-luo/lanveriq/actions/runs/41287394823) passed Node 24 install, unit tests, route guards, TypeScript, production build and actual preview HTTP smoke. A temporary write-capable lockfile bootstrap has been removed. At that historical checkpoint Vite still served the default preview. NXT-23/NXT-24 **later completed the UI-directory cutover**; authenticated Orval integration, real PG18/Caddy/browser production approval and physical Agent acceptance remain OPEN.
 
 **NXT-02 Next.js UI port, automated portion complete (2026-11-01):**
 The isolated `apps/web` now contains overview/monitoring fleet

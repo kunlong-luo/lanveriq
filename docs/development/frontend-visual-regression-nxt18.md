@@ -1,3 +1,5 @@
+> **2026-11-21 current-source clarification:** This page is historical NXT-18 CSS governance and Chromium screenshot evidence. Today the sole Next.js UI lives at `apps/web`, and its active CSS cascade has **three** imports: `globals.css`, `lanveriq-bc.css`, then `console-polish.css` (NXT-20/21). **Do not remove the last approved layer on the basis of the older NXT-17 two-file statement below.** Current visuals use `#F5F7FA` canvas, `#172235` ink and `#4D5FC9` indigo; NXT-24 [real Chromium evidence](nextjs-path-rename-nxt24-2026-11-21.md) passed on functional SHA `6ed47c47`, not production auth/data.
+
 # NXT-18 — B+C visual-system refinements and responsive screenshot evidence
 
 **Date:** 2026-11-08  

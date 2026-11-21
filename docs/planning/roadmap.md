@@ -1,3 +1,5 @@
+> **NXT-24 UI infrastructure update (2026-11-21):** the frontend source and CI are now exclusively [`apps/web`](../../apps/web/README.md); [NXT-24 five-workflow verification](../development/nextjs-path-rename-nxt24-2026-11-21.md) passed at `6ed47c47`. The launch path/visual preview is implemented, but **authorized WebAuthn/login, FIDO MDS trust chain, real Agent→UI/device operations and Pop!_OS physical acceptance remain OPEN**. The roadmap milestones below are product goals rather than evidence of operational readiness.
+
 > **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
 
 # Lanveriq delivery roadmap — v0.1 business-loop priority
@@ -15,7 +17,7 @@ The [eight-image stakeholder gallery](../visuals/README.md) and [20 Mermaid engi
 Deliver/review PRD, user roles, data fields, platform capabilities, component boundaries, atomic event delivery, PG and SQLite models, policy configuration, administrator permission matrix, retention, threat model, manual test plan and development rules. See the [v0.1 step-by-step implementation plan](v0.1-implementation-sequence.md). Confirm operating jurisdiction/monitoring notice scope. D0 technical review is recorded; legal/organizational real-data permissions remain separate open decisions.
 
 ## v0.1 — end-to-end skeleton (priority P0)
-1. Server bootstrap: Java 25/Spring Boot 4, PostgreSQL/Flyway migrations, Caddy HTTPS, Next.js 16+ App Router (canonical B+C UI; legacy Vite kept as reference).
+1. Server bootstrap: Java 25/Spring Boot 4, PostgreSQL/Flyway migrations, Caddy HTTPS, Next.js 16.4.5 App Router (**sole canonical UI at `apps/web`**; legacy Vite and former `apps/web-next` migration path deleted from current tree).
 2. Rust agent skeleton, embedded SQLite store with migrations and single writer.
 3. Server-assigned UUIDv7 device identity, short-lived pairing, revocation, heartbeat, **hardware/OS/NIC/IP/MAC/volume inventory** and capability reporting; full inventory changes only at startup/change/24h, performance metrics sampled separately.
 4. Durable event outbox, all-or-nothing bounded batch ingestion, immutable device sequence and per-sequence retry acknowledgments.

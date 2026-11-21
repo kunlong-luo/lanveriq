@@ -1,3 +1,10 @@
+## 2026-11-21 — NXT-25 Web documentation consistency and regression gate (CI pending)
+
+- Reconcile the active `apps/web` Next.js 16.4.5 tree with the ADR-0008, current engineering/technology standards, CSS design tokens, NXT-23/24 migration audit, browser testing matrix, operations runbooks, release notes, IDEA setup, doc index, README and AGENTS guidance.
+- Remove contradictory active claims that `apps/web` is both a Vite and Next.js app, that the current Next.js `web-unit.yml` should be deleted, or that the retired `craftwork-theme.css` and old purple/lime colors are the active CSS. Preserve original historical CI references with explicit date/status markers.
+- Add a **source-only documentation consistency script** and negative fixtures, run on `main` through the existing Next.js fast workflow. The check does not connect to devices, credentials, Spring, PostgreSQL or external endpoints.
+- NXT-24's **five same-functional-SHA successes on `6ed47c47` remain historical acceptance**, not proof of this documentation update until its new CI completes. **v0.1 NOT RELEASE READY**; production features stay OFF.
+
 ## 2026-11-21 — NXT-24 Rename canonical Next.js directory to `apps/web` (five same-SHA CI successes)
 
 - Move all canonical Next.js 16 App Router sources from `apps/web-next/` to **`apps/web/`** with a history-preserving Git tree rename. The previously deleted Vite frontend is not restored.

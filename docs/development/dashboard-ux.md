@@ -1,9 +1,11 @@
+> **2026-11-21 current interface:** `apps/web` is the sole Next.js 16 console (Node 24/pnpm 12, local `3100`), not the previous Vite application. NXT-24 verified a **disconnected** UI and Chromium preview; this document's device search/REST/WSS flows remain **future authorized UX contracts**, not currently enabled services. Consult [NXT-24 migration](nextjs-path-rename-nxt24-2026-11-21.md) and [current design tokens](frontend-design-system.md); no live backend, monitoring or administrator login is approved.
+
 # Management dashboard UX contract (first synthetic React implementation started 2026-11-01)
 
 **Status:** `apps/web` now provides a build-tested synthetic-only UI with overview, Monitoring Center, device search/detail, enrollment explanation and settings. The visual login screen at `/login` is non-operational and intentionally refuses any credentials. Generated Orval types are compiled against the Web dependency graph in backend CI, but there is no real backend login, Orval runtime API binding, WSS or production access. **Reference:** adopt Pagevela's feature-focused React components, cohesive design tokens and accessible shared UI; do not copy its resume-specific editor/PWA state model.
 
 ## Visual identity
-Follow the [unified infographic/style guide](../visuals/STYLE_GUIDE.md) for brand colors and terms, but use actual accessible React components rather than treating the SVGs as UI source. The [concept dashboard](../visuals/assets/06-dashboard-concept.svg) uses **sample data**, not a working UI screenshot. See [frontend design dependencies](frontend-design-system.md) for planned UI/icon/animation choices.
+Follow the [current Next.js CSS token contract](frontend-design-system.md) and [Craftwork directional specification](../visuals/CONSOLE_CRAFTWORK_DIRECTION.md) for actual UI color/layout. The [SVG infographic style guide](../visuals/STYLE_GUIDE.md) applies **only to historical educational posters**, not to running Next.js components. The [concept dashboard](../visuals/assets/06-dashboard-concept.svg) uses **sample data**, not a working UI screenshot. See [frontend design dependencies](frontend-design-system.md) for planned UI/icon/animation choices.
 
 ## Page map / release
 | Page | v0.1 | v0.2 | v0.3 |

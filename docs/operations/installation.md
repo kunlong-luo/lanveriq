@@ -1,8 +1,10 @@
+> **2026-11-21 NXT-24 dev UI entrypoint:** Run only `cd apps/web && corepack pnpm install --frozen-lockfile && corepack pnpm dev` (Node 24 / pnpm 12), then visit `http://127.0.0.1:3100/overview`. The old Vite 5173 runtime and temporary `apps/web-next` path are absent. See [NXT-24 verified migration](../development/nextjs-path-rename-nxt24-2026-11-21.md). This is a disconnected development preview, **not an approved product installation**.
+
 > **2026-11-13 Linux-only 首版安装范围：** 参见 [当前上线差距账本](../planning/release-readiness-2026-11-13.md)。通过的 Rust→Caddy→Tomcat TLS1.3/PG18 测试属于**临时合成 CI**，而非正式 Pop!_OS 24 上的 systemd 服务。DEB/身份密钥/备份恢复与真实组织许可仍是发布 P0，Windows MSI/SCM/CNG 属独立后续平台发布门槛。本文件不能直接作为生产安装指令。
 
 # Lanveriq installation, local development, and deployment runbook
 
-**Status: development-only.** The repository now contains a runnable default-deny Java Spring Boot process and an idle Rust Agent binary, but **only a synthetic React preview (no live login/API), no production-ready Compose stack, no signed MSI/DEB installers, and no production Caddy configuration**. This is **not** a supported production monitoring deployment. Legal/privacy notice and real PostgreSQL/TLS/OS acceptance gates remain open.
+**Status: development-only.** The repository now contains a runnable default-deny Java Spring Boot process and an idle Rust Agent binary, but **only a disconnected Next.js 16 App Router preview at `apps/web` (no live login/API), no production-ready Compose stack, no signed MSI/DEB installers, and no production Caddy configuration**. This is **not** a supported production monitoring deployment. Legal/privacy notice and real PostgreSQL/TLS/OS acceptance gates remain open.
 
 For copyable development and synthetic-only commands, begin with the [Chinese README](../../README.zh.md) or [English README](../../README.md). They cover:
 
@@ -77,7 +79,7 @@ the Java health check.
 
 | Product component | Planned execution site | State |
 |---|---|---|
-| Next.js App Router admin Web (primary) | `apps/web`, Next.js 16.4.5 standalone localhost preview; separate public disconnected GitHub Pages static export | Main UI builds and Pages preview pass CI; live API, session, WSS and real device access remain OFF. The older `apps/web` Vite code is legacy reference only |
+| Next.js App Router admin Web (primary) | `apps/web`, Next.js 16.4.5 standalone localhost preview; separate public disconnected GitHub Pages static export | Main UI builds and Pages preview pass CI; live API, session, WSS and real device access remain OFF. The old Vite app was removed in NXT-23; the current `apps/web` is the relocated Next.js project, not a Vite proxy |
 | Java Spring Boot server | Server host, behind accepted HTTPS/TLS ingress | Buildable local development process; privileged business endpoints default OFF |
 | Rust endpoint Agent | Native managed Windows/Linux endpoint | Idle binary, standalone synthetic libraries and OS test-only service unit; no live enrollment/upload |
 | PostgreSQL 18 | Private server network / synthetic Docker on loopback | Database migration source written; manual integration acceptance pending |

@@ -4,10 +4,28 @@ on:
     paths:
       - 'apps/web/**'
       - '.github/workflows/web-unit.yml'
+      - 'docs/README.md'
+      - 'docs/development/standards.md'
+      - 'docs/development/technology.md'
+      - 'docs/development/frontend-design-system.md'
+      - 'docs/development/nextjs-single-ui-consolidation-2026-11-21.md'
+      - 'docs/development/nextjs-path-rename-nxt24-2026-11-21.md'
+      - 'docs/testing/nextjs-nxt02-manual.md'
+      - 'docs/architecture/adrs/0008-nextjs-app-router-console.md'
+      - 'docs/operations/release.md'
   pull_request:
     paths:
       - 'apps/web/**'
       - '.github/workflows/web-unit.yml'
+      - 'docs/README.md'
+      - 'docs/development/standards.md'
+      - 'docs/development/technology.md'
+      - 'docs/development/frontend-design-system.md'
+      - 'docs/development/nextjs-single-ui-consolidation-2026-11-21.md'
+      - 'docs/development/nextjs-path-rename-nxt24-2026-11-21.md'
+      - 'docs/testing/nextjs-nxt02-manual.md'
+      - 'docs/architecture/adrs/0008-nextjs-app-router-console.md'
+      - 'docs/operations/release.md'
 permissions:
   contents: read
 
@@ -40,6 +58,11 @@ jobs:
         run: |
           node scripts/verify-single-ui.mjs
           node --test scripts/test_verify_single_ui.mjs
+      - name: Verify current canonical frontend documentation and negative cases
+        working-directory: apps/web
+        run: |
+          node scripts/verify-documentation-baseline.mjs
+          node --test scripts/test_verify_documentation_baseline.mjs
       - name: Regress transitive source-level authentication isolation (NO runtime)
         working-directory: apps/web
         run: node --test scripts/test_runtime_isolation.mjs
