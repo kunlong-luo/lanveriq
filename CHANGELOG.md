@@ -1,8 +1,8 @@
-## 2026-11-21 — A11-D4-C11 strict raw signed-JWS JSON parsing (CI pending)
+## 2026-11-21 — A11-D4-C11 strict raw signed-JWS JSON parsing (5/5 exact-SHA CI PASS)
 
 - Block duplicate JSON member names in ORIGINAL compact JWS header/payload bytes at any nesting depth using built-in Jackson 3 strict streaming parser, including encoded-key collisions. Prevent mismatch between parsers' discarded first/last values.
 - Integrate with unmounted offline FIDO source verifier; test genuine signed disposable ES256/RS256 BLOBs containing duplicate root/entry/status/extension keys and retain unique synthetic untrusted evidence.
-- [D4-C11 security and CI gate](docs/security/fido-mds-duplicate-json-d4-c11-2026-11-21.md). **Exact new SHA CI pending**. No FIDO root trust, admin MFA, physical Pop!_OS authorization or production switches; v0.1 NOT RELEASE READY.
+- [D4-C11 security and CI gate](docs/security/fido-mds-duplicate-json-d4-c11-2026-11-21.md). **Exact-source CI ACCEPTED:** [functional SHA `7282bc44`](https://github.com/kunlong-luo/lanveriq/commit/7282bc446c2b9ac27a8f0fea4830fbcd29f829a6) passed **5/5 same-SHA synthetic CI gates**: [Java 25 Gradle unit and real JUnit XML proving all 9 mandatory verifier tests #44894793997](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793997), [PostgreSQL 18.6 Testcontainers real synthetic transactions #44894793992](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793992), [PG integration-source compile #44894793990](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793990), [Next.js fast tests/typecheck/build #44894793972](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793972), and [RD-2 fail-closed default OFF #44894793994](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793994). **No official FIDO trust, approved MDS source, production time/CRL custody, live WebAuthn MFA or Pop!_OS 24.04 L3.** No FIDO root trust, admin MFA, physical Pop!_OS authorization or production switches; v0.1 NOT RELEASE READY.
 
 ## 2026-11-21 — Documentation authority and current-state reorganization
 

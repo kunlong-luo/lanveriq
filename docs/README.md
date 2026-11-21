@@ -13,7 +13,7 @@
 | 本地启动唯一 Web | [apps/web README](../apps/web/README.md) · [安装/开发指引](operations/installation.md) | 不运行已删除的 Vite / web-next |
 | 开发 Java / Rust / Web | [工程目录规范](development/standards.md) · [当前真实依赖](development/technology.md) · [复用优先](development/reuse-first-policy.md) · [AGENTS.md](../AGENTS.md) | Java 用 Gradle/JPA；不重造组件 |
 | 执行自动化与实机验收 | [L1/L2/L3 策略](testing/strategy.md) · [测试矩阵](testing/test-matrix.md) · [Pop!_OS 24.04 L3](testing/linux-popos24-agent-acceptance.md) | CI 不能代替真实 Pop!_OS |
-| 审查安全与发布 | [FIDO MDS D4-C10](security/fido-mds-duplicate-identifiers-d4-c10-2026-11-21.md) · [身份与访问](security/identity-and-access.md) · [发布门禁](operations/release.md) | v0.1 NOT RELEASE READY |
+| 审查安全与发布 | [FIDO MDS D4-C11](security/fido-mds-duplicate-json-d4-c11-2026-11-21.md) · [身份与访问](security/identity-and-access.md) · [发布门禁](operations/release.md) | v0.1 NOT RELEASE READY |
 
 ## 2. 架构与关键决议
 
@@ -31,7 +31,7 @@
 
 ## 4. 安全、测试、运维与合规
 
-- **D4-C11 最新新增安全检查（CI 待验收）：** [原始签名 JWS 的重复 JSON 字段拒绝](security/fido-mds-duplicate-json-d4-c11-2026-11-21.md)；此门禁仅验证合成未可信材料，不是受批准的 FIDO 来源。
+- **D4-C11 最新签名 JSON 安全检查（5/5 同 SHA 合成 CI PASS）：** [原始签名 JWS 的重复 JSON 字段拒绝](security/fido-mds-duplicate-json-d4-c11-2026-11-21.md)；此门禁仅验证合成未可信材料，不是受批准的 FIDO 来源。
 
 - **安全：** [D4-C10 唯一标识门禁](security/fido-mds-duplicate-identifiers-d4-c10-2026-11-21.md) · [D4-C9 条目形状门禁](security/fido-mds-payload-screen-d4-c9-2026-11-21.md) · [RBAC 矩阵](security/authorization-matrix.md) · [威胁模型](security/threat-model.md) · [隐私/告知](security/privacy-and-consent.md) · [数据留存](security/data-retention.md)。
 - **测试：** [总策略](testing/strategy.md) · [总矩阵](testing/test-matrix.md) · [PG18 合成验收](testing/server-postgres18-manual.md) · [Console 会话验收](testing/console-session-manual.md) · [网络/TLS+Agent](testing/linux-caddy-spring-pg18-rust-csr.md) · [Pop!_OS 实机验收](testing/linux-popos24-agent-acceptance.md)。

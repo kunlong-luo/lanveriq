@@ -1,6 +1,6 @@
 # A11-D4-C11 — FIDO MDS compact JWS duplicate-JSON denial
 
-**Date:** 2026-11-21 · **Branch:** `main` only · **State:** implementation submitted, exact functional-SHA CI PENDING · **Release:** **v0.1 NOT RELEASE READY**.
+**Date:** 2026-11-21 · **Branch:** `main` only · **State:** 5/5 exact-functional-SHA synthetic CI SUCCESS · **Release:** **v0.1 NOT RELEASE READY**.
 
 ## Why this is distinct from D4-C10
 
@@ -15,12 +15,11 @@ D4-C10 prevents multiple FIDO metadata **entries** from claiming the same AAGUID
 - Add direct malformed/escaped/trailing-key unit tests, plus valid **disposable ES256 and RS256 JWS** carrying duplicate top-level, entry, status and optional-extension member names. Re-sign time with the exact JWS/CRL/claimed root for each case; even with valid synthetic crypto, all ambiguous BLOBs MUST throw `AccessDeniedException`. Valid unique synthetic entries still return `UntrustedSourceEvidence`, never a grant.
 - Update real Gradle JUnit XML evidence gate to require `signedJwsWithDuplicateJsonFieldsAtAnyDepthRejectsEvenWithValidTimeAndCrl` (nine mandatory verifier tests total).
 
-## Acceptance gate (do not mark PASS until evidence)
+## Same-SHA L1/L2 acceptance — 5/5 SUCCESS
 
-- JDK 25 `server-unit.yml`: real Gradle unit tests + nine mandatory executed JUnit verifier methods.
-- PG18.6 Testcontainers: independent synthetic database transactions and negative backend checks; this does **not** test an official MDS chain.
-- Next.js fast and RD-2 OFF gates: non-regression of default-deny and disconnected frontend.
-- The source SHA, job links and conclusions must be filled **only after successful actual CI**, not inherited from D4-C10.
+[functional SHA `7282bc44`](https://github.com/kunlong-luo/lanveriq/commit/7282bc446c2b9ac27a8f0fea4830fbcd29f829a6) passed **5/5 same-SHA synthetic CI gates**: [Java 25 Gradle unit and real JUnit XML proving all 9 mandatory verifier tests #44894793997](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793997), [PostgreSQL 18.6 Testcontainers real synthetic transactions #44894793992](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793992), [PG integration-source compile #44894793990](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793990), [Next.js fast tests/typecheck/build #44894793972](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793972), and [RD-2 fail-closed default OFF #44894793994](https://github.com/kunlong-luo/lanveriq/actions/runs/44894793994). **No official FIDO trust, approved MDS source, production time/CRL custody, live WebAuthn MFA or Pop!_OS 24.04 L3.**
+
+The mandatory JUnit gate explicitly requires `signedJwsWithDuplicateJsonFieldsAtAnyDepthRejectsEvenWithValidTimeAndCrl` in the **actual Gradle XML**; its run successfully reported all nine mandatory verifier methods. Disposable genuine ES256/RS256-signed fixture payloads with duplicate top-level and nested keys are rejected before Nimbus maps; distinct signed entries still produce **untrusted-only evidence**. PG18 Testcontainers here covers existing synthetic transactions, not an independently sourced official FIDO authority.
 
 ## What is NOT solved
 
