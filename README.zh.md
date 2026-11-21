@@ -1,3 +1,5 @@
+> **2026-11-21 最新状态：** 3 个历史分支均已安全纳入 `main` 并经 [一次性清理 CI](https://github.com/kunlong-luo/lanveriq/actions/runs/44873229717) 删除；远端现仅有 `main`。Next.js 16 控制台已参考 [Craftwork](https://craftwork.design/) 完成原创浅色编辑式 UI 改造，功能提交 [`e43886a3`](https://github.com/kunlong-luo/lanveriq/commit/e43886a3be9524f82961a09f409df3edb7af9b0c) 的 Next 构建/源码检查、真实 Chromium/15 张截图、隔离 Pages 和 RD-2 默认拒绝测试全部通过。**这仅是脱离业务数据的静态预览，不是生产上线授权**；v0.1 尚未批准，真实联网、终端采集、自动恢复、远程控制与证书签发继续关闭。
+
 # Lanveriq（澜维巡）
 
 [English](README.md) | **中文**

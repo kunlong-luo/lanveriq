@@ -1,6 +1,6 @@
 # NXT-21 — Craftwork-inspired Lanveriq Console
 
-**Date:** 2026-11-21. **Scope:** disconnected `apps/web-next` visual showroom. **CI:** new source revision pending acceptance.
+**Date:** 2026-11-21. **Scope:** disconnected `apps/web-next` visual showroom. **CI:** accepted at functional SHA `e43886a3be9524f82961a09f409df3edb7af9b0c` (four independent same-SHA successes).
 
 ## Reference and originality
 
@@ -21,4 +21,4 @@ The canonical front end is already Next.js 16 App Router / React 19 / Tailwind 4
 
 The public Pages preview is disconnected and static: no business API, Spring login, credentials, cookies, PostgreSQL, Redis, Agent, remote access, collection, automatic recovery or certificate issuance. All production gates remain OFF; v0.1 NOT RELEASE READY, Issue #5 open.
 
-For this exact functional SHA, require frozen pnpm/source/route tests, TypeScript and Next build, real Chromium 11-route and 320–1440px checks, 15 isolated visual screenshots and manifest, Pages static-only export, plus RD-2 fail-closed. Earlier green CI does not attest to this UI change.
+**Verified at the exact functional SHA:** [Next fast #44873138900](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138900) (frozen pnpm, source/route tests, TypeScript/build), [real Chromium #44873138797](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138797) (11 routes, 320–1440px, keyboard/mobile and 15 isolated screenshot artifacts), [static-only Pages #44873138865](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138865), and [RD-2 OFF #44873138989](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138989). Earlier SHAs and later docs-only commits do not replace this acceptance. This does not approve physical-device/production L3.

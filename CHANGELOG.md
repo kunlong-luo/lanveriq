@@ -1,3 +1,9 @@
+## 2026-11-21 — Branch consolidation + NXT-21 editorial Console (non-production)
+
+- All three old refs merged/verified without regression; `main` is the sole remote branch after [cleanup #44873229717](https://github.com/kunlong-luo/lanveriq/actions/runs/44873229717), with the temporary write-enabled workflow removed.
+- The canonical Next.js 16 Console was styled with a Craftwork-inspired original light editorial layout, dark ink active navigation and restrained card accents; no third-party paid assets were imported. Functional commit `e43886a3` passed the same SHA [Next fast](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138900), [Chromium + 15 screenshots](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138797), [static Pages](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138865), and [RD-2 OFF](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138989).
+- Disconnected static-only design acceptance; v0.1 not approved, no real device/control/network/collection/issuer capabilities enabled.
+
 # Changelog
 
 ## 2026-11-07 — Canonical Next.js 16.4.5 App Router frontend cutover
