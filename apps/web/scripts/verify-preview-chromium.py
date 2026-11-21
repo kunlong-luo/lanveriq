@@ -6,6 +6,7 @@ Does not accept credentials, load external websites, collect screenshots,
 store browser traces or enable staged authentication/device APIs.
 """
 import sys
+import traceback
 from urllib.parse import urlsplit
 
 BASE = "http://127.0.0.1:3100"
@@ -451,7 +452,13 @@ if __name__ == "__main__":
     except PreviewGateFailure as exc:
         print("FAIL: NXT-02 isolated Chromium gate: " + str(exc), file=sys.stderr)
         raise SystemExit(1) from None
-    except Exception:
-        print("FAIL: NXT-02 isolated Chromium could not complete browser checks",
-              file=sys.stderr)
+    except Exception as exc:
+        # Only a local function/line and error class: do not emit URLs,
+        # browser headers, cookies, credentials or potentially private values.
+        frames = [frame for frame in traceback.extract_tb(exc.__traceback__)
+                  if frame.filename.endswith("verify-preview-chromium.py")]
+        origin = (f"{frames[-1].name}:{frames[-1].lineno}"
+                  if frames else "outside_browser_script")
+        print("FAIL: NXT-02 isolated Chromium browser exception "
+              f"({type(exc).__name__} at {origin})", file=sys.stderr)
         raise SystemExit(1) from None
