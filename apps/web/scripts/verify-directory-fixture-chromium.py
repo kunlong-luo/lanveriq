@@ -56,10 +56,15 @@ def verify(browser, width):
                 "accessible_keyboard_scroller_missing")
         require(page.locator(".device-table tbody th[scope='row']").count() == 2,
                 "accessible_device_row_headers_missing")
-        sorting.select_option("label-desc")
+        sorting.click()
+        require(page.get_by_role("listbox").is_visible(),
+                "base_ui_sort_popup_not_visible")
+        page.get_by_role("option", name="设备名称 Z–A").click()
         require(page.locator(".device-table tbody th[scope='row'] strong").first.inner_text() ==
                 "CI合成设备乙", "page_sort_desc_not_applied")
-        sorting.select_option("server")
+        sorting.focus()
+        page.keyboard.press("Enter")
+        page.get_by_role("option", name="服务器返回顺序").click()
         require(page.locator(".device-table tbody th[scope='row'] strong").first.inner_text() ==
                 "CI合成设备甲", "page_sort_did_not_restore_server_order")
         if width <= 390:
@@ -92,15 +97,18 @@ def verify(browser, width):
         require(page.locator(".device-table tbody tr").count() == 2,
                 "clear_filters_must_restore_authorized_page")
 
-        group.select_option("CI测试组甲")
+        group.click()
+        require(page.get_by_role("listbox").is_visible(),
+                "base_ui_group_popup_not_visible")
+        page.get_by_role("option", name="CI测试组甲").click()
         require(page.locator(".device-table tbody tr").count() == 1,
                 "local_group_filter_did_not_filter")
         require(page.get_by_text("CI合成设备甲").is_visible(),
                 "group_filter_wrong_row")
         page.get_by_role("button", name="切换合成授权页乙").click()
         page.wait_for_function("""() => {
-          const el = document.querySelector('[data-slot="native-select"]');
-          return el && el.value === '';
+          const el = document.querySelector('[aria-label="筛选设备组"]');
+          return el && el.textContent.includes('全部授权设备组');
         }""", timeout=5000)
         require(page.get_by_text("CI合成设备丙").is_visible() and
                 page.locator(".device-table tbody tr").count() == 1,
@@ -122,8 +130,9 @@ def verify(browser, width):
 
         page.get_by_role("button", name="恢复合成授权页甲").click()
         require(search.is_enabled() and group.is_enabled() and sorting.is_enabled() and
-                search.input_value() == "" and group.input_value() == "" and
-                sorting.input_value() == "server",
+                search.input_value() == "" and
+                "全部授权设备组" in group.inner_text() and
+                "服务器返回顺序" in sorting.inner_text(),
                 "reauthorize_must_reset_previous_local_filters")
         require(page.locator(".device-table tbody tr").count() == 2,
                 "new_authorized_page_not_rendered")

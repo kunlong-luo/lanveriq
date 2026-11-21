@@ -60,3 +60,25 @@ test('local route palette is wired to the visible search control, never to devic
   assert.match(styles, /\.bc-command-dialog\s*\{/);
   assert.match(styles, /\.bc-command-input-row:focus-within/);
 });
+
+test('NXT-26 directory controls use accessible Base UI Select, no native dropdown', () => {
+  const directory = read('src/components/device-directory.tsx');
+  const select = read('src/components/ui/console-select.tsx');
+  const style = read('src/app/console-polish.css');
+  const chromium = read('scripts/verify-directory-fixture-chromium.py');
+  assert.match(directory, /import \{ ConsoleSelect \} from '\.\/ui\/console-select'/);
+  assert.match(directory, /<ConsoleSelect label="筛选设备组"/);
+  assert.match(directory, /<ConsoleSelect label="排序当前授权页"/);
+  assert.doesNotMatch(directory, /NativeSelect|<select|<option/);
+  assert.match(select, /@base-ui\/react\/select/);
+  assert.match(select, /<Select\.Trigger/);
+  assert.match(select, /<Select\.Popup/);
+  assert.match(select, /<Select\.Item/);
+  assert.match(select, /disabled=\{disabled\}/);
+  assert.doesNotMatch(select, /fetch\(|localStorage|WebSocket|staged-console|axios/);
+  assert.match(style, /\.lv-select-trigger/);
+  assert.match(style, /\.lv-select-popup/);
+  assert.match(style, /@media \(max-width: 750px\)/);
+  assert.match(chromium, /get_by_role\("option"/);
+  assert.doesNotMatch(chromium, /\.select_option\(|native-select/);
+});

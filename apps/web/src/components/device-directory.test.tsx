@@ -19,6 +19,11 @@ describe('NXT-02 directory display model (all records test-only)', () => {
     expect(disconnected).toContain('设备数据尚未连接');
     expect(disconnected).toContain('不代表数据库中没有设备');
     expect(disconnected).toContain('disabled');
+    expect(disconnected).toContain('role="combobox"');
+    expect(disconnected).toContain('aria-label="筛选设备组"');
+    expect(disconnected).toContain('aria-label="排序当前授权页"');
+    expect(disconnected).not.toContain('data-slot="native-select"');
+    expect(disconnected).not.toContain('<select');
     expect(disconnected).not.toContain('0 台');
     expect(disconnected).not.toContain('合成测试设备 A');
     const empty = render({kind:'ready',rows:[],hasMore:false});

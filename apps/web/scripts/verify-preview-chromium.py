@@ -187,6 +187,10 @@ def check_browser(page, blocked):
             "group_filter_must_be_disabled_without_authorized_rows")
     require(page.get_by_role("combobox", name="排序当前授权页").is_disabled(),
             "nxt19_sort_must_be_disabled_without_authorized_rows")
+    require(page.locator(".directory-panel select").count() == 0,
+            "nxt26_native_directory_select_must_be_removed")
+    require(page.locator(".directory-panel .lv-select-trigger").count() == 2,
+            "nxt26_base_ui_directory_select_triggers_missing")
     require(page.get_by_role("button", name="添加设备（未开放）").is_disabled(),
             "real_device_add_must_remain_disabled")
 
@@ -263,7 +267,7 @@ def check_viewports(browser):
                             "nxt16_assets_header_overflows_" + str(width))
                     if width <= 390:
                         search_width = page.locator(".directory-search").bounding_box()["width"]
-                        group_width = page.locator(".directory-select select").bounding_box()["width"]
+                        group_width = page.locator(".directory-select .lv-select-trigger").bounding_box()["width"]
                         require(group_width + 14 >= search_width,
                                 "nxt18_mobile_group_selector_not_full_width")
                     if width >= 1024:

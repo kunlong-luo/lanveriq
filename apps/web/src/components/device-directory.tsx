@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, LockKeyhole, Search, ShieldAlert, WifiOff, RefreshCcw, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Input } from './ui/input';
-import { NativeSelect } from './ui/native-select';
+import { ConsoleSelect } from './ui/console-select';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { isCanonicalUuid } from '../lib/uuid';
 
@@ -139,21 +139,28 @@ export function DeviceDirectory({
             placeholder="搜索设备或系统" disabled={!isReady} />
         </label>
         <div className="directory-select">
-          <NativeSelect aria-label="筛选设备组" disabled={!isReady}
-            value={activeGroup} onChange={event => setGroup(event.target.value)}>
-            <option value="">全部授权设备组</option>
-            {groups.map(value => <option value={value} key={value}>{value}</option>)}
-          </NativeSelect>
+          <ConsoleSelect label="筛选设备组" disabled={!isReady}
+            value={activeGroup} onChange={setGroup}
+            options={[
+              { value: '', label: '全部授权设备组' },
+              ...groups.map(value => ({ value, label: value })),
+            ]} />
         </div>
         <div className="directory-sort">
-          <NativeSelect aria-label="排序当前授权页" disabled={!isReady}
+          <ConsoleSelect label="排序当前授权页" disabled={!isReady}
             value={sortMode}
-            onChange={event => setSortMode(event.target.value as DirectorySort)}>
-            <option value="server">服务器返回顺序</option>
-            <option value="label-asc">设备名称 A–Z</option>
-            <option value="label-desc">设备名称 Z–A</option>
-            <option value="group-asc">设备组 A–Z</option>
-          </NativeSelect>
+            onChange={next => {
+              if (next === 'server' || next === 'label-asc' ||
+                  next === 'label-desc' || next === 'group-asc') {
+                setSortMode(next);
+              }
+            }}
+            options={[
+              { value: 'server', label: '服务器返回顺序' },
+              { value: 'label-asc', label: '设备名称 A–Z' },
+              { value: 'label-desc', label: '设备名称 Z–A' },
+              { value: 'group-asc', label: '设备组 A–Z' },
+            ]} />
         </div>
         {hasFilters && <button type="button" onClick={resetFilters}
           className="directory-clear-filters" aria-label="清除设备搜索和设备组筛选">

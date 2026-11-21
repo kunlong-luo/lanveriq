@@ -6,6 +6,6 @@ import type { ComponentProps } from 'react';
  */
 export function Input({ className = '', type = 'text', ...props }: ComponentProps<'input'>) {
   return <input type={type} data-slot="input"
-    className={`flex h-10 w-full min-w-0 rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground shadow-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-[#6a5bff] focus-visible:ring-2 focus-visible:ring-[#6a5bff]/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+    className={`flex h-10 w-full min-w-0 rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground shadow-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-[#4d5fc9] focus-visible:ring-2 focus-visible:ring-[#4d5fc9]/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     {...props} />;
 }

@@ -1,3 +1,10 @@
+## 2026-11-21 — NXT-26 Replace device-directory native selects with Base UI (CI pending)
+
+- Replace the two `NativeSelect` dropdowns in the one shared `DeviceDirectory` with controlled Base UI React 1.9 `Select` popups, including labels, keyboard focus, item indicators, viewport-safe overlays and 44px touch controls. Reuse installed dependency; no custom dropdown logic or new packages.
+- Retire the unused native-select component; bring the text input focus token into the current indigo palette. Apply new dropdown styles in `console-polish.css` without changing backend or adding real-data access.
+- Strengthen Vitest/source probes, real disconnected Chromium layout checks and the disposable authenticated-page **synthetic** browser fixture for popup selection, sorting, page replacement, permission revocation and safe reset. See [NXT-26 acceptance](docs/development/frontend-base-ui-select-nxt26.md).
+- Real API/login, RustDesk, collection, recovery and certificate issuance remain OFF. v0.1 NOT RELEASE READY. Exact functional SHA CI pending.
+
 ## 2026-11-21 — NXT-25 Web documentation consistency and regression gate (four same-SHA CI successes)
 
 - Reconcile the active `apps/web` Next.js 16.4.5 tree with the ADR-0008, current engineering/technology standards, CSS design tokens, NXT-23/24 migration audit, browser testing matrix, operations runbooks, release notes, IDEA setup, doc index, README and AGENTS guidance.
