@@ -2,6 +2,7 @@
 
 - Establish [one current-status and exact-SHA CI authority](docs/CURRENT_STATUS.md), replace the oversized docs landing index with a topic-oriented [navigation page](docs/README.md), and preserve its full prior version in [historical archive](docs/governance/documentation-index-snapshot-2026-11-21.md). No historical evidence was deleted.
 - Align both root READMEs, AGENTS, planning/backlog/legacy sequence, release runbook and D0 documentation gate to the same source-of-truth and security boundaries. Fix stale test-matrix preamble asserting all database/browser automation is unexecuted; keep real Pop!_OS L3 marked not accepted.
+- Repair all relative Markdown links inside the relocated historical docs-index snapshot (the original tree-relative paths were no longer valid under `docs/governance/`). Add an offline, fail-closed current-status/broken-link regression and path-filtered CI triggers for the authoritative docs and root READMEs. No network fetch and no application feature changes.
 - **Documentation-only change; NOT a new functional acceptance.** The verified D4-C10 functional SHA is `2368163e` (5/5 synthetic CI), NXT-28 UI SHA is `e76cd345` (4/4 disconnected UI CI). Production remains NOT RELEASE READY and all privileged switches OFF.
 
 ## 2026-11-21 — A11-D4-C10 signed MDS duplicate-model denial (5/5 exact-SHA CI SUCCESS)

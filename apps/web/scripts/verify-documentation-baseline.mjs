@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -46,8 +46,15 @@ export const documentationRequirements = [
   },
   {
     path: 'docs/README.md',
-    required: ['2026-11-21 current Web baseline', 'nextjs-path-rename-nxt24-2026-11-21.md'],
+    required: ['2026-11-21 current Web baseline', 'nextjs-path-rename-nxt24-2026-11-21.md',
+      'CURRENT_STATUS.md', 'v0.1 NOT RELEASE READY'],
     forbidden: [],
+  },
+  {
+    path: 'docs/CURRENT_STATUS.md',
+    required: ['v0.1 NOT RELEASE READY', 'D4-C10', 'NXT-28', 'Pop!_OS 24.04',
+      '2368163e588e6e94f74a748bdc6e162b9c4c6b9a', 'production', 'main'],
+    forbidden: [/^\*\*发布状态：v0\.1 RELEASE READY/m],
   },
 ];
 
@@ -70,8 +77,42 @@ export function verifyDocumentationBaseline(root) {
   return true;
 }
 
+/**
+ * Documentation relocation guard. Verify relative Markdown links in the two
+ * canonical entry points, both root READMEs and the immutable old-index
+ * snapshot. No browsing, HTTP or content rewriting; external URLs are skipped.
+ * New paths MUST remain within the repository and exist as real files.
+ */
+export const documentationLinkEntries = [
+  'docs/README.md', 'docs/CURRENT_STATUS.md',
+  'README.md', 'README.zh.md',
+  'docs/governance/documentation-index-snapshot-2026-11-21.md',
+];
+
+export function verifyLocalDocumentationLinks(root, entries = documentationLinkEntries) {
+  const rootPath = resolve(root);
+  for (const path of entries) {
+    const file = resolve(rootPath, path);
+    if (!existsSync(file)) throw new Error('Documentation link source missing: ' + path);
+    const contents = readFileSync(file, 'utf8');
+    for (const match of contents.matchAll(/\]\(([^)]+)\)/g)) {
+      const raw = match[1].trim();
+      const reference = raw.split('#', 1)[0];
+      if (!reference || /^(?:[a-z][a-z\d+.-]*:|\/)/i.test(reference)) continue;
+      const target = resolve(dirname(file), reference);
+      if ((!target.startsWith(rootPath + sep) && target !== rootPath)
+          || !existsSync(target)) {
+        throw new Error('Broken local documentation link: ' + path + ' -> ' + raw);
+      }
+    }
+  }
+  return true;
+}
+
 const here = fileURLToPath(import.meta.url);
 if (process.argv[1] && resolve(process.argv[1]) === here) {
-  verifyDocumentationBaseline(resolve(dirname(here), '../../..'));
-  console.log('PASS: Next.js apps/web canonical docs, token source and CI claims stay aligned');
+  const root = resolve(dirname(here), '../../..');
+  verifyDocumentationBaseline(root);
+  verifyLocalDocumentationLinks(root);
+  console.log('PASS: Next.js canonical documentation, release boundaries and local links verified');
 }
