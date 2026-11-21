@@ -1,6 +1,12 @@
 # A11-D4-C9 — FIDO MDS signing-BLOB entry-shape fail-closed gate
 
-**Date:** 2026-11-21 · **Branch:** `main` only · **Implementation:** Spring Boot / Java 25 offline security package · **State:** exact functional SHA CI pending · **Release:** **v0.1 NOT RELEASE READY**.
+**Date:** 2026-11-21 · **Branch:** `main` only · **Implementation:** Spring Boot / Java 25 offline security package · **State:** five exact-functional-SHA CI gates PASSED on `4dc3b5f1` · **Release:** **v0.1 NOT RELEASE READY**.
+
+## Same-SHA L1/L2 acceptance (2026-11-21)
+
+**D4-C9 exact-source acceptance — 5/5 SUCCESS:** functional SHA [`4dc3b5f1`](https://github.com/kunlong-luo/lanveriq/commit/4dc3b5f19d8d125d528e2c2eccf1905fb375e34d) passed [Java 25 / Gradle L1 #44881397946](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397946) (real JUnit XML proved **all seven mandatory verifier tests** executed), [PostgreSQL 18.6 Testcontainers real synthetic transactions #44881397931](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397931), [PostgreSQL integration source compile #44881397981](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397981), [Next.js fast source/build/HTTP #44881397980](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397980), and [RD-2 remote default-OFF #44881397956](https://github.com/kunlong-luo/lanveriq/actions/runs/44881397956). These cover **ephemeral synthetic signers/keys, offline signed-time claim and untrusted records only**; they do NOT establish an approved official FIDO signing source, licensed MDS usage, trusted time, source CRL provenance, live WebAuthn MFA or production readiness. **v0.1 NOT RELEASE READY**.
+
+The newly required signed-valid and signed-malformed structural screening test methods were confirmed in the actual Gradle JUnit report. The existing D4-C8/V29 database test/migration remains untouched. Source proof, not official root admission.
 
 ## Scope, history and source of authority
 
