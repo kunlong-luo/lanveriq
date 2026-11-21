@@ -1,6 +1,10 @@
 # NXT-27 — Shared evidence-boundary states for monitoring and device detail
 
-**Date:** 2026-11-21 · **Branch:** `main` only · **Stack:** `apps/web` Next.js 16.4.5, React 19, Tailwind 4 and Base UI 1.9 · **Exact-SHA acceptance:** pending on this implementation · **Release:** v0.1 NOT RELEASE READY.
+**Date:** 2026-11-21 · **Branch:** `main` only · **Stack:** `apps/web` Next.js 16.4.5, React 19, Tailwind 4 and Base UI 1.9 · **Exact-SHA acceptance:** four same-functional-SHA workflows SUCCESS on `ff66556d` · **Release:** v0.1 NOT RELEASE READY.
+
+## Completed same-SHA isolated acceptance
+
+**NXT-27 exact-source CI SUCCESS:** functional SHA [`ff66556d72c078082ba8cfd08a97107d8ba47cf0`](https://github.com/kunlong-luo/lanveriq/commit/ff66556d72c078082ba8cfd08a97107d8ba47cf0) passed all four same-SHA gates: [Next.js frozen install, SSR/Vitest/source-negative tests, typecheck, production build and HTTP #44880424373](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424373), [real Chromium 11-route UI, monitoring/detail evidence states, keyboard/mobile, 15 screenshots and disposable NXT-26 authorized directory interaction fixture #44880424398](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424398), [public disconnected static Pages build/deploy #44880424353](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424353), [RD-2 remote default-OFF #44880424374](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424374). Chromium artifact `nxt18-visual-qa-ff66556d72c078082ba8cfd08a97107d8ba47cf0` (ID `14697751956`). This proves only the isolated, disconnected UI; it does **not** approve release, live device data, FIDO MDS or Pop!_OS physical tests.
 
 ## Motivation
 

@@ -1,9 +1,11 @@
-## 2026-11-21 — NXT-27 Shared evidence states across monitoring and detail (CI pending)
+## 2026-11-21 — NXT-27 Shared evidence states (four same-SHA CI successes)
+
+- **NXT-27 exact-source CI SUCCESS:** functional SHA [`ff66556d72c078082ba8cfd08a97107d8ba47cf0`](https://github.com/kunlong-luo/lanveriq/commit/ff66556d72c078082ba8cfd08a97107d8ba47cf0) passed all four same-SHA gates: [Next.js frozen install, SSR/Vitest/source-negative tests, typecheck, production build and HTTP #44880424373](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424373), [real Chromium 11-route UI, monitoring/detail evidence states, keyboard/mobile, 15 screenshots and disposable NXT-26 authorized directory interaction fixture #44880424398](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424398), [public disconnected static Pages build/deploy #44880424353](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424353), [RD-2 remote default-OFF #44880424374](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424374). Chromium artifact `nxt18-visual-qa-ff66556d72c078082ba8cfd08a97107d8ba47cf0` (ID `14697751956`). This proves only the isolated, disconnected UI; it does **not** approve release, live device data, FIDO MDS or Pop!_OS physical tests.
 
 - Introduce a source-owned, pure `EvidenceNotice` / `EvidenceValue` presentation API in `apps/web/src/components/ui/evidence-state.tsx`. Distinguish **unconnected**, **restricted**, and **unverified** rather than implying zero, online/offline, or a completed authorization decision.
 - Reuse these components across monitoring activity/trend, inventory coverage, device-detail summary and Base UI hardware/network/health tabs; remove obsolete chart-specific CSS and align all evidence visuals to the current `console-polish.css` tokens.
 - Add semantic, contextual accessible labels; preserve ordinary disabled actions, no API/login/device calls, no browser storage, Base UI tab keyboard interaction and public Pages isolation. Extend SSR/source/real Chromium negative checks. [NXT-27 implementation and acceptance](docs/development/frontend-evidence-state-nxt27-2026-11-21.md).
-- Production authentication, device connectivity, collection, auto-recovery, remote control and certificate issuance remain OFF. v0.1 NOT RELEASE READY. New exact-functional-SHA CI pending.
+- Production authentication, device connectivity, collection, auto-recovery, remote control and certificate issuance remain OFF. v0.1 NOT RELEASE READY. NXT-27 exact-functional-SHA CI is recorded above.
 
 ## 2026-11-21 — NXT-26 Base UI directory Select (four same-SHA CI successes)
 
