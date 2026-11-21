@@ -1,6 +1,6 @@
 # NXT-24 — Canonical Next.js directory rename to apps/web
 
-**Date:** 2026-11-21. **Development branch:** `main` only. **Acceptance:** same-source-SHA CI pending. **Production release:** v0.1 NOT RELEASE READY.
+**Date:** 2026-11-21. **Development branch:** `main` only. **Acceptance:** five independent same-SHA CI successes at functional commit `6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c`. **Production release:** v0.1 NOT RELEASE READY.
 
 ## Contract
 
@@ -39,4 +39,4 @@ GitHub Pages is a public **disconnected static showroom** and the ordinary local
 
 ## Exact-sha CI evidence
 
-Pending Next.js fast unit/typecheck/build/HTTP, real Chromium keyboard/mobile/screenshots, disconnected Pages build+deploy, and RD-2 default-OFF verification on the single rename source commit. Do not cite NXT-23's previous success as NXT-24 proof.
+**NXT-24 exact-source acceptance:** functional SHA `6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c` passed **all five same-SHA GitHub workflows**: [Next.js frozen pnpm, single-UI source gates, TypeScript/build/HTTP #44876019214](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019214), [real Chromium UI, keyboard/mobile and screenshots #44876019297](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019297), [disconnected static Pages build+deploy #44876019222](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019222), [RD-2 remote default-OFF #44876019189](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019189), and [Java server unit/negative checks #44876019234](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019234). Chromium artifact `nxt18-visual-qa-6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c` (ID `14695613816`). This is disconnected UI/source acceptance **only**, not production rollout, real WebAuthn MFA or FIDO MDS source trust. These are fresh NXT-24 results, not inherited NXT-23 evidence.

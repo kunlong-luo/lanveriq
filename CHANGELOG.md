@@ -1,8 +1,9 @@
-## 2026-11-21 — NXT-24 Rename canonical Next.js directory to `apps/web` (CI pending)
+## 2026-11-21 — NXT-24 Rename canonical Next.js directory to `apps/web` (five same-SHA CI successes)
 
 - Move all canonical Next.js 16 App Router sources from `apps/web-next/` to **`apps/web/`** with a history-preserving Git tree rename. The previously deleted Vite frontend is not restored.
 - Move Next.js fast CI from `.github/workflows/web-next-unit.yml` to `.github/workflows/web-unit.yml`, updating Chromium, public Pages, synthetic Caddy, generated contract and RD-2 negative gates to new paths. Update runtime fixture basename safety and single-UI source checks with regression tests.
 - Update Chinese/English README, Pop!_OS runbooks, design and architecture docs for the new working directory. Retain static-only preview, credential/session disablement and all production release gates OFF.
+- **NXT-24 exact-source acceptance:** functional SHA `6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c` passed **all five same-SHA GitHub workflows**: [Next.js frozen pnpm, single-UI source gates, TypeScript/build/HTTP #44876019214](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019214), [real Chromium UI, keyboard/mobile and screenshots #44876019297](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019297), [disconnected static Pages build+deploy #44876019222](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019222), [RD-2 remote default-OFF #44876019189](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019189), and [Java server unit/negative checks #44876019234](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019234). Chromium artifact `nxt18-visual-qa-6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c` (ID `14695613816`). This is disconnected UI/source acceptance **only**, not production rollout, real WebAuthn MFA or FIDO MDS source trust.
 
 ## 2026-11-21 — NXT-23 Remove obsolete Vite app; make Next.js sole Web UI (four same-SHA UI CI successes)
 
