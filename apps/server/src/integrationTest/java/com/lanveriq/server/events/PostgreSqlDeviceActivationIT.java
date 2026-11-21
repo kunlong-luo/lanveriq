@@ -446,8 +446,9 @@ class PostgreSqlDeviceActivationIT {
         // Neither version enables administrator passkeys or signing.
         // V28 adds only isolated untrusted cross-stream fence records;
         // it cannot promote V26 receipts or authorize FIDO/WebAuthn.
-        // The V9 -> V28 upgrade executes 19 forward migrations V10..V28.
-        assertEquals(19, upgraded.migrate().migrationsExecuted);
+        // V29 guards legacy source TRUNCATE and serializes one fence per owner.
+        // The V9 -> V29 upgrade executes 20 forward migrations V10..V29.
+        assertEquals(20, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);

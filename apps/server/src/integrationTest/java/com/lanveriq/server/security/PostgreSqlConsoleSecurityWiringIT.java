@@ -3056,4 +3056,193 @@ class PostgreSqlConsoleSecurityWiringIT {
         assertEquals(1L,v28Count("receipt",firstStream)
                 +v28Count("receipt",secondStream));
     }
+
+    // D4-C8/V29: the former V25/V26 append-only histories had no statement
+    // TRUNCATE guard. All fixtures remain synthetic and permanently UNTRUSTED.
+    @Test
+    void v29HistoricalSourceHistoryCannotTruncateOrCascade() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            UUID receipt=saveUntrustedSourceReceipt(stream,
+                    sourceReceiptEvidenceSynthetic(40,100,"55".repeat(32)));
+            assertNotNull(receipt);
+            for (String sql : java.util.List.of(
+                    "TRUNCATE TABLE admin_fido_mds_untrusted_observations_staging",
+                    "TRUNCATE TABLE admin_fido_mds_untrusted_streams_staging CASCADE",
+                    "TRUNCATE TABLE admin_fido_mds_source_receipts_staging CASCADE",
+                    "TRUNCATE TABLE admin_access_log CASCADE")) {
+                assertThrows(RuntimeException.class, () -> tx(() ->
+                        entityManager.createNativeQuery(sql).executeUpdate()),
+                        sql);
+            }
+            assertEquals(1L,v28Count("receipt",stream));
+            assertEquals("source_untrusted",entityManager.createNativeQuery("""
+                    SELECT evidence_state FROM admin_fido_mds_source_receipts_staging
+                    WHERE receipt_id=:id
+                    """).setParameter("id",receipt).getSingleResult());
+            assertEquals(4L,((Number)entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM pg_trigger
+                    WHERE tgname IN (
+                      'a11_v29_no_stream_truncate',
+                      'a11_v29_no_observation_truncate',
+                      'a11_v29_no_receipt_truncate',
+                      'a11_v29_guard_untrusted_observation_audit_truncate'
+                    ) AND NOT tgisinternal AND tgenabled='O'
+                    """).getSingleResult()).longValue());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v29SameOwnerCannotResetFenceWithNewPinsOrDirectSql() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID original=v28OpenFence("55".repeat(32));
+            assertNotNull(original);
+            assertThrows(RuntimeException.class,() -> v28OpenFence("55".repeat(32)));
+            assertThrows(RuntimeException.class,() -> v28OpenFence("66".repeat(32)));
+            assertThrows(RuntimeException.class,() -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        INSERT INTO admin_fido_mds_source_fences_staging
+                          (created_by,creator_session_version,
+                           root_sha256,time_key_sha256)
+                        SELECT created_by,creator_session_version,
+                               decode(repeat('aa',32),'hex'),time_key_sha256
+                        FROM admin_fido_mds_source_fences_staging
+                        WHERE fence_id=:original
+                        """).setParameter("original",original).executeUpdate()));
+            assertEquals(1L,((Number)entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_fido_mds_source_fences_staging
+                    WHERE created_by=:owner
+                    """).setParameter("owner",owner).getSingleResult()).longValue());
+            UUID other=registrationOwner();
+            registrationActor(other,0);
+            UUID separate=v28OpenFence("66".repeat(32));
+            assertNotNull(separate);
+            assertFalse(original.equals(separate));
+            // Different owners still have independent UNTRUSTED fences.
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v29ConcurrentSameOwnerFenceGenesisCommitsExactlyOne() throws Exception {
+        UUID owner=registrationOwner();
+        var gate=new java.util.concurrent.CountDownLatch(1);
+        try (var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var first=pool.submit(() -> {
+                registrationActor(owner,0);
+                try {
+                    gate.await();
+                    v28OpenFence("55".repeat(32));
+                    return true;
+                } catch (Exception expected) {
+                    return false;
+                } finally {
+                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                }
+            });
+            var second=pool.submit(() -> {
+                registrationActor(owner,0);
+                try {
+                    gate.await();
+                    v28OpenFence("66".repeat(32));
+                    return true;
+                } catch (Exception expected) {
+                    return false;
+                } finally {
+                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                }
+            });
+            gate.countDown();
+            assertEquals(1,(first.get(25,java.util.concurrent.TimeUnit.SECONDS)?1:0)
+                    +(second.get(25,java.util.concurrent.TimeUnit.SECONDS)?1:0));
+        }
+        assertEquals(1L,((Number)entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_fido_mds_source_fences_staging
+                WHERE created_by=:owner
+                """).setParameter("owner",owner).getSingleResult()).longValue());
+        assertEquals(1L,((Number)entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM admin_access_log
+                WHERE principal_id=:owner
+                  AND action='admin.passkey.mds.source.untrusted.fence'
+                """).setParameter("owner",owner).getSingleResult()).longValue());
+    }
+
+    @Test
+    void v29DisposableReaderRoleCannotDmlTruncateOrDisableSecurityTriggers() {
+        // This creates a role ONLY in Testcontainers PG18; it does not
+        // provision a production service principal or change app credentials.
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID stream=syntheticMdsStream();
+            UUID receipt=saveUntrustedSourceReceipt(stream,
+                    sourceReceiptEvidenceSynthetic(40,100,"55".repeat(32)));
+            UUID fence=v28OpenFence("55".repeat(32));
+            assertNotNull(fence);
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                    CREATE ROLE a11_v29_synthetic_reader
+                    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    GRANT USAGE ON SCHEMA public TO a11_v29_synthetic_reader
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    GRANT SELECT ON
+                      admin_fido_mds_untrusted_streams_staging,
+                      admin_fido_mds_untrusted_observations_staging,
+                      admin_fido_mds_source_receipts_staging,
+                      admin_fido_mds_source_fences_staging,
+                      admin_fido_mds_source_fence_checkpoints_staging
+                    TO a11_v29_synthetic_reader
+                    """).executeUpdate();
+            });
+            try {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                        SET LOCAL ROLE a11_v29_synthetic_reader
+                        """).executeUpdate();
+                    assertEquals("a11_v29_synthetic_reader",
+                            entityManager.createNativeQuery("SELECT current_user")
+                                    .getSingleResult());
+                    assertEquals(1L,((Number)entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_fido_mds_source_receipts_staging
+                        WHERE receipt_id=:receipt
+                        """).setParameter("receipt",receipt)
+                            .getSingleResult()).longValue());
+                });
+                for (String deniedSql : java.util.List.of(
+                        "TRUNCATE TABLE admin_fido_mds_untrusted_streams_staging CASCADE",
+                        "DELETE FROM admin_fido_mds_source_receipts_staging",
+                        "UPDATE admin_fido_mds_source_fences_staging SET fence_state='trusted'",
+                        "ALTER TABLE admin_fido_mds_untrusted_streams_staging DISABLE TRIGGER a11_v29_no_stream_truncate")) {
+                    assertThrows(RuntimeException.class,() -> tx(() -> {
+                        entityManager.createNativeQuery(
+                                "SET LOCAL ROLE a11_v29_synthetic_reader")
+                                .executeUpdate();
+                        entityManager.createNativeQuery(deniedSql).executeUpdate();
+                    }),deniedSql);
+                }
+            } finally {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                        DROP OWNED BY a11_v29_synthetic_reader
+                        """).executeUpdate();
+                    entityManager.createNativeQuery("""
+                        DROP ROLE a11_v29_synthetic_reader
+                        """).executeUpdate();
+                });
+            }
+            assertEquals(1L,v28Count("receipt",stream));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
 }

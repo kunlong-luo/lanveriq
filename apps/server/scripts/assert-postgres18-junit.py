@@ -37,7 +37,7 @@ MIN_COUNTS = {
     "PostgreSqlDeviceRevocationIT": 6,
     "PostgreSqlDeviceDirectoryIT": 4,
     "PostgreSqlAdminAuditAtomicityIT": 7,
-    "PostgreSqlConsoleSecurityWiringIT": 61,
+    "PostgreSqlConsoleSecurityWiringIT": 65,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -167,6 +167,10 @@ REQUIRED_CASES = {
         "v28SuppressedCheckpointAuditRollsBackSourceReceiptAndAllowsRetry",
         "v28FenceCannotCrossOwnerOrRotatedSession",
         "v28ConcurrentCrossStreamFirstCheckpointHasOneCommittedWinner",
+        "v29HistoricalSourceHistoryCannotTruncateOrCascade",
+        "v29SameOwnerCannotResetFenceWithNewPinsOrDirectSql",
+        "v29ConcurrentSameOwnerFenceGenesisCommitsExactlyOne",
+        "v29DisposableReaderRoleCannotDmlTruncateOrDisableSecurityTriggers",
     },
     "PostgreSqlAdminAuditAtomicityIT": {
         "suppressedBootstrapGrantRollsBackUserAndGroupWithoutAudit",
