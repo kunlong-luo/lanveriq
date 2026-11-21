@@ -18,6 +18,12 @@ The old Vite code remains recoverable in historical commits, but there is only o
 - The fast Next.js and Pages CI jobs execute the revised `scripts/verify-single-ui.mjs` and its negative tests, refusing Vite resurrection, the obsolete `apps/web-next` path, a stale Vite workflow or conflicting launch documentation.
 - Update canonical documentation and path links to `apps/web`. Earlier milestone commit SHAs and historical evidence are retained. Old source snapshots in Git history still use their original paths.
 
+## NXT-25 documentation alignment / accepted evidence
+
+**NXT-25 exact-source checks PASSED:** implementation SHA [`b37797d9da5d9d622df39c968b92547c2f00402d`](https://github.com/kunlong-luo/lanveriq/commit/b37797d9da5d9d622df39c968b92547c2f00402d) passed [Next.js L1 with documentation negative tests #44877774039](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774039), [real Chromium/UI/network isolation and 15 screenshots #44877774015](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774015), [disconnected static Pages build+deploy #44877774094](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774094) and [RD-2 remote default-OFF #44877774084](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774084), **all on the same SHA**. Chromium artifact `nxt18-visual-qa-b37797d9da5d9d622df39c968b92547c2f00402d` (ID `14697086467`). This is documentation/preview-source acceptance, NOT release or live system approval.
+
+No live authentication, FIDO MDS, Pop!_OS physical validation, recording, collection, remote or CA signing is approved by these source checks.
+
 ## Documentation source of truth after renaming
 
 The [documentation index](../README.md) links the one current UI README (`apps/web/README.md`), [stack](technology.md), [engineering directory standard](standards.md), [actual visual tokens](frontend-design-system.md) and [NXT-23/NXT-24 historical guard clarification](nextjs-single-ui-consolidation-2026-11-21.md). The NXT-23 guard that formerly rejected a newly reintroduced `apps/web` or `web-unit.yml` is **obsolete after NXT-24**. The current script instead requires Next.js in `apps/web` and `web-unit.yml`, while rejecting Vite and the former `web-next` project. Earlier CI evidence remains pinned to the functional commit and its original paths.
