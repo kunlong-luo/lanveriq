@@ -1,6 +1,6 @@
 # A11-D4-C10 — FIDO MDS offline duplicate-identifier denial
 
-**Date:** 2026-11-21 · **Only development branch:** `main` · **State:** implementation submitted for exact-SHA CI; no production authorization · **Release:** **v0.1 NOT RELEASE READY**.
+**Date:** 2026-11-21 · **Only development branch:** `main` · **State:** five exact-SHA synthetic CI gates PASSED; no production authorization · **Release:** **v0.1 NOT RELEASE READY**.
 
 ## Problem and fail-closed contract
 
@@ -23,7 +23,7 @@ This is a conservative *local structural gate*, not an assertion that every publ
 - `StagedFidoMdsSourceVerifierTest.cryptographicallyValidDuplicateModelIdsStillRejectBeforeUntrustedEvidence`: true disposable ES256 **and** RS256 JWS, PKIX/CRL and exact-JWS-bound Ed25519 time evidence; duplicate entry combinations are rejected even after valid crypto. Distinct signed models still return `UntrustedSourceEvidence`.
 - `apps/server/scripts/assert-fido-source-time-junit.py` requires the integration method in **actual executed Gradle JUnit XML**. A test source file or a self-created XML report alone is not success.
 
-**Evidence pending** until the functional SHA passes `.github/workflows/server-unit.yml` (JDK 25 Gradle L1, JUnit method evidence) and `rustdesk-rd2-release-guard.yml` (default OFF). The prior D4-C9 SHA's success does not carry forward. PostgreSQL real transactions, official FIDO root provenance, external CRLs, trusted time and actual WebAuthn MFA are not validated by this source-only work.
+**Exact-source acceptance: 5/5 SUCCESS.** [functional SHA `2368163e`](https://github.com/kunlong-luo/lanveriq/commit/2368163e588e6e94f74a748bdc6e162b9c4c6b9a) passed **5/5 exact-SHA synthetic CI gates**: [Java 25/Gradle unit and 8 required real JUnit XML methods #44893055170](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055170), [PostgreSQL 18.6 Testcontainers synthetic transactions #44893055206](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055206), [PostgreSQL integration-source compile #44893055072](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055072), [Next.js frozen install/tests/typecheck/build #44893055069](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055069), and [RD-2 default-OFF #44893055089](https://github.com/kunlong-luo/lanveriq/actions/runs/44893055089). These tests use disposable synthetic PKIX/CRLs/signers, NOT official FIDO provenance, production trusted time or live MFA. The new test `cryptographicallyValidDuplicateModelIdsStillRejectBeforeUntrustedEvidence` was part of eight mandatory executed verifier JUnit XML methods; the unit evidence gate failed closed unless each appeared once without skip/failure. PostgreSQL acceptance covers only existing synthetic database flows, **not a durable official MDS authority**. Prior D4-C9 evidence remains historical and is not substituted for the D4-C10 functional SHA.
 
 ## Boundaries / next steps
 
