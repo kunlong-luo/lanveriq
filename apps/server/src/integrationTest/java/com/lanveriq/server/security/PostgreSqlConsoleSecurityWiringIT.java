@@ -2764,4 +2764,296 @@ class PostgreSqlConsoleSecurityWiringIT {
             org.springframework.security.core.context.SecurityContextHolder.clearContext();
         }
     }
+
+    // D4-C7/V28: all fences and source receipts below remain synthetic
+    // and UNTRUSTED. This proves a database-level cross-stream boundary,
+    // never FIDO authority or production monotonic time.
+    private UUID v28OpenFence(String rootPin) {
+        return new TransactionTemplate(transactionManager).execute(ignored ->
+                new StagedFidoMdsSourceReceiptLedger(entityManager)
+                        .openUntrustedFenceOnly(rootPin,"33".repeat(32)));
+    }
+
+    private UUID v28AppendFence(UUID fence,UUID stream,long blob,long timeSeq,
+            String rootPin) {
+        return new TransactionTemplate(transactionManager).execute(ignored ->
+                new StagedFidoMdsSourceReceiptLedger(entityManager)
+                        .appendFencedUntrustedOnly(fence,stream,
+                                sourceReceiptEvidenceSynthetic(blob,timeSeq,rootPin)));
+    }
+
+    private long v28Count(String table,UUID value) {
+        // Restrict dynamic SQL to these two synthetic-only tables and columns.
+        String query=switch(table) {
+            case "receipt" -> "SELECT COUNT(*) FROM admin_fido_mds_source_receipts_staging WHERE stream_id=:id";
+            case "checkpoint" -> "SELECT COUNT(*) FROM admin_fido_mds_source_fence_checkpoints_staging WHERE fence_id=:id";
+            default -> throw new IllegalArgumentException("invalid synthetic table");
+        };
+        return ((Number)entityManager.createNativeQuery(query)
+                .setParameter("id",value).getSingleResult()).longValue();
+    }
+
+    @Test
+    void v28CrossStreamFenceLinksReceiptsAndDbAudits() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID fence=v28OpenFence("55".repeat(32));
+            UUID firstStream=syntheticMdsStream();
+            UUID secondStream=syntheticMdsStream();
+            UUID first=v28AppendFence(fence,firstStream,40,100,"55".repeat(32));
+            UUID second=v28AppendFence(fence,secondStream,41,101,"55".repeat(32));
+            var checkpoints=entityManager.createNativeQuery("""
+                    SELECT checkpoint_sequence,previous_checkpoint_sha256,
+                           checkpoint_sha256,checkpoint_state,source_receipt_id
+                    FROM admin_fido_mds_source_fence_checkpoints_staging
+                    WHERE fence_id=:fence ORDER BY checkpoint_sequence
+                    """).setParameter("fence",fence).getResultList();
+            assertEquals(2,checkpoints.size());
+            Object[] one=(Object[])checkpoints.get(0);
+            Object[] two=(Object[])checkpoints.get(1);
+            assertEquals(1L,((Number)one[0]).longValue());
+            assertEquals(2L,((Number)two[0]).longValue());
+            assertNull(one[1]);
+            assertArrayEquals((byte[])one[2],(byte[])two[1]);
+            assertEquals(32,((byte[])two[2]).length);
+            assertEquals("source_untrusted",one[3]);
+            assertEquals("source_untrusted",two[3]);
+            assertEquals(2L,v28Count("checkpoint",fence));
+            assertEquals(1L,v28Count("receipt",firstStream));
+            assertEquals(1L,v28Count("receipt",secondStream));
+            assertEquals(3L,((Number)entityManager.createNativeQuery("""
+                    SELECT COUNT(*) FROM admin_access_log
+                    WHERE (resource_id=:fence
+                              AND action='admin.passkey.mds.source.untrusted.fence')
+                       OR (resource_id IN (:first,:second)
+                              AND action='admin.passkey.mds.source.untrusted.checkpoint')
+                    """).setParameter("fence",fence).setParameter("first",first)
+                    .setParameter("second",second).getSingleResult()).longValue());
+            assertTrue(context.getBeansOfType(StagedFidoMdsSourceReceiptLedger.class)
+                    .isEmpty());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v28FenceRejectsFreshStreamReplayAndTimeRollbackWithoutOrphans() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID fence=v28OpenFence("55".repeat(32));
+            UUID firstStream=syntheticMdsStream();
+            UUID secondStream=syntheticMdsStream();
+            v28AppendFence(fence,firstStream,40,100,"55".repeat(32));
+            assertThrows(RuntimeException.class, () ->
+                    v28AppendFence(fence,secondStream,40,101,"55".repeat(32)));
+            assertThrows(RuntimeException.class, () ->
+                    v28AppendFence(fence,secondStream,41,100,"55".repeat(32)));
+            assertThrows(RuntimeException.class, () ->
+                    v28AppendFence(fence,secondStream,41,101,"66".repeat(32)));
+            assertEquals(0L,v28Count("receipt",secondStream));
+            assertEquals(1L,v28Count("checkpoint",fence));
+            UUID next=v28AppendFence(fence,secondStream,41,101,"55".repeat(32));
+            assertNotNull(next);
+            assertEquals(1L,v28Count("receipt",secondStream));
+            assertEquals(2L,v28Count("checkpoint",fence));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v28FenceCannotForgePredecessorMutateHistoryOrEraseAudit() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID fence=v28OpenFence("55".repeat(32));
+            UUID firstStream=syntheticMdsStream();
+            UUID checkpoint=v28AppendFence(fence,firstStream,40,100,"55".repeat(32));
+            UUID secondStream=syntheticMdsStream();
+            UUID receipt=saveUntrustedSourceReceipt(secondStream,
+                    sourceReceiptEvidenceSynthetic(41,101,"55".repeat(32)));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        INSERT INTO admin_fido_mds_source_fence_checkpoints_staging
+                          (fence_id,source_receipt_id,checkpoint_sequence,
+                           previous_checkpoint_sha256,observed_by,
+                           observer_session_version)
+                        VALUES (:fence,:receipt,2,decode(repeat('ff',32),'hex'),
+                                :owner,0)
+                        """).setParameter("fence",fence).setParameter("receipt",receipt)
+                        .setParameter("owner",owner).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        UPDATE admin_fido_mds_source_fence_checkpoints_staging
+                        SET checkpoint_state='trusted'
+                        WHERE checkpoint_id=:id
+                        """).setParameter("id",checkpoint).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_fido_mds_source_fences_staging
+                        WHERE fence_id=:fence
+                        """).setParameter("fence",fence).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        DELETE FROM admin_access_log
+                        WHERE resource_id=:id
+                          AND action='admin.passkey.mds.source.untrusted.checkpoint'
+                        """).setParameter("id",checkpoint).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        TRUNCATE TABLE admin_fido_mds_source_fence_checkpoints_staging
+                        """).executeUpdate()));
+            assertThrows(RuntimeException.class, () -> tx(() ->
+                    entityManager.createNativeQuery("""
+                        TRUNCATE TABLE admin_access_log
+                        """).executeUpdate()));
+            assertEquals(1L,v28Count("checkpoint",fence));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v28SuppressedCheckpointAuditRollsBackSourceReceiptAndAllowsRetry() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        try {
+            UUID fence=v28OpenFence("55".repeat(32));
+            UUID stream=syntheticMdsStream();
+            tx(() -> {
+                entityManager.createNativeQuery("""
+                    CREATE FUNCTION a11_v28_suppress_checkpoint_audit()
+                    RETURNS trigger LANGUAGE plpgsql AS $$
+                    BEGIN
+                      IF NEW.action='admin.passkey.mds.source.untrusted.checkpoint'
+                        THEN RETURN NULL; END IF;
+                      RETURN NEW;
+                    END;
+                    $$
+                    """).executeUpdate();
+                entityManager.createNativeQuery("""
+                    CREATE TRIGGER a11_v28_suppress_checkpoint_audit
+                    BEFORE INSERT ON admin_access_log FOR EACH ROW
+                    EXECUTE FUNCTION a11_v28_suppress_checkpoint_audit()
+                    """).executeUpdate();
+            });
+            try {
+                assertThrows(RuntimeException.class, () ->
+                        v28AppendFence(fence,stream,40,100,"55".repeat(32)));
+                assertEquals(0L,v28Count("receipt",stream));
+                assertEquals(0L,v28Count("checkpoint",fence));
+                assertEquals(0L,((Number)entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_access_log
+                        WHERE action='admin.passkey.mds.source.untrusted.receipt'
+                          AND resource_id IN (
+                            SELECT receipt_id
+                            FROM admin_fido_mds_source_receipts_staging
+                            WHERE stream_id=:stream)
+                        """).setParameter("stream",stream).getSingleResult()).longValue());
+            } finally {
+                tx(() -> {
+                    entityManager.createNativeQuery("""
+                        DROP TRIGGER IF EXISTS a11_v28_suppress_checkpoint_audit
+                        ON admin_access_log
+                        """).executeUpdate();
+                    entityManager.createNativeQuery("""
+                        DROP FUNCTION IF EXISTS a11_v28_suppress_checkpoint_audit()
+                        """).executeUpdate();
+                });
+            }
+            UUID recovered=v28AppendFence(fence,stream,40,100,"55".repeat(32));
+            assertNotNull(recovered);
+            assertEquals(1L,v28Count("receipt",stream));
+            assertEquals(1L,v28Count("checkpoint",fence));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v28FenceCannotCrossOwnerOrRotatedSession() {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        UUID fence;
+        UUID ownerStream;
+        try {
+            fence=v28OpenFence("55".repeat(32));
+            ownerStream=syntheticMdsStream();
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        UUID otherOwner=registrationOwner();
+        registrationActor(otherOwner,0);
+        try {
+            UUID otherStream=syntheticMdsStream();
+            assertThrows(RuntimeException.class, () ->
+                    v28AppendFence(fence,otherStream,40,100,"55".repeat(32)));
+            assertEquals(0L,v28Count("receipt",otherStream));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        registrationActor(owner,0);
+        try {
+            tx(() -> entityManager.createNativeQuery("""
+                    UPDATE users SET session_version=session_version+1
+                    WHERE id=:owner
+                    """).setParameter("owner",owner).executeUpdate());
+            assertThrows(RuntimeException.class, () ->
+                    v28AppendFence(fence,ownerStream,40,100,"55".repeat(32)));
+            assertEquals(0L,v28Count("checkpoint",fence));
+            assertEquals(0L,v28Count("receipt",ownerStream));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void v28ConcurrentCrossStreamFirstCheckpointHasOneCommittedWinner()
+            throws Exception {
+        UUID owner=registrationOwner();
+        registrationActor(owner,0);
+        UUID fence,firstStream,secondStream;
+        try {
+            fence=v28OpenFence("55".repeat(32));
+            firstStream=syntheticMdsStream();
+            secondStream=syntheticMdsStream();
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        var start=new java.util.concurrent.CountDownLatch(1);
+        try (var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var first=pool.submit(() -> {
+                registrationActor(owner,0);
+                try {
+                    start.await();
+                    v28AppendFence(fence,firstStream,40,100,"55".repeat(32));
+                    return true;
+                } catch (Exception expected) {
+                    return false;
+                } finally {
+                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                }
+            });
+            var second=pool.submit(() -> {
+                registrationActor(owner,0);
+                try {
+                    start.await();
+                    v28AppendFence(fence,secondStream,40,100,"55".repeat(32));
+                    return true;
+                } catch (Exception expected) {
+                    return false;
+                } finally {
+                    org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                }
+            });
+            start.countDown();
+            assertEquals(1,(first.get(25,java.util.concurrent.TimeUnit.SECONDS)?1:0)
+                    +(second.get(25,java.util.concurrent.TimeUnit.SECONDS)?1:0));
+        }
+        assertEquals(1L,v28Count("checkpoint",fence));
+        assertEquals(1L,v28Count("receipt",firstStream)
+                +v28Count("receipt",secondStream));
+    }
 }

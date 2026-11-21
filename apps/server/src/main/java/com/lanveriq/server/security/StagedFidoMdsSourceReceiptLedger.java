@@ -12,7 +12,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * screening evidence only. V26 SQL locks the V25 synthetic stream, enforces
  * live actor/session, monotonic BLOB/time sequence, immutable root/time pins
  * and database-owned chained digest. V27 automatically writes and checks
- * the linked database audit even for direct SQL inserts. An out-of-band asserted fingerprint
+ * the linked database audit even for direct SQL inserts. V28 additionally
+ * stages optional cross-stream fences without making them trusted.\n * An out-of-band asserted fingerprint
  * is NOT approved FIDO trust. No verifier or credential/issuer consumer.
  */
 final class StagedFidoMdsSourceReceiptLedger {
@@ -94,6 +95,85 @@ final class StagedFidoMdsSourceReceiptLedger {
         // audit is suppressed the trigger raises, aborting the receipt.
         // Do NOT insert a second audit record from this Java path.
         return id;
+    }
+
+    /**
+     * V28 untrusted grouping only: the caller-asserted pins are deliberately
+     * NOT an official FIDO approval or trusted-time enrollment. Must run
+     * inside a caller-owned transaction with appendFencedUntrustedOnly.
+     */
+    UUID openUntrustedFenceOnly(String rootSha256, String timeKeySha256) {
+        AdminPrincipal admin = actor();
+        byte[] root = digest(rootSha256);
+        byte[] timeKey = digest(timeKeySha256);
+        var rows = manager.createNativeQuery("""
+                INSERT INTO admin_fido_mds_source_fences_staging
+                  (created_by,creator_session_version,root_sha256,time_key_sha256)
+                VALUES (:actor,:version,:root,:time_key)
+                RETURNING fence_id
+                """)
+                .setParameter("actor",admin.userId())
+                .setParameter("version",admin.sessionVersion())
+                .setParameter("root",root)
+                .setParameter("time_key",timeKey)
+                .getResultList();
+        if (rows.size()!=1 || !(rows.getFirst() instanceof UUID id)) {
+            throw denied();
+        }
+        return id;
+    }
+
+    /**
+     * Append both the V26 untrusted receipt and its V28 cross-stream fence
+     * checkpoint in ONE caller-owned database transaction. V28 serializes
+     * competing writers by fence FOR UPDATE and recomputes the predecessor.
+     * A new fence can always reset this SYNTHETIC boundary: it must never
+     * become production anti-rollback or a credential authorization source.
+     */
+    UUID appendFencedUntrustedOnly(UUID fenceId, UUID streamId,
+            StagedFidoMdsSourceVerifier.UntrustedSourceEvidence evidence) {
+        if (fenceId == null) {
+            throw denied();
+        }
+        AdminPrincipal admin = actor();
+        UUID receiptId = appendUntrustedOnly(streamId,evidence);
+        var prior = manager.createNativeQuery("""
+                SELECT checkpoint_sequence,checkpoint_sha256
+                FROM admin_fido_mds_source_fence_checkpoints_staging
+                WHERE fence_id=:fence
+                ORDER BY checkpoint_sequence DESC LIMIT 1
+                """).setParameter("fence",fenceId).getResultList();
+        long next=1;
+        byte[] predecessor=null;
+        if (!prior.isEmpty()) {
+            Object[] last=(Object[])prior.getFirst();
+            long seq=((Number)last[0]).longValue();
+            if (seq==Long.MAX_VALUE) {
+                throw denied();
+            }
+            next=seq+1;
+            predecessor=(byte[])last[1];
+        }
+        var checkpoints=manager.createNativeQuery("""
+                INSERT INTO admin_fido_mds_source_fence_checkpoints_staging
+                  (fence_id,source_receipt_id,checkpoint_sequence,
+                   previous_checkpoint_sha256,observed_by,
+                   observer_session_version)
+                VALUES (:fence,:receipt,:seq,:prev,:actor,:version)
+                RETURNING checkpoint_id
+                """)
+                .setParameter("fence",fenceId)
+                .setParameter("receipt",receiptId)
+                .setParameter("seq",next)
+                .setParameter("prev",predecessor)
+                .setParameter("actor",admin.userId())
+                .setParameter("version",admin.sessionVersion())
+                .getResultList();
+        if (checkpoints.size()!=1
+                || !(checkpoints.getFirst() instanceof UUID checkpointId)) {
+            throw denied();
+        }
+        return checkpointId;
     }
 
     private static byte[] digest(String lowerHex) {

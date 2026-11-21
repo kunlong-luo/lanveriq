@@ -444,8 +444,10 @@ class PostgreSqlDeviceActivationIT {
         // V26 appends source-evidence receipts, still NOT trusted FIDO metadata.
         // V27 requires a database-written audit for each source receipt.
         // Neither version enables administrator passkeys or signing.
-        // The V9 -> V27 upgrade executes 18 forward migrations V10..V27.
-        assertEquals(18, upgraded.migrate().migrationsExecuted);
+        // V28 adds only isolated untrusted cross-stream fence records;
+        // it cannot promote V26 receipts or authorize FIDO/WebAuthn.
+        // The V9 -> V28 upgrade executes 19 forward migrations V10..V28.
+        assertEquals(19, upgraded.migrate().migrationsExecuted);
         try (var connection = DriverManager.getConnection(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
             connection.setSchema(schema);
