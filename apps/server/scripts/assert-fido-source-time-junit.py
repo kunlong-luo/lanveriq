@@ -16,6 +16,8 @@ REQUIRED = frozenset({
     "sourceTimeV2BindsExactCrlBytesAndOrderIndependentCrlSet",
     "sourceTimeV2BindsRootFingerprintDespiteSameRootKeyAndIssuer",
     "sourceTimeV2RejectsLegacyUnboundTimestampSequenceMutationAndMutableProof",
+    "signedValidFidoShapedEntriesRemainUntrustedAfterStructureScreen",
+    "cryptographicallyValidButMalformedEntryShapesAreDenied",
 })
 DEFAULT_REPORT = Path("apps/server/build/test-results/test") / f"TEST-{CLASS}.xml"
 

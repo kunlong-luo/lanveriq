@@ -1,3 +1,5 @@
+> **2026-11-21 A11-D4-C9 offline MDS payload-shape denial gate (exact-source CI pending):** The package-private `StagedFidoMdsSourceVerifier` now invokes `StagedFidoMdsPayloadShapeScreen` after verifying synthetic JWS, signer-first PKIX/CRL and signed time. It rejects malformed authenticator entries with valid signatures; no new Spring Bean, controller, credential, trusted status or CA action is enabled. The mandatory JUnit source-time evidence guard now requires the signed valid/malformed-entry tests. [Security runbook](../../docs/security/fido-mds-payload-screen-d4-c9-2026-11-21.md). **D4-C8/V29 is already allocated to database history hardening; D4-C9 is a different, source-only stage.** Official FIDO provenance, real admin MFA and physical Pop!_OS remain unaccepted; production OFF.
+
 # Lanveriq server — SRV-01, SRV-02 and AUTH-01 internal foundations
 
 D0-approved Java 25 / Gradle 9.8.2 (Groovy DSL) / Spring Boot 4.1.2 / Spring Data JPA/Hibernate / PostgreSQL 18 / Flyway. **2026-11-01 addition:** optional Spring Data Redis/Lettuce using existing `spark-redis`, OFF by default and never canonical persistence.

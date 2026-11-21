@@ -148,6 +148,11 @@ class StagedFidoMdsSourceVerifierTest {
         }
 
         String jws(long blobNo, boolean withX5u) throws Exception {
+            return jwsWithEntries(blobNo, withX5u, "[]");
+        }
+
+        String jwsWithEntries(long blobNo, boolean withX5u, String entriesJson)
+                throws Exception {
             var header = new JWSHeader.Builder(
                     rsa ? JWSAlgorithm.RS256 : JWSAlgorithm.ES256)
                     .customParam("iat", NOW.getEpochSecond())
@@ -157,7 +162,8 @@ class StagedFidoMdsSourceVerifierTest {
             }
             var jws = new JWSObject(header.build(), new Payload(
                     "{\"legalHeader\":\"test-only terms\",\"no\":" + blobNo
-                    + ",\"entries\":[],\"nextUpdate\":\"2026-11-22\"}"));
+                    + ",\"entries\":" + entriesJson
+                    + ",\"nextUpdate\":\"2026-11-22\"}"));
             if (rsa) {
                 jws.sign(new RSASSASigner((RSAPrivateKey) signerKey.getPrivate()));
             } else {
@@ -204,6 +210,58 @@ class StagedFidoMdsSourceVerifierTest {
             assertEquals(NOW, evidence.checkedAt());
             assertEquals(64, evidence.rootSha256().length());
             assertTrue(evidence.toString().contains("UntrustedSourceEvidence"));
+        }
+    }
+
+    @Test
+    void signedValidFidoShapedEntriesRemainUntrustedAfterStructureScreen()
+            throws Exception {
+        String entry = """
+                [{"aaguid":"00000000-0000-7000-8000-000000000001",
+                  "metadataStatement":{"description":"EPHEMERAL-TEST-NOT-FIDO"},
+                  "statusReports":[{"status":"REVOKED",
+                                     "effectiveDate":"2026-11-20"}],
+                  "timeOfLastStatusChange":"2026-11-20"}]
+                """;
+        for (boolean rsa : new boolean[]{false, true}) {
+            Fixture f = fixture(rsa);
+            String jws = f.jwsWithEntries(41, false, entry);
+            var result = inspect(f, jws, f.freshCrl(), 40, 8);
+            assertEquals(41, result.blobNumber());
+            assertTrue(result.toString().contains("UntrustedSourceEvidence"));
+            // REVOKED is intentionally NOT elevated to a grant merely
+            // because this offline signature and structure checked out.
+        }
+    }
+
+    @Test
+    void cryptographicallyValidButMalformedEntryShapesAreDenied()
+            throws Exception {
+        Fixture f = fixture(false);
+        var crl = f.freshCrl();
+        String[] malformed = {
+                "[null]",
+                "[{}]",
+                "[{\"aaguid\":\"00000000-0000-7000-8000-000000000001\"}]",
+                """
+                [{"aaguid":"00000000-0000-7000-8000-000000000001",
+                  "metadataStatement":{"description":"SYNTHETIC"},
+                  "statusReports":[{"effectiveDate":"2026-11-20"}],
+                  "timeOfLastStatusChange":"2026-11-20"}]
+                """,
+                """
+                [{"aaguid":"00000000-0000-7000-8000-000000000001",
+                  "metadataStatement":{"description":"SYNTHETIC"},
+                  "statusReports":[{"status":"FIDO_CERTIFIED"}],
+                  "timeOfLastStatusChange":"2026-12-01"}]
+                """
+        };
+        for (String entries : malformed) {
+            String jws = f.jwsWithEntries(41, false, entries);
+            var correctlySignedTime = f.time(9, NOW, jws, List.of(crl));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectOfflineOnly(jws, f.claimedPolicy(),
+                            correctlySignedTime, List.of(crl), 40, 8));
         }
     }
 

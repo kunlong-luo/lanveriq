@@ -40,7 +40,7 @@ import java.util.Set;
 import org.springframework.security.access.AccessDeniedException;
 
 /**
- * A11-D4-C6: offline cryptographic source-checking primitive for FIDO MDS3
+ * A11-D4-C9: offline cryptographic source-checking primitive for FIDO MDS3
  * shaped JWS with x5c, explicit pinned root, signed time and CRL evidence.\n * V28 uses a domain-separated v2 time signature over the EXACT signed JWS,
  * approved-shaped anchor digest, sorted CRL DER digest, time-key digest,
  * timestamp AND monotonic sequence. Old unbound v1 proofs are rejected.
@@ -275,6 +275,11 @@ final class StagedFidoMdsSourceVerifier {
             if (blobNo <= lastObservedBlobNumber) {
                 throw denied();
             }
+            // D4-C9: even an ES256/RS256-signed, PKIX/CRL-checked BLOB
+            // must not carry silently malformed authenticator entries.
+            // Structural checks are NOT metadata status/admission policy.
+            StagedFidoMdsPayloadShapeScreen.requireUntrustedEntryShapes(
+                    entries, checkedAt);
             // MDS 3.1.1 deprecates nextUpdate: optional but validated if set.
             if (payload.containsKey("nextUpdate")) {
                 if (!(payload.get("nextUpdate") instanceof String date)

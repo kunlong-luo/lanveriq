@@ -1,3 +1,5 @@
+> **2026-11-21 A11-D4-C9 source-only MDS entry-shape gate — untrusted, NOT RELEASE READY:** Existing offline PKIX/JWS+CRL+claimed time verifier now structurally denies invalid per-authenticator metadata entries even with a valid signature and synthetic source-time proof. It does **not** determine authenticator admission or verify an official root/time source; unknown statuses and `REVOKED` cannot become an allow decision. No app component uses this non-Bean for registration/login. [Full scope and required JUnit gates](fido-mds-payload-screen-d4-c9-2026-11-21.md). Official MDS R46 provenance, trusted time/CRL custody, durable approval, actual administrator WebAuthn MFA and real Pop!_OS acceptance remain separately blocked.
+
 # Identity, device enrollment and authorization
 
 ## Administrator access
