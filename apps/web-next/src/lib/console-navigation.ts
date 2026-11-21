@@ -23,3 +23,12 @@ export function activeConsoleRoute(pathname: string | null): ConsoleRoute | null
     pathname === route.href || pathname.startsWith(route.href + '/')
   ) ?? null;
 }
+
+/** NXT-22: search only the checked-in public preview route allowlist. */
+export function findConsolePages(query: string): readonly ConsoleRoute[] {
+  const normalized = query.normalize('NFKC').trim().toLowerCase();
+  if (!normalized) return consoleRoutes;
+  return consoleRoutes.filter(route =>
+    `${route.label} ${route.id} ${route.href.slice(1)}`.toLowerCase().includes(normalized)
+  );
+}

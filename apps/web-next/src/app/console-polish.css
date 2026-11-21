@@ -461,3 +461,128 @@ body { background: var(--background); }
   .bc-console .metric-card,
   .bc-console .hero-primary-action { transition: none; }
 }
+
+/* NXT-22: keyboard-first, local-only route palette. Base UI owns focus and Escape. */
+.bc-console .bc-global-search {
+  cursor: pointer;
+  transition: background-color .16s ease, border-color .16s ease;
+}
+.bc-console .bc-global-search:hover { background: #edf2fa; border-color: #cfd9e7; }
+.bc-console .bc-global-search kbd { color: #60728d; }
+.bc-command-dialog {
+  position: fixed;
+  z-index: 81;
+  top: min(11vh, 108px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(590px, calc(100vw - 28px));
+  max-height: min(76dvh, 680px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #dce4ee;
+  border-radius: 20px;
+  background: #fff;
+  color: #172235;
+  box-shadow: 0 26px 90px rgba(18,34,58,.23);
+}
+.bc-command-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 24px 17px;
+}
+.bc-command-heading h2 { margin: 0 0 7px; font-size: 22px; letter-spacing: -.045em; }
+.bc-command-heading p { margin: 0; font-size: 12px; line-height: 1.65; color: #6e7e92; }
+.bc-command-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #e5eaf2;
+  border-radius: 11px;
+  background: #f7f9fc;
+  color: #42566e;
+  cursor: pointer;
+}
+.bc-command-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 24px 12px;
+  min-height: 52px;
+  padding: 0 15px;
+  border: 1px solid #dce4ee;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #6c7f96;
+}
+.bc-command-input-row:focus-within { border-color: #647fe9; box-shadow: 0 0 0 2px rgba(100,127,233,.14); }
+.bc-command-input-row input {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #172235;
+  font: inherit;
+  font-size: 14px;
+}
+.bc-command-input-row input:focus-visible { outline: 0; }
+.bc-command-input-row input::placeholder { color: #9aa6b5; }
+.bc-command-results {
+  display: grid;
+  gap: 3px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 16px 16px;
+}
+.bc-command-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #23354c;
+  transition: background-color .16s ease;
+}
+.bc-command-result:hover, .bc-command-result:focus-visible { background: #f0f4fb; }
+.bc-command-result-label { font-size: 13px; font-weight: 690; }
+.bc-command-result-state { margin-left: auto; font-size: 11px; color: #77899c; }
+.bc-command-result > svg { color: #7b8ca2; }
+.bc-command-empty { margin: 8px; padding: 22px 12px; color: #697b90; font-size: 13px; }
+.bc-command-footer {
+  margin: 0;
+  padding: 13px 24px;
+  border-top: 1px solid #edf1f6;
+  color: #8491a4;
+  font-size: 11px;
+}
+@media (max-width: 750px) {
+  .bc-console .bc-global-search {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 11px;
+  }
+  .bc-console .bc-global-search span,
+  .bc-console .bc-global-search kbd { display: none; }
+  .bc-command-dialog { top: max(12px, env(safe-area-inset-top)); max-height: calc(100dvh - 24px); border-radius: 16px; }
+  .bc-command-heading { padding: 20px 18px 14px; }
+  .bc-command-input-row { margin: 0 18px 10px; }
+  .bc-command-results { padding: 8px 10px 12px; }
+  .bc-command-footer { padding: 12px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bc-console .bc-global-search,
+  .bc-command-result { transition: none; }
+}

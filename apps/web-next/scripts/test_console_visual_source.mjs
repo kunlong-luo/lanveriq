@@ -44,3 +44,19 @@ test('visual refinement stays a CSS-only accessible layer', () => {
     assert.ok(design.includes(token), 'design-system must reflect '+token);
   assert.ok(!design.includes('#6A5BFF'), 'do not advertise abandoned purple palette');
 });
+
+test('local route palette is wired to the visible search control, never to device APIs', () => {
+  const shell = read('src/components/console-shell.tsx');
+  const palette = read('src/components/console-command-palette.tsx');
+  const nav = read('src/lib/console-navigation.ts');
+  assert.match(shell, /<ConsoleCommandPalette \/>/);
+  assert.match(palette, /<Dialog\.Popup className="bc-command-dialog"/);
+  assert.match(palette, /event\.key\.toLowerCase\(\) !== 'k'/);
+  assert.match(palette, /findConsolePages\(query\)/);
+  assert.match(nav, /consoleRoutes\.filter\(/);
+  assert.doesNotMatch(palette, /fetch\(|axios|WebSocket|localStorage|sessionStorage|staged-console/);
+  assert.doesNotMatch(shell, /全局搜索尚未开放/);
+  const styles = read('src/app/console-polish.css');
+  assert.match(styles, /\.bc-command-dialog\s*\{/);
+  assert.match(styles, /\.bc-command-input-row:focus-within/);
+});

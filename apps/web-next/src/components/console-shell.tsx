@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Activity, BarChart3, Bell, BookOpen, ChevronRight, CircleHelp,
-  LayoutDashboard, Layers3, Menu, Monitor, Plus, Search, Settings2, ShieldCheck, X,
+  LayoutDashboard, Layers3, Menu, Monitor, Plus, Settings2, ShieldCheck, X,
   type LucideIcon,
 } from 'lucide-react';
 import { activeConsoleRoute, consoleRoutes, type ConsoleRoute } from '@/lib/console-navigation';
+import { ConsoleCommandPalette } from '@/components/console-command-palette';
 
 const routeIcons: Record<ConsoleRoute['id'], LucideIcon> = {
   overview: LayoutDashboard,
@@ -116,11 +117,7 @@ export function ConsoleShell({ children }: Readonly<{ children: ReactNode }>) {
             </div>
           </div>
           <div className="top-actions">
-            <button type="button" disabled className="bc-global-search"
-              aria-label="全局搜索尚未开放">
-              <Search size={17} aria-hidden="true" />
-              <span>搜索设备、资产或操作</span><kbd>⌘ K</kbd>
-            </button>
+            <ConsoleCommandPalette />
             <span className="backend-state"><span aria-hidden="true" />业务 API 未连接</span>
             <button type="button" disabled aria-label="通知尚未接入" className="icon-button">
               <Bell size={19}/></button>

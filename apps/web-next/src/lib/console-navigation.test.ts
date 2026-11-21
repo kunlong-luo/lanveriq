@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeConsoleRoute, consoleRoutes } from './console-navigation';
+import { activeConsoleRoute, consoleRoutes, findConsolePages } from './console-navigation';
 
 describe('canonical Next.js App Router navigation', () => {
   it('lists only public disconnected UI routes, and labels planned modules', () => {
@@ -26,5 +26,15 @@ describe('canonical Next.js App Router navigation', () => {
     expect(activeConsoleRoute('/api/v1/devices')).toBeNull();
     expect(activeConsoleRoute('/login')).toBeNull();
     expect(activeConsoleRoute(null)).toBeNull();
+  });
+  it('filters only canonical disconnected pages, including mixed-width input', () => {
+    expect(findConsolePages('')).toEqual(consoleRoutes);
+    expect(findConsolePages(' 设备 ' ).map(route => route.href)).toEqual(['/enrollment']);
+    expect(findConsolePages('MONITORING').map(route => route.href)).toEqual(['/monitoring']);
+    expect(findConsolePages('ｒｅｐｏｒｔｓ').map(route => route.href)).toEqual(['/reports']);
+    expect(findConsolePages('/api/v1/devices')).toEqual([]);
+    expect(findConsolePages('../../../login')).toEqual([]);
+    expect(findConsolePages('远程控制')).toEqual([]);
+    expect(findConsolePages(' ').every(route => !route.href.startsWith('/api/'))).toBe(true);
   });
 });

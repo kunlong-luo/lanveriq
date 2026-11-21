@@ -131,6 +131,36 @@ def check_browser(page, blocked):
     page.keyboard.press("Enter")
     require(page.evaluate("document.activeElement?.id === 'main'"),
             "nxt19_skip_link_must_focus_main_landmark")
+    # NXT-22: keyboard and pointer search over allowlisted pages only.
+    search = page.get_by_role("button", name="打开工作空间搜索")
+    require(search.is_enabled(), "workspace_navigation_search_disabled")
+    page.keyboard.press("Control+k")
+    palette = page.get_by_role("dialog", name="快速导航")
+    require(palette.is_visible(), "keyboard_shortcut_did_not_open_palette")
+    field = palette.get_by_role("searchbox", name="搜索工作空间页面")
+    require(field.evaluate("(el) => document.activeElement === el"),
+            "palette_search_field_not_focused")
+    field.fill("/api/v1/devices")
+    require(palette.locator('a[href^="/api/"]').count() == 0 and
+            palette.get_by_text("没有匹配的页面。", exact=False).count() == 1,
+            "palette_exposes_nonpreview_or_business_route")
+    field.fill("策略")
+    require(palette.locator('a[href="/policies"]').count() == 1 and
+            palette.locator('a[href="/overview"]').count() == 0,
+            "palette_local_filter_failed")
+    page.keyboard.press("Escape")
+    palette.wait_for(state="hidden", timeout=5000)
+    search.click()
+    palette = page.get_by_role("dialog", name="快速导航")
+    require(palette.is_visible(), "header_search_did_not_open_palette")
+    palette.get_by_role("searchbox", name="搜索工作空间页面").fill("告警")
+    palette.locator('a[href="/alerts"]').click()
+    page.wait_for_url(BASE + "/alerts", wait_until="domcontentloaded", timeout=15000)
+    require(page.get_by_role("heading", name="告警中心", level=1).count() == 1,
+            "palette_navigation_did_not_reach_allowlisted_page")
+    palette.wait_for(state="hidden", timeout=5000)
+    require(not blocked, "palette_must_not_contact_external_or_business_api")
+    page.goto(BASE + "/overview", wait_until="networkidle")
     page.get_by_role("navigation", name="主导航").get_by_role(
         "link", name="终端资产").click()
     # Next.js App Router changes location asynchronously after a client-side
@@ -245,6 +275,19 @@ def check_viewports(browser):
                     "reduced_motion_not_applied")
             if width <= 750:
                 page.goto(BASE + "/overview", wait_until="networkidle")
+                # The search trigger must also be reachable on narrow screens.
+                command_button = page.get_by_role("button", name="打开工作空间搜索")
+                require(command_button.is_visible() and
+                        command_button.bounding_box()["width"] >= 44,
+                        "mobile_palette_trigger_hidden_or_too_small")
+                command_button.click()
+                command = page.get_by_role("dialog", name="快速导航")
+                require(command.is_visible(), "mobile_palette_failed_to_open")
+                command.get_by_role("searchbox", name="搜索工作空间页面").fill("监控")
+                require(command.locator('a[href="/monitoring"]').count() == 1,
+                        "mobile_palette_filter_failed")
+                page.keyboard.press("Escape")
+                command.wait_for(state="hidden", timeout=5000)
                 menu = page.get_by_role("button", name="打开导航")
                 require(menu.is_visible(), "base_ui_mobile_trigger_missing")
                 require(menu.bounding_box()["width"] >= 44 and

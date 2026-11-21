@@ -1,3 +1,8 @@
+## 2026-11-21 — NXT-22 keyboard-first local workspace navigation (CI pending)
+
+- Replace disabled Console header search with an accessible Base UI Dialog command palette for nine allowlisted public preview pages. Add Ctrl/⌘+K, local filtering, Escape, mobile >=44px trigger and negative empty state; real-device or business search is **not enabled**.
+- Add route whitelist Vitest, source checks and real Chromium keyboard/mobile/negative business-route assertions. Exact functionality SHA CI pending; production and RD-2 stay OFF.
+
 ## 2026-11-21 — Branch consolidation + NXT-21 editorial Console (non-production)
 
 - All three old refs merged/verified without regression; `main` is the sole remote branch after [cleanup #44873229717](https://github.com/kunlong-luo/lanveriq/actions/runs/44873229717), with the temporary write-enabled workflow removed.
