@@ -490,6 +490,132 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
     }
 
     @Test
+    void c18DbOwnerRewindRejectsSurvivingHostRetainedWitnessHighWater(
+            @org.junit.jupiter.api.io.TempDir java.nio.file.Path outsidePostgres)
+            throws Exception {
+        // Isolated PG18 owner-level rewrite rehearsal, NOT a pg_dump/pg_restore
+        // or production WORM exercise. A separate host temp file survives the
+        // database write; it is not an independently governed immutable store.
+        Stream stream=createOwnerStream();
+        Source first=source(stream,1);
+        UUID firstId=normalInsert(stream,first,null,hash(55));
+        var key=KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        String publicPin=hexSha256(key.getPublic().getEncoded());
+        var pin=new StagedFidoMdsDetachedWitnessReader.PinnedWitnessKey(
+                key.getPublic(),publicPin);
+        var tailReader=new StagedFidoMdsDetachedWitnessReader(manager);
+        var historyReader=new StagedFidoMdsAnchoredWitnessHistoryReader(
+                tailReader);
+        Instant observed=Instant.parse("2026-11-22T11:00:00Z");
+
+        var signedFirst=signDetached(witnessFor(stream,firstId,1,null),key);
+        var firstMatch=tailReader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedFirst,
+                new StagedFidoMdsDetachedWitnessReader.ExternalCursor(1,null),
+                stream.id(),observed);
+        Source second=source(stream,2);
+        UUID secondId=normalInsert(stream,second,digest(firstId),hash(55));
+        var signedSecond=signDetached(witnessFor(stream,secondId,2,
+                firstMatch.detachedWitnessSha256()),key);
+        var secondMatch=tailReader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedSecond,
+                new StagedFidoMdsDetachedWitnessReader.ExternalCursor(
+                        2,firstMatch.detachedWitnessSha256()),
+                stream.id(),observed);
+        var complete=java.util.List.of(signedFirst,signedSecond);
+
+        // Persist the independent-in-this-test cursor OUTSIDE the PG18
+        // container before the database is deliberately rewound. JDK
+        // Properties is a disposable test fixture, not production custody.
+        var externalFile=outsidePostgres.resolve("c18-host-high-water.properties");
+        var fixture=new java.util.Properties();
+        fixture.setProperty("stream",stream.id().toString());
+        fixture.setProperty("sequence","2");
+        fixture.setProperty("digest",secondMatch.detachedWitnessSha256());
+        fixture.setProperty("key",publicPin);
+        try (var output=java.nio.file.Files.newOutputStream(externalFile,
+                java.nio.file.StandardOpenOption.CREATE_NEW,
+                java.nio.file.StandardOpenOption.WRITE)) {
+            fixture.store(output,"synthetic only; NOT WORM or trusted custody");
+        }
+        var initialHead=new StagedFidoMdsAnchoredWitnessHistoryReader
+                .IndependentlyRetainedHead(
+                        stream.id(),2,secondMatch.detachedWitnessSha256(),
+                        publicPin);
+        assertEquals(2,historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                pin,complete,initialHead,stream.id(),observed)
+                .acquisitionSequence());
+
+        // DB-owner/migrator privileges can DISABLE user triggers. A real
+        // remote WORM witness MUST NOT be inside that administrative domain.
+        // This simulates a malicious V30+audit rewind only: no backup is
+        // produced, no full restore or external object lock is claimed.
+        inTransaction(() -> {
+            manager.createNativeQuery("""
+                    ALTER TABLE admin_fido_mds_acquisition_receipts_staging
+                    DISABLE TRIGGER USER
+                    """).executeUpdate();
+            manager.createNativeQuery("""
+                    ALTER TABLE admin_access_log DISABLE TRIGGER USER
+                    """).executeUpdate();
+            try {
+                assertEquals(1,manager.createNativeQuery("""
+                        DELETE FROM admin_fido_mds_acquisition_receipts_staging
+                        WHERE acquisition_id=:id
+                        """).setParameter("id",secondId).executeUpdate());
+                assertEquals(1,manager.createNativeQuery("""
+                        DELETE FROM admin_access_log
+                        WHERE resource_id=:id AND action=
+                            'admin.passkey.mds.source.untrusted.acquisition'
+                        """).setParameter("id",secondId).executeUpdate());
+            } finally {
+                manager.createNativeQuery("""
+                        ALTER TABLE admin_access_log ENABLE TRIGGER USER
+                        """).executeUpdate();
+                manager.createNativeQuery("""
+                        ALTER TABLE admin_fido_mds_acquisition_receipts_staging
+                        ENABLE TRIGGER USER
+                        """).executeUpdate();
+            }
+        });
+
+        var persisted=new java.util.Properties();
+        try (var input=java.nio.file.Files.newInputStream(externalFile)) {
+            persisted.load(input);
+        }
+        var retainedHead=new StagedFidoMdsAnchoredWitnessHistoryReader
+                .IndependentlyRetainedHead(
+                        UUID.fromString(persisted.getProperty("stream")),
+                        Long.parseLong(persisted.getProperty("sequence")),
+                        persisted.getProperty("digest"),
+                        persisted.getProperty("key"));
+        assertEquals(initialHead,retainedHead);
+        // Signatures and archive still authenticate, but the recovered/rewound
+        // DB no longer matches the independently retained HIGHER head.
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,complete,retainedHead,stream.id(),observed));
+
+        // Explicit limitation: if an attacker also replaces the externally
+        // supplied high-water and history with old genuine material, this
+        // verifier CANNOT know that a rollback occurred. Actual WORM+KMS is
+        // mandatory before G-02 may close.
+        var attackerSubstitutedOldHead=
+                new StagedFidoMdsAnchoredWitnessHistoryReader
+                        .IndependentlyRetainedHead(
+                                stream.id(),1,
+                                firstMatch.detachedWitnessSha256(),publicPin);
+        assertEquals(1,historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                pin,java.util.List.of(signedFirst),attackerSubstitutedOldHead,
+                stream.id(),observed).witnessSequence());
+        assertEquals("acquisition_untrusted",manager.createNativeQuery("""
+                SELECT evidence_state
+                FROM admin_fido_mds_acquisition_receipts_staging
+                WHERE acquisition_id=:id
+                """).setParameter("id",firstId).getSingleResult());
+    }
+
+    @Test
     void v30SourceBoundAcquisitionPersistsDbHashesAndExactlyOneAudit() {
         Stream stream=createOwnerStream();
         Source first=source(stream,1);

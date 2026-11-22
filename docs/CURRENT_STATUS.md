@@ -4,6 +4,12 @@
 
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
+## D4-C18a 数据库所有者回退负例（本提交 CI 待核实）
+
+2026-11-22 已新增隔离 PostgreSQL 18.6 Owner 级模拟回退测试 `c18DbOwnerRewindRejectsSurvivingHostRetainedWitnessHighWater`：先在 Testcontainers 创建两条 V30/V26 合成数据与双签名见证，将最新高水位存至 **PostgreSQL 容器外的 JUnit 宿主临时文件**，然后让测试数据库所有者绕过 V30/审计触发器删除最新一笔，强制要求 C17 使用仍然保留的最新高水位 **拒绝旧数据库尾**。同时明确断言：若攻击者能够连外部高水位和完整见证历史一起回退，则旧签名仍可能匹配，**真实 WORM/KMS 独立托管是必要条件**。此测试**不是实际 `pg_dump`/`pg_restore`，也不是云存储 Object Lock 或生产安全验证**。
+
+源码与测试随本轮 `main` 功能提交；**Java 25 / PG18 Testcontainers / CI 结果待本次提交实际运行，暂为 PENDING，不可提前标记 PASS**。严格 JUnit 门禁要求 FIDO 类 6 项、全库 11 类至少 149 项真实执行。参见 [D4-C18a 设计与边界](security/fido-mds-db-owner-rewind-d4-c18a-2026-11-22.md) 与仍为 **OPEN** 的 [G-02](planning/release-gap-register.md)。
+
 ## 新增已验收：A11-D4-C17（仅离线合成，外部 G-02 仍 OPEN）
 
 2026-11-22 已在 `main` 提交 [C17 离线完整见证历史校验功能 SHA `9cb6b4ce`](https://github.com/kunlong-luo/lanveriq/commit/9cb6b4ce9f63d7ef45a48f5ad104f30fb1304d45)：新增 `StagedFidoMdsAnchoredWitnessHistoryReader`，拒绝丢失/重排/重放/伪造签名、错误外部头摘要与跨流记录，并以真正 PostgreSQL V30 尾记录作最终比对；它没有配置外部 WORM、可信钥匙、真实时钟或正式 FIDO 源，返回仍为 **UNTRUSTED**。测试 `c17AnchoredWitnessHistoryRejectsTruncationForgeryAndStaleDatabaseTail` 已纳入真实 PG18 强制 JUnit 门禁，11 类至少 148 案例。
