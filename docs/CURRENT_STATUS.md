@@ -4,6 +4,12 @@
 
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
+## 新增待验收：A11-D4-C17（不能提前计入 PASS）
+
+2026-11-22 已在 `main` 提交 [C17 离线完整见证历史校验功能 SHA `9cb6b4ce`](https://github.com/kunlong-luo/lanveriq/commit/9cb6b4ce9f63d7ef45a48f5ad104f30fb1304d45)：新增 `StagedFidoMdsAnchoredWitnessHistoryReader`，拒绝丢失/重排/重放/伪造签名、错误外部头摘要与跨流记录，并以真正 PostgreSQL V30 尾记录作最终比对；它没有配置外部 WORM、可信钥匙、真实时钟或正式 FIDO 源，返回仍为 **UNTRUSTED**。测试 `c17AnchoredWitnessHistoryRejectsTruncationForgeryAndStaleDatabaseTail` 已纳入真实 PG18 强制 JUnit 门禁，11 类至少 148 案例。
+
+**该功能 SHA 的已完成证据：** [Java 25 L1 单元测试 #45017795239 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795239) · [PG18 源码编译 #45017795286 — SUCCESS，仅编译](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795286)。**真实 PostgreSQL 18.6 L2 [#45017795222](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795222) 截至本次记录仍在执行，结果 PENDING，不能写成已通过。** [C17 设计与负例](security/fido-mds-anchored-history-d4-c17-2026-11-22.md) · [G-02 外部 WORM/KMS 仍 OPEN](planning/release-gap-register.md)。
+
 ## 一眼看懂：已做、已测、未放行
 
 | 领域 | 实际源码或验证状态 | 尚未成立的事实 |
