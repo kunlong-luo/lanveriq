@@ -45,7 +45,7 @@ def synthetic_reports(directory: Path, *, omit=None, skipped=None,
 class PostgresEvidenceGateTest(unittest.TestCase):
     def test_v30_acquisition_ledger_mandatory_pg18_evidence(self):
         cls = "PostgreSqlFidoMdsAcquisitionReceiptIT"
-        self.assertEqual(6, minimums[cls])
+        self.assertEqual(7, minimums[cls])
         for method in sorted(mandatory[cls]):
             with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
                 synthetic_reports(Path(tmp), omit=(cls, method))

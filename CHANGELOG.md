@@ -2,6 +2,11 @@
 
 > **Historical evidence, not the live status sheet.** [CURRENT_STATUS](docs/CURRENT_STATUS.md) contains current source/CI and release boundaries. Do not prepend new run summaries ahead of this title. Preserve actual failed SHA and past CI references; use [doc lifecycle](docs/governance/document-lifecycle.md).
 
+## 2026-11-22 — A11-D4-C18b pg_dump/pg_restore dual-snapshot rehearsal (PENDING)
+
+- Add mandatory real PostgreSQL 18.6 Testcontainers recovery test using actual `pg_dump -Fc` of old/new V30 states, `pg_restore --exit-on-error` into two independent restored databases, and Spring/Hibernate sessions attached to those database connections. Old restored DB must be rejected against higher host-retained witness; matching fresh restored DB must be accepted. The old signed archive + old cursor combination remains demonstrably vulnerable without independent custody. [D4-C18b scope](docs/security/fido-mds-real-pg-restore-d4-c18b-2026-11-22.md).
+- Increase executed PG18 JUnit gate to **11 classes / at least 150 tests**, including `c18bActualPgDumpRestoreRejectsStaleBackupAndAcceptsFreshBackup`. **All exact-SHA CI is PENDING until it runs.** Backups and test signing keys are synthetic, contained within disposable CI; no actual AWS S3 Object Lock/KMS, real WORM, offsite PITR or release approval. Production switches remain OFF.
+
 ## 2026-11-22 — A11-D4-C18a synthetic DB-owner rewind, 7/7 exact-SHA CI PASS
 
 - Add real PostgreSQL 18.6 Testcontainers test for a compromised test DB owner disabling USER triggers, rewinding the latest V30 acquisition and matching audit while an off-container host temp file retains a higher witness head. Existing C17 must reject the older DB tail; an explicit companion assertion documents how a coordinated external-cursor rollback would still fool the verifier. No production runtime authorization code or feature flag changes. [C18a report](docs/security/fido-mds-db-owner-rewind-d4-c18a-2026-11-22.md).

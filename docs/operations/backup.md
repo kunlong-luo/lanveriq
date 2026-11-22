@@ -22,3 +22,7 @@ Corrupt DB, incomplete backup, migration failure, missing volume, lost media fil
 - **正式 G-02/G-08 准入要求未关闭：** 合规批准的独立存储账户与保留策略、对象版本的真实不可删除/read-back 验收；受控的 `pg_dump`/`pg_restore` 或 PITR 隔离恢复；旧库拒绝和新库一致性正例；不可跨域修改的高水位、审计、可信时间和密钥轮换，记录准确 SHA、存储版本 ID、独立审核签字，且不得把秘密、真实员工数据上传公共 CI。
 
 - **2026-11-22 C18a 真实 PG18 合成回退子任务通过：** [功能 SHA `5afbee8a`](https://github.com/kunlong-luo/lanveriq/commit/5afbee8aa3f35a2ee916a34f4968d23242790aba) · [真实 PG18 149+ JUnit #45018857143](https://github.com/kunlong-luo/lanveriq/actions/runs/45018857143)。这不是完整备份/恢复；生产前仍须实际 `pg_dump`/`pg_restore` 或 PITR 恢复演练和独立保留证据。见 [ADR-0012 候选外部对象保留方案](../architecture/adrs/0012-independent-fido-witness-object-lock.md)。
+
+## D4-C18b 双备份真实恢复演练（2026-11-22 · CI PENDING）
+
+[真实 PG18 备份恢复隔离验收](../security/fido-mds-real-pg-restore-d4-c18b-2026-11-22.md)：先后运行 **`pg_dump -Fc`** 与 **`pg_restore --exit-on-error`**，创建独立 `old`、`fresh` 恢复库；要求旧恢复库在宿主保留的新高水位下拒绝，当前恢复库在相同见证历史下通过，旧外部高水位替换依然可以欺骗校验。数据库和所有 dump 文件均为一次性 PG18 容器内合成数据；此验证不证明异地备份/外部 WORM、可信时间、云 KMS、生产 PITR 或既定 RPO/RTO。G-02 与 G-08 都仍 OPEN。

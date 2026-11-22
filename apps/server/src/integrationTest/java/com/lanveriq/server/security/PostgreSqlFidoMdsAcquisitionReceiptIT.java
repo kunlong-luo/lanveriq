@@ -49,6 +49,7 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
 
     @Autowired EntityManager manager;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
 
     record Stream(UUID owner, UUID id) {}
     record Source(UUID id, UUID stream, long sequence) {}
@@ -613,6 +614,175 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
                 FROM admin_fido_mds_acquisition_receipts_staging
                 WHERE acquisition_id=:id
                 """).setParameter("id",firstId).getSingleResult());
+    }
+
+    private static void c18bPgCommand(String... command) throws Exception {
+        // Run real PostgreSQL 18 client binaries *inside* the disposable
+        // Testcontainers image, not a SQL imitation or invented XML.
+        var result=postgres.execInContainer(command);
+        assertEquals(0,result.getExitCode(),
+                "PostgreSQL 18 command failed: "
+                +String.join(" ",command)+"\n"
+                +result.getStdout()+"\n"+result.getStderr());
+    }
+
+    private org.hibernate.Session c18bRestoredSession(
+            String dbName, java.sql.Connection connection) {
+        return entityManagerFactory.unwrap(org.hibernate.SessionFactory.class)
+                .withOptions().connection(connection).openSession();
+    }
+
+    private org.springframework.jdbc.datasource.DriverManagerDataSource
+            c18bRestoredDataSource(String dbName) {
+        // Standard Spring/Hibernate test harness, not a handwritten
+        // production JDBC DAO or a new database authority.
+        var source=new org.springframework.jdbc.datasource.DriverManagerDataSource();
+        source.setDriverClassName("org.postgresql.Driver");
+        source.setUrl("jdbc:postgresql://"+postgres.getHost()+":"
+                +postgres.getMappedPort(5432)+"/"+dbName);
+        source.setUsername(postgres.getUsername());
+        source.setPassword(postgres.getPassword());
+        return source;
+    }
+
+    @Test
+    void c18bActualPgDumpRestoreRejectsStaleBackupAndAcceptsFreshBackup(
+            @org.junit.jupiter.api.io.TempDir java.nio.file.Path outsideDb)
+            throws Exception {
+        // Genuine pg_dump -Fc + pg_restore --exit-on-error on PostgreSQL 18.6.
+        // All DB copies and signing keys are synthetic/disposable; the host
+        // cursor is NOT external WORM/KMS or independently approved custody.
+        String nonce=UUID.randomUUID().toString().replace("-","")
+                .substring(0,12);
+        String oldBackup="/tmp/c18b-"+nonce+"-old.dump";
+        String freshBackup="/tmp/c18b-"+nonce+"-fresh.dump";
+        String oldDb="c18b_old_"+nonce;
+        String freshDb="c18b_fresh_"+nonce;
+        String username=postgres.getUsername();
+        String originalDb=postgres.getDatabaseName();
+
+        Stream stream=createOwnerStream();
+        Source source1=source(stream,1);
+        UUID firstId=normalInsert(stream,source1,null,hash(55));
+        var signer=KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        String publicPin=hexSha256(signer.getPublic().getEncoded());
+        var pin=new StagedFidoMdsDetachedWitnessReader.PinnedWitnessKey(
+                signer.getPublic(),publicPin);
+        var liveReader=new StagedFidoMdsDetachedWitnessReader(manager);
+        Instant observed=Instant.parse("2026-11-22T11:00:00Z");
+        var signedFirst=signDetached(witnessFor(stream,firstId,1,null),
+                signer);
+        var firstMatch=liveReader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedFirst,
+                new StagedFidoMdsDetachedWitnessReader.ExternalCursor(1,null),
+                stream.id(),observed);
+
+        // Snapshot 1 is taken BEFORE the second committed V30 record.
+        c18bPgCommand("pg_dump","--username="+username,
+                "--dbname="+originalDb,"--format=custom",
+                "--file="+oldBackup);
+        c18bPgCommand("pg_restore","--list",oldBackup);
+
+        Source source2=source(stream,2);
+        UUID secondId=normalInsert(stream,source2,digest(firstId),hash(55));
+        var signedSecond=signDetached(witnessFor(stream,secondId,2,
+                firstMatch.detachedWitnessSha256()),signer);
+        var secondMatch=liveReader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedSecond,
+                new StagedFidoMdsDetachedWitnessReader.ExternalCursor(
+                        2,firstMatch.detachedWitnessSha256()),
+                stream.id(),observed);
+        var complete=java.util.List.of(signedFirst,signedSecond);
+        var pinnedHead=new StagedFidoMdsAnchoredWitnessHistoryReader
+                .IndependentlyRetainedHead(stream.id(),2,
+                        secondMatch.detachedWitnessSha256(),publicPin);
+        var externalFile=outsideDb.resolve("c18b-external-head.properties");
+        var properties=new java.util.Properties();
+        properties.setProperty("stream",stream.id().toString());
+        properties.setProperty("sequence","2");
+        properties.setProperty("digest",pinnedHead.detachedWitnessSha256());
+        properties.setProperty("key",publicPin);
+        try (var output=java.nio.file.Files.newOutputStream(externalFile,
+                java.nio.file.StandardOpenOption.CREATE_NEW,
+                java.nio.file.StandardOpenOption.WRITE)) {
+            properties.store(output,"SYNTHETIC ONLY - not immutable custody");
+        }
+
+        // Snapshot 2 is the current V30 tail and must be accepted.
+        c18bPgCommand("pg_dump","--username="+username,
+                "--dbname="+originalDb,"--format=custom",
+                "--file="+freshBackup);
+        c18bPgCommand("pg_restore","--list",freshBackup);
+
+        // Restore into NEW databases, never replace the Spring/JPA source
+        // database used by the rest of the integration suite.
+        c18bPgCommand("createdb","--username="+username,
+                "--owner="+username,oldDb);
+        c18bPgCommand("createdb","--username="+username,
+                "--owner="+username,freshDb);
+        c18bPgCommand("pg_restore","--exit-on-error",
+                "--no-owner","--no-acl","--username="+username,
+                "--dbname="+oldDb,oldBackup);
+        c18bPgCommand("pg_restore","--exit-on-error",
+                "--no-owner","--no-acl","--username="+username,
+                "--dbname="+freshDb,freshBackup);
+
+        var recovered=new java.util.Properties();
+        try (var input=java.nio.file.Files.newInputStream(externalFile)) {
+            recovered.load(input);
+        }
+        var externallyRetained=new StagedFidoMdsAnchoredWitnessHistoryReader
+                .IndependentlyRetainedHead(
+                        UUID.fromString(recovered.getProperty("stream")),
+                        Long.parseLong(recovered.getProperty("sequence")),
+                        recovered.getProperty("digest"),
+                        recovered.getProperty("key"));
+        assertEquals(pinnedHead,externallyRetained);
+
+        var oldData=c18bRestoredDataSource(oldDb);
+        try (var connection=oldData.getConnection();
+             var restored=c18bRestoredSession(oldDb,connection)) {
+            assertEquals(1L,((Number)restored.createNativeQuery("""
+                    SELECT COUNT(*)
+                    FROM admin_fido_mds_acquisition_receipts_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream.id())
+                    .getSingleResult()).longValue());
+            var history=new StagedFidoMdsAnchoredWitnessHistoryReader(
+                    new StagedFidoMdsDetachedWitnessReader(restored));
+            // Real old backup restored successfully but MUST be denied
+            // against the higher external head. Signature-valid != fresh.
+            assertThrows(AccessDeniedException.class,() ->
+                    history.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                            pin,complete,externallyRetained,stream.id(),observed));
+            // Known failure mode: substituting the old signed archive AND
+            // its old cursor would pass: only genuine off-DB custody fixes it.
+            var tamperedOldHead=new StagedFidoMdsAnchoredWitnessHistoryReader
+                    .IndependentlyRetainedHead(
+                            stream.id(),1,firstMatch.detachedWitnessSha256(),
+                            publicPin);
+            assertEquals(1,history.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                    pin,java.util.List.of(signedFirst),tamperedOldHead,
+                    stream.id(),observed).witnessSequence());
+        }
+
+        var freshData=c18bRestoredDataSource(freshDb);
+        try (var connection=freshData.getConnection();
+             var restored=c18bRestoredSession(freshDb,connection)) {
+            assertEquals(2L,((Number)restored.createNativeQuery("""
+                    SELECT COUNT(*)
+                    FROM admin_fido_mds_acquisition_receipts_staging
+                    WHERE stream_id=:stream
+                    """).setParameter("stream",stream.id())
+                    .getSingleResult()).longValue());
+            var history=new StagedFidoMdsAnchoredWitnessHistoryReader(
+                    new StagedFidoMdsDetachedWitnessReader(restored));
+            var accepted=history.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                    pin,complete,externallyRetained,stream.id(),observed);
+            assertEquals(2,accepted.acquisitionSequence());
+            assertEquals(secondMatch.detachedWitnessSha256(),
+                    accepted.detachedWitnessSha256());
+        }
     }
 
     @Test

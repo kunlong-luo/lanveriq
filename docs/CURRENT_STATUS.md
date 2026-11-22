@@ -4,6 +4,12 @@
 
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
+## D4-C18b 实际 PostgreSQL 备份恢复双向验收（CI PENDING）
+
+**代码已提交，真实测试不能提前标为通过。** 在 PostgreSQL 18.6 Testcontainers 内分别对 V30 只有序号 1 的旧库、序号 2 的新库执行真正的 `pg_dump --format=custom` 与 `pg_restore --exit-on-error` 到两套**独立恢复数据库**；使用 Spring/Hibernate 的独立会话读取恢复后的真实 V30/V26/审计，复用 D4-C17 校验器。旧库必须因无法匹配宿主独立保留的序号 2 高水位而拒绝；新库必须在同一签名历史和高水位下接受。另证明如果外部证据也被替换成旧签名历史，旧库可以通过，因此仍必须有真正外部不可回退的保管服务。
+
+真实 `pg_dump` 和 `pg_restore` 命令是在**同一隔离 PG18 容器中**运行，宿主 `@TempDir` 仅保存合成高水位；它不是生产备份、PITR、跨行政域 WORM 或外部云对象版本验收。JUnit 证据门禁提升为 **11 类≥150 项**，必跑 `c18bActualPgDumpRestoreRejectsStaleBackupAndAcceptsFreshBackup`。详细见 [C18b 验收规范](security/fido-mds-real-pg-restore-d4-c18b-2026-11-22.md)。**G-02/G-08 仍 OPEN，v0.1 NOT RELEASE READY，生产能力 OFF。**
+
 ## 已验收：D4-C18a 隔离数据库所有者回退负例（G-02 仍 OPEN）
 
 2026-11-22 已新增隔离 PostgreSQL 18.6 Owner 级模拟回退测试 `c18DbOwnerRewindRejectsSurvivingHostRetainedWitnessHighWater`：先在 Testcontainers 创建两条 V30/V26 合成数据与双签名见证，将最新高水位存至 **PostgreSQL 容器外的 JUnit 宿主临时文件**，然后让测试数据库所有者绕过 V30/审计触发器删除最新一笔，强制要求 C17 使用仍然保留的最新高水位 **拒绝旧数据库尾**。同时明确断言：若攻击者能够连外部高水位和完整见证历史一起回退，则旧签名仍可能匹配，**真实 WORM/KMS 独立托管是必要条件**。此测试**不是实际 `pg_dump`/`pg_restore`，也不是云存储 Object Lock 或生产安全验证**。
