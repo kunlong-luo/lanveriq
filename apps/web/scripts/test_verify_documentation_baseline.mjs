@@ -60,6 +60,32 @@ test('checks the actual checked-in documentation without network access', () => 
   assert.equal(verifyDocumentationBaseline(root), true);
 });
 
+test('rejects obsolete no-code contribution instructions', t => {
+  const { root, write } = fixture(t);
+  const record = documentationRequirements.find(x => x.path === 'CONTRIBUTING.md');
+  assert.ok(record);
+  write(record.path, record.required.join('\n') +
+    '\nThe repository has not yet shipped functioning code.\n');
+  assert.throws(() => verifyDocumentationBaseline(root),
+    /Obsolete active guidance reintroduced/);
+});
+
+test('rejects missing release gate register', t => {
+  const { root } = fixture(t);
+  rmSync(join(root, 'docs/planning/release-gap-register.md'));
+  assert.throws(() => verifyDocumentationBaseline(root),
+    /Current documentation missing/);
+});
+
+test('rejects broken links in newly active engineering rules', t => {
+  const { root, write } = fixture(t);
+  write('docs/governance/engineering-playbook.md',
+    '[missing release gate](../planning/gap-does-not-exist.md)');
+  assert.throws(() => verifyLocalDocumentationLinks(root,
+    ['docs/governance/engineering-playbook.md']),
+    /Broken local documentation link/);
+});
+
 test('current documentation index and two READMEs resolve all relative links', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
   assert.equal(verifyLocalDocumentationLinks(root), true);

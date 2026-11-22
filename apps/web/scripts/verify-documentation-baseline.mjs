@@ -10,6 +10,64 @@ import { fileURLToPath } from 'node:url';
  */
 export const documentationRequirements = [
   {
+    path: 'AGENTS.md',
+    required: ['# Lanveriq — AI agent rules (CURRENT)', 'v0.1 NOT RELEASE READY',
+      'docs/governance/engineering-playbook.md', 'default-OFF'],
+    forbidden: [/D0-approved V0\.1 architecture \(not yet compiled, deployed or tested\)/i],
+  },
+  {
+    path: 'CONTRIBUTING.md',
+    required: ['# Contributing', 'v0.1 NOT RELEASE READY',
+      'docs/governance/engineering-playbook.md', 'real synthetic CI'],
+    forbidden: [/has not yet shipped functioning code/i,
+      /only Rust\/Java\/React unit tests/],
+  },
+  {
+    path: 'SECURITY.md',
+    required: ['# Lanveriq security policy', 'v0.1 NOT RELEASE READY',
+      'docs/security/fido-trust-boundaries.md'],
+    forbidden: [/^Unit-only CI does not replace/m],
+  },
+  {
+    path: 'docs/governance/engineering-playbook.md',
+    required: ['ACTIVE', 'Pop!_OS 24.04', 'CURRENT_STATUS',
+      'NOT RELEASE READY'],
+    forbidden: [],
+  },
+  {
+    path: 'docs/governance/document-lifecycle.md',
+    required: ['ACTIVE', 'LIVE-GAP', 'HISTORICAL', 'docs-governance workflow'],
+    forbidden: [],
+  },
+  {
+    path: 'docs/planning/release-gap-register.md',
+    required: ['LIVE-GAP', 'v0.1 NOT RELEASE READY',
+      'G-01', 'G-02', 'G-03', 'G-04', 'G-05', 'G-06', 'G-07', 'G-08', 'OPEN'],
+    forbidden: [],
+  },
+  {
+    path: 'docs/planning/definition-of-done.md',
+    required: ['Definition of Done', 'v0.1 NOT RELEASE READY',
+      'CURRENT_STATUS', 'release-gap register'],
+    forbidden: [],
+  },
+  {
+    path: 'docs/security/fido-trust-boundaries.md',
+    required: ['FIDO MDS', 'C16', 'NOT RELEASE READY', 'untrusted'],
+    forbidden: [],
+  },
+  {
+    path: 'docs/architecture/adrs/README.md',
+    required: ['ADR', '0008', '0009', 'Supersedes', 'NOT RELEASE READY'],
+    forbidden: [],
+  },
+  {
+    path: 'docs/governance/documentation-audit-2026-11-22.md',
+    required: ['整改', 'AGENTS', 'CONTRIBUTING',
+      'NOT RELEASE READY', 'docs-governance workflow'],
+    forbidden: [],
+  },
+  {
     path: 'docs/development/standards.md',
     required: ['apps/web/', 'Next.js 16.4.5', 'NXT-24', '旧 Vite'],
     forbidden: [/^- `apps\/web\/`：历史 React\/Vite 候选/m],
@@ -87,6 +145,16 @@ export const documentationLinkEntries = [
   'docs/README.md', 'docs/CURRENT_STATUS.md',
   'README.md', 'README.zh.md',
   'docs/governance/documentation-index-snapshot-2026-11-21.md',
+  'AGENTS.md',
+  'CONTRIBUTING.md',
+  'SECURITY.md',
+  'docs/governance/engineering-playbook.md',
+  'docs/governance/document-lifecycle.md',
+  'docs/governance/documentation-audit-2026-11-22.md',
+  'docs/planning/release-gap-register.md',
+  'docs/planning/definition-of-done.md',
+  'docs/security/fido-trust-boundaries.md',
+  'docs/architecture/adrs/README.md',
 ];
 
 export function verifyLocalDocumentationLinks(root, entries = documentationLinkEntries) {
