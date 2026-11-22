@@ -20,3 +20,5 @@ Corrupt DB, incomplete backup, migration failure, missing volume, lost media fil
 - 代码参考：[D4-C18a](../security/fido-mds-db-owner-rewind-d4-c18a-2026-11-22.md)。新增的 PostgreSQL 18.6 Testcontainers 负例用具有所有者权限的合成测试角色绕过 **V30/审计表 USER triggers** 删除最新收据，并把高水位保存在 PostgreSQL 容器外的宿主临时文件中；C17 必须拒绝与外部高水位不一致的数据库尾。它**不是**真实 `pg_dump`、`pg_restore`、WAL/PITR 或外部 WORM 演练。
 - 此文件/摘要只是测试中的隔离存储，并非可信不可变源。测试还证明：若整条签名链、高水位与数据库一起回退，旧状态可能匹配；这必须由真实独立的 WORM Object Lock/KMS、外部高水位及管理域分离补齐。
 - **正式 G-02/G-08 准入要求未关闭：** 合规批准的独立存储账户与保留策略、对象版本的真实不可删除/read-back 验收；受控的 `pg_dump`/`pg_restore` 或 PITR 隔离恢复；旧库拒绝和新库一致性正例；不可跨域修改的高水位、审计、可信时间和密钥轮换，记录准确 SHA、存储版本 ID、独立审核签字，且不得把秘密、真实员工数据上传公共 CI。
+
+- **2026-11-22 C18a 真实 PG18 合成回退子任务通过：** [功能 SHA `5afbee8a`](https://github.com/kunlong-luo/lanveriq/commit/5afbee8aa3f35a2ee916a34f4968d23242790aba) · [真实 PG18 149+ JUnit #45018857143](https://github.com/kunlong-luo/lanveriq/actions/runs/45018857143)。这不是完整备份/恢复；生产前仍须实际 `pg_dump`/`pg_restore` 或 PITR 恢复演练和独立保留证据。见 [ADR-0012 候选外部对象保留方案](../architecture/adrs/0012-independent-fido-witness-object-lock.md)。
