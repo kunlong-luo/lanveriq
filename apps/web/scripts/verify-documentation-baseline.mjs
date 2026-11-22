@@ -53,7 +53,7 @@ export const documentationRequirements = [
   },
   {
     path: 'docs/security/fido-trust-boundaries.md',
-    required: ['FIDO MDS', 'C16', 'NOT RELEASE READY', 'untrusted'],
+    required: ['FIDO MDS', 'C16', 'NOT RELEASE READY', 'UntrustedSourceEvidence'],
     forbidden: [],
   },
   {
