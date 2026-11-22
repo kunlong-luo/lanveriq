@@ -2,6 +2,8 @@
 
 **核对日期：2026-11-22** · **最新已验收隔离安全功能基线：[`2003edaa`](https://github.com/kunlong-luo/lanveriq/commit/2003edaa0b9614ecd138507cd465b0f7fe3d64f1)（A11-D4-C18d：有界只读 AWS S3Client 注入适配器；Mockito-only L1 Java 25 单元测试同 SHA SUCCESS，RD-2 默认-OFF 同 SHA SUCCESS）**。初始源码 [`94424351`](https://github.com/kunlong-luo/lanveriq/commit/94424351d46b9e0903e343d289f8f1ef0b966bd1) 的 Java 单元测试因 Mockito 重载方法匹配歧义 **FAILED**，修复后 PASS；该初始源码 SHA 的 PG18 **仅源码编译** PASS、Next.js/文档 PASS，不能冒称新功能同 SHA PG18 真实数据库测试。上一阶段 C18c [`7489a1c5`](https://github.com/kunlong-luo/lanveriq/commit/7489a1c51625656c6d88b2ce2ee3d6c0f75a9255) 的 6/6 完整合成 CI 仍独立有效。生产 S3 Object Lock/WORM/KMS、独立外部高水位、Pop!_OS 24.04 L3 全部 NOT RUN；v0.1 NOT RELEASE READY。
 
+> **最新功能变更 A11-D4-C18e（L1 CI PENDING）：** 按维护者选择撤回默认后端 AWS/S3 选型，移除 AWS SDK Gradle BOM/S3 依赖及 C18c/d 的 AWS-specific Java 与测试；新增云中立 `StagedImmutableWitnessArchiveReader` 的有界、精确版本、SHA-256/保留宣称离线校验及负向测试，另在 server-unit 中增加禁止云厂商 SDK 回流的 Python 检查。**仅候选源码；未经本次精确 SHA CI 通过不能宣称 PASS**。历史 C18c/d 验收不被删除，AWS 类已经退出活跃主线；真实独立 WORM/KMS 仍未部署。[C18e 技术说明](security/fido-cloud-neutral-witness-d4-c18e-2026-11-22.md) · [ADR-0012 云中立修订](architecture/adrs/0012-independent-fido-witness-object-lock.md)。
+
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
 ## 已验收：D4-C18d 有界只读 S3 SDK 适配（仅 Mockito L1，外部 WORM 未部署）

@@ -1,5 +1,7 @@
 # A11-D4-C18d — bounded read-only S3 SDK bridge (NOT live Object Lock acceptance)
 
+> **HISTORICAL / SUPERSEDED in active main by [A11-D4-C18e](fido-cloud-neutral-witness-d4-c18e-2026-11-22.md).** These accurate old-SHA results describe a withdrawn AWS SDK prototype, **not currently compiled code, an adopted AWS provider or a live WORM**. Original test evidence and failures remain for audit.
+
 **2026-11-22 · L1 PASS at corrected SHA 2003edaa · external AWS NOT RUN · G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
 
 ## What was implemented

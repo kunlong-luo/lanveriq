@@ -1,5 +1,7 @@
 # A11-D4-C18c — offline S3 version-specific Object Lock read-back gate
 
+> **HISTORICAL / SUPERSEDED in active main by [A11-D4-C18e](fido-cloud-neutral-witness-d4-c18e-2026-11-22.md).** These accurate old-SHA results describe a withdrawn AWS SDK prototype, **not currently compiled code, an adopted AWS provider or a live WORM**. Original test evidence and failures remain for audit.
+
 **2026-11-22 · Staged offline L1 PASS · exact functional SHA `7489a1c5` · G-01/G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
 
 ## Scope

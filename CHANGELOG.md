@@ -2,6 +2,12 @@
 
 > **Historical evidence, not the live status sheet.** [CURRENT_STATUS](docs/CURRENT_STATUS.md) contains current source/CI and release boundaries. Do not prepend new run summaries ahead of this title. Preserve actual failed SHA and past CI references; use [doc lifecycle](docs/governance/document-lifecycle.md).
 
+## 2026-11-22 — A11-D4-C18e reverse premature AWS/S3 coupling (L1 PENDING)
+
+- Maintainer confirmed AWS S3 was **only a proposed G-02 WORM candidate**, never an accepted infrastructure requirement. Remove AWS SDK BOM/S3 dependency from default `apps/server/build.gradle` and delete the four active AWS-specific Java sources/tests from C18c/d. Preserve C18c/d exact CI and original Mockito failure as historical, marking their specs superseded.
+- Introduce a minimal **vendor-neutral offline** `StagedImmutableWitnessArchiveReader` with exact opaque object-version locator, separate untrusted object/retention reads, bounded streamed SHA-256 and strictly non-bypassable retention claims, with negative unit tests. Add a server-unit Python gate preventing the main Gradle/server source from silently acquiring AWS/MinIO SDK again; **no actual storage provider/client is constructed or connected**. [C18e spec](docs/security/fido-cloud-neutral-witness-d4-c18e-2026-11-22.md) · [ADR-0012 cloud-neutral](docs/architecture/adrs/0012-independent-fido-witness-object-lock.md).
+- **CI PENDING at new feature SHA**. G-02/G-08 and v0.1 release gates remain OPEN; production network/collection/recovery/RD-2/CA remain OFF.
+
 ## 2026-11-22 — A11-D4-C18d bounded AWS SDK version-specific read-only bridge (corrected L1 PASS)
 
 - Add `StagedS3VersionedWitnessReadbackClient` as an **uninstalled**, package-private, explicitly S3Client-injected adapter using AWS SDK v2 GetObject stream + GetObjectRetention on the same externally pinned key/version/account, with preflight fail-closed pins, **1 MiB bounded stream read/abort**, and delegation to C18c actual-byte SHA-256 + COMPLIANCE retention screen. No constructed client, Spring bean, credential, network config, writer, endpoint, KMS or FIDO trust promotion.

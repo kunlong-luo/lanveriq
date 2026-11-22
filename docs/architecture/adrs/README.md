@@ -12,6 +12,6 @@
 | [0008 Next.js App Router](0008-nextjs-app-router-console.md) | **ACTIVE**，正式取代 React/Vite，`apps/web` 唯一 |
 | [0009 Agent Transport](0009-agent-transport-selection.md) | **ACTIVE**：reqwest/rustls、REST/JSON、mTLS、SQLite/ACK |
 | [0010 RustDesk](0010-rustdesk-remote-control-integration.md) · [0011 双网](0011-rustdesk-dual-network-access.md) | 候选方向，RD-2/公网未放行 |
-| [0012 外部见证 WORM 存储方案](0012-independent-fido-witness-object-lock.md) | **PROPOSED ONLY**，S3 Object Lock Compliance + 独立 KMS/账户的候选方案；无真实部署/批准 |
+| [0012 外部见证 WORM 存储方案](0012-independent-fido-witness-object-lock.md) | **ACCEPTED FOR DEVELOPMENT: 云中立存储抽象；供应商/独立托管 PROPOSED/未批准**。AWS/S3 只保留为可选候选，已从默认服务端依赖移除 |
 
 新 ADR 必须记录 Status(Proposed/Accepted-for-development/Superseded/Rejected)、Date、Context、Alternatives、Decision、Tradeoffs、Supersedes、Approval scope 与 Explicit non-authorizations。旧已取代决议仍保留原历史。[文档标准](../../governance/document-lifecycle.md)。
