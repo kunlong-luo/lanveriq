@@ -1,6 +1,6 @@
 # A11-D4-C15 — immutable acquisition receipt ledger in PostgreSQL 18
 
-**2026-11-22 | `main` | functional-source CI PENDING | v0.1 NOT RELEASE READY.**
+**2026-11-22 | `main` | 5/5 exact-functional-SHA synthetic CI SUCCESS | v0.1 NOT RELEASE READY.**
 
 ## Purpose and non-goals
 
@@ -26,6 +26,14 @@ One new independent `PostgreSqlFidoMdsAcquisitionReceiptIT` Java 25 Testcontaine
 3. Audit suppression within an actual PostgreSQL trigger rolls back acquisition inserts; retry succeeds after removing suppression; audit mutations and TRUNCATE fail.
 
 `scripts/assert-postgres18-junit.py` is extended to require the new full class+methods in **actual Gradle JUnit XML**, not file existence. An additional Python gate test deletes each synthetic case to verify required failures. The PG18 CI workflow path filter includes V30, the Java writer and its integration class, so the real container job runs at the **exact function SHA**. Java 25 tests, PG18 compile, Next.js and RD-2 protection must be reported precisely as triggered, not invented.
+
+## Real exact-source acceptance — 5/5 triggered workflows SUCCESS
+
+[functional SHA `9e5e0b08`](https://github.com/kunlong-luo/lanveriq/commit/9e5e0b080ae4a4843288584a885f37627d004b1d) passed **5/5 exact-SHA triggered synthetic CI workflows**: [Java 25 Gradle unit #45014246209](https://github.com/kunlong-luo/lanveriq/actions/runs/45014246209), [PostgreSQL 18.6 Testcontainers real synthetic transaction tests and mandatory 11-class / ≥146 successful JUnit gate #45014246195](https://github.com/kunlong-luo/lanveriq/actions/runs/45014246195), [PG integration-source compile #45014246249](https://github.com/kunlong-luo/lanveriq/actions/runs/45014246249), [RD-2 default-OFF guard #45014246280](https://github.com/kunlong-luo/lanveriq/actions/runs/45014246280), and [Linux Batch A real Caddy→Spring/Tomcat double TLS1.3, PostgreSQL 18.6, disposable Rust Agent and strict ACK synthetic chain #45014246327](https://github.com/kunlong-luo/lanveriq/actions/runs/45014246327). **Next.js workflow was NOT triggered for this functional SHA by its path filter**, and must not be counted as a sixth result; a separate docs commit triggers its own regression.
+
+The PG18 job log states **`BUILD SUCCESSFUL in 1m 3s`** and **`PG18 synthetic JUnit evidence verified: all 11 Testcontainers classes, at least 146 passing tests ... no failed, errored or skipped cases.`** The two isolated Linux Batch A jobs separately succeeded: actual double TLS 1.3/mTLS and negative TLS 1.2/forged-certificate checks, plus PG18 startup and synthetic Rust Reqwest/strict ACK transactions. Neither the Java source compilation nor a fabricated XML report was used as a substitute for the real Testcontainers outcome. The acceptance baseline is **only `9e5e0b08`**; source `4519a203` correctly failed first, was repaired with unweakened V26/V30 guards, and is preserved in the failure history below.
+
+The V30 receipt is **acquisition_untrusted only**, with no PostgreSQL Ed25519 verification, real official FIDO MDS/CRL fetch, authentic CRL provenance, organizational trust-root admission, independently managed signing keys or trusted timestamp, actual human reviewer MFA, off-database audit witness, production CA/issuer or Pop!_OS 24.04 L3. The Linux Batch A success is isolated synthetic acceptance, NOT production Agent release. **v0.1 NOT RELEASE READY; production networking, collection, auto-recovery, remote control and certificate issuance OFF.**
 
 ## Remaining release blockers
 
