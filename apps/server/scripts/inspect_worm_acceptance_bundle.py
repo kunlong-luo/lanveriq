@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""C18h: offline *intake* checks for independently reviewed WORM lab evidence.
+"""C18i: offline *intake* checks for independently reviewed WORM lab evidence.
 
 Never verifies actual media, claims, keys, signatures or external custody. This
 CLI intentionally has no 'approved' or 'G-02 passed' outcome. No network, no
@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 MAX_BYTES = 128 * 1024
-SCHEMA = "lanveriq.worm-evidence-intake.v1"
+SCHEMA = "lanveriq.worm-evidence-intake.v2"
 TEST_IDS = tuple(f"WORM-{n:02d}" for n in range(1, 12))
 ROLES = (
     "application", "database", "storage_api", "storage_root", "backup",
@@ -102,6 +102,126 @@ def iso_time(value):
         raise InvalidBundle("checkpoint.independent_time invalid") from exc
 
 
+
+# These are asserted *dangerous* administrative control relationships, not
+# independently authenticated grants. Read-only relationships are excluded.
+CAPABILITIES = (
+    "ROOT_ADMIN", "CLUSTER_ADMIN", "ROLE_ADMIN", "IDENTITY_ADMIN",
+    "BREAK_GLASS", "BACKUP_RESTORE", "KEY_ADMIN", "MEDIA_ADMIN",
+)
+COMMON_SURFACES = (
+    "identity_provider", "break_glass", "host_root", "hypervisor",
+    "backup_restore", "signing_key_admin", "high_water_admin",
+    "recovery_custodian", "trusted_time",
+)
+CEPH_SURFACES = (
+    "rgw_admin", "cephx_mon", "cephx_mgr", "cephx_osd",
+    "rados_pool_and_namespace",
+)
+MAX_PRINCIPALS = 128
+MAX_EDGES = 512
+
+
+def distinct_list(value, where, limit, minimum=1):
+    if type(value) is not list or not minimum <= len(value) <= limit:
+        raise InvalidBundle(f"{where} must contain {minimum}..{limit} distinct entries")
+    for item in value:
+        token(item, where)
+    if len(set(value)) != len(value):
+        raise InvalidBundle(f"{where} contains duplicate entries")
+    return set(value)
+
+
+def graph_ancestors(node, reverse):
+    """All asserted principals able to administer node, including self."""
+    visited = {node}
+    pending = [node]
+    while pending:
+        for controller in reverse.get(pending.pop(), ()):
+            if controller not in visited:
+                visited.add(controller)
+                pending.append(controller)
+    return visited
+
+
+def check_admin_control_graph(graph, domains, medium):
+    """Find transitive and common-owner authority, beyond different role labels.
+
+    This never claims an inventory is truthful or exhaustive. The independent
+    reviewer must obtain actual IdP, cluster, hypervisor and key audits.
+    """
+    structure(graph, ("principals", "root_principals", "edges",
+                      "surfaces", "inventory_ref", "completeness_asserted"), "custody.control_graph")
+    if graph["completeness_asserted"] is not True:
+        raise InvalidBundle("control graph completeness not asserted (still untrusted)")
+    token(graph["inventory_ref"], "custody.control_graph.inventory_ref")
+    principals = distinct_list(graph["principals"], "control_graph.principals",
+                               MAX_PRINCIPALS, len(set(domains.values())))
+    if not set(domains.values()).issubset(principals):
+        raise InvalidBundle("control graph omits a declared role domain")
+    roots = distinct_list(graph["root_principals"], "control_graph.root_principals",
+                          MAX_PRINCIPALS, 2)
+    if not roots.issubset(principals):
+        raise InvalidBundle("unknown root principal")
+    required = COMMON_SURFACES + (CEPH_SURFACES if medium == "CEPH_WITH_EXTERNAL_CUSTODY" else ())
+    structure(graph["surfaces"], required, "custody.control_graph.surfaces")
+    for name, reference in graph["surfaces"].items():
+        token(reference, f"control_graph.surfaces.{name}")
+
+    edges = graph["edges"]
+    if type(edges) is not list or not 2 <= len(edges) <= MAX_EDGES:
+        raise InvalidBundle("control graph requires bounded explicit administrative edges")
+    forward = {node: set() for node in principals}
+    reverse = {node: set() for node in principals}
+    seen = set()
+    for i, edge in enumerate(edges):
+        structure(edge, ("controller", "target", "capability", "evidence_ref"),
+                  f"control_graph.edges[{i}]")
+        controller = token(edge["controller"], f"edges[{i}].controller")
+        target = token(edge["target"], f"edges[{i}].target")
+        token(edge["evidence_ref"], f"edges[{i}].evidence_ref")
+        if controller not in principals or target not in principals:
+            raise InvalidBundle("control graph edge references unknown principal")
+        if controller == target:
+            raise InvalidBundle("control graph cannot contain self-delegation")
+        if type(edge["capability"]) is not str or edge["capability"] not in CAPABILITIES:
+            raise InvalidBundle("unknown or non-administrative capability; never silently ignore")
+        if (controller, target) in seen:
+            raise InvalidBundle("control graph duplicates authority edge")
+        seen.add((controller, target))
+        forward[controller].add(target)
+        reverse[target].add(controller)
+
+    # Cyclic control is ambiguous and cannot establish a clean separation.
+    state = {}
+    def walk(node):
+        if state.get(node) == 1:
+            raise InvalidBundle("control graph has cyclic administrative delegation")
+        if state.get(node) == 2:
+            return
+        state[node] = 1
+        for next_node in forward[node]:
+            walk(next_node)
+        state[node] = 2
+    for node in principals:
+        walk(node)
+
+    ancestors = {role: graph_ancestors(domain, reverse)
+                 for role, domain in domains.items()}
+    for role, controllers in ancestors.items():
+        if not controllers.intersection(roots):
+            raise InvalidBundle(f"unattributed role: {role} has no declared root authority")
+    for protected in PROTECTED_ROLES:
+        for other in (*UNTRUSTED_ROLES, *PROTECTED_ROLES):
+            if protected == other:
+                continue
+            overlap = ancestors[protected].intersection(ancestors[other])
+            if overlap:
+                raise InvalidBundle(
+                    f"shared transitive control/root authority between {protected} and {other}"
+                    f" (declared principals={','.join(sorted(overlap))})"
+                )
+
 def inspect(bundle):
     """Return missing-evidence errors; empty means intake complete ONLY.
 
@@ -131,7 +251,7 @@ def inspect(bundle):
         custody = bundle["custody"]
         structure(custody, ("domains", "shared_root_or_break_glass",
                             "privilege_inventory_ref", "topology_ref", "key_custody_ref",
-                            "time_attestation_ref"), "custody")
+                            "time_attestation_ref", "control_graph"), "custody")
         if custody["shared_root_or_break_glass"] is not False:
             raise InvalidBundle("joint root/break-glass control is not independently protected")
         for name in ("privilege_inventory_ref", "topology_ref", "key_custody_ref", "time_attestation_ref"):
@@ -147,6 +267,8 @@ def inspect(bundle):
         protected_ids = [domains[role] for role in PROTECTED_ROLES]
         if len(set(protected_ids)) != len(protected_ids):
             raise InvalidBundle("key, high-water, recovery, time and independent reviewer require distinct declared domains")
+
+        check_admin_control_graph(custody["control_graph"], domains, bundle["medium"])
 
         checkpoint = bundle["checkpoint"]
         structure(checkpoint, ("stream_id", "previous_sequence", "sequence",

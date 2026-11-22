@@ -82,3 +82,7 @@ Only **independent security ownership** may approve a bundle, with:
 ## C18h offline evidence intake (source-only, no real WORM)
 
 The [C18h metadata completeness checker](independent-worm-offline-evidence-intake-d4-c18h-2026-11-22.md) validates a **redacted synthetic-lab manifest** with WORM-01..11 and separate Ceph API/underlay root. Even complete claims receive **READY_FOR_INDEPENDENT_REVIEW**, never an authentic WORM PASS, operational permission or G-02 closure. Physical/independent sign-off remains external and NOT RUN.
+
+## C18i independent-admin transitive control review (source-only)
+
+[C18i privilege-graph preflight](independent-worm-admin-control-graph-d4-c18i-2026-11-22.md) requires full declared control ancestry, break-glass and Ceph MON/MGR/OSD/RADOS coverage; distinct names no longer suffice for preflight. An asserted graph cannot authenticate the underlying cluster, KMS or high-water. WORM-01–11 stay NOT RUN; do not close G-02/G-08 from source CI.

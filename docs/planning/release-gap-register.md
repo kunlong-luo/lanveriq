@@ -5,7 +5,7 @@
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |
-| **P0 G-02 外部 WORM/KMS 见证** | D4-C18e 云中立源代码 6/6 同 SHA 隔离 CI PASS，AWS SDK 已退出默认主构建；C18f 对独立 WORM 管理域/候选介质制定可证伪验收矩阵，并在功能 SHA 118939b4 上完成 PG18 真数据库尾与离线版本声称联合回归（**7/7 同 SHA 合成 CI PASS，PG18 11 类≥151**）。仍无真实独立 WORM、独立密钥/时间、高水位托管及组织批准 | 真正数据库外 WORM、独立高水位、密钥托管/轮换、可信时间、PG 备份恢复回退拒绝/离线保护实测 | **OPEN** 安全/SRE；[C18h 离线元数据检查](../security/independent-worm-offline-evidence-intake-d4-c18h-2026-11-22.md)不构成独立证据或 Gate PASS；[C18g 实物验收协议](../security/independent-worm-custody-acceptance-d4-c18g-2026-11-22.md)：WORM-01–11 NOT RUN，供应商/介质/受托方未选 |
+| **P0 G-02 外部 WORM/KMS 见证** | D4-C18e 云中立源代码 6/6 同 SHA 隔离 CI PASS，AWS SDK 已退出默认主构建；C18f 对独立 WORM 管理域/候选介质制定可证伪验收矩阵，并在功能 SHA 118939b4 上完成 PG18 真数据库尾与离线版本声称联合回归（**7/7 同 SHA 合成 CI PASS，PG18 11 类≥151**）。仍无真实独立 WORM、独立密钥/时间、高水位托管及组织批准 | 真正数据库外 WORM、独立高水位、密钥托管/轮换、可信时间、PG 备份恢复回退拒绝/离线保护实测 | **OPEN** 安全/SRE；[C18h 离线元数据检查](../security/independent-worm-offline-evidence-intake-d4-c18h-2026-11-22.md)不构成独立证据或 Gate PASS；[C18i 跨管理员/底层 root 权限图预检](../security/independent-worm-admin-control-graph-d4-c18i-2026-11-22.md)只验证自述拓扑格式，仍缺真权限审计和介质；[C18g 实物验收协议](../security/independent-worm-custody-acceptance-d4-c18g-2026-11-22.md)：WORM-01–11 NOT RUN，供应商/介质/受托方未选 |
 | **P0 G-03 管理员双审与 WebAuthn** | 暂存/合成凭证；无真人 MFA | 不同真人硬件 MFA、RP/Origin/会话/挑战/计数器、管理员不可自审/吊销真实回归 | **OPEN** 身份安全 |
 | **P0 G-04 生产 CA 与密钥** | 合成 CSR/证书；签发默认 OFF | 正式 CA/HSM/KMS 权限、签发/吊销/轮换/恢复审批与实测 | **OPEN** PKI |
 | **P0 G-05 Pop!_OS 实机 L3** | Linux 隔离 PG18/TLS/Rust PASS，真实主机未验 | 实测桌面会话、systemd 非 root、密钥、设备启停、断网 SQLite、升级卸载、隐私与负向用例 | **OPEN** 实机负责人 |

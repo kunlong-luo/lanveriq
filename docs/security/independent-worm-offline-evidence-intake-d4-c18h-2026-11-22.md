@@ -15,6 +15,8 @@ There is no vendor SDK, real provider adapter, Spring Bean, network operation or
 - Complete metadata -> exit 0: **READY_FOR_INDEPENDENT_REVIEW**; incomplete/contradictory metadata -> exit 2: **INCOMPLETE — FAIL CLOSED**. Exit 0 is *never* approval.
 - The tool does not perform destructive testing, download evidence, verify a receipt signature or submit any data.
 
+> **2026-11-22 C18i supersession:** the historical v1 schema below is retained as C18h source/CI evidence only. Active checker now requires [v2 transitive administrative privilege graph](independent-worm-admin-control-graph-d4-c18i-2026-11-22.md) and rejects v1. The C18h original exact-SHA PASS applies to that earlier v1 code, not v2.
+
 ## Exact v1 contract
 
 All fields mandatory, all unknown fields rejected. JSON must be UTF-8, <=128KiB, no duplicate keys or NaN.

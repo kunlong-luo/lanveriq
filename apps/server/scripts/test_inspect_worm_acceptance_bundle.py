@@ -1,4 +1,4 @@
-"""C18h negative-only, fully invented offline WORM metadata; NO external WORM."""
+"""C18i negative-only, fully invented offline WORM metadata; NO external WORM."""
 
 import contextlib
 import copy
@@ -19,15 +19,45 @@ def invented_complete():
         "recovery": "test-second-physical-custodian", "trusted_time": "test-clock",
         "reviewer": "test-independent-auditor",
     }
+    graph_roots = [
+        "test-app-team-root", "test-security-key-root", "test-journal-root",
+        "test-recovery-root", "test-time-root", "test-review-root",
+    ]
+    graph_edges = [
+        {"controller": graph_roots[0], "target": domains[role],
+         "capability": "ROLE_ADMIN", "evidence_ref": f"role-review-{role}"}
+        for role in ("application", "database", "storage_api", "storage_root", "backup")
+    ] + [
+        {"controller": graph_roots[index], "target": domains[role],
+         "capability": "ROOT_ADMIN", "evidence_ref": f"role-review-{role}"}
+        for index, role in enumerate(
+            ("witness_signer", "high_water", "recovery", "trusted_time", "reviewer"), 1
+        )
+    ]
+    surfaces = {
+        name: "audit-" + name.replace("_", "-")
+        for name in (
+            "identity_provider", "break_glass", "host_root", "hypervisor",
+            "backup_restore", "signing_key_admin", "high_water_admin",
+            "recovery_custodian", "trusted_time", "rgw_admin", "cephx_mon",
+            "cephx_mgr", "cephx_osd", "rados_pool_and_namespace",
+        )
+    }
+    graph = {"principals": list(domains.values()) + graph_roots,
+             "root_principals": graph_roots,
+             "edges": graph_edges, "surfaces": surfaces,
+             "inventory_ref": "independent-review-0001",
+             "completeness_asserted": True}
     return {
-        "schema": "lanveriq.worm-evidence-intake.v1",
+        "schema": "lanveriq.worm-evidence-intake.v2",
         "environment": "DISPOSABLE_SYNTHETIC_LAB", "medium": "CEPH_WITH_EXTERNAL_CUSTODY",
         "functional_sha": "a" * 40,
         "authorization": {"ticket_ref": "LAB-0001", "scope_ref": "scope-0001",
                           "nonproduction_only": True, "destructive_scope_approved": True},
         "custody": {"domains": domains, "shared_root_or_break_glass": False,
                     "privilege_inventory_ref": "inventory-0001", "topology_ref": "topology-0001",
-                    "key_custody_ref": "key-audit-0001", "time_attestation_ref": "time-audit-0001"},
+                    "key_custody_ref": "key-audit-0001", "time_attestation_ref": "time-audit-0001",
+                    "control_graph": graph},
         "checkpoint": {"stream_id": "123e4567-e89b-42d3-a456-426614174000",
                        "previous_sequence": 4, "sequence": 5,
                        "previous_head_sha256": "b" * 64, "head_sha256": "c" * 64,
@@ -125,10 +155,14 @@ class WormAcceptanceIntakeTest(unittest.TestCase):
 
     def test_lto_requires_physical_test(self):
         self.bundle["medium"] = "LTO_WORM"
+        for key in ("rgw_admin", "cephx_mon", "cephx_mgr", "cephx_osd", "rados_pool_and_namespace"):
+            del self.bundle["custody"]["control_graph"]["surfaces"][key]
         self.assert_incomplete(self.bundle, "WORM-09 cannot")
 
     def test_explicit_lto_physical_test_can_submit_for_review_only(self):
         self.bundle["medium"] = "LTO_WORM"
+        for key in ("rgw_admin", "cephx_mon", "cephx_mgr", "cephx_osd", "rados_pool_and_namespace"):
+            del self.bundle["custody"]["control_graph"]["surfaces"][key]
         self.bundle["tests"][8]["status"] = "PASS"
         self.assertEqual(inspect(self.bundle), [])
 
@@ -172,6 +206,106 @@ class WormAcceptanceIntakeTest(unittest.TestCase):
             code = main(["/nonexistent/worm-intake-should-not-exist.json"])
         self.assertEqual(code, 2)
         self.assertIn("INCOMPLETE", output.getvalue())
+
+
+    def test_v1_schema_downgrade_rejected(self):
+        self.bundle["schema"] = "lanveriq.worm-evidence-intake.v1"
+        self.assert_incomplete(self.bundle, "unsupported schema")
+
+    def test_shared_ultimate_superadmin_even_when_role_names_differ(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["principals"].append("test-common-org-superadmin")
+        g["root_principals"].append("test-common-org-superadmin")
+        for target in ("test-app-team-root", "test-journal-root"):
+            g["edges"].append({"controller": "test-common-org-superadmin",
+                               "target": target, "capability": "ROOT_ADMIN",
+                               "evidence_ref": "invented-superadmin-authorization"})
+        self.assert_incomplete(self.bundle, "shared transitive control")
+
+    def test_long_indirect_control_path_rejected(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["principals"].extend(["test-administrator-jump1", "test-administrator-jump2"])
+        g["edges"].extend([
+            {"controller": "test-app-team-root", "target": "test-administrator-jump1",
+             "capability": "IDENTITY_ADMIN", "evidence_ref": "jump-1"},
+            {"controller": "test-administrator-jump1", "target": "test-administrator-jump2",
+             "capability": "BREAK_GLASS", "evidence_ref": "jump-2"},
+            {"controller": "test-administrator-jump2", "target": "test-independent-journal",
+             "capability": "ROLE_ADMIN", "evidence_ref": "jump-3"},
+        ])
+        self.assert_incomplete(self.bundle, "shared transitive control")
+
+    def test_same_underlying_root_can_escalate_to_signer(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["edges"].append({"controller": "test-rados-root",
+                           "target": "test-signing-vault", "capability": "KEY_ADMIN",
+                           "evidence_ref": "compromised-key-admin"})
+        self.assert_incomplete(self.bundle, "shared transitive control")
+
+    def test_backup_admin_root_cannot_control_recovery(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["edges"].append({"controller": "test-backup", "target": "test-second-physical-custodian",
+                           "capability": "BACKUP_RESTORE", "evidence_ref": "snapshot-overwrite"})
+        self.assert_incomplete(self.bundle, "shared transitive control")
+
+    def test_protected_signer_and_highwater_must_have_distinct_superadmins(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["edges"].append({"controller": "test-security-key-root",
+                           "target": "test-independent-journal",
+                           "capability": "ROOT_ADMIN", "evidence_ref": "shared-security-owner"})
+        self.assert_incomplete(self.bundle, "shared transitive control")
+
+    def test_ceph_missing_explicit_mon_caps_review_denied(self):
+        del self.bundle["custody"]["control_graph"]["surfaces"]["cephx_mon"]
+        self.assert_incomplete(self.bundle, "cephx_mon")
+
+    def test_ceph_missing_pool_or_osd_review_denied(self):
+        for key in ("rados_pool_and_namespace", "cephx_osd"):
+            with self.subTest(key=key):
+                b = copy.deepcopy(self.bundle)
+                del b["custody"]["control_graph"]["surfaces"][key]
+                self.assert_incomplete(b, key)
+
+    def test_unattributed_root_authority_denied(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["edges"] = [edge for edge in g["edges"] if edge["target"] != "test-clock"]
+        self.assert_incomplete(self.bundle, "unattributed role")
+
+    def test_empty_or_fabricated_coverage_flag_denied(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["completeness_asserted"] = "true"
+        self.assert_incomplete(self.bundle, "completeness not asserted")
+
+    def test_missing_root_or_unknown_control_principal_denied(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["edges"][0]["controller"] = "not-in-inventory"
+        self.assert_incomplete(self.bundle, "unknown principal")
+
+    def test_cycle_in_delegated_administration_denied(self):
+        g = self.bundle["custody"]["control_graph"]
+        g["edges"].append({"controller": "test-app", "target": "test-app-team-root",
+                           "capability": "ROLE_ADMIN", "evidence_ref": "looped-grant"})
+        self.assert_incomplete(self.bundle, "cyclic")
+
+    def test_duplicate_or_unknown_edge_denied(self):
+        original = self.bundle["custody"]["control_graph"]["edges"][0]
+        self.bundle["custody"]["control_graph"]["edges"].append(dict(original))
+        self.assert_incomplete(self.bundle, "duplicates authority")
+        self.bundle["custody"]["control_graph"]["edges"][-1]["capability"] = "READ_ONLY"
+        self.assert_incomplete(self.bundle, "non-administrative capability")
+
+    def test_non_ceph_surface_schema_remains_explicit(self):
+        b = copy.deepcopy(self.bundle)
+        b["medium"] = "MANAGED_IMMUTABLE"
+        for key in ("rgw_admin", "cephx_mon", "cephx_mgr", "cephx_osd", "rados_pool_and_namespace"):
+            del b["custody"]["control_graph"]["surfaces"][key]
+        self.assertEqual(inspect(b), [])
+        b["custody"]["control_graph"]["surfaces"]["rgw_admin"] = "unrequested-ceph-surface"
+        self.assert_incomplete(b, "unknown")
+
+    def test_legacy_bundle_without_control_graph_denied(self):
+        del self.bundle["custody"]["control_graph"]
+        self.assert_incomplete(self.bundle, "control_graph")
 
 
 if __name__ == "__main__":
