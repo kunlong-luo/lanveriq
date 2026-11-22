@@ -8,6 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.persistence.EntityManager;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
+import java.security.Signature;
+import java.time.Instant;
+import java.util.HexFormat;
+import org.springframework.security.access.AccessDeniedException;
 import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -212,6 +219,158 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
     @AfterEach
     void cleanupSyntheticSuppressorOnly() {
         dropSuppression();
+    }
+
+
+    private static String hexSha256(byte[] bytes) throws Exception {
+        return HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(bytes));
+    }
+
+    private StagedFidoMdsDetachedWitnessReader.DetachedCheckpoint
+            witnessFor(Stream stream, UUID acquisitionId,
+                       long witnessSequence, String predecessor) {
+        Object[] row=(Object[])manager.createNativeQuery("""
+                SELECT a.source_receipt_id,a.acquisition_sequence,
+                       a.acquisition_sha256,s.receipt_sha256,
+                       a.acquisition_key_sha256
+                FROM admin_fido_mds_acquisition_receipts_staging a
+                JOIN admin_fido_mds_source_receipts_staging s
+                  ON s.receipt_id=a.source_receipt_id
+                WHERE a.acquisition_id=:acquisition
+                """).setParameter("acquisition",acquisitionId).getSingleResult();
+        return new StagedFidoMdsDetachedWitnessReader.DetachedCheckpoint(
+                stream.id(),acquisitionId,(UUID)row[0],
+                ((Number)row[1]).longValue(),
+                HexFormat.of().formatHex((byte[])row[2]),
+                HexFormat.of().formatHex((byte[])row[3]),
+                HexFormat.of().formatHex((byte[])row[4]),
+                witnessSequence,predecessor,
+                Instant.parse("2026-11-22T10:00:00Z"));
+    }
+
+    private static StagedFidoMdsDetachedWitnessReader.SignedCheckpoint
+            signDetached(
+                    StagedFidoMdsDetachedWitnessReader.DetachedCheckpoint claim,
+                    KeyPair keyPair) throws Exception {
+        var signer=Signature.getInstance("Ed25519");
+        signer.initSign(keyPair.getPrivate());
+        signer.update(StagedFidoMdsDetachedWitnessReader.transcript(claim));
+        return new StagedFidoMdsDetachedWitnessReader.SignedCheckpoint(
+                claim,signer.sign());
+    }
+
+    @Test
+    void c16DetachedWitnessMatchesExactPostgresTailAndRejectsOldForgedOrForeign()
+            throws Exception {
+        Stream stream=createOwnerStream();
+        Source first=source(stream,1);
+        UUID firstId=normalInsert(stream,first,null,hash(55));
+        var witnessKey=KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        var attackerKey=KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        var pin=new StagedFidoMdsDetachedWitnessReader.PinnedWitnessKey(
+                witnessKey.getPublic(),hexSha256(witnessKey.getPublic().getEncoded()));
+        var reader=new StagedFidoMdsDetachedWitnessReader(manager);
+        Instant checkTime=Instant.parse("2026-11-22T11:00:00Z");
+        var firstClaim=witnessFor(stream,firstId,1,null);
+        var signedFirst=signDetached(firstClaim,witnessKey);
+        var cursorOne=new StagedFidoMdsDetachedWitnessReader.ExternalCursor(1,null);
+        var witnessOne=reader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedFirst,cursorOne,stream.id(),checkTime);
+        assertEquals(1,witnessOne.acquisitionSequence());
+        assertEquals(1,witnessOne.witnessSequence());
+        assertEquals(64,witnessOne.detachedWitnessSha256().length());
+
+        // A different key cannot authenticate the same exported transcript.
+        var forged=signDetached(firstClaim,attackerKey);
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        pin,forged,cursorOne,stream.id(),checkTime));
+        var wrongPin=new StagedFidoMdsDetachedWitnessReader.PinnedWitnessKey(
+                witnessKey.getPublic(),"f".repeat(64));
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        wrongPin,signedFirst,cursorOne,stream.id(),checkTime));
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        pin,signedFirst,
+                        new StagedFidoMdsDetachedWitnessReader.ExternalCursor(2,
+                                witnessOne.detachedWitnessSha256()),
+                        stream.id(),checkTime));
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        pin,signedFirst,cursorOne,UUID.randomUUID(),checkTime));
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        pin,signedFirst,cursorOne,stream.id(),
+                        Instant.parse("2026-11-21T00:00:00Z")));
+
+        Source second=source(stream,2);
+        UUID secondId=normalInsert(stream,second,digest(firstId),hash(55));
+        // The original valid witness is now historical: it MUST NOT be
+        // mistaken for a signature of the new CURRENT database tail.
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        pin,signedFirst,cursorOne,stream.id(),checkTime));
+
+        var secondClaim=witnessFor(stream,secondId,2,
+                witnessOne.detachedWitnessSha256());
+        var signedSecond=signDetached(secondClaim,witnessKey);
+        var cursorTwo=new StagedFidoMdsDetachedWitnessReader.ExternalCursor(
+                2,witnessOne.detachedWitnessSha256());
+        var matched=reader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedSecond,cursorTwo,stream.id(),checkTime);
+        assertEquals(2,matched.acquisitionSequence());
+        assertEquals(2,matched.witnessSequence());
+        assertTrue(!matched.detachedWitnessSha256()
+                .equals(witnessOne.detachedWitnessSha256()));
+
+        // Even the real witness key cannot sign a changed database digest
+        // and have it accepted as the actual immutable V30 record.
+        var swapped=new StagedFidoMdsDetachedWitnessReader.DetachedCheckpoint(
+                secondClaim.streamId(),secondClaim.acquisitionId(),
+                secondClaim.sourceReceiptId(),secondClaim.acquisitionSequence(),
+                "0".repeat(64),secondClaim.sourceReceiptSha256(),
+                secondClaim.acquisitionKeySha256(),secondClaim.witnessSequence(),
+                secondClaim.previousWitnessSha256(),
+                secondClaim.assertedWitnessTime());
+        var signedSwapped=signDetached(swapped,witnessKey);
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        pin,signedSwapped,cursorTwo,stream.id(),checkTime));
+
+        var crossSource=new StagedFidoMdsDetachedWitnessReader.DetachedCheckpoint(
+                secondClaim.streamId(),secondClaim.acquisitionId(),
+                UUID.randomUUID(),secondClaim.acquisitionSequence(),
+                secondClaim.acquisitionSha256(),secondClaim.sourceReceiptSha256(),
+                secondClaim.acquisitionKeySha256(),secondClaim.witnessSequence(),
+                secondClaim.previousWitnessSha256(),
+                secondClaim.assertedWitnessTime());
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        pin,signDetached(crossSource,witnessKey),cursorTwo,
+                        stream.id(),checkTime));
+
+        var bogusExternal=new StagedFidoMdsDetachedWitnessReader.ExternalCursor(
+                2,"0".repeat(64));
+        assertThrows(AccessDeniedException.class,() ->
+                reader.inspectAgainstCurrentDbTailOfflineOnly(
+                        pin,signedSecond,bogusExternal,stream.id(),checkTime));
+
+        // A returned signature array cannot change a previously validated
+        // immutable detached object through aliasing.
+        byte[] mutated=signedSecond.signature();
+        mutated[0]^=0x01;
+        assertEquals(2,reader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedSecond,cursorTwo,stream.id(),checkTime)
+                .witnessSequence());
+        // These database rows have deliberately synthetic 64-byte
+        // NON-Ed25519 signatures. A witness signature never promotes them.
+        assertEquals("acquisition_untrusted",manager.createNativeQuery("""
+                SELECT evidence_state
+                FROM admin_fido_mds_acquisition_receipts_staging
+                WHERE acquisition_id=:id
+                """).setParameter("id",secondId).getSingleResult());
     }
 
     @Test
