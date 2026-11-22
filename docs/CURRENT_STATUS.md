@@ -4,6 +4,12 @@
 
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
+## D4-C18d 有界 S3 SDK 只读客户端适配（L1 CI PENDING，外部 WORM 未部署）
+
+2026-11-22 新增 **只在显式提供 S3Client 时可运行**的 package-private `StagedS3VersionedWitnessReadbackClient`，在执行任何 SDK 读取之前拒绝不合规的 pin，对指定 bucket/key/**versionId** 和 expected bucket owner 进行实际 SDK `getObject` 有界流读取及 `getObjectRetention`，并调用 C18c 校验器拒绝版本不符、摘要篡改、非 COMPLIANCE 或期限不足。大对象声明与实际读取分别限制在 **1 MiB**，SDK 异常/权限缺失/流异常必须默认拒绝。新增 Mockito-only 负向测试，未创建 S3Client/Spring Bean/凭据/网络配置，也没有任何生产调用方。**如以后显式注入真实 S3Client，该方法会产生网络请求，必须先完成独立授权。** [D4-C18d 详细设计](security/fido-mds-bounded-s3-readonly-d4-c18d-2026-11-22.md)。
+
+**本功能 SHA CI PENDING**；上阶段 D4-C18c `7489a1c5` 的 6/6 实测结果不能挪用。真实 AWS/S3 Object Lock、KMS 托管、跨账户读与实际不可删除/保留证据均 **NOT RUN**。G-02/G-08 继续 **OPEN**，v0.1 **NOT RELEASE READY**。
+
 ## 已验收：D4-C18c 离线 AWS SDK S3 版本/保留证据检查（真实外部 G-02 仍 OPEN）
 
 2026-11-22 提交候选 `StagedS3VersionedWitnessEvidenceReader` 与离线 L1 负向测试，使用官方 **AWS SDK Java v2 BOM 2.59.5 / S3** 模型，严格校验 *GetObject/GetObjectRetention* 同一 bucket/key/**versionId** 与 expectedBucketOwner、真实响应字节 SHA-256、两处 COMPLIANCE 模式和保留到期时间。拒绝未指定版本、范围/分块获取、删除标记、ETag 替代摘要、错误版本/所有者、GOVERNANCE 模式、遗漏或过期保留。**此阶段无 S3Client、网络访问、真实 AWS 对象/账户、KMS、可信时间或外部高水位托管；结果仅 UNTRUSTED。** [C18c 详细说明](security/fido-mds-object-lock-version-readback-d4-c18c-2026-11-22.md)。

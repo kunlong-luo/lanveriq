@@ -2,6 +2,11 @@
 
 > **Historical evidence, not the live status sheet.** [CURRENT_STATUS](docs/CURRENT_STATUS.md) contains current source/CI and release boundaries. Do not prepend new run summaries ahead of this title. Preserve actual failed SHA and past CI references; use [doc lifecycle](docs/governance/document-lifecycle.md).
 
+## 2026-11-22 — A11-D4-C18d bounded AWS SDK version-specific read-only bridge (L1 PENDING)
+
+- Add `StagedS3VersionedWitnessReadbackClient` as an **uninstalled**, package-private, explicitly S3Client-injected adapter using AWS SDK v2 GetObject stream + GetObjectRetention on the same externally pinned key/version/account, with preflight fail-closed pins, **1 MiB bounded stream read/abort**, and delegation to C18c actual-byte SHA-256 + COMPLIANCE retention screen. No constructed client, Spring bean, credential, network config, writer, endpoint, KMS or FIDO trust promotion.
+- Add Mockito-only `StagedS3VersionedWitnessReadbackClientTest` covering exact request order, invalid pin with zero SDK calls, AWS denial/retention denial, wrong returned version, GOVERNANCE downgrade, oversized/forged content and failed streaming. [D4-C18d scope](docs/security/fido-mds-bounded-s3-readonly-d4-c18d-2026-11-22.md). **Functional CI PENDING**; prior C18c result remains separate. G-02/G-08 OPEN, v0.1 NOT RELEASE READY.
+
 ## 2026-11-22 — A11-D4-C18c offline S3 Object Lock version/retention evidence screen (6/6 exact-SHA synthetic CI PASS)
 
 - Introduce **official AWS SDK for Java 2.x S3 / BOM 2.59.5** as an isolated SDK-model dependency; no S3Client, Spring bean, storage API, credentials, writer, KMS or production network. Add `StagedS3VersionedWitnessEvidenceReader`, returning **UntrustedVersionReadback** only.
