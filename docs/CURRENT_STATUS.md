@@ -1,14 +1,14 @@
 # Lanveriq 当前状态 / Current status
 
-**核对日期：2026-11-22** · **最新已验收隔离安全功能基线：[`7489a1c5`](https://github.com/kunlong-luo/lanveriq/commit/7489a1c51625656c6d88b2ce2ee3d6c0f75a9255)（A11-D4-C18c：官方 AWS SDK 2.59.5 S3 SDK 模型离线版本/COMPLIANCE 证据筛查；6/6 同功能 SHA CI SUCCESS，L1 Java25 单元通过；PG18.6 11 类≥150 实际旧回归 PASS，不是 S3 实测）**。D4-C18b [`4e9dcdac`](https://github.com/kunlong-luo/lanveriq/commit/4e9dcdac074200548317669e78cf8f66e405c3f3) 真实 `pg_dump`/`pg_restore` 7/7 同 SHA 合成验收仍有效。后续文档 SHA 不自动成为功能验收。**真实 AWS S3/WORM/KMS 和 Pop!_OS 24.04 L3 均 NOT RUN；v0.1 NOT RELEASE READY。**
+**核对日期：2026-11-22** · **最新已验收隔离安全功能基线：[`2003edaa`](https://github.com/kunlong-luo/lanveriq/commit/2003edaa0b9614ecd138507cd465b0f7fe3d64f1)（A11-D4-C18d：有界只读 AWS S3Client 注入适配器；Mockito-only L1 Java 25 单元测试同 SHA SUCCESS，RD-2 默认-OFF 同 SHA SUCCESS）**。初始源码 [`94424351`](https://github.com/kunlong-luo/lanveriq/commit/94424351d46b9e0903e343d289f8f1ef0b966bd1) 的 Java 单元测试因 Mockito 重载方法匹配歧义 **FAILED**，修复后 PASS；该初始源码 SHA 的 PG18 **仅源码编译** PASS、Next.js/文档 PASS，不能冒称新功能同 SHA PG18 真实数据库测试。上一阶段 C18c [`7489a1c5`](https://github.com/kunlong-luo/lanveriq/commit/7489a1c51625656c6d88b2ce2ee3d6c0f75a9255) 的 6/6 完整合成 CI 仍独立有效。生产 S3 Object Lock/WORM/KMS、独立外部高水位、Pop!_OS 24.04 L3 全部 NOT RUN；v0.1 NOT RELEASE READY。
 
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
-## D4-C18d 有界 S3 SDK 只读客户端适配（L1 CI PENDING，外部 WORM 未部署）
+## 已验收：D4-C18d 有界只读 S3 SDK 适配（仅 Mockito L1，外部 WORM 未部署）
 
 2026-11-22 新增 **只在显式提供 S3Client 时可运行**的 package-private `StagedS3VersionedWitnessReadbackClient`，在执行任何 SDK 读取之前拒绝不合规的 pin，对指定 bucket/key/**versionId** 和 expected bucket owner 进行实际 SDK `getObject` 有界流读取及 `getObjectRetention`，并调用 C18c 校验器拒绝版本不符、摘要篡改、非 COMPLIANCE 或期限不足。大对象声明与实际读取分别限制在 **1 MiB**，SDK 异常/权限缺失/流异常必须默认拒绝。新增 Mockito-only 负向测试，未创建 S3Client/Spring Bean/凭据/网络配置，也没有任何生产调用方。**如以后显式注入真实 S3Client，该方法会产生网络请求，必须先完成独立授权。** [D4-C18d 详细设计](security/fido-mds-bounded-s3-readonly-d4-c18d-2026-11-22.md)。
 
-**本功能 SHA CI PENDING**；上阶段 D4-C18c `7489a1c5` 的 6/6 实测结果不能挪用。真实 AWS/S3 Object Lock、KMS 托管、跨账户读与实际不可删除/保留证据均 **NOT RUN**。G-02/G-08 继续 **OPEN**，v0.1 **NOT RELEASE READY**。
+**修复功能 SHA [`2003edaa`](https://github.com/kunlong-luo/lanveriq/commit/2003edaa0b9614ecd138507cd465b0f7fe3d64f1) 的 [Java 25 L1 #45020964141 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45020964141)，[RD-2 default-OFF #45020963983 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45020963983)。** Java 25 单元日志 `BUILD SUCCESSFUL in 54s`。首次功能 SHA [`94424351`](https://github.com/kunlong-luo/lanveriq/commit/94424351d46b9e0903e343d289f8f1ef0b966bd1) 的 [initial Java 25 #45020864719 — FAIL (Mockito overload ambiguity)](https://github.com/kunlong-luo/lanveriq/actions/runs/45020864719)，已因 Mockito 的 AWS SDK 重载参数类型不明确而修复；该初始 SHA 的 [PG18 source compilation #45020864720 — SUCCESS, on initial SHA only](https://github.com/kunlong-luo/lanveriq/actions/runs/45020864720)、[initial Next.js #45020864698 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45020864698)、[initial doc gate #45020864689 — SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45020864689)，但这些**不是**修复后同 SHA 的独立再验收，且 **真实 PG18 容器集成未由本轮路径触发/执行**。真实 AWS/S3 Object Lock、KMS 托管、跨账户读与实际不可删除/保留证据均 **NOT RUN**。G-02/G-08 继续 **OPEN**，v0.1 **NOT RELEASE READY**。
 
 ## 已验收：D4-C18c 离线 AWS SDK S3 版本/保留证据检查（真实外部 G-02 仍 OPEN）
 
