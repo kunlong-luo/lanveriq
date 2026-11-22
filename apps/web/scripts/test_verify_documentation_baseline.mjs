@@ -40,7 +40,8 @@ test('rejects stale status and missing canonical UI tokens', t => {
 
 test('rejects duplicate obsolete Vite directory guidance', t => {
   const { root, write } = fixture(t);
-  const record = documentationRequirements[0];
+  const record = documentationRequirements.find(r => r.path === 'docs/development/standards.md');
+  assert.ok(record);
   write(record.path, record.required.join('\n') +
     '\n- `apps/web/`：历史 React/Vite 候选，仅供参考\n');
   assert.throws(() => verifyDocumentationBaseline(root), /Obsolete active guidance/);
