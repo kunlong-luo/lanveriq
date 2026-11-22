@@ -429,10 +429,10 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
                 historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
                         pin,java.util.List.of(signedFirst,signedFirst),
                         externallyPinnedHead,stream.id(),observed));
+        var attackerSignedSecond=signDetached(signedSecond.claim(),attacker);
         assertThrows(AccessDeniedException.class,() ->
                 historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
-                        pin,java.util.List.of(signedFirst,
-                                signDetached(signedSecond.claim(),attacker)),
+                        pin,java.util.List.of(signedFirst,attackerSignedSecond),
                         externallyPinnedHead,stream.id(),observed));
         assertThrows(AccessDeniedException.class,() ->
                 historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
