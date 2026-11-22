@@ -2,6 +2,12 @@
 
 > **Historical evidence, not the live status sheet.** [CURRENT_STATUS](docs/CURRENT_STATUS.md) contains current source/CI and release boundaries. Do not prepend new run summaries ahead of this title. Preserve actual failed SHA and past CI references; use [doc lifecycle](docs/governance/document-lifecycle.md).
 
+## 2026-11-22 — A11-D4-C18c offline S3 Object Lock version/retention evidence screen (L1 PENDING)
+
+- Introduce **official AWS SDK for Java 2.x S3 / BOM 2.59.5** as an isolated SDK-model dependency; no S3Client, Spring bean, storage API, credentials, writer, KMS or production network. Add `StagedS3VersionedWitnessEvidenceReader`, returning **UntrustedVersionReadback** only.
+- Fail-closed byte/hash/retention checks require exact versionId on both GetObject/GetObjectRetention and response, pinned bucket/key/expected account, SHA-256 over *actual response bytes*, COMPLIANCE + non-expired retention in both modeled responses, and no delete-marker/range/part reads. Unit tests include changed versions, ETag deception, GOVERNANCE, expired/mismatched retention, missing version/data, tampering and oversize evidence. [D4-C18c design](docs/security/fido-mds-object-lock-version-readback-d4-c18c-2026-11-22.md).
+- **CI PENDING for the new functional SHA.** Previous PG18 7/7 acceptance belongs exclusively to C18b. External G-02/S3 Object Lock, KMS, approved account, trusted time and Pop!_OS physical L3 all remain OPEN; v0.1 NOT RELEASE READY.
+
 ## 2026-11-22 — A11-D4-C18b pg_dump/pg_restore dual-snapshot rehearsal (7/7 exact-SHA synthetic CI PASS)
 
 - Add mandatory real PostgreSQL 18.6 Testcontainers recovery test using actual `pg_dump -Fc` of old/new V30 states, `pg_restore --exit-on-error` into two independent restored databases, and Spring/Hibernate sessions attached to those database connections. Old restored DB must be rejected against higher host-retained witness; matching fresh restored DB must be accepted. The old signed archive + old cursor combination remains demonstrably vulnerable without independent custody. [D4-C18b scope](docs/security/fido-mds-real-pg-restore-d4-c18b-2026-11-22.md).

@@ -38,6 +38,11 @@ dependencies {
     // Mature JOSE library for offline synthetic FIDO-shaped JWS regression.
     // NOT a production FIDO MDS verifier: no signed-root custody/PKIX/CRL.
     implementation 'com.nimbusds:nimbus-jose-jwt:10.10'
+    // A11-D4-C18c: official AWS Java SDK *types* for offline S3
+    // version-specific evidence screening. Dependency is NOT a configured
+    // S3Client, credentials, bean, endpoint or production WORM connection.
+    implementation platform('software.amazon.awssdk:bom:2.59.5')
+    implementation 'software.amazon.awssdk:s3'
     // Maintained token-bucket algorithm and bounded, expiring local cache.
     implementation 'com.bucket4j:bucket4j_jdk17-core:8.21.0'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.3.1'

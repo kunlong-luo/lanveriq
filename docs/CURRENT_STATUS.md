@@ -4,6 +4,12 @@
 
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
+## D4-C18c 离线 AWS SDK S3 版本保留证据校验（CI PENDING）
+
+2026-11-22 提交候选 `StagedS3VersionedWitnessEvidenceReader` 与离线 L1 负向测试，使用官方 **AWS SDK Java v2 BOM 2.59.5 / S3** 模型，严格校验 *GetObject/GetObjectRetention* 同一 bucket/key/**versionId** 与 expectedBucketOwner、真实响应字节 SHA-256、两处 COMPLIANCE 模式和保留到期时间。拒绝未指定版本、范围/分块获取、删除标记、ETag 替代摘要、错误版本/所有者、GOVERNANCE 模式、遗漏或过期保留。**此阶段无 S3Client、网络访问、真实 AWS 对象/账户、KMS、可信时间或外部高水位托管；结果仅 UNTRUSTED。** [C18c 详细说明](security/fido-mds-object-lock-version-readback-d4-c18c-2026-11-22.md)。
+
+**功能 SHA 的 L1 CI 尚待运行，状态 PENDING**；之前 C18b 的 7/7 合成 PASS 不等于 C18c 已验收。**G-01/G-02/G-08 OPEN，v0.1 NOT RELEASE READY，所有生产能力 OFF。**
+
 ## 已验收：D4-C18b 真实隔离 PostgreSQL 备份恢复双向验证（G-02/G-08 OPEN）
 
 **同功能 SHA `4e9dcdac` 的真实 PG18.6 集成测试已经通过。** 在 PostgreSQL 18.6 Testcontainers 内分别对 V30 只有序号 1 的旧库、序号 2 的新库执行真正的 `pg_dump --format=custom` 与 `pg_restore --exit-on-error` 到两套**独立恢复数据库**；使用 Spring/Hibernate 的独立会话读取恢复后的真实 V30/V26/审计，复用 D4-C17 校验器。旧库必须因无法匹配宿主独立保留的序号 2 高水位而拒绝；新库必须在同一签名历史和高水位下接受。另证明如果外部证据也被替换成旧签名历史，旧库可以通过，因此仍必须有真正外部不可回退的保管服务。

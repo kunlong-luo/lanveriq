@@ -5,7 +5,7 @@
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |
-| **P0 G-02 外部 WORM/KMS 见证** | D4-C18a Owner 回退与 D4-C18b 真正 pg_dump/pg_restore 新旧双快照的隔离 PG18 测试均已 PASS（C18b 7/7 同 SHA）；仍没有跨管理域 WORM/KMS、可信时间、正式生产恢复或组织批准 | 真正数据库外 WORM、独立高水位、密钥托管/轮换、可信时间、PG 备份恢复回退拒绝/离线保护实测 | **OPEN** 安全/SRE |
+| **P0 G-02 外部 WORM/KMS 见证** | D4-C18b 真实隔离 PG18 恢复已 PASS；D4-C18c 官方 AWS SDK 对象版本/保留信息离线校验已提交，L1 CI PENDING，但无实际 AWS S3/WORM、独立高水位、可信时间、KMS、正式恢复和组织批准 | 真正数据库外 WORM、独立高水位、密钥托管/轮换、可信时间、PG 备份恢复回退拒绝/离线保护实测 | **OPEN** 安全/SRE |
 | **P0 G-03 管理员双审与 WebAuthn** | 暂存/合成凭证；无真人 MFA | 不同真人硬件 MFA、RP/Origin/会话/挑战/计数器、管理员不可自审/吊销真实回归 | **OPEN** 身份安全 |
 | **P0 G-04 生产 CA 与密钥** | 合成 CSR/证书；签发默认 OFF | 正式 CA/HSM/KMS 权限、签发/吊销/轮换/恢复审批与实测 | **OPEN** PKI |
 | **P0 G-05 Pop!_OS 实机 L3** | Linux 隔离 PG18/TLS/Rust PASS，真实主机未验 | 实测桌面会话、systemd 非 root、密钥、设备启停、断网 SQLite、升级卸载、隐私与负向用例 | **OPEN** 实机负责人 |
