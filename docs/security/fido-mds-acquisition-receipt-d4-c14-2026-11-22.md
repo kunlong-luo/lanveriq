@@ -1,6 +1,6 @@
 # A11-D4-C14 — offline acquisition-custody receipt (NOT official ingestion)
 
-**Date:** 2026-11-22 · **Branch:** `main` only · **Exact-source CI:** PENDING · **Release:** **v0.1 NOT RELEASE READY**.
+**Date:** 2026-11-22 · **Branch:** `main` only · **Exact-source CI:** 4/4 triggered workflows SUCCESS · **Release:** **v0.1 NOT RELEASE READY**.
 
 ## Scope and threat model
 
@@ -17,9 +17,13 @@ This stage provides an **unmounted offline receipt verifier**. It binds actual *
 - Maximum 16 distinct CRL sources, maximum 24 hours between asserted acquisition and external checkedAt. URLs in tests are synthetic `*.invalid` and MUST NOT be regarded as FIDO official CRL endpoints. This is an intentional strict local refusal policy that must be reviewed against independently discovered, real official CRL distribution sources before a production design exists. No arbitrary CRL URLs from submitted JWS/cert are followed.
 - Strong negative tests use disposable **real ES256 and RS256** JWS, PKIX signer, signed CRL, domain-separated signed time, **two distinct real Ed25519 review signatures**, and independently signed Ed25519 acquisition receipt. The source receipt key is separately provisioned in synthetic fixtures, not actually managed in KMS/HSM. Real Gradle JUnit XML gate requires `signedAcquisitionReceiptsBindExactJwsCrlAndOfflineCustodyAssertions` (**13 required verifier methods**).
 
-## CI and release gates (do not claim PASS before actual evidence)
+## CI and release gates — 4/4 triggered exact-SHA workflows SUCCESS
 
-Java 25 real Gradle JUnit and 13 mandatory verifier methods; separate PostgreSQL 18.6 Testcontainers synthetic transactions; PostgreSQL integration source compile; Next.js fast checks; RD-2 remote default OFF, **all tied to the same functional SHA**. Passing does not establish official MDS acquisition, custody or legal clearance.
+[functional SHA `d619d77c`](https://github.com/kunlong-luo/lanveriq/commit/d619d77c468c7f0f4253048efd4b2d112f0ca3ab) passed **4/4 exact-SHA workflow gates triggered by the source paths**: [Java 25 real Gradle unit tests, executed XML confirms all THIRTEEN FIDO verifier methods #45013121429](https://github.com/kunlong-luo/lanveriq/actions/runs/45013121429), [PostgreSQL 18.6 Testcontainers real synthetic transactions #45013121314](https://github.com/kunlong-luo/lanveriq/actions/runs/45013121314), [PG18 integration-source compilation #45013121358](https://github.com/kunlong-luo/lanveriq/actions/runs/45013121358), [RD-2 fail-closed OFF #45013121291](https://github.com/kunlong-luo/lanveriq/actions/runs/45013121291). **Next.js workflow was not triggered by this backend-only fix SHA** (path filter); its separate documentation-source regression must not be counted as part of the 4/4 functional test runs.
+
+The earlier initial source `8a5a933b` had **one failed Java test**: its negative URL case could not be signed by the fixture transcript builder. The corrected source SHA `d619d77c` separates delimiter-safe negative test signing from strict enforcing URL validation, and additionally binds the signer leaf, time-key and signed-time-proof hashes and hashes the signed acquisition manifest and signature for future auditing. The corrected Java log reports `PASS: real Gradle JUnit evidence includes all 13 required synthetic offline source-time tests`. The failed earlier source is historical and MUST NOT be counted as a pass.
+
+A signed acquisition receipt proves a pre-pinned disposable key attested these exact bytes and labels. It **cannot prove a real HTTPS/TLS session, authentic official CRL distribution, independent trusted time, production key custody or FIDO trust**. No real downloader, immutable acquisition-signature persistence, live WebAuthn MFA, production CA/HSM, or Pop!_OS 24.04 L3. Production networking, collection, auto-recovery, remote control and cert issuance stay OFF; v0.1 NOT RELEASE READY.
 
 ## Still blocked
 
