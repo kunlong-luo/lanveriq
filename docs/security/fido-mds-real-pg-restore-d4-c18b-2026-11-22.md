@@ -1,6 +1,6 @@
 # A11-D4-C18b — actual disposable PG18 custom-format backup/restore and witness anti-rollback
 
-**2026-11-22 · `main` only · L2 CI PENDING · P0 G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
+**2026-11-22 · `main` only · L2 7/7 same-SHA PASS · P0 G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
 
 ## Distinct from prior simulated rewind
 
@@ -14,6 +14,10 @@
 4. Use a standard Spring test-only `DriverManagerDataSource` and **Hibernate `SessionFactory.withOptions().connection(...).openSession()`** (no production handwritten JDBC DAO) to check the *actual restored database* with the existing C17 verifier; require old tail (1) **DENIED** for higher retained witness (2), fresh tail (2) **MATCH**, including real V30/V26 and audit checks.
 5. Explicitly prove the safety boundary: a valid *old* witness list and its *old* cursor would match the restored old database; without externally durable high-water custody, a coordinated rollback remains undetectable.
 6. Strict real JUnit XML gate must require `PostgreSqlFidoMdsAcquisitionReceiptIT.c18bActualPgDumpRestoreRejectsStaleBackupAndAcceptsFreshBackup` and 11 Testcontainers classes / at least **150** successful tests. The CI run must actually execute the PostgreSQL client commands. Never count compilation, fake XML or a different SHA as L2 PASS.
+
+## Exact-SHA CI evidence (all isolated synthetic)
+
+**Functional SHA [`4e9dcdac`](https://github.com/kunlong-luo/lanveriq/commit/4e9dcdac074200548317669e78cf8f66e405c3f3)** passed all **7/7 triggered CI workflows on this same SHA**: [Java 25 unit #45019585898](https://github.com/kunlong-luo/lanveriq/actions/runs/45019585898) · [real PG18.6 Testcontainers ≥150 #45019585915](https://github.com/kunlong-luo/lanveriq/actions/runs/45019585915) · [PG18 compilation #45019585907](https://github.com/kunlong-luo/lanveriq/actions/runs/45019585907) · [Next.js #45019585896](https://github.com/kunlong-luo/lanveriq/actions/runs/45019585896) · [documentation #45019585889](https://github.com/kunlong-luo/lanveriq/actions/runs/45019585889) · [RD-2 default-OFF #45019585873](https://github.com/kunlong-luo/lanveriq/actions/runs/45019585873) · [Linux Batch A Caddy TLS/PG18 #45019585916](https://github.com/kunlong-luo/lanveriq/actions/runs/45019585916). Real PostgreSQL 18.6 Testcontainers emitted `BUILD SUCCESSFUL in 1m 18s`; mandatory real Gradle XML gate reported **11 classes, at least 150 passing tests; none failed, errored or skipped**. This proves the new real `pg_dump -Fc`/`pg_restore --exit-on-error` old/fresh comparison ran inside the disposable PostgreSQL container, not that external WORM or production PITR exists. Later documentation-only SHA checks cannot be substituted for this evidence.
 
 ## What this does NOT prove
 
