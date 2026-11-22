@@ -1,6 +1,6 @@
 # Lanveriq 文档导航 / Documentation home
 
-**更新日期：2026-11-21** · **单一现行状态入口：[CURRENT_STATUS.md](CURRENT_STATUS.md)** · **发布状态：v0.1 NOT RELEASE READY**。本页只负责导航，不重复维护某个阶段的 CI 结论；所有“已通过/仍未完成”以状态页及其精确源码 SHA 为准。旧文档标题、日期和旧目录名是历史事实，不自动代表今天仍有效。
+**更新日期：2026-11-22** · **单一现行状态入口：[CURRENT_STATUS.md](CURRENT_STATUS.md)** · **发布状态：v0.1 NOT RELEASE READY**。本页只负责导航，不重复维护某个阶段的 CI 结论；所有“已通过/仍未完成”以状态页及其精确源码 SHA 为准。旧文档标题、日期和旧目录名是历史事实，不自动代表今天仍有效。
 
 > **2026-11-21 current Web baseline:** `apps/web` 是唯一 **Next.js 16.4.5** UI（`127.0.0.1:3100`）；旧 Vite 已删除、`apps/web-next` 已在 NXT-24 迁移。参见 [NXT-24 路径与 CI 原始记录](development/nextjs-path-rename-nxt24-2026-11-21.md)。当前浏览器预览是 **断开式静态/本地 UI**，不含正式业务数据、登录、远控、采集或证书签发。
 
@@ -31,7 +31,7 @@
 
 ## 4. 安全、测试、运维与合规
 
-- **D4-C13 GlobalSign R46 公开根指纹精确识别（CI 待验收）：** [离线候选核对与身份/信任边界](security/fido-mds-public-r46-root-reference-d4-c13-2026-11-22.md)。参考证书和公开 SHA-256 不是正式组织信任批准。
+- **D4-C13 GlobalSign R46 公开根指纹精确识别（5/5 同 SHA 合成 CI PASS）：** [离线候选核对与身份/信任边界](security/fido-mds-public-r46-root-reference-d4-c13-2026-11-22.md)。参考证书和公开 SHA-256 不是正式组织信任批准。
 
 - **D4-C12 两个独立审核公钥与离线来源绑定（5/5 同 SHA 合成 CI PASS）：** [完整安全契约](security/fido-mds-independent-provenance-d4-c12-2026-11-21.md)，仅合成未可信证据，不能视为真实 FIDO 来源或签发授权。
 
