@@ -1,18 +1,17 @@
-# Contributing
+# Contributing to Lanveriq
 
-Lanveriq's V0.1 D0 technical baseline was approved on 2026-10-30. The repository has not yet shipped functioning code; V0.1 modules and unit-only CI may now be implemented following the [D0 gate](docs/governance/documentation-gate.md). Please discuss scope and incompatible architecture decisions in repository issues before submitting significant changes. Do not post real employee information, screenshots, telemetry, authentication tokens or recordings.
+**Active 2026-11-22 · v0.1 NOT RELEASE READY.** Java25/Gradle/Spring Boot/PostgreSQL18.6, Rust/SQLx and Next.js16 in `apps/web` are real source projects with **real synthetic CI**, but are not approved for production or actual employee data. Earlier claims that there was no code and only unit tests would be added later are superseded.
 
-## Early development workflow
-Maintainer has chosen **direct commits to main** (no mandatory PR or feature branches) for early v0.x work. Prefer small, reversible commits with clear `docs:`, `feat:`, `fix:` and `test:` subjects. Do not force-push main. If collaborators join or production deployments begin, revisit the policy.
+Read [AGENTS](AGENTS.md), [CURRENT_STATUS](docs/CURRENT_STATUS.md), [engineering playbook](docs/governance/engineering-playbook.md), [DoD](docs/planning/definition-of-done.md), [documentation lifecycle](docs/governance/document-lifecycle.md), [release gaps](docs/planning/release-gap-register.md) before editing.
 
-## Reuse-first dependency rule
-**Mandatory for every future architecture/coding change:** read [root AGENTS.md](AGENTS.md), [reuse-first engineering policy](docs/development/reuse-first-policy.md) and [ADR-0007](docs/architecture/adrs/0007-mature-ecosystem-first.md). Prefer stable built-ins, official SDKs and vetted maintained libraries over new homegrown frameworks; **UUIDs, database migrations, HTTP/TLS, API code generation, OS services and UI infrastructure should never be reimplemented casually**. Fewer tests of vendor internals is sensible, but authorization, retries, reliability and cross-platform integration **still require verification**.
+## Contribution procedure
+- The current single-maintainer strategy is **direct changes on `main`**, small reversible commits with checked expected remote SHA; no force pushes or deletion of failing evidence. Multi-contributor/production branch protection requires future approval.
+- Prefer maintained mature libraries and stable platform/framework features over custom crypto, networking, UUIDs, migrations, authorization or UI frameworks. Check compatibility and license. [Reuse-first](docs/development/reuse-first-policy.md) · [ADRs](docs/architecture/adrs/README.md).
+- Backend is Java25/Gradle/JPA-Hibernate/Flyway/PG18; Agent Rust/SQLx/SQLite/reqwest; Web Next.js App Router/React/Tailwind4/Base UI. Do not recreate Maven, Vite, `apps/web-next` or parallel UI.
+- Security and database changes require actual negative tests and appropriate L1/L2 evidence on the **same functional SHA**. Cite workflow run ID/link and exact PASS/FAIL/PENDING/NOT RUN. A path-filtered test is NOT RUN; docs-only CI is not a substitute. Follow [test strategy](docs/testing/strategy.md).
+- Update subsystem SPEC, [CURRENT_STATUS](docs/CURRENT_STATUS.md) and any affected release Gate. Docs use [documentation verification](.github/workflows/docs-governance.yml).
 
-## Before adding code
-Read the [docs index](docs/README.md), [PRD](docs/product/requirements.md), [privacy](docs/security/privacy-and-consent.md), [ADRs](docs/architecture/adrs/0004-rapid-main-development.md), and [D0 gate](docs/governance/documentation-gate.md). **D0 is approved for V0.1 coding only.** Real employee-data monitoring, production deployments, V0.2 audit and V0.3 recording are not authorized by that approval; implement and verify security/privacy controls before any real pilot.
+## Safety, reporting and licensing
+No employee data, secrets, real cert signer keys, covert monitoring, live endpoints or recordings in tests/logs. Production Agent networking, collection, auto-recovery, RustDesk RD-2, CA issuance, FIDO trusted source and real WebAuthn MFA remain OFF. [Private vulnerability reporting](SECURITY.md).
 
-## Tests
-During early MVP, GitHub CI will run only Rust/Java/React unit tests **after those projects exist**; E2E is postponed. Local build/lint/typechecks and targeted manual security validation are recommended. Do not skip tests by claiming a feature is complete without evidence.
-
-## Licensing
-The repository is publicly readable but has not yet selected a software license. Do not assume contributions or reuse rights; licensing and contribution terms must be resolved before a broader open-source contribution process.
+A publicly accessible repository does not automatically grant a software distribution license. Check the project license and third-party/RustDesk AGPL/Pro terms before redistribution; external contribution, legal and SLA policies remain open decisions.

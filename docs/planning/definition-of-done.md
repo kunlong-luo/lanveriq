@@ -1,23 +1,21 @@
-> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
+# Lanveriq Definition of Done — 现行交付验收
 
-# Definition of done (DOD)
+**ACTIVE · 2026-11-22 · v0.1 NOT RELEASE READY.** D0 technical sign-off authorizes source development, NOT production. Old unit-only CI rules have been superseded by [L1/L2/L3](../testing/strategy.md).
 
-## Docs gate D0
-**Status as of 2026-10-30: D0 technical baseline approved for V0.1 coding**, with selected PKI, versioned API, minimum authorization and pilot target recorded in [signed D0 decision package](../governance/d0-decision-package-2026-10-30.md). All bullets below were **design-review criteria**, not evidence that software runs. Separate organizational/legal permission and real security/OS/DB verification remain mandatory before a real-data pilot.
+## 每次功能提交
+- [ ] 查看真实 `main` SHA、代码与锁文件、相关 ADR/需求、[CURRENT_STATUS](../CURRENT_STATUS.md) 和 [release-gap register](release-gap-register.md)。
+- [ ] 明确功能范围、边界、不授权行为、完整性/认证/重放/回滚风险；优先成熟平台/SDK/库，禁止不必要自研。
+- [ ] 目标安全/数据库/ACK/证书变更有**实际执行**的负向测试和 L1，证明拒绝伪造、越权、过期、吊销、重复或审计缺失。
+- [ ] 涉及 Flyway/JPA/PKIX/TLS/SQLite/角色/事务则有相应 **L2 真 PostgreSQL18 Testcontainers、真实 TLS/Reqwest 或 Chromium 合成链路**；不能只编译或伪造 XML。
+- [ ] L1/L2 结果归属于**确切功能 SHA**；每项 run ID/URL、实际环境和 PASS/FAIL/PENDING/NOT RUN 都有记录，旧失败 SHA 不得删改。
+- [ ] 新 DB 迁移检查 Flyway 版本、旧 Vxx 升级、历史不可变、角色分离、审计与事务并发；正式生产开关保持 OFF。
+- [ ] 改动 SPEC/API/测试文档及 CURRENT_STATUS，如变更 Gate 则同步 [release-gap register](release-gap-register.md)。区分 docs SHA 与 feature SHA，更新 ADR 的取代关系。
+- [ ] 只在 main 可回滚提交，没有强推；交接说明做了什么、无法证明什么、下一项有何可验收退出标准。
 
-- Requirements, architecture, server/agent storage, API, collection policy, threat model, testing, roadmap and operational plan exist and cross-reference consistently.
-- No false implementation claims; unresolved jurisdiction and data scope documented.
-- Maintainer reviews and accepts architecture + privacy scope before adding application code. **D-07 device certificate/route/CA and authenticated proxy identity** and the V0.1 schema/permission surface must be explicitly approved; unresolved D0 rows may not be silently treated as satisfied.
-- English README and Chinese introduction consistent; internal relative links checked. **Static Mermaid/SVG validation does not replace actual rendering checks;** record unverified screenshot/Chinese font layout separately.
-- The earlier direct-main, unit-only CI decision is preserved as **historical ADR-0004**; the **2026-11-08 owner-approved L1/L2/L3 test model supersedes it**. See [active test strategy](../testing/strategy.md).
+## 额外 Gate
+UI 要满足唯一 Next.js `apps/web`、Base UI/Tailwind 设计 tokens、断开/未知/拒绝态和键盘/触控/滚动/窄屏/无障碍验收，不得伪造设备在线数。OS 真实支持必须有 Pop!_OS24 systemd 非 root/会话/密钥/断网恢复/安装升级 L3 证据。正式发布还必须有官方 FIDO/CRL、外部 WORM/可信时间、真实 WebAuthn MFA、CA/HSM、隐私许可、备份恢复和组织正式审批；合成 CI 不能关闭。
 
-## Feature completion during v0.x
-- Requirements/behavior explained; change committed atomically to main.
-- **L1:** related source/typed DTO/security negative unit tests, format, type and compile checks are green on the tested SHA; never mark a default-OFF feature production-ready by typecheck alone.
-- **L2:** a cohesive P0 business batch (A, B, C or D) cannot be marked completed until its relevant disposable PostgreSQL/Caddy/Agent/Next.js integration and negative cases have actually executed and passed; avoid entire E2E on every tiny push.
-- **L3:** v0.1 milestone/first pilot requires the complete security browser/cross-platform suite, real authorized Pop!_OS Linux acceptance for the Linux-only release (Windows native L3 separately required for Windows support), PKI/key custody, restore and privacy/operations approvals. Missing or unexecuted checks remain explicitly OPEN.
-- API schema and data migrations updated if changed; fail-safe on platform permission denial.
-- No sensitive sample data, secrets, covert capabilities or unsupported compatibility claims.
+## 交付记录格式
+`task ID, feature SHA, docs SHA, modified files, actual workflow/run links, L1/L2/L3 + environment, negative tests, PASS/FAIL/PENDING/NOT RUN, remaining blockers, next exit criterion`.
 
-## Release readiness (not early MVP)
-Before first external real-data deployment or production label: cross-process integration checks, platform acceptance, installer signing evaluation, restore drill, penetration/privacy review, and explicit release approval. The updated CI strategy is recorded in the [batch plan](v0.1-batched-delivery-plan-2026-11-08.md). These future gates do not block writing MVP code after D0, but they block production claims.
+[Engineering playbook](../governance/engineering-playbook.md) · [Doc authority](../governance/document-lifecycle.md) · [Current status](../CURRENT_STATUS.md).
