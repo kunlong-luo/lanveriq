@@ -1,6 +1,5 @@
 package com.lanveriq.server.security;
 
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.Signature;
