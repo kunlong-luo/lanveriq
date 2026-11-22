@@ -1,3 +1,5 @@
+> **D4-C14 pre-acceptance negative-fixture fix (2026-11-22):** Real Java CI for initial source SHA `8a5a933b` caught a test-fixture failure: the test-side signing transcript rejected malicious URL values before the actual inspector could exercise rejection. Keep URL enforcement in the inspector but permit delimiter-safe negative transcript construction, and bind leaf DER, exact signed-time key/proof and receipt fingerprints. First CI is NOT a PASS; reassess only a new functional SHA with complete CI.
+
 ## 2026-11-22 — A11-D4-C14 offline MDS/CRL signed acquisition receipt (functional CI pending)
 
 - Add unmounted source-acquisition evidence verifier that binds original signed JWS and each CRL DER fingerprint to a separately pinned Ed25519 receipt, explicit HTTPS source allowlist, bounded time and strictly increasing receipt sequence.

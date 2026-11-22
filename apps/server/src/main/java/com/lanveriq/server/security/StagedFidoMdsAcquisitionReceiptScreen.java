@@ -48,8 +48,10 @@ final class StagedFidoMdsAcquisitionReceiptScreen {
                             int httpStatus, boolean followedRedirect,
                             Instant fetchedAt, Instant checkedAt,
                             long sequence, long blobNumber, long signedTimeSequence,
-                            String jwsSha256, String rootSha256,
-                            String crlEvidenceSha256, List<CrlArtifact> crls) {
+                            String jwsSha256, String signerLeafSha256,
+                            String rootSha256, String crlEvidenceSha256,
+                            String timeKeySha256, String signedTimeProofSha256,
+                            List<CrlArtifact> crls) {
         AcquisitionClaim {
             crls = crls == null ? null : List.copyOf(crls);
         }
@@ -66,7 +68,9 @@ final class StagedFidoMdsAcquisitionReceiptScreen {
 
     record UntrustedAcquisitionEvidence(long sequence, String jwsSha256,
                                         String crlEvidenceSha256,
-                                        String acquisitionKeySha256) {}
+                                        String acquisitionKeySha256,
+                                        String signedManifestSha256,
+                                        String acquisitionSignatureSha256) {}
 
     static UntrustedAcquisitionEvidence inspectUntrustedOnly(
             PinnedAcquisitionKey independentlyProvisionedKey,
@@ -104,14 +108,23 @@ final class StagedFidoMdsAcquisitionReceiptScreen {
                     || claim.blobNumber() <= 0
                     || claim.signedTimeSequence() <= 0
                     || !validHash(claim.jwsSha256())
+                    || !validHash(claim.signerLeafSha256())
                     || !validHash(claim.rootSha256())
                     || !validHash(claim.crlEvidenceSha256())
+                    || !validHash(claim.timeKeySha256())
+                    || !validHash(claim.signedTimeProofSha256())
                     || !Objects.equals(claim.jwsSha256(),
                             cryptographicallyVerifiedButUntrusted.blobSha256())
+                    || !Objects.equals(claim.signerLeafSha256(),
+                            cryptographicallyVerifiedButUntrusted.leafSha256())
                     || !Objects.equals(claim.rootSha256(),
                             cryptographicallyVerifiedButUntrusted.rootSha256())
                     || !Objects.equals(claim.crlEvidenceSha256(),
                             cryptographicallyVerifiedButUntrusted.crlEvidenceSha256())
+                    || !Objects.equals(claim.timeKeySha256(),
+                            cryptographicallyVerifiedButUntrusted.timeKeySha256())
+                    || !Objects.equals(claim.signedTimeProofSha256(),
+                            cryptographicallyVerifiedButUntrusted.signedTimeProofSha256())
                     || !Objects.equals(claim.checkedAt(),
                             cryptographicallyVerifiedButUntrusted.checkedAt())
                     || claim.blobNumber()
@@ -174,14 +187,16 @@ final class StagedFidoMdsAcquisitionReceiptScreen {
 
             var verifier = Signature.getInstance("Ed25519");
             verifier.initVerify(trustedKey);
-            verifier.update(transcript(claim));
+            byte[] signedTranscript = transcript(claim);
+            verifier.update(signedTranscript);
             if (!verifier.verify(signed.signature())) {
                 throw denied();
             }
             return new UntrustedAcquisitionEvidence(
                     claim.sequence(), claim.jwsSha256(),
                     claim.crlEvidenceSha256(),
-                    independentlyProvisionedKey.keySha256());
+                    independentlyProvisionedKey.keySha256(),
+                    sha256(signedTranscript), sha256(signed.signature()));
         } catch (GeneralSecurityException | IllegalArgumentException error) {
             throw denied();
         }
@@ -199,7 +214,13 @@ final class StagedFidoMdsAcquisitionReceiptScreen {
         }
         var sorted = new ArrayList<CrlArtifact>(claim.crls());
         for (CrlArtifact item : sorted) {
-            if (item == null || !safeHttpsUrl(item.sourceUrl())
+            // A negative fixture must be able to sign an attacker-controlled
+            // http/userinfo/redirect/unknown origin for the ENFORCING checker
+            // to reject. Reject ambiguous transcript delimiters here; the
+            // final inspector separately validates strict allowlisted HTTPS.
+            if (item == null || item.sourceUrl() == null
+                    || item.sourceUrl().indexOf('\n') >= 0
+                    || item.sourceUrl().indexOf('\r') >= 0
                     || !validHash(item.derSha256())) {
                 throw denied();
             }
@@ -216,8 +237,11 @@ final class StagedFidoMdsAcquisitionReceiptScreen {
                 .append(claim.blobNumber()).append('\n')
                 .append(claim.signedTimeSequence()).append('\n')
                 .append(claim.jwsSha256()).append('\n')
+                .append(claim.signerLeafSha256()).append('\n')
                 .append(claim.rootSha256()).append('\n')
                 .append(claim.crlEvidenceSha256()).append('\n')
+                .append(claim.timeKeySha256()).append('\n')
+                .append(claim.signedTimeProofSha256()).append('\n')
                 .append(sorted.size()).append('\n');
         for (CrlArtifact crl : sorted) {
             message.append(crl.sourceUrl()).append('\n')

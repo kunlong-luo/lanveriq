@@ -645,7 +645,9 @@ class StagedFidoMdsSourceVerifierTest {
                 tlsVersion, httpStatus, redirect, fetched,
                 evidence.checkedAt(), sequence, evidence.blobNumber(),
                 evidence.signedTimeSequence(), evidence.blobSha256(),
-                evidence.rootSha256(), evidence.crlEvidenceSha256(),
+                evidence.leafSha256(), evidence.rootSha256(),
+                evidence.crlEvidenceSha256(), evidence.timeKeySha256(),
+                evidence.signedTimeProofSha256(),
                 List.of(new StagedFidoMdsAcquisitionReceiptScreen.CrlArtifact(
                         crlSourceUrl, actualCrlSha)));
     }
@@ -692,6 +694,24 @@ class StagedFidoMdsSourceVerifierTest {
             assertTrue(StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
                     acquisitionPin, receipt, List.of(crl), untrusted, 12)
                     .toString().contains("Untrusted"));
+
+            // A separately signed claim cannot silently substitute an
+            // unrelated signed-time or leaf-certificate digest, even when
+            // the JWS and CRL hashes are unchanged.
+            var forgedProofClaim = new StagedFidoMdsAcquisitionReceiptScreen
+                    .AcquisitionClaim(claim.mdsUrl(), claim.tlsVersion(),
+                    claim.httpStatus(), claim.followedRedirect(),
+                    claim.fetchedAt(), claim.checkedAt(), claim.sequence(),
+                    claim.blobNumber(), claim.signedTimeSequence(),
+                    claim.jwsSha256(), claim.signerLeafSha256(),
+                    claim.rootSha256(), claim.crlEvidenceSha256(),
+                    claim.timeKeySha256(), "0".repeat(64), claim.crls());
+            var signedWrongProof = signAcquisition(forgedProofClaim,
+                    acquirer.getPrivate());
+            assertThrows(AccessDeniedException.class, () ->
+                    StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                            acquisitionPin, signedWrongProof, List.of(crl),
+                            untrusted, 12));
 
             // A caller's matching self-declared acquirer key is insufficient
             // against a DIFFERENT out-of-band pinned verification key.
