@@ -1,3 +1,7 @@
+# Changelog
+
+> **Historical evidence, not the live status sheet.** [CURRENT_STATUS](docs/CURRENT_STATUS.md) contains current source/CI and release boundaries. Do not prepend new run summaries ahead of this title. Preserve actual failed SHA and past CI references; use [doc lifecycle](docs/governance/document-lifecycle.md).
+
 ## 2026-11-22 — A11-D4-C16 detached signed V30 witness snapshot verifier (6/6 exact-SHA synthetic CI PASS)
 
 - Add offline-only non-Bean reader comparing a genuine Ed25519 detached checkpoint against the actual latest V30 database-owned digest, linked V26 source and audit, with externally pinned witness public key and off-DB cursor contract.
@@ -121,8 +125,6 @@
 - All three old refs merged/verified without regression; `main` is the sole remote branch after [cleanup #44873229717](https://github.com/kunlong-luo/lanveriq/actions/runs/44873229717), with the temporary write-enabled workflow removed.
 - The canonical Next.js 16 Console was styled with a Craftwork-inspired original light editorial layout, dark ink active navigation and restrained card accents; no third-party paid assets were imported. Functional commit `e43886a3` passed the same SHA [Next fast](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138900), [Chromium + 15 screenshots](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138797), [static Pages](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138865), and [RD-2 OFF](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138989).
 - Disconnected static-only design acceptance; v0.1 not approved, no real device/control/network/collection/issuer capabilities enabled.
-
-# Changelog
 
 ## 2026-11-07 — Canonical Next.js 16.4.5 App Router frontend cutover
 
