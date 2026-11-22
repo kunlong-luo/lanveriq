@@ -1,6 +1,6 @@
 # A11-D4-C17 — anchored offline history verification (NOT external WORM)
 
-**Date:** 2026-11-22 · **Branch:** `main` · **Functional code/test/workflow SHA:** [`9cb6b4ce`](https://github.com/kunlong-luo/lanveriq/commit/9cb6b4ce9f63d7ef45a48f5ad104f30fb1304d45) · **CI initially PENDING; see [CURRENT_STATUS](../CURRENT_STATUS.md) for subsequent exact-SHA outcomes.** v0.1 **NOT RELEASE READY**.
+**Date:** 2026-11-22 · **Branch:** `main` · **Functional code/test/workflow SHA:** [`9cb6b4ce`](https://github.com/kunlong-luo/lanveriq/commit/9cb6b4ce9f63d7ef45a48f5ad104f30fb1304d45) · **Isolated exact-SHA L1/L2 SUCCESS; actual external custody NOT TESTED.** v0.1 **NOT RELEASE READY**.
 
 ## Boundary and motivation
 
@@ -21,6 +21,10 @@ D4-C16 verifies one signed snapshot of a PostgreSQL V30 acquisition tail against
 Real PostgreSQL 18.6 Testcontainers now requires `PostgreSqlFidoMdsAcquisitionReceiptIT.c17AnchoredWitnessHistoryRejectsTruncationForgeryAndStaleDatabaseTail`, using disposable Ed25519 keys, real V26/V30/audit rows and a two-entry signed history. Negative cases cover truncated/reordered/duplicated entries, attacker signatures, forged high-water digest, foreign stream, wrong public-key pin, future-time assertion, old valid head and a database tail that has advanced. The strict Gradle XML gate now requires **five C15–C17 test methods**, and at least **148 synthetic PG18 integration cases over 11 real Testcontainers classes**. The PG18 workflow path filter includes the C17 source file.
 
 **Evidence recording rule:** Record exact `9cb6b4ce` run IDs and PASS/FAIL/PENDING, including any earlier cancelled/failed SHA. Do not count Java compilation or fabricated XML as PostgreSQL execution. The C17 security result belongs to the functional code/test/workflow SHA, not later documentation-only changes.
+
+## Exact-functional-SHA results — isolated synthetic only
+
+For functional SHA [`9cb6b4ce`](https://github.com/kunlong-luo/lanveriq/commit/9cb6b4ce9f63d7ef45a48f5ad104f30fb1304d45): [Java 25 server unit #45017795239](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795239) **SUCCESS**; [PG18 integration source compilation #45017795286](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795286) **SUCCESS (compile-only)**; [actual PostgreSQL 18.6 Testcontainers #45017795222](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795222) **SUCCESS**. Actual PG job log: `BUILD SUCCESSFUL in 1m 25s`; strict real JUnit evidence: **11 Testcontainers classes, at least 148 passing tests, none failed, errored or skipped**. The C17 mandatory PG test is included. [RD-2 default-OFF #45017795275](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795275) on that precise SHA was **CANCELLED**, not PASS; do not borrow later runs. No C17 Pop!_OS L3 or external WORM test was executed.
 
 ## Still OPEN — required actual external evidence
 
