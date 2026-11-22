@@ -95,13 +95,13 @@ class StagedS3VersionedWitnessReadbackClientTest {
         assertEquals(UNTIL,result.retainUntil());
 
         var order = inOrder(client);
-        order.verify(client).getObject(org.mockito.ArgumentMatchers.argThat(
+        order.verify(client).getObject(org.mockito.ArgumentMatchers.<GetObjectRequest>argThat(
                 req -> BUCKET.equals(req.bucket()) && KEY.equals(req.key())
                         && VERSION.equals(req.versionId())
                         && OWNER.equals(req.expectedBucketOwner())
                         && req.range() == null && req.partNumber() == null));
         order.verify(client).getObjectRetention(
-                org.mockito.ArgumentMatchers.argThat(
+                org.mockito.ArgumentMatchers.<GetObjectRetentionRequest>argThat(
                 req -> BUCKET.equals(req.bucket()) && KEY.equals(req.key())
                         && VERSION.equals(req.versionId())
                         && OWNER.equals(req.expectedBucketOwner())));
