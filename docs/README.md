@@ -31,6 +31,8 @@
 
 ## 4. 安全、测试、运维与合规
 
+- **D4-C15 V30 离线获取收据 PostgreSQL 18 不可变审计链（CI 待验收）：** [源码/信任边界及真实 Testcontainers 验收](security/fido-mds-acquisition-ledger-d4-c15-2026-11-22.md)，永久仅未可信。
+
 - **D4-C14 MDS/CRL 离线签名获取收据（4/4 同 SHA 触发项 PASS）：** [精确材料绑定与审核边界](security/fido-mds-acquisition-receipt-d4-c14-2026-11-22.md)；来源 URL 及 TLS 声明不能代替真实网络证明。
 
 - **D4-C13 GlobalSign R46 公开根指纹精确识别（5/5 同 SHA 合成 CI PASS）：** [离线候选核对与身份/信任边界](security/fido-mds-public-r46-root-reference-d4-c13-2026-11-22.md)。参考证书和公开 SHA-256 不是正式组织信任批准。

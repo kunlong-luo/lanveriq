@@ -43,6 +43,17 @@ def synthetic_reports(directory: Path, *, omit=None, skipped=None,
 
 
 class PostgresEvidenceGateTest(unittest.TestCase):
+    def test_v30_acquisition_ledger_mandatory_pg18_evidence(self):
+        cls = "PostgreSqlFidoMdsAcquisitionReceiptIT"
+        self.assertEqual(3, minimums[cls])
+        for method in sorted(mandatory[cls]):
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as tmp:
+                synthetic_reports(Path(tmp), omit=(cls, method))
+                self.assertIn(
+                    "Missing mandatory test: " + cls + "." + method,
+                    verify_reports(Path(tmp)),
+                )
+
     def test_complete_synthetic_junit_matrix_passes(self):
         with tempfile.TemporaryDirectory() as tmp:
             synthetic_reports(Path(tmp))

@@ -1,3 +1,9 @@
+## 2026-11-22 — D4-C15 PostgreSQL 18 immutable untrusted acquisition receipt ledger (CI PENDING)
+
+- Forward-only V30 staging table, DB-owned signed-manifest/signature/chained digests, V26 source hash and sequence binding, V25 stream serialized monotonic history, immutable rows and DB-owned atomic audit with suppression detection, plus new unmounted Java writer.
+- Add 3 required true PostgreSQL 18.6 Testcontainers tests, mandatory real XML evidence gate, workflow path wiring and detailed [D4-C15 boundary report](docs/security/fido-mds-acquisition-ledger-d4-c15-2026-11-22.md).
+- No signature verification in DB, real FIDO downloading/trust, trusted time or production authority. v0.1 NOT RELEASE READY. CI not yet accepted.
+
 > **D4-C14 pre-acceptance negative-fixture fix (2026-11-22):** Real Java CI for initial source SHA `8a5a933b` caught a test-fixture failure: the test-side signing transcript rejected malicious URL values before the actual inspector could exercise rejection. Keep URL enforcement in the inspector but permit delimiter-safe negative transcript construction, and bind leaf DER, exact signed-time key/proof and receipt fingerprints. First CI is NOT a PASS; reassess only a new functional SHA with complete CI.
 
 ## 2026-11-22 — A11-D4-C14 offline MDS/CRL signed acquisition receipt (4/4 exact-SHA triggered CI PASS)

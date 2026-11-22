@@ -24,6 +24,9 @@ on:
       - 'apps/server/src/main/resources/db/migration/V27__enforce_source_receipt_database_audit.sql'
       - 'apps/server/src/main/resources/db/migration/V28__stage_untrusted_fido_source_cross_stream_fences.sql'
       - 'apps/server/src/main/resources/db/migration/V29__guard_untrusted_source_history_truncate_and_fence_genesis.sql'
+      - 'apps/server/src/main/resources/db/migration/V30__stage_immutable_fido_acquisition_receipts.sql'
+      - 'apps/server/src/main/java/com/lanveriq/server/security/StagedFidoMdsAcquisitionReceiptLedger.java'
+      - 'apps/server/src/integrationTest/java/com/lanveriq/server/security/PostgreSqlFidoMdsAcquisitionReceiptIT.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedFidoMdsSourceReceiptLedger.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedFidoMdsSourceVerifier.java'
       - 'apps/server/src/test/java/com/lanveriq/server/security/StagedFidoMdsSourceVerifierTest.java'
@@ -105,7 +108,7 @@ jobs:
         # outputs can substitute for fresh database and lock evidence.
         run: ./gradlew --no-build-cache --rerun-tasks integrationTest --stacktrace
       # A zero-exit Gradle task alone does not prove each security gate ran.
-      # Require real Gradle JUnit XML for all nine Testcontainers classes,
+      # Require real Gradle JUnit XML for all eleven Testcontainers classes,
       # the PostgreSQL 18.6/Flyway assertion, and all critical negative cases, including Console servlet security,
       # including first-admin bootstrap and session-audit atomic rollback.
       - name: Fail closed if mandatory PostgreSQL tests were skipped or missing

@@ -25,6 +25,7 @@ PACKAGES = {
     "PostgreSqlAdminAuditAtomicityIT": "com.lanveriq.server.security",
     "PostgreSqlConsoleSecurityWiringIT": "com.lanveriq.server.security",
     "PostgreSqlRoleSeparationIT": "com.lanveriq.server.security",
+    "PostgreSqlFidoMdsAcquisitionReceiptIT": "com.lanveriq.server.security",
 }
 
 # Minimum discovered tests in ten independent Testcontainers classes.
@@ -40,11 +41,17 @@ MIN_COUNTS = {
     "PostgreSqlAdminAuditAtomicityIT": 7,
     "PostgreSqlConsoleSecurityWiringIT": 65,
     "PostgreSqlRoleSeparationIT": 6,
+    "PostgreSqlFidoMdsAcquisitionReceiptIT": 3,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
 # contain additional tests, but none of these gates may disappear silently.
 REQUIRED_CASES = {
+    "PostgreSqlFidoMdsAcquisitionReceiptIT": {
+        "v30SourceBoundAcquisitionPersistsDbHashesAndExactlyOneAudit",
+        "v30RejectsReplaySkippedSequenceSwappedSourceAndMutatedOrTruncatedHistory",
+        "v30SuppressedAcquisitionAuditRollsBackThenRetryAndAuditCannotBeRebound",
+    },
     "PostgreSqlEventIngestionIT": {
         "postgres18ExecutesAllEightFlywayMigrationsAndNativeUuidv7",
         "reusedSequenceWithChangedContentRollsBackEarlierNewEventInSameBatch",
