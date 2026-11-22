@@ -1,6 +1,6 @@
 # Lanveriq 当前状态 / Current status
 
-**核对日期：2026-11-22** · **最新已验收隔离安全功能基线：[\`4e9dcdac\`](https://github.com/kunlong-luo/lanveriq/commit/4e9dcdac074200548317669e78cf8f66e405c3f3)（D4-C18b：7/7 同功能 SHA CI SUCCESS，实际 PG18.6 pg_dump/pg_restore 两套恢复数据库，11 类 ≥150 JUnit PASS）**。D4-C18a [`5afbee8a`](https://github.com/kunlong-luo/lanveriq/commit/5afbee8aa3f35a2ee916a34f4968d23242790aba) 7/7 原功能证据仍保留。后续文档 SHA 不自动等于功能验收。隔离数据库的真实备份恢复 **不是** 跨管理域 WORM/KMS、生产 PITR、官方 FIDO 可信根或 Pop!_OS 24.04 L3。
+**核对日期：2026-11-22** · **最新已验收隔离安全功能基线：[`4e9dcdac`](https://github.com/kunlong-luo/lanveriq/commit/4e9dcdac074200548317669e78cf8f66e405c3f3)（D4-C18b：7/7 同功能 SHA CI SUCCESS，实际 PG18.6 pg_dump/pg_restore 两套恢复数据库，11 类 ≥150 JUnit PASS）**。D4-C18a [`5afbee8a`](https://github.com/kunlong-luo/lanveriq/commit/5afbee8aa3f35a2ee916a34f4968d23242790aba) 7/7 原功能证据仍保留。后续文档 SHA 不自动等于功能验收。隔离数据库的真实备份恢复 **不是** 跨管理域 WORM/KMS、生产 PITR、官方 FIDO 可信根或 Pop!_OS 24.04 L3。
 
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
