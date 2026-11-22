@@ -1,3 +1,5 @@
+> **2026-11-22 ACTIVE RULE LINKS:** [Engineering playbook](../governance/engineering-playbook.md), [DoD](../planning/definition-of-done.md), [CURRENT_STATUS](../CURRENT_STATUS.md), and [release gaps](../planning/release-gap-register.md) govern future work. Old component status is historical; production OFF. v0.1 NOT RELEASE READY.
+
 # Monorepo 目录与工程约定（2026-11-21 当前源码）
 
 **当前仓库已包含可编译代码**，不再是只有文档的脚手架。主线：

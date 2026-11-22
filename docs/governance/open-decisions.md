@@ -1,3 +1,5 @@
+> **2026-11-22 CURRENT READING:** The D0 table below is a historical 2026-10/11 design snapshot. Old min-TLS, unit-only or frontend remarks are NOT today's implementation. Refer to [CURRENT_STATUS](../CURRENT_STATUS.md), [release-gap register](../planning/release-gap-register.md), [ADR index](../architecture/adrs/README.md). D0 approved coding only. v0.1 NOT RELEASE READY.
+
 # Open decisions and pre-code sign-offs
 
 **Status:** **D0 TECHNICAL BASELINE APPROVED 2026-10-30** for V0.1 **source development only** by authenticated repository owner `kunlong-luo`, following explicit conditional approval in this conversation. The reviewed pre-signoff Git SHA is `977392dd73273ea2a7930651d6e3bd40da487859`; [D0 decision record](d0-decision-package-2026-10-30.md). **Legal/organizational real-data authorization, CA/OS deployment validation, V0.2 audit and V0.3 recording remain OPEN**; never infer them from D0.

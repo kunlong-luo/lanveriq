@@ -1,3 +1,5 @@
+> **2026-11-22 ACTIVE RULE LINKS:** [Engineering playbook](../governance/engineering-playbook.md), [DoD](../planning/definition-of-done.md), [CURRENT_STATUS](../CURRENT_STATUS.md) and [release-gap register](../planning/release-gap-register.md). CI L1/L2/L3 are distinct; no synthetic PASS is release approval. v0.1 NOT RELEASE READY.
+
 # Testing strategy — L1 fast checks, L2 batch integration, L3 milestone acceptance
 
 **Approved 2026-11-08:** develop the complete v0.1 P0 business loop in coherent batches. Do **not** rerun the entire Caddy/Tomcat/PG18/Chromium stack on each CSS/service method/DAO commit. Equally, do **not** defer the first security or database test until every feature is built. The previous unit-only CI policy was an earlier preimplementation snapshot and is superseded by the [approved batched delivery plan](../planning/v0.1-batched-delivery-plan-2026-11-08.md).

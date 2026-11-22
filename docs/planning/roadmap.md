@@ -1,3 +1,5 @@
+> **2026-11-22 CURRENT READING:** The roadmap below is a dated delivery plan, not current completed work. Use [CURRENT_STATUS](../CURRENT_STATUS.md) for verified SHA/CI and [release-gap register](release-gap-register.md) for open approvals. D4-C16 isolated tests passed, but real external WORM, FIDO source custody, WebAuthn MFA and Pop!_OS L3 are OPEN. v0.1 NOT RELEASE READY.
+
 > **2026-11-21 当前执行状态：** [CURRENT_STATUS 实际代码/CI 与 P0 阻塞表](../CURRENT_STATUS.md) 是唯一最新事实入口。本文件的 2026-11-08 目标时间线与 NXT 阶段描述保留为**有日期的路线图基线**，不是当前已完成/未完成清单。D4-C10 离线签名元数据重复标识符校验已通过五条同 SHA 合成 CI；NXT-28 断开式 Web UI 也已验收。**仍无正式 FIDO 来源批准、管理员真实 WebAuthn MFA、Pop!_OS L3、生产联网/采集/远控/签发，v0.1 NOT RELEASE READY。**
 
 # Lanveriq delivery roadmap — v0.1 business-loop priority

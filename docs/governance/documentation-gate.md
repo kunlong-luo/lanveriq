@@ -1,3 +1,5 @@
+> **2026-11-22 CURRENT AUTHORITY:** This D0 document is HISTORICAL source-development approval only. Active [engineering playbook](engineering-playbook.md), [document lifecycle](document-lifecycle.md), [CURRENT_STATUS](../CURRENT_STATUS.md) and [release gaps](../planning/release-gap-register.md) supersede old UI/CI assumptions. v0.1 NOT RELEASE READY.
+
 > **2026-11-21 文档链接与状态自动化：** `apps/web/scripts/verify-documentation-baseline.mjs` 现在同时检查 [现行状态](../CURRENT_STATUS.md)、[精简目录](../README.md)、两份根 README 和 [历史目录快照](documentation-index-snapshot-2026-11-21.md) 的相对链接。搬运文档必须修正相对路径；GitHub Actions `web-unit.yml` 在状态页、导航及根 README 改动时运行源码/链接负例，CI 成功也不等于生产批准。文档修改前核实真实功能 SHA 与验收 run，不得自动升级历史功能范围。
 
 > **2026-11-21 最新文档优先级：** [CURRENT_STATUS](../CURRENT_STATUS.md) 是“当下源码/同 SHA CI/实机/上线审批”唯一权威事实；[docs/README](../README.md) 负责导航；本 D0 文件仅证明**2026-10-30 技术设计允许开始编码**。功能验收见里程碑细则，历史快照保留原貌。任何新 PASS 必须注明功能 SHA、完整 CI run、隔离/实机/生产范围，不得继承别的 SHA 或把单元/容器/Chromium 视为生产批准。v0.1 NOT RELEASE READY。

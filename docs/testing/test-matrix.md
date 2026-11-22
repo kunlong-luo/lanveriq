@@ -1,6 +1,8 @@
+> **2026-11-22 当前判定：** 测试矩阵是计划/覆盖范围，不是 CI 实跑计数；实际 D4-C16 6/6 同 SHA 合成 CI、真实 PG18 ≥147 JUnit 与尚未完成的 Pop!_OS 实机 L3 分别查看 [CURRENT_STATUS](../CURRENT_STATUS.md)、[发布缺口](../planning/release-gap-register.md)。
+
 # Cross-platform and protocol verification matrix
 
-**当前状态（2026-11-21）：** 本文件是**场景与覆盖计划矩阵**，不是“所有自动化未执行”的实时结论。实际完成程度以 [CURRENT_STATUS](../CURRENT_STATUS.md)、[L1/L2/L3](strategy.md) 和每项 GitHub Actions 功能 SHA 为准。已执行：Linux 隔离 Rust→Caddy/Tomcat TLS1.3→PG18/ACK、PG18.6 Testcontainers、Next.js Chromium 等**合成**检查；最新 D4-C10 5/5 同 SHA CI PASS。**未执行/未批准：Pop!_OS 24.04 实机 L3、生产登录/设备链路、可信 FIDO MDS 官方来源和发布批准。** 下方单元/手动表格的 `Planned` 表示对应 **OS 实机和业务端到端验收未通过**，不否定已有隔离 CI。
+**当前状态（2026-11-21）：** 本文件是**场景与覆盖计划矩阵**，不是“所有自动化未执行”的实时结论。实际完成程度以 [CURRENT_STATUS](../CURRENT_STATUS.md)、[L1/L2/L3](strategy.md) 和每项 GitHub Actions 功能 SHA 为准。已执行：Linux 隔离 Rust→Caddy/Tomcat TLS1.3→PG18/ACK、PG18.6 Testcontainers、Next.js Chromium 等**合成**检查；最新 D4-C16 6/6 同 SHA 合成 CI PASS。**未执行/未批准：Pop!_OS 24.04 实机 L3、生产登录/设备链路、可信 FIDO MDS 官方来源和发布批准。** 下方单元/手动表格的 `Planned` 表示对应 **OS 实机和业务端到端验收未通过**，不否定已有隔离 CI。
 
 ## Platform coverage
 | Case | Windows 11 x64 | Pop!_OS 24.04 主机（实际会话待核对） | 备用 X11/Wayland 会话（条件性） | Method / milestone |

@@ -1,3 +1,5 @@
+> **2026-11-22 CURRENT AUTHORITY:** [CURRENT_STATUS](../CURRENT_STATUS.md) and [release-gap register](../planning/release-gap-register.md) govern release facts, [engineering playbook](../governance/engineering-playbook.md) controls execution. FIDO, admin MFA, CA, employee data and Pop!_OS L3 remain OPEN. v0.1 NOT RELEASE READY.
+
 > **2026-11-21 现行发布边界：** 以 [CURRENT_STATUS](../CURRENT_STATUS.md) 和 [Linux-first 发布账本](../planning/release-readiness-2026-11-13.md) 的最新证据为准：D4-C10 FIDO 元数据拒绝检查已通过 5/5 **合成** CI，NXT-28 单一 Next.js 断开式预览已通过 4/4；这些不能替代真实 FIDO 来源审批、管理员 WebAuthn、Pop!_OS 24.04 L3、正式业务授权、签名发行/备份恢复。**没有任何生产发布批准；所有生产联网、采集、自动恢复、远控、CA 签发保持关闭。** 本文件旧 2026-11-08/13 片段保留为历史。
 
 # Lightweight pre-release and migration plan
