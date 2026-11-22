@@ -344,6 +344,51 @@ final class StagedFidoMdsSourceVerifier {
         return untrusted;
     }
 
+    /**
+     * D4-C13 opt-in PUBLIC REFERENCE comparison before the separate C12
+     * reviewer signatures. A claimant cannot replace published R46 with a
+     * self-issued root, even if they forged a self-consistent signed JWS,
+     * CRL, time proof and two disposable governance signatures.
+     *
+     * Never treat this offline test primitive or R46 public certificate as
+     * official source custody or a production-approved FIDO trust store.
+     */
+    UntrustedSourceEvidence inspectWithPublishedR46ReferenceOfflineOnly(
+            byte[] candidateOfficialRootDer,
+            String compactJws, ExternalApproval claimedOutOfBandApproval,
+            SignedTimeEvidence time, List<X509CRL> offlineCrls,
+            long lastObservedBlobNumber, long lastObservedTimeSequence,
+            StagedFidoMdsIndependentReviewSeal.PinnedReviewKeys
+                    independentlyProvisionedGovernanceKeys,
+            StagedFidoMdsIndependentReviewSeal.SignedReview signedReview,
+            long lastObservedGovernanceReviewSequence) {
+        if (claimedOutOfBandApproval == null
+                || claimedOutOfBandApproval.anchor() == null
+                || time == null || time.checkedAt() == null) {
+            throw denied();
+        }
+        var candidate = StagedFidoMdsR46PublicReferenceScreen
+                .inspectReferenceOnly(candidateOfficialRootDer, time.checkedAt());
+        try {
+            // Neither a caller-supplied SHA matching a caller-supplied fake
+            // root nor a valid R46 reference paired with a different root
+            // can pass. Do not accept an R3 cross-certificate as R46.
+            if (!candidate.rootSha256().equals(
+                    claimedOutOfBandApproval.anchorSha256())
+                    || !Arrays.equals(candidateOfficialRootDer,
+                            claimedOutOfBandApproval.anchor().getEncoded())) {
+                throw denied();
+            }
+        } catch (GeneralSecurityException invalidCertificate) {
+            throw denied();
+        }
+        return inspectWithIndependentReviewOfflineOnly(
+                compactJws, claimedOutOfBandApproval, time, offlineCrls,
+                lastObservedBlobNumber, lastObservedTimeSequence,
+                independentlyProvisionedGovernanceKeys, signedReview,
+                lastObservedGovernanceReviewSequence);
+    }
+
     private static boolean verifySignedTime(
             PublicKey signedBy, SignedTimeEvidence evidence,
             String jwsSha, String rootSha, String crlSha, String timeKeySha)

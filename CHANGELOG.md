@@ -1,3 +1,9 @@
+## 2026-11-22 — A11-D4-C13 published R46 root identity guard (functional CI pending)
+
+- Add an unmounted, offline-only exact published-SHA256 GlobalSign R46 self-signed certificate identity screen; public certificate reference fixture from GlobalSign, independently cross-confirmed by CCADB. Reject fake roots even with otherwise correctly signed disposable ES256/RS256 JWS+CRL+time+two-key review proof.
+- New optional offline verifier lane validates exact known official root DER against the claimed root before C12 review; returns only UNTRUSTED evidence. Extend strict real JUnit XML gate from 10 to 12 mandatory source-verifier tests. [Security contract](docs/security/fido-mds-public-r46-root-reference-d4-c13-2026-11-22.md).
+- **New source SHA CI pending.** Public R46 identity is not independently governed production trust; no official blob download, CRL/time custody, live WebAuthn MFA, trusted CA or Pop!_OS L3. Production remains OFF, v0.1 NOT RELEASE READY.
+
 ## 2026-11-21 — A11-D4-C12 independent pinned source-review signature boundary (5/5 exact-SHA CI PASS)
 
 - Add a package-private, unmounted governance proof requiring TWO distinct separately pinned Ed25519 verification keys over exactly the synthetic JWS, leaf/root, CRL hashes, time-key/proof, claimed official-source URL and expiry/review-sequence evidence. Refuse self-asserted roots without the independent seals; preserve existing crypto/PKIX/CRL/time/JSON gates.

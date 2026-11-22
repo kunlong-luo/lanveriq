@@ -21,6 +21,8 @@ REQUIRED = frozenset({
     "cryptographicallyValidDuplicateModelIdsStillRejectBeforeUntrustedEvidence",
     "signedJwsWithDuplicateJsonFieldsAtAnyDepthRejectsEvenWithValidTimeAndCrl",
     "independentPinnedReviewerKeysBindExactUntrustedSourceAndRejectSelfAssertion",
+    "publishedGlobalSignR46DerIsOnlyUntrustedReferenceNotTrustAuthorization",
+    "realPublishedR46ReferenceRejectsEvenFullySignedSyntheticFakeRoot",
 })
 DEFAULT_REPORT = Path("apps/server/build/test-results/test") / f"TEST-{CLASS}.xml"
 

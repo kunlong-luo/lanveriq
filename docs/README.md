@@ -31,6 +31,8 @@
 
 ## 4. 安全、测试、运维与合规
 
+- **D4-C13 GlobalSign R46 公开根指纹精确识别（CI 待验收）：** [离线候选核对与身份/信任边界](security/fido-mds-public-r46-root-reference-d4-c13-2026-11-22.md)。参考证书和公开 SHA-256 不是正式组织信任批准。
+
 - **D4-C12 两个独立审核公钥与离线来源绑定（5/5 同 SHA 合成 CI PASS）：** [完整安全契约](security/fido-mds-independent-provenance-d4-c12-2026-11-21.md)，仅合成未可信证据，不能视为真实 FIDO 来源或签发授权。
 
 - **D4-C11 最新签名 JSON 安全检查（5/5 同 SHA 合成 CI PASS）：** [原始签名 JWS 的重复 JSON 字段拒绝](security/fido-mds-duplicate-json-d4-c11-2026-11-21.md)；此门禁仅验证合成未可信材料，不是受批准的 FIDO 来源。

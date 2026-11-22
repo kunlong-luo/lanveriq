@@ -12,6 +12,9 @@ import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.util.Base64;
 import java.math.BigInteger;
+import java.io.ByteArrayInputStream;
+import java.security.cert.CertificateFactory;
+import java.util.Arrays;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -504,6 +507,119 @@ class StagedFidoMdsSourceVerifierTest {
             assertEquals(51, verifier.inspectWithIndependentReviewOfflineOnly(
                     jws, f.claimedPolicy(), time, List.of(crl), 50, 8,
                     separatelyPinned, signed, 6).blobNumber());
+        }
+    }
+
+    private static byte[] officialR46TestReferenceDer() throws Exception {
+        // Public certificate copied from the GlobalSign certificate page
+        // and independently matched by SHA-256 to Mozilla CCADB R00000947.
+        // This is NEVER a preapproved organizational trust-store resource.
+        try (var stream = StagedFidoMdsSourceVerifierTest.class
+                .getResourceAsStream("/security/untrusted-reference-only/"
+                        + "globalsign-root-r46.pem")) {
+            if (stream == null) {
+                throw new IllegalStateException("Missing public root fixture");
+            }
+            var certificate = (X509Certificate) CertificateFactory
+                    .getInstance("X.509").generateCertificate(stream);
+            return certificate.getEncoded();
+        }
+    }
+
+    @Test
+    void publishedGlobalSignR46DerIsOnlyUntrustedReferenceNotTrustAuthorization()
+            throws Exception {
+        byte[] reference = officialR46TestReferenceDer();
+        var candidate = StagedFidoMdsR46PublicReferenceScreen
+                .inspectReferenceOnly(reference, NOW);
+        assertEquals(StagedFidoMdsR46PublicReferenceScreen
+                .PUBLIC_REFERENCE_SHA256, candidate.rootSha256());
+        assertTrue(candidate.toString().contains("Untrusted"));
+        // The known root's identity is not an MDS approval or an authority.
+        byte[] altered = reference.clone();
+        altered[altered.length - 3] ^= (byte) 0x01;
+        for (byte[] invalid : new byte[][]{
+                altered, Arrays.copyOf(reference, reference.length - 1),
+                Arrays.copyOf(reference, reference.length + 1),
+                new byte[reference.length]}) {
+            assertThrows(AccessDeniedException.class, () ->
+                    StagedFidoMdsR46PublicReferenceScreen
+                            .inspectReferenceOnly(invalid, NOW));
+        }
+        assertThrows(AccessDeniedException.class, () ->
+                StagedFidoMdsR46PublicReferenceScreen
+                        .inspectReferenceOnly(null, NOW));
+        assertThrows(AccessDeniedException.class, () ->
+                StagedFidoMdsR46PublicReferenceScreen
+                        .inspectReferenceOnly(reference, null));
+        assertThrows(AccessDeniedException.class, () ->
+                StagedFidoMdsR46PublicReferenceScreen.inspectReferenceOnly(
+                        reference, Instant.parse("2047-01-01T00:00:00Z")));
+    }
+
+    @Test
+    void realPublishedR46ReferenceRejectsEvenFullySignedSyntheticFakeRoot()
+            throws Exception {
+        byte[] publicR46 = officialR46TestReferenceDer();
+        for (boolean rsa : new boolean[]{false, true}) {
+            Fixture f = fixture(rsa);
+            X509CRL crl = f.freshCrl();
+            String syntheticJws = f.jws(60, false);
+            var signedTime = f.time(9, NOW, syntheticJws, List.of(crl));
+            var syntheticEvidence = verifier.inspectOfflineOnly(
+                    syntheticJws, f.claimedPolicy(), signedTime,
+                    List.of(crl), 59, 8);
+            var a = key("Ed25519");
+            var b = key("Ed25519");
+            var governancePins = new StagedFidoMdsIndependentReviewSeal
+                    .PinnedReviewKeys(a.getPublic(),
+                    fingerprint(a.getPublic().getEncoded()),
+                    b.getPublic(), fingerprint(b.getPublic().getEncoded()));
+            var fullySignedReview = signReview(reviewClaim(
+                    syntheticEvidence,
+                    StagedFidoMdsIndependentReviewSeal.EXPECTED_MDS_SOURCE,
+                    NOW.minusSeconds(90), NOW.plusSeconds(3600), 11),
+                    a.getPrivate(), b.getPrivate());
+
+            // Original C12 lane handles synthetic signed evidence as
+            // UNTRUSTED, but it cannot independently identify official R46.
+            assertEquals(60, verifier.inspectWithIndependentReviewOfflineOnly(
+                    syntheticJws, f.claimedPolicy(), signedTime,
+                    List.of(crl), 59, 8, governancePins,
+                    fullySignedReview, 10).blobNumber());
+
+            // New C13 lane denies a caller-owned fake root even with both
+            // correctly signed governance proofs and synthetic PKIX/CRL/time.
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithPublishedR46ReferenceOfflineOnly(
+                            f.root().getEncoded(), syntheticJws,
+                            f.claimedPolicy(), signedTime, List.of(crl),
+                            59, 8, governancePins, fullySignedReview, 10));
+            // Also deny public R46 bytes paired with the fake declared
+            // anchor; a URL or DER alone cannot replace actual chain review.
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithPublishedR46ReferenceOfflineOnly(
+                            publicR46, syntheticJws, f.claimedPolicy(),
+                            signedTime, List.of(crl), 59, 8,
+                            governancePins, fullySignedReview, 10));
+
+            var parsedR46 = (X509Certificate) CertificateFactory
+                    .getInstance("X.509").generateCertificate(
+                            new ByteArrayInputStream(publicR46));
+            var officialShapedClaim =
+                    new StagedFidoMdsSourceVerifier.ExternalApproval(
+                            parsedR46,
+                            StagedFidoMdsR46PublicReferenceScreen
+                                    .PUBLIC_REFERENCE_SHA256,
+                            f.timeKey().getPublic(),
+                            fingerprint(f.timeKey().getPublic().getEncoded()));
+            // A real PUBLIC R46 root still cannot validate a leaf issued
+            // by a disposable synthetic CA: PKIX must independently fail.
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithPublishedR46ReferenceOfflineOnly(
+                            publicR46, syntheticJws, officialShapedClaim,
+                            signedTime, List.of(crl), 59, 8,
+                            governancePins, fullySignedReview, 10));
         }
     }
 
