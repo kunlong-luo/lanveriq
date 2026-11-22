@@ -88,13 +88,13 @@ class PostgreSqlRoleSeparationIT {
             sql(admin,"GRANT USAGE,CREATE ON SCHEMA public TO lanveriq_migrator_synthetic");
             sql(admin,"GRANT USAGE ON SCHEMA public TO lanveriq_runtime_synthetic");
         }
-        // Real Flyway V1...V29, owned by a NON-SUPERUSER distinct from runtime.
+        // Real Flyway V1...V30, owned by a NON-SUPERUSER distinct from runtime.
         var result=Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(),MIGRATOR,MIGRATOR_PW)
                 .locations("classpath:db/migration")
                 .validateOnMigrate(true)
                 .load().migrate();
-        assertEquals(29,result.migrationsExecuted);
+        assertEquals(30,result.migrationsExecuted);
 
         // Test-only, explicit and incomplete grant manifest, NOT production:
         // narrow positive application write + security history read-only.

@@ -104,15 +104,25 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
     }
     private Source source(Stream stream, long sequence) {
         return transaction().execute(ignored -> {
+            // V26 is already an append-only DB-owned chain. Do not skip
+            // its predecessor merely because the new V30 receipt is tested
+            // separately: the source must be valid before V30 can reference it.
+            var previous=manager.createNativeQuery("""
+                    SELECT receipt_sha256
+                    FROM admin_fido_mds_source_receipts_staging
+                    WHERE stream_id=:stream
+                    ORDER BY receipt_sequence DESC LIMIT 1
+                    """).setParameter("stream",stream.id()).getResultList();
+            byte[] parent=previous.isEmpty() ? null : (byte[])previous.getFirst();
             UUID id=(UUID)manager.createNativeQuery("""
                     INSERT INTO admin_fido_mds_source_receipts_staging
                       (stream_id,receipt_sequence,blob_no,signed_time_sequence,
                        signed_time_at,leaf_sha256,jws_sha256,root_sha256,
                        crl_evidence_sha256,time_key_sha256,
-                       signed_time_proof_sha256,observed_by,
-                       observer_session_version)
+                       signed_time_proof_sha256,previous_receipt_sha256,
+                       observed_by,observer_session_version)
                     VALUES (:stream,:seq,:seq,:seq,clock_timestamp(),
-                            :leaf,:jws,:root,:crl,:time_key,:proof,:actor,0)
+                            :leaf,:jws,:root,:crl,:time_key,:proof,:parent,:actor,0)
                     RETURNING receipt_id
                     """)
                     .setParameter("stream",stream.id())
@@ -123,6 +133,7 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
                     .setParameter("crl",hash(20+(int)sequence))
                     .setParameter("time_key",hash(3))
                     .setParameter("proof",hash(30+(int)sequence))
+                    .setParameter("parent",parent)
                     .setParameter("actor",stream.owner())
                     .getSingleResult();
             return new Source(id,stream.id(),sequence);

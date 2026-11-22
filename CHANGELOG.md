@@ -1,3 +1,5 @@
+> **D4-C15 first-source CI correctly blocked (2026-11-22):** Exact SHA `4519a203` failed real PG18 because one new test fixture omitted V26's required predecessor hash, and two preexisting tests used exact 29/20 migration counts instead of post-V30 30/21. Fix only the fixture and assertions, preserving V26/V30 fail-closed SQL. Do not report an accepted C15 functional SHA until the repaired exact-source Testcontainers gate passes. [D4-C15 details](docs/security/fido-mds-acquisition-ledger-d4-c15-2026-11-22.md).
+
 ## 2026-11-22 — D4-C15 PostgreSQL 18 immutable untrusted acquisition receipt ledger (CI PENDING)
 
 - Forward-only V30 staging table, DB-owned signed-manifest/signature/chained digests, V26 source hash and sequence binding, V25 stream serialized monotonic history, immutable rows and DB-owned atomic audit with suppression detection, plus new unmounted Java writer.

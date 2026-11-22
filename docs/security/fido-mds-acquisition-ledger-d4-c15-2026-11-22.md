@@ -30,3 +30,7 @@ One new independent `PostgreSqlFidoMdsAcquisitionReceiptIT` Java 25 Testcontaine
 ## Remaining release blockers
 
 Real FIDO MDS/CRL fetching with authenticated TLS evidence, independent R46 root trust approval, legitimate CRL custody/source and PKIX revocation material, real trusted clock, keys stored in HSM/KMS with individual human identities, independent reviewer WebAuthn MFA, off-database tamper-evident witness, runtime DB-role split and verified minimal privileges, metadata status admission, CA/issuer safeguards, and Pop!_OS 24.04 physical L3 are **OPEN**. Production networking, collection, auto-recovery, remote control and certificate issuance remain **OFF**. v0.1 **NOT RELEASE READY**.
+
+## First exact-SHA CI failure and correction
+
+**Initial functional SHA `4519a203` is NOT accepted.** Real PostgreSQL integration found a test-fixture error in the new V30 negative test: the test created a second V26 source receipt without supplying V26's mandatory database-owned predecessor digest. The immutable V26 guard correctly denied it. Independently, legacy migration tests still expected 29 Flyway versions (or 20 upgrades from V9); forward-only V30 correctly makes those totals **30** and **21**. The repaired feature SHA must run the **entire** real PostgreSQL 18.6 + strict 11-class JUnit gate again, along with Java source compilation and RD-2 protections. These failures do not authorize altering or relaxing V26/V30 security constraints.
