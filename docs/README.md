@@ -31,7 +31,7 @@
 
 ## 4. 安全、测试、运维与合规
 
-- **D4-C16 离线外部见证证书签名和 V30 当前数据库尾记录比对（CI 待验收）：** [见证范围、真实 PG18 测试与外部托管缺口](security/fido-mds-detached-witness-d4-c16-2026-11-22.md)，不能把数据库内签名当外部见证。
+- **D4-C16 离线外部见证证书签名和 V30 当前数据库尾记录比对（6/6 同 SHA 合成 CI PASS）：** [见证范围、真实 PG18 测试与外部托管缺口](security/fido-mds-detached-witness-d4-c16-2026-11-22.md)，不能把数据库内签名当外部见证。
 
 - **D4-C15 V30 离线获取收据 PostgreSQL 18 不可变审计链（5/5 同 SHA 触发项 PASS）：** [源码/信任边界及真实 Testcontainers 验收](security/fido-mds-acquisition-ledger-d4-c15-2026-11-22.md)，永久仅未可信。
 

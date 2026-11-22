@@ -1,6 +1,6 @@
 # A11-D4-C16 — detached offline signed witness for the PostgreSQL V30 tail
 
-**Date:** 2026-11-22 · **Branch:** `main` only · **New functional-source CI:** PENDING · **v0.1 NOT RELEASE READY.**
+**Date:** 2026-11-22 · **Branch:** `main` only · **Exact-functional-SHA synthetic CI:** 6/6 SUCCESS · **v0.1 NOT RELEASE READY.**
 
 ## Threat boundary: PostgreSQL-local history is not an independent witness
 
@@ -22,6 +22,14 @@ D4-C16 introduces the required *offline verification primitive*, **not a real of
 Extend the existing real PostgreSQL 18.6 Testcontainers class with one mandatory independent `c16DetachedWitnessMatchesExactPostgresTailAndRejectsOldForgedOrForeign` test: real disposable Ed25519 checkpoint signing, valid V26/V30+audit snapshots, forced stale previous checkpoint after database append, attacker-signed checkpoint, incorrect pin, external cursor mismatch, future time, forged source UUID and changed SHA-256 under a genuinely signed witness. The class must now run **four** mandatory real PG18 tests, all 11 Testcontainers classes at least **147** successful tests total.
 
 Update the strict Gradle JUnit XML evidence checker and independent Python gate, plus the PostgreSQL workflow path filter to trigger the real database tests on any witness verifier change. Keep Java 25, Gradle integration compile, RD-2 and Linux Batch A outcomes tied to the **exact functional SHA**; never infer PASS from a cached report or another commit.
+
+## Exact-SHA real test acceptance — 6/6 SUCCESS
+
+[functional SHA `d0939d17`](https://github.com/kunlong-luo/lanveriq/commit/d0939d17bdc73d684f8838264704e46e0d0b2197) passed **6/6 same-SHA triggered synthetic CI workflows**: [Java 25 Gradle unit #45015085111](https://github.com/kunlong-luo/lanveriq/actions/runs/45015085111), [PostgreSQL 18.6 actual Testcontainers with 11 classes / >=147 executed passing JUnit tests #45015085125](https://github.com/kunlong-luo/lanveriq/actions/runs/45015085125), [PostgreSQL integration-source compile #45015085083](https://github.com/kunlong-luo/lanveriq/actions/runs/45015085083), [Next.js fast checks #45015085046](https://github.com/kunlong-luo/lanveriq/actions/runs/45015085046), [RD-2 default-OFF guard #45015085104](https://github.com/kunlong-luo/lanveriq/actions/runs/45015085104), and [Linux Batch A isolated Caddy→Tomcat double TLS1.3/mTLS + PG18 + synthetic Rust Reqwest/strict ACK #45015085077](https://github.com/kunlong-luo/lanveriq/actions/runs/45015085077).
+
+The actual PG18 job logs contain `BUILD SUCCESSFUL` and `PG18 synthetic JUnit evidence verified: all 11 Testcontainers classes, at least 147 passing tests including separate migrator/runtime PG18 privileges; no failed, errored or skipped cases.` The isolated Linux Batch A separately confirmed PostgreSQL startup, business 403 default deny, TLS 1.2-only refusal, double mTLS 1.3, and a disposable Rust Reqwest Agent→Caddy→Tomcat→PG18 activation/heartbeat/strict ACK request chain. All results belong to **the single original functional SHA `d0939d17`**, not to this later documentation-only commit.
+
+The signed witness is still **offline, synthetic and UNTRUSTED**. The detached witness public key, cursor and checkpoint are supplied by test fixtures; **no real off-database WORM storage, independently retained high-water cursor, organizational HSM/KMS witness key, trusted time, genuine FIDO MDS or official CRL retrieval/source provenance, real administrator WebAuthn MFA or Pop!_OS 24.04 physical L3** has been established. The verifier has NO Spring Bean, public endpoint or trust-admission consumer. V30 also admits correctly shaped *dummy* signatures through direct SQL, by design: an external witness matching database bytes does NOT authenticate the underlying acquisition claim. **v0.1 NOT RELEASE READY; production networking, collection, auto-recovery, remote control and certificate issuance remain OFF.**
 
 ## Still required before meaningful production security
 
