@@ -374,6 +374,122 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
     }
 
     @Test
+    void c17AnchoredWitnessHistoryRejectsTruncationForgeryAndStaleDatabaseTail()
+            throws Exception {
+        Stream stream=createOwnerStream();
+        Source first=source(stream,1);
+        UUID firstId=normalInsert(stream,first,null,hash(55));
+        var genuine=KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        var attacker=KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        String publicPin=hexSha256(genuine.getPublic().getEncoded());
+        var pin=new StagedFidoMdsDetachedWitnessReader.PinnedWitnessKey(
+                genuine.getPublic(),publicPin);
+        var tailReader=new StagedFidoMdsDetachedWitnessReader(manager);
+        var historyReader=new StagedFidoMdsAnchoredWitnessHistoryReader(
+                tailReader);
+        Instant observed=Instant.parse("2026-11-22T11:00:00Z");
+        var signedFirst=signDetached(witnessFor(stream,firstId,1,null),
+                genuine);
+        var firstMatch=tailReader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedFirst,
+                new StagedFidoMdsDetachedWitnessReader.ExternalCursor(1,null),
+                stream.id(),observed);
+
+        Source second=source(stream,2);
+        UUID secondId=normalInsert(stream,second,digest(firstId),hash(55));
+        var signedSecond=signDetached(witnessFor(stream,secondId,2,
+                firstMatch.detachedWitnessSha256()),genuine);
+        var secondMatch=tailReader.inspectAgainstCurrentDbTailOfflineOnly(
+                pin,signedSecond,
+                new StagedFidoMdsDetachedWitnessReader.ExternalCursor(
+                        2,firstMatch.detachedWitnessSha256()),
+                stream.id(),observed);
+        var externallyPinnedHead=
+                new StagedFidoMdsAnchoredWitnessHistoryReader
+                        .IndependentlyRetainedHead(
+                                stream.id(),2,
+                                secondMatch.detachedWitnessSha256(),publicPin);
+        var complete=java.util.List.of(signedFirst,signedSecond);
+        var matched=historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                pin,complete,externallyPinnedHead,stream.id(),observed);
+        assertEquals(2,matched.acquisitionSequence());
+        assertEquals(secondMatch.detachedWitnessSha256(),
+                matched.detachedWitnessSha256());
+
+        // The externally retained high-water head forbids quiet truncation.
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,java.util.List.of(signedFirst),
+                        externallyPinnedHead,stream.id(),observed));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,java.util.List.of(signedSecond,signedFirst),
+                        externallyPinnedHead,stream.id(),observed));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,java.util.List.of(signedFirst,signedFirst),
+                        externallyPinnedHead,stream.id(),observed));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,java.util.List.of(signedFirst,
+                                signDetached(signedSecond.claim(),attacker)),
+                        externallyPinnedHead,stream.id(),observed));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,complete,
+                        new StagedFidoMdsAnchoredWitnessHistoryReader
+                                .IndependentlyRetainedHead(
+                                        stream.id(),2,"0".repeat(64),publicPin),
+                        stream.id(),observed));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,complete,
+                        new StagedFidoMdsAnchoredWitnessHistoryReader
+                                .IndependentlyRetainedHead(
+                                        UUID.randomUUID(),2,
+                                        secondMatch.detachedWitnessSha256(),
+                                        publicPin),
+                        stream.id(),observed));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        new StagedFidoMdsDetachedWitnessReader.PinnedWitnessKey(
+                                genuine.getPublic(),"f".repeat(64)),
+                        complete,externallyPinnedHead,stream.id(),observed));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,complete,externallyPinnedHead,
+                        UUID.randomUUID(),observed));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,complete,externallyPinnedHead,stream.id(),
+                        Instant.parse("2026-11-21T00:00:00Z")));
+
+        // Even a genuine old signature plus old head is NOT the current
+        // database tail after a later V30 append.
+        var oldHead=new StagedFidoMdsAnchoredWitnessHistoryReader
+                .IndependentlyRetainedHead(
+                        stream.id(),1,firstMatch.detachedWitnessSha256(),
+                        publicPin);
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,java.util.List.of(signedFirst),oldHead,
+                        stream.id(),observed));
+        Source third=source(stream,3);
+        normalInsert(stream,third,digest(secondId),hash(55));
+        assertThrows(AccessDeniedException.class,() ->
+                historyReader.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        pin,complete,externallyPinnedHead,stream.id(),observed));
+
+        // Neither verified history nor old head changes the untrusted V30
+        // evidence state or authorizes real FIDO / WebAuthn / CA operations.
+        assertEquals("acquisition_untrusted",manager.createNativeQuery("""
+                SELECT evidence_state
+                FROM admin_fido_mds_acquisition_receipts_staging
+                WHERE acquisition_id=:id
+                """).setParameter("id",secondId).getSingleResult());
+    }
+
+    @Test
     void v30SourceBoundAcquisitionPersistsDbHashesAndExactlyOneAudit() {
         Stream stream=createOwnerStream();
         Source first=source(stream,1);
