@@ -1,6 +1,6 @@
 # A11-D4-C18c — offline S3 version-specific Object Lock read-back gate
 
-**2026-11-22 · Staged L1-only · CI PENDING until real run · G-01/G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
+**2026-11-22 · Staged offline L1 PASS · exact functional SHA `7489a1c5` · G-01/G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
 
 ## Scope
 
@@ -21,7 +21,11 @@ The verification result is strictly `UntrustedVersionReadback`; it is not a trus
 
 `StagedS3VersionedWitnessEvidenceReaderTest` verifies one positive *untrusted* response plus wrong/missing version IDs, account/bucket/key mismatch, range/part read, wrong retention request, mismatched SDK returned version, delete marker, content-range, altered/empty/oversize bytes, false content-length, digest substitution, GOVERNANCE mode, missing retention, mismatched retention dates, too-short/expired retention and invalid external pins. All fixtures are created in-process; **no real AWS SDK network call or S3 Object Lock service is exercised**.
 
-The actual source SHA, test run ID and pass/fail must be recorded after CI completes; compilation/old exact-SHA PostgreSQL runs cannot be reused as C18c L1 evidence.
+## Verified exact-SHA CI (synthetic/offline only)
+
+The precise [C18c functional SHA `7489a1c5`](https://github.com/kunlong-luo/lanveriq/commit/7489a1c51625656c6d88b2ce2ee3d6c0f75a9255) achieved **6/6 triggered workflow SUCCESS**: [Java 25 full unit (offline SDK negative tests) #45020286625](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286625) · [PG18 source compilation (no DB) #45020286709](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286709) · [real PG18.6 existing regression ≥150 #45020286619](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286619) · [Next.js preview #45020286646](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286646) · [documentation gate #45020286677](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286677) · [RD-2 OFF #45020286755](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286755). Java 25 full `test`: `BUILD SUCCESSFUL in 53s` (C18c JUnit fixture compiled and exercised by the full unit suite). Actual PG18.6 Testcontainers *existing database regression*, 11 classes ≥150 PASS, `BUILD SUCCESSFUL in 1m 10s`, no failed/errored/skipped. The database run validates non-regression after dependency changes **only**; it is not a live S3 readback, S3 Object Lock service or AWS KMS integration test.
+
+**C18c external AWS/S3 acceptance: NOT RUN**. Docs-only commits must not be counted as C18c feature validation.
 
 ## External live acceptance (NOT RUN)
 

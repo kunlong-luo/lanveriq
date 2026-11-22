@@ -1,14 +1,14 @@
 # Lanveriq 当前状态 / Current status
 
-**核对日期：2026-11-22** · **最新已验收隔离安全功能基线：[`4e9dcdac`](https://github.com/kunlong-luo/lanveriq/commit/4e9dcdac074200548317669e78cf8f66e405c3f3)（D4-C18b：7/7 同功能 SHA CI SUCCESS，实际 PG18.6 pg_dump/pg_restore 两套恢复数据库，11 类 ≥150 JUnit PASS）**。D4-C18a [`5afbee8a`](https://github.com/kunlong-luo/lanveriq/commit/5afbee8aa3f35a2ee916a34f4968d23242790aba) 7/7 原功能证据仍保留。后续文档 SHA 不自动等于功能验收。隔离数据库的真实备份恢复 **不是** 跨管理域 WORM/KMS、生产 PITR、官方 FIDO 可信根或 Pop!_OS 24.04 L3。
+**核对日期：2026-11-22** · **最新已验收隔离安全功能基线：[`7489a1c5`](https://github.com/kunlong-luo/lanveriq/commit/7489a1c51625656c6d88b2ce2ee3d6c0f75a9255)（A11-D4-C18c：官方 AWS SDK 2.59.5 S3 SDK 模型离线版本/COMPLIANCE 证据筛查；6/6 同功能 SHA CI SUCCESS，L1 Java25 单元通过；PG18.6 11 类≥150 实际旧回归 PASS，不是 S3 实测）**。D4-C18b [`4e9dcdac`](https://github.com/kunlong-luo/lanveriq/commit/4e9dcdac074200548317669e78cf8f66e405c3f3) 真实 `pg_dump`/`pg_restore` 7/7 同 SHA 合成验收仍有效。后续文档 SHA 不自动成为功能验收。**真实 AWS S3/WORM/KMS 和 Pop!_OS 24.04 L3 均 NOT RUN；v0.1 NOT RELEASE READY。**
 
 > **发布状态：v0.1 NOT RELEASE READY。** 生产联网、真实终端/员工采集、自动恢复、远程控制、CA/设备证书签发与真实管理员授权均未批准启用。已通过的 CI 仅覆盖所注明的隔离合成范围。
 
-## D4-C18c 离线 AWS SDK S3 版本保留证据校验（CI PENDING）
+## 已验收：D4-C18c 离线 AWS SDK S3 版本/保留证据检查（真实外部 G-02 仍 OPEN）
 
 2026-11-22 提交候选 `StagedS3VersionedWitnessEvidenceReader` 与离线 L1 负向测试，使用官方 **AWS SDK Java v2 BOM 2.59.5 / S3** 模型，严格校验 *GetObject/GetObjectRetention* 同一 bucket/key/**versionId** 与 expectedBucketOwner、真实响应字节 SHA-256、两处 COMPLIANCE 模式和保留到期时间。拒绝未指定版本、范围/分块获取、删除标记、ETag 替代摘要、错误版本/所有者、GOVERNANCE 模式、遗漏或过期保留。**此阶段无 S3Client、网络访问、真实 AWS 对象/账户、KMS、可信时间或外部高水位托管；结果仅 UNTRUSTED。** [C18c 详细说明](security/fido-mds-object-lock-version-readback-d4-c18c-2026-11-22.md)。
 
-**功能 SHA 的 L1 CI 尚待运行，状态 PENDING**；之前 C18b 的 7/7 合成 PASS 不等于 C18c 已验收。**G-01/G-02/G-08 OPEN，v0.1 NOT RELEASE READY，所有生产能力 OFF。**
+**精确功能 SHA [`7489a1c5`](https://github.com/kunlong-luo/lanveriq/commit/7489a1c51625656c6d88b2ce2ee3d6c0f75a9255) 的 6/6 触发项全部 SUCCESS：** [Java 25 full unit (offline SDK negative tests) #45020286625](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286625) · [PG18 source compilation (no DB) #45020286709](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286709) · [real PG18.6 existing regression ≥150 #45020286619](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286619) · [Next.js preview #45020286646](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286646) · [documentation gate #45020286677](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286677) · [RD-2 OFF #45020286755](https://github.com/kunlong-luo/lanveriq/actions/runs/45020286755)。其中 Java 25 单元测试真正执行（`BUILD SUCCESSFUL in 53s`）；真实 PostgreSQL 18.6 Testcontainers 既有 11 类至少 150 项回归（`BUILD SUCCESSFUL in 1m 10s`），没有 failed/errored/skipped；**PG18 回归不等于 AWS 网络/WORM 测试**。真实 S3 对象版本保留/删除失败、KMS/CloudTrail 审计、独立高水位与跨安全域回退演练均 **NOT RUN**。**G-01/G-02/G-08 OPEN，v0.1 NOT RELEASE READY，所有生产能力 OFF。**
 
 ## 已验收：D4-C18b 真实隔离 PostgreSQL 备份恢复双向验证（G-02/G-08 OPEN）
 
