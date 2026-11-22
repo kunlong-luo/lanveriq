@@ -1,6 +1,6 @@
 # A11-D4-C18e — cloud-neutral, untrusted, immutable witness evidence screen
 
-**2026-11-22 · SPEC + L1 implementation proposed, CI PENDING · G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
+**2026-11-22 · ACTIVE cloud-neutral source · 6/6 exact-functional-SHA isolated CI PASS · G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
 
 ## Why this change
 
@@ -19,7 +19,7 @@ The core Lanveriq agent, server and Next.js interface do **not need S3**. S3 was
 
 `StagedImmutableWitnessArchiveReaderTest`: one positive **untrusted** match; invalid/expired pins produce **zero calls**; changed version or retention version is denied; false length, altered or oversized body, empty bytes denied; bypassable/unknown/conflicting/expired retention denied; interrupted data source and provider failures denied; stream closed. A real Java25 Gradle unit run is required to call this PASS. The Python architecture checker checks source restrictions, not actual WORM behavior.
 
-**Functional SHA: PENDING** · **L1 Java25 test: PENDING** · **actual independent storage: NOT RUN** · **PG18 exact new SHA tests: not required for this vendor-only boundary change; compile and existing PG18 regression remain independent evidence categories**. Prior C18c/d exact-SHA results must not be relabeled as C18e PASS.
+**Functional SHA [`5eec9a0a`](https://github.com/kunlong-luo/lanveriq/commit/5eec9a0a343b2f59b1645ff7aa4212d60b314671): PASS for this limited source scope.** All **6/6 same-SHA triggered CI SUCCESS**: [Java25 L1 + cloud-neutral 3/3 Python gate #45021925812](https://github.com/kunlong-luo/lanveriq/actions/runs/45021925812) · [real PostgreSQL18.6 11 classes ≥150 #45021925835](https://github.com/kunlong-luo/lanveriq/actions/runs/45021925835) · [integration source compilation only #45021925894](https://github.com/kunlong-luo/lanveriq/actions/runs/45021925894) · [Next.js #45021925819](https://github.com/kunlong-luo/lanveriq/actions/runs/45021925819) · [docs governance #45021925849](https://github.com/kunlong-luo/lanveriq/actions/runs/45021925849) · [RD-2 default-OFF #45021925866](https://github.com/kunlong-luo/lanveriq/actions/runs/45021925866). Java25 actual `test`: `BUILD SUCCESSFUL in 39s`; Python cloud-neutral boundary: 3/3 OK; actual disposable PG18.6 database regression: `BUILD SUCCESSFUL in 1m 27s`, 11 Testcontainers classes ≥150 pass and zero failed/errored/skipped. Integration compilation is **source only**; PG18 regression proves old behavior still works without AWS dependencies, **not independent archival storage**. **Actual independent WORM or HSM/KMS: NOT RUN**. Prior C18c/d exact-SHA results are historical only.
 
 ## G-02 external work still outstanding
 

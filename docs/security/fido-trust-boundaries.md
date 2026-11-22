@@ -15,7 +15,7 @@
 | [C18b](fido-mds-real-pg-restore-d4-c18b-2026-11-22.md) | 真正 PostgreSQL 18.6 pg_dump/pg_restore 旧拒绝/新接受双向验收 **7/7 同 SHA PASS** | 尚无跨管理域 WORM/KMS、可信时间、组织审批、Pop!_OS L3 |
 | [C18c](fido-mds-object-lock-version-readback-d4-c18c-2026-11-22.md) | **历史已撤回主线的候选**：AWS SDK 离线 S3 versionId/bytes/COMPLIANCE 检查曾 6/6 同 SHA L1 PASS | 真实 S3 Object Lock/KMS、跨域签名高水位、可信时间与 AWS 删除/改保留实测均未做 |
 | [C18d](fido-mds-bounded-s3-readonly-d4-c18d-2026-11-22.md) | **历史已撤回主线的候选**：S3Client mock-only 负向测试曾 L1 SHA 2003edaa PASS（初始 SHA 94424351 Mockito 编译 FAIL） | 无真实 S3Client/账号、跨域 KMS/WORM/高水位或删除拒绝证据，**G-02 OPEN** |
-| [C18e](fido-cloud-neutral-witness-d4-c18e-2026-11-22.md) | 从默认后端撤回 C18c/d 的 AWS SDK 专用实现，改为云中立接口、离线 SHA/版本/retention 负向门禁，**L1 CI PENDING** | 无任何真实独立 WORM、KMS/HSM/可信时间、外部防回退或生产授权 |
+| [C18e](fido-cloud-neutral-witness-d4-c18e-2026-11-22.md) | 从默认后端撤回 C18c/d 的 AWS SDK 专用实现，改为云中立接口、离线 SHA/版本/retention 负向门禁，**6/6 同 SHA 隔离 CI SUCCESS**，PG18≥150 仅隔离数据库回归 | 无任何真实独立 WORM、KMS/HSM/可信时间、外部防回退或生产授权 |
 | **C18f+** | 尚未批准/实现生产可信链 | 官方信任、外部审计、真人 MFA、生产 CA 和 Pop!_OS L3 |
 
 签名有效≠受信来源；公开证书≠组织批准；数据库本地不可变≠外部见证；合成 CI≠上线。所有 `UntrustedSourceEvidence`、`UntrustedAcquisitionEvidence`、`UntrustedDetachedWitnessMatch` 均不得提升为真实 WebAuthn/设备身份/CA 权限。[发布 Gate](../planning/release-gap-register.md) 仍 OPEN。
