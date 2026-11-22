@@ -389,6 +389,35 @@ final class StagedFidoMdsSourceVerifier {
                 lastObservedGovernanceReviewSequence);
     }
 
+    /**
+     * D4-C14 optional OFFLINE acquisition-custody gate AFTER the full C12
+     * independent review. Nothing here fetches the MDS or CRL bytes, trusts
+     * the caller's TLS statements or grants FIDO/WebAuthn/CA privileges.
+     * Do not use the older test-only verification lane for production.
+     */
+    UntrustedSourceEvidence inspectWithAcquisitionReceiptOfflineOnly(
+            String compactJws, ExternalApproval claimedOutOfBandApproval,
+            SignedTimeEvidence time, List<X509CRL> offlineCrls,
+            long lastObservedBlobNumber, long lastObservedTimeSequence,
+            StagedFidoMdsIndependentReviewSeal.PinnedReviewKeys
+                    independentlyProvisionedGovernanceKeys,
+            StagedFidoMdsIndependentReviewSeal.SignedReview signedReview,
+            long lastObservedGovernanceReviewSequence,
+            StagedFidoMdsAcquisitionReceiptScreen.PinnedAcquisitionKey
+                    independentlyProvisionedAcquirer,
+            StagedFidoMdsAcquisitionReceiptScreen.SignedAcquisition receipt,
+            long lastObservedAcquisitionSequence) {
+        var untrusted = inspectWithIndependentReviewOfflineOnly(
+                compactJws, claimedOutOfBandApproval, time, offlineCrls,
+                lastObservedBlobNumber, lastObservedTimeSequence,
+                independentlyProvisionedGovernanceKeys, signedReview,
+                lastObservedGovernanceReviewSequence);
+        StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                independentlyProvisionedAcquirer, receipt, offlineCrls,
+                untrusted, lastObservedAcquisitionSequence);
+        return untrusted;
+    }
+
     private static boolean verifySignedTime(
             PublicKey signedBy, SignedTimeEvidence evidence,
             String jwsSha, String rootSha, String crlSha, String timeKeySha)

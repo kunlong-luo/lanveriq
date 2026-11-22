@@ -623,6 +623,180 @@ class StagedFidoMdsSourceVerifierTest {
         }
     }
 
+
+    private static StagedFidoMdsAcquisitionReceiptScreen.SignedAcquisition
+            signAcquisition(StagedFidoMdsAcquisitionReceiptScreen.AcquisitionClaim claim,
+                            PrivateKey key) throws Exception {
+        var signer = Signature.getInstance("Ed25519");
+        signer.initSign(key);
+        signer.update(StagedFidoMdsAcquisitionReceiptScreen.transcript(claim));
+        return new StagedFidoMdsAcquisitionReceiptScreen.SignedAcquisition(
+                claim, signer.sign());
+    }
+
+    private static StagedFidoMdsAcquisitionReceiptScreen.AcquisitionClaim
+            acquisitionClaim(
+                StagedFidoMdsSourceVerifier.UntrustedSourceEvidence evidence,
+                long sequence, Instant fetched, String tlsVersion,
+                int httpStatus, boolean redirect, String crlSourceUrl,
+                String actualCrlSha) {
+        return new StagedFidoMdsAcquisitionReceiptScreen.AcquisitionClaim(
+                StagedFidoMdsAcquisitionReceiptScreen.MDS_URL,
+                tlsVersion, httpStatus, redirect, fetched,
+                evidence.checkedAt(), sequence, evidence.blobNumber(),
+                evidence.signedTimeSequence(), evidence.blobSha256(),
+                evidence.rootSha256(), evidence.crlEvidenceSha256(),
+                List.of(new StagedFidoMdsAcquisitionReceiptScreen.CrlArtifact(
+                        crlSourceUrl, actualCrlSha)));
+    }
+
+    @Test
+    void signedAcquisitionReceiptsBindExactJwsCrlAndOfflineCustodyAssertions()
+            throws Exception {
+        // This URL is synthetic: a signed label does not prove a real TLS
+        // exchange or establish an official CRL distribution point.
+        String crlUrl = "https://crl.example.invalid/synthetic-issuer.crl";
+        for (boolean rsa : new boolean[]{false, true}) {
+            Fixture f = fixture(rsa);
+            X509CRL crl = f.freshCrl();
+            String jws = f.jws(61, false);
+            var time = f.time(9, NOW, jws, List.of(crl));
+            var untrusted = verifier.inspectOfflineOnly(
+                    jws, f.claimedPolicy(), time, List.of(crl), 60, 8);
+            KeyPair reviewerA = key("Ed25519");
+            KeyPair reviewerB = key("Ed25519");
+            KeyPair acquirer = key("Ed25519");
+            KeyPair attacker = key("Ed25519");
+            var reviewPins = new StagedFidoMdsIndependentReviewSeal
+                    .PinnedReviewKeys(reviewerA.getPublic(),
+                    fingerprint(reviewerA.getPublic().getEncoded()),
+                    reviewerB.getPublic(),
+                    fingerprint(reviewerB.getPublic().getEncoded()));
+            var review = signReview(reviewClaim(untrusted,
+                    StagedFidoMdsIndependentReviewSeal.EXPECTED_MDS_SOURCE,
+                    NOW.minusSeconds(100), NOW.plusSeconds(3600), 8),
+                    reviewerA.getPrivate(), reviewerB.getPrivate());
+            var acquisitionPin = new StagedFidoMdsAcquisitionReceiptScreen
+                    .PinnedAcquisitionKey(acquirer.getPublic(),
+                    fingerprint(acquirer.getPublic().getEncoded()),
+                    List.of(crlUrl));
+            var claim = acquisitionClaim(untrusted, 13, NOW.minusSeconds(30),
+                    "TLSv1.3", 200, false, crlUrl,
+                    fingerprint(crl.getEncoded()));
+            var receipt = signAcquisition(claim, acquirer.getPrivate());
+
+            assertEquals(61, verifier.inspectWithAcquisitionReceiptOfflineOnly(
+                    jws, f.claimedPolicy(), time, List.of(crl), 60, 8,
+                    reviewPins, review, 7, acquisitionPin, receipt, 12)
+                    .blobNumber());
+            assertTrue(StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                    acquisitionPin, receipt, List.of(crl), untrusted, 12)
+                    .toString().contains("Untrusted"));
+
+            // A caller's matching self-declared acquirer key is insufficient
+            // against a DIFFERENT out-of-band pinned verification key.
+            var forged = signAcquisition(claim, attacker.getPrivate());
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithAcquisitionReceiptOfflineOnly(
+                            jws, f.claimedPolicy(), time, List.of(crl), 60, 8,
+                            reviewPins, review, 7, acquisitionPin, forged, 12));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithAcquisitionReceiptOfflineOnly(
+                            jws, f.claimedPolicy(), time, List.of(crl), 60, 8,
+                            reviewPins, review, 7, acquisitionPin, receipt, 13));
+            assertThrows(AccessDeniedException.class, () ->
+                    verifier.inspectWithAcquisitionReceiptOfflineOnly(
+                            jws, f.claimedPolicy(), time, List.of(crl), 60, 8,
+                            reviewPins, review, 7, null, receipt, 12));
+
+            String[] badUrls = {
+                    "http://crl.example.invalid/synthetic-issuer.crl",
+                    "https://crl.example.invalid@attacker.invalid/issuer.crl",
+                    "https://crl.example.invalid/synthetic-issuer.crl#fragment",
+                    "https://crl.example.invalid/../issuer.crl",
+                    "https://evil.invalid/synthetic-issuer.crl"
+            };
+            for (String url : badUrls) {
+                var altered = signAcquisition(acquisitionClaim(untrusted,
+                        14, NOW.minusSeconds(30), "TLSv1.3", 200, false,
+                        url, fingerprint(crl.getEncoded())),
+                        acquirer.getPrivate());
+                assertThrows(AccessDeniedException.class, () ->
+                        StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                                acquisitionPin, altered, List.of(crl),
+                                untrusted, 12));
+            }
+            for (String tls : List.of("TLSv1.2", "", "TLSv1.3-renegotiated")) {
+                var altered = signAcquisition(acquisitionClaim(untrusted,
+                        14, NOW.minusSeconds(30), tls, 200, false,
+                        crlUrl, fingerprint(crl.getEncoded())),
+                        acquirer.getPrivate());
+                assertThrows(AccessDeniedException.class, () ->
+                        StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                                acquisitionPin, altered, List.of(crl),
+                                untrusted, 12));
+            }
+            var redirect = signAcquisition(acquisitionClaim(untrusted, 14,
+                    NOW.minusSeconds(30), "TLSv1.3", 200, true,
+                    crlUrl, fingerprint(crl.getEncoded())),
+                    acquirer.getPrivate());
+            var badHttp = signAcquisition(acquisitionClaim(untrusted, 14,
+                    NOW.minusSeconds(30), "TLSv1.3", 304, false,
+                    crlUrl, fingerprint(crl.getEncoded())),
+                    acquirer.getPrivate());
+            var stale = signAcquisition(acquisitionClaim(untrusted, 14,
+                    NOW.minusSeconds(86401), "TLSv1.3", 200, false,
+                    crlUrl, fingerprint(crl.getEncoded())),
+                    acquirer.getPrivate());
+            var future = signAcquisition(acquisitionClaim(untrusted, 14,
+                    NOW.plusSeconds(1), "TLSv1.3", 200, false,
+                    crlUrl, fingerprint(crl.getEncoded())),
+                    acquirer.getPrivate());
+            for (var invalid : List.of(redirect, badHttp, stale, future)) {
+                assertThrows(AccessDeniedException.class, () ->
+                        StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                                acquisitionPin, invalid, List.of(crl),
+                                untrusted, 12));
+            }
+
+            // A new legitimately signed BLOB/time pair cannot reuse the
+            // old signed acquisition proof.
+            String updatedJws = f.jws(62, false);
+            var updatedTime = f.time(10, NOW, updatedJws, List.of(crl));
+            var updatedEvidence = verifier.inspectOfflineOnly(
+                    updatedJws, f.claimedPolicy(), updatedTime,
+                    List.of(crl), 61, 9);
+            assertThrows(AccessDeniedException.class, () ->
+                    StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                            acquisitionPin, receipt, List.of(crl),
+                            updatedEvidence, 12));
+
+            // The newly issued CRL changes its DER fingerprint, even when
+            // certificate issuer and validity windows remain credible.
+            X509CRL newCrl = f.freshCrl();
+            assertTrue(!fingerprint(crl.getEncoded())
+                    .equals(fingerprint(newCrl.getEncoded())));
+            assertThrows(AccessDeniedException.class, () ->
+                    StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                            acquisitionPin, receipt, List.of(newCrl),
+                            untrusted, 12));
+
+            var otherPin = new StagedFidoMdsAcquisitionReceiptScreen
+                    .PinnedAcquisitionKey(attacker.getPublic(),
+                    fingerprint(attacker.getPublic().getEncoded()),
+                    List.of(crlUrl));
+            assertThrows(AccessDeniedException.class, () ->
+                    StagedFidoMdsAcquisitionReceiptScreen.inspectUntrustedOnly(
+                            otherPin, receipt, List.of(crl), untrusted, 12));
+
+            byte[] extracted = receipt.signature();
+            extracted[0] ^= (byte) 0xff;
+            assertEquals(13, StagedFidoMdsAcquisitionReceiptScreen
+                    .inspectUntrustedOnly(acquisitionPin, receipt, List.of(crl),
+                            untrusted, 12).sequence());
+        }
+    }
+
     @Test
     void rejectsMissingApprovalMismatchedPinAndNoRevocationEvidence()
             throws Exception {

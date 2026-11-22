@@ -23,6 +23,7 @@ REQUIRED = frozenset({
     "independentPinnedReviewerKeysBindExactUntrustedSourceAndRejectSelfAssertion",
     "publishedGlobalSignR46DerIsOnlyUntrustedReferenceNotTrustAuthorization",
     "realPublishedR46ReferenceRejectsEvenFullySignedSyntheticFakeRoot",
+    "signedAcquisitionReceiptsBindExactJwsCrlAndOfflineCustodyAssertions",
 })
 DEFAULT_REPORT = Path("apps/server/build/test-results/test") / f"TEST-{CLASS}.xml"
 

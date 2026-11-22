@@ -1,3 +1,9 @@
+## 2026-11-22 — A11-D4-C14 offline MDS/CRL signed acquisition receipt (functional CI pending)
+
+- Add unmounted source-acquisition evidence verifier that binds original signed JWS and each CRL DER fingerprint to a separately pinned Ed25519 receipt, explicit HTTPS source allowlist, bounded time and strictly increasing receipt sequence.
+- Integrate with prior C12 offline two-reviewer gate; add disposable true ES256/RS256 and independent Ed25519 key regression covering malicious URL, swapped actual JWS/CRL, non-200, redirects, stale time and forged acquisition signature. Expand real JUnit XML gate to 13 required methods.
+- [Detailed C14 scope and hazards](docs/security/fido-mds-acquisition-receipt-d4-c14-2026-11-22.md). CI pending. **No live network, download, true provenance, persistent production custody or FIDO trust.** v0.1 NOT RELEASE READY; production OFF.
+
 ## 2026-11-22 — A11-D4-C13 published R46 root identity guard (5/5 exact-SHA CI PASS)
 
 - Add an unmounted, offline-only exact published-SHA256 GlobalSign R46 self-signed certificate identity screen; public certificate reference fixture from GlobalSign, independently cross-confirmed by CCADB. Reject fake roots even with otherwise correctly signed disposable ES256/RS256 JWS+CRL+time+two-key review proof.
