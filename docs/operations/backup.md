@@ -32,3 +32,7 @@ Corrupt DB, incomplete backup, migration failure, missing volume, lost media fil
 ## D4-C18f 外部见证选型原则（2026-11-22 · 未真实部署）
 
 按 [G-02 云中立选型与攻击矩阵](../security/independent-worm-provider-evaluation-d4-c18f-2026-11-22.md) 区分：离线合成证据校验、PG18 真实事务及备份恢复、独立安全域实际 WORM、独立钥匙及可信时间。不得把本机 readonly/chattr、同管理员 Ceph/MinIO Object Lock、Linux 容器或 PostgreSQL trigger 当作真正外部防回退。具体媒介/供应商还未批准；G-02/G-08 OPEN。
+
+## D4-C18g 外部 WORM/恢复联动验收（仅协议，2026-11-22）
+
+执行前必须获得独立安全受托方、法务及 SRE 的书面批准，在专用可销毁的**非生产**环境按 [C18g 真实管理域与 WORM-01–11 验收协议](../security/independent-worm-custody-acceptance-d4-c18g-2026-11-22.md)证明底层管理员、KMS、签名密钥、高水位与备份权限分离，真实数据库 N-1 恢复拒绝、N 读回、一份存储受损时跨域恢复。此章是计划，不是已发生的演练；所有真实 WORM/介质测试仍 NOT RUN，G-02/G-08 OPEN。

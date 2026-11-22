@@ -42,3 +42,7 @@ Software-only CI evidence belongs to the **exact functional SHA** and real Gradl
 - **NEXT**: choose a viable custody/medium with those constraints, run destructive-test simulations only under explicit written authorization and on safe nonproduction hardware; physically verify retained version cannot be removed/rewound by an application/DB/root attacker. Bind source SHA, external medium/record ID, full signatures and review, then consider G-02 close.
 
 **Production networking, employee/device collection, automatic recovery, RD-2 remote control, certificate issuance and live FIDO admission remain default OFF.**
+
+## C18g physical-security acceptance handoff (spec only; no real WORM)
+
+The next normative [C18g independently custodied WORM acceptance protocol](independent-worm-custody-acceptance-d4-c18g-2026-11-22.md) defines role separation, bottom-layer Ceph/RADOS root, N versus N-1 high-water, key/clock, controlled destructive tests, external audit and recovery. **WORM-01–11 remain NOT RUN**, the provider and medium remain unselected, and source-only/synthetic C18f evidence cannot close G-02/G-08. No new vendor SDK is requested.
