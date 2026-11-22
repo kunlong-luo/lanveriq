@@ -2,6 +2,12 @@
 
 > **Historical evidence, not the live status sheet.** [CURRENT_STATUS](docs/CURRENT_STATUS.md) contains current source/CI and release boundaries. Do not prepend new run summaries ahead of this title. Preserve actual failed SHA and past CI references; use [doc lifecycle](docs/governance/document-lifecycle.md).
 
+## 2026-11-22 — A11-D4-C17 anchored detached witness history (exact-SHA isolated PG18 PASS)
+
+- Add `StagedFidoMdsAnchoredWitnessHistoryReader`, a package-private, unmounted, read-only verifier for a bounded genesis-to-head Ed25519 witness history. Enforce witness sequence continuity, predecessor digest link, signer pin, externally supplied high-water head, cross-stream and truncation/replay/forgery rejection; only the final signed head is compared with the genuine current PostgreSQL V30/V26/audit snapshot.
+- Require new real PostgreSQL Testcontainers negative test `c17AnchoredWitnessHistoryRejectsTruncationForgeryAndStaleDatabaseTail`, 11 classes / ≥148 mandatory passing tests, update the strict JUnit evidence self-test and workflow source path trigger. [Technical boundary](docs/security/fido-mds-anchored-history-d4-c17-2026-11-22.md).
+- **Functional SHA [`9cb6b4ce`](https://github.com/kunlong-luo/lanveriq/commit/9cb6b4ce9f63d7ef45a48f5ad104f30fb1304d45):** [Java 25 unit #45017795239](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795239) **PASS**, [PG18 integration source compilation #45017795286](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795286) **PASS (compile only)**, [genuine disposable PostgreSQL 18.6 Testcontainers #45017795222](https://github.com/kunlong-luo/lanveriq/actions/runs/45017795222) **PASS** (11 classes / at least 148 passing, zero failed/skipped/errored). Same-SHA RD-2 #45017795275 was **CANCELLED**, not PASS. No real external WORM, independent high-water custody, HSM/KMS, trusted time, FIDO MDS/CRL source, real MFA or Pop!_OS L3: G-01/G-02 OPEN; v0.1 **NOT RELEASE READY**, production capability flags OFF.
+
 ## 2026-11-22 — A11-D4-C16 detached signed V30 witness snapshot verifier (6/6 exact-SHA synthetic CI PASS)
 
 - Add offline-only non-Bean reader comparing a genuine Ed25519 detached checkpoint against the actual latest V30 database-owned digest, linked V26 source and audit, with externally pinned witness public key and off-DB cursor contract.
