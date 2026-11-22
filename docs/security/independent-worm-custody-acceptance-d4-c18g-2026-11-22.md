@@ -78,3 +78,7 @@ Only **independent security ownership** may approve a bundle, with:
 **As of 2026-11-22: WORM-01–WORM-11 = NOT RUN; candidate selection = PENDING; legal term, external custodian, HSM/KMS, trusted time, media, source of second copy and physical approval = PENDING.** C18f 7/7 same-functional-SHA CI is solely an offline synthetic software baseline. **G-02/G-08 remain OPEN; G-05 Pop!_OS 24.04 physical L3 OPEN; v0.1 NOT RELEASE READY.**
 
 **NEXT externally executable milestone:** approved custodian/security/legal jointly choose one actual medium and custody topology, authorize isolated sacrificial-lab scope, first run WORM-01/02/03/04/05/06/08 with independent proofs and negative controls, then WORM-07/09/10/11 as applicable. Reopen the design if any root authority jointly rewinds all copies. Do **not** add an AWS/S3 SDK or connect production just to run this acceptance plan. Production networking, collection, automatic recovery, RD-2 remote control, FIDO admission and certificate issuance remain default **OFF**.
+
+## C18h offline evidence intake (source-only, no real WORM)
+
+The [C18h metadata completeness checker](independent-worm-offline-evidence-intake-d4-c18h-2026-11-22.md) validates a **redacted synthetic-lab manifest** with WORM-01..11 and separate Ceph API/underlay root. Even complete claims receive **READY_FOR_INDEPENDENT_REVIEW**, never an authentic WORM PASS, operational permission or G-02 closure. Physical/independent sign-off remains external and NOT RUN.

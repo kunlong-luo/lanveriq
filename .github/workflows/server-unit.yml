@@ -70,6 +70,8 @@ jobs:
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_db_runtime_separation_profile.py'
       - name: Enforce cloud-neutral default backend (no AWS/S3 vendor SDK)
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_cloud_neutral_witness_boundary.py'
+      - name: Preflight independent WORM intake metadata (synthetic-only; no approval)
+        run: python3 -m unittest discover -s apps/server/scripts -p 'test_inspect_worm_acceptance_bundle.py'
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test
