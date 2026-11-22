@@ -1,6 +1,6 @@
 # A11-D4-C18f — G-02 independent WORM candidates, threat model and offline integration
 
-**ACTIVE SPEC / candidate research · 2026-11-22 · Source/PG18 CI PENDING · Storage provider NOT SELECTED · G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
+**ACTIVE SPEC / candidate research · 2026-11-22 · 7/7 exact-functional-SHA isolated CI PASS · Storage provider NOT SELECTED · G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
 
 ## Confirmed architectural scope
 
@@ -35,7 +35,9 @@ New mandatory `PostgreSqlFidoMdsAcquisitionReceiptIT.c18fCloudNeutralArchiveClai
 
 ## Gate and next selection step
 
-- Software-only CI evidence belongs to the **exact functional SHA** and real Gradle/JUnit XML; do not substitute future docs CI.
+- **Actual software evidence:** [`118939b4`](https://github.com/kunlong-luo/lanveriq/commit/118939b43a764150c1330c5e649557d391900f2f) passed all **7/7 triggered workflows at the SAME functional SHA**: [Java25 unit #45022756526](https://github.com/kunlong-luo/lanveriq/actions/runs/45022756526) · [real PostgreSQL18.6 11 classes ≥151 #45022756518](https://github.com/kunlong-luo/lanveriq/actions/runs/45022756518) · [PG18 integration source compilation #45022756511](https://github.com/kunlong-luo/lanveriq/actions/runs/45022756511) · [Linux Batch A real Caddy/Tomcat TLS1.3 & PG18 synthetic #45022756540](https://github.com/kunlong-luo/lanveriq/actions/runs/45022756540) · [Next.js #45022756549](https://github.com/kunlong-luo/lanveriq/actions/runs/45022756549) · [documentation governance #45022756521](https://github.com/kunlong-luo/lanveriq/actions/runs/45022756521) · [RD-2 default-OFF #45022756489](https://github.com/kunlong-luo/lanveriq/actions/runs/45022756489). Real PG18.6 Testcontainers: `BUILD SUCCESSFUL in 1m 18s`, strict executed JUnit reports show **11 classes, at least 151 passing tests with no failed/errored/skipped**, explicitly requiring `c18fCloudNeutralArchiveClaimBindsToCurrentPostgresTail`. This is strictly **offline synthetic provider evidence + real isolated database**; neither external custody nor real WORM has been exercised.
+
+Software-only CI evidence belongs to the **exact functional SHA** and real Gradle/JUnit XML; do not substitute future docs CI.
 - External G-02 provider **cannot be selected by the application developer alone**: need on-prem vs cloud preference, retention period/size/RPO budget, separate custodian with independent admin/root rights, legal license acceptance, secure key access and independent security reviewer. No device or employee data in public CI.
 - **NEXT**: choose a viable custody/medium with those constraints, run destructive-test simulations only under explicit written authorization and on safe nonproduction hardware; physically verify retained version cannot be removed/rewound by an application/DB/root attacker. Bind source SHA, external medium/record ID, full signatures and review, then consider G-02 close.
 
