@@ -27,6 +27,7 @@ on:
       - 'apps/server/src/main/resources/db/migration/V30__stage_immutable_fido_acquisition_receipts.sql'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedFidoMdsAcquisitionReceiptLedger.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedFidoMdsDetachedWitnessReader.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/security/StagedFidoMdsAnchoredWitnessHistoryReader.java'
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/security/PostgreSqlFidoMdsAcquisitionReceiptIT.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedFidoMdsSourceReceiptLedger.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/StagedFidoMdsSourceVerifier.java'
