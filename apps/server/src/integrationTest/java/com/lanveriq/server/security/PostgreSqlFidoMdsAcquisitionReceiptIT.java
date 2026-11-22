@@ -616,6 +616,158 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
                 """).setParameter("id",firstId).getSingleResult());
     }
 
+
+    private static byte[] c18fSyntheticHeadBytes(
+            StagedFidoMdsAnchoredWitnessHistoryReader.IndependentlyRetainedHead
+                    head) throws Exception {
+        // A small test-only Properties payload. NOT a canonical signed
+        // manifest, protected archive format, trusted time or real WORM.
+        var properties = new java.util.Properties();
+        properties.setProperty("stream",head.streamId().toString());
+        properties.setProperty("sequence",Long.toString(head.witnessSequence()));
+        properties.setProperty("digest",head.detachedWitnessSha256());
+        properties.setProperty("key",head.witnessPublicKeySha256());
+        var bytes = new java.io.ByteArrayOutputStream();
+        properties.store(bytes,"C18f SYNTHETIC ONLY / NO WORM");
+        return bytes.toByteArray();
+    }
+
+    private static StagedImmutableWitnessArchiveReader.ReadOnlyArchivePort
+            c18fUntrustedPort(
+                    StagedImmutableWitnessArchiveReader.VersionLocator locator,
+                    byte[] payload, boolean bypassable) {
+        // In-memory fake: both retention responses can be fabricated by its
+        // operator. This intentionally CANNOT satisfy independent G-02.
+        var protection=bypassable
+                ? StagedImmutableWitnessArchiveReader.ProtectionClaim.BYPASSABLE
+                : StagedImmutableWitnessArchiveReader.ProtectionClaim
+                        .NON_BYPASSABLE_WORM;
+        Instant until=Instant.parse("2026-12-31T00:00:00Z");
+        return new StagedImmutableWitnessArchiveReader.ReadOnlyArchivePort() {
+            @Override public StagedImmutableWitnessArchiveReader.VersionedObjectRead
+                    readExactVersion(
+                            StagedImmutableWitnessArchiveReader.VersionLocator
+                                    requested) {
+                assertEquals(locator,requested);
+                return new StagedImmutableWitnessArchiveReader
+                        .VersionedObjectRead(
+                                locator,payload.length,protection,until,
+                                new java.io.ByteArrayInputStream(payload));
+            }
+
+            @Override public StagedImmutableWitnessArchiveReader.VersionedRetentionRead
+                    readExactVersionRetention(
+                            StagedImmutableWitnessArchiveReader.VersionLocator
+                                    requested) {
+                assertEquals(locator,requested);
+                return new StagedImmutableWitnessArchiveReader
+                        .VersionedRetentionRead(locator,protection,until);
+            }
+        };
+    }
+
+    @Test
+    void c18fCloudNeutralArchiveClaimBindsToCurrentPostgresTail()
+            throws Exception {
+        // REAL disposable PG18.6 transactions + signature verification,
+        // but the archive and custody claims are SYNTHETIC bytes only.
+        Stream stream=createOwnerStream();
+        Source first=source(stream,1);
+        UUID firstId=normalInsert(stream,first,null,hash(55));
+        var signer=KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        String publicPin=hexSha256(signer.getPublic().getEncoded());
+        var keyPin=new StagedFidoMdsDetachedWitnessReader.PinnedWitnessKey(
+                signer.getPublic(),publicPin);
+        var tail=new StagedFidoMdsDetachedWitnessReader(manager);
+        var history=new StagedFidoMdsAnchoredWitnessHistoryReader(tail);
+        Instant observed=Instant.parse("2026-11-22T11:00:00Z");
+        var signedFirst=signDetached(witnessFor(stream,firstId,1,null),signer);
+        var firstMatch=tail.inspectAgainstCurrentDbTailOfflineOnly(
+                keyPin,signedFirst,
+                new StagedFidoMdsDetachedWitnessReader.ExternalCursor(1,null),
+                stream.id(),observed);
+        var firstHead=new StagedFidoMdsAnchoredWitnessHistoryReader
+                .IndependentlyRetainedHead(stream.id(),1,
+                        firstMatch.detachedWitnessSha256(),publicPin);
+
+        Source second=source(stream,2);
+        UUID secondId=normalInsert(stream,second,digest(firstId),hash(55));
+        var signedSecond=signDetached(witnessFor(stream,secondId,2,
+                firstMatch.detachedWitnessSha256()),signer);
+        var secondMatch=tail.inspectAgainstCurrentDbTailOfflineOnly(
+                keyPin,signedSecond,
+                new StagedFidoMdsDetachedWitnessReader.ExternalCursor(
+                        2,firstMatch.detachedWitnessSha256()),
+                stream.id(),observed);
+        var secondHead=new StagedFidoMdsAnchoredWitnessHistoryReader
+                .IndependentlyRetainedHead(stream.id(),2,
+                        secondMatch.detachedWitnessSha256(),publicPin);
+        var complete=java.util.List.of(signedFirst,signedSecond);
+
+        byte[] currentBytes=c18fSyntheticHeadBytes(secondHead);
+        var currentLocator=new StagedImmutableWitnessArchiveReader
+                .VersionLocator("synthetic-host-not-independent",
+                        "untrusted/"+stream.id()+"/high-water","v2");
+        var currentArchivePin=new StagedImmutableWitnessArchiveReader
+                .IndependentlyAssertedPin(currentLocator,
+                        hexSha256(currentBytes),
+                        Instant.parse("2026-12-01T00:00:00Z"));
+        var archiveVerifier=new StagedImmutableWitnessArchiveReader();
+        var currentReadback=archiveVerifier.inspectVersionOfflineOnly(
+                c18fUntrustedPort(currentLocator,currentBytes,false),
+                currentArchivePin,observed);
+        assertEquals(currentArchivePin.contentSha256(),
+                currentReadback.contentSha256());
+
+        var parsed=new java.util.Properties();
+        parsed.load(new java.io.ByteArrayInputStream(currentBytes));
+        var parsedHead=new StagedFidoMdsAnchoredWitnessHistoryReader
+                .IndependentlyRetainedHead(
+                        UUID.fromString(parsed.getProperty("stream")),
+                        Long.parseLong(parsed.getProperty("sequence")),
+                        parsed.getProperty("digest"),
+                        parsed.getProperty("key"));
+        assertEquals(secondHead,parsedHead);
+        assertEquals(2,history.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                keyPin,complete,parsedHead,stream.id(),observed)
+                .witnessSequence());
+
+        // A real-looking, internally valid OLD version claim/retention and
+        // valid first signature can pass the synthetic archive verifier;
+        // it must NOT match the newer PG18 database tail.
+        byte[] oldBytes=c18fSyntheticHeadBytes(firstHead);
+        var oldLocator=new StagedImmutableWitnessArchiveReader
+                .VersionLocator(currentLocator.administrativeDomain(),
+                        currentLocator.objectKey(),"v1");
+        var oldArchivePin=new StagedImmutableWitnessArchiveReader
+                .IndependentlyAssertedPin(oldLocator,hexSha256(oldBytes),
+                        currentArchivePin.minimumRetainUntil());
+        assertEquals(oldArchivePin.contentSha256(),
+                archiveVerifier.inspectVersionOfflineOnly(
+                        c18fUntrustedPort(oldLocator,oldBytes,false),
+                        oldArchivePin,observed).contentSha256());
+        assertThrows(AccessDeniedException.class,() ->
+                history.inspectCompleteHistoryAgainstCurrentDbOfflineOnly(
+                        keyPin,java.util.List.of(signedFirst),firstHead,
+                        stream.id(),observed));
+
+        // Version substitution, forged payload and bypassable retention
+        // cannot be silently promoted into a successful archive result.
+        assertThrows(AccessDeniedException.class,() ->
+                archiveVerifier.inspectVersionOfflineOnly(
+                        c18fUntrustedPort(currentLocator,oldBytes,false),
+                        currentArchivePin,observed));
+        assertThrows(AccessDeniedException.class,() ->
+                archiveVerifier.inspectVersionOfflineOnly(
+                        c18fUntrustedPort(currentLocator,currentBytes,true),
+                        currentArchivePin,observed));
+        assertEquals("acquisition_untrusted",manager.createNativeQuery("""
+                SELECT evidence_state
+                FROM admin_fido_mds_acquisition_receipts_staging
+                WHERE acquisition_id=:id
+                """).setParameter("id",secondId).getSingleResult());
+    }
+
     private static void c18bPgCommand(String... command) throws Exception {
         // Run real PostgreSQL 18 client binaries *inside* the disposable
         // Testcontainers image, not a SQL imitation or invented XML.

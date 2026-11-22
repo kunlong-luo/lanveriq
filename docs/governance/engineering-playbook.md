@@ -7,7 +7,8 @@
 2. **单主分支**：当前维护者要求只在 `main` 迭代，先核对远端 SHA，使用非强推提交，失败保留原 SHA+修复 SHA。多人协作和生产前需重新评估分支保护。
 3. **Linux-first**：首发目标 Pop!_OS 24.04。实机桌面环境 COSMIC/KDE、会话 X11/Wayland 必须实测，不能按早期计划假定。Windows11 和 RustDesk 另行验收。
 4. **安全默认拒绝**：生产联网、采集、自动恢复、远控 RD-2、CA 签发、正式 FIDO 可信根、管理员 WebAuthn MFA 默认 OFF。合成根、签名、CRL、TLS 声明、PostgreSQL 摘要和未托管离线见证不能自己授权。
-5. **技术栈以源码为准**：`apps/web` 唯一 Next.js16/React19/Tailwind4/Base UI；Java25 Gradle/Spring Boot4/JPA/Hibernate/Flyway/PG18；Rust/Tokio/SQLx SQLite/reqwest-rustls TLS1.3/mTLS/严格 ACK。无 Vite/`web-next`、Maven、裸 JDBC DAO、自造协议。
+5. **云中立默认原则**：Lanveriq 的正常设备/管理/后端功能不要求 S3 或 AWS SDK。G-02 只规定独立不可回退见证的安全性质，不规定云厂商；供应商 SDK 不能未经具体部署批准进入默认后端依赖。自建对象存储的 API Object Lock **不等于**抵御同一物理/集群管理员的删除攻击；必须做跨行政域、底层特权攻击、密钥和可信时间的真实负向测试。[ADR-0012](../architecture/adrs/0012-independent-fido-witness-object-lock.md) · [独立介质选型矩阵](../security/independent-worm-provider-evaluation-d4-c18f-2026-11-22.md)。
+6. **技术栈以源码为准**：`apps/web` 唯一 Next.js16/React19/Tailwind4/Base UI；Java25 Gradle/Spring Boot4/JPA/Hibernate/Flyway/PG18；Rust/Tokio/SQLx SQLite/reqwest-rustls TLS1.3/mTLS/严格 ACK。无 Vite/`web-next`、Maven、裸 JDBC DAO、自造协议。
 
 ## 每次任务的固定工作流
 - **核对**：当下 `main`、[CURRENT_STATUS](../CURRENT_STATUS.md)、相关源码/测试、[ADR](../architecture/adrs/README.md)、[发布差距](../planning/release-gap-register.md)。

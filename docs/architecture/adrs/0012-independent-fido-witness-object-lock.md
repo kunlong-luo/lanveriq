@@ -26,6 +26,10 @@ A minimal, package-private `ReadOnlyArchivePort` represents separately maintaine
 | AWS S3 Object Lock COMPLIANCE or equivalent managed provider | **Optional**, never a default dependency. Requires explicit cloud approval, separate account, credentials, KMS/permissions/CloudTrail and cost/data residency review |
 | Ordinary filesystem, database-only digest/WAL or backup under same DBA | **Rejected** as independent G-02 custody; administrator may rewind both data and its evidence |
 
+## 2026-11-22 source-backed candidate evaluation (no provider approved)
+
+See [C18f security-domain comparison and acceptance matrix](../../security/independent-worm-provider-evaluation-d4-c18f-2026-11-22.md). The vendor-neutral decision holds regardless of candidate API. In particular, Ceph RGW's Object Lock explicitly covers the S3 API surface but **not necessarily raw RADOS/root storage administrative operations**; independent physical custody is a separate property and must be tested. LTO WORM media may provide physical write-once records, but sequential/slow readback, catalog custody, media extraction, and timely high-water publication have to be designed and proven. Neither automatically closes G-02.
+
 ## External acceptance gates (OPEN)
 
 1. Organization and legal approve data classification, retention duration, actual provider, independent security owner and threat model. No public sensitive secrets.

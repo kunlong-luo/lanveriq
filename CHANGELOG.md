@@ -2,6 +2,11 @@
 
 > **Historical evidence, not the live status sheet.** [CURRENT_STATUS](docs/CURRENT_STATUS.md) contains current source/CI and release boundaries. Do not prepend new run summaries ahead of this title. Preserve actual failed SHA and past CI references; use [doc lifecycle](docs/governance/document-lifecycle.md).
 
+## 2026-11-22 — A11-D4-C18f pin G-02 neutrality and join offline archive with real PG18 tail (CI PENDING)
+
+- Lock cloud/vendor-neutral G-02 requirements into AGENTS, engineering playbook, standards and reuse-first policy. Evaluate independently administered Ceph RGW, MinIO AIStor, physical LTO WORM and optional managed providers with **explicit root-level bypass / custody risks**; no selection, purchase, keys or deployed WORM. [C18f evaluation](docs/security/independent-worm-provider-evaluation-d4-c18f-2026-11-22.md).
+- In true disposable PG18.6 Testcontainers add mandatory `c18fCloudNeutralArchiveClaimBindsToCurrentPostgresTail`: two V30 acquisitions + real ephemeral Ed25519 checkpoint history; synthetic versioned archive claim+byte hash can match newest head and actual database tail, but a valid older archived head cannot be used as current PG tail; swapped body and bypassable claimed retention must deny. Archive remains in-memory fake, **not independent WORM**. Raise PG18 strict JUnit gate to 11 classes >=151, FIDO class >=8. **CI PENDING**, release gates G-02/G-08 remain OPEN.
+
 ## 2026-11-22 — A11-D4-C18e reverse premature AWS/S3 coupling (6/6 exact-SHA isolated PASS)
 
 - Maintainer confirmed AWS S3 was **only a proposed G-02 WORM candidate**, never an accepted infrastructure requirement. Remove AWS SDK BOM/S3 dependency from default `apps/server/build.gradle` and delete the four active AWS-specific Java sources/tests from C18c/d. Preserve C18c/d exact CI and original Mockito failure as historical, marking their specs superseded.

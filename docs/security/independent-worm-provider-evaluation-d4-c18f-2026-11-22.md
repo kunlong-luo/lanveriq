@@ -1,0 +1,42 @@
+# A11-D4-C18f — G-02 independent WORM candidates, threat model and offline integration
+
+**ACTIVE SPEC / candidate research · 2026-11-22 · Source/PG18 CI PENDING · Storage provider NOT SELECTED · G-02/G-08 OPEN · v0.1 NOT RELEASE READY.**
+
+## Confirmed architectural scope
+
+The Lanveriq device/Agent/Next.js/Java core **requires neither S3 nor AWS SDK**. The vendor-neutral [ADR-0012](../architecture/adrs/0012-independent-fido-witness-object-lock.md) approves only the `StagedImmutableWitnessArchiveReader.ReadOnlyArchivePort` as a staging interface, not a network adapter. The actual security objective is **an external versioned/physical audit high-water whose writer, retention controls, historical content, private keys and recovery privileges cannot all be controlled by the application's DB/storage administrator**. A `NON_BYPASSABLE_WORM` string returned by the same admin-controlled port is not proof of this.
+
+## Candidate matrix (NO final selection, quotes not a security certification)
+
+| Candidate | Upstream capability / fit | What could still defeat G-02 | Required physical/external test |
+| --- | --- | --- | --- |
+| Separately owned Ceph RGW with Object Lock | Ceph documents S3-style versioned retention / Compliance; possible Linux self-hosted integration | Ceph itself warns that raw **RADOS/cluster-root** operations bypass RGW API enforcement; same superuser/cluster/backup authority is **not independent** | Restrict and separately own physical cluster, admin, backups and signing keys; attempt RGW-level and bottom-layer deletion by all relevant roles |
+| Separately administered MinIO AIStor / other object store | Vendor documentation describes Compliance vs Governance and per-version retention; portability possible through optional adapter | A protocol-compatible endpoint alone cannot prove hard-delete resistance under host/root, disk/recovery/secret privileges. Commercial licensing/support must be checked | Real object version readback and delete/retention-shorten failures, compromised operator and hardware-level restore tests |
+| LTO WORM cartridge under distinct physical custody | IBM documents write-once media for audit/retention; cloud/network-independent, strong archival candidate | Sequential lookup, freshness, media removal/destruction, drive/library access, encryption key loss and signer/custodian collusion | Actual write→eject→independent inventory/custody→readback and retention, dual-control physical removal, periodic recovery and timely high-water publication |
+| Managed immutable retention service (any provider) | Native version-scoped retention, remote audit and independent administration might fit | Same organization/root, mutable time, KMS key deletion/disable, credentials, policy reset or storage vendor availability may undermine high-water access | Explicit independent account/roles, version-level delete/shorten denial, KMS/clock audit, readback after account/storage failures |
+| Ordinary filesystem `chattr +i`, PostgreSQL digest/trigger, same-admin NAS or container | Useful **synthetic test fixtures only** | DB/root can restore, delete or rewind evidence and high-water together | **Rejected** for G-02, regardless of passing isolated SHA/JUnit |
+
+**Reviewed primary upstream sources (not tests):** [Ceph RGW object-lock security boundary](https://www.ceph.io/en/news/blog/2025/rgw-deep-dive-3/) (calls out raw RADOS-level bypass) · [Ceph official retention API](https://docs.ceph.com/en/latest/radosgw/s3/objectops/) · [MinIO AIStor object lock](https://docs.min.io/aistor/administration/object-locking-and-immutability/) · [IBM LTO WORM](https://www.ibm.com/docs/en/ts4500-tape-library/1.12.3?topic=media-worm-functionality-lto-tape-drives) · [AWS compliance/governance semantics for comparison only](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html). These references are vendor descriptions, **not** certification of deployed Lanveriq custody or product license.
+
+## Mandatory adversary / negative scenarios
+
+1. **DBA controls PostgreSQL and its backup:** restore a real old `pg_dump`/PITR database while keeping an independently retained later high-water; require fail-closed. Replay old full signed history and old DB together must be detectable by the real independent keeper, not just a local test file.
+2. **Storage writer/admin/API role:** attempt specific-version DELETE, overwrite, truncate, shorten retention, switch mode, change legal hold, force lifecycle expiry, deny reading and present unversioned/current-latest evidence; no fallback, no silent downgrade.
+3. **Host/cluster root and backup operator:** attempt raw volume removal, RADOS/object store underlying mutation, storage snapshot rollback, same-account KMS disable/delete, VM/container deletion and restore, clock change, theft of signing key or backup catalog. Separation must be shown at this **lower trust boundary**, not merely at object API permission level.
+4. **Offline/media failure:** loss/corruption/ejection of LTO tape or hardware device; separately audited inventory, multi-custodian recovery, immutable index and deterministic replay of version/high-water.
+5. **Replay/signed-history mismatch:** exact signed witness stream, Ed25519 pin, sequence and head digest must match actual PostgreSQL V30 tail; archive may return an old **internally valid** version and retention claims, but MUST NOT silently authorize a now-current database. Evidence import must remain `UNTRUSTED` even if all synthetic checks pass.
+6. **Time/retention:** compare against independently certified time and legally approved term; service-local/system clock and header text are not trusted time. Preserve observed failure records and exact code/test SHA.
+
+## C18f automated integration (bounded, NOT external WORM)
+
+New mandatory `PostgreSqlFidoMdsAcquisitionReceiptIT.c18fCloudNeutralArchiveClaimBindsToCurrentPostgresTail` reuses **real PostgreSQL18.6** V26/V30 synthetic transactions, two genuine disposable Ed25519 checkpoints, C17 full-history/tail verifier and the C18e read-only port. Synthetic `java.util.Properties` head manifests are stored only as in-process bytes and read through a fake versioned archive port with fake `NON_BYPASSABLE_WORM` claims. The current pin/bytes/head and PG18 tail match, but a valid *older* object-version claim/readback and valid first signature cannot stand in for the now-current database tail. A swapped payload or retention downgrade must deny.
+
+**This does not exercise a physical WORM, an actual media version, independent signer, controlled clock, KMS, production input, independent SRE operator or real backup within C18f's new test**. The prior C18b test separately demonstrates real isolated `pg_dump`/`pg_restore` old/new. In C18f a fake archive port can always be jointly rewound with its caller pin. The code's return types deliberately remain **UNTRUSTED**.
+
+## Gate and next selection step
+
+- Software-only CI evidence belongs to the **exact functional SHA** and real Gradle/JUnit XML; do not substitute future docs CI.
+- External G-02 provider **cannot be selected by the application developer alone**: need on-prem vs cloud preference, retention period/size/RPO budget, separate custodian with independent admin/root rights, legal license acceptance, secure key access and independent security reviewer. No device or employee data in public CI.
+- **NEXT**: choose a viable custody/medium with those constraints, run destructive-test simulations only under explicit written authorization and on safe nonproduction hardware; physically verify retained version cannot be removed/rewound by an application/DB/root attacker. Bind source SHA, external medium/record ID, full signatures and review, then consider G-02 close.
+
+**Production networking, employee/device collection, automatic recovery, RD-2 remote control, certificate issuance and live FIDO admission remain default OFF.**

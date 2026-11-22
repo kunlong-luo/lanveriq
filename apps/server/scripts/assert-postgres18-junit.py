@@ -41,7 +41,7 @@ MIN_COUNTS = {
     "PostgreSqlAdminAuditAtomicityIT": 7,
     "PostgreSqlConsoleSecurityWiringIT": 65,
     "PostgreSqlRoleSeparationIT": 6,
-    "PostgreSqlFidoMdsAcquisitionReceiptIT": 7,
+    "PostgreSqlFidoMdsAcquisitionReceiptIT": 8,
 }
 
 # Independent mandatory negative/transaction evidence. A future suite may
@@ -55,6 +55,7 @@ REQUIRED_CASES = {
         "c17AnchoredWitnessHistoryRejectsTruncationForgeryAndStaleDatabaseTail",
         "c18DbOwnerRewindRejectsSurvivingHostRetainedWitnessHighWater",
         "c18bActualPgDumpRestoreRejectsStaleBackupAndAcceptsFreshBackup",
+        "c18fCloudNeutralArchiveClaimBindsToCurrentPostgresTail",
     },
     "PostgreSqlEventIngestionIT": {
         "postgres18ExecutesAllEightFlywayMigrationsAndNativeUuidv7",

@@ -15,6 +15,12 @@
 ## Naming
 Rust: snake_case modules, PascalCase types; Java: conventional packages such as `com.lanveriq.server.devices`; frontend: feature folders and explicitly named hooks/components. API resources kebab-case; JSON field names snake_case across server and agent with documented mapping in TS client. UUID device/event identifiers, UTC timestamps.
 
+## 云平台中立 / G-02 独立见证约束（ACTIVE）
+
+- 现行默认 Server、Agent 和唯一 Next.js UI **不依赖 AWS S3、MinIO 或供应商对象存储 API**；不要为了实验性安全见证而向 `apps/server/build.gradle` 引入云 SDK。CI 会检查这一点。
+- 使用 Java/标准库及既有安全库进行不可变见证的**离线拒绝优先校验**，而非自行实现对象存储或加密底层；只允许窄且无生产调用方的 `ReadOnlyArchivePort`。真正 provider adapter 必须有经批准的单独部署/构建边界及真实管理域、保留与密钥审查。
+- G-02 不是采用某个开源组件就自动闭环。必须验证底层管理员无法回退/删除外部高水位，执行真备份恢复及权限否定测试；详见 [ADR-0012](../architecture/adrs/0012-independent-fido-witness-object-lock.md)、[C18f 选型与验收](../security/independent-worm-provider-evaluation-d4-c18f-2026-11-22.md)。原 C18c/d 的 AWS 代码和 CI 只保留历史证据，不是当前依赖。
+
 ## Java backend build
 **Gradle 9.8.2 Wrapper**, Groovy DSL `build.gradle`, Spring Boot Gradle plugin **4.1.2**, Java 25 toolchain and JaCoCo 0.8.16. Start with one `apps/server` Gradle module; Java domain packages stay logical modules. Use **Spring Data JPA/Hibernate** as the only direct application persistence API; use JPA native SQL for PostgreSQL-specific event/inventory operations within explicit transactions, and Flyway for schema migrations. No direct `spring-boot-starter-jdbc`. **Do not introduce Maven, a second Java build system or all dependencies from the unrelated IoT reference.** See [backend stack](backend-stack.md) and [Gradle reference](backend-gradle-reference.md).
 

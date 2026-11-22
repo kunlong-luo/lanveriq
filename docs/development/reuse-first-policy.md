@@ -13,6 +13,12 @@
 5. Use the library's public API and official migrations/types; never fork or modify vendor internals for convenience. Keep wrappers thin and boundaries testable. Pin to **tested stable compatible versions** via Gradle BOM/Wrapper, Cargo.lock, pnpm-lock.yaml.
 6. Integrate with canonical documents and diagrams; record breaking architecture decisions in ADRs. Review licensing, security advisories and update cadence before adopting a package, even if widely used.
 
+## Cloud-neutral provider selection (active 2026-11-22)
+
+**成熟依赖优先 ≠ 把未选供应商 SDK 提前加入默认核心。** 普通业务、Linux Agent、Web 和数据库都不以 S3 为前提。对于 G-02，先定义“外部见证真正跨管理域、不被 DBA 或底层管理员一起回退”的独立证据与验收，再评估成熟独立 WORM 设备/服务；在部署提供方被正式选定前，只使用 JDK + 已有验证依赖实现最小、只读、标记 `Untrusted` 的证据检查接口。若选 Ceph/MinIO 等自部署对象存储，必须验证集群 root、磁盘/备份权限能否绕过其 Object Lock API；同一管理员域不算合格 WORM。未经批准不引入 AWS SDK、MinIO SDK 或自造兼容对象存储协议。
+
+**记录位置：** [云中立 ADR-0012](../architecture/adrs/0012-independent-fido-witness-object-lock.md) · [G-02 候选与可证伪验收](../security/independent-worm-provider-evaluation-d4-c18f-2026-11-22.md)。保留此前 AWS 原型的历史 SHA/失败日志，不再视其为现有技术选择。
+
 ## UUID case study (reuse, not invention)
 
 | ID | Source / library | Rules |

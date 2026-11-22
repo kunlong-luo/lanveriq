@@ -15,6 +15,7 @@ Read [CURRENT_STATUS](docs/CURRENT_STATUS.md), [engineering playbook](docs/gover
 - Backend: Java25 / **Gradle** / Spring Boot4.1.2 / **JPA-Hibernate** / Flyway / PostgreSQL18; no Maven, handwritten JDBC DAO or parallel DB authority.
 - Agent: Rust/Tokio / SQLx SQLite / reqwest-rustls TLS1.3 / mTLS, durable outbox and strict ACK. Reuse mature libraries instead of homemade crypto, UUID, database or remote desktop stacks.
 - Linux-first **Pop!_OS 24.04**; separate Windows L3. RustDesk candidate is OFF until explicit license/security signoff.
+- **G-02 provider-neutral by default:** no AWS/S3/MinIO or similar vendor SDK in the default Spring server or Agent merely to simulate immutable audit storage. [ADR-0012](docs/architecture/adrs/0012-independent-fido-witness-object-lock.md) approves only a small **untrusted read-only** archive boundary; any real WORM provider, cross-admin custody, keys, timing, networking, retention duration and legal approval need an explicit separate gate. Object Lock in an app-managed/self-hosted cluster alone does not protect against its infrastructure root. Never claim that archive receipt metadata is independent evidence without actually proving custody.
 
 ## Every implementation cycle
 1. Check the current `main` source SHA, code, ADRs and open release Gate before changes. Work **only on main** (current maintainer policy), small reversible commits; never force-push or erase failures.
