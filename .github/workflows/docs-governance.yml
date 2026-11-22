@@ -1,0 +1,42 @@
+name: Documentation authority and safety gate
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'AGENTS.md'
+      - 'CONTRIBUTING.md'
+      - 'SECURITY.md'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'apps/web/scripts/verify-documentation-baseline.mjs'
+      - 'apps/web/scripts/test_verify_documentation_baseline.mjs'
+      - '.github/workflows/docs-governance.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'AGENTS.md'
+      - 'CONTRIBUTING.md'
+      - 'SECURITY.md'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'apps/web/scripts/verify-documentation-baseline.mjs'
+      - 'apps/web/scripts/test_verify_documentation_baseline.mjs'
+      - '.github/workflows/docs-governance.yml'
+permissions:
+  contents: read
+jobs:
+  authority-and-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check authoritative documentation and local links
+        run: |
+          node apps/web/scripts/verify-documentation-baseline.mjs
+          node --test apps/web/scripts/test_verify_documentation_baseline.mjs
