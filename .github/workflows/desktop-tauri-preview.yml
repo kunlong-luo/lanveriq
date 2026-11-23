@@ -69,12 +69,6 @@ jobs:
         with:
           name: desktop-preview-web-assets
           path: apps/desktop/dist
-      - name: Install Ubuntu 24 Tauri WebKitGTK 4.1 build prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
-            libssl-dev libxdo-dev patchelf pkg-config
       - name: Install pinned Rust 1.100
         run: rustup toolchain install 1.100.0 --profile minimal --component rustfmt --component clippy
       - name: Verify committed native Cargo dependency lock
@@ -85,6 +79,12 @@ jobs:
       - name: Rustfmt check
         working-directory: apps/desktop/src-tauri
         run: cargo +1.100.0 fmt --all -- --check
+      - name: Install Ubuntu 24 Tauri WebKitGTK 4.1 build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+            libssl-dev libxdo-dev patchelf pkg-config
       - name: Compile actual Tauri and test native inspectors
         working-directory: apps/desktop/src-tauri
         run: cargo +1.100.0 test --workspace --locked

@@ -28,6 +28,11 @@ def validate(root=DESKTOP):
     manifest = tomllib.loads(
         (native / "Cargo.toml").read_text(encoding="utf-8")
     )
+    icon = native / "icons/icon.png"
+    require(
+        icon.is_file() and icon.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"),
+        "missing or invalid native launcher icon (not a resident tray)",
+    )
     native_code = (native / "src/lib.rs").read_text(encoding="utf-8")
     react_code = (root / "src/DesktopApp.tsx").read_text(encoding="utf-8")
     safety = (root / "src/safety.ts").read_text(encoding="utf-8")

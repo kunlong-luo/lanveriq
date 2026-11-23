@@ -34,6 +34,11 @@ class DesktopReadonlyContractTests(unittest.TestCase):
     def test_current_preview_passes(self):
         self.assertIn("PASS", guard.validate(self.root))
 
+    def test_reject_missing_native_launcher_icon(self):
+        (self.root / "src-tauri/icons/icon.png").unlink()
+        with self.assertRaisesRegex(ValueError, "missing or invalid native launcher icon"):
+            guard.validate(self.root)
+
     def test_reject_enabled_installer_bundle(self):
         self.mutate("src-tauri/tauri.conf.json", '"active": false', '"active": true')
         with self.assertRaisesRegex(ValueError, "bundle must stay OFF"):
