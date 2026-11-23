@@ -1,0 +1,30 @@
+name: Desktop Ubuntu 24 library ownership/metadata L1 (no install)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_ubuntu_runtime_packages.py'
+      - 'apps/desktop/tools/test_verify_desktop_ubuntu_runtime_packages.py'
+      - '.github/workflows/desktop-ubuntu-runtime-map.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lanveriq-desktop-ubuntu-lib-map-main
+  cancel-in-progress: true
+jobs:
+  offline-package-owner-contract:
+    name: Synthetic dpkg/ldconfig owner/nonce/refusal tests without Tauri build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Read-only L1 Debian metadata input invariants
+        run: |
+          set -Eeuo pipefail
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_ubuntu_runtime_packages.py' -v
+          echo 'PASS: synthetic package owner/version/metadata refusal checks ONLY; actual Tauri ELF must pass separate native job'

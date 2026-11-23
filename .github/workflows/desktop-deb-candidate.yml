@@ -18,6 +18,8 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_payload_evidence.py'
       - 'apps/desktop/tools/verify_desktop_elf_runtime_evidence.py'
       - 'apps/desktop/tools/test_verify_desktop_elf_runtime_evidence.py'
+      - 'apps/desktop/tools/verify_desktop_ubuntu_runtime_packages.py'
+      - 'apps/desktop/tools/test_verify_desktop_ubuntu_runtime_packages.py'
       - '.github/workflows/desktop-deb-candidate.yml'
   workflow_dispatch:
 
@@ -46,6 +48,7 @@ jobs:
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_lab_signature.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_payload_evidence.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_elf_runtime_evidence.py'
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_ubuntu_runtime_packages.py'
       - name: Install pinned frontend runtime without changing pnpm lock
         uses: pnpm/setup@v3
         with:
@@ -192,6 +195,23 @@ jobs:
           python3 tools/verify_desktop_elf_runtime_evidence.py verify "${args[@]}"
           cat "$EVIDENCE_DIR/runtime-elf-evidence.json"
           echo 'PASS: ELF directly-linked SONAME/loader/stack and Debian Depends examined without executing ELF; LICENSE/TRANSITIVE ABI STILL UNVERIFIED'
+      - name: Map actual 15 ELF SONAMEs to Ubuntu24 installed package versions and copyright material
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          EVIDENCE_DIR: ${{ runner.temp }}
+        run: |
+          set -Eeuo pipefail
+          test -f "$EVIDENCE_DIR/runtime-elf-evidence.json"
+          test -f "$EVIDENCE_DIR/desktop-payload-root/usr/bin/lanveriq-desktop"
+          args=(--runtime-report "$EVIDENCE_DIR/runtime-elf-evidence.json" --binary "$EVIDENCE_DIR/desktop-payload-root/usr/bin/lanveriq-desktop" --source-sha "$SOURCE_SHA" --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT" --output "$EVIDENCE_DIR/ubuntu-host-library-map.json")
+          python3 tools/verify_desktop_ubuntu_runtime_packages.py create "${args[@]}"
+          python3 tools/verify_desktop_ubuntu_runtime_packages.py verify "${args[@]}"
+          cat "$EVIDENCE_DIR/ubuntu-host-library-map.json"
+          echo 'PASS: Ubuntu 24 host package ownership/copyright hashes captured; NOT A POP!_OS RUNTIME OR LEGAL APPROVAL'
       - name: LAB ONLY prove offline detached Ed25519 verification with ephemeral test key
         shell: bash
         working-directory: apps/desktop
