@@ -30,6 +30,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Negative-test systemd idle-policy under normal and optimized Python (-O)
+        run: python3 -m unittest discover -s apps/agent/tools/linux -p 'test_verify_systemd_popos24.py'
       - name: Check Pop!_OS 24.04 idle-service security policy
         run: python3 apps/agent/tools/linux/verify-systemd-popos24.py apps/agent/deploy/systemd/lanveriq-agent.service
       - name: Verify systemd unit syntax without installing or starting

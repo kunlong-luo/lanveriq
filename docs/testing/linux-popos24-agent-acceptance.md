@@ -34,6 +34,8 @@
 
 **Owner decision (2026-11-11): Pop!_OS 24.04 LTS with COSMIC is the primary operating system.** Linux-first systemd, Rustls, secure local Agent operation and Pop!_OS installation/consent come before any new Windows SID/DPAPI/CNG service-account work. Windows synthetic crypto proofs remain historical, optional compatibility evidence, not critical-path blockers for the first Linux release.
 
+> **2026-11-23 LNX1 static verifier hardening (source-only; not Pop!_OS L3):** [LNX1 security-policy gate](linux-systemd-policy-hardening-2026-11-23.md) replaces Python assert checks vulnerable under -O with strict explicit denial, plus mutation negatives. The committed template is checked offline and an existing Ubuntu24 transient unit exercises synthetic DynamicUser/DAC; host drop-ins and effective configuration must still be verified separately on an authorized Pop!_OS 24.04 host. No Agent service is installed/started or network/collection enabled.
+
 ## Approved baseline and scope
 
 System76's Pop!_OS 24.04 release ships the COSMIC desktop and `systemd`. The repository's Linux `apps/agent/deploy/systemd/lanveriq-agent.service` is a **template only**, not a deployed service. It runs the existing **idle, no-collection** Rust binary only after a separately approved operator installation of the binary and root-managed `/etc/lanveriq-agent/agent.toml`. Repository checkout and CI do not call `systemctl enable` or `start`. COSMIC user-session permission/capture/remote-control is deliberately not part of this work.
