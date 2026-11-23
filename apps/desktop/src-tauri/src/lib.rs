@@ -19,6 +19,7 @@ struct HostSnapshot {
     unit_file_state: String,
     override_state: String,
     manager_reload_state: String,
+    legacy_binary_state: String,
     installation_allowed: bool,
     runtime_activation_allowed: bool,
 }
@@ -101,6 +102,24 @@ fn parse_unit_properties(raw: &str) -> (&str, &str, &str, &str) {
 }
 
 #[cfg(target_os = "linux")]
+fn inspect_legacy_binary() -> &'static str {
+    use std::io::ErrorKind;
+    use std::os::unix::fs::MetadataExt;
+    // Historical manual installations used /usr/local/bin. Read only the fixed
+    // leaf's metadata; never follow symlinks or execute the file.
+    match std::fs::symlink_metadata("/usr/local/bin/lanveriq-agent") {
+        Ok(metadata) => {
+            // Even root-owned executable files need explicit migration review.
+            // Do not report an old installation as approved from permissions.
+            let _ = metadata.uid();
+            "present_unreviewed"
+        }
+        Err(err) if err.kind() == ErrorKind::NotFound => "not_detected",
+        Err(_) => "unverified",
+    }
+}
+
+#[cfg(target_os = "linux")]
 fn command_read_only(binary: &str, args: &[&str]) -> Option<String> {
     use std::process::Command;
     let output = Command::new(binary).args(args).output().ok()?;
@@ -148,6 +167,7 @@ fn inspect_host() -> HostSnapshot {
             unit_file_state: unit_file_state.to_string(),
             override_state: override_state.to_string(),
             manager_reload_state: manager_reload_state.to_string(),
+            legacy_binary_state: inspect_legacy_binary().to_string(),
             installation_allowed: false,
             runtime_activation_allowed: false,
         }
@@ -162,6 +182,7 @@ fn inspect_host() -> HostSnapshot {
         unit_file_state: "unverified".into(),
         override_state: "unverified".into(),
         manager_reload_state: "unverified".into(),
+        legacy_binary_state: "unverified".into(),
         installation_allowed: false,
         runtime_activation_allowed: false,
     }

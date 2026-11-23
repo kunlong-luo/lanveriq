@@ -7,6 +7,7 @@ export type HostSnapshot = {
   unitFileState: "enabled" | "disabled" | "masked" | "unverified";
   overrideState: "none_reported" | "present_unreviewed" | "unverified";
   managerReloadState: "reload_required" | "not_required" | "unverified";
+  legacyBinaryState: "present_unreviewed" | "not_detected" | "unverified";
   installationAllowed: boolean;
   runtimeActivationAllowed: boolean;
 };
@@ -32,6 +33,20 @@ export function describeReadiness(host: HostSnapshot | null): Readiness {
   if (!host.targetSupported) {
     return { kind: "unsupported", label: "尚未核验 Pop!_OS 24.04 x86_64 兼容性" };
   }
+  // Refuse a reassuring summary when old manually installed software,
+  // active/enabled units or unreviewed manager overrides are present.
+  if (host.legacyBinaryState === "present_unreviewed") {
+    return { kind: "unverified", label: "发现旧版 /usr/local 安装文件 · 需要人工迁移审查" };
+  }
+  if (host.serviceState === "active" || host.unitFileState === "enabled") {
+    return { kind: "unverified", label: "检测到正在运行或已开机启用的服务 · 未获授权" };
+  }
+  if (host.overrideState === "present_unreviewed" || host.managerReloadState === "reload_required") {
+    return { kind: "unverified", label: "服务存在未审核覆盖配置或缓存尚未更新" };
+  }
+  if (host.legacyBinaryState === "unverified") {
+    return { kind: "unverified", label: "旧版安装位置无法核验 · 不可视为安全" };
+  }
   if (host.packageState === "preview_candidate") {
     return { kind: "candidate", label: "检测到未批准的离线候选包 · 不代表验收通过" };
   }
@@ -46,6 +61,8 @@ export function nativeDetails(host: HostSnapshot | null) {
     ["后台服务", "未核验"],
     ["开机自启", "未核验"],
     ["覆盖配置", "未核验"],
+    ["旧版安装位置", "未核验"],
+    ["systemd 缓存", "未核验"],
   ] as const;
 
   const service = {
@@ -78,5 +95,7 @@ export function nativeDetails(host: HostSnapshot | null) {
     ["后台服务", service],
     ["开机自启", unit],
     ["覆盖配置", overrides],
+    ["旧版安装位置", { present_unreviewed: "发现旧版文件，需要人工迁移审查", not_detected: "未发现（不代表完整性通过）", unverified: "无法核验" }[host.legacyBinaryState]],
+    ["systemd 缓存", { reload_required: "需要重新加载（仅提醒，不会自动操作）", not_required: "无需重新加载（状态仅供参考）", unverified: "无法核验" }[host.managerReloadState]],
   ] as const;
 }

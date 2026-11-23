@@ -217,6 +217,7 @@ export function DesktopApp() {
                     <div className="flex items-center gap-3"><div className="section-icon"><Activity size={22} /></div><div><p className="text-xs text-slate-500">本机检查结果</p><div className="mt-1 font-semibold">{currentStatus.label}</div></div></div>
                     <ActionButton secondary onClick={() => { void inspect(); }}><RefreshCw size={16} /> 重新检测</ActionButton>
                   </div>
+                  {inspection === "loaded" && host && describeReadiness(host).kind === "unverified" && <div role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">安装前检查发现需要人工处理的状态。桌面预览不会自动修改旧版文件、覆盖配置、systemd 或服务状态。</div>}
                   {inspection !== "loaded" && <div className="mb-6 rounded-xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">{inspection === "web-preview" ? "当前处于浏览器预览，无法读取本机 systemd；这不是检测通过。" : inspection === "error" ? "读取主机状态失败；保持未经核验状态。" : inspection === "reading" ? "正在读取有限的本机公开状态…" : "尚未读取本机状态。"}</div>}
                   <div className="grid gap-3 sm:grid-cols-2">
                     {nativeDetails(host).map(([title, value]) => <DataItem key={title} title={title} value={value} />)}

@@ -6,7 +6,7 @@ This is the first implementation of the planned Pop!_OS 24.04 GUI install-and-co
 
 Currently implemented:
 - Four-stage Chinese welcome → local status → privacy notice → **disabled** install UX, plus local status/security views.
-- One **read-only** Rust IPC command (inspect_host) accessing public /etc/os-release and exact dpkg-query/systemctl show properties only. Browser frontend fallback is explicitly marked unverified; no fake device data.
+- One **read-only** Rust IPC command (inspect_host) accessing public /etc/os-release, exact dpkg-query/systemctl show properties, and metadata-only existence of the historical /usr/local/bin/lanveriq-agent path (never reading/executing it). React warns about legacy files, active/enabled services, unreviewed drop-ins and stale systemd cache. Browser frontend fallback is explicitly marked unverified; no fake device data.
 - No native install/start/enable commands, no root, shell, polkit, package updater, network plugin, tray, desktop autostart or signed installer. Closing the GUI has no influence on the independent Agent service. **Never enable Agent from this preview.**
 - Source mutation negatives, pure Rust unit tests and GitHub CI on disposable Ubuntu 24.04; none of this is physical Pop!_OS L3.
 
