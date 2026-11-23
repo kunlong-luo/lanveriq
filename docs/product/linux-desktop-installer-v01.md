@@ -2,7 +2,7 @@
 
 **PRODUCT DESIGN BASELINE · 2026-11-23 · planned / NOT IMPLEMENTED · real device deployment NOT APPROVED**
 
-> **2026-11-23 源码进度（待 CI 验证）：** 已在 apps/desktop 新增 React/Tauri 2 预览向导和只读本机检查，但图形化真实安装、签名包、polkit broker、更新/卸载仍没有实现。不要把源码预览等同可下载的桌面客户端；详见 [首个功能阶段](../development/desktop-tauri-first-source-2026-11-23.md)。
+> **2026-11-23 源码进度（L1 构建已通过，安装功能仍不存在）：** 已在 apps/desktop 新增 React/Tauri 2 预览向导和只读本机检查，但图形化真实安装、签名包、polkit broker、更新/卸载仍没有实现。不要把源码预览等同可下载的桌面客户端；详见 [首个功能阶段](../development/desktop-tauri-first-source-2026-11-23.md)。
 
 ## Goal
 

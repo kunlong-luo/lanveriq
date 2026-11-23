@@ -1,10 +1,10 @@
 # G-05 / G-07 / G-08 / G-09 — Pop!_OS 24.04 desktop installer acceptance
 
-**TEST PLAN · 2026-11-23 · ALL NEW DESKTOP TESTS NOT RUN · no real-host installer exists · v0.1 NOT RELEASE READY**
+**TEST PLAN · 2026-11-23 · partial read-only desktop SOURCE L1 2/2 CI PASS · actual GUI/polkit/install L2/L3 NOT RUN · v0.1 NOT RELEASE READY**
 
 Source design: [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md), [desktop product scope](../product/linux-desktop-installer-v01.md). This plan covers a future Tauri 2 application and scoped OS authorization bridge. Neither is implemented. LNX1–3 Ubuntu synthetic unit/package checks do not satisfy the tests below.
 
-> **2026-11-23 L1 候选：** apps/desktop 已新增只读本机 status、React 预览和源码负测，并触发独立 Ubuntu24 CI。**直到看到真实 run PASS 仍视作 PENDING**；安装与授权相关的真实交互、签名包、L2/L3 全部 NOT RUN。参见 [源码里程碑](../development/desktop-tauri-first-source-2026-11-23.md)。
+> **2026-11-23 L1 已通过范围：** apps/desktop 只读 status、React 预览、9 项 Python 安全负测、5 项 React 测试、4 项 Rust 单测、原生 Tauri 编译/Clippy，在 [源码功能 SHA 86c3 Desktop #45148201067](https://github.com/kunlong-luo/lanveriq/actions/runs/45148201067) 的 **2/2 Ubuntu24 CI SUCCESS**。**下列 GUI 可访问性、真正安装/签名/polkit/L2/L3 验收清单并没有因此自动通过**；全部真实安装与授权测试 NOT RUN。参见 [源码里程碑](../development/desktop-tauri-first-source-2026-11-23.md)。
 
 ## L1 — source and negative tests (NOT RUN)
 

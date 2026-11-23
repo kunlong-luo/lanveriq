@@ -4,6 +4,8 @@
 
 # Lanveriq installation, local development, and deployment runbook
 
+> **2026-11-23 桌面源码状态：** apps/desktop 的 Tauri2/React 只读向导及 native host inspector 已通过 [Ubuntu24 独立编译/源码 CI 2/2 #45148201067](https://github.com/kunlong-luo/lanveriq/actions/runs/45148201067)，但这**不是**签名或正式可安装的最终用户桌面 .deb；未实现 polkit、安装、配置写入、启动或卸载。不要向用户提供开发端 rustup/pnpm/Cargo 步骤作为最终产品体验。详见 [桌面源码阶段](../development/desktop-tauri-first-source-2026-11-23.md)。
+
 > **2026-11-23 用户安装体验决议（仅设计，尚未实现）：** v0.1 Pop!_OS 24.04 计划提供一个经验证的图形化桌面安装/配置工具：**Tauri 2 + React + Tailwind/Base UI**；安装时明确告知用途、权限和隐私并经独立管理员授权；安装后窗口退出，**Rust Agent 作为独立 systemd system service** 在经单独批准/明确启动授权后运行，**不显示常驻任务栏、Dock 或托盘图标**，但可以从应用菜单手动打开配置与诊断界面，系统服务可检查、停止及卸载。最终用户**不应需要安装 Rust/Cargo/Node、手工编辑 TOML 或输入命令**。这是目标体验，不是已经可下载的正式安装器。当前 unsigned offline-preview Debian 包不具备正式签名、Polkit 安装流程或 real-host L3 授权；**禁止直接当成生产安装包**。参见 [ADR-0013 决议](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md) · [用户交互流程与安全权限](../product/linux-desktop-installer-v01.md) · [真实安装验收清单](../testing/linux-desktop-installer-acceptance.md)。**现阶段生产启动/自动恢复/联网/采集/远控/签发均保持默认关闭，v0.1 NOT RELEASE READY。**
 
 **Status: development-only.** The repository now contains a runnable default-deny Java Spring Boot process and an idle Rust Agent binary, but **only a disconnected Next.js 16 App Router preview at `apps/web` (no live login/API), no production-ready Compose stack, no signed MSI/DEB installers, and no production Caddy configuration**. This is **not** a supported production monitoring deployment. Legal/privacy notice and real PostgreSQL/TLS/OS acceptance gates remain open.
