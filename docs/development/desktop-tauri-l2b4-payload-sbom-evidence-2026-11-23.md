@@ -22,8 +22,8 @@ The native artifact is still GUI-only, unsigned, neither downloadable nor instal
 
 ## Acceptance
 
-- L2B-4 synthetic fast L1: **PENDING** actual exact-SHA GitHub CI.
-- L2B-4 native L2: **PENDING** Ubuntu 24.04 real Tauri release Debian, strict archive, source SPDX/receipt, extracted payload Syft SPDX, exact byte-to-byte file hashes, payload receipt create + reverify, experimental Ed25519 lab (prior stage). All need the same functional source SHA and actual SUCCESS.
+- L2B-4 synthetic fast L1: **PASS** at exact feature SHA [e107a45b](https://github.com/kunlong-luo/lanveriq/commit/e107a45b7e697b055fbc3a916cae46a1afcf1832), [Ubuntu24 CI #45166773714 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45166773714). 42 unittest-discovered tests: 26 imported existing Debian archive negative tests + **16 newly implemented payload evidence tests**. The suite runs actual dpkg-deb synthetic build/extraction and rejects mismatched byte hashes, sizes, modes, symlinks, extras and forged authority. This is L1 only; payload Syft scanner and native Tauri not run in this fast job.
+- L2B-4 native L2: **IN PROGRESS / PENDING** [functional SHA e107a45b, CI #45166773406](https://github.com/kunlong-luo/lanveriq/actions/runs/45166773406), Ubuntu 24.04 real Tauri release Debian, strict archive, source SPDX/receipt, extracted payload Syft SPDX, exact byte-to-byte file hashes, payload receipt create + reverify, experimental Ed25519 lab (prior stage). All need the same functional source SHA and actual SUCCESS.
 - Next unresolved prerequisites: independent approved release signer and root custody/verified recipient build provenance (L2B-3), dependency/license closure including external runtime libraries and actual binary SBOM limitations, signed and version-revoked release, separately consented fixed-scope polkit operations, real Pop!_OS 24.04/COSMIC device installation and uninstall L3.
 
 **G-05/G-07/G-08/G-09 OPEN; v0.1 NOT RELEASE READY.**
