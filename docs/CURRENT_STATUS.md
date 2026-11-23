@@ -1,5 +1,8 @@
 # Lanveriq 当前状态 / Current status
 
+> **DESKTOP-L2B-3 接收端可信来源离线预检候选（2026-11-23 · exact-SHA L1 CI PENDING）：** 新增 [L2B-3 规范](development/desktop-tauri-l2b3-offline-recipient-provenance-2026-11-23.md)、[离线接收端验证器](../apps/desktop/tools/verify_desktop_offline_provenance.py)、负测与独立 CI；严格按 GitHub 官方 gh attestation verify + 独立根哈希/证书数字仓库 ID/固定签名 workflow/commit/main ref/SLSA subject/真实 Debian 摘要制定接收端约束，不自造 DSSE/加密协议。**现有所有真实 Debian 都没有正式 attestation 或批准的可信根，固定发行 workflow 尚未创建，因而本轮只能做伪证明拒绝和模拟 API 结果结构负测，不可能称真实可信来源 PASS。** 生产签名、OIDC 授权、公开发布、polkit、安装/启用 Agent、Pop!_OS24 L3 继续 NOT RUN/OPEN；**v0.1 NOT RELEASE READY**。
+
+
 > **DESKTOP-L2B-2 原生 GUI-only Debian + SPDX + 临时签名验真实验 PASS（2026-11-23）：** 功能 SHA [ce1a9c26](https://github.com/kunlong-luo/lanveriq/commit/ce1a9c2602b8f23ec4ffc8117baed5f4f3fbb4e8) 的 [原生 Tauri 打包与临时签名验真实验 #45161801144 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45161801144) 实际在 Ubuntu 24.04 运行 **12 项只读源码测试、26 项 Debian 归档测试、38 项包含前述归档测试的回执测试发现集、16 项独立临时密钥签名正负测试**，真实 Tauri release `.deb` 构建与严格归档 PASS、Syft SPDX 2.3 源码扫描 **608 个包**、临时完整性回执和 OpenSSL 3 Ed25519 分离签名验真 PASS。候选 GUI-only `.deb` SHA-256 `3fd769063f798346fba1ef274a72ff12d50d19014de32539ac9f2cbb5d5a91b6`；源码 SPDX SHA-256 `88c60d396f6f86a6be02cf049804e6869f7be04b3ace29dd54601c8659970ee0`。CI **仅用即时产生且退出后删除的临时实验密钥对回执签名**，未对软件包颁发正式发行身份、未保留可下载包、未上传/安装/授权启动 Agent；**该 PASS 不证明可信发行来源、完整最终二进制 SBOM、组织签名批准或 Pop!_OS24 L3**。L2B-2 的快速合成 L1 另在功能 SHA [ae0775a5](https://github.com/kunlong-luo/lanveriq/commit/ae0775a574e242e76013eb2fe060624412eec658) 的 [独立 L1 合成验签 #45163358720 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45163358720) PASS；正式发行/签名/授权 polkit/实机仍 OPEN，**v0.1 NOT RELEASE READY**。
 
 

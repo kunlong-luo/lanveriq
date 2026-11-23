@@ -1,0 +1,59 @@
+name: Desktop offline release provenance receiver preflight (unapproved)
+
+# L1 offline intake contract only: no genuine signed release exists.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_offline_provenance.py'
+      - 'apps/desktop/tools/test_verify_desktop_offline_provenance.py'
+      - 'apps/desktop/tools/verify-desktop-deb.py'
+      - 'apps/desktop/tools/test_verify_desktop_deb.py'
+      - '.github/workflows/desktop-provenance-receiver.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lanveriq-desktop-receiver-main
+  cancel-in-progress: true
+jobs:
+  receiver-denials:
+    name: Exact offline GitHub attestation policy/hostile Debian fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Inspect baseline official GitHub attestation verifier
+        run: |
+          set -Eeuo pipefail
+          gh --version
+          gh attestation verify --help >/dev/null
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+      - name: Enforce receiver-side provenance intake contract with synthetic negatives
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_offline_provenance.py' -v
+          echo 'PASS: mocked GH success-shape tests only; NO real trusted provenance verified'
+      - name: Actual GitHub CLI must reject fabricated offline bundle and trusted root
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/receiver-negative"
+          printf '{}\n' > "$RUNNER_TEMP/receiver-negative/untrusted-bundle.jsonl"
+          printf '{}\n' > "$RUNNER_TEMP/receiver-negative/untrusted-root.jsonl"
+          printf 'not-an-approved-package' > "$RUNNER_TEMP/receiver-negative/untrusted-artifact.deb"
+          if gh attestation verify "$RUNNER_TEMP/receiver-negative/untrusted-artifact.deb" \
+            --repo kunlong-luo/lanveriq \
+            --bundle "$RUNNER_TEMP/receiver-negative/untrusted-bundle.jsonl" \
+            --custom-trusted-root "$RUNNER_TEMP/receiver-negative/untrusted-root.jsonl" \
+            --signer-workflow kunlong-luo/lanveriq/.github/workflows/desktop-release.yml \
+            --source-ref refs/heads/main \
+            --source-digest 1111111111111111111111111111111111111111 \
+            --predicate-type https://slsa.dev/provenance/v1 --format json \
+            > "$RUNNER_TEMP/receiver-negative/should-not-verify.json" 2>/dev/null; then
+            echo 'FAIL: fabricated offline signature was accepted' >&2
+            exit 1
+          fi
+          echo 'PASS: real gh attestation verifier refused fabricated offline bundle'
