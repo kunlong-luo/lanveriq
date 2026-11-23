@@ -35,6 +35,8 @@
 - [C18g 独立 WORM 管理域与实物验收协议（NOT RUN）](security/independent-worm-custody-acceptance-d4-c18g-2026-11-22.md) · [C18f 候选研究](security/independent-worm-provider-evaluation-d4-c18f-2026-11-22.md)。
 - [FIDO D4-C9–C18e 未可信证据边界总表](security/fido-trust-boundaries.md) · [C17 离线见证历史校验](security/fido-mds-anchored-history-d4-c17-2026-11-22.md) · [身份访问](security/identity-and-access.md) · [威胁模型](security/threat-model.md) · [隐私](security/privacy-and-consent.md)。
 
+- [DESKTOP-L2A Tauri 2 GUI-only 离线 .deb 候选构建／严格包审查（待 CI，不含 Agent）](development/desktop-tauri-offline-deb-candidate-2026-11-23.md)。
+
 ## 测试、发布与历史
 - [G-05-LNX3 真正安装后 systemd 生效属性只读检查（无安装/无生产授权）](testing/linux-installed-idle-inspector-g05-lnx3-2026-11-23.md)。
 - [G-05-LNX2 本地 Debian 离线安装包候选与模拟卸载验收（非真实安装）](testing/linux-native-package-candidate-2026-11-23.md)。

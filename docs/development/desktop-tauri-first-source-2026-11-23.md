@@ -45,3 +45,7 @@ Earlier actual failures preserved: first [#45145378646](https://github.com/kunlo
 ## L1.1 first red test and targeted repair (2026-11-23)
 
 Initial SHA [c352e412](https://github.com/kunlong-luo/lanveriq/commit/c352e4127844669772bc941f8af9ab1431144ce2) [desktop CI #45149478116](https://github.com/kunlong-luo/lanveriq/actions/runs/45149478116) **FAILED**: one old Vitest assertion expected the text “未批准” after the new higher-priority active-service warning correctly returned “未获授权”; 8/9 frontend tests passed, security-source negative suite passed, native Rust build **SKIPPED** due to the preceding failure. Next commit updates only the expected warning and removes a redundant Rust metadata no-op; it must pass frozen pnpm, native Rust Cargo and all gates at a new exact SHA before the feature is accepted. This preserves the actual failure history. No installer privilege enabled and Pop!_OS L3 still NOT RUN.
+
+## DESKTOP-L2A follow-up (2026-11-23, CI PENDING)
+
+A separate [GUI-only native Debian packaging candidate](desktop-tauri-offline-deb-candidate-2026-11-23.md) now reuses the Tauri 2 source and introduces strict package archive checks. It deliberately does not turn on the default Tauri bundler, ship any Agent service, activate a unit or approve real device deployment; this is a source/CI milestone rather than installer completion.

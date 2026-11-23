@@ -1,0 +1,88 @@
+name: Desktop GUI-only .deb candidate (uninstalled synthetic package audit)
+
+# Milestone-sized package build, intentionally separate from routine desktop L1.
+# No distribution or downloadable artifact. Does not package/install/enable Agent.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify-desktop-deb.py'
+      - 'apps/desktop/tools/test_verify_desktop_deb.py'
+      - '.github/workflows/desktop-deb-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-desktop-gui-deb-candidate-main
+  cancel-in-progress: true
+
+jobs:
+  gui-only-deb:
+    name: Actual Tauri native Debian bundle + hostile archive negatives
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Refuse installer/service activation in source and verify synthetic package mutations
+        run: |
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_readonly.py'
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_deb.py'
+      - name: Install pinned frontend runtime without changing pnpm lock
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24.22.3
+          working-directory: apps/desktop
+          install: false
+          require-lockfile: true
+          cache: false
+      - name: Verify Node runtime
+        run: test "$(node --version)" = v24.22.3
+      - name: Frozen desktop dependency graph and source tests
+        working-directory: apps/desktop
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm typecheck
+          pnpm build
+      - name: Install pinned Rust 1.100
+        run: rustup toolchain install 1.100.0 --profile minimal --component clippy --component rustfmt
+      - name: Refuse Cargo lock changes
+        working-directory: apps/desktop/src-tauri
+        run: |
+          cargo +1.100.0 metadata --locked --no-deps --format-version 1 > /dev/null
+          cargo +1.100.0 fmt --all -- --check
+      - name: Install native Ubuntu 24 Tauri build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+            libssl-dev libxdo-dev patchelf pkg-config
+      - name: Compile actual unsigned GUI-only .deb using temporary CLI-only override; never install it
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          set -Eeuo pipefail
+          # Source config stays bundle.active=false. This override exists only in
+          # this disposable CI job and does NOT include the Agent or service unit.
+          override='{"bundle":{"active":true,"targets":["deb"]}}'
+          pnpm tauri build --ci --no-sign --bundles deb --config "$override"
+          git diff --exit-code -- apps/desktop/src-tauri/Cargo.lock
+          package=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' -print -quit)
+          if [[ ! -f "$package" ]]; then
+            printf 'FAIL: no Tauri Desktop .deb was produced\n' >&2
+            exit 1
+          fi
+          count=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' | wc -l)
+          if (( count != 1 )); then
+            printf 'FAIL: expected exactly one unsigned desktop-only Debian candidate\n' >&2
+            exit 1
+          fi
+          python3 tools/verify-desktop-deb.py "$package"
+          sha256sum -- "$package"
+          echo 'PASS: unsigned unapproved GUI-only candidate inspected in disposable CI; not installed, enabled, uploaded or published'

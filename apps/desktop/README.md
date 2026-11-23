@@ -10,6 +10,10 @@ Currently implemented:
 - No native install/start/enable commands, no root, shell, polkit, package updater, network plugin, tray, desktop autostart or signed installer. Closing the GUI has no influence on the independent Agent service. **Never enable Agent from this preview.**
 - Source mutation negatives, pure Rust unit tests and GitHub CI on disposable Ubuntu 24.04; none of this is physical Pop!_OS L3.
 
+## Planned native .deb audit milestone (not an end-user installer)
+
+A separate, **milestone-only** Ubuntu 24.04 workflow now attempts to use the official Tauri CLI to build an **unsigned, GUI-only** native .deb inside disposable CI. The committed default bundle remains OFF. A strict package inspector at tools/verify-desktop-deb.py and 19 hostile synthetic archive tests reject package hooks, bundled Agent/service/configuration, session autostart, hidden/shell launchers, unknown payload and malformed metadata. The source candidate is **CI PENDING**; even if validated, this is not signed, distributed, installed or approved for end users. [L2A documentation](../../docs/development/desktop-tauri-offline-deb-candidate-2026-11-23.md).
+
 ## Developing this source (maintainers only)
 
 On a Linux development environment with Node 24.22.3, pnpm 12, Rust 1.100 and the Tauri v2 WebKitGTK 4.1 Linux build prerequisites installed, run the following from apps/desktop:
