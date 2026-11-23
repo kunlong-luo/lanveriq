@@ -24,23 +24,14 @@ GUI = "usr/bin/lanveriq-desktop"
 # Reviewed for the *synthetic/native GUI-only candidate*, not an ABI guarantee.
 # Any new direct SONAME must be independently investigated before admission.
 APPROVED_DIRECT_SONAMES = frozenset((
-    "libc.so.6", "libm.so.6", "libgcc_s.so.1", "libstdc++.so.6",
-    "libpthread.so.0", "libdl.so.2", "librt.so.1", "libresolv.so.2",
-    "libwebkit2gtk-4.1.so.0", "libjavascriptcoregtk-4.1.so.0",
-    "libgtk-3.so.0", "libgdk-3.so.0", "libgdk_pixbuf-2.0.so.0",
-    "libgio-2.0.so.0", "libglib-2.0.so.0", "libgobject-2.0.so.0",
-    "libgthread-2.0.so.0", "libpango-1.0.so.0", "libpangocairo-1.0.so.0",
-    "libharfbuzz.so.0", "libatk-1.0.so.0", "libatspi.so.0",
-    "libcairo.so.2", "libcairo-gobject.so.2", "libfontconfig.so.1",
-    "libfreetype.so.6", "libfribidi.so.0", "libepoxy.so.0",
-    "libayatana-appindicator3.so.1", "libappindicator3.so.1",
-    "libdbusmenu-gtk3.so.4", "librsvg-2.so.2", "libnotify.so.4",
-    "libdbus-1.so.3", "libsoup-3.0.so.0", "libssl.so.3",
-    "libcrypto.so.3", "libz.so.1", "libX11.so.6", "libXext.so.6",
-    "libXrandr.so.2", "libXrender.so.1", "libXcursor.so.1",
-    "libXfixes.so.3", "libXi.so.6", "libXcomposite.so.1",
-    "libXdamage.so.1", "libXinerama.so.1", "libXss.so.1",
-    "libxcb.so.1", "libXau.so.6", "libpixman-1.so.0",
+    # Exactly 15 DT_NEEDED rows observed at feature SHA d4778c56 on
+    # real Ubuntu24 GUI-only Debian CI #45170847477. No speculative entries.
+    "libgdk-3.so.0", "libgdk_pixbuf-2.0.so.0", "libcairo.so.2",
+    "libgobject-2.0.so.0", "libglib-2.0.so.0", "libdbus-1.so.3",
+    "libwebkit2gtk-4.1.so.0", "libgtk-3.so.0", "libsoup-3.0.so.0",
+    "libgio-2.0.so.0", "libjavascriptcoregtk-4.1.so.0",
+    "libgcc_s.so.1", "libm.so.6", "libc.so.6",
+    "ld-linux-x86-64.so.2",
 ))
 APPROVED_INTERPRETERS = frozenset((
     "/lib64/ld-linux-x86-64.so.2",
@@ -91,8 +82,13 @@ def inspect_readelf_output(raw):
             lib = SONAME_FIELD.fullmatch(value.strip())
             require(lib is not None, "malformed direct shared-library dependency")
             soname = lib.group(1)
-            require(SONAME_SHAPE.fullmatch(soname) is not None
-                    and ".." not in soname and "/" not in soname,
+            # The actual x86_64 Tauri ELF directly references its already
+            # authorized ELF loader by SONAME. This is NOT a wildcard bypass:
+            # require exact basename match with the validated PT_INTERP path.
+            loader_soname = pathlib.PurePosixPath(interp[0]).name
+            allowed_shape = (SONAME_SHAPE.fullmatch(soname) is not None
+                             or soname == loader_soname)
+            require(allowed_shape and ".." not in soname and "/" not in soname,
                     "unsafe shared library path/name: " + repr(soname[:120]))
             require(soname not in needed, "duplicate ELF NEEDED dependency")
             needed.append(soname)

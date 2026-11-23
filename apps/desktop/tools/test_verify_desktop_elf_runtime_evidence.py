@@ -134,6 +134,38 @@ class DirectElfRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unreviewed direct SONAME"):
             guard.inspect_readelf_output(modified)
 
+    def test_exact_real_x86_loader_soname_is_allowed_only_as_pt_interp(self):
+        raw = self.readelf()
+        original = b"Shared library: [libc.so.6]"
+        self.assertIn(original, raw)
+        adjusted = raw.replace(
+            original,
+            original + b"\n 0x0000000000000001 (NEEDED) Shared library: [ld-linux-x86-64.so.2]",
+            1,
+        )
+        report = guard.inspect_readelf_output(adjusted)
+        self.assertIn("ld-linux-x86-64.so.2", report["direct_needed_sonames"])
+
+    def test_reject_foreign_loader_as_direct_needed(self):
+        raw = self.readelf()
+        adjusted = raw.replace(
+            b"Shared library: [libc.so.6]",
+            b"Shared library: [libc.so.6]\n 0x0000000000000001 (NEEDED) Shared library: [ld-linux-aarch64.so.1]",
+            1,
+        )
+        with self.assertRaisesRegex(ValueError, "unsafe shared library"):
+            guard.inspect_readelf_output(adjusted)
+
+    def test_unobserved_library_from_previous_broad_allowlist_is_rejected(self):
+        raw = self.readelf()
+        adjusted = raw.replace(
+            b"Shared library: [libc.so.6]",
+            b"Shared library: [libc.so.6]\n 0x0000000000000001 (NEEDED) Shared library: [libX11.so.6]",
+            1,
+        )
+        with self.assertRaisesRegex(ValueError, "unreviewed direct SONAME"):
+            guard.inspect_readelf_output(adjusted)
+
     def test_reject_unsafe_needed_filename(self):
         raw = self.readelf().replace(b"[libc.so.6]", b"[/tmp/libfake.so.1]", 1)
         with self.assertRaisesRegex(ValueError, "unsafe shared library"):
