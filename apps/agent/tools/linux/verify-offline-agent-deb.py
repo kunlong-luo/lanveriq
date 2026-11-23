@@ -46,7 +46,11 @@ def archive_members(raw, kind):
     result = {}
     for item in members:
         path = item.name.removeprefix("./").rstrip("/")
-        if not path:
+        # Native dpkg tar streams may spell their root directory "." or "./".
+        # This is not a file/control hook. A non-directory root entry fails.
+        if path in ("", "."):
+            if not item.isdir():
+                fail(f"{kind} root member is not a directory")
             continue
         if path.startswith("/") or ".." in pathlib.PurePosixPath(path).parts:
             fail(f"{kind} contains dangerous path")
