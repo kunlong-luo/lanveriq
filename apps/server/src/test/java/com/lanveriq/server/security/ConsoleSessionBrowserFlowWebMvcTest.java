@@ -106,9 +106,10 @@ class ConsoleSessionBrowserFlowWebMvcTest {
                 .andReturn();
         var session = (MockHttpSession) result.getRequest().getSession(false);
         assertNotNull(session);
-        String token = new com.fasterxml.jackson.databind.ObjectMapper()
-                .readTree(result.getResponse().getContentAsString())
-                .get("csrfToken").asText();
+        // Read a synthetic CSRF field through JsonPath already used by
+        // MockMvc's JSON assertions; no legacy Jackson 2 dependency.
+        String token = com.jayway.jsonpath.JsonPath.read(
+                result.getResponse().getContentAsString(), "$.csrfToken");
         return new CsrfSession(session, token);
     }
 

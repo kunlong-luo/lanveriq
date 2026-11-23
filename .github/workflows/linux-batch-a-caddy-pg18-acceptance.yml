@@ -10,6 +10,7 @@ on:
     paths:
       - 'apps/server/gradle/wrapper/gradle-wrapper.properties'
       - 'apps/server/build.gradle'
+      - 'apps/server/src/test/java/com/lanveriq/server/security/ConsoleSessionBrowserFlowWebMvcTest.java'
       - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
       - 'apps/agent/src/enrollment_linux.rs'

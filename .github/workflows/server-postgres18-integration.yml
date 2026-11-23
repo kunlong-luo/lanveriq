@@ -62,6 +62,7 @@ on:
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/FirstPinReviewStepUpVerifier.java'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/DenyAllFirstPinReviewStepUpVerifier.java'
       - 'apps/server/build.gradle'
+      - 'apps/server/src/test/java/com/lanveriq/server/security/ConsoleSessionBrowserFlowWebMvcTest.java'
       - 'apps/server/src/main/java/com/lanveriq/server/security/ConsoleSessionSecurityConfiguration.java'
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/security/PostgreSqlConsoleSecurityWiringIT.java'
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/security/PostgreSqlRoleSeparationIT.java'

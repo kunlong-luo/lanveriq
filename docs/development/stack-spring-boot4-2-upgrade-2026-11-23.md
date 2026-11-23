@@ -21,3 +21,8 @@ Code changes are limited to the existing apps/server/build.gradle Gradle plugin 
 ## CI reporting and rollback
 
 Record functional source SHA and completed run URLs only when actual. On a release regression, revert the version pins in a **new main commit**, retain failed CI, and do not flip any feature flag. **G-02/G-05/G-08 and all production release gates remain OPEN. v0.1 NOT RELEASE READY.**
+
+
+## 2026-11-23 first CI failure retained
+
+Initial Spring Boot 4.2.0/source SHA [094318ea](https://github.com/kunlong-luo/lanveriq/commit/094318eaf1b60b4d6a57dd6ee75993677954b28d) had [server unit workflow #45137999504 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45137999504) at compileTestJava. One test called an obsolete Jackson 2 com.fasterxml.jackson.databind.ObjectMapper that is absent from the Boot4.2 dependency graph. The new fix uses mature Jayway JsonPath already supplied by MockMvc jsonPath integration, with no fallback Jackson 2 library added. The earlier red run remains failure evidence. Real PostgreSQL18.7 tests and Linux synthetic TLS must be repeated on the new corrected SHA before acceptance.
