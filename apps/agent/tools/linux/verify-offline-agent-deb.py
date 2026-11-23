@@ -67,8 +67,14 @@ def validate(package):
     if "Architecture: amd64\n" not in info:
         fail("unsupported package architecture")
     controls = archive_members(run("dpkg-deb", "--ctrl-tarfile", str(package)), "control")
-    if set(controls) != {"control"} or not controls["control"].isfile():
-        fail("unapproved postinst/prerm/config/conffiles or maintainer control files")
+    # dpkg-deb versions can add an ordinary md5sums member. It is inventory
+    # metadata only, not a maintainer script or authority for signing.
+    # Never permit postinst/preinst/prerm/postrm, triggers or conffiles.
+    if not {"control"} <= set(controls) or not set(controls) <= {"control", "md5sums"}:
+        fail(f"unapproved postinst/prerm/config/conffiles or maintainer control files: {sorted(controls)}")
+    for name, member in controls.items():
+        if not member.isfile() or member.uid != 0 or member.gid != 0 or (member.mode & 0o7777) != 0o644:
+            fail(f"unsafe control archive member: {name}")
     contents = archive_members(run("dpkg-deb", "--fsys-tarfile", str(package)), "payload")
     if set(contents) != FILES | DIRS:
         fail(f"payload files/directories not allowlisted: {sorted(set(contents) ^ (FILES | DIRS))}")

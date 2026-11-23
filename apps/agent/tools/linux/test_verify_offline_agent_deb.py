@@ -69,6 +69,20 @@ class NativePackageSafetyTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("NOT dpkg install/purge or Pop!_OS L3", result.stdout)
 
+    def test_standard_md5sums_metadata_is_not_a_service_activation_hook(self):
+        import hashlib
+
+        def alter(pkg):
+            names = ("usr/bin/lanveriq-agent", "usr/lib/systemd/system/lanveriq-agent.service")
+            checks = []
+            for name in names:
+                digest = hashlib.md5((pkg / name).read_bytes()).hexdigest()
+                checks.append(f"{digest}  {name}\n")
+            (pkg / "DEBIAN/md5sums").write_text("".join(checks), encoding="utf-8")
+
+        result = self.check(self.make_package(alter))
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_extra_configuration_is_rejected(self):
         def alter(pkg):
             config = pkg / "etc/lanveriq-agent/agent.toml"
