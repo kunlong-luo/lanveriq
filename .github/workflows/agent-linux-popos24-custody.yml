@@ -34,6 +34,20 @@ jobs:
         run: python3 -m unittest discover -s apps/agent/tools/linux -p 'test_verify_systemd_popos24.py'
       - name: Reject unsafe .deb package payloads and lifecycle metadata (synthetic fixtures)
         run: python3 -m unittest discover -s apps/agent/tools/linux -p 'test_verify_offline_agent_deb.py'
+      - name: Reject false installed-service claims and hostile effective systemd properties
+        run: python3 -m unittest discover -s apps/agent/tools/linux -p 'test_verify_installed_agent_idle.py'
+      - name: Confirm clean runner cannot pretend to be an installed approved Agent
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          result=$(python3 apps/agent/tools/linux/verify-installed-agent-idle.py 2>&1) && {
+            echo 'FAIL: disposable Ubuntu runner falsely passed installed-service audit'
+            exit 1
+          }
+          case "$result" in
+            NOT_APPROVED:*) echo "PASS: uninstalled CI runner denied by read-only installed-unit audit";;
+            *) echo 'FAIL: expected explicit fail-closed installed-unit refusal'; exit 1;;
+          esac
       - name: Check Pop!_OS 24.04 idle-service security policy
         run: python3 apps/agent/tools/linux/verify-systemd-popos24.py apps/agent/deploy/systemd/lanveriq-agent.service
       - name: Verify systemd unit syntax without installing or starting

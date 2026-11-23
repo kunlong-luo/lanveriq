@@ -2,6 +2,10 @@
 
 **D0-approved V0.1 coding slice, not a deployed or usable endpoint monitor.** The running Agent binary remains an idle loop and performs **no inventory collection, network requests, enrollment, heartbeat, audit collection, input monitoring or screen recording**. AGT-02 SQLx persistence, staged AGT-03 HTTPS/mTLS transport, and new INV-01 local OS adapter are **standalone library components only**; none is invoked by the service binary. The adapter is callable explicitly in an isolated test only; no real workplace data is authorized.
 
+## Pop!_OS 24.04 offline lab diagnostics (G-05-LNX3)
+
+A **read-only** audit of an already separately authorized test installation is available at `python3 tools/linux/verify-installed-agent-idle.py`. On a normal machine with no Lanveriq preview package, it must exit nonzero with `NOT_APPROVED`. It never installs, starts, enables or queries private Agent state, and it does **not** close physical Pop!_OS L3. [Scope and exact allowed properties](../../docs/testing/linux-installed-idle-inspector-g05-lnx3-2026-11-23.md); previous [native .deb offline preview](../../docs/testing/linux-native-package-candidate-2026-11-23.md) remains unapproved for production.
+
 ## Toolchain and dependencies
 
 From the repository root, enter `apps/agent` (where the Rust toolchain, manifest and lockfile now live) and run:
