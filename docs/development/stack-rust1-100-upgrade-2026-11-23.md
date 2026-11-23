@@ -23,3 +23,17 @@ Upstream Rust stable 1.100.0 (2026-11-12): https://blog.rust-lang.org/2026/11/12
 5. Record exact SHA, run URLs, observed PASS/FAIL/PENDING; revert or fix by separate main commit if new toolchain fails. Preserve older successful 1.94 run IDs as historical 1.94 evidence only.
 
 **G-02/G-05/G-08 OPEN. v0.1 NOT RELEASE READY. This does not enable production agent networking, device capture, remote, automatic recovery, real FIDO/CA or external WORM.**
+
+## Exact source-SHA CI acceptance (2026-11-23)
+
+**Functional SHA [1905ef5a08377df0853a2de45cb2d3c772d9a7bf](https://github.com/kunlong-luo/lanveriq/commit/1905ef5a08377df0853a2de45cb2d3c772d9a7bf): 9/9 actual GitHub workflow runs completed SUCCESS.**
+
+- [Linux Agent full Rustfmt, cargo workspace unit and Clippy -D warnings #45138974357](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974357): success using pinned 1.100.0.
+- [Ubuntu 24.04 Linux offline CSR, Unix UID, real transient systemd DynamicUser and real compiled release Debian candidate #45138974180](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974180): success, no real Agent installed/started.
+- [Linux Batch A real isolated Rust→Caddy TLS1.3→Spring/Tomcat→PostgreSQL18.7 #45138974359](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974359): success on both independent CI jobs.
+- [Linux Rust-generated P-256 CSR/issued client-auth leaf → Java validation #45138974342](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974342): success.
+- [Windows targeted Rust Agent native unit, fmt/Clippy #45138974364](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974364): success.
+- [Windows synthetic CNG non-exportable P-256 CSR, rustls mutual TLS and Java BouncyCastle interop #45138974343](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974343): success.
+- [Next.js fast checks #45138974316](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974316), [docs authority #45138974490](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974490), [RD-2 fail-closed #45138974430](https://github.com/kunlong-luo/lanveriq/actions/runs/45138974430): success.
+
+**Proof scope:** Rust 1.100 compiler build, negative tests, and synthetic network/crypto/DB flows; no authorized physical Pop!_OS24 L3, real Windows field deployment, production access, WORM custody, CA or admin MFA. Cargo MSRV remains set to 1.94 but this SHA did not trigger a separate Rust 1.94 compatibility build. v0.1 NOT RELEASE READY.
