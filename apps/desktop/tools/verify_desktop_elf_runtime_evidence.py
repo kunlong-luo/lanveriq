@@ -93,7 +93,7 @@ def inspect_readelf_output(raw):
             soname = lib.group(1)
             require(SONAME_SHAPE.fullmatch(soname) is not None
                     and ".." not in soname and "/" not in soname,
-                    "unsafe shared library path/name")
+                    "unsafe shared library path/name: " + repr(soname[:120]))
             require(soname not in needed, "duplicate ELF NEEDED dependency")
             needed.append(soname)
         elif tag in FORBIDDEN_DYNAMIC_TAGS or (

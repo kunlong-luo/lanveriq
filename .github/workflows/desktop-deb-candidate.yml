@@ -182,6 +182,9 @@ jobs:
           set -Eeuo pipefail
           command -v readelf >/dev/null
           test -f "$EVIDENCE_DIR/payload-evidence.json"
+          # Diagnostic is read-only: print the actual DT_NEEDED rows even if
+          # the strict SONAME parser later refuses an unreviewed library.
+          LC_ALL=C readelf --wide --dynamic "$EVIDENCE_DIR/desktop-payload-root/usr/bin/lanveriq-desktop" | grep '(NEEDED)'
           package=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' -print -quit)
           test -f "$package"
           args=(--package "$package" --extracted "$EVIDENCE_DIR/desktop-payload-root" --payload-spdx "$EVIDENCE_DIR/desktop-payload.spdx.json" --source-receipt "$EVIDENCE_DIR/receipt.json" --source-spdx "$EVIDENCE_DIR/desktop-source.spdx.json" --payload-evidence "$EVIDENCE_DIR/payload-evidence.json" --cargo-lock src-tauri/Cargo.lock --pnpm-lock pnpm-lock.yaml --tauri-config src-tauri/tauri.conf.json --source-sha "$SOURCE_SHA" --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT" --output "$EVIDENCE_DIR/runtime-elf-evidence.json")
