@@ -1,6 +1,6 @@
 # Lanveriq 当前状态 / Current status
 
-> **DESKTOP-L2B-2 快速 L1 单独验收候选（2026-11-23 · CI PENDING）：** 新增 [专用 OpenSSL3 Ed25519 离线合成负测工作流](../.github/workflows/desktop-signature-lab.yml)，把临时密钥真实验签与拒绝篡改/伪造授权测试从 WebKitGTK/Tauri 原生构建中拆出以缩短反馈周期；**独立 L1 不证明真实 Debian/Syft 最终签名验真，也不是生产发行证书**。原生 [#45161801144](https://github.com/kunlong-luo/lanveriq/actions/runs/45161801144) 尚未结束；正式签名、安装和 Pop!_OS24 实机 L3 NOT RUN，**v0.1 NOT RELEASE READY**。
+> **DESKTOP-L2B-2 快速 OpenSSL3 L1 独立验收 PASS（2026-11-23）：** 功能 SHA [ae0775a5](https://github.com/kunlong-luo/lanveriq/commit/ae0775a574e242e76013eb2fe060624412eec658) 的 [独立离线签名实验 #45163358720 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45163358720)：Ubuntu 24.04 实际使用 OpenSSL 3、临时 Ed25519 密钥及合成 Debian 回执运行了 16 项独立正负测试（通过）；已将其与 WebKitGTK/Tauri 原生构建分开缩短反馈周期。**独立 L1 不证明真实 Debian/Syft 最终签名验真，也不是生产发行证书**。原生 [#45161801144](https://github.com/kunlong-luo/lanveriq/actions/runs/45161801144) 尚未结束；正式签名、安装和 Pop!_OS24 实机 L3 NOT RUN，**v0.1 NOT RELEASE READY**。
 
 > **DESKTOP-L2B-2 离线签名验真实验源码候选（2026-11-23 · exact-SHA CI PENDING）：** 在 [L2B-2 临时测试密钥验收规范](development/desktop-tauri-l2b2-offline-signature-lab-2026-11-23.md)引入 OpenSSL 3 Ed25519 实际分离签名/验签流程，全部密钥仅存在隔离 CI runner.temp；[验证器](../apps/desktop/tools/verify_desktop_lab_signature.py)把签名真实验真与现有 Debian 归档、SPDX、锁文件/commit/run 回执重校验组合；新增拒绝篡改、签名密钥调包、伪造授权等负测。**临时测试公钥指纹不等于生产可信发行身份，实验签名不能分发或安装；需要新功能 SHA 真实 CI 成功才能称 L2B-2 实验 PASS。** Tauri bundle 默认 OFF，生产联网/采集/远控/Agent安装/启动/签名发布继续禁止，Pop!_OS24 实机 NOT RUN，G-05/G-07/G-08/G-09 OPEN，**v0.1 NOT RELEASE READY**。
 

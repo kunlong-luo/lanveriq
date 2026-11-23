@@ -19,7 +19,7 @@ The [negative tests](../../apps/desktop/tools/test_verify_desktop_lab_signature.
 
 The [dedicated offline Ed25519 lab workflow](../../.github/workflows/desktop-signature-lab.yml) verifies real OpenSSL 3 ephemeral signatures and denial paths against **synthetic** Debian fixtures on Ubuntu 24.04. It requests only contents: read and does not use id-token, GitHub secrets, public signer, uploads, installs or production actions. Its purpose is to run cryptographic L1 negative tests without waiting for WebKitGTK/Tauri. An L1 success here must not be substituted for L2B-2's native Debian package + Syft + actual lab signature check.
 
-At authorship: new dedicated workflow CI **PENDING**; prior [native run #45161801144](https://github.com/kunlong-luo/lanveriq/actions/runs/45161801144) remains **IN PROGRESS**, not an accepted native L2B-2 PASS.
+Verified synthetic L1: functional commit [ae0775a5](https://github.com/kunlong-luo/lanveriq/commit/ae0775a574e242e76013eb2fe060624412eec658), [offline Ed25519 test run #45163358720 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45163358720), Ubuntu 24.04 / OpenSSL 3, 16 test cases executed. This proves real OpenSSL tests on **synthetic** receipts, not a native binary or verified release issuer. The prior [native run #45161801144](https://github.com/kunlong-luo/lanveriq/actions/runs/45161801144) remains **IN PROGRESS**, not an accepted native L2B-2 PASS.
 
 ## Next gates (NOT RUN)
 
