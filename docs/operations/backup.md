@@ -36,3 +36,7 @@ Corrupt DB, incomplete backup, migration failure, missing volume, lost media fil
 ## D4-C18g 外部 WORM/恢复联动验收（仅协议，2026-11-22）
 
 执行前必须获得独立安全受托方、法务及 SRE 的书面批准，在专用可销毁的**非生产**环境按 [C18g 真实管理域与 WORM-01–11 验收协议](../security/independent-worm-custody-acceptance-d4-c18g-2026-11-22.md)证明底层管理员、KMS、签名密钥、高水位与备份权限分离，真实数据库 N-1 恢复拒绝、N 读回、一份存储受损时跨域恢复。此章是计划，不是已发生的演练；所有真实 WORM/介质测试仍 NOT RUN，G-02/G-08 OPEN。
+
+## D4-C18j 独立高水位发布与灾备（2026-11-23，NOT RUN）
+
+参见 [C18j 实物介质选型、受控实验和八种崩溃/回退真实故障矩阵](../security/independent-worm-lab-execution-package-d4-c18j-2026-11-23.md)。分别记录 DB 已提交但未外部发表、keeper 已写但 ACK 丢失、N+1 并发、N-1 数据库及旧签名链重放、外部 H=N 存活、第一介质损毁而异域副本存活、KMS/时间失效。单纯 pg_dump/pg_restore 合成测试、Object Lock API 403 或元数据清单预检成功均不能替代实际异域灾备。仅在书面授权的非生产实验环境测量恢复和失败率；G-02/G-08 OPEN。

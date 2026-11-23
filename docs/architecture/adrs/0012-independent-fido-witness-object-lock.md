@@ -39,3 +39,7 @@ See [C18f security-domain comparison and acceptance matrix](../../security/indep
 5. Approve concrete deployment/operator runbooks and explicit release authority. Only then consider closing **G-02**. Production networking, collection, automatic recovery, remote control, official FIDO trust, real admin MFA and CA issuance remain OFF meanwhile.
 
 **This accepts only a cloud-neutral development direction; provider selection, independent WORM evidence and production release remain NOT APPROVED. v0.1 NOT RELEASE READY.**
+
+## 2026-11-23 C18j 外部实验交接（不改变选型和审批状态）
+
+[C18j WORM 独立保管、签名高水位和受控实验交接包](../../security/independent-worm-lab-execution-package-d4-c18j-2026-11-23.md)细化线上单调发布、独立副本与底层管理员现场证明。本 ADR 仍只批准云中立开发边界；不选供应商、不新增 SDK、不授权实验，不关闭 G-02/G-08。

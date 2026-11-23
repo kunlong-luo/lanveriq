@@ -86,3 +86,7 @@ The [C18h metadata completeness checker](independent-worm-offline-evidence-intak
 ## C18i independent-admin transitive control review (source-only)
 
 [C18i privilege-graph preflight](independent-worm-admin-control-graph-d4-c18i-2026-11-22.md) requires full declared control ancestry, break-glass and Ceph MON/MGR/OSD/RADOS coverage; distinct names no longer suffice for preflight. An asserted graph cannot authenticate the underlying cluster, KMS or high-water. WORM-01–11 stay NOT RUN; do not close G-02/G-08 from source CI.
+
+## C18j 现实交接规范（仍 NOT RUN）
+
+[C18j 独立 WORM 选型与授权实验执行包](independent-worm-lab-execution-package-d4-c18j-2026-11-23.md)详细规定外部审核方、单调高水位发表失败态、八类真实崩溃/回退现场实验、独立受控破坏与私有证据签字。它是执行计划，不是实际安全批准或物理验收。WORM-01–11 仍 NOT RUN，G-02/G-08 OPEN。
