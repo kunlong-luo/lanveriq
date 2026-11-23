@@ -60,8 +60,13 @@ class DesktopReadonlyContractTests(unittest.TestCase):
             guard.validate(self.root)
 
     def test_reject_privileged_shell_execution(self):
-        self.mutate("src-tauri/src/lib.rs",
-                    "const UNIT: &str", 'const DANGEROUS: &str = "Command::new(\\"/bin/sh\\")";\nconst UNIT: &str')
+        # Insert the exact dangerous token, not an escaped string that cannot
+        # match the actual source-level policy detector.
+        self.mutate(
+            "src-tauri/src/lib.rs",
+            "const UNIT: &str",
+            'const DANGEROUS: &str = r#"Command::new("/bin/sh")"#;\nconst UNIT: &str',
+        )
         with self.assertRaisesRegex(ValueError, "unapproved runtime operation"):
             guard.validate(self.root)
 
