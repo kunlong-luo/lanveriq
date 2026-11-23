@@ -44,6 +44,16 @@ class DesktopReadonlyContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "desktop package identity drift"):
             guard.validate(self.root)
 
+    def test_reject_missing_bundle_icon_reference(self):
+        self.mutate("src-tauri/tauri.conf.json", '"icon": ["icons/icon.png"]', '"icon": []')
+        with self.assertRaisesRegex(ValueError, "desktop bundle icon"):
+            guard.validate(self.root)
+
+    def test_reject_arbitrary_bundle_icon_reference(self):
+        self.mutate("src-tauri/tauri.conf.json", '"icon": ["icons/icon.png"]', '"icon": ["icons/unknown.png"]')
+        with self.assertRaisesRegex(ValueError, "desktop bundle icon"):
+            guard.validate(self.root)
+
     def test_reject_enabled_installer_bundle(self):
         self.mutate("src-tauri/tauri.conf.json", '"active": false', '"active": true')
         with self.assertRaisesRegex(ValueError, "bundle must stay OFF"):

@@ -173,7 +173,8 @@ def validate(package):
 
     check(binaries == [EXECUTABLE], "exactly one GUI executable required")
     check(len(launchers) == 1, "exactly one launcher required")
-    check(1 <= len(icons) <= 15, "only approved icon PNG files required")
+    check(1 <= len(icons) <= 15,
+          "only approved icon PNG files required; check the explicit Tauri bundle.icon list")
     check(len(payload) < FILES_MAX, "too many package payload entries")
     check(
         all(path in {"usr", "usr/bin", "usr/share", "usr/share/applications", "usr/share/icons", "usr/share/icons/hicolor"} or

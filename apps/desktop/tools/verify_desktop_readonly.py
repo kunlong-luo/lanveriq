@@ -40,6 +40,7 @@ def validate(root=DESKTOP):
     require(tauri["productName"] == "lanveriq-desktop", "desktop package identity drift")
     require(tauri["bundle"]["active"] is False, "bundle must stay OFF")
     require(tauri["bundle"]["targets"] == [], "no installer bundle targets yet")
+    require(tauri["bundle"].get("icon") == ["icons/icon.png"], "desktop bundle icon must be the reviewed native PNG")
     require(tauri["build"]["frontendDist"] == "../dist", "unexpected asset target")
     require(tauri["app"].get("trayIcon") is None, "resident tray forbidden")
     require(not tauri.get("plugins"), "Tauri plugins need separate review")
