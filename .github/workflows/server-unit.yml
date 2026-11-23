@@ -78,5 +78,8 @@ jobs:
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test
+      - name: Build actual Spring Boot 4.2 server bootJar (no deployment)
+        working-directory: apps/server
+        run: ./gradlew bootJar
       - name: Fail closed unless all FIDO source-time v2 negative tests executed
         run: python3 apps/server/scripts/assert-fido-source-time-junit.py
