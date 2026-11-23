@@ -33,9 +33,7 @@ fn parse_os_release(contents: &str) -> (String, bool) {
             match key {
                 "ID" => id = value.to_string(),
                 "VERSION_ID" => version = value.to_string(),
-                "PRETTY_NAME" if value.len() <= 120
-                    && value.chars().all(|ch| !ch.is_control()) =>
-                {
+                "PRETTY_NAME" if value.len() <= 120 && value.chars().all(|ch| !ch.is_control()) => {
                     name = value.to_string();
                 }
                 _ => {}
@@ -121,27 +119,26 @@ fn inspect_host() -> HostSnapshot {
         let (os_name, os_matches) = parse_os_release(&os_release);
         // Fixed query names and paths; never execute shell commands or caller input.
         const FORMAT: &str = concat!("$", "{Status}", "|", "$", "{Version}");
-        let package_state = command_read_only(
-            "/usr/bin/dpkg-query",
-            &["-W", "-f", FORMAT, PACKAGE],
-        )
-        .map(|raw| parse_package(&raw).to_string())
-        .unwrap_or_else(|| "unverified".to_string());
+        let package_state =
+            command_read_only("/usr/bin/dpkg-query", &["-W", "-f", FORMAT, PACKAGE])
+                .map(|raw| parse_package(&raw).to_string())
+                .unwrap_or_else(|| "unverified".to_string());
         let service = command_read_only(
             "/usr/bin/systemctl",
             &[
-                "show", UNIT, "--no-pager",
+                "show",
+                UNIT,
+                "--no-pager",
                 "--property=ActiveState",
                 "--property=UnitFileState",
                 "--property=DropInPaths",
                 "--property=NeedDaemonReload",
             ],
         );
-        let (service_state, unit_file_state, override_state, manager_reload_state) =
-            service
-                .as_deref()
-                .map(parse_unit_properties)
-                .unwrap_or(("unverified", "unverified", "unverified", "unverified"));
+        let (service_state, unit_file_state, override_state, manager_reload_state) = service
+            .as_deref()
+            .map(parse_unit_properties)
+            .unwrap_or(("unverified", "unverified", "unverified", "unverified"));
         HostSnapshot {
             os_name,
             architecture: architecture.clone(),
@@ -207,7 +204,10 @@ mod tests {
             parse_package("install ok installed|9.9.9\n"),
             "unrecognized_version"
         );
-        assert_eq!(parse_package("deinstall ok config-files|0.1.0~dev1"), "not_installed");
+        assert_eq!(
+            parse_package("deinstall ok config-files|0.1.0~dev1"),
+            "not_installed"
+        );
         assert_eq!(parse_package("unexpected output"), "unverified");
     }
 
@@ -219,8 +219,7 @@ mod tests {
             parse_unit_properties(clean),
             ("inactive", "disabled", "none_reported", "not_required")
         );
-        let unsafe_values =
-            "ActiveState=active\nUnitFileState=enabled\nDropInPaths=/etc/systemd/system/a.conf\nNeedDaemonReload=yes\n";
+        let unsafe_values = "ActiveState=active\nUnitFileState=enabled\nDropInPaths=/etc/systemd/system/a.conf\nNeedDaemonReload=yes\n";
         assert_eq!(
             parse_unit_properties(unsafe_values),
             ("active", "enabled", "present_unreviewed", "reload_required")

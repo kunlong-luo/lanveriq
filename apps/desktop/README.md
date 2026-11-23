@@ -19,7 +19,7 @@ On a Linux development environment with Node 24.22.3, pnpm 12, Rust 1.100 and th
     pnpm build
     pnpm tauri dev
 
-The first source submission bootstraps real lockfiles in CI before switching to frozen/locked installation. Until both generated Cargo.lock and pnpm-lock.yaml are committed and verified, this is NOT a reproducible release pipeline. Browser-only local preview runs pnpm dev but **cannot inspect the host**; do not treat browser fallback as actual installation.
+Both real generated pnpm-lock.yaml and Cargo.lock have now been committed and the workflow uses frozen/locked dependency installation. This remains a NON-RELEASE preview until native compile checks, release signatures, privilege mediation, and actual Pop!_OS L3 have separately passed. Browser-only local preview runs pnpm dev but **cannot inspect the host**; do not treat browser fallback as actual installation.
 
 End users **must not** be asked to run these commands. Their future approved product receives a signed, double-clickable installation experience. There is currently **no end-user installer**. Do not run a real install on personal or production devices.
 

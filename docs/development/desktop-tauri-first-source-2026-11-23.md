@@ -19,3 +19,9 @@ Next steps: real generated Cargo.lock/pnpm-lock.yaml; actual Chromium keyboard/s
 [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md) · [product requirements](../product/linux-desktop-installer-v01.md) · [L3 acceptance](../testing/linux-desktop-installer-acceptance.md) · [Issue #7](https://github.com/kunlong-luo/lanveriq/issues/7).
 
 **G-02/G-05/G-07/G-08/G-09 OPEN, v0.1 NOT RELEASE READY.** Production network, capture, auto-recovery, remote, CA and real FIDO/WORM remain OFF.
+
+## Locked dependency build candidate (2026-11-23; CI pending)
+
+GitHub's first desktop frontend job built and tested React/TypeScript successfully; it exported an actual pnpm12 generated lockfile. The extra transient pnpm 12 self-bootstrap YAML document was separated from the project importer document; only the actual desktop dependency graph is committed to apps/desktop/pnpm-lock.yaml. [Independent non-installing Cargo.lock bootstrap #45146503121](https://github.com/kunlong-luo/lanveriq/actions/runs/45146503121) SUCCESS; its generated Cargo version-4 lock is committed without inventing dependency hashes. The one-use bootstrap workflow has been removed from main.
+
+Historical failures preserved: [First desktop L1 #45145378646](https://github.com/kunlong-luo/lanveriq/actions/runs/45145378646) FAIL due to a negative-test fixture escaping bug; [Second desktop L1 #45145579280](https://github.com/kunlong-luo/lanveriq/actions/runs/45145579280) frontend tests PASS, native job FAIL on **rustfmt only** after Ubuntu WebKit prerequisites; 6 formatting differences were applied in a reviewed source commit. Those runs do **not** prove native Tauri compile. New source requires exact frozen pnpm and Cargo --locked builds; pending runs must not be called successful. No signed .deb, broker, real Pop!_OS L3 or activation.

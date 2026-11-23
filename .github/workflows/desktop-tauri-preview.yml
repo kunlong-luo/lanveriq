@@ -36,26 +36,19 @@ jobs:
           runtime: node@24.22.3
           working-directory: apps/desktop
           install: false
-          require-lockfile: false
+          require-lockfile: true
           cache: false
       - name: Verify patched runtime
         run: test "$(node --version)" = 'v24.22.3'
-      - name: Resolve desktop-only pinned dependencies (initial lock bootstrap)
+      - name: Install committed desktop dependencies frozen
         working-directory: apps/desktop
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Test, typecheck and build disconnected UI
         working-directory: apps/desktop
         run: |
           pnpm test
           pnpm typecheck
           pnpm build
-      - name: Export real generated frontend lock to review and commit
-        run: |
-          python3 - <<'PY'
-          import base64
-          from pathlib import Path
-          print('LANVERIQ_DESKTOP_PNPM_LOCK_B64=' + base64.b64encode(Path('apps/desktop/pnpm-lock.yaml').read_bytes()).decode('ascii'))
-          PY
       - name: Transfer offline static assets only for native compilation
         uses: actions/upload-artifact@v4
         with:
@@ -84,19 +77,17 @@ jobs:
             libssl-dev libxdo-dev patchelf pkg-config
       - name: Install pinned Rust 1.100
         run: rustup toolchain install 1.100.0 --profile minimal --component rustfmt --component clippy
+      - name: Verify committed native Cargo dependency lock
+        working-directory: apps/desktop/src-tauri
+        run: |
+          test -f Cargo.lock
+          cargo +1.100.0 metadata --locked --no-deps --format-version 1 > /dev/null
       - name: Rustfmt check
         working-directory: apps/desktop/src-tauri
         run: cargo +1.100.0 fmt --all -- --check
       - name: Compile actual Tauri and test native inspectors
         working-directory: apps/desktop/src-tauri
-        run: cargo +1.100.0 test --workspace
+        run: cargo +1.100.0 test --workspace --locked
       - name: Clippy native code
         working-directory: apps/desktop/src-tauri
-        run: cargo +1.100.0 clippy --workspace --all-targets -- -D warnings
-      - name: Export real generated Cargo.lock to review and commit
-        run: |
-          python3 - <<'PY'
-          import base64
-          from pathlib import Path
-          print('LANVERIQ_DESKTOP_CARGO_LOCK_B64=' + base64.b64encode(Path('apps/desktop/src-tauri/Cargo.lock').read_bytes()).decode('ascii'))
-          PY
+        run: cargo +1.100.0 clippy --workspace --all-targets --locked -- -D warnings
