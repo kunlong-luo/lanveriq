@@ -164,11 +164,14 @@ jobs:
         uses: pnpm/setup@v3
         with:
           version: '12.0.0'
-          runtime: node@24
+          runtime: node@24.22.3
           working-directory: apps/web
           install: true
           require-lockfile: true
           cache: false
+      - name: Verify Node 24.22.3 only when browser preview requested
+        if: ${{ github.event_name == 'push' || inputs.nextjs_same_origin_probe }}
+        run: test "$(node --version)" = "v24.22.3"
       - name: Build default disabled-login preview (optionally add disposable auth fixture)
         if: ${{ github.event_name == 'push' || inputs.nextjs_same_origin_probe }}
         working-directory: apps/web

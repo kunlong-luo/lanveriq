@@ -49,11 +49,13 @@ jobs:
         uses: pnpm/setup@v3
         with:
           version: '12.0.0'
-          runtime: node@24
+          runtime: node@24.22.3
           working-directory: apps/server/contract-client-check
           install: true
           require-lockfile: true
           cache: false
+      - name: Verify Node 24.22.3 patched runtime (fail closed)
+        run: test "$(node --version)" = "v24.22.3"
       - name: Generate actual Orval client and check TypeScript
         working-directory: apps/server/contract-client-check
         run: pnpm verify

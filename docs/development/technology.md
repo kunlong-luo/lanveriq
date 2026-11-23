@@ -1,6 +1,8 @@
 # Lanveriq 技术栈与依赖准入（实际代码基线，2026-11-21）
 
-> **2026-11-23 更新候选：** PostgreSQL 18 维护版本从 18.6 更新至 18.7，源码已统一集成测试镜像与精确版本断言；在同 SHA CI 成功之前不能称为已验收。详见 [STACK-PG18.7](stack-postgres18-7-upgrade-2026-11-23.md)。
+> > **Node LTS 安全补丁（2026-11-23 候选）：** Web、Orval 合约检查、Pages/Chromium 和可选同源浏览器验收已锁到 Node 24.22.3（不是 Node 26 主版本升级），增加 node --version 精确 CI；本地 .node-version 与运行时一致。必须经同 SHA CI 通过后才能记验收。
+
+**2026-11-23 更新候选：** PostgreSQL 18 维护版本从 18.6 更新至 18.7，源码已统一集成测试镜像与精确版本断言；在同 SHA CI 成功之前不能称为已验收。详见 [STACK-PG18.7](stack-postgres18-7-upgrade-2026-11-23.md)。
 
 **状态：技术栈已实施，v0.1 业务链路未闭环。** 这是**当前仓库真实依赖**的入口，不再以 2026-10-30 “无源码/React+Vite 计划”描述现状。由 [v0.1 批量开发计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md) 管理交付，以 [设备通信协议栈基线](../architecture/device-communication-stack.md) 管理设备协议。最新 Web 迁移验收见 [NXT-24](nextjs-path-rename-nxt24-2026-11-21.md)；各依赖具体版本以 Gradle BOM、Cargo.lock、pnpm-lock.yaml 为准；未列在 manifest 中的 UI/PKI/监控库不是已安装的能力。
 
@@ -12,7 +14,7 @@
 | Java 后端 | **Java 25 LTS + Gradle 9.8.2 Groovy DSL + Spring Boot 4.1.2**、Spring Security/WebMVC、JPA/Hibernate、Flyway、Actuator | 单体模块化架构，非 Maven；仅启用受审核的 REST 子路由，不允许全局 /api/v1/** 通配放开 |
 | Java 身份/限流/CSR | Spring Security、Bouncy Castle `bcpkix-jdk18on 1.86`、Bucket4j、Caffeine | 复用库完成 PKCS#10/证书、限流和短期缓存；本地生成/设备 CA 审批及部署尚待复核 |
 | 服务端数据库 | PostgreSQL 18.7 CI 合成测试候选、Flyway、Hibernate/JPA；可选 Redis/Lettuce **默认 OFF** | PostgreSQL 是唯一规范存储；Redis 仅可用于 best-effort TTL 提示/健康检查，不作持久 ACK、设备身份或权限源 |
-| Web 控制台 | **Next.js 16.4.5 App Router + React 19.2.0 + TypeScript 7.0.2 + Node 24 + pnpm 12.0.0** | `apps/web` 是唯一 Next.js 主前端（`@lanveriq/web`，本地 3100）；原 Vite 源码已删除，仅存 Git 历史。独立的 `apps/web-next` 已撤销；当前 UI 无正式认证/真实设备接口。 |
+| Web 控制台 | **Next.js 16.4.5 App Router + React 19.2.0 + TypeScript 7.0.2 + Node 24.22.3（CI 候选）+ pnpm 12.0.0** | `apps/web` 是唯一 Next.js 主前端（`@lanveriq/web`，本地 3100）；原 Vite 源码已删除，仅存 Git 历史。独立的 `apps/web-next` 已撤销；当前 UI 无正式认证/真实设备接口。 |
 | 组件与状态 | **Base UI React 1.9.0** + 项目内可维护的 shadcn-style 源码组件、Tailwind 4.3.3、Lucide 1.61.0、TanStack Query 5.105.0 | 当前已安装；不要把 Radix、Motion、TanStack Table、Sonner、Zustand、Recharts 等**尚未安装**的候选写成已完成 |
 | 类型生成 | Springdoc 3.2.0 → **Orval（后端 CI 契约候选）** → Fetch/TanStack Query、锁定 Next 依赖类型校验 | 已在合成契约检查跑通过；正式 Next.js 不挂载真实 API hooks；见 [NXT-20](frontend-backend-directory-nxt20.md) |
 | 浏览器实时通信 | Spring WebSocket + WSS 方案（同源、管理员会话、RBAC）、React Query 收到提示后 refetch | **设计已选，真实 WSS 业务链路未上线**；不用于 Agent 数据 ACK |
