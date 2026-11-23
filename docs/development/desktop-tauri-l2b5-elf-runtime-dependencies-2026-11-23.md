@@ -1,6 +1,6 @@
 # DESKTOP-L2B-5 — direct ELF ABI, Debian Depends and unresolved external licenses
 
-**SPEC · 2026-11-23 · exact-SHA L1 synthetic PASS / native L2 PENDING · UNSIGNED · v0.1 NOT RELEASE READY**
+**SPEC · 2026-11-23 · corrected exact-SHA L1 48/48 PASS / native L2 PENDING · UNSIGNED · v0.1 NOT RELEASE READY**
 
 ## Why and what is implemented
 
@@ -24,3 +24,12 @@ Direct SONAMEs are NOT a complete runtime closure, an installed package list, a 
 **G-05/G-07/G-08/G-09 OPEN; v0.1 NOT RELEASE READY.**
 
 [Current status](../CURRENT_STATUS.md) · [Release gates](../planning/release-gap-register.md) · [Pop!_OS installer acceptance](../testing/linux-desktop-installer-acceptance.md).
+
+## Exact native failure evidence and corrected direct SONAME gate
+
+- On original SHA [a8fa17d8](https://github.com/kunlong-luo/lanveriq/commit/a8fa17d809490288688c9af663396e56e0afbd28), [native run #45168649310](https://github.com/kunlong-luo/lanveriq/actions/runs/45168649310) attempt 1 generated a real 2.85 MiB strict-GUI .deb, then the Syft v1.54.0 downloader received GitHub Release **HTTP 403**. Retrying the same SHA produced both Syft scans and receipts successfully but hit **NOT_APPROVED** at a direct SONAME format mismatch, rather than a package integrity failure. Both outcomes remain historical failed native acceptance evidence.
+- Diagnostic SHA [d4778c56](https://github.com/kunlong-luo/lanveriq/commit/d4778c5657d5568204e139074132c17ec4271ed1), [native #45170847477 FAILED](https://github.com/kunlong-luo/lanveriq/actions/runs/45170847477), printed **15 actual direct DT_NEEDED entries** from the Tauri ELF without executing it: libgdk-3.so.0, libgdk_pixbuf-2.0.so.0, libcairo.so.2, libgobject-2.0.so.0, libglib-2.0.so.0, libdbus-1.so.3, libwebkit2gtk-4.1.so.0, libgtk-3.so.0, libsoup-3.0.so.0, libgio-2.0.so.0, libjavascriptcoregtk-4.1.so.0, libgcc_s.so.1, libm.so.6, libc.so.6, and **ld-linux-x86-64.so.2**. Only the last entry failed because the old SONAME syntax required a lib prefix. This legitimate loader reference must match the independently allowed PT_INTERP basename; it is **not** an arbitrary SONAME wildcard.
+- Fixed SHA [875e7882](https://github.com/kunlong-luo/lanveriq/commit/875e78821309c7f15a4536a673a3dbb0b87e2519) shrank the initially broad provisional list to exactly these **15 observed direct ELF dependencies** and added precise PT_INTERP-loader positive/foreign-loader/unobserved extra-library negative cases. [Same functional SHA fast Ubuntu24 L1 #45171575962 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45171575962): **48 discovered test executions**, including 26 imported Debian negative tests and **22 new L2B-5-specific tests**. [Native same SHA #45171576152](https://github.com/kunlong-luo/lanveriq/actions/runs/45171576152) is **PENDING**. Do not count diagnostic readelf output as a final native PASS.
+- Exactly 15 observed DT_NEEDED references are still not 15 Debian packages or 15 verified software licenses. The independently resolved transitive graph, dlopen/optional libraries, actual supported Pop!_OS24 package versions, security updates, license disclosures and distribution obligations remain OPEN. ABI/soname check is not code signing or release approval.
+
+**No production trust or installation authority is gained from the tightened readelf allowlist.**
