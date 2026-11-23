@@ -23,3 +23,7 @@ The [negative tests](../../apps/desktop/tools/test_verify_desktop_lab_signature.
 **No official signed Lanveriq GUI or Agent .deb exists; no production install, boot enable, remote or collection authority. G-05/G-07/G-08/G-09 OPEN; v0.1 NOT RELEASE READY.**
 
 [Current status](../CURRENT_STATUS.md) · [Release gap register](../planning/release-gap-register.md) · [L2B-1](desktop-tauri-l2b-candidate-evidence-2026-11-23.md).
+
+## Official release provenance option — decision required, NOT ENABLED
+
+GitHub now [recommends `actions/attest`](https://github.com/actions/attest) for new build-provenance workflows rather than the older `actions/attest-build-provenance`. Its attestations are sent to GitHub's attestation service and are not local-only; enabling it would change network and evidence-retention policy and requires a separate organizational approval. See the [GitHub attestation documentation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) and [recipient verification command](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations). The L2B-2 lab intentionally does not request an OIDC token, grant `id-token: write`, use this action, or upload an artifact. No platform-generated provenance is claimed.
