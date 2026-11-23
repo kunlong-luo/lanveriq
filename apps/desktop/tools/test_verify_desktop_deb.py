@@ -97,11 +97,11 @@ class DesktopDebPayloadNegatives(unittest.TestCase):
 
     def test_refuse_added_configuration(self):
         self.write("etc/lanveriq-agent/agent.toml", b"schema_version=1\n", 0o644)
-        self.refused("unapproved GUI package file")
+        self.refused("system or user directory in GUI package")
 
     def test_refuse_user_session_autostart(self):
         self.write("etc/xdg/autostart/lanveriq.desktop", DESKTOP.encode(), 0o644)
-        self.refused("unapproved GUI package file")
+        self.refused("system or user directory in GUI package")
 
     def test_refuse_shell_launcher(self):
         self.write("usr/share/applications/lanveriq-desktop.desktop", DESKTOP.replace(
