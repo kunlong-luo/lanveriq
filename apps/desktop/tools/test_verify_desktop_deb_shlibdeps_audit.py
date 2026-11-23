@@ -124,6 +124,16 @@ class ShlibdepsAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unapproved executable"):
                 v.official_deps(path)
 
+    def test_real_python_apt_integration_when_available(self):
+        try:
+            import apt_pkg
+        except ImportError:
+            self.skipTest("real apt_pkg is exercised in Ubuntu CI")
+        apt_pkg.init_system()
+        groups=v.parse_relations("libc6 (>= 2.38), libgtk-3-0t64 (>= 3.24.41) | libgtk-3-0", apt_pkg)
+        self.assertEqual(len(groups),2)
+        self.assertEqual(len(groups[1]),2)
+
     def test_normal_substvars_is_parsed(self):
         self.assertEqual(v.parse_generated(b"shlibs:Depends=libc6 (>= 2.38)"),
                          "libc6 (>= 2.38)")

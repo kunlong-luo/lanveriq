@@ -42,9 +42,9 @@ def parse_relations(raw, apt_pkg):
             and "\r" not in raw and "\n" not in raw,
             "empty or multiline Debian dependency expression")
     try:
-        groups = apt_pkg.parse_depends(raw, strip_multiarch=False)
+        groups = apt_pkg.parse_depends(raw, False)
     except (ValueError, TypeError, SystemError) as exc:
-        raise ValueError("APT refused dependency grammar") from exc
+        raise ValueError("APT refused dependency grammar: " + str(exc)[:120]) from exc
     require(isinstance(groups, list) and 0 < len(groups) <= 512,
             "invalid dependency-group count")
     result = []
