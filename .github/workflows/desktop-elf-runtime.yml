@@ -1,0 +1,39 @@
+name: Desktop readelf direct ABI and runtime license-gap L1 (no install)
+
+# This is an offline C/ELF test suite. It does NOT execute bundled Tauri binaries.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_elf_runtime_evidence.py'
+      - 'apps/desktop/tools/test_verify_desktop_elf_runtime_evidence.py'
+      - 'apps/desktop/tools/verify_desktop_payload_evidence.py'
+      - 'apps/desktop/tools/verify_desktop_candidate_evidence.py'
+      - '.github/workflows/desktop-elf-runtime.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lanveriq-desktop-readelf-l1-main
+  cancel-in-progress: true
+jobs:
+  elf-abi-denials:
+    name: Hostile ELF loader, direct SONAME and Debian runtime evidence contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify stock Ubuntu binutils/GCC and readonly source guard
+        run: |
+          set -Eeuo pipefail
+          command -v readelf && readelf --version | head -n 1
+          command -v cc && cc --version | head -n 1
+          command -v dpkg-deb
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+      - name: Compile synthetic ELF but NEVER execute and test readelf fail-closed assertions
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_elf_runtime_evidence.py' -v
+          echo 'PASS: L1 real GNU readelf on synthetic ELF + hostile tests; native Tauri/Pop!_OS actual runtime NOT PROVED'

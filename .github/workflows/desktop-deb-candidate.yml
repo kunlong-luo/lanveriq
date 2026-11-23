@@ -16,6 +16,8 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_lab_signature.py'
       - 'apps/desktop/tools/verify_desktop_payload_evidence.py'
       - 'apps/desktop/tools/test_verify_desktop_payload_evidence.py'
+      - 'apps/desktop/tools/verify_desktop_elf_runtime_evidence.py'
+      - 'apps/desktop/tools/test_verify_desktop_elf_runtime_evidence.py'
       - '.github/workflows/desktop-deb-candidate.yml'
   workflow_dispatch:
 
@@ -43,6 +45,7 @@ jobs:
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_candidate_evidence.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_lab_signature.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_payload_evidence.py'
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_elf_runtime_evidence.py'
       - name: Install pinned frontend runtime without changing pnpm lock
         uses: pnpm/setup@v3
         with:
@@ -167,6 +170,25 @@ jobs:
           python3 tools/verify_desktop_payload_evidence.py verify "${args[@]}"
           cat "$EVIDENCE_DIR/payload-evidence.json"
           echo 'PASS: delivered file hashes bound, Syft payload evidence partial only; NOT A COMPLETE RUNTIME SBOM OR RELEASE'
+      - name: Record strict readelf direct SONAME, ELF loader and Debian Depends without executing binary
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          EVIDENCE_DIR: ${{ runner.temp }}
+        run: |
+          set -Eeuo pipefail
+          command -v readelf >/dev/null
+          test -f "$EVIDENCE_DIR/payload-evidence.json"
+          package=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' -print -quit)
+          test -f "$package"
+          args=(--package "$package" --extracted "$EVIDENCE_DIR/desktop-payload-root" --payload-spdx "$EVIDENCE_DIR/desktop-payload.spdx.json" --source-receipt "$EVIDENCE_DIR/receipt.json" --source-spdx "$EVIDENCE_DIR/desktop-source.spdx.json" --payload-evidence "$EVIDENCE_DIR/payload-evidence.json" --cargo-lock src-tauri/Cargo.lock --pnpm-lock pnpm-lock.yaml --tauri-config src-tauri/tauri.conf.json --source-sha "$SOURCE_SHA" --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT" --output "$EVIDENCE_DIR/runtime-elf-evidence.json")
+          python3 tools/verify_desktop_elf_runtime_evidence.py create "${args[@]}"
+          python3 tools/verify_desktop_elf_runtime_evidence.py verify "${args[@]}"
+          cat "$EVIDENCE_DIR/runtime-elf-evidence.json"
+          echo 'PASS: ELF directly-linked SONAME/loader/stack and Debian Depends examined without executing ELF; LICENSE/TRANSITIVE ABI STILL UNVERIFIED'
       - name: LAB ONLY prove offline detached Ed25519 verification with ephemeral test key
         shell: bash
         working-directory: apps/desktop
