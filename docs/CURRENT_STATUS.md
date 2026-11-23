@@ -1,5 +1,8 @@
 # Lanveriq 当前状态 / Current status
 
+> **DESKTOP-L2B-4 Debian 原生实际交付文件盘点 + 局部 Syft 扫描候选（2026-11-23 · exact-SHA CI PENDING）：** 源码功能 SHA [e107a45b](https://github.com/kunlong-luo/lanveriq/commit/e107a45b7e697b055fbc3a916cae46a1afcf1832) 新增 [L2B-4 专题](development/desktop-tauri-l2b4-payload-sbom-evidence-2026-11-23.md)及安全检查器：按逐文件 SHA256 将真实 .deb 数据 tar 和独立临时解包根交叉匹配，并将已有源 SPDX/哈希回执、额外 Syft 扫描的 payload SPDX 和源码/工作流 SHA 绑到同一**未签名**证据。独立合成 CI 与原生构建 CI 均待以同一功能 SHA 核验。外部 GTK/WebKitGTK 等运行时动态依赖未随 .deb 交付，**局部 payload Syft 绝非完整运行时 SBOM**；签名发行、Agent 一键安装/polkit/Pop!_OS24 L3 未放行，G-05/G-07/G-08/G-09 OPEN，**v0.1 NOT RELEASE READY**。
+
+
 > **DESKTOP-L2B-3 接收端离线 Sigstore 来源预检 L1 负测 PASS（2026-11-23）：** 功能 SHA [7a722680](https://github.com/kunlong-luo/lanveriq/commit/7a7226809cbf1f89364d698a4e30dd682f33dc7c) 的 [Ubuntu24 GitHub CLI 接收端预检 CI #45165058590 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45165058590) 执行了 **44 项发现测试（复用 Debian 归档 26 项、新增接收端 18 项）**，严格检查预期签名工作流/源码 SHA/refs/heads/main、仓库数字 ID 1439447217、SLSA v1 谓词/包摘要以及外部可信根文件的 SHA-256 输入；真实 gh attestation verify 对伪造 bundle/root **明确拒绝**。模拟 gh 成功 JSON 的测试仅检查包装器接口及解析，**没有真实可信发行签名或批准的独立 Sigstore 根**。首轮功能 SHA [5377dce9](https://github.com/kunlong-luo/lanveriq/commit/5377dce95dfb38bd15dd9e5405ce40a0ddf73706) [#45164921058 FAILED](https://github.com/kunlong-luo/lanveriq/actions/runs/45164921058) 因测试替身误拦截真实 dpkg-deb；已只修复测试夹具与过期摘要负测，不放宽归档门禁。G-05/G-07/G-08/G-09 继续 OPEN；**v0.1 NOT RELEASE READY**。
 
 

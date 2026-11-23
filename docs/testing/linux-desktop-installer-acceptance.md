@@ -8,6 +8,8 @@
 
 > **DESKTOP-L2B-3 接收端离线来源预检 2026-11-23 L1 负测 PASS：** [功能 SHA 7a722680 / Ubuntu24 CI #45165058590 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45165058590) 发现执行 44 项（26 复用 Debian + 18 新增接收端），真实 GitHub CLI 拒绝伪造 bundle/root；“成功验签响应”仅测试中模拟，**没有独立批准的根或发行签名，也不能安装/分发**。[L2B-3 规范](../development/desktop-tauri-l2b3-offline-recipient-provenance-2026-11-23.md)。
 
+> **L2B-4 2026-11-23 新增验收项 / 真实 CI PENDING：** [交付文件完整性 + 局部 Syft payload SPDX 规范](../development/desktop-tauri-l2b4-payload-sbom-evidence-2026-11-23.md)要求同一原生 Debian 精确 SHA/源码回执、解包树所有文件哈希及权限匹配、额外 Syft 目录扫描、实际 create/verify PASS，合成负测拒绝修改 ELF/多余文件/软链/伪造发布。**外部运行时库不在交付包中，不能将扫描宣称为完整 SBOM**；物理 Pop!_OS L3/真实安装仍 NOT RUN。
+
 Source design: [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md), [desktop product scope](../product/linux-desktop-installer-v01.md). This plan covers the existing read-only Tauri 2 preview plus a future scoped OS authorization bridge. The read-only GUI source exists; the privileged bridge, signed integrated installer and installation authority do NOT exist. LNX1–3 Ubuntu synthetic unit/package checks do not satisfy the tests below.
 
 > **2026-11-23 L1 已通过范围：** apps/desktop 只读 status、React 预览、9 项 Python 安全负测、5 项 React 测试、4 项 Rust 单测、原生 Tauri 编译/Clippy，在 [源码功能 SHA 86c3 Desktop #45148201067](https://github.com/kunlong-luo/lanveriq/actions/runs/45148201067) 的 **2/2 Ubuntu24 CI SUCCESS**。**下列 GUI 可访问性、真正安装/签名/polkit/L2/L3 验收清单并没有因此自动通过**；全部真实安装与授权测试 NOT RUN。参见 [源码里程碑](../development/desktop-tauri-first-source-2026-11-23.md)。
