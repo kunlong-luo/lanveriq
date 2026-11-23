@@ -12,6 +12,8 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_deb.py'
       - 'apps/desktop/tools/verify_desktop_candidate_evidence.py'
       - 'apps/desktop/tools/test_verify_desktop_candidate_evidence.py'
+      - 'apps/desktop/tools/verify_desktop_lab_signature.py'
+      - 'apps/desktop/tools/test_verify_desktop_lab_signature.py'
       - '.github/workflows/desktop-deb-candidate.yml'
   workflow_dispatch:
 
@@ -37,6 +39,7 @@ jobs:
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_readonly.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_deb.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_candidate_evidence.py'
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_lab_signature.py'
       - name: Install pinned frontend runtime without changing pnpm lock
         uses: pnpm/setup@v3
         with:
@@ -119,3 +122,33 @@ jobs:
           python3 tools/verify_desktop_candidate_evidence.py verify --package "$package" --sbom "$EVIDENCE_DIR/desktop-source.spdx.json" --cargo-lock src-tauri/Cargo.lock --pnpm-lock pnpm-lock.yaml --tauri-config src-tauri/tauri.conf.json --source-sha "$SOURCE_SHA" --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT" --output "$EVIDENCE_DIR/receipt.json"
           cat "$EVIDENCE_DIR/receipt.json"
           echo 'PASS: unsigned, untrusted local integrity only; no signing, uploading, publishing or installing'
+      - name: LAB ONLY prove offline detached Ed25519 verification with ephemeral test key
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          LAB_DIR: ${{ runner.temp }}
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          private="$LAB_DIR/desktop-lab-ephemeral-private-key.pem"
+          public="$LAB_DIR/desktop-lab-ephemeral-public-key.pem"
+          signature="$LAB_DIR/desktop-lab-ephemeral-receipt.sig"
+          trap 'rm -f -- "$private" "$public" "$signature"' EXIT
+          test ! -e "$private" && test ! -e "$public" && test ! -e "$signature"
+          openssl genpkey -algorithm ED25519 -out "$private"
+          openssl pkey -in "$private" -pubout -out "$public"
+          openssl pkeyutl -sign -rawin -inkey "$private" -in "$LAB_DIR/receipt.json" -out "$signature"
+          pub_sha=$(sha256sum "$public" | cut -d ' ' -f 1)
+          package=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' -print -quit)
+          test -f "$package"
+          python3 tools/verify_desktop_lab_signature.py \
+            --receipt "$LAB_DIR/receipt.json" --signature "$signature" \
+            --public-key "$public" --lab-pubkey-sha256 "$pub_sha" \
+            --package "$package" --sbom "$LAB_DIR/desktop-source.spdx.json" \
+            --cargo-lock src-tauri/Cargo.lock --pnpm-lock pnpm-lock.yaml \
+            --tauri-config src-tauri/tauri.conf.json --source-sha "$SOURCE_SHA" \
+            --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT"
+          echo 'PASS: EPHEMERAL LAB KEY ONLY; no trusted publisher, release signature or install authority'
