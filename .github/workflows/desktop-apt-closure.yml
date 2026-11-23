@@ -1,0 +1,36 @@
+name: Desktop installed APT dependency graph L1 (no install)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_apt_installed_closure.py'
+      - 'apps/desktop/tools/test_verify_desktop_apt_installed_closure.py'
+      - '.github/workflows/desktop-apt-closure.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lanveriq-desktop-apt-closure-main
+  cancel-in-progress: true
+jobs:
+  dependency-refusal-l1:
+    name: Read-only system python-apt graph and synthetic hostile metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify OS-provided maintained python-apt (no apt dependency modifications)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          /usr/bin/python3 -c 'import apt; c=apt.Cache(); assert c["libc6"].installed is not None; print("PASS: maintained python-apt read-only installed cache")'
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+      - name: Fail-closed dependency graph OR groups and forged authority negatives
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_apt_installed_closure.py' -v
+          echo 'PASS: synthetic APT installed-graph L1 only; native Tauri and PopOS NOT run'

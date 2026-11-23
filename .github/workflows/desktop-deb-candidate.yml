@@ -20,6 +20,8 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_elf_runtime_evidence.py'
       - 'apps/desktop/tools/verify_desktop_ubuntu_runtime_packages.py'
       - 'apps/desktop/tools/test_verify_desktop_ubuntu_runtime_packages.py'
+      - 'apps/desktop/tools/verify_desktop_apt_installed_closure.py'
+      - 'apps/desktop/tools/test_verify_desktop_apt_installed_closure.py'
       - '.github/workflows/desktop-deb-candidate.yml'
   workflow_dispatch:
 
@@ -49,6 +51,7 @@ jobs:
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_payload_evidence.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_elf_runtime_evidence.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_ubuntu_runtime_packages.py'
+          /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_apt_installed_closure.py'
       - name: Install pinned frontend runtime without changing pnpm lock
         uses: pnpm/setup@v3
         with:
@@ -79,7 +82,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
-            libssl-dev libxdo-dev patchelf pkg-config
+            libssl-dev libxdo-dev patchelf pkg-config python3-apt
       - name: Compile actual unsigned GUI-only .deb using temporary CLI-only override; never install it
         shell: bash
         working-directory: apps/desktop
@@ -212,6 +215,33 @@ jobs:
           python3 tools/verify_desktop_ubuntu_runtime_packages.py verify "${args[@]}"
           cat "$EVIDENCE_DIR/ubuntu-host-library-map.json"
           echo 'PASS: Ubuntu 24 host package ownership/copyright hashes captured; NOT A POP!_OS RUNTIME OR LEGAL APPROVAL'
+      - name: APT read-only installed mandatory dependency satisfiers, versions and legal inputs
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          EVIDENCE_DIR: ${{ runner.temp }}
+        run: |
+          set -Eeuo pipefail
+          test -f "$EVIDENCE_DIR/ubuntu-host-library-map.json"
+          /usr/bin/python3 -c 'import apt; assert apt.Cache()["libc6"].installed is not None'
+          args=(--owner-report "$EVIDENCE_DIR/ubuntu-host-library-map.json" --runtime-report "$EVIDENCE_DIR/runtime-elf-evidence.json" --binary "$EVIDENCE_DIR/desktop-payload-root/usr/bin/lanveriq-desktop" --source-sha "$SOURCE_SHA" --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT" --output "$EVIDENCE_DIR/apt-installed-dependency-evidence.json")
+          /usr/bin/python3 tools/verify_desktop_apt_installed_closure.py create "${args[@]}"
+          /usr/bin/python3 tools/verify_desktop_apt_installed_closure.py verify "${args[@]}"
+          /usr/bin/python3 - "$EVIDENCE_DIR/apt-installed-dependency-evidence.json" <<'PY'
+          import json, sys
+          data=json.load(open(sys.argv[1], encoding="utf-8"))
+          print("L2B-7 APT installed package count:",data["apt_installed_package_count"])
+          print("L2B-7 mandatory dependency OR groups:",data["apt_dependency_or_group_count"])
+          print("L2B-7 ambiguous installed alternatives:",data["apt_ambiguous_installed_choices"])
+          print("L2B-7 copyright materials missing:",data["copyright_missing_count"])
+          print("L2B-7 graph SHA256:",data["apt_graph_sha256"])
+          assert data["license_review"]=="OPEN_NOT_APPROVED"
+          assert not data["release_approved"] and not data["install_authorized"]
+          PY
+          echo 'PASS: read-only APT installed mandatory satisfier graph; no PopOS, runtime plugins, license or release approval'
       - name: LAB ONLY prove offline detached Ed25519 verification with ephemeral test key
         shell: bash
         working-directory: apps/desktop
