@@ -37,7 +37,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class PostgreSqlDeviceDirectoryIT {
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName("lanveriq_directory_synthetic")
             .withUsername("lanveriq_test")
             .withPassword("synthetic-test-only");

@@ -29,7 +29,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Real PostgreSQL 18.6/Flyway V30 isolated, synthetic-only constraints.
+ * Real PostgreSQL 18.7/Flyway V30 isolated, synthetic-only constraints.
  * SQL tests are not Ed25519 verification: direct SQL submits deliberately
  * non-cryptographic 64-byte dummy signatures to prove that even such
  * untrusted inserts remain immutable, monotonic and transaction-audited.
@@ -42,7 +42,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class PostgreSqlFidoMdsAcquisitionReceiptIT {
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName("lanveriq_c15_untrusted_synthetic")
             .withUsername("lanveriq_test")
             .withPassword("synthetic-test-only");
@@ -669,7 +669,7 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
     @Test
     void c18fCloudNeutralArchiveClaimBindsToCurrentPostgresTail()
             throws Exception {
-        // REAL disposable PG18.6 transactions + signature verification,
+        // REAL disposable PG18.7 transactions + signature verification,
         // but the archive and custody claims are SYNTHETIC bytes only.
         Stream stream=createOwnerStream();
         Source first=source(stream,1);
@@ -801,7 +801,7 @@ class PostgreSqlFidoMdsAcquisitionReceiptIT {
     void c18bActualPgDumpRestoreRejectsStaleBackupAndAcceptsFreshBackup(
             @org.junit.jupiter.api.io.TempDir java.nio.file.Path outsideDb)
             throws Exception {
-        // Genuine pg_dump -Fc + pg_restore --exit-on-error on PostgreSQL 18.6.
+        // Genuine pg_dump -Fc + pg_restore --exit-on-error on PostgreSQL 18.7.
         // All DB copies and signing keys are synthetic/disposable; the host
         // cursor is NOT external WORM/KMS or independently approved custody.
         String nonce=UUID.randomUUID().toString().replace("-","")

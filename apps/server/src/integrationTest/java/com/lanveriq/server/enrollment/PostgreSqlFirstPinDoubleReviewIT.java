@@ -51,7 +51,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class PostgreSqlFirstPinDoubleReviewIT {
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName("lanveriq_first_pin_review_synthetic")
             .withUsername("lanveriq_test")
             .withPassword("synthetic-only-no-login");

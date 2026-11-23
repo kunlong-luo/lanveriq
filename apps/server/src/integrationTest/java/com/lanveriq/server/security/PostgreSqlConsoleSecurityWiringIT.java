@@ -68,7 +68,7 @@ class PostgreSqlConsoleSecurityWiringIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName("lanveriq_console_security_wiring_synthetic")
             .withUsername("lanveriq_test")
             .withPassword("synthetic-test-only");

@@ -25,7 +25,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Opt-in ONLY: executes Flyway V1-V7 and the real JPA/Hibernate PostgreSQL
- * statements against an isolated synthetic Testcontainers PostgreSQL 18.6.
+ * statements against an isolated synthetic Testcontainers PostgreSQL 18.7.
  * Not included in ./gradlew test or automatic CI integration execution.
  */
 @Testcontainers
@@ -37,7 +37,7 @@ class PostgreSqlEventIngestionIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName("lanveriq_synthetic")
             .withUsername("lanveriq_test")
             .withPassword("synthetic-test-only");
@@ -121,7 +121,7 @@ class PostgreSqlEventIngestionIT {
     void postgres18ExecutesAllEightFlywayMigrationsAndNativeUuidv7() {
         int serverVersion = Integer.parseInt((String) entityManager
                 .createNativeQuery("SHOW server_version_num").getSingleResult());
-        assertEquals(180006, serverVersion, "The tested server must be PostgreSQL 18.6");
+        assertEquals(180007, serverVersion, "The tested server must be PostgreSQL 18.7");
         long count = ((Number) entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM flyway_schema_history
                 WHERE success AND version IN ('1','2','3','4','5','6','7','8')

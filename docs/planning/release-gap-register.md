@@ -17,4 +17,6 @@
 
 **建议先后：** C18f 云中立/PG18 合成基线已通过 → [C18g 独立保管和实物破坏验收计划](../security/independent-worm-custody-acceptance-d4-c18g-2026-11-22.md)（目前仅文档，未执行）→ 安全/法务/SRE 选真实介质并书面授权专用非生产环境 → G-02 经批准的独立 WORM 实际部署/密钥托管、保留及不可回退高水位、跨环境恢复演练，同时 G-01 官方 MDS/CRL 根审批；随后 G-03/G-04 管理员/CA，再 G-05/G-06 Linux 实机业务闭环；最终 G-07/G-08/G-09 的签字。无凭空时间预测。
 
+> 2026-11-23 技术版本维护：PostgreSQL 18.6→18.7 的隔离 CI 候选由 [STACK-PG18.7 升级与回退](../development/stack-postgres18-7-upgrade-2026-11-23.md) 追踪；功能 SHA 通过前只算 PENDING，不算真实生产数据库迁移或任何 Gate 通过。
+
 **Gate 关闭需要**组织批准主体、独立来源凭证、功能 SHA/实际 CI、物理/外部证据、负向案例及签署记录。源码实现/合成通过不能改变生产 feature flags，也不会自动关闭任何 Gate。

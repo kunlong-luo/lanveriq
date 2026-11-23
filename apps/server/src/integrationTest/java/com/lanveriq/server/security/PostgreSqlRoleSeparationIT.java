@@ -34,7 +34,7 @@ class PostgreSqlRoleSeparationIT {
     private static final String RUNTIME_PW="isolated-runtime-test-only";
 
     @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName(DB)
             .withUsername("lanveriq_bootstrap_synthetic")
             .withPassword("isolated-bootstrap-test-only");

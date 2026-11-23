@@ -299,7 +299,7 @@ DB_CID="$(docker run --detach --rm \
     --env POSTGRES_USER=lanveriq \
     --env POSTGRES_PASSWORD_FILE=/run/secrets/synthetic-password \
     --volume "$TMP/postgres-password:/run/secrets/synthetic-password:ro" \
-    postgres:18.6)"
+    postgres:18.7)"
 PG_PORT="$(docker port "$DB_CID" 5432/tcp | awk -F: 'NR==1 {print $NF}')"
 [[ "$PG_PORT" =~ ^[0-9]+$ ]] || {
     echo "Cannot determine isolated PostgreSQL port" >&2
@@ -318,11 +318,11 @@ done
     exit 1
 }
 PG_VERSION="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc 'SHOW server_version')"
-[[ "$PG_VERSION" == 18.6* ]] || {
+[[ "$PG_VERSION" == 18.7* ]] || {
     echo "Unexpected PostgreSQL version" >&2
     exit 1
 }
-docker image inspect postgres:18.6 --format \
+docker image inspect postgres:18.7 --format \
     'Synthetic PostgreSQL image: {{.Id}}; digests {{json .RepoDigests}}'
 (
     cd "$ROOT/apps/server"
@@ -885,7 +885,7 @@ PY
         echo "FAIL: restoring authentic upstream chain did not restore default-deny (HTTP $status)" >&2
         exit 1
     }
-    echo "MANUAL SYNTHETIC BRIDGE PASS: Caddy->real Tomcat health 200/UP, business default-deny 403, PostgreSQL 18.6 Flyway."
+    echo "MANUAL SYNTHETIC BRIDGE PASS: Caddy->real Tomcat health 200/UP, business default-deny 403, PostgreSQL 18.7 Flyway."
     if [[ "$BUSINESS_MODE" == 1 ]]; then
         # Only after DEFAULT-OFF 403, TLS1.2, no-cert, wrong-CA, SNI and
         # wrong-Caddy-upstream checks pass may this throwaway Boot process

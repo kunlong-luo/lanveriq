@@ -37,7 +37,7 @@ class PostgreSqlDeviceInventoryIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName("lanveriq_inventory_synthetic")
             .withUsername("lanveriq_test")
             .withPassword("synthetic-test-only");

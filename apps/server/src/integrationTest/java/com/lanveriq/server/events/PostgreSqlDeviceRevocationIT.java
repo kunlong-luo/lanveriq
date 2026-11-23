@@ -32,7 +32,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import com.lanveriq.server.security.AdminPrincipal;
 
 /**
- * Manual-only, synthetic PostgreSQL 18.6 service integration. Neither real
+ * Manual-only, synthetic PostgreSQL 18.7 service integration. Neither real
  * administrator login, device PKI, HTTP revocation nor actual endpoints are
  * exercised. The device-revocation service is explicitly opted in here.
  */
@@ -46,7 +46,7 @@ class PostgreSqlDeviceRevocationIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName("lanveriq_revocation_synthetic")
             .withUsername("lanveriq_test")
             .withPassword("synthetic-test-only");

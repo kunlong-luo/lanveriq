@@ -25,7 +25,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Manual-only PostgreSQL 18.6 acceptance for default-OFF administrator
+ * Manual-only PostgreSQL 18.7 acceptance for default-OFF administrator
  * mutations. No real administrator password, CLI, browser session, LAN
  * endpoint or production database is used. Explicit Spring transactions
  * must roll back *all* writes when a PostgreSQL trigger suppresses an insert.
@@ -39,7 +39,7 @@ class PostgreSqlAdminAuditAtomicityIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.7")
             .withDatabaseName("lanveriq_admin_atomicity_synthetic")
             .withUsername("lanveriq_test")
             .withPassword("synthetic-test-only");
