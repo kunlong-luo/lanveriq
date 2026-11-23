@@ -273,7 +273,7 @@ jobs:
           print("ABI direct declaration gap count:",comparison["direct_declaration_gap_count"])
           print("ABI generated Debian requirement expression:",data["official_generated_shlibs_depends"])
           print("ABI actual Debian control Depends:",data["archive_actual_depends"])
-          print("ABI gap evidence remains unsigned:",data["candidate_dependency_declaration"])
+          print("ABI gap evidence remains unsigned:",data["direct_package_metadata"])
           assert data["license_review"]=="OPEN_NOT_APPROVED"
           assert not data["release_approved"] and not data["install_authorized"]
           PY
