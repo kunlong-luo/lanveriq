@@ -37,6 +37,7 @@ def validate(root=DESKTOP):
     react_code = (root / "src/DesktopApp.tsx").read_text(encoding="utf-8")
     safety = (root / "src/safety.ts").read_text(encoding="utf-8")
 
+    require(tauri["productName"] == "lanveriq-desktop", "desktop package identity drift")
     require(tauri["bundle"]["active"] is False, "bundle must stay OFF")
     require(tauri["bundle"]["targets"] == [], "no installer bundle targets yet")
     require(tauri["build"]["frontendDist"] == "../dist", "unexpected asset target")

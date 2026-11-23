@@ -6,6 +6,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'apps/desktop/src-tauri/tauri.conf.json'
+      - 'apps/desktop/src-tauri/icons/**'
       - 'apps/desktop/tools/verify-desktop-deb.py'
       - 'apps/desktop/tools/test_verify_desktop_deb.py'
       - '.github/workflows/desktop-deb-candidate.yml'
@@ -70,6 +72,8 @@ jobs:
           set -Eeuo pipefail
           # Source config stays bundle.active=false. This override exists only in
           # this disposable CI job and does NOT include the Agent or service unit.
+          # Main source uses a stable lowercase package identity to avoid spaces in
+          # .desktop/PNG/payload names; all installer authority remains OFF.
           override='{"bundle":{"active":true,"targets":["deb"]}}'
           pnpm tauri build --ci --no-sign --bundles deb --config "$override"
           git diff --exit-code -- apps/desktop/src-tauri/Cargo.lock

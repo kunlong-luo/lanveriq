@@ -39,6 +39,11 @@ class DesktopReadonlyContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing or invalid native launcher icon"):
             guard.validate(self.root)
 
+    def test_reject_unreviewed_package_identity(self):
+        self.mutate("src-tauri/tauri.conf.json", '"productName": "lanveriq-desktop"', '"productName": "Lanveriq Desktop (Offline Preview)"')
+        with self.assertRaisesRegex(ValueError, "desktop package identity drift"):
+            guard.validate(self.root)
+
     def test_reject_enabled_installer_bundle(self):
         self.mutate("src-tauri/tauri.conf.json", '"active": false', '"active": true')
         with self.assertRaisesRegex(ValueError, "bundle must stay OFF"):
