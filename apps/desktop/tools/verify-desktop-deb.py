@@ -26,6 +26,22 @@ ICON = re.compile(
 )
 FILES_MAX = 28
 ARCHIVE_LIMIT = 120 * 1024 * 1024
+# Only shared GUI framework runtime libraries may be resolved through dpkg.
+# Anything that could install Lanveriq Agent, polkit helpers or system services
+# is out of scope for this unapproved GUI-only package candidate.
+APPROVED_DEPENDENCIES = frozenset({
+    "libc6", "libgtk-3-0", "libwebkit2gtk-4.1-0",
+    "libayatana-appindicator3-1", "libappindicator3-1",
+    "librsvg2-2", "libssl3", "libssl3t64", "libjavascriptcoregtk-4.1-0",
+    "libgdk-pixbuf-2.0-0", "libglib2.0-0", "libpango-1.0-0",
+})
+APPROVED_CONTROL_FIELDS = frozenset({
+    "Package", "Version", "Architecture", "Section", "Priority", "Maintainer",
+    "Description", "Installed-Size", "Homepage", "Depends",
+})
+DEPENDENCY = re.compile(
+    r"([a-z0-9][a-z0-9+.-]*)(?: \((?:>=|<=|=|<<|>>) [0-9a-zA-Z.+:~\\-]+\))?"
+)
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 
 
@@ -66,18 +82,34 @@ def members(raw, kind):
 
 
 def exact_control(raw):
+    check(len(raw) <= 32768, "unbounded Debian control metadata")
     fields = {}
-    # Debian control uses continuation lines. Identity lines cannot continue.
+    prior_key = None
     for line in raw.decode("utf-8").splitlines():
-        if line.startswith((" ", "\t")):
+        if line == "":
             continue
-        if ":" in line:
-            k, v = line.split(":", 1)
-            check(k not in fields, "duplicate Debian control field")
-            fields[k] = v.strip()
+        if line.startswith((" ", "\t")):
+            # Multiline Description is standard Debian metadata; a continued
+            # Depends/Pre-Depends/Package field must never be silently ignored.
+            check(prior_key == "Description", "unexpected multiline control field")
+            continue
+        check(":" in line, "malformed Debian control field")
+        k, v = line.split(":", 1)
+        check(k not in fields, "duplicate Debian control field")
+        check(k in APPROVED_CONTROL_FIELDS, f"forbidden Debian control field: {k}")
+        fields[k] = v.strip()
+        prior_key = k
     check(fields.get("Package") in PACKAGE_NAMES, "unexpected GUI package identity")
     check(fields.get("Version") == "0.1.0", "unexpected GUI package version")
     check(fields.get("Architecture") == "amd64", "unexpected GUI architecture")
+    dependency_string = fields.get("Depends", "")
+    if dependency_string:
+        items = [item.strip() for item in dependency_string.split(",")]
+        for item in items:
+            match = DEPENDENCY.fullmatch(item)
+            check(match is not None, "malformed or alternative Debian dependency")
+            check(match.group(1) in APPROVED_DEPENDENCIES,
+                  f"unapproved GUI package dependency: {match.group(1)}")
     return fields
 
 

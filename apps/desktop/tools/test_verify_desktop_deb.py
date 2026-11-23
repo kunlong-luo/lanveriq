@@ -145,6 +145,42 @@ class DesktopDebPayloadNegatives(unittest.TestCase):
         self.write("usr/share/applications/com.lanveriq.desktop.desktop", DESKTOP.encode(), 0o644)
         self.refused("exactly one launcher")
 
+
+    def test_refuse_agent_dependency_even_without_agent_files(self):
+        path = self.stage / "DEBIAN/control"
+        path.write_text(CONTROL + "Depends: lanveriq-agent-offline-preview\n", encoding="utf-8")
+        self.refused("unapproved GUI package dependency")
+
+    def test_refuse_predepends_privileged_helper(self):
+        path = self.stage / "DEBIAN/control"
+        path.write_text(CONTROL + "Pre-Depends: lanveriq-install-helper\n", encoding="utf-8")
+        self.refused("forbidden Debian control field")
+
+    def test_refuse_recommends_agent(self):
+        path = self.stage / "DEBIAN/control"
+        path.write_text(CONTROL + "Recommends: lanveriq-agent-offline-preview\n", encoding="utf-8")
+        self.refused("forbidden Debian control field")
+
+    def test_refuse_dependency_alternative_to_agent(self):
+        path = self.stage / "DEBIAN/control"
+        path.write_text(CONTROL + "Depends: libgtk-3-0 | lanveriq-agent\n", encoding="utf-8")
+        self.refused("malformed or alternative Debian dependency")
+
+    def test_refuse_multiline_dependency_extension(self):
+        path = self.stage / "DEBIAN/control"
+        path.write_text(CONTROL + "Depends: libc6,\n lanveriq-agent\n", encoding="utf-8")
+        self.refused("unexpected multiline control field")
+
+    def test_accept_known_framework_library_dependencies(self):
+        path = self.stage / "DEBIAN/control"
+        path.write_text(CONTROL + "Depends: libc6 (>= 2.39), libwebkit2gtk-4.1-0, libgtk-3-0\n", encoding="utf-8")
+        self.assertIn("GUI-only", audit.validate(self.build()))
+
+    def test_refuse_conflicts_and_replaces(self):
+        path = self.stage / "DEBIAN/control"
+        path.write_text(CONTROL + "Replaces: lanveriq-agent-offline-preview\n", encoding="utf-8")
+        self.refused("forbidden Debian control field")
+
     def test_source_only_no_real_installs(self):
         code = MODULE.read_text(encoding="utf-8")
         for word in ("--install", "systemctl start", "dpkg -i", "apt install", "sudo "):
