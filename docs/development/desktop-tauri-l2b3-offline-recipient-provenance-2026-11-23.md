@@ -1,6 +1,6 @@
 # DESKTOP-L2B-3 — recipient-side GitHub attestation offline verification preflight
 
-**SPEC / SOURCE CANDIDATE · 2026-11-23 · exact SHA CI PENDING · trusted release provenance NOT AVAILABLE · v0.1 NOT RELEASE READY**
+**SPEC / EXACT-SHA L1 DENIAL PREFLIGHT PASS · 2026-11-23 · trusted release provenance NOT AVAILABLE · v0.1 NOT RELEASE READY**
 
 ## Architecture and evidence hierarchy
 
@@ -21,3 +21,11 @@ Passing this preflight is **L1 offline intake and negative contract readiness on
 No production signing keys, GitHub OIDC identity/write permission, release publish, install, service enable, Agent collection/network or remote control have been enabled. G-02/G-05/G-07/G-08/G-09 remain OPEN; **v0.1 NOT RELEASE READY**.
 
 [Current status](../CURRENT_STATUS.md) · [Release gaps](../planning/release-gap-register.md) · [L2B-2 native lab](desktop-tauri-l2b2-offline-signature-lab-2026-11-23.md) · [Pop!_OS L3](../testing/linux-desktop-installer-acceptance.md).
+
+## Exact-SHA acceptance and historical failure, 2026-11-23
+
+- **L1 receiver rejection contract PASS:** source SHA [7a722680](https://github.com/kunlong-luo/lanveriq/commit/7a7226809cbf1f89364d698a4e30dd682f33dc7c); [Ubuntu 24.04 CI #45165058590 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45165058590). Exactly 44 unittest-discovered executions: 26 previously authored Debian audit cases imported again + **18 new recipient policy tests**. The official GitHub CLI actually rejected a fabricated offline bundle with fabricated trusted root. Mocked CLI success JSON tested only the wrapper/parser branch; **no cryptographically verified trusted source was available**.
+- **Historical failure:** SHA [5377dce9](https://github.com/kunlong-luo/lanveriq/commit/5377dce95dfb38bd15dd9e5405ce40a0ddf73706), [run #45164921058 FAILED](https://github.com/kunlong-luo/lanveriq/actions/runs/45164921058) because the test subprocess mock intercepted dpkg-deb and the tamper fixture did not use the previously signed subject hash. Fixed the **test fixture only**, routing dpkg-deb to the actual command and keeping the prior subject digest. No production verifier allowlist was relaxed.
+- **Not executed:** real trusted-root custody and rotation, approved signer workflow/identity, genuine signed SLSA bundle for a distributed Debian artifact, independent recipient offline acceptance, runtime/binary SBOM and high-water anti-rollback, authorized polkit installer or real Pop!_OS 24.04 COSMIC L3.
+
+**L2B-3 is limited to verified L1 denial/argument tests; trusted provenance Gate remains OPEN. v0.1 NOT RELEASE READY.**
