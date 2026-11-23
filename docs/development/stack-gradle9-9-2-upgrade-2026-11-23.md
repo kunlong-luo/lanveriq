@@ -1,6 +1,6 @@
 # STACK-GRADLE9.9.2 — Java 25 Gradle distribution update
 
-**2026-11-23 · main source candidate · exact-source CI PENDING · no production deployment**
+**2026-11-23 · main source candidate · exact-source 7/7 CI SUCCESS · no production deployment**
 
 ## What changed and what did not
 

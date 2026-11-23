@@ -1,6 +1,6 @@
 # STACK-BOOT4.2 — Spring Boot 4.2.0 + Springdoc 3.2.1 compatibility upgrade
 
-**2026-11-23 · MAIN SOURCE CANDIDATE · same SHA CI PENDING · v0.1 NOT RELEASE READY**
+**2026-11-23 · MAIN SOURCE CANDIDATE · fixed source SHA 04dd0948 actual 6/6 CI SUCCESS · v0.1 NOT RELEASE READY**
 
 ## Rationale and official sources
 
@@ -26,3 +26,9 @@ Record functional source SHA and completed run URLs only when actual. On a relea
 ## 2026-11-23 first CI failure retained
 
 Initial Spring Boot 4.2.0/source SHA [094318ea](https://github.com/kunlong-luo/lanveriq/commit/094318eaf1b60b4d6a57dd6ee75993677954b28d) had [server unit workflow #45137999504 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45137999504) at compileTestJava. One test called an obsolete Jackson 2 com.fasterxml.jackson.databind.ObjectMapper that is absent from the Boot4.2 dependency graph. The new fix uses mature Jayway JsonPath already supplied by MockMvc jsonPath integration, with no fallback Jackson 2 library added. The earlier red run remains failure evidence. Real PostgreSQL18.7 tests and Linux synthetic TLS must be repeated on the new corrected SHA before acceptance.
+
+## Same-SHA acceptance after regression fix
+
+Fixed functional SHA [04dd09485c6499d156de9eb4fcb16212da02dfc1](https://github.com/kunlong-luo/lanveriq/commit/04dd09485c6499d156de9eb4fcb16212da02dfc1) completed **6/6 SUCCESS**: [Java25 unit and bootJar #45138551978](https://github.com/kunlong-luo/lanveriq/actions/runs/45138551978), [real PG18.7 Testcontainers/Flyway #45138552152](https://github.com/kunlong-luo/lanveriq/actions/runs/45138552152), [real Rust/Caddy/Spring/Tomcat TLS1.3→PG18.7 synthetic L2 #45138552149](https://github.com/kunlong-luo/lanveriq/actions/runs/45138552149), [Next.js #45138552124](https://github.com/kunlong-luo/lanveriq/actions/runs/45138552124), [Docs #45138551989](https://github.com/kunlong-luo/lanveriq/actions/runs/45138551989), [RD-2 fail-closed #45138552070](https://github.com/kunlong-luo/lanveriq/actions/runs/45138552070).
+
+Historical initial source SHA 094318ea [server unit #45137999504](https://github.com/kunlong-luo/lanveriq/actions/runs/45137999504) remains FAIL: legacy test-only Jackson2 ObjectMapper unresolved. Corrected by reading synthetic CSRF via existing Jayway JsonPath. Milestone-only Orval generation, real browser authentication, real Pop!_OS device and production issuance all remain NOT RUN.

@@ -1,6 +1,6 @@
 # STACK-PG18.7 — PostgreSQL 18 maintenance version upgrade
 
-**2026-11-23 · SOURCE CANDIDATE · exact-SHA CI PENDING · NOT production DB migration · v0.1 NOT RELEASE READY**
+**2026-11-23 · SOURCE CANDIDATE · exact-SHA 7/7 CI SUCCESS · NOT production DB migration · v0.1 NOT RELEASE READY**
 
 ## Scope
 
@@ -20,3 +20,7 @@ Official upstream: https://www.postgresql.org/docs/release/18.7/ . PostgreSQL 18
 4. This is an upgrade of *disposable test images*, not physical Pop!_OS24 L3 nor data migration in a nonempty external cluster. Backup/restore, WORM, CA, official FIDO, physical host, retention, consent and production runbook gates remain OPEN.
 
 **G-02/G-05/G-08 remain OPEN; v0.1 NOT RELEASE READY; production networking, collection, automatic recovery, remote control and certificate signing OFF.**
+
+## Actual accepted evidence
+
+Functional SHA [544494476414a59b151aed5413617b42a100299b](https://github.com/kunlong-luo/lanveriq/commit/544494476414a59b151aed5413617b42a100299b), **7/7 completed SUCCESS**, including [PG18.7 real Testcontainers 11 classes #45136329326](https://github.com/kunlong-luo/lanveriq/actions/runs/45136329326) and [real Rust/Caddy/Spring/Tomcat TLS1.3/PG18.7 synthetic ACK/replay #45136329403](https://github.com/kunlong-luo/lanveriq/actions/runs/45136329403). No external production PostgreSQL 18 cluster was upgraded.
