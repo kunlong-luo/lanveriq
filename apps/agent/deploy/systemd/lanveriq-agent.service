@@ -1,6 +1,7 @@
 # Pop!_OS 24.04 LTS / Ubuntu-family systemd system-service TEMPLATE.
 # Not installed or enabled by checkout/CI. An approved installer and consent
 # gate are required before any real endpoint deployment.
+# G05-LNX2: native .deb candidate uses package-managed /usr/bin (not /usr/local).
 # Batch A: IDLE agent only. Network, enrollment, collection and remote access
 # are deliberately unavailable in the systemd sandbox.
 [Unit]
@@ -17,7 +18,7 @@ StateDirectoryMode=0700
 RuntimeDirectory=lanveriq-agent
 RuntimeDirectoryMode=0700
 UMask=0077
-ExecStart=/usr/local/bin/lanveriq-agent --config /etc/lanveriq-agent/agent.toml
+ExecStart=/usr/bin/lanveriq-agent --config /etc/lanveriq-agent/agent.toml
 Restart=on-failure
 RestartSec=10s
 TimeoutStopSec=15s

@@ -20,7 +20,7 @@ REQUIRED_SERVICE = {
     "RuntimeDirectory": "lanveriq-agent",
     "RuntimeDirectoryMode": "0700",
     "UMask": "0077",
-    "ExecStart": "/usr/local/bin/lanveriq-agent --config /etc/lanveriq-agent/agent.toml",
+    "ExecStart": "/usr/bin/lanveriq-agent --config /etc/lanveriq-agent/agent.toml",
     "Restart": "on-failure",
     "RestartSec": "10s",
     "TimeoutStopSec": "15s",

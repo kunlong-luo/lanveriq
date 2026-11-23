@@ -25,13 +25,15 @@ jobs:
   ubuntu24-linux-uid-custody:
     name: Linux systemd/DAC and OpenSSL P-256 synthetic
     runs-on: ubuntu-24.04
-    timeout-minutes: 18
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Negative-test systemd idle-policy under normal and optimized Python (-O)
         run: python3 -m unittest discover -s apps/agent/tools/linux -p 'test_verify_systemd_popos24.py'
+      - name: Reject unsafe .deb package payloads and lifecycle metadata (synthetic fixtures)
+        run: python3 -m unittest discover -s apps/agent/tools/linux -p 'test_verify_offline_agent_deb.py'
       - name: Check Pop!_OS 24.04 idle-service security policy
         run: python3 apps/agent/tools/linux/verify-systemd-popos24.py apps/agent/deploy/systemd/lanveriq-agent.service
       - name: Verify systemd unit syntax without installing or starting
@@ -43,7 +45,7 @@ jobs:
           # The REAL ExecStart is separately asserted by the Python gate.
           # systemd-analyze verify also insists that the binary is installed,
           # which is intentionally NOT true on a disposable CI runner.
-          sed 's@^ExecStart=/usr/local/bin/lanveriq-agent .*@ExecStart=/usr/bin/true@' \
+          sed 's@^ExecStart=/usr/bin/lanveriq-agent .*@ExecStart=/usr/bin/true@' \
             apps/agent/deploy/systemd/lanveriq-agent.service > "$tmp/lanveriq-agent.service"
           grep -Fx 'ExecStart=/usr/bin/true' "$tmp/lanveriq-agent.service"
           systemd-analyze verify "$tmp/lanveriq-agent.service"
@@ -54,6 +56,17 @@ jobs:
         run: cargo +1.94.0 build --example linux_csr_synthetic --locked
       - name: Verify distinct Unix accounts cannot read/write owner CSR private key
         run: sudo bash apps/agent/tools/linux/verify-linux-csr-uid.sh apps/agent/target/debug/examples/linux_csr_synthetic
+      - name: Build actual locked Rust release and validate nonactivating native Debian package in temporary root
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cd apps/agent
+          cargo +1.94.0 build --release --locked -p lanveriq-agent
+          test -x target/release/lanveriq-agent
+          tmp=$(mktemp -d -t lanveriq-deb-ci.XXXXXXXX)
+          trap 'rm -rf --one-file-system -- "$tmp"' EXIT
+          bash tools/linux/build-offline-agent-deb.sh target/release/lanveriq-agent "$tmp"
+          python3 tools/linux/verify-offline-agent-deb.py "$tmp/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb"
       - name: Verify isolated systemd DynamicUser key custody across two service invocations
         # A transient synthetic systemd-run unit, never LanveriqAgent or a
         # permanent installed system service. No actual Pop!_OS host.
