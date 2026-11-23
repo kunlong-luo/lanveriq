@@ -4,6 +4,8 @@
 
 Source design: [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md), [desktop product scope](../product/linux-desktop-installer-v01.md). This plan covers a future Tauri 2 application and scoped OS authorization bridge. Neither is implemented. LNX1–3 Ubuntu synthetic unit/package checks do not satisfy the tests below.
 
+> **2026-11-23 L1 候选：** apps/desktop 已新增只读本机 status、React 预览和源码负测，并触发独立 Ubuntu24 CI。**直到看到真实 run PASS 仍视作 PENDING**；安装与授权相关的真实交互、签名包、L2/L3 全部 NOT RUN。参见 [源码里程碑](../development/desktop-tauri-first-source-2026-11-23.md)。
+
 ## L1 — source and negative tests (NOT RUN)
 
 - [ ] Desktop UI can compile offline from a locked toolchain and render welcome, consent, preflight, install, progress, paused/disabled, active, failed, update and uninstall states; no false healthy/network status.

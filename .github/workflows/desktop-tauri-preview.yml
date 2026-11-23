@@ -1,0 +1,102 @@
+name: Desktop Tauri 2 offline preview (synthetic L1)
+
+# Noninstalling source/build validation only, not real Pop!_OS host acceptance.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - '.github/workflows/desktop-tauri-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-desktop-preview-main
+  cancel-in-progress: true
+
+jobs:
+  desktop-ui:
+    name: React preview and fail-closed privileged-operation guard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Reject unsafe native operations, bundle/tray and release-gate bypass
+        run: |
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_readonly.py'
+      - name: Set up pinned Node and pnpm
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24.22.3
+          working-directory: apps/desktop
+          install: false
+          require-lockfile: false
+          cache: false
+      - name: Verify patched runtime
+        run: test "$(node --version)" = 'v24.22.3'
+      - name: Resolve desktop-only pinned dependencies (initial lock bootstrap)
+        working-directory: apps/desktop
+        run: pnpm install --no-frozen-lockfile
+      - name: Test, typecheck and build disconnected UI
+        working-directory: apps/desktop
+        run: |
+          pnpm test
+          pnpm typecheck
+          pnpm build
+      - name: Export real generated frontend lock to review and commit
+        run: |
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          print('LANVERIQ_DESKTOP_PNPM_LOCK_B64=' + base64.b64encode(Path('apps/desktop/pnpm-lock.yaml').read_bytes()).decode('ascii'))
+          PY
+      - name: Transfer offline static assets only for native compilation
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-preview-web-assets
+          path: apps/desktop/dist
+          retention-days: 3
+
+  desktop-rust:
+    name: Native Tauri and read-only Rust tests (no service install)
+    runs-on: ubuntu-24.04
+    needs: desktop-ui
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-preview-web-assets
+          path: apps/desktop/dist
+      - name: Install Ubuntu 24 Tauri WebKitGTK 4.1 build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+            libssl-dev libxdo-dev patchelf pkg-config
+      - name: Install pinned Rust 1.100
+        run: rustup toolchain install 1.100.0 --profile minimal --component rustfmt --component clippy
+      - name: Rustfmt check
+        working-directory: apps/desktop/src-tauri
+        run: cargo +1.100.0 fmt --all -- --check
+      - name: Compile actual Tauri and test native inspectors
+        working-directory: apps/desktop/src-tauri
+        run: cargo +1.100.0 test --workspace
+      - name: Clippy native code
+        working-directory: apps/desktop/src-tauri
+        run: cargo +1.100.0 clippy --workspace --all-targets -- -D warnings
+      - name: Export real generated Cargo.lock to review and commit
+        run: |
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          print('LANVERIQ_DESKTOP_CARGO_LOCK_B64=' + base64.b64encode(Path('apps/desktop/src-tauri/Cargo.lock').read_bytes()).decode('ascii'))
+          PY

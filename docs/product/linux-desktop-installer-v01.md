@@ -2,6 +2,8 @@
 
 **PRODUCT DESIGN BASELINE · 2026-11-23 · planned / NOT IMPLEMENTED · real device deployment NOT APPROVED**
 
+> **2026-11-23 源码进度（待 CI 验证）：** 已在 apps/desktop 新增 React/Tauri 2 预览向导和只读本机检查，但图形化真实安装、签名包、polkit broker、更新/卸载仍没有实现。不要把源码预览等同可下载的桌面客户端；详见 [首个功能阶段](../development/desktop-tauri-first-source-2026-11-23.md)。
+
 ## Goal
 
 Ordinary users receive a **single verified desktop installation experience** with no requirement to install Rust, Node, Cargo or Gradle, edit TOML, execute manual shell commands, or understand systemd. Installation and configuration happen through a user-facing Tauri 2 desktop application; the compiled Rust Agent runs separately as a **systemd system service** when and only when authorized. Closing Tauri leaves an already authorized Agent service running. There is **no permanent GUI, Dock/taskbar icon, tray icon or desktop-session background process** after the installer closes; the app remains discoverable in the applications menu or an administrative system-management entry and can be reopened deliberately. No secret/silent installation, concealed system process or anti-uninstall behavior.

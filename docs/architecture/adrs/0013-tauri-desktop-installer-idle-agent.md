@@ -2,6 +2,8 @@
 
 **Status: ACCEPTED FOR DEVELOPMENT (design only) · Date: 2026-11-23 · v0.1 Linux-first · NOT APPROVED FOR REAL DEPLOYMENT**
 
+> **Implementation note 2026-11-23（源码候选）：** apps/desktop Tauri 2 / React 只读离线 UI 已增加，**不包括实际安装、安装桥接、签名软件包或系统启动**；候选编译和测试需独立 CI 核验。本文较早的“仓库没有 Tauri desktop”陈述属于决议时点的历史快照。见 [首个源码阶段](../../development/desktop-tauri-first-source-2026-11-23.md)。
+
 ## Context and user outcome
 
 Requiring an end user to install Rust, compile Cargo, edit TOML, run dpkg manually and use systemctl is an unacceptable normal installation experience. Product goal: one reviewed graphical installer package on Pop!_OS 24.04; clear administrator consent and permissions; subsequent background operation without a permanent window, dock/taskbar icon or tray icon. A user may open a management UI again intentionally to inspect or reconfigure the installation.

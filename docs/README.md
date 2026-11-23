@@ -19,6 +19,8 @@
 
 - [2026-11-23 技术栈五批升级验收总账（真实 CI、遗留差距、回退边界）](development/stack-upgrade-acceptance-2026-11-23.md)。
 
+- [首个 Tauri 2 桌面 UI + Rust 原生只读主机检查源码与 CI（功能验收待核对）](development/desktop-tauri-first-source-2026-11-23.md) · [桌面源码 README](../apps/desktop/README.md)。当前为离线预览，**不能安装 Agent**。
+
 ## Linux-first 图形安装与后台 Agent（2026-11-23 产品设计，**未实现**）
 
 - [ADR-0013 桌面安装器 + systemd 独立 headless Agent 决策](architecture/adrs/0013-tauri-desktop-installer-idle-agent.md) · [v0.1 GUI 用户旅程/交互/权限定义](product/linux-desktop-installer-v01.md) · [Pop!_OS24 图形安装 L1/L2/L3 验收矩阵](testing/linux-desktop-installer-acceptance.md)。
