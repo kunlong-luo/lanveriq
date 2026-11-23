@@ -11,6 +11,8 @@
 
 - [STACK-PG18.7 维护版本升级与真实 PostgreSQL 隔离验收](development/stack-postgres18-7-upgrade-2026-11-23.md)。
 
+- [Gradle 9.9.2 发行版升级与 Wrapper JAR 残余对齐](development/stack-gradle9-9-2-upgrade-2026-11-23.md)。
+
 ## 源码与设计
 - [系统架构](architecture/system-overview.md) · [设备协议](architecture/device-communication-stack.md) · [注册/PKI](architecture/enrollment-bootstrap.md) · [SQLite/ACK](architecture/agent-persistence.md) · [API](architecture/api-contract.md) · [WebSocket](architecture/websocket-contract.md)。
 - [唯一 Next.js 项目](../apps/web/README.md) · [UI 设计系统](development/frontend-design-system.md) · [Craftwork 原创方向](visuals/CONSOLE_CRAFTWORK_DIRECTION.md) · [NXT-28 滚动与窄屏](development/frontend-compact-navigation-nxt28-2026-11-21.md)。

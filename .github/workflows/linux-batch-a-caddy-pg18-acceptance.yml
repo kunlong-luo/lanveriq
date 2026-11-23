@@ -8,6 +8,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'apps/server/gradle/wrapper/gradle-wrapper.properties'
       - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
       - 'apps/agent/src/enrollment_linux.rs'
@@ -55,6 +56,9 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
+      - name: Verify actual Gradle 9.9.2 distribution (checked digest)
+        working-directory: apps/server
+        run: ./gradlew --version | grep -F 'Gradle 9.9.2'
       - name: Install pinned Rust toolchain for Linux Agent CSR
         run: rustup toolchain install 1.94.0 --profile minimal
       - name: Build real offline-only Linux P-256 CSR helper (not Agent runtime)
@@ -109,6 +113,9 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
+      - name: Verify actual Gradle 9.9.2 distribution (checked digest)
+        working-directory: apps/server
+        run: ./gradlew --version | grep -F 'Gradle 9.9.2'
       - name: Check isolated Docker and pinned Gradle wrapper
         working-directory: apps/server
         run: |

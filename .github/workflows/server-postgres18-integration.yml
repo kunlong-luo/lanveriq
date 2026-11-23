@@ -72,6 +72,7 @@ on:
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/events/PostgreSqlDeviceActivationIT.java'
       - 'apps/server/scripts/assert-postgres18-junit.py'
       - 'apps/server/scripts/test_assert_postgres18_junit.py'
+      - 'apps/server/gradle/wrapper/gradle-wrapper.properties'
       - '.github/workflows/server-postgres18-integration.yml'
 
 permissions:
@@ -99,6 +100,9 @@ jobs:
           java-version: '25'
       - name: Configure official Gradle
         uses: gradle/actions/setup-gradle@v6
+      - name: Verify actual Gradle 9.9.2 distribution (checked digest)
+        working-directory: apps/server
+        run: ./gradlew --version | grep -F 'Gradle 9.9.2'
       - name: Validate approved Gradle Wrapper checksum
         working-directory: apps/server
         run: echo '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check

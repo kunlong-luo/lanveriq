@@ -35,6 +35,9 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
+      - name: Verify actual Gradle 9.9.2 distribution (checked digest)
+        working-directory: apps/server
+        run: ./gradlew --version | grep -F 'Gradle 9.9.2'
       - name: Compile all JUnit/Testcontainers integration sources (no Docker/DB)
         working-directory: apps/server
         run: ./gradlew compileIntegrationTestJava --no-daemon
