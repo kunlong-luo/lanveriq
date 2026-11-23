@@ -71,7 +71,7 @@ class ShlibdepsAuditTests(unittest.TestCase):
                                   {"name":"libc6","version":"2.39","op":"="},FakeApt))
 
     def test_corrupt_official_output_denied(self):
-        with self.assertRaisesRegex(ValueError, "unexpected official"):
+        with self.assertRaisesRegex(ValueError, "empty/oversized official"):
             v.parse_generated(b"shlibs:Other=bad")
 
     def test_multiple_substvars_lines_denied(self):
