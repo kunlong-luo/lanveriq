@@ -8,11 +8,11 @@
 
 > **2026-11-23 Spring Boot/接口生成升级候选：** Spring Boot 4.2.0 与 Springdoc 3.2.1 的兼容性需通过 Java25 Unit/bootJar、PG18.7 Testcontainers、Rust/Caddy/Tomcat mTLS 与 OpenAPI 安全测试；仅依赖标注不等于已实现生产身份认证。[详细验收](stack-spring-boot4-2-upgrade-2026-11-23.md)。
 
-**状态：技术栈已实施，v0.1 业务链路未闭环。** 这是**当前仓库真实依赖**的入口，不再以 2026-10-30 “无源码/React+Vite 计划”描述现状。由 [v0.1 批量开发计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md) 管理交付，以 [设备通信协议栈基线](../architecture/device-communication-stack.md) 管理设备协议。最新 Web 迁移验收见 [NXT-24](nextjs-path-rename-nxt24-2026-11-21.md)；各依赖具体版本以 Gradle BOM、Cargo.lock、pnpm-lock.yaml 为准；未列在 manifest 中的 UI/PKI/监控库不是已安装的能力。
+**状态：技术栈已实施，v0.1 业务链路未闭环；2026-11-23 Rust 1.100 编译器升级候选待 CI 核验。** 这是**当前仓库真实依赖**的入口，不再以 2026-10-30 “无源码/React+Vite 计划”描述现状。由 [v0.1 批量开发计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md) 管理交付，以 [设备通信协议栈基线](../architecture/device-communication-stack.md) 管理设备协议。最新 Web 迁移验收见 [NXT-24](nextjs-path-rename-nxt24-2026-11-21.md)；各依赖具体版本以 Gradle BOM、Cargo.lock、pnpm-lock.yaml 为准；未列在 manifest 中的 UI/PKI/监控库不是已安装的能力。
 
 | 层 | **当前真实栈** | 状态 / 说明 |
 | --- | --- | --- |
-| 设备服务 Agent | Rust 1.94、Cargo 2024、Tokio 1.54.1、`tracing`、Windows `windows-service` | 服务主循环**仍为空闲状态**，不进行真实注册/采集/上传；有单独库代码 |
+| 设备服务 Agent | Rust 1.100（CI 默认编译器；Cargo MSRV 1.94 保留）、Cargo 2024、Tokio 1.54.1、`tracing`、Windows `windows-service` | 服务主循环**仍为空闲状态**，不进行真实注册/采集/上传；有单独库代码 |
 | Agent ↔ Server | `reqwest 0.13.5`（`default-features=false`, rustls、json、http2）、Serde/JSON、X.509/mTLS、显式业务 ACK | 固定 Agent HTTPS origin，禁代理/重定向；业务 Agent HTTP 心跳后端默认 OFF；不能因为 Rust transport 有源码就说已联网 |
 | Agent 本地可靠性 | SQLx 0.9.0 SQLite、bundled SQLite WAL、`uuid`、`sha2`、`sysinfo`、`os_info`、`network-interface` | 有 SQLx durable outbox/inventory 库；持久化与运行调度尚未完成整体连接 |
 | Java 后端 | **Java 25 LTS + Gradle 9.9.2 发行版（7/7 CI PASS，9.8.2 旧 Wrapper JAR 仍固定） Groovy DSL + Spring Boot 4.2.0（CI 候选）**、Spring Security/WebMVC、JPA/Hibernate、Flyway、Actuator | 单体模块化架构，非 Maven；仅启用受审核的 REST 子路由，不允许全局 /api/v1/** 通配放开 |

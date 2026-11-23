@@ -30,18 +30,18 @@ jobs:
         with:
           persist-credentials: false
       - name: Install pinned Rust toolchain
-        run: rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy
+        run: rustup toolchain install 1.100.0 --profile minimal --component rustfmt --component clippy
       - name: Verify committed Cargo dependency lock (no updates)
         shell: bash
         run: |
           test -f Cargo.lock
-          cargo +1.94.0 metadata --locked --no-deps --format-version 1 > /dev/null
+          cargo +1.100.0 metadata --locked --no-deps --format-version 1 > /dev/null
       - name: Rustfmt
-        run: cargo +1.94.0 fmt --all -- --check
+        run: cargo +1.100.0 fmt --all -- --check
       - name: Unit tests only (no OS/systemd/E2E)
-        run: cargo +1.94.0 test --workspace --locked
+        run: cargo +1.100.0 test --workspace --locked
       - name: Clippy static checks
-        run: cargo +1.94.0 clippy --workspace --all-targets --locked -- -D warnings
+        run: cargo +1.100.0 clippy --workspace --all-targets --locked -- -D warnings
       - name: Preserve committed Cargo.lock
         uses: actions/upload-artifact@v4
         with:

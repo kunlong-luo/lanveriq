@@ -32,8 +32,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Install pinned Rust 1.94
-        run: rustup toolchain install 1.94.0 --profile minimal
+      - name: Install pinned Rust 1.100
+        run: rustup toolchain install 1.100.0 --profile minimal
       - name: Install Java 25
         uses: actions/setup-java@v6
         with:
@@ -45,7 +45,7 @@ jobs:
         run: |
           bash -n apps/agent/tools/linux/verify-linux-csr-issued-leaf.sh
           cd apps/agent
-          cargo +1.94.0 build --locked --example linux_csr_synthetic
+          cargo +1.100.0 build --locked --example linux_csr_synthetic
       - name: Generate offline P-256 CSR as unprivileged Linux account and issue temporary CA public leaf
         shell: bash
         run: |
