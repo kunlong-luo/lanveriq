@@ -1,0 +1,41 @@
+name: Desktop offline Ed25519 signature lab (synthetic, no release key)
+
+# Fast L1 crypto negatives independent of Tauri/WebKitGTK native Debian build.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_lab_signature.py'
+      - 'apps/desktop/tools/test_verify_desktop_lab_signature.py'
+      - 'apps/desktop/tools/verify_desktop_candidate_evidence.py'
+      - 'apps/desktop/tools/verify-desktop-deb.py'
+      - 'apps/desktop/tools/test_verify_desktop_deb.py'
+      - 'apps/desktop/tools/verify_desktop_readonly.py'
+      - '.github/workflows/desktop-signature-lab.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lanveriq-desktop-signature-lab-main
+  cancel-in-progress: true
+jobs:
+  offline-crypto-negatives:
+    name: OpenSSL3 synthetic Ed25519 detached verification and refusal
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Assert read-only GUI and OpenSSL 3 test environment
+        run: |
+          set -Eeuo pipefail
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          openssl version
+          test "$(openssl version | cut -d ' ' -f 2 | cut -d '.' -f 1)" = "3"
+          test -x /usr/bin/dpkg-deb
+      - name: Exercise ephemeral Ed25519 keys and hostile synthetic Debian receipts
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_lab_signature.py' -v
+          echo 'PASS: LAB ONLY detached verification and refusals; native Tauri and trusted release provenance NOT RUN in this job'

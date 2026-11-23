@@ -14,6 +14,13 @@ The lab key is **not** a trusted publisher, CA, HSM/KMS, verified GitHub OIDC is
 
 The [negative tests](../../apps/desktop/tools/test_verify_desktop_lab_signature.py) exercise real OpenSSL signing/verification and reject corrupted signature, changed receipt bytes, swapped public key, forged public-key fingerprint, short signature, missing/symlinked key files, replay of source SHA/run, mutated .deb/SPDX/lock inputs and **re-signed forged release approval**. All tests use generated local keys and synthetic packages only. The actual exact-SHA real Tauri Debian job must independently pass archive/Syft/receipt and the final OpenSSL step on Ubuntu 24.04; failures remain recorded at their SHA and must not silently loosen any guard.
 
+
+### Independent fast negative CI (not native bundle evidence)
+
+The [dedicated offline Ed25519 lab workflow](../../.github/workflows/desktop-signature-lab.yml) verifies real OpenSSL 3 ephemeral signatures and denial paths against **synthetic** Debian fixtures on Ubuntu 24.04. It requests only contents: read and does not use id-token, GitHub secrets, public signer, uploads, installs or production actions. Its purpose is to run cryptographic L1 negative tests without waiting for WebKitGTK/Tauri. An L1 success here must not be substituted for L2B-2's native Debian package + Syft + actual lab signature check.
+
+At authorship: new dedicated workflow CI **PENDING**; prior [native run #45161801144](https://github.com/kunlong-luo/lanveriq/actions/runs/45161801144) remains **IN PROGRESS**, not an accepted native L2B-2 PASS.
+
 ## Next gates (NOT RUN)
 
 1. Approve and implement an **industry-standard, independently verifiable release provenance** (e.g., Sigstore/cosign or GitHub artifact attestation using protected workflow and a verified OIDC identity), with origin constraints: repository, immutable workflow, source commit, exact package digest, signer identity, revocation/time/transparency and rollback policy. Any public attestation/upload requires a separate decision. Pin actions/tool versions and enforce verification on a different trust domain. No unapproved release keys or automatic publication.
