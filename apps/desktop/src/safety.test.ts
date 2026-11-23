@@ -44,7 +44,7 @@ describe("desktop always refuses unapproved operations", () => {
       runtimeActivationAllowed: true,
     };
     expect(describeReadiness(host).kind).toBe("unverified");
-    expect(describeReadiness(host).label).toContain("未批准");
+    expect(describeReadiness(host).label).toContain("未获授权");
     expect(nativeDetails(host).find(([label]) => label === "后台服务")?.[1]).toContain("未授权");
     expect(RELEASE_GATE.installEnabled).toBe(false);
   });

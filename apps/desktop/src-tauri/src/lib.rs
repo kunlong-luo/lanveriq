@@ -104,16 +104,10 @@ fn parse_unit_properties(raw: &str) -> (&str, &str, &str, &str) {
 #[cfg(target_os = "linux")]
 fn inspect_legacy_binary() -> &'static str {
     use std::io::ErrorKind;
-    use std::os::unix::fs::MetadataExt;
     // Historical manual installations used /usr/local/bin. Read only the fixed
     // leaf's metadata; never follow symlinks or execute the file.
     match std::fs::symlink_metadata("/usr/local/bin/lanveriq-agent") {
-        Ok(metadata) => {
-            // Even root-owned executable files need explicit migration review.
-            // Do not report an old installation as approved from permissions.
-            let _ = metadata.uid();
-            "present_unreviewed"
-        }
+        Ok(_) => "present_unreviewed",
         Err(err) if err.kind() == ErrorKind::NotFound => "not_detected",
         Err(_) => "unverified",
     }
