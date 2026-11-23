@@ -1,0 +1,38 @@
+name: Desktop Debian shlibdeps symbol ABI audit L1 (uninstalled)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_deb_shlibdeps_audit.py'
+      - 'apps/desktop/tools/test_verify_desktop_deb_shlibdeps_audit.py'
+      - '.github/workflows/desktop-shlibdeps-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lanveriq-desktop-shlibdeps-l1-main
+  cancel-in-progress: true
+jobs:
+  synthetic-dependency-gap:
+    name: Hostile Debian dependency floors and archive declarations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: System Debian package ABI tools and source no-installer policy
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          command -v dpkg-shlibdeps
+          command -v dpkg-deb
+          /usr/bin/python3 -c 'import apt_pkg; apt_pkg.init_system(); assert len(apt_pkg.parse_depends("libc6 (>= 2.38)")) == 1'
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+      - name: Negative tests without executing, installing or uploading GUI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_deb_shlibdeps_audit.py' -v
+          echo 'PASS: strict dpkg-shlibdeps comparison L1 only; no actual native Tauri symbols verified here'

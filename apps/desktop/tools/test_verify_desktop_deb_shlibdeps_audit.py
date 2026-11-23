@@ -80,7 +80,7 @@ class ShlibdepsAuditTests(unittest.TestCase):
 
     def test_unresolved_substitution_denied(self):
         with self.assertRaisesRegex(ValueError, "unresolved"):
-            v.parse_generated(b"shlibs:Depends=@BAD@{foo}")
+            v.parse_generated(b"shlibs:Depends=" + bytes((36,)) + b"{foo}")
 
     def test_dependency_newline_denied(self):
         with self.assertRaisesRegex(ValueError, "multiline"):

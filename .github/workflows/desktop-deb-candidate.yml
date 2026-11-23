@@ -22,6 +22,8 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_ubuntu_runtime_packages.py'
       - 'apps/desktop/tools/verify_desktop_apt_installed_closure.py'
       - 'apps/desktop/tools/test_verify_desktop_apt_installed_closure.py'
+      - 'apps/desktop/tools/verify_desktop_deb_shlibdeps_audit.py'
+      - 'apps/desktop/tools/test_verify_desktop_deb_shlibdeps_audit.py'
       - '.github/workflows/desktop-deb-candidate.yml'
   workflow_dispatch:
 
@@ -52,6 +54,7 @@ jobs:
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_elf_runtime_evidence.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_ubuntu_runtime_packages.py'
           /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_apt_installed_closure.py'
+          /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_deb_shlibdeps_audit.py'
       - name: Install pinned frontend runtime without changing pnpm lock
         uses: pnpm/setup@v3
         with:
@@ -82,7 +85,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
-            libssl-dev libxdo-dev patchelf pkg-config python3-apt
+            libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
       - name: Compile actual unsigned GUI-only .deb using temporary CLI-only override; never install it
         shell: bash
         working-directory: apps/desktop
@@ -242,6 +245,39 @@ jobs:
           assert not data["release_approved"] and not data["install_authorized"]
           PY
           echo 'PASS: read-only APT installed mandatory satisfier graph; no PopOS, runtime plugins, license or release approval'
+      - name: Official Debian dpkg-shlibdeps ABI minimum vs packaged Depends (read-only untrusted audit)
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          EVIDENCE_DIR: ${{ runner.temp }}
+        run: |
+          set -Eeuo pipefail
+          command -v dpkg-shlibdeps >/dev/null
+          test -f "$EVIDENCE_DIR/apt-installed-dependency-evidence.json"
+          package=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' -print -quit)
+          test -f "$package"
+          args=(--package "$package" --extraction "$EVIDENCE_DIR/desktop-payload-root" --runtime-report "$EVIDENCE_DIR/runtime-elf-evidence.json" --owner-report "$EVIDENCE_DIR/ubuntu-host-library-map.json" --apt-report "$EVIDENCE_DIR/apt-installed-dependency-evidence.json" --source-sha "$SOURCE_SHA" --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT" --output "$EVIDENCE_DIR/deb-shlibdeps-gap-evidence.json")
+          /usr/bin/python3 tools/verify_desktop_deb_shlibdeps_audit.py create "${args[@]}"
+          /usr/bin/python3 tools/verify_desktop_deb_shlibdeps_audit.py verify "${args[@]}"
+          /usr/bin/python3 - "$EVIDENCE_DIR/deb-shlibdeps-gap-evidence.json" <<'PY'
+          import json,sys
+          data=json.load(open(sys.argv[1],encoding="utf-8"))
+          comparison=data["comparison"]
+          print("ABI official dpkg-shlibdeps required groups:",comparison["calculated_direct_group_count"])
+          print("ABI archive declared groups:",comparison["archive_declared_group_count"])
+          print("ABI not directly declared groups:",len(comparison["not_directly_declared_groups"]))
+          print("ABI too-weak declared version groups:",len(comparison["declared_but_insufficient_constraint_groups"]))
+          print("ABI direct declaration gap count:",comparison["direct_declaration_gap_count"])
+          print("ABI generated Debian requirement expression:",data["official_generated_shlibs_depends"])
+          print("ABI actual Debian control Depends:",data["archive_actual_depends"])
+          print("ABI gap evidence remains unsigned:",data["candidate_dependency_declaration"])
+          assert data["license_review"]=="OPEN_NOT_APPROVED"
+          assert not data["release_approved"] and not data["install_authorized"]
+          PY
+          echo 'PASS: official shlibdeps ABI audit recorded; packaging compatibility and release still NOT APPROVED'
       - name: LAB ONLY prove offline detached Ed25519 verification with ephemeral test key
         shell: bash
         working-directory: apps/desktop
