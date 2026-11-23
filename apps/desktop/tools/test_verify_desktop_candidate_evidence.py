@@ -16,7 +16,9 @@ class ReceiptTests(unittest.TestCase):
         self.fx = DesktopDebPayloadNegatives("test_synthetic_offline_desktop_shape_is_accepted")
         self.fx.setUp()
         self.addCleanup(self.fx.tearDown)
-        self.package = self.fx.build()
+        generated = self.fx.build()
+        self.package = self.fx.root / guard.PACKAGE
+        generated.rename(self.package)
         self.sbom = self.fx.root / "sbom.json"
         self.inputs = {}
         for key in guard.SOURCE_FILES:
