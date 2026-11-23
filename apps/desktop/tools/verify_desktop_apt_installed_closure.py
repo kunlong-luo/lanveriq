@@ -20,6 +20,7 @@ owner = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(owner)
 require = owner.require
 
+APT_PKG_NAME = __import__("re").compile(r"[a-z0-9][a-z0-9+.-]{0,119}(?::(?:amd64|all))?\Z")
 MAX_NODES = 1024
 MAX_EDGES = 8192
 MAX_ALTERNATIVES = 2000
@@ -28,7 +29,7 @@ LICENSE_OPEN = "OPEN_NOT_APPROVED"
 def name_version(version):
     package = version.package
     name = package.fullname
-    require(isinstance(name, str) and owner.PKG_NAME.fullmatch(name) is not None,
+    require(isinstance(name, str) and APT_PKG_NAME.fullmatch(name) is not None,
             "invalid APT installed package name")
     v = version.version
     require(isinstance(v, str) and owner.VERSION.fullmatch(v) is not None,
