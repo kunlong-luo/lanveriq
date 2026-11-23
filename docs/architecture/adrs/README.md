@@ -14,4 +14,6 @@
 | [0010 RustDesk](0010-rustdesk-remote-control-integration.md) · [0011 双网](0011-rustdesk-dual-network-access.md) | 候选方向，RD-2/公网未放行 |
 | [0012 外部见证 WORM 存储方案](0012-independent-fido-witness-object-lock.md) | **ACCEPTED FOR DEVELOPMENT: 云中立存储抽象；供应商/独立托管 PROPOSED/未批准**。AWS/S3 只保留为可选候选，已从默认服务端依赖移除 |
 
+| [0013 Tauri 图形安装器 + 独立 headless Agent](0013-tauri-desktop-installer-idle-agent.md) | **ACCEPTED FOR DEVELOPMENT**：v0.1 Pop!_OS24 GUI 安装/配置/诊断方向，Agent systemd 独立无托盘后台运行；源码/安装器尚未实现、真实部署仍禁止 |
+
 新 ADR 必须记录 Status(Proposed/Accepted-for-development/Superseded/Rejected)、Date、Context、Alternatives、Decision、Tradeoffs、Supersedes、Approval scope 与 Explicit non-authorizations。旧已取代决议仍保留原历史。[文档标准](../../governance/document-lifecycle.md)。
