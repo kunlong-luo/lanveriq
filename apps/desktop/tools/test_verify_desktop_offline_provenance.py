@@ -15,6 +15,9 @@ verifier = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verifier)
 from test_verify_desktop_deb import DesktopDebPayloadNegatives
 
+# Preserve real dpkg-deb subprocess execution. The fake must replace ONLY gh.
+REAL_SUBPROCESS_RUN = subprocess.run
+
 
 class ProvenanceReceiverContractTests(unittest.TestCase):
     def setUp(self):
@@ -67,13 +70,14 @@ class ProvenanceReceiverContractTests(unittest.TestCase):
     def mock_gh(self, payload=None, code=0):
         if payload is None:
             payload = self.invented_verified_json()
-        return mock.patch.object(
-            verifier.subprocess, "run",
-            return_value=subprocess.CompletedProcess(
-                args=[], returncode=code,
-                stdout=self.fake_output(payload), stderr=b""
-            )
-        )
+        def dispatch(argv, *args, **kwargs):
+            if argv[0] == "gh":
+                return subprocess.CompletedProcess(
+                    args=argv, returncode=code,
+                    stdout=self.fake_output(payload), stderr=b""
+                )
+            return REAL_SUBPROCESS_RUN(argv, *args, **kwargs)
+        return mock.patch.object(verifier.subprocess, "run", side_effect=dispatch)
 
     def test_mocked_success_checks_all_offline_signer_constraints(self):
         with self.mock_gh() as runner:
@@ -118,12 +122,15 @@ class ProvenanceReceiverContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source commit"):
             self.invoke(source_sha="main")
 
-    def test_deny_tampered_deb_before_offline_gh(self):
+    def test_deny_tampered_deb_against_stale_verified_subject(self):
+        original_subject = self.invented_verified_json()
         self.package.write_bytes(self.package.read_bytes() + b"tamper")
-        with self.mock_gh() as runner:
-            with self.assertRaises(ValueError):
+        # Snapshot was created BEFORE the package changed; a stale authentic
+        # attestation must not authenticate the mutated candidate.
+        with self.mock_gh(original_subject) as runner:
+            with self.assertRaisesRegex(ValueError, "subject digest mismatch"):
                 self.invoke()
-            runner.assert_not_called()
+            self.assertEqual(runner.call_args.args[0][0], "gh")
 
     def test_deny_certificate_wrong_repository_id(self):
         for value in ("0", "1439447218", None):
@@ -186,8 +193,13 @@ class ProvenanceReceiverContractTests(unittest.TestCase):
     def test_deny_duplicate_verified_certificate_fields(self):
         # Mock the post-cryptographic CLI output to prove strict JSON parsing.
         raw = b'[{"verificationResult":{"signature":{"certificate":{"sourceRepositoryIdentifier":"1439447217","sourceRepositoryIdentifier":"0"}}}}]'
-        with mock.patch.object(verifier.subprocess, "run",
-                               return_value=subprocess.CompletedProcess([], 0, raw, b"")):
+        with self.mock_gh() as runner:
+            original_side_effect = runner.side_effect
+            def duplicate_json_from_gh(argv, *args, **kwargs):
+                if argv[0] == "gh":
+                    return subprocess.CompletedProcess(argv, 0, raw, b"")
+                return REAL_SUBPROCESS_RUN(argv, *args, **kwargs)
+            runner.side_effect = duplicate_json_from_gh
             with self.assertRaisesRegex(ValueError, "duplicate verified JSON"):
                 self.invoke()
 
@@ -197,7 +209,12 @@ class ProvenanceReceiverContractTests(unittest.TestCase):
                 self.invoke()
 
     def test_deny_verifier_missing(self):
-        with mock.patch.object(verifier.subprocess, "run", side_effect=FileNotFoundError):
+        with self.mock_gh() as runner:
+            def no_gh(argv, *args, **kwargs):
+                if argv[0] == "gh":
+                    raise FileNotFoundError("gh missing")
+                return REAL_SUBPROCESS_RUN(argv, *args, **kwargs)
+            runner.side_effect = no_gh
             with self.assertRaisesRegex(ValueError, "unavailable"):
                 self.invoke()
 
