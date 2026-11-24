@@ -4,6 +4,8 @@
 
 > **2026-11-24 G-05 证据订正（DESKTOP-L2B-12）：** [原生桌面工作流 #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) 总体为 **FAIL**，失败发生在 Ubuntu24 WebKitGTK 前置 APT 安装 12 分钟超时；React/source/Rustfmt 单独 PASS，`cargo test` 与 Clippy **NOT RUN（SKIPPED）**。不能把它写成仍运行中的 PENDING。最新 [功能 SHA d7fc9180](https://github.com/kunlong-luo/lanveriq/commit/d7fc91803ea375b0c964a933aa3fd8596ff55bf2) 的 ABI 同源契约与 3 个防篡改负测已提交，但[同功能 SHA 的 #45313752315](https://github.com/kunlong-luo/lanveriq/actions/runs/45313752315) 已实际通过 desktop-ui L1 子任务（17 Python 源码拒绝 + 22 PopOS/Ubuntu 负测 + 19 Vitest、TypeScript、静态构建）；**原生 Rust 仍无 PASS**。中间 SHA 9be4fb19 的 [#45313714759 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45313714759) 为首次审计器正则转义错误，d7fc9180 已修复后取得 L1 子任务成功。G-05/G-07/G-08/G-09 均维持 OPEN，无正式签名、受限安装授权、Pop!_OS24/COSMIC 实机或可分发 Agent GUI 安装包。
 
+> **2026-11-24 G-05 源码审计补强（更新）：** 功能 SHA [d44327b5](https://github.com/kunlong-luo/lanveriq/commit/d44327b52796029688194a6fffbe4eedb48ac976) 对已审 GUI-only Debian 10 组 ABI 依赖、React 展示以及 Rust `include_str!` 嵌入的 Python 预检常量做三方精确约束，且对 COSMIC 组件名称做 Python/React 等值验证。新增 6 项拒绝测试，严格静态解析不执行 Python 预检。[#45314250801](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801) 的 **desktop-ui L1 子任务 SUCCESS**：23 个源码守卫、22 个 Pop!_OS 合成/真实 Ubuntu 拒绝、19 个 Vitest 测试，TypeScript/构建 PASS。原生 Rust test/Clippy、真实签名与 polkit 授权、Pop!_OS24/COSMIC 实机均未完成；G-05/G-07/G-08/G-09 保持 OPEN。旧 #45310985549 WebKitGTK APT 超时导致工作流 FAIL，不得借 L1 PASS 或历史 .deb 成功关闭发布 Gate。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |

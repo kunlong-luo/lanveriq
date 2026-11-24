@@ -20,7 +20,7 @@
 - [2026-11-23 技术栈五批升级验收总账（真实 CI、遗留差距、回退边界）](development/stack-upgrade-acceptance-2026-11-23.md)。
 
 - [Tauri 2 桌面 UI + Rust 原生只读主机检测（Ubuntu24 源码/本机构建 2/2 L1 CI PASS，非发行版）](development/desktop-tauri-first-source-2026-11-23.md) · [桌面源码 README](../apps/desktop/README.md)。当前为离线预览，**不能安装 Agent**。
-- [DESKTOP-L2B-12 图形兼容性只读预检、前端 ABI 约束、防篡改与真实 CI 阻塞账本](development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md)：最新 d7fc9180 的 [desktop-ui L1 子任务 #45313752315 已成功](https://github.com/kunlong-luo/lanveriq/actions/runs/45313752315)，原生 L2 尚无通过证据，**不能用于发行**。
+- [DESKTOP-L2B-12 图形兼容性只读预检、前端 ABI 约束、防篡改与真实 CI 阻塞账本](development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md)：最新 d44327b5 的 [desktop-ui L1 子任务 #45314250801 已成功](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801)（23+22+19 测试，Python/React/.deb ABI 与 COSMIC 防漂移），原生 L2 尚无通过证据，**不能用于发行**。
 
 ## Linux-first 图形安装与后台 Agent（2026-11-23 产品设计，**未实现**）
 
