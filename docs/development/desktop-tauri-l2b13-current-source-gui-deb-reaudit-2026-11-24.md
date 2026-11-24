@@ -16,6 +16,12 @@
 
 原有归档链仍需实际完成：未授权 maintainer scripts/Agent payload/shell/tray 的拒绝检查；真实提取 payload SHA 和两个 Syft SPDX 检查；ELF loader/DT_NEEDED 与 SONAME；Ubuntu24 包归属和版权材料；已安装强制依赖闭包；官方 dpkg-shlibdeps 直接版本最低要求与 Debian Depends 零差距；全新 Ubuntu24 OCI 只读 bind + apt-get -s 求解及已解析容器 digest；**仅临时实验密钥**的 Ed25519 验签。源端/包端、run ID、run attempt 与 SHA 都必须同源，不可跨提交继承。
 
+## 候选包输入覆盖与并发取证保护（2026-11-24 更新）
+
+- [7cf23f3e](https://github.com/kunlong-luo/lanveriq/commit/7cf23f3e8da72b0a646f8edcc0edd965a53c619d) 在此前 [161879ea](https://github.com/kunlong-luo/lanveriq/commit/161879ea3f1b94713b413260ae6852546f92df81) 的严格候选 workflow 上补全三类遗漏的实际构建/安全输入：`apps/desktop/src-tauri/capabilities/**`（Tauri IPC 权限范围）、`apps/desktop/src-tauri/rust-toolchain.toml`（Rust toolchain 审计）、`apps/desktop/.node-version`（桌面 Node pin）。任一输入变化都必须触发新的来源一致性检测；README-only 变更依旧不触发。此修改**没有开启新 Tauri 权限，没有改变 Agent/桌面源代码，也没有批准签名或安装**。
+- 该候选 workflow 的 `cancel-in-progress=false` 用于保留已经开始的长耗时归档取证及失败诊断；后续提交以独立 SHA 排队验收，不会因新推送直接废弃进行中的证据。相比旧 `cancel-in-progress=true`，这可能延长等待队列，但更适合耗时的首次真实原生审核。不把旧运行的包 SHA/ABI 结果映射为新提交通过。
+- **当前独立证据：** [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 已完成安全负测、冻结前端测试/类型/构建、Cargo lock/Rustfmt 等前置步骤，实际 Ubuntu WebKitGTK 依赖步骤尚在执行；[7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 为排队的新 workflow，**NOT RUN**（尚无 job 结论）。当前源码没有经过这两次运行确认的完整 `.deb` 构建/官方 ABI/Syft/ELF/OCI 成功结果。
+
 ## 验收记录（2026-11-24 核对）
 
 | 验收 | Exact SHA / Workflow | 当前可证明事实 | 尚未证明 |
