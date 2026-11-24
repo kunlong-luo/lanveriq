@@ -237,7 +237,11 @@ expect_status "incorrect password denied" 401 \
 assert_direct_401
 synthetic_login
 echo "PASS: real Caddy HTTPS -> Tomcat form login, session fixation, fresh CSRF and strict cookie."
-expect_status "scoped device page" 200 "$CONSOLE/api/v1/devices?limit=50"
+if [[ -n "$CHAIN_DEVICE_ID" ]]; then
+    expect_status "scoped nonempty Rust device page" 200 "$CONSOLE/api/v1/devices?limit=50"
+else
+    expect_status "scoped empty device page" 200 "$CONSOLE/api/v1/devices?limit=50"
+fi
 assert_no_store_json
 if [[ -n "$CHAIN_DEVICE_ID" ]]; then
     # Rust has already completed activation, exact ACK, SQLite crash/restart
