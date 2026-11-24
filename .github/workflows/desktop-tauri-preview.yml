@@ -29,6 +29,9 @@ jobs:
         run: |
           python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_readonly.py'
+          # Same-SHA embedded Python/PopOS negative contract runs before native APT.
+          # Includes the actual Ubuntu host refusal; never claims PopOS physical L3.
+          /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_popos_local_preflight.py'
       - name: Set up pinned Node and pnpm
         uses: pnpm/setup@v3
         with:

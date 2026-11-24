@@ -52,6 +52,33 @@ def validate(root=DESKTOP):
                     ("files", "preInstallScript", "postInstallScript",
                      "preRemoveScript", "postRemoveScript")),
             "GUI-only bundle must not contain installer hooks or added files")
+    # Bind the display-only React ABI contract to the reviewed .deb Depends.
+    # No JS-side Debian version comparison or release authority is introduced.
+    frontend_contract = (root / "src/preflight.ts").read_text(encoding="utf-8")
+    def locked_array(name):
+        match = re.search(
+            rf"export const {name}\\s*=\\s*\\[([^\\]]*)\\]\\s*as const\\s*;",
+            frontend_contract, re.S,
+        )
+        require(match is not None, f"missing frontend {name} ABI source")
+        raw = "[" + re.sub(r",\\s*$", "", match.group(1)) + "]"
+        value = json.loads(raw)
+        require(isinstance(value, list), "frontend ABI contract must use fixed arrays")
+        return value
+
+    pairs = [
+        re.fullmatch(r"([a-z0-9][a-z0-9.+-]*)(?: \\(>= ([A-Za-z0-9.+:~_-]+)\\))?", dep)
+        for dep in reviewed
+    ]
+    require(all(m is not None for m in pairs), "invalid reviewed Debian ABI baseline")
+    names = [m.group(1) for m in pairs]
+    minima = [m.group(2) for m in pairs]
+    require(
+        locked_array("ABI_PACKAGE_NAMES") == names
+        and locked_array("ABI_MINIMUM_VERSIONS") == minima,
+        "frontend ABI package/version floors drift from reviewed Debian Depends",
+    )
+
     require(tauri["bundle"].get("icon") == ["icons/icon.png"], "desktop bundle icon must be the reviewed native PNG")
     require(tauri["build"]["frontendDist"] == "../dist", "unexpected asset target")
     require(tauri["app"].get("trayIcon") is None, "resident tray forbidden")

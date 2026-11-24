@@ -67,6 +67,21 @@ class DesktopReadonlyContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "resident tray forbidden"):
             guard.validate(self.root)
 
+    def test_reject_frontend_abi_minimum_downgrade(self):
+        self.mutate("src/preflight.ts", '"2.39", "1.10.0"', '"2.38", "1.10.0"')
+        with self.assertRaisesRegex(ValueError, "frontend ABI package/version floors drift"):
+            guard.validate(self.root)
+
+    def test_reject_frontend_abi_package_substitution(self):
+        self.mutate("src/preflight.ts", '"libc6", "libcairo2"', '"libc6", "libgtk-3-0t64"')
+        with self.assertRaisesRegex(ValueError, "frontend ABI package/version floors drift"):
+            guard.validate(self.root)
+
+    def test_reject_frontend_abi_implicit_floor_added(self):
+        self.mutate("src/preflight.ts", 'null, "3.0.3"', '"0.1", "3.0.3"')
+        with self.assertRaisesRegex(ValueError, "frontend ABI package/version floors drift"):
+            guard.validate(self.root)
+
     def test_reject_extra_capabilities(self):
         self.mutate("src-tauri/capabilities/default.json", '"core:default"', '"shell:allow-execute"')
         with self.assertRaisesRegex(ValueError, "unapproved desktop capabilities"):
