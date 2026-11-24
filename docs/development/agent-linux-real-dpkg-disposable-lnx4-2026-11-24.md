@@ -2,6 +2,8 @@
 
 **IN IMPLEMENTATION · 2026-11-24 · source SHA 7ef4310e · CI #45338818298 RUNNING AT INITIAL RECORD · Ubuntu24 OCI ONLY · G-05 OPEN · v0.1 NOT RELEASE READY**
 
+> **CI 首次运行纠错（2026-11-24）：** [功能 SHA 7ef4310e / #45338818298](https://github.com/kunlong-luo/lanveriq/actions/runs/45338818298) **overall FAIL**。实际 Rust release、原生 `.deb` 构建与严格解包审计均 PASS，紧接着新 LNX4 脚本因为 Bash 变量被误写成转义 `\${GITHUB_ACTIONS:-}` 等导致**合法 GitHub CI 也被 fail-closed 拒绝**，未进入 Docker，因此这次**没有真实 dpkg 安装验证**。源码修复 SHA [f0cea27f](https://github.com/kunlong-luo/lanveriq/commit/f0cea27f77ee416ad3bb70bff198339e8789faef) 仅恢复 Bash 环境变量和 `dpkg-query` 字段的正确展开、不放宽权限；[重跑 CI #45339314490](https://github.com/kunlong-luo/lanveriq/actions/runs/45339314490) 尚待最终结果。历史 FAIL 不得更名 PASS。
+
 ## 本阶段为什么不另造安装器
 
 Lanveriq 已有真正的 Rust Agent release 编译、一个受控的 `lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb` 生成器、严格归档和 systemd 单元检查，但此前 [verify-offline-agent-deb.py](../../apps/agent/tools/linux/verify-offline-agent-deb.py) 的安装/删除检验属于 **`dpkg-deb --extract` 演练**，**并未运行 Linux 包管理器对 Agent 的真实安装事务**。本轮不再创建另一个自研包管理协议，而直接使用已在目标 OS 生态存在的 **Debian dpkg**，只在无网络的一次性 Ubuntu24 OCI 容器中调用。
