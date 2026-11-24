@@ -67,13 +67,22 @@ def validate(root=DESKTOP):
     requires = set(manifest["dependencies"]) - {"tauri", "serde"}
     require(not requires, f"unapproved Rust dependencies: {sorted(requires)}")
     require(
-        native_code.count("#[tauri::command]") == 1
-        and re.search(r"#\[tauri::command\]\s*fn inspect_host\(\)", native_code),
-        "only inspect_host native command is permitted",
+        native_code.count("#[tauri::command]") == 2
+        and re.search(r"#\[tauri::command\]\s*fn inspect_host\(\)", native_code)
+        and re.search(r"#\[tauri::command\]\s*async fn inspect_popos_preflight\(\)", native_code),
+        "only inspect_host and inspect_popos_preflight are permitted",
     )
     require(
-        "tauri::generate_handler![inspect_host]" in native_code,
+        "tauri::generate_handler![inspect_host, inspect_popos_preflight]" in native_code,
         "unexpected handler dispatch",
+    )
+    require(
+        'include_str!("../../tools/verify_desktop_popos_local_preflight.py")' in native_code
+        and 'Command::new("/usr/bin/python3")' in native_code
+        and '"-I", "-c", BUNDLED_PREFLIGHT, "inspect-json"' in native_code
+        and ".env_clear()" in native_code
+        and "spawn_blocking(collect_popos_preflight)" in native_code,
+        "bundled read-only PopOS preflight protocol drift",
     )
     for forbidden in (
         "std::fs::write", "std::fs::remove", "std::fs::rename",
@@ -92,10 +101,12 @@ def validate(root=DESKTOP):
         "missing fixed read-only system inspector",
     )
     require(
-        "invoke<HostSnapshot>(\"inspect_host\")" in react_code,
-        "desktop must invoke only read-only native inspection",
+        'invoke<HostSnapshot>("inspect_host")' in react_code
+        and 'invoke<string>("inspect_popos_preflight")' in react_code
+        and "parseLocalPreflight(raw)" in react_code,
+        "desktop must invoke only read-only host and PopOS compatibility inspection",
     )
-    require(react_code.count("invoke<") == 1, "extra IPC commands need review")
+    require(react_code.count("invoke<") == 2, "extra IPC commands need review")
     require("安装 Agent（尚未开放）" in react_code, "install must be explicitly disabled")
     for field in (
         "installEnabled", "serviceStartEnabled", "bootEnableEnabled",

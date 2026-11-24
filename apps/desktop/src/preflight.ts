@@ -90,6 +90,7 @@ export function parseLocalPreflight(raw: string): PoposMetadata {
       result.agent_start_authorized !== false ||
       !object(result.apt_sources) ||
       result.apt_sources.apt_repository_signature_trust !== "NOT_VERIFIED" ||
+      typeof result.apt_sources.file_count !== "number" ||
       !Number.isInteger(result.apt_sources.file_count) ||
       !(Number(result.apt_sources.file_count) > 0 && Number(result.apt_sources.file_count) <= 64) ||
       typeof result.apt_sources.contents_sha256 !== "string" ||

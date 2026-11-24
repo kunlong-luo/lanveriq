@@ -74,9 +74,23 @@ class DesktopReadonlyContractTests(unittest.TestCase):
 
     def test_reject_native_start_command(self):
         self.mutate("src-tauri/src/lib.rs",
-                    "tauri::generate_handler![inspect_host]",
-                    "tauri::generate_handler![inspect_host, start_agent]")
+                    "tauri::generate_handler![inspect_host, inspect_popos_preflight]",
+                    "tauri::generate_handler![inspect_host, inspect_popos_preflight, start_agent]")
         with self.assertRaisesRegex(ValueError, "unexpected handler dispatch"):
+            guard.validate(self.root)
+
+    def test_reject_bundled_preflight_replaced_with_shell(self):
+        self.mutate("src-tauri/src/lib.rs",
+                    'Command::new("/usr/bin/python3")',
+                    'Command::new("/bin/sh")')
+        with self.assertRaisesRegex(ValueError,"bundled read-only PopOS preflight protocol drift|unapproved runtime operation"):
+            guard.validate(self.root)
+
+    def test_reject_preflight_ipc_removed(self):
+        self.mutate("src/DesktopApp.tsx",
+                    'invoke<string>("inspect_popos_preflight")',
+                    'invoke<string>("not_a_reviewed_command")')
+        with self.assertRaisesRegex(ValueError,"desktop must invoke only read-only"):
             guard.validate(self.root)
 
     def test_reject_privileged_shell_execution(self):
