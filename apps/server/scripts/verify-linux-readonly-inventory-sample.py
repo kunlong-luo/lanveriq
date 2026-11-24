@@ -76,12 +76,16 @@ def main() -> None:
                 key, val = line.rstrip("\n").split("=", 1)
                 os_values[key] = val.strip('"')
     observed_os = data["os"]
-    must(observed_os.get("family") == "linux" and
-         observed_os.get("name") == os_values.get("NAME") and
-         observed_os.get("version") == os_values.get("VERSION_ID") and
-         observed_os.get("kernel_release") == platform.uname().release and
-         observed_os.get("arch") == platform.machine(),
-         "Rust Linux OS differs from the actual CI host")
+    must(observed_os.get("family") == "linux",
+         "Rust Linux family differs from kernel")
+    must(observed_os.get("name") == os_values.get("NAME"),
+         "Rust Linux distribution name differs from os-release NAME")
+    must(observed_os.get("version") == os_values.get("VERSION_ID"),
+         "Rust Linux distro version differs from os-release VERSION_ID")
+    must(observed_os.get("kernel_release") == platform.uname().release,
+         "Rust Linux kernel differs from uname")
+    must(observed_os.get("arch") == platform.machine(),
+         "Rust Linux architecture differs from uname")
     caps = data["capabilities"]
     must(caps.get("hardware_inventory") == "available" and
          all(caps.get(k) == "not_collected"
