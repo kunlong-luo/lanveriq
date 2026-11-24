@@ -22,6 +22,8 @@
 
 > **2026-11-24 G-05 构建环境缓存隔离门禁（L2B-14）：** [dac7f6ad / APT cache 初版 #45318418790](https://github.com/kunlong-luo/lanveriq/actions/runs/45318418790) 真正下载 175 份 Ubuntu 开发 .deb 但 **缓存 post-save FAIL，APT 的 _apt 沙箱权限失效**；这不是可复用缓存 PASS，更不是当前源码 .deb 通过。已修正 [b695945c / #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) 仅缓存完整 .deb、修复 _apt 目录所有权并加独立 runner 缓存恢复核验，仍待两作业整体 SUCCESS。只有该实验完整成功后才评估把缓存接入现有严格构建流程；必须保留 APT 签名/每包 hash、Cargo/Clippy、完整 ABI/Syft/ELF/OCI 审计。G-05/G-07/G-08/G-09 OPEN，Pop!_OS L3 NOT RUN。[L2B-14 SPEC](../development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md)。
 
+> **2026-11-24 当前 GUI-only 包 CI 失败再次确认：** [7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 最终 **FAIL**，Ubuntu WebKitGTK4.1/GTK 从原 runner 配置的 Ubuntu 源下载 12 分钟超时；源码与前端测试、锁/格式 PASS，但 Rust 单测、Clippy、当前 .deb 和整链严格 ABI/归档/OCI 全部 SKIPPED。先行 [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 同类 FAIL。另 [L2B-14 独立无安装 APT 预热 b695945c / #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) 尚需验证独立 runner 的缓存恢复；此缓存不是发行身份凭证，不能关闭 G-05 或提升签名、polkit、Pop!_OS L3 权限。所有 Gate OPEN。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |

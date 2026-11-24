@@ -18,6 +18,10 @@
 
 **下一步不能直接跳过：** 只有缓存保存和跨 runner 恢复 PASS 后，才能单独审批是否让实际 Tauri 严格 CI 使用缓存。后续仍需每次依赖 Ubuntu APT 已验证的索引核对文件 hash 和版本，并保留 Rustfmt、cargo test、Clippy -D warnings、源代码默认拒绝、真实 .deb、Syft/ELF、dpkg-shlibdeps、干净 OCI APT 与 Pop!_OS L3 全部门禁。
 
+## 后续真实候选包 FAIL 的确认（2026-11-24）
+
+[候选工作流 7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 现已 **overall FAIL**：Ubuntu24 APT 从其配置的 us-east-2.ec2.archive.ubuntu.com 下载开发依赖，在 12 分钟步骤界限终止（日志至第 69 项）。所有源检查、React、Cargo lock 和 Rustfmt PASS；真正 Rust 单测/Clippy、GUI .deb、Syft/ELF、官方 shlibdeps 和清洁 OCI 验收均 **SKIPPED**。必须保留这项失败，不能将它描述为缓存实验中的 PASS 或当前发布就绪。
+
 ## 本轮精确来源证据
 
 | 来源 | 实际结论 | 仍然不足 |

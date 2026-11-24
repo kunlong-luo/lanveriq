@@ -28,6 +28,10 @@
 
 **验收基础设施的可执行前置条件：** 先验证基于 Ubuntu24、受控来源、来源/版本/摘要可核验的 WebKitGTK 4.1 GTK/Tauri 构建依赖环境，确认最小工具链与 ABI、不使用不明镜像/未审签名、没有扩张构建机到终端或 Agent 权限。可以通过单独批准的固定开发镜像/隔离 runner 进行原生编译；若更换镜像或预制依赖，必须记录其 digest、包来源、受控维护/更新流程和失败回退，然后再让完全相同的 Rustfmt、`cargo test --workspace --locked`、严格 Clippy 和真实 `.deb` ABI/归档/OCI 流程跑完。此处**只规定目标，不代表已有可信镜像或完成验收**。不应简单延长超时、忽略 Clippy 或把旧 .deb 证据当作当前二进制。
 
+## Candidate SHA 7cf23f3e failed native prerequisite timeout
+
+[Strict candidate run #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023), exact workflow SHA 7cf23f3e, has now completed **FAIL** on the 12-minute Ubuntu24 APT WebKitGTK prerequisite step. Source guard, synthetic rejection tests, frozen frontend/type/build, Cargo lock and Rustfmt passed; Rust tests, strict Clippy and all actual archive/ABI/OCI validation were **SKIPPED**. The runner's Ubuntu source downloads only reached the 69th package by timeout. Older source-specific package audit success cannot be substituted. The separate L2B-14 APT download-only cache work is not yet wired into a strict package build and cannot be treated as native L2.
+
 ## L2B-14 download-only cache experiment (not L2 native acceptance)
 
 - [Signed-index prefetch first run dac7f6ad / #45318418790](https://github.com/kunlong-luo/lanveriq/actions/runs/45318418790) actually fetched 175 Ubuntu .deb packages (about 70 MB) without altering dpkg installed state, but its _apt sandbox fell back to root and GitHub post-cache save FAILED on private partial/lock directories despite the workflow overall SUCCESS. This cannot be treated as a reusable cache or safe builder pass.
