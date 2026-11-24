@@ -15,7 +15,7 @@
 | 软件更新/发行 | **官方 `apt-secure` + deb822 `Signed-By`**、按需评估 Aptly 的仓库管理 | 生产仓库根由独立发行方审批/分发；固定来源/包名、最小权限安装事务，版本、撤销、合法回滚策略；绝不直接粘贴测试私钥 | 仓库身份独立证明 + 隔离真实 Agent 包安装 + 真实 Pop!_OS24 L3；L2B-20 的合成元数据 9/9 不能替代 |
 | 非生产授权运维/审计 | **现有 PG18/Flyway/备份工具**，独立 WORM 只在选型签字后接入 | 最少具名审阅者、真实撤销、外部托管密钥与不可回退介质恢复 | G-02/G-07/G-08 的行政域、合法性、恢复都需要**实物与人员签署**，CI 不能自证 |
 
-## P0 业务闭环两个合成 L2 里程碑均已通过（2026-11-24）
+## P0 业务闭环：固定合成及真实 CI Linux 库存 L2 已通过（2026-11-24）
 
 **阶段 1 · 同设备心跳→Web：** [2380a6a7 / Ubuntu24 #45360530843](https://github.com/kunlong-luo/lanveriq/actions/runs/45360530843) attempt 1 overall SUCCESS，真实 Rust Reqwest、Caddy/Tomcat 双跳 TLS1.3、PG18.7 的激活/心跳、严格 ACK 和授权 Spring API 经 Chromium/Next.js 展示唯一设备。详见 [FULL-CHAIN-L2](../testing/agent-to-nextjs-single-device-l2-2026-11-24.md)。
 
@@ -26,6 +26,12 @@
 三个业务 L2 子项证明**固定合成上报与实际 CI 主机最小采样均可走同一链路**，但仍不等于真实用户设备联网/采集或普通用户可安装的产品：实际 CPU/内存来自 **GitHub disposable runner**，身份/证书/账户均合成；Next.js 只在 CI 临时挂载受控 `StagedConsoleWorkspace`。没有真实 Pop!_OS 24.04 COSMIC 物理机、已批准的用户会话、独立生产发行 CA 或常驻 Agent 采集。G-02/G-05/G-07/G-08/G-09、正式业务 G-06 均 OPEN；v0.1 NOT RELEASE READY。
 
 **下一项 P0（待批准/未验收）：** 优先实现**Tauri 普通用户可操作的 GUI Agent 下载安装/升级/卸载**，基于发行方独立签名、已固定且合法的包来源和不允许任意命令行参数的**独立 Polkit 受限 broker**，每次管理员动作均复核来源/包名/校验和与用户明确授权，拒绝/取消/撤销/断网/恢复/卸载路径完整验收；默认后台 systemd 服务可无托盘图标但状态须可发现，未授权时必须保持无外联和无采集。随后进入**具名 Pop!_OS 24.04 COSMIC 实机 L3**，必须另经法律、独立信任根和权限审批。不要在此阶段引入 osquery/Alloy 的第二个守护程序或把 CI-only 测试开关移入生产。
+
+## DESKTOP-L2B-21：安装前条件审查 UI 已接入（仅 L1，尚非安装器）
+
+`apps/desktop/src/DesktopApp.tsx` 已调用新增 `InstallReviewPanel`，读取既有 Tauri `inspect_host` 与 `inspect_popos_preflight`，显示七项安装资格状态。普通用户可以逐项审阅签名来源、系统管理员授权、分离的启动/开机权限及采集隐私说明，**这些勾选全部是组件会话内的阅读状态，既不能生成 Polkit token，也不会安装、升级、卸载或开启 Agent**；本轮无新 IPC/依赖/容器权限。原 39 项安装意图拒绝 [#45368181785 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45368181785)。完整桌面 [#45368132407](https://github.com/kunlong-luo/lanveriq/actions/runs/45368132407) 因变异门禁的类型声明误匹配 FAIL，已在 [fe92d11a](https://github.com/kunlong-luo/lanveriq/commit/fe92d11aae820b4523a91f70de5ba8c4f3140615) 修复并为 [新版 UI / Tauri 预览 #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) 加入独立检查；该作业未确认 SUCCESS 之前，不能称为完整构建 PASS。[L2B-21 实施与测试](../development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md)。
+
+**实际下一项 P0（尚未实现/无发布许可）：** 在独立批准发行身份和软件源之后，以成熟**APT Signed-By/PackageKit + 系统 Polkit** 实现固定包名、来源和操作集合的受限安装事务 broker。验证 root 侧的程序绝不接受 GUI 自传 shell、路径、URL 或任意服务名，验证同一安装事务的预览/执行一致性、管理员身份、逐次用户同意、撤销/取消、异常关机及重复安装/卸载/保留配置。**安装并不隐含开机启动或生产采集许可**；签名包+broker 先在 Ubuntu24 一次性隔离机证明严格负例，再由具名 Pop!_OS24 COSMIC L3 真实机器/责任人独立验收。G-02/G-05/G-07/G-08/G-09/正式 G-06 全部 OPEN，v0.1 NOT RELEASE READY。
 
 ## P1：避免重复引入功能引擎
 
