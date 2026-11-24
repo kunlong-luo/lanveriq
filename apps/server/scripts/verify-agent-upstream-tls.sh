@@ -23,6 +23,8 @@ CHAIN_READ_MODE="${LANVERIQ_SYNTHETIC_CHAIN_READ:-0}"
 CHAIN_UI_MODE="${LANVERIQ_SYNTHETIC_CHAIN_UI:-0}"
 # P0 inventory end-to-end: separate CI-only explicit socket + outbound consent.
 INVENTORY_CHAIN_MODE="${LANVERIQ_SYNTHETIC_INVENTORY_CHAIN:-0}"
+# Independent opt-in: actual host OS/CPU/RAM only, disposable Linux runner.
+LINUX_SAMPLE_MODE="${LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE:-0}"
 INVENTORY_ENABLED=false
 if [[ "$INVENTORY_CHAIN_MODE" == 1 ]]; then INVENTORY_ENABLED=true; fi
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
@@ -97,6 +99,16 @@ MULTI_ADMIN_MODE="${LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE:-0}"
 }
 [[ "$INVENTORY_CHAIN_MODE" == 0 || "$INVENTORY_CHAIN_MODE" == 1 ]] || {
     echo "Synthetic inventory CI gate must be 0 or 1" >&2
+    exit 1
+}
+[[ "$LINUX_SAMPLE_MODE" == 0 || "$LINUX_SAMPLE_MODE" == 1 ]] || {
+    echo "Linux sample CI gate must be explicit 0 or 1" >&2
+    exit 1
+}
+[[ "$LINUX_SAMPLE_MODE" == 0 ||
+    ( "$INVENTORY_CHAIN_MODE" == 1 &&
+      "${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux ) ]] || {
+    echo "Live read-only host sample restricted to isolated full-chain CI" >&2
     exit 1
 }
 [[ "$INVENTORY_CHAIN_MODE" == 0 ||
@@ -1097,6 +1109,12 @@ JSON
                 echo "FAIL: Rust did not retain synthetic inventory wire body" >&2
                 exit 1
             }
+            if [[ "$LINUX_SAMPLE_MODE" == 1 ]]; then
+                python3 "$ROOT/apps/server/scripts/verify-linux-readonly-inventory-sample.py" \
+                    "$TMP/synthetic-inventory-request.json"
+            fi
+            # Same physical PostgreSQL row; source payload is checked again
+            # against authorized Spring JSON and actual Chromium DOM.
             inventory_count="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
                 SELECT count(*) FROM device_inventory_current
                 WHERE device_id='$DEVICE_ID'
@@ -1104,9 +1122,9 @@ JSON
                   AND snapshot_id IS NOT NULL
                   AND received_at IS NOT NULL
                   AND os_family='linux'
-                  AND os_name='Synthetic Inventory Linux'
-                  AND cpu_model='Synthetic Inventory CPU'
-                  AND memory_total_bytes=8000000000")"
+                  AND os_name IS NOT NULL
+                  AND cpu_model IS NOT NULL
+                  AND memory_total_bytes > 0")"
             [[ "$inventory_count" == 1 ]] || {
                 echo "FAIL: actual Rust inventory did not persist as exact PG18 current snapshot" >&2
                 exit 1
@@ -1161,7 +1179,52 @@ PY
                 echo "FAIL: unrelated Agent leaf accepted inventory" >&2
                 exit 1
             }
-            echo "PASS: real Rust inventory SQLite -> double-mTLS Spring -> PG18 current, strict ACK, duplicate no-change and unregistered-leaf denial."
+            # Reuse exactly the persisted bytes but forge the SAME revision
+            # with a different snapshot UUID: JPA must reject conflict and
+            # preserve the last committed row. No fabricated DB insertion.
+            python3 - "$TMP/synthetic-inventory-request.json" \
+                "$TMP/inventory-conflicting.json" <<'PY'
+import json,sys
+from pathlib import Path
+doc=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert doc["inventory_revision"]==1
+doc["snapshot_id"]="00000000-0000-7000-8000-000000000077"
+Path(sys.argv[2]).write_text(json.dumps(doc),encoding="utf-8")
+PY
+            inventory_conflict="$(curl --silent --show-error --noproxy '*' --http2 \
+                --tlsv1.3 --tls-max 1.3 --max-time 12 \
+                --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+                --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+                -H 'Content-Type: application/json' \
+                --data-binary @"$TMP/inventory-conflicting.json" \
+                -D "$TMP/inventory-conflict-headers" -o "$TMP/inventory-conflict-body" \
+                -w '%{http_code}' \
+                "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/inventory")"
+            [[ "$inventory_conflict" == 409 && ! -s "$TMP/inventory-conflict-body" ]] &&
+                grep -iq '^cache-control:.*no-store' "$TMP/inventory-conflict-headers" || {
+                echo "FAIL: conflicting inventory revision not denied by actual JPA" >&2
+                exit 1
+            }
+            [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                    received_at::text, content_digest)
+                FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_before" ]] || {
+                echo "FAIL: denied conflicting inventory mutated canonical PG18 row" >&2
+                exit 1
+            }
+            if [[ "$LINUX_SAMPLE_MODE" == 1 ]]; then
+                # Deliberate real network outage on disposable Caddy; do not
+                # enable retries or touch an actual endpoint. The second
+                # pending Rust snapshot must remain unchanged across reopen.
+                stop_caddy
+                "$RUST_AGENT_HTTP" offline "$DEVICE_ID" || {
+                    echo "FAIL: disconnected inventory attempt did not retain SQLite pending" >&2
+                    exit 1
+                }
+                start_caddy "$CADDY_REFERENCE"
+                assert_bridge_up
+            fi
+            echo "PASS: real Rust inventory SQLite -> double-mTLS Spring -> PG18 current, strict ACK, duplicate no-change, revision conflict 409 and unregistered-leaf denial."
         fi
         db_latest() {
             docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
@@ -1348,6 +1411,16 @@ PY
             echo "FAIL: revoked credential changed committed PG18 state" >&2
             exit 1
         }
+        if [[ "$LINUX_SAMPLE_MODE" == 1 ]]; then
+            [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                    received_at::text, content_digest)
+                FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_before" ]] || {
+                echo "FAIL: inventory changed after expired/revoked identity was refused" >&2
+                exit 1
+            }
+            echo "PASS: actual inventory expired/revoked certificate POST denied; exact pending SQLite revision retained after restart."
+        fi
         echo "PASS: one real Rust Reqwest TLS1.3 Agent->Caddy->Tomcat->PG18 activation/heartbeat/strict ACK chain, 409 replay and three credential negatives."
     else
         echo "NOT PROVEN: enabled Agent controller/revocation or live OS."
@@ -1498,6 +1571,8 @@ PY
                     LANVERIQ_SYNTHETIC_CHAIN_READ="$CHAIN_READ_MODE" \
                     LANVERIQ_SYNTHETIC_CHAIN_UI="$CHAIN_UI_MODE" \
                     LANVERIQ_SYNTHETIC_INVENTORY_CHAIN="$INVENTORY_CHAIN_MODE" \
+                    LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE="$LINUX_SAMPLE_MODE" \
+                    LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE="${LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE:-}" \
                     LANVERIQ_SYNTHETIC_BROWSER_PROBE="$BROWSER_MODE" \
                     LANVERIQ_SYNTHETIC_NEXTJS_PROBE="$NEXTJS_MODE" \
                     LANVERIQ_SYNTHETIC_AUTH_UI_PROBE="$AUTH_UI_MODE" \
@@ -1528,7 +1603,11 @@ if [[ "$BUSINESS_MODE" == 1 ]]; then
         if [[ "$CHAIN_UI_MODE" == 1 ]]; then
             echo "PASS: same source device was rendered in real Next.js/Chromium with Spring group-scoped session."
             if [[ "$INVENTORY_CHAIN_MODE" == 1 ]]; then
-                echo "PASS: synthetic Rust inventory snapshot persisted in PG18 and appeared in authorized Next.js Chromium device row."
+                if [[ "$LINUX_SAMPLE_MODE" == 1 ]]; then
+                    echo "PASS: real disposable Linux OS/CPU/RAM sample independently corroborated, persisted via Rust/PG18 and rendered in authorized Next.js Chromium."
+                else
+                    echo "PASS: synthetic Rust inventory snapshot persisted in PG18 and appeared in authorized Next.js Chromium device row."
+                fi
             fi
             echo "NOT PROVEN: production Next.js login, authorized Pop!_OS installed service, real data or release keys."
         else
