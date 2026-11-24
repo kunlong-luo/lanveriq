@@ -16,6 +16,10 @@
 
 完整“哪些文件/目录保留与删除”的实际清单：[仓库结构审计](governance/repository-layout-audit-2026-11-24.md)。历史 React/Vite `apps/web` 以及 `apps/web-next` 已废止，不要重新建立。
 
+## L2B-22：未安装的 Polkit 最小权限动作安全基线（2026-11-24）
+
+**实际代码与 [功能 SHA efb7a558 / Ubuntu24 CI #45375272477 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477)：** 新增仓库内未安装的 Polkit XML `org.lanveriq.agent.package.policy`，仅有安装/升级/卸载三个独立动作，`allow_any/inactive/active=no`，**无** `exec.path/argv1`、隐式 action、root helper、Polkit Javascript rules 或 Tauri 新 IPC。新增严格源检查及 **30/30** XML/缓存授权/任意执行与文件注入负测；原有安装意图 **39/39** 和桌面默认拒绝守卫同时 PASS。首次 [#45375193990 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45375193990) 因一个畸形负例无法触达 root 身份检查，修正后保留并通过。[完整报告](development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)。**不是正式可安装的 Polkit policy、已经运行的 broker、签名 Agent 安装包或真正 OS 层授权；G-05/G-09 仍 OPEN。**
+
 ## 已核实的最新关键里程碑
 
 | 工作 | 精确功能 SHA 和真实 CI | 严格结论 |
