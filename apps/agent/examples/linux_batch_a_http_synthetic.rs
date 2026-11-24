@@ -13,6 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use lanveriq_agent::heartbeat_runtime::{HeartbeatAttemptOutcome, run_explicit_heartbeat_once};
     use lanveriq_agent::heartbeat_schedule::HeartbeatHalt;
     use lanveriq_agent::inventory::{Cpu, Hardware, Memory, OperatingSystem, RawInventory};
+    use lanveriq_agent::inventory_platform::collect_minimal_linux_inventory;
     use lanveriq_agent::store::{InventoryStage, OutboxStore};
     use lanveriq_agent::transport::{
         ActivationRequest, AgentTlsTransport, CredentialEpochDisposition, DeliveryDisposition,
@@ -343,7 +344,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .parent()
                 .ok_or("synthetic private inventory parent missing")?
                 .join("synthetic-inventory-outbox.sqlite");
-            let raw = RawInventory {
+            // The new explicit gate inspects ONLY real, disposable Linux
+            // OS/CPU/RAM through existing sysinfo + os_info dependencies.
+            // The normal L2 mode retains the same hard-coded synthetic data.
+            let real_sample = env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE")
+                .as_deref() == Ok("1");
+            let raw = if real_sample {
+                let observed = collect_minimal_linux_inventory();
+                if observed.hardware.cpu.as_ref().and_then(|v| v.model.as_ref()).is_none()
+                    || observed.hardware.memory.as_ref()
+                        .and_then(|v| v.total_bytes).is_none()
+                    || observed.os.name.as_deref().is_none_or(str::is_empty)
+                    || !observed.interfaces.is_empty()
+                    || !observed.volumes.is_empty()
+                    || observed.capabilities.get("network_interfaces").map(String::as_str)
+                        != Some("not_collected")
+                {
+                    return Err("minimal Linux sample is incomplete or exceeds whitelist".into());
+                }
+                observed
+            } else {
+                RawInventory {
                 hardware: Hardware {
                     manufacturer: None,
                     model: None,
@@ -367,6 +388,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 volumes: Vec::new(),
                 capabilities: [("hardware_inventory".into(), "available".into())]
                     .into_iter().collect(),
+                }
             };
             let inventory_store = OutboxStore::open(&inventory_file).await?;
             if !matches!(
@@ -429,9 +451,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 return Err("identical inventory wrongly retransmitted after restart".into());
             }
             reopened.close().await;
-            println!(
-                "PASS: actual Rust SQLite inventory outbox -> Reqwest double mTLS -> strict Spring ACK -> SQLite restart without resend."
-            );
+
+            if real_sample {
+                // A separate revision is durably prepared, never sent while
+                // the credential is still valid. Expired/revoked phases must
+                // fail-closed and preserve it across process restarts.
+                let mut new_raw = collect_minimal_linux_inventory();
+                new_raw.capabilities.insert(
+                    "ci_only_retry_probe".into(), "not_collected".into()
+                );
+                let pending = match OutboxStore::open(&inventory_file).await?
+                    .stage_inventory_snapshot(device, "2026-11-24T09:02:00Z", new_raw)
+                    .await? {
+                    InventoryStage::Staged(value) => value,
+                    _ => return Err("rejected inventory attempt not durably staged".into()),
+                };
+                if pending.revision != 2 {
+                    return Err("rejected inventory revision must be 2".into());
+                }
+                // SQLite opens are scoped; use explicit instance closure.
+                // No timer or automatic retry is installed by this test.
+                println!("PASS: Linux-only OS/CPU/RAM read-only whitelist sampled; a separate unsubmitted revision is prepared for expired/revoked credential denial.");
+            } else {
+                println!(
+                    "PASS: actual Rust SQLite inventory outbox -> Reqwest double mTLS -> strict Spring ACK -> SQLite restart without resend."
+                );
+            }
         }
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
@@ -458,6 +503,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             client.observe_current_credential_epoch(device).await?,
             CredentialEpochDisposition::PauseIdentity
         );
+        if env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE").as_deref() == Ok("1") {
+            let inventory_path = pki.parent()
+                .ok_or("disposable inventory directory missing")?
+                .join("synthetic-inventory-outbox.sqlite");
+            let inventory_store = OutboxStore::open(&inventory_path).await?;
+            let before = inventory_store
+                .verified_pending_inventory(device).await?
+                .ok_or("expired/revoked: pending inventory was lost")?;
+            if before.revision != 2
+                || client.send_next_inventory(&inventory_store, device).await?
+                    != Some(DeliveryDisposition::PauseIdentity)
+                || inventory_store.verified_pending_inventory(device).await?
+                    != Some(before.clone())
+            {
+                return Err("expired/revoked inventory request did not fail closed with pending retained".into());
+            }
+            inventory_store.close().await;
+            let reopened = OutboxStore::open(&inventory_path).await?;
+            if reopened.verified_pending_inventory(device).await? != Some(before) {
+                return Err("expired/revoked inventory pending lost after SQLite restart".into());
+            }
+            reopened.close().await;
+            println!("PASS: actual Rust inventory HTTP denies expired/revoked identity and keeps the exact pending revision after SQLite reopen.");
+        }
         println!(
             "PASS: real Rust Reqwest heartbeat and read-only ledger lookup denied after synthetic credential {}.",
             args[1]
