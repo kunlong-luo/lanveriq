@@ -13,6 +13,7 @@ on:
       - 'apps/server/src/test/java/com/lanveriq/server/security/ConsoleSessionBrowserFlowWebMvcTest.java'
       - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
+      - 'apps/server/scripts/verify-synthetic-console-session.sh'
       - 'apps/agent/src/enrollment_linux.rs'
       - 'apps/agent/examples/linux_csr_synthetic.rs'
       - 'apps/agent/examples/linux_batch_a_http_synthetic.rs'
@@ -46,7 +47,7 @@ concurrency:
 
 jobs:
   linux-caddy-spring-tls13:
-    name: Real Caddy to Tomcat double TLS1.3 and PG18 startup
+    name: Real Rust Agent through double-mTLS/PG18 to scoped Spring Console HTTP
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -87,19 +88,22 @@ jobs:
           openssl version
           java -version
           bash -n apps/server/scripts/verify-agent-upstream-tls.sh
-      - name: Run real Caddy Agent-side mTLS to Spring/Tomcat upstream TLS1.3 and PG18
+          bash -n apps/server/scripts/verify-synthetic-console-session.sh
+      - name: Run same-device Rust Agent mTLS -> PG18 -> scoped Console API (Next.js not yet mounted)
         env:
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
           LANVERIQ_SYNTHETIC_LINUX_CSR: '1'
           LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP: '1'
-          LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '0'
+          LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '1'
+          LANVERIQ_SYNTHETIC_CHAIN_READ: '1'
           LANVERIQ_SYNTHETIC_BROWSER_PROBE: '0'
           LANVERIQ_SYNTHETIC_NEXTJS_PROBE: '0'
           LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: '0'
           LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: '0'
         # Preserve default-OFF business denial first, then opt in ONLY inside
         # disposable runner for actual Rust POST -> Caddy -> Boot -> PG18 + ACK
-        # and replay/certificate negative checks. No installed Agent runs.
+        # and replay/certificate/session/group negative checks against the
+        # SAME PG18 device. No Next.js/Chromium or installed Agent runs.
         run: bash apps/server/scripts/verify-agent-upstream-tls.sh
 
   linux-postgres18-transactions:
