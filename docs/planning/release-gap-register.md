@@ -1,5 +1,7 @@
 # Lanveriq v0.1 发布阻塞清单
 
+> **2026-11-24 G-05 正式签名仍未成立：** [L2B-18 双临时 Ed25519 签名实验 #45326441957](https://github.com/kunlong-luo/lanveriq/actions/runs/45326441957) 30/30 测试及全部原有只读/发布默认拒绝检查 **PASS**。它把**两个不同公钥**对同一合成测试声明的 detached signatures 与包 SHA-256/source SHA/run/attempt 绑定，拒绝伪造 release_approved 或重放；然而**两把 key 均在同一 CI 管理域中生成，指纹来自运行方自身，不具备独立审批的发行者可信根、密钥托管、可信时间或吊销证据**。因此正式发行者签名/双审不准关闭，真实 Agent 签名包、最小特权 broker/Polkit、Pop!_OS24 COSMIC L3、G-02/G-07/G-08/G-09 仍 OPEN，**v0.1 NOT RELEASE READY**。[L2B-18 威胁边界](../development/desktop-tauri-l2b18-dual-signature-custody-lab-2026-11-24.md)。
+
 > **2026-11-24 G-05 安装意图拒绝协议：** [L2B-17 CI #45324617901](https://github.com/kunlong-luo/lanveriq/actions/runs/45324617901) **39/39 PASS + 原有只读源码和发行证据守卫 PASS**；禁止通过 JSON 传入假签名、Polkit 授权、包 URL、动态 systemd 单元、任意执行参数或虚构用户同意。没有官方发行根、真正受限 broker、Agent 安装器 L2、Pop!_OS24 COSMIC 实机 L3 或组织批准，故发布门禁仍 OPEN，**v0.1 NOT RELEASE READY**。[L2B-17 信任边界](../development/desktop-tauri-l2b17-agent-install-intent-polkit-threat-contract-2026-11-24.md)。
 
 > **2026-11-24 G-05 发行事实机读拒绝检查：** [L2B-16 #45324049249](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249) **30/30 PASS**，并通过现有 Tauri 只读源码门禁。新的 [Gate 状态 JSON](desktop-release-evidence-boundary.json) 只允许准确记录 GUI-only L2 实测历史，**不允许宣称**已批准发行者密钥、可分发 Agent 包、Polkit 安装权限、Pop!_OS COSMIC 实机、G-02 独立 WORM 或法务/运营签字；更不得解除生产联网、采集、远控、CA 签发的默认关闭。**该 CI 不签名、不验生产可信根、不发放任何权限**；G-02/G-05/G-07/G-08/G-09 OPEN，v0.1 NOT RELEASE READY。[L2B-16](../development/desktop-tauri-l2b16-release-evidence-denial-contract-2026-11-24.md)。

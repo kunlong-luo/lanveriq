@@ -5,6 +5,7 @@
 > **2026-11-21 current Web baseline:** 唯一 Web 是 `apps/web` Next.js16.4.5/React19/Tailwind4/Base UI；旧 Vite 和 `web-next` 已删除/迁移。[NXT-24](development/nextjs-path-rename-nxt24-2026-11-21.md) 仅旧迁移证据。公开 Pages 是断开式预览。
 
 ## 工作规范与当前阻塞
+- [DESKTOP-L2B-18 OpenSSL 3 双角色临时签名验证、CI 身份绑定与独立托管退出标准](development/desktop-tauri-l2b18-dual-signature-custody-lab-2026-11-24.md)：[Ubuntu24 两把临时 Ed25519 key 的 30/30 正负测 #45326441957 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45326441957)，**仅密码学实验，正式发布可信根/签名与独立审核域仍 NOT APPROVED**。
 - [DESKTOP-L2B-17 Agent 安装意图协议 DENY-ALL 与 Polkit 威胁模型](development/desktop-tauri-l2b17-agent-install-intent-polkit-threat-contract-2026-11-24.md)：[Ubuntu24 39/39 安全测试 #45324617901 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45324617901)；[仅供拒绝测试的固定样例](planning/desktop-agent-install-intent-deny-all.json)，没有实际 Polkit 桥或签名安装包。
 - [DESKTOP-L2B-16 GUI-only L2 事实与 Agent 发行权限隔离的拒绝优先契约](development/desktop-tauri-l2b16-release-evidence-denial-contract-2026-11-24.md)：[Ubuntu24 30/30 测试 #45324049249 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249)；[可审机器状态](planning/desktop-release-evidence-boundary.json) 维持所有生产/签名/安装 Gate 为 OFF/OPEN，**不是可信发行签名或授权**。
 - **事实**：[CURRENT_STATUS](CURRENT_STATUS.md)；**流程**：[根 AGENTS](../AGENTS.md) · [工程手册](governance/engineering-playbook.md) · [DoD](planning/definition-of-done.md)。

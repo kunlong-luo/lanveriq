@@ -2,6 +2,8 @@
 
 **DESIGN + OFFLINE SECURITY CONTRACT · 2026-11-24 · 39/39 L1 PASS · 不存在可授权的安装桥或正式发行可信根 · G-05 OPEN · v0.1 NOT RELEASE READY**
 
+> **后续 L2B-18 实证：** [Ubuntu24 #45326441957](https://github.com/kunlong-luo/lanveriq/actions/runs/45326441957) 上的 30/30 双角色临时 Ed25519 LAB 测试已 SUCCESS；同一声明的双签名、包哈希和源码/run/attempt 绑定已通过实际 OpenSSL 3 验证，但**没有独立发行根或审批**，也不会改变本文件的安装意图 DENY-ALL、最小权限未实现及 Pop!_OS COSMIC L3 未运行状态。[L2B-18 交接](desktop-tauri-l2b18-dual-signature-custody-lab-2026-11-24.md)。
+
 ## 当前真实进度及目的
 
 已取得指定源码 [c4f04e44 / GUI-only Debian 完整 L2 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 和 [ea62c63c / 常规 Tauri 原生预览 #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 的 Ubuntu24 成功证据，但这两个包/预览都没有真实安装器、正式发行签名、Polkit 授权或 Pop!_OS 物理 L3。现有 Tauri 固定 **两个只读 IPC**，bundle.active=false 且不包含 Agent/service/maintainer scripts，故不应直接写入 root/sudo/pkexec/systemctl 能力。
