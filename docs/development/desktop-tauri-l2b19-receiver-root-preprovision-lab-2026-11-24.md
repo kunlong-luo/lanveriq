@@ -2,6 +2,8 @@
 
 **SECURITY LAB · 2026-11-24 · 精确 SHA 5dc1c9a2 / Ubuntu24 #45328874536 34/34 PASS · 外部批准的信任根/时间/高水位 NOT IMPLEMENTED · 正式发行与安装 NOT AUTHORIZED · v0.1 NOT RELEASE READY**
 
+> **后续 L2B-20 实际 apt-secure 复用验证：** [Ubuntu24 #45334019405](https://github.com/kunlong-luo/lanveriq/actions/runs/45334019405) 9/9 真实 `apt-get update` 成功/拒绝测试已通过，包含专用 Signed-By keyring、GPG InRelease 和 Packages 哈希链。它支持对系统 APT 方案的技术评估，但签名密钥仍在同一隔离 CI 产生、包索引指向不存在的合成包，**无正式 APT 发行根、包安装/升级或 Pop!_OS L3 证据**。[L2B-20 交接](desktop-tauri-l2b20-real-apt-signed-by-offline-ci-2026-11-24.md)。
+
 ## 目标与本轮实际验证
 
 L2B-18 的 OpenSSL 3 双签名虽能认证两个测试 key 对相同原始字节的签名，却仍由签名测试调用者自己提供两个 key 指纹；从不可信包中取得公钥再验证签名会导致**自签自证**。本轮做一个**仅限隔离 CI 的接收端 LAB 根引导模型**，要求**签名声明不能自称根**，接收端检查另行传入的根文件 SHA-256、发行者/复核人两个角色、撤销列表、有效时间窗口及根版本高水位，再重用实际 OpenSSL3 双签名验真。
