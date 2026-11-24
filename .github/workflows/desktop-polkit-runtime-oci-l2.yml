@@ -13,6 +13,7 @@ on:
       - 'apps/desktop/tools/test_polkit_runtime_oci.sh'
       - 'apps/desktop/tools/polkit-fixed-action-gate.rs'
       - 'apps/desktop/tools/polkit-oci-dbus-broker-lab.py'
+      - 'apps/desktop/tools/test_polkit_oci_dbus_broker_lab.py'
       - 'apps/desktop/tools/polkit-oci-dbus-review.conf'
       - 'apps/desktop/tools/test_polkit_dbus_broker_oci.sh'
       - '.github/workflows/desktop-polkit-runtime-oci-l2.yml'
