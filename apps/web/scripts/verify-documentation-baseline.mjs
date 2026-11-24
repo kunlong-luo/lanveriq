@@ -144,7 +144,6 @@ export function verifyDocumentationBaseline(root) {
 export const documentationLinkEntries = [
   'docs/README.md', 'docs/CURRENT_STATUS.md',
   'README.md', 'README.zh.md',
-  'docs/governance/documentation-index-snapshot-2026-11-21.md',
   'docs/governance/repository-layout-audit-2026-11-24.md',
   'docs/planning/project-scorecard.md',
   'apps/web/README.md',
@@ -187,12 +186,25 @@ export const retiredRepositoryPaths = [
   'pom.xml',
   'mvnw',
   'docs/development/pagevela-reference.md',
+  'docs/governance/documentation-index-snapshot-2026-11-21.md',
 ];
 
 const conciseEntrypoints = [
   'README.md', 'README.zh.md', 'docs/README.md',
   'apps/web/README.md', 'apps/server/README.md',
   'apps/agent/README.md', 'apps/desktop/README.md',
+];
+
+// Governance invariant: a LIVE document is not a rolling, 10 KB CI transcript.
+// Complete historical evidence belongs in immutable dated reports or Git history.
+// Do not impose these limits on dated/security reports with unique failure data.
+export const conciseLivePages = [
+  { path: 'docs/CURRENT_STATUS.md', maxLines: 65, maxBytes: 8000,
+    forbidden: /^## L2B-\d+:/m },
+  { path: 'docs/planning/release-gap-register.md', maxLines: 55, maxBytes: 7500,
+    forbidden: /^\*\*20\d\d-\d\d-\d\d G-05/m },
+  { path: 'docs/planning/project-scorecard.md', maxLines: 55, maxBytes: 5500,
+    forbidden: /^\*\*20\d\d-\d\d-\d\d L2B-/m },
 ];
 
 export function verifyRepositoryLayout(root) {
@@ -213,6 +225,18 @@ export function verifyRepositoryLayout(root) {
     }
     if (!contents.includes('v0.1 NOT RELEASE READY')) {
       throw new Error('README omits default-deny release truth: ' + path);
+    }
+  }
+  for (const { path, maxLines, maxBytes, forbidden } of conciseLivePages) {
+    const text = readFileSync(join(root, path), 'utf8');
+    if (text.split('\n').length > maxLines || Buffer.byteLength(text, 'utf8') > maxBytes) {
+      throw new Error('LIVE documentation expanded into a duplicate CI log: ' + path);
+    }
+    if (forbidden.test(text)) {
+      throw new Error('Historical milestone transcript reintroduced into LIVE document: ' + path);
+    }
+    if (!text.includes('v0.1 NOT RELEASE READY')) {
+      throw new Error('LIVE document lost default-OFF release boundary: ' + path);
     }
   }
   for (const path of ['README.md', 'README.zh.md']) {
