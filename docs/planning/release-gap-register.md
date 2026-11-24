@@ -6,6 +6,8 @@
 
 > **2026-11-24 G-05 源码审计补强（更新）：** 功能 SHA [d44327b5](https://github.com/kunlong-luo/lanveriq/commit/d44327b52796029688194a6fffbe4eedb48ac976) 对已审 GUI-only Debian 10 组 ABI 依赖、React 展示以及 Rust `include_str!` 嵌入的 Python 预检常量做三方精确约束，且对 COSMIC 组件名称做 Python/React 等值验证。新增 6 项拒绝测试，严格静态解析不执行 Python 预检。[#45314250801](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801) 的 **desktop-ui L1 子任务 SUCCESS**：23 个源码守卫、22 个 Pop!_OS 合成/真实 Ubuntu 拒绝、19 个 Vitest 测试，TypeScript/构建 PASS。原生 Rust test/Clippy、真实签名与 polkit 授权、Pop!_OS24/COSMIC 实机均未完成；G-05/G-07/G-08/G-09 保持 OPEN。旧 #45310985549 WebKitGTK APT 超时导致工作流 FAIL，不得借 L1 PASS 或历史 .deb 成功关闭发布 Gate。
 
+> **2026-11-24 自动测试范围修正：** 已将桌面 preview 的 push 路径由 `apps/desktop/**` 调整为所有源码、Tauri 配置、构建入口、锁文件、工具与工作流自身，单纯桌面 README 修改不会再触发原生 GTK 编译。该变动不减少源码变更的测试，也不豁免 WebKitGTK 依赖超时后的 Rust/Clippy L2 验收。[#45314250801](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801) 的 L1 子任务确实 PASS，但整个流程随后因新 README 文档提交而 CANCELLED；**不代表完整原生 L2 PASS**。G-05 及其他发布 Gate 均 OPEN。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |

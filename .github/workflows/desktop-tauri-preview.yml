@@ -5,7 +5,17 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/desktop/**'
+      # Avoid repeat native WebKitGTK downloads for docs-only desktop README edits.
+      # All source, native config, locks, and build entrypoints still trigger CI.
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/src-tauri/**'
+      - 'apps/desktop/tools/**'
+      - 'apps/desktop/package.json'
+      - 'apps/desktop/pnpm-lock.yaml'
+      - 'apps/desktop/tsconfig.json'
+      - 'apps/desktop/vite.config.ts'
+      - 'apps/desktop/index.html'
+      - 'apps/desktop/.node-version'
       - '.github/workflows/desktop-tauri-preview.yml'
   workflow_dispatch:
 
