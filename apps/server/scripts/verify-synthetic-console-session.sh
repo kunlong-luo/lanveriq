@@ -4,11 +4,18 @@
 # Requires localhost Caddy with a disposable test-only console proxy.
 set -Eeuo pipefail
 umask 077
-[[ "$#" == 4 ]] || { echo "Expected private synthetic fixture parameters" >&2; exit 1; }
+[[ "$#" == 4 || "$#" == 5 ]] || { echo "Expected private synthetic fixture parameters" >&2; exit 1; }
 ROOT_CA="$1"
 TMP="$2"
 DB_CID="$3"
 LOGIN="$4"
+# Optional exact Rust source UUID; a fixed disposable fixture, never caller
+# selected, and unavailable in the ordinary empty-Console acceptance.
+CHAIN_DEVICE_ID="${5:-}"
+[[ -z "$CHAIN_DEVICE_ID" || "$CHAIN_DEVICE_ID" == '00000000-0000-7000-8000-000000000001' ]] || {
+    echo "Refusing noncanonical Rust-to-Console device identifier" >&2
+    exit 1
+}
 # The parent supplies a one-shot password via inherited FD 3. Never read a
 # password from argv, an exported environment variable, a URL or a log.
 IFS= read -r PASSWORD <&3 || {
@@ -230,19 +237,74 @@ expect_status "incorrect password denied" 401 \
 assert_direct_401
 synthetic_login
 echo "PASS: real Caddy HTTPS -> Tomcat form login, session fixation, fresh CSRF and strict cookie."
-expect_status "scoped empty device page" 200 "$CONSOLE/api/v1/devices?limit=50"
+expect_status "scoped device page" 200 "$CONSOLE/api/v1/devices?limit=50"
 assert_no_store_json
-python3 - "$BODY" <<'PY'
+if [[ -n "$CHAIN_DEVICE_ID" ]]; then
+    # Rust has already completed activation, exact ACK, SQLite crash/restart
+    # reconciliation and real PG18 commits in THIS disposable database.
+    # Verify the HTTP projection's source UUID and persisted receive times,
+    # not merely a SQL fixture that happens to have the same display label.
+    python3 - "$BODY" "$CHAIN_DEVICE_ID" <<'PY'
+from pathlib import Path
+import json, sys
+from datetime import datetime
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+rows = payload.get("items")
+assert isinstance(rows, list) and len(rows) == 1, "scoped page must contain only the Rust device"
+row = rows[0]
+assert row.get("device_id") == sys.argv[2], "HTTP device UUID does not match Rust request"
+assert row.get("label") == "RustToConsoleSynthetic", "noncanonical synthetic label"
+assert row.get("enrollment_state") == "active", "Rust activation not reflected in HTTP"
+assert payload.get("next_cursor") is None, "unexpected extra scoped rows"
+for field in ("last_seen_at", "heartbeat_received_at"):
+    value = row.get(field)
+    assert isinstance(value, str), "missing durable " + field
+    assert datetime.fromisoformat(value.replace("Z", "+00:00")).tzinfo is not None, "untrusted " + field
+assert isinstance(row.get("agent_version"), str) and row["agent_version"], "missing Rust agent version"
+PY
+    expect_status "Rust device detail scoped by real session" 200 \
+        "$CONSOLE/api/v1/devices/$CHAIN_DEVICE_ID"
+    assert_no_store_json
+    python3 - "$BODY" "$CHAIN_DEVICE_ID" <<'PY'
+import json, sys
+from pathlib import Path
+row = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert row.get("device_id") == sys.argv[2] and row.get("heartbeat_received_at"), "detail lost committed Rust heartbeat"
+PY
+    expect_status "unscoped device indistinguishable from unknown" 404 \
+        "$CONSOLE/api/v1/devices/00000000-0000-7000-8000-000000000099"
+    [[ ! -s "$BODY" ]] || {
+        echo "FAIL: out-of-scope HTTP detail exposed a body" >&2
+        exit 1
+    }
+else
+    python3 - "$BODY" <<'PY'
 from pathlib import Path
 import json, sys
 data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 assert isinstance(data, dict) and data.get("items") == [], "fresh PG18 must have no devices"
 PY
+fi
 expect_status "authorized monitoring overview" 200 "$CONSOLE/api/v1/monitoring/overview"
 assert_no_store_json
+if [[ -n "$CHAIN_DEVICE_ID" ]]; then
+    python3 - "$BODY" <<'PY'
+from pathlib import Path
+import json, sys
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert isinstance(data, dict) and data.get("total") == 1, "scoped overview not restricted to one Rust device"
+categories = ("online", "stale", "offline", "revoked", "pending", "retired")
+assert all(isinstance(data.get(field), int) and data[field] >= 0 for field in categories)
+assert sum(data[field] for field in categories) == 1, "scoped overview categories inconsistent"
+PY
+fi
 expect_status "cross-origin scoped read forbidden" 403 \
     -H 'Origin: https://untrusted.example.test' "$CONSOLE/api/v1/devices"
-echo "PASS: actual PG18 role-scoped empty device/overview reads; cross-Origin denied."
+if [[ -n "$CHAIN_DEVICE_ID" ]]; then
+    echo "PASS: real Rust committed device -> session/group-scoped Spring list/detail/overview; out-of-scope row excluded."
+else
+    echo "PASS: actual PG18 role-scoped empty device/overview reads; cross-Origin denied."
+fi
 CSRF="$(read_csrf)"
 csrf_config "$CSRF"
 expect_status "valid CSRF logout" 204 \
@@ -265,5 +327,9 @@ expect_status "revoked synthetic session denied" 401 "$CONSOLE/api/v1/auth/sessi
 assert_direct_401
 expect_status "revoked synthetic device read denied" 401 "$CONSOLE/api/v1/devices"
 assert_direct_401
-echo "MANUAL SYNTHETIC CONSOLE PASS: real Caddy/Tomcat/PG18 form login, cookie, CSRF, session revocation, scoped empty reads."
-echo "NOT PROVEN: actual browser network stack, multi-group access, Next.js runtime hooks, real users/devices or deployment."
+if [[ -n "$CHAIN_DEVICE_ID" ]]; then
+    echo "SYNTHETIC RUST-TO-CONSOLE HTTP PASS: real Caddy/Tomcat/PG18 scoped nonempty reads, cookie, CSRF, session revocation."
+else
+    echo "MANUAL SYNTHETIC CONSOLE PASS: real Caddy/Tomcat/PG18 form login, cookie, CSRF, session revocation, scoped empty reads."
+fi
+echo "NOT PROVEN: actual browser network stack, Next.js device rendering, real users/devices or deployment."
