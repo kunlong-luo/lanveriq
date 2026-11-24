@@ -131,7 +131,11 @@ class InertPolkitReviewTests(unittest.TestCase):
                       "unexpected action attributes")
 
     def test_reject_wrong_policy_root(self):
-        self.mutation(b"<policyconfig>", b"<polkit>", "unsupported Polkit root")
+        altered = ORIGINAL.replace(b"<policyconfig>", b"<polkit>", 1).replace(
+            b"</policyconfig>", b"</polkit>", 1
+        )
+        with self.assertRaisesRegex(ValueError, "unsupported Polkit root"):
+            guard.validate_xml(altered)
 
     def test_reject_doctype(self):
         self.mutation(
