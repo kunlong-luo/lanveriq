@@ -30,6 +30,8 @@
 
 ## 正式 GUI-only 未签名包 CI 首次消费已审 APT 缓存（2026-11-24）
 
+**实际 Rust/Clippy 接续证据（2026-11-24）：** [c4f04e44 / #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 已通过固定已审 APT 缓存、构建 runner 新 Ubuntu 签名索引逐包/完整依赖闭包验证，以及仅 disposable CI 的 apt-get --no-download 开发依赖安装；同 SHA 的真实 cargo test --workspace --locked 和 clippy --all-targets --locked -- -D warnings **PASS**。真实未签名 GUI-only .deb 正在编译，后续 Syft/ELF/dpkg-shlibdeps/OCI 和完整 run SUCCESS 尚不可声称通过。[ea62c63c](https://github.com/kunlong-luo/lanveriq/commit/ea62c63cb9523c1ac34ac64c7f7134bbe58fbe3a) 也将常规原生预览迁移到同一不可降级的固定缓存/索引复核/离线 Ubuntu 构建依赖安装；[#45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 待验证。以上均没有安装 Lanveriq GUI/Agent 或给予生产权限。
+
 [代码 c4f04e44](https://github.com/kunlong-luo/lanveriq/commit/c4f04e442be7da8181e9e62293764fbbb80e41d0) 将旧版阻塞于 Ubuntu WebKitGTK 12 分钟在线依赖下载的关键流程改为 **精确缓存 key 恢复 → 当前 runner 官方签名 `apt-get update` → 按固定 175 包/manifest、逐包官方 SHA256/Size/Version/Arch 和 no-install 精确闭包二次验真 → `apt-get --no-download` 离线安装仅 Ubuntu24 CI 的原生构建依赖**。采用 [已完成完整双 job 严格核验 #45321096944](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) 的固定缓存，未允许 `restore-keys` 或无审查缓存降级。
 
 **[严格同源候选 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248)** 在本文记录时仍在运行。仍需逐项看到：同 SHA 实际 Rust `cargo test --workspace --locked` 和 Clippy `-D warnings`，真实 unsigned GUI-only `.deb` 文件/哈希、恶意归档拒绝、Syft source/payload、ELF 直接 SONAME 与 official `dpkg-shlibdeps`、干净 Ubuntu24 OCI `apt-get -s`、实验 Ed25519 验签。历史旧 SHA 成功不可冒充当前通过。Agent 或 GUI 包本身未在生产系统安装，也没有获得任何签名/授权或 Pop!_OS COSMIC 实机 L3 成功证据。**G-05 OPEN。**

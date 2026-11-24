@@ -32,6 +32,8 @@
 
 > **2026-11-24 G-05 子项更新：** [APT 严格预热两 runner 归档 #45321096944](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) **overall SUCCESS（两个 job 均 PASS）**：175 份真实 Ubuntu24 build `.deb` 下载、cache post-save、跨 runner cache-hit、按新官方签名 APT 索引逐包的 SHA256/大小/版本/架构及 175 项闭包等值、全量 manifest 摘要 `5ac2afaff76e962e6c5131c34645248cb8024d4e8581d2790d71f622e988bc35` 均通过；**仅允许关闭 L2B-14 缓存传输和逐包来源认证子项**。[c4f04e44](https://github.com/kunlong-luo/lanveriq/commit/c4f04e442be7da8181e9e62293764fbbb80e41d0) 已将固定键/摘要与无降级校验接入 [正式 GUI-only .deb 候选 CI #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248)，用独立 runner 的签名索引验证及 `--no-download` 仅安装**一次性 Ubuntu CI 构建依赖**。后续真正同源 Rust/Clippy/.deb/Syft/ELF/shlibdeps/OCI 验收**仍等待该 run 实际结论**，未安装/启用 Agent 或 GUI、未签生产证书。**G-05/G-02/G-07/G-08/G-09 继续 OPEN；v0.1 NOT RELEASE READY**。[L2B-14](../development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md)。
 
+> **2026-11-24 G-05 L2 中途验收：** [同源 GUI-only 候选 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 已确认官方签名索引+固定缓存/闭包再验证、离线 Ubuntu CI 构建依赖安装、真实 Rust workspace tests 和严格 Clippy **PASS**，进入真正未签名 .deb 编译；**完整归档/Syft/ELF/官方 shlibdeps ABI/clean OCI 及总体结论尚无 PASS**。常规 native preview 通过 [ea62c63c](https://github.com/kunlong-luo/lanveriq/commit/ea62c63cb9523c1ac34ac64c7f7134bbe58fbe3a) 已同步改用相同安全缓存流程，但 [#45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 仍未验收。仅 L2B-14 缓存子项关闭；G-05 及其它发布门禁仍 OPEN，v0.1 NOT RELEASE READY。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |
