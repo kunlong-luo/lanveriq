@@ -89,6 +89,47 @@ class DesktopReleaseEvidenceBoundaryTests(unittest.TestCase):
             "production_ca_issuance_authorized",
         )
 
+    def test_reject_forged_independent_apt_highwater_approval(self):
+        self.fail_case(
+            lambda d: d["release_gates"].update(
+                independent_apt_release_highwater="APPROVED"),
+            "independent_apt_release_highwater",
+        )
+
+    def test_reject_unapproved_trusted_clock_claim(self):
+        self.fail_case(
+            lambda d: d["release_gates"].update(
+                trusted_apt_release_clock="APPROVED"),
+            "trusted_apt_release_clock",
+        )
+
+    def test_reject_falsely_claiming_apt_refused_old_signed_release(self):
+        self.fail_case(
+            lambda d: d["apt_replay_observation"].update(
+                older_signed_release_accepted=False),
+            "older_signed_release_accepted",
+        )
+
+    def test_reject_forged_actual_agent_downgrade(self):
+        self.fail_case(
+            lambda d: d["apt_replay_observation"].update(
+                actual_agent_downgrade=True),
+            "actual_agent_downgrade",
+        )
+
+    def test_reject_promotion_of_ephemeral_signer(self):
+        self.fail_case(
+            lambda d: d["apt_replay_observation"].update(
+                signer_scope="PRODUCTION_APPROVED"),
+            "signer_scope",
+        )
+
+    def test_reject_missing_signed_rollback_observation(self):
+        self.fail_case(
+            lambda d: d.pop("apt_replay_observation"),
+            "evidence root has missing or extra fields",
+        )
+
     def test_reject_unsupported_approval_gate(self):
         self.fail_case(
             lambda d: d["release_gates"].update(

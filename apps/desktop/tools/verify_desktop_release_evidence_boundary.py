@@ -36,6 +36,19 @@ PREVIEW = {
     "native_and_frontend_jobs_passed": True,
     "popos_device_proven": False,
 }
+REPLAY = {
+    "status": "PASSED_NATIVE_APT_ACCEPTS_VALID_OLDER_SIGNED_RELEASE_CI_ONLY",
+    "functional_source_sha": "09a4e3b386db603a530b271b7f779481c1dd7890",
+    "github_run_id": 45395513243,
+    "github_run_attempt": 1,
+    "signer_scope": "EPHEMERAL_CI_ONLY_NOT_APPROVED",
+    "older_signed_release_accepted": True,
+    "same_package_index": True,
+    "actual_agent_downgrade": False,
+    "independent_highwater_present": False,
+    "trusted_clock_approved": False,
+    "agent_install_during_replay_probe": False,
+}
 GATES = {
     "G-02_independent_worm": "OPEN",
     "G-05_popos24_cosmic_physical_l3": "NOT_RUN",
@@ -43,6 +56,8 @@ GATES = {
     "G-08_operations_backup": "OPEN",
     "G-09_installer_ux": "OPEN",
     "trusted_publisher_signing": "NOT_APPROVED",
+    "independent_apt_release_highwater": "NOT_APPROVED",
+    "trusted_apt_release_clock": "NOT_APPROVED",
     "restricted_polkit_agent_install": "NOT_IMPLEMENTED",
     "agent_installer_l2": "NOT_RUN",
     "external_runtime_license_review": "NOT_APPROVED",
@@ -59,7 +74,8 @@ AUTHORITY = (
 )
 EXPECTED_TOP = {
     "schema", "evidence_date", "gui_only_debian_l2",
-    "desktop_native_preview", "release_gates", "release_authority",
+    "desktop_native_preview", "apt_replay_observation",
+    "release_gates", "release_authority",
 }
 
 
@@ -106,12 +122,13 @@ def same_record(actual, pinned, label):
 def validate(data):
     require(type(data) is dict, "evidence root must be a JSON object")
     require(data.keys() == EXPECTED_TOP, "evidence root has missing or extra fields")
-    require(data["schema"] == "lanveriq.desktop.release-evidence-boundary.v1",
+    require(data["schema"] == "lanveriq.desktop.release-evidence-boundary.v2",
             "unapproved evidence schema")
     require(type(data["evidence_date"]) is str
             and data["evidence_date"] == "2026-11-24", "unreviewed evidence date")
     same_record(data["gui_only_debian_l2"], RUN, "GUI-only native L2")
     same_record(data["desktop_native_preview"], PREVIEW, "readonly native preview")
+    same_record(data["apt_replay_observation"], REPLAY, "signed APT replay risk L2B-27")
     same_record(data["release_gates"], GATES, "release gates")
     authority = data["release_authority"]
     require(type(authority) is dict and authority.keys() == set(AUTHORITY),
@@ -121,7 +138,8 @@ def validate(data):
                 f"release/production authority MUST remain disabled: {name}")
     return (
         "PASS: pinned GUI-only Ubuntu24 CI evidence and all release gates "
-        "remain NOT APPROVED; no installer, trusted signer, PopOS L3 or "
+        "remain NOT APPROVED; signed-old-Release replay risk recorded, "
+        "no independent highwater, installer, trusted signer, PopOS L3 or "
         "production authority established"
     )
 

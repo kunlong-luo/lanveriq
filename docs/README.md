@@ -42,3 +42,6 @@
 
 
 **已退役历史长计划：** `v0.1-implementation-sequence.md` 旧工单全文通过[固定 Git SHA 归档索引](governance/archive/README.md)访问；当前施工顺序以[Linux 首发路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)为准。**v0.1 NOT RELEASE READY。**
+
+
+**L2B-28 源级发行证据合同：** [APT 旧签名索引回放事实、防回退/可信时钟缺口与负向批准门禁](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md)。该合同仅防止 JSON/文档冒称已获批准，不提供真实可信高水位或安装器。**v0.1 NOT RELEASE READY。**

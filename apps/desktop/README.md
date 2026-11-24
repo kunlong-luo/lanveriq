@@ -51,3 +51,6 @@ pnpm dev
 下一实际阶段是独立批准的可信 APT `Signed-By` 发行源、受审狭义 Polkit broker、签名 Agent 包、拒绝/取消/卸载测试，再进行真实 Pop!_OS24 COSMIC L3。[安装产品方案](../../docs/product/linux-desktop-installer-v01.md) · [当前状态](../../docs/CURRENT_STATUS.md) · [发布门禁](../../docs/planning/release-gap-register.md)。
 
 **v0.1 NOT RELEASE READY；禁止 GUI root、任意 shell、自动安装/启动或伪造发布批准。**
+
+
+**L2B-28 发布证据边界：** 新的 [v2 离线合约](../../docs/development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md)将已观测到的有效旧签名 Release 接受风险与**独立高水位/可信时钟 NOT_APPROVED** 固定到回归测试；这不是安装授权或实际 rollback 拒绝器。**v0.1 NOT RELEASE READY。**

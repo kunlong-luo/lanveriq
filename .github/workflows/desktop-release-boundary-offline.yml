@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Test evidence parser with 30 hostile and baseline cases
+      - name: Test evidence parser including valid-old-signed-Release spoofed approval cases
         run: |
           set -Eeuo pipefail
           python3 -m py_compile apps/desktop/tools/verify_desktop_release_evidence_boundary.py

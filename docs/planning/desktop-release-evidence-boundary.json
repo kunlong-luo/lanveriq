@@ -1,5 +1,5 @@
 {
-  "schema": "lanveriq.desktop.release-evidence-boundary.v1",
+  "schema": "lanveriq.desktop.release-evidence-boundary.v2",
   "evidence_date": "2026-11-24",
   "gui_only_debian_l2": {
     "status": "PASSED_UNSIGNED_UBUNTU24_CI_ONLY",
@@ -29,7 +29,9 @@
     "trusted_publisher_signing": "NOT_APPROVED",
     "restricted_polkit_agent_install": "NOT_IMPLEMENTED",
     "agent_installer_l2": "NOT_RUN",
-    "external_runtime_license_review": "NOT_APPROVED"
+    "external_runtime_license_review": "NOT_APPROVED",
+    "independent_apt_release_highwater": "NOT_APPROVED",
+    "trusted_apt_release_clock": "NOT_APPROVED"
   },
   "release_authority": {
     "v01_release_ready": false,
@@ -40,5 +42,18 @@
     "production_collection_authorized": false,
     "production_remote_control_authorized": false,
     "production_ca_issuance_authorized": false
+  },
+  "apt_replay_observation": {
+    "status": "PASSED_NATIVE_APT_ACCEPTS_VALID_OLDER_SIGNED_RELEASE_CI_ONLY",
+    "functional_source_sha": "09a4e3b386db603a530b271b7f779481c1dd7890",
+    "github_run_id": 45395513243,
+    "github_run_attempt": 1,
+    "signer_scope": "EPHEMERAL_CI_ONLY_NOT_APPROVED",
+    "older_signed_release_accepted": true,
+    "same_package_index": true,
+    "actual_agent_downgrade": false,
+    "independent_highwater_present": false,
+    "trusted_clock_approved": false,
+    "agent_install_during_replay_probe": false
   }
 }
