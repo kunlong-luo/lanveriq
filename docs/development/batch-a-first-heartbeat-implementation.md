@@ -65,7 +65,7 @@
 
 
 **日期：2026-11-08。状态：默认 OFF 的心跳 HTTP 入口、Agent 严格回执与 L1 定向单测已提交；尚未完成批次 A 合成 E2E。**
-**上级计划：**[v0.1 批量交付计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md)，其优先级高于旧 NXT 逐阶段 UI/验收笔记。
+**上级计划：**[v0.1 批量交付计划](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/v0.1-batched-delivery-plan-2026-11-08.md)，其优先级高于旧 NXT 逐阶段 UI/验收笔记。
 
 ## 当前已有的复用构件
 

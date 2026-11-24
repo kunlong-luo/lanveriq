@@ -8,7 +8,7 @@
 
 > **2026-11-23 Spring Boot 4.2.0 / Springdoc 3.2.1 已验收：** 首轮 Jackson2 测试编译失败保留；修复功能 SHA 04dd0948 的 Java unit/bootJar、PG18.7、Linux mTLS 共 6/6 CI SUCCESS。真实生产认证仍未获批。[验收报告](stack-spring-boot4-2-upgrade-2026-11-23.md)。
 
-**状态：技术栈已实施，v0.1 业务链路未闭环；2026-11-23 Rust 1.100 编译器 9/9 同 SHA CI 已验收，Cargo MSRV 1.94 保留。** 这是**当前仓库真实依赖**的入口，不再以 2026-10-30 “无源码/React+Vite 计划”描述现状。由 [v0.1 批量开发计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md) 管理交付，以 [设备通信协议栈基线](../architecture/device-communication-stack.md) 管理设备协议。最新 Web 迁移验收见 [NXT-24](nextjs-path-rename-nxt24-2026-11-21.md)；各依赖具体版本以 Gradle BOM、Cargo.lock、pnpm-lock.yaml 为准；未列在 manifest 中的 UI/PKI/监控库不是已安装的能力。
+**状态：技术栈已实施，v0.1 业务链路未闭环；2026-11-23 Rust 1.100 编译器 9/9 同 SHA CI 已验收，Cargo MSRV 1.94 保留。** 这是**当前仓库真实依赖**的入口，不再以 2026-10-30 “无源码/React+Vite 计划”描述现状。由 [v0.1 批量开发计划](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) 管理交付，以 [设备通信协议栈基线](../architecture/device-communication-stack.md) 管理设备协议。最新 Web 迁移验收见 [NXT-24](nextjs-path-rename-nxt24-2026-11-21.md)；各依赖具体版本以 Gradle BOM、Cargo.lock、pnpm-lock.yaml 为准；未列在 manifest 中的 UI/PKI/监控库不是已安装的能力。
 
 | 层 | **当前真实栈** | 状态 / 说明 |
 | --- | --- | --- |

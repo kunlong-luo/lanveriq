@@ -7,7 +7,7 @@
 | 01 | [01-overview.svg](assets/01-overview.svg) | Three-system overview, endpoint ↔ server ↔ browser | V0.1 + explicit future mention | [Architecture](../architecture/system-overview.md) |
 | 02 | [02-data-flow.svg](assets/02-data-flow.svg) | Onboarding, SQLite queue, upload/ACK and WSS | V0.1 | [Event delivery](../architecture/event-delivery.md) |
 | 03 | [03-technology-stack.svg](assets/03-technology-stack.svg) | Frontend, backend and endpoint components | V0.1 design and optional future | [Technology](../development/technology.md) |
-| 04 | [04-feature-map.svg](assets/04-feature-map.svg) | Feature availability by milestone | V0.1/V0.2/V0.3 | [Roadmap](../planning/roadmap.md) |
+| 04 | [04-feature-map.svg](assets/04-feature-map.svg) | Feature availability by milestone | V0.1/V0.2/V0.3 | [Roadmap](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/roadmap.md) |
 | 05 | [05-enrollment.svg](assets/05-enrollment.svg) | Secure enrollment/identity | V0.1 | [Enrollment](../architecture/enrollment-bootstrap.md) |
 | 06 | [06-dashboard-concept.svg](assets/06-dashboard-concept.svg) | Illustrative React dashboard (fake sample data) | V0.1 design, **not screenshot** | [Dashboard UX](../development/dashboard-ux.md) |
 | 07 | [07-offline-recovery.svg](assets/07-offline-recovery.svg) | Bounded SQLite outbox and PostgreSQL ACK | V0.1 | [Outbox](../architecture/agent-persistence.md) |

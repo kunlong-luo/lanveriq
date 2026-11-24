@@ -30,7 +30,7 @@
 - [Asset manifest](ASSET_MANIFEST.md): IDs, intent, stages, use sites and file ownership.
 - [Content and terminology consistency matrix](CONTENT_MATRIX.md): exact architecture semantics, feature stages, user notice and prohibited claims.
 - [Engineering architecture diagrams](../diagrams/README.md): the separate, developer-oriented Mermaid drawings. **Keep both sets** (8 posters + 20 Mermaid diagrams); color posters are explanations, Mermaid diagrams are technical contracts.
-- [Technology selection](../development/technology.md) and [development roadmap](../planning/roadmap.md) determine the actual product, not decorative infographic text.
+- [Technology selection](../development/technology.md) and [development roadmap](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) determine the actual product, not decorative infographic text.
 
 ## Asset policy
 

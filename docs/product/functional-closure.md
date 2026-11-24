@@ -2,7 +2,7 @@
 
 # Product functional closure and milestone acceptance
 
-**Status as of 2026-11-08:** **部分源代码与合成验收已实现**：Spring Boot/PostgreSQL、Rust SQLx/Reqwest、Next.js 断开式 B+C 控制台及默认 OFF 心跳入口；**没有一条真实 Agent→Caddy→PG18→授权前端业务链路完全闭环**。D0 技术设计已批准，真实员工数据、证书保管与生产发布仍待独立审批。三个独立业务循环中 **仅 Loop A 是 v0.1 P0**；Loop B/C 不得阻塞首次设备管理上线。见 [v0.1 A–E 交付计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md)。
+**Status as of 2026-11-08:** **部分源代码与合成验收已实现**：Spring Boot/PostgreSQL、Rust SQLx/Reqwest、Next.js 断开式 B+C 控制台及默认 OFF 心跳入口；**没有一条真实 Agent→Caddy→PG18→授权前端业务链路完全闭环**。D0 技术设计已批准，真实员工数据、证书保管与生产发布仍待独立审批。三个独立业务循环中 **仅 Loop A 是 v0.1 P0**；Loop B/C 不得阻塞首次设备管理上线。见 [v0.1 A–E 交付计划](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/v0.1-batched-delivery-plan-2026-11-08.md)。
 
 ## Loop A — Device management and health (v0.1)
 `Admin approves policy → pairs device → Agent authenticates → heartbeats/health/SQLite backlog → server stores → WebSocket status hint → Monitoring Center fetches REST → alert or diagnosis → recover/revoke → audit admin action`
@@ -36,4 +36,4 @@ A live screen-preview/stream is **different** from heartbeat monitoring and diff
 ## Gate against overstated completeness
 A `100% connected` KPI cannot replace collector coverage. A successful recording upload cannot replace playback authorization, segment integrity or deletion. Any screenshot in [visual gallery](../visuals/README.md) is a **concept illustration with fictitious data**, not a shipped UI.
 
-See [Monitoring Center specification](../development/monitoring-center.md), [Recording & Playback Center](../development/recording-playback-center.md), [Roadmap](../planning/roadmap.md) and [manual acceptance](../testing/manual-acceptance.md).
+See [Monitoring Center specification](../development/monitoring-center.md), [Recording & Playback Center](../development/recording-playback-center.md), [Roadmap](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/roadmap.md) and [manual acceptance](../testing/manual-acceptance.md).

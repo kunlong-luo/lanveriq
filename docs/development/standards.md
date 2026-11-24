@@ -10,7 +10,7 @@
 - `deploy/caddy/`：安全边界与合成参考配置，不是已批准的生产 ingress。
 - `docs/`：技术决议、方案/实施状态、测试证据、运维和安全法律审批。**不要把尚未创建的 `apps/desktop`、独立 `crates/`、`packages/ui`、`compose.yaml` 画成实际项目结构。**
 
-**主线计划：**[v0.1 批次 A–E](../planning/v0.1-batched-delivery-plan-2026-11-08.md)，[L1/L2/L3 测试](../testing/strategy.md)，[协议和库选择](../architecture/device-communication-stack.md)。直接 main 的变更要有真实结果和可回退记录；生产前另审分支保护与签名流程。
+**主线计划：**[v0.1 批次 A–E](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)，[L1/L2/L3 测试](../testing/strategy.md)，[协议和库选择](../architecture/device-communication-stack.md)。直接 main 的变更要有真实结果和可回退记录；生产前另审分支保护与签名流程。
 
 ## Naming
 Rust: snake_case modules, PascalCase types; Java: conventional packages such as `com.lanveriq.server.devices`; frontend: feature folders and explicitly named hooks/components. API resources kebab-case; JSON field names snake_case across server and agent with documented mapping in TS client. UUID device/event identifiers, UTC timestamps.

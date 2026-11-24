@@ -2,7 +2,7 @@
 
 # Testing strategy — L1 fast checks, L2 batch integration, L3 milestone acceptance
 
-**Approved 2026-11-08:** develop the complete v0.1 P0 business loop in coherent batches. Do **not** rerun the entire Caddy/Tomcat/PG18/Chromium stack on each CSS/service method/DAO commit. Equally, do **not** defer the first security or database test until every feature is built. The previous unit-only CI policy was an earlier preimplementation snapshot and is superseded by the [approved batched delivery plan](../planning/v0.1-batched-delivery-plan-2026-11-08.md).
+**Approved 2026-11-08:** develop the complete v0.1 P0 business loop in coherent batches. Do **not** rerun the entire Caddy/Tomcat/PG18/Chromium stack on each CSS/service method/DAO commit. Equally, do **not** defer the first security or database test until every feature is built. The previous unit-only CI policy was an earlier preimplementation snapshot and is superseded by the [approved batched delivery plan](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/v0.1-batched-delivery-plan-2026-11-08.md).
 
 | Level | When | Scope | Blocks |
 | --- | --- | --- | --- |

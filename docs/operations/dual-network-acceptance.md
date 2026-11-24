@@ -2,7 +2,7 @@
 
 **日期：2026-11-08。状态：网络设计与只读验收工具；不是已上线证明。**
 
-关联 [ADR-0011](../architecture/adrs/0011-rustdesk-dual-network-access.md)、[部署基线](../architecture/deployment.md)、[设备通信协议](../architecture/device-communication-stack.md) 和 [v0.1 交付计划](../planning/v0.1-batched-delivery-plan-2026-11-08.md)。
+关联 [ADR-0011](../architecture/adrs/0011-rustdesk-dual-network-access.md)、[部署基线](../architecture/deployment.md)、[设备通信协议](../architecture/device-communication-stack.md) 和 [v0.1 交付计划](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)。
 
 ## 1. 入口和域名约定
 
