@@ -59,8 +59,16 @@ case "$LANVERIQ_L2B23_CASE" in
     sed 's#file:/mnt/lanveriq-lab/repo#file:/tmp/lanveriq-apt-rollback/repo#' \
       /mnt/lanveriq-lab/lab.sources > /tmp/lanveriq-apt-rollback/sources
     opts[0]=-oDir::Etc::sourcelist=/tmp/lanveriq-apt-rollback/sources
-    apt-get "${opts[@]}" update >/tmp/lanveriq-apt-fresh-update.log 2>&1
-    grep -Fq 'InRelease' /tmp/lanveriq-apt-fresh-update.log
+    if ! apt-get "${opts[@]}" update >/tmp/lanveriq-apt-fresh-update.log 2>&1; then
+      cat /tmp/lanveriq-apt-fresh-update.log >&2
+      echo 'NOT_APPROVED: first native APT snapshot validation failed, no replay verdict' >&2
+      exit 98
+    fi
+    if ! grep -Fq 'InRelease' /tmp/lanveriq-apt-fresh-update.log; then
+      cat /tmp/lanveriq-apt-fresh-update.log >&2
+      echo 'NOT_APPROVED: APT did not fetch the signed initial Release' >&2
+      exit 99
+    fi
     original=/tmp/lanveriq-apt-rollback/repo/dists/lab/InRelease
     fresh_epoch=$(date -ud "$(sed -n 's/^Date: //p' /mnt/lanveriq-lab/repo/dists/lab/Release)" +%s)
     stale_epoch=$(date -ud "$(sed -n 's/^Date: //p' /mnt/lanveriq-lab/stale-signed/Release)" +%s)
