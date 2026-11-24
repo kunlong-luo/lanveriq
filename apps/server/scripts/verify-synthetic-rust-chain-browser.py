@@ -76,7 +76,7 @@ def main():
             # first-party request: Chromium owns Origin and Sec-Fetch-* on the
             # wire, and Spring's actual request guard must see those headers.
             outside_console = re.compile(
-                r"^(?!https://console\\.lanveriq\\.internal(?::443)?(?:/(?!/)|$)[^#]*$).+"
+                r"^(?!https://console\.lanveriq\.internal(?::443)?(?:/(?!/)|$)[^#]*$).+"
             )
             def deny_external(route):
                 rejected.append("outbound_origin")
