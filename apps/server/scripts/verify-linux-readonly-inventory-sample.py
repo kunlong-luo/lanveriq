@@ -12,9 +12,12 @@ from pathlib import Path
 import platform
 import sys
 
+class GateFailure(Exception):
+    """Only literal source-authored gate labels; never host inventory values."""
+
 def must(value: bool, name: str):
     if not value:
-        raise ValueError(name)
+        raise GateFailure(name)
 
 def first_value(path: str, key: str) -> str | None:
     with open(path, encoding="utf-8", errors="replace") as handle:
@@ -92,6 +95,12 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
+    except GateFailure as failure:
+        # Every gate name above is a fixed source-authored literal. Never
+        # expose sampled host values, private paths, JSON or error repr.
+        print("FAIL: isolated Linux OS/CPU/RAM source corroboration: " +
+              str(failure), file=sys.stderr)
+        raise SystemExit(1) from None
     except Exception:
-        print("FAIL: isolated Linux OS/CPU/RAM source corroboration", file=sys.stderr)
+        print("FAIL: isolated Linux OS/CPU/RAM source runtime", file=sys.stderr)
         raise SystemExit(1) from None
