@@ -1,0 +1,48 @@
+name: Desktop receiver pre-provisioned root LAB (no release authority)
+
+# A synthetic out-of-band root fixture, two OpenSSL Ed25519 keys and injected
+# time/high-water values are all controlled by disposable CI. No real root,
+# trusted clock, custody, Agent installation, signing service or release.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_receiver_root_lab.py'
+      - 'apps/desktop/tools/test_verify_desktop_receiver_root_lab.py'
+      - 'apps/desktop/tools/verify_desktop_dual_signer_lab.py'
+      - '.github/workflows/desktop-receiver-root-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  root-rollback-expiry-revocation:
+    name: Check independently supplied LAB pin, revoked roles and time/version boundaries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Require OpenSSL 3 and compile static lab files
+        run: |
+          set -Eeuo pipefail
+          openssl version | grep -E '^OpenSSL 3[.]'
+          python3 -m py_compile \
+            apps/desktop/tools/verify_desktop_receiver_root_lab.py \
+            apps/desktop/tools/test_verify_desktop_receiver_root_lab.py
+      - name: Execute 34 receiver-side synthetic root and anti-rollback tests
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools \
+            -p 'test_verify_desktop_receiver_root_lab.py' -v
+      - name: Refuse any production install or release claims
+        run: |
+          set -Eeuo pipefail
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_desktop_release_evidence_boundary.py
+          python3 apps/desktop/tools/verify_desktop_agent_install_intent.py \
+            --intent docs/planning/desktop-agent-install-intent-deny-all.json \
+            | grep -F 'DENIED: design-only Agent install intent'
+          echo 'PASS: receiver trust bootstrap LAB ONLY. No independent signer identity, trusted time or actual release approval.'
