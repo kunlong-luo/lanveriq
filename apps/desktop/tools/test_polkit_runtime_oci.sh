@@ -6,6 +6,14 @@ test "${EUID}" -eq 0
 test "$(cat /proc/1/comm)" != systemd
 test ! -e /usr/bin/lanveriq-agent
 test ! -d /run/systemd/system
+gate=/mnt/lanveriq-gate/polkit-fixed-action-gate
+test -x "$gate"
+# A root process is never a valid interactive GUI caller.
+set +e
+"$gate" install >/dev/null 2>&1
+root_status=$?
+set -e
+test "$root_status" -eq 23
 test "${LANVERIQ_POLKIT_RUNTIME_L2:-}" = disposable-oci-only
 
 source_policy=/mnt/lanveriq-policy/org.lanveriq.agent.package.policy
@@ -48,9 +56,40 @@ for op in install upgrade remove; do
                 exit 86
             fi
         ' -- "$id"
-        printf 'PASS: native polkitd denied %s to %s\n' "$id" "$user"
+        runuser -u "$user" -- /bin/bash -c '
+            set +e
+            /mnt/lanveriq-gate/polkit-fixed-action-gate "$1" >/dev/null 2>&1
+            status=$?
+            set -e
+            if [ "$status" -ne 21 ]; then
+                echo "FAIL: Rust fixed-action gate did not return explicit polkit DENIED (got $status)" >&2
+                exit 89
+            fi
+        ' -- "$op"
+        printf 'PASS: native polkitd + unprivileged Rust gate denied %s to %s\n' "$id" "$user"
     done
 done
+
+# All unreviewed Rust CLI arguments are rejected before OS or APT processing.
+for args in 'start' 'enable' 'network' 'exec' 'install --package /tmp/evil.deb'; do
+    read -r -a pieces <<< "$args"
+    set +e
+    runuser -u nobody -- "$gate" "${pieces[@]}" >/dev/null 2>&1
+    status=$?
+    set -e
+    if [ "$status" -ne 22 ]; then
+        echo "FAIL: Rust CLI accepted unexpected operation/extra argv ($args => $status)" >&2
+        exit 90
+    fi
+done
+# User-controlled environment fields cannot forge UID/PID/Polkit claims.
+set +e
+runuser -u nobody -- env PKEXEC_UID=0 LANVERIQ_RELEASE_APPROVED=true \
+    "$gate" install >/dev/null 2>&1
+env_status=$?
+set -e
+test "$env_status" -eq 21
+echo 'PASS: Rust gate fixed-action parsing rejects 5 injections and forged env'
 
 # Polkit never sees an action granting a generic install process, service or shell.
 for suffix in start enable network collection remote-control exec; do
@@ -62,4 +101,4 @@ done
 test ! -e /usr/bin/lanveriq-agent
 test ! -e /etc/lanveriq-agent/agent.toml
 test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
-echo 'PASS: real container polkitd/DBus policy loaded 3 actions; 6 explicit UID-bound denials, no install or network'
+echo 'PASS: real container polkitd/DBus plus Rust fixed-action subject binding; six UID denials, hostile args refused, no installer or network'
