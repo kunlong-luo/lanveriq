@@ -145,6 +145,12 @@ export const documentationLinkEntries = [
   'docs/README.md', 'docs/CURRENT_STATUS.md',
   'README.md', 'README.zh.md',
   'docs/governance/documentation-index-snapshot-2026-11-21.md',
+  'docs/governance/repository-layout-audit-2026-11-24.md',
+  'docs/planning/project-scorecard.md',
+  'apps/web/README.md',
+  'apps/server/README.md',
+  'apps/agent/README.md',
+  'apps/desktop/README.md',
   'AGENTS.md',
   'CONTRIBUTING.md',
   'SECURITY.md',
@@ -156,6 +162,72 @@ export const documentationLinkEntries = [
   'docs/security/fido-trust-boundaries.md',
   'docs/architecture/adrs/README.md',
 ];
+
+export const requiredRepositoryPaths = [
+  'apps/web/package.json',
+  'apps/server/build.gradle',
+  'apps/agent/Cargo.toml',
+  'apps/desktop/src-tauri/Cargo.toml',
+  'deploy/caddy/Caddyfile.reference',
+  'deploy/network/verify_dual_access.py',
+  'deploy/rustdesk/client-release-lock.json',
+  'deploy/rustdesk-synthetic/verify_rd2_release_boundary.py',
+  '.github/workflows/docs-governance.yml',
+  'docs/governance/repository-layout-audit-2026-11-24.md',
+  'docs/planning/project-scorecard.md',
+];
+
+export const retiredRepositoryPaths = [
+  'apps/web-next',
+  'apps/web-old',
+  'apps/web-legacy',
+  'apps/web-vite',
+  'apps/server/pom.xml',
+  'apps/server/mvnw',
+  'pom.xml',
+  'mvnw',
+  'docs/development/pagevela-reference.md',
+];
+
+const conciseEntrypoints = [
+  'README.md', 'README.zh.md', 'docs/README.md',
+  'apps/web/README.md', 'apps/server/README.md',
+  'apps/agent/README.md', 'apps/desktop/README.md',
+];
+
+export function verifyRepositoryLayout(root) {
+  for (const path of requiredRepositoryPaths) {
+    if (!existsSync(join(root, path))) {
+      throw new Error('Required canonical repository path missing: ' + path);
+    }
+  }
+  for (const path of retiredRepositoryPaths) {
+    if (existsSync(join(root, path))) {
+      throw new Error('Retired duplicate/obsolete repository path reintroduced: ' + path);
+    }
+  }
+  for (const path of conciseEntrypoints) {
+    const contents = readFileSync(join(root, path), 'utf8');
+    if (contents.split('\n').length > 140) {
+      throw new Error('README grew into outdated chronology: ' + path);
+    }
+    if (!contents.includes('v0.1 NOT RELEASE READY')) {
+      throw new Error('README omits default-deny release truth: ' + path);
+    }
+  }
+  for (const path of ['README.md', 'README.zh.md']) {
+    const contents = readFileSync(join(root, path), 'utf8');
+    for (const key of ['apps/web/', 'apps/server/', 'apps/agent/',
+                       'apps/desktop/', 'deploy/caddy/', 'deploy/network/',
+                       'deploy/rustdesk/', 'deploy/rustdesk-synthetic/',
+                       'docs/', '.github/workflows/']) {
+      if (!contents.includes(key)) {
+        throw new Error('Root README missing directory purpose: ' + key);
+      }
+    }
+  }
+  return true;
+}
 
 export function verifyLocalDocumentationLinks(root, entries = documentationLinkEntries) {
   const rootPath = resolve(root);
@@ -182,5 +254,6 @@ if (process.argv[1] && resolve(process.argv[1]) === here) {
   const root = resolve(dirname(here), '../../..');
   verifyDocumentationBaseline(root);
   verifyLocalDocumentationLinks(root);
-  console.log('PASS: Next.js canonical documentation, release boundaries and local links verified');
+  verifyRepositoryLayout(root);
+  console.log('PASS: Next.js canonical documentation, release boundaries, directory inventory and local links verified');
 }
