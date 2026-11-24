@@ -52,7 +52,7 @@ def validate(root=DESKTOP):
                   "startAllowed", "bootEnabled", "collectionAllowed",
                   "networkAllowed", "privilegedBrokerAvailable"):
         require(
-            re.search(r"\\b" + field + r":\\s*false\\b", review) is not None,
+            re.search(r"\b" + field + r":\s*false\b", review) is not None,
             f"unreviewed installer privilege grant: {field}",
         )
     require(
