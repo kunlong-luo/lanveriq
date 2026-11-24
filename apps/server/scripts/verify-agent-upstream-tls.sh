@@ -21,6 +21,10 @@ BUSINESS_MODE="${LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP:-0}"
 CHAIN_READ_MODE="${LANVERIQ_SYNTHETIC_CHAIN_READ:-0}"
 # P0: opt-in real Chromium reading the same Rust-origin device via Next.js.
 CHAIN_UI_MODE="${LANVERIQ_SYNTHETIC_CHAIN_UI:-0}"
+# P0 inventory end-to-end: separate CI-only explicit socket + outbound consent.
+INVENTORY_CHAIN_MODE="${LANVERIQ_SYNTHETIC_INVENTORY_CHAIN:-0}"
+INVENTORY_ENABLED=false
+if [[ "$INVENTORY_CHAIN_MODE" == 1 ]]; then INVENTORY_ENABLED=true; fi
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
 BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
 NEXTJS_MODE="${LANVERIQ_SYNTHETIC_NEXTJS_PROBE:-0}"
@@ -89,6 +93,17 @@ MULTI_ADMIN_MODE="${LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE:-0}"
 }
 [[ "$CHAIN_UI_MODE" == 0 || "$CHAIN_UI_MODE" == 1 ]] || {
     echo "Synthetic Rust-to-Next.js mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$INVENTORY_CHAIN_MODE" == 0 || "$INVENTORY_CHAIN_MODE" == 1 ]] || {
+    echo "Synthetic inventory CI gate must be 0 or 1" >&2
+    exit 1
+}
+[[ "$INVENTORY_CHAIN_MODE" == 0 ||
+    ( "$CHAIN_UI_MODE" == 1 && "$CHAIN_READ_MODE" == 1 &&
+      "$BUSINESS_MODE" == 1 && "$BRIDGE_MODE" == 1 &&
+      "${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux ) ]] || {
+    echo "Inventory network probe requires disposable full-chain Linux CI" >&2
     exit 1
 }
 [[ "$CHAIN_UI_MODE" == 0 ||
@@ -1000,6 +1015,7 @@ SQL
             --spring.profiles.active=agent-upstream-mtls-acceptance \
             --lanveriq.agent.activation.http-enabled=true \
             --lanveriq.agent.heartbeat.http-enabled=true \
+            --lanveriq.agent.inventory.http-enabled="$INVENTORY_ENABLED" \
             --lanveriq.agent.credential-epoch.http-enabled=true \
             --lanveriq.console.auth.enabled="$CONSOLE_ENABLED" \
             --lanveriq.console.auth.origin=https://console.lanveriq.internal \
@@ -1030,6 +1046,9 @@ SQL
         export LANVERIQ_SYNTHETIC_AGENT_HTTP_PKI="$TMP/pki"
         export LANVERIQ_SYNTHETIC_AGENT_HTTP_CA="$ROOT_CA"
         export LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE="$TMP/first-heartbeat.json"
+        if [[ "$INVENTORY_CHAIN_MODE" == 1 ]]; then
+            export LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE="$TMP/synthetic-inventory-request.json"
+        fi
         "$RUST_AGENT_HTTP" accepted "$DEVICE_ID" || {
             # The real failing Rust path must stay FAIL. A private CI-only
             # comparison tells us whether Tomcat's H1/H2 request metadata
@@ -1073,6 +1092,77 @@ JSON
             echo "FAIL: Rust Agent did not retain its first synthetic outbound body" >&2
             exit 1
         }
+        if [[ "$INVENTORY_CHAIN_MODE" == 1 ]]; then
+            [[ -s "$TMP/synthetic-inventory-request.json" ]] || {
+                echo "FAIL: Rust did not retain synthetic inventory wire body" >&2
+                exit 1
+            }
+            inventory_count="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT count(*) FROM device_inventory_current
+                WHERE device_id='$DEVICE_ID'
+                  AND inventory_revision=1
+                  AND snapshot_id IS NOT NULL
+                  AND received_at IS NOT NULL
+                  AND os_family='linux'
+                  AND os_name='Synthetic Inventory Linux'
+                  AND cpu_model='Synthetic Inventory CPU'
+                  AND memory_total_bytes=8000000000")"
+            [[ "$inventory_count" == 1 ]] || {
+                echo "FAIL: actual Rust inventory did not persist as exact PG18 current snapshot" >&2
+                exit 1
+            }
+            # Strict server idempotency: duplicate identical durable JSON
+            # may return 200/duplicate, but must not advance revision or time.
+            inventory_before="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                    received_at::text, content_digest)
+                FROM device_inventory_current WHERE device_id='$DEVICE_ID'")"
+            inventory_duplicate="$(curl --silent --show-error --noproxy '*' --http2 \
+                --tlsv1.3 --tls-max 1.3 --max-time 12 \
+                --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+                --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+                -H 'Content-Type: application/json' \
+                --data-binary @"$TMP/synthetic-inventory-request.json" \
+                -D "$TMP/inventory-duplicate-headers" -o "$TMP/inventory-duplicate.json" \
+                -w '%{http_code}' \
+                "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/inventory")"
+            [[ "$inventory_duplicate" == 200 ]] &&
+                grep -iq '^cache-control:.*no-store' "$TMP/inventory-duplicate-headers" || {
+                echo "FAIL: idempotent same-inventory request not accepted with no-store" >&2
+                exit 1
+            }
+            python3 - "$TMP/inventory-duplicate.json" "$DEVICE_ID" <<'PY'
+import json,sys
+from pathlib import Path
+receipt=json.loads(Path(sys.argv[1]).read_text())
+assert receipt.get("schema_version")==1
+assert receipt.get("device_id")==sys.argv[2]
+assert receipt.get("inventory_revision")==1
+assert receipt.get("outcome")=="duplicate"
+PY
+            [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                    received_at::text, content_digest)
+                FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_before" ]] || {
+                echo "FAIL: duplicate inventory unexpectedly rewrote PG18 current row" >&2
+                exit 1
+            }
+            # Same approved CA is NOT enough: unrelated leaf must fail JPA
+            # active credential guard and leave the committed row intact.
+            inventory_unregistered="$(curl --silent --show-error --noproxy '*' --http2 \
+                --tlsv1.3 --tls-max 1.3 --max-time 12 \
+                --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+                --cert "$TMP/pki/other-agent.crt" --key "$TMP/pki/other-agent.key" \
+                -H 'Content-Type: application/json' \
+                --data-binary @"$TMP/synthetic-inventory-request.json" \
+                -o "$TMP/inventory-unregistered" -w '%{http_code}' \
+                "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/inventory")"
+            [[ "$inventory_unregistered" == 403 && ! -s "$TMP/inventory-unregistered" ]] || {
+                echo "FAIL: unrelated Agent leaf accepted inventory" >&2
+                exit 1
+            }
+            echo "PASS: real Rust inventory SQLite -> double-mTLS Spring -> PG18 current, strict ACK, duplicate no-change and unregistered-leaf denial."
+        fi
         db_latest() {
             docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
                 SELECT concat_ws('|', h.agent_status, h.policy_version,
@@ -1407,6 +1497,7 @@ PY
                     LANVERIQ_SYNTHETIC_CONSOLE_SESSION="$CONSOLE_MODE" \
                     LANVERIQ_SYNTHETIC_CHAIN_READ="$CHAIN_READ_MODE" \
                     LANVERIQ_SYNTHETIC_CHAIN_UI="$CHAIN_UI_MODE" \
+                    LANVERIQ_SYNTHETIC_INVENTORY_CHAIN="$INVENTORY_CHAIN_MODE" \
                     LANVERIQ_SYNTHETIC_BROWSER_PROBE="$BROWSER_MODE" \
                     LANVERIQ_SYNTHETIC_NEXTJS_PROBE="$NEXTJS_MODE" \
                     LANVERIQ_SYNTHETIC_AUTH_UI_PROBE="$AUTH_UI_MODE" \
@@ -1436,6 +1527,9 @@ if [[ "$BUSINESS_MODE" == 1 ]]; then
         echo "PASS: same disposable Rust device -> PG18 commit -> real scoped Spring HTTP read, no unscoped row."
         if [[ "$CHAIN_UI_MODE" == 1 ]]; then
             echo "PASS: same source device was rendered in real Next.js/Chromium with Spring group-scoped session."
+            if [[ "$INVENTORY_CHAIN_MODE" == 1 ]]; then
+                echo "PASS: synthetic Rust inventory snapshot persisted in PG18 and appeared in authorized Next.js Chromium device row."
+            fi
             echo "NOT PROVEN: production Next.js login, authorized Pop!_OS installed service, real data or release keys."
         else
             echo "NOT PROVEN: Next.js/Chromium rendering, authorized Pop!_OS service, production CA or real device."
