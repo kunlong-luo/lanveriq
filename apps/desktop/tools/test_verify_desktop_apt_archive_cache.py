@@ -60,6 +60,56 @@ class UbuntuAPTArchiveCacheTests(unittest.TestCase):
         self.assertEqual(subject.parse_archive_name(self.beta.name), ("beta", "1:2.0", "all"))
         self.assertEqual(self.verify(), (2, self.fingerprint()))
 
+    def test_accepts_exact_current_apt_dependency_closure(self):
+        plan = subject.parse_install_plan(
+            "Reading package lists...\n"
+            "Inst alpha (1.2 Ubuntu:noble [amd64])\n"
+            "Inst beta (1:2.0 Ubuntu:noble [all])\n"
+        )
+        self.assertEqual(plan, {"alpha": "1.2", "beta": "1:2.0"})
+        self.assertEqual(
+            subject.manifest_and_verify(
+                self.root, 2, self.fingerprint(), self.lookup, plan
+            ),
+            (2, self.fingerprint()),
+        )
+
+    def test_rejects_apt_plan_removal(self):
+        with self.assertRaisesRegex(ValueError, "proposes removal"):
+            subject.parse_install_plan("Inst alpha (1.2 Ubuntu [amd64])\nRemv beta [1:2.0]\n")
+
+    def test_rejects_unexpected_cached_package_outside_plan(self):
+        plan = {"alpha": "1.2", "other": "1:2.0"}
+        with self.assertRaisesRegex(ValueError, "not in current APT simulated closure"):
+            subject.manifest_and_verify(
+                self.root, 2, self.fingerprint(), self.lookup, plan
+            )
+
+    def test_rejects_version_drift_from_current_apt_plan(self):
+        plan = {"alpha": "1.3", "beta": "1:2.0"}
+        with self.assertRaisesRegex(ValueError, "not in current APT simulated closure"):
+            subject.manifest_and_verify(
+                self.root, 2, self.fingerprint(), self.lookup, plan
+            )
+
+    def test_rejects_apt_closure_missing_archive(self):
+        plan = {"alpha": "1.2", "beta": "1:2.0", "gamma": "1.0"}
+        with self.assertRaisesRegex(ValueError, "APT closure package count differs"):
+            subject.manifest_and_verify(
+                self.root, 2, self.fingerprint(), self.lookup, plan
+            )
+
+    def test_rejects_duplicate_apt_plan_package(self):
+        with self.assertRaisesRegex(ValueError, "duplicate APT package"):
+            subject.parse_install_plan(
+                "Inst alpha (1.2 Ubuntu [amd64])\n"
+                "Inst alpha [1.2] (2.3 Ubuntu [amd64])\n"
+            )
+
+    def test_rejects_malformed_apt_plan_inst_line(self):
+        with self.assertRaisesRegex(ValueError, "malformed APT Inst"):
+            subject.parse_install_plan("Inst alpha broken text\n")
+
     def test_rejects_changed_package_bytes(self):
         self.alpha.write_bytes(b"tampered")
         with self.assertRaisesRegex(ValueError, "signed-index SHA256"):

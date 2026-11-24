@@ -176,6 +176,13 @@ jobs:
           # policy. Never permits unauthenticated metadata or source rewriting.
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
             -o APT::Get::AllowUnauthenticated=false update
+          # The independent runner must demand the same selected package set,
+          # not merely Ubuntu-origin hashes of unrelated extra archives.
+          plan="$RUNNER_TEMP/lanveriq-apt-restored-closure.txt"
+          apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+            libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev > "$plan"
+          test -s "$plan"
       - name: Verify independent runner cache bytes AND signed-index package SHA256
         shell: bash
         env:
@@ -201,7 +208,8 @@ jobs:
           # byte size and SHA256 against this runner's fresh, signed APT index.
           python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
             --archive-dir "$archive" --expected-count "$EXPECTED_COUNT" \
-            --expected-manifest "$EXPECTED_SHA256"
+            --expected-manifest "$EXPECTED_SHA256" \
+            --expected-plan-file "$RUNNER_TEMP/lanveriq-apt-restored-closure.txt"
           echo "PASS: independent Ubuntu24 runner restored $count byte-identical signed-index-verified Debian archives"
           echo 'UNTRUSTED: cache remains acceleration; actual native build must revalidate its own APT environment'
           echo 'NOT RUN: package installation, Rust/Clippy, GUI-only .deb, PopOS L3 or production Agent'
