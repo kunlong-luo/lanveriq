@@ -55,7 +55,7 @@ case "$LANVERIQ_L2B23_CASE" in
     # with an EARLIER Date while Valid-Until remains future. No installation.
     # Only the disposable container overlay is writable; signer key is RO.
     mkdir -p /tmp/lanveriq-apt-rollback
-    cp -a /mnt/lanveriq-lab/repo /tmp/lanveriq-apt-rollback/repo
+    cp -R /mnt/lanveriq-lab/repo /tmp/lanveriq-apt-rollback/repo
     sed 's#file:/mnt/lanveriq-lab/repo#file:/tmp/lanveriq-apt-rollback/repo#' \
       /mnt/lanveriq-lab/lab.sources > /tmp/lanveriq-apt-rollback/sources
     opts[0]=-oDir::Etc::sourcelist=/tmp/lanveriq-apt-rollback/sources
