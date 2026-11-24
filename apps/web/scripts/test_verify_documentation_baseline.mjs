@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { documentationRequirements, verifyDocumentationBaseline,
-  verifyLocalDocumentationLinks } from './verify-documentation-baseline.mjs';
+  verifyLocalDocumentationLinks, verifyRepositoryLayout,
+  requiredRepositoryPaths } from './verify-documentation-baseline.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'lanveriq-docs-current-'));
@@ -59,6 +60,45 @@ test('rejects old Vite acceptance matrix after source removal', t => {
 test('checks the actual checked-in documentation without network access', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
   assert.equal(verifyDocumentationBaseline(root), true);
+});
+
+test('current four-app tree has no retired Web/Maven subtree or chronology-sized README', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+  assert.equal(verifyRepositoryLayout(root), true);
+});
+
+test('layout guard refuses a duplicate Web, missing canonical runtime and bloated README', t => {
+  const root = mkdtempSync(join(tmpdir(), 'lanveriq-repository-layout-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  function write(path, contents = '') {
+    const file = join(root, path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, contents, 'utf8');
+  }
+  for (const path of requiredRepositoryPaths) write(path, 'reviewed');
+  const entries = [
+    'README.md', 'README.zh.md', 'docs/README.md',
+    'apps/web/README.md', 'apps/server/README.md',
+    'apps/agent/README.md', 'apps/desktop/README.md',
+  ];
+  const map = [
+    'apps/web/', 'apps/server/', 'apps/agent/', 'apps/desktop/',
+    'deploy/caddy/', 'deploy/network/', 'deploy/rustdesk/',
+    'deploy/rustdesk-synthetic/', 'docs/', '.github/workflows/',
+  ];
+  for (const path of entries) write(path, 'v0.1 NOT RELEASE READY\n' + map.join(' '));
+  assert.equal(verifyRepositoryLayout(root), true);
+  write('apps/web-next/package.json', 'obsolete');
+  assert.throws(() => verifyRepositoryLayout(root),
+    /Retired duplicate\/obsolete repository path/);
+  rmSync(join(root, 'apps/web-next'), { recursive: true });
+  rmSync(join(root, 'apps/server/build.gradle'));
+  assert.throws(() => verifyRepositoryLayout(root), /Required canonical repository path missing/);
+  write('apps/server/build.gradle', 'reviewed');
+  write('README.md', 'v0.1 NOT RELEASE READY\n' +
+    Array.from({ length: 145 }, () => map.join(' ')).join('\n'));
+  assert.throws(() => verifyRepositoryLayout(root),
+    /README grew into outdated chronology/);
 });
 
 test('rejects obsolete no-code contribution instructions', t => {
