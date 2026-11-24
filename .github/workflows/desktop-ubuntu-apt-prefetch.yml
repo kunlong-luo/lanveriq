@@ -23,6 +23,9 @@ jobs:
     name: Signed Ubuntu APT metadata and download-only cache laboratory
     runs-on: ubuntu-24.04
     timeout-minutes: 50
+    outputs:
+      cache_key: ${{ steps.plan.outputs.cache_key }}
+      archive_count: ${{ steps.download.outputs.archive_count }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,23 +77,34 @@ jobs:
               cat "$plan"
             } | sha256sum | cut -d ' ' -f 1
           )"
-          echo "cache_key=lanveriq-ubuntu24-tauri-apt-$fingerprint" >> "$GITHUB_OUTPUT"
+          echo "cache_key=lanveriq-ubuntu24-tauri-apt-v2-$fingerprint" >> "$GITHUB_OUTPUT"
           printf 'APT signed-index plan sha256: %s\n' "$(sha256sum "$plan" | cut -d ' ' -f 1)"
           printf 'APT planned package install/upgrade count: %s\n' "$(grep -c '^Inst ' "$plan" || true)"
           printf 'APT planned removals: 0; image: %s; download-only below\n' "${ImageVersion:-unknown}"
+          # The github runner owns the outer cache so action/cache can restore
+          # it, while the official apt _apt sandbox owns only partial/.
+          # /var/tmp is traversable by _apt; runner.temp may not be.
+          archive="/var/tmp/lanveriq-desktop-apt-archives"
+          mkdir -p "$archive"
+          chmod 755 "$archive"
+          sudo install -d -o _apt -g root -m 700 "$archive/partial"
       - name: Read or preserve downloaded Ubuntu APT archives (acceleration, untrusted)
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/lanveriq-desktop-apt-archives
+          # Only cache complete .deb files: omit apt's root-only lock and
+          # _apt-private partial/ directory (prior run couldn't archive them).
+          path: /var/tmp/lanveriq-desktop-apt-archives/*.deb
           key: ${{ steps.plan.outputs.cache_key }}
       - name: Download signed-index APT archives only, never install
+        id: download
         timeout-minutes: 35
         shell: bash
         run: |
           set -Eeuo pipefail
-          archive="$RUNNER_TEMP/lanveriq-desktop-apt-archives"
-          mkdir -p "$archive/partial"
-          chmod 755 "$archive" "$archive/partial"
+          archive="/var/tmp/lanveriq-desktop-apt-archives"
+          test -d "$archive/partial"
+          test "$(stat -c '%U' "$archive/partial")" = _apt
+          test "$(stat -c '%a' "$archive/partial")" = 700
           dpkg-query -W -f='${Package} ${Version} ${db:Status-Abbrev}\n' | LC_ALL=C sort > "$RUNNER_TEMP/lanveriq-dpkg-before.txt"
           # The official apt downloader validates each archive against Ubuntu
           # signed indexes. Nothing is installed; no host package set changes.
@@ -108,5 +122,34 @@ jobs:
           }
           count="$(find "$archive" -maxdepth 1 -type f -name '*.deb' | wc -l)"
           test "$count" -gt 0
+          echo "archive_count=$count" >> "$GITHUB_OUTPUT"
           echo "PASS: Ubuntu apt verified $count archives against signed indexes; installed package states unchanged"
           echo 'BOUNDARY: CI cache is not a signed immutable builder, ABI acceptance, release artifact or PopOS L3'
+  cache-probe:
+    name: Independent runner restores all cached Debian archives
+    needs: prefetch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Restore only prefetch job's exact signed-index plan cache
+        id: restored
+        uses: actions/cache/restore@v4
+        with:
+          path: /var/tmp/lanveriq-desktop-apt-archives/*.deb
+          key: ${{ needs.prefetch.outputs.cache_key }}
+          fail-on-cache-miss: true
+      - name: Verify independent runner can read full cache without package install
+        shell: bash
+        env:
+          CACHE_HIT: ${{ steps.restored.outputs.cache-hit }}
+          EXPECTED_COUNT: ${{ needs.prefetch.outputs.archive_count }}
+        run: |
+          set -Eeuo pipefail
+          test "$CACHE_HIT" = true
+          test "$EXPECTED_COUNT" -gt 0
+          archive="/var/tmp/lanveriq-desktop-apt-archives"
+          count="$(find "$archive" -maxdepth 1 -type f -name '*.deb' -readable | wc -l)"
+          test "$count" -eq "$EXPECTED_COUNT"
+          echo "PASS: independent Ubuntu24 runner restored $count complete Debian archives from exact-plan cache"
+          echo 'UNTRUSTED: restored cache is acceleration only; actual future build must revalidate via signed APT indexes'
+          echo 'NOT RUN: package installation, Rust/Clippy, GUI-only .deb, PopOS L3 or production Agent'
