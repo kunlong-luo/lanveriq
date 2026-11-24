@@ -9,7 +9,7 @@
 | **LIVE-GAP** | [release-gap register](../planning/release-gap-register.md) | 未完成发布 Gate、职责类型、退出证据；合成 PASS 不自动关闭 |
 | **ADR** | [ADR 索引](../architecture/adrs/README.md) | 批准的是架构选择；记录 Proposed/Accepted/Superseded，取代关系 |
 | **SPEC** | architecture / security / development 专题 | 接口、行为、反例和限制；不跨 SHA 复用验收 |
-| **HISTORICAL** | 日期报告/旧计划/CHANGELOG/[旧 AGENTS](archive/AGENTS-pre-consolidation-2026-11-22.md) | 保留原始失败与日期，不能冒充现行开发规则 |
+| **HISTORICAL** | 日期报告/旧计划/CHANGELOG/[旧 AGENTS](archive/README.md) | 保留原始失败与日期，不能冒充现行开发规则 |
 | **INDEX** | [docs/README](../README.md)、根 README | 只放导航和发布边界，不复制最新 CI 表 |
 
 实际软件事实以代码、lockfile、Flyway、feature flags 为准；CURRENT_STATUS 负责可核对证据；D0/ADR 历史决议不批准正式上线。发生冲突先核对 Git SHA 与原始 CI，再改 LIVE-FACT，不放松安全。
