@@ -175,6 +175,9 @@ test('all current docs are free of live relative links to archived duplicate sna
 
 test('rejects nested documentation links to retired duplicate AGENTS and old index', t => {
   const { root, write } = fixture(t);
+  for (const source of ['README.md', 'README.zh.md', 'AGENTS.md', 'CHANGELOG.md']) {
+    write(source, 'v0.1 NOT RELEASE READY');
+  }
   write('docs/security/references/notes.md',
     '[old AGENTS](../../governance/archive/AGENTS-pre-consolidation-2026-11-22.md)');
   assert.throws(() => verifyNoRetiredSnapshotLinks(root),
