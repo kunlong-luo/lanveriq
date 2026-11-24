@@ -30,17 +30,19 @@
 docs/
 ├── README.md                  # 唯一文档导航
 ├── CURRENT_STATUS.md          # 唯一功能/CI 现状
-├── architecture/  adrs/       # 规范、架构决策
+├── architecture/             # 规范、协议、系统架构
+│   └── adrs/                 # 当前/历史架构决策
 ├── security/                  # 身份、隐私、FIDO、WORM
 ├── development/               # 技术标准 + 日期 L2B/NXT 历史验收
 ├── testing/                   # L1/L2/L3 验收、真实 CI 与失败证据
 ├── planning/                  # 唯一发布 Gate、现行路线/评分
-├── governance/  archive/      # 文档权威、目录审计、旧 AGENTS
+├── governance/               # 文档所有权、审计规则
+│   └── archive/              # 历史固定 Git SHA 索引，不重复保留全文
 ├── operations/  product/      # 操作手册与产品交互行为
 └── diagrams/    visuals/      # Mermaid、SVG 概念图（非截图）
 ```
 
-[目录保留/删除审计](docs/governance/repository-layout-audit-2026-11-24.md)列出被移除的重复入口和保留原因；历史文档快照用**固定 Git SHA 链接**追溯，不保留第二份活动索引。
+历史全文可从 [归档索引](docs/governance/archive/README.md) 中的固定 Git SHA 恢复。[目录保留/删除审计](docs/governance/repository-layout-audit-2026-11-24.md)列出被移除的重复入口和保留原因；历史文档快照用**固定 Git SHA 链接**追溯，不保留第二份活动索引。
 
 ## 我现在能做什么？
 
