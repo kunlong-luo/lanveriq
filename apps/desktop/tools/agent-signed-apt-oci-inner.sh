@@ -50,6 +50,43 @@ case "$LANVERIQ_L2B23_CASE" in
     test ! -d /run/systemd/system
     echo 'PASS: real signed-index APT installed/reinstalled/removed audited Rust Agent only in disposable OCI; no start/network'
     ;;
+  signed-valid-old-release-acceptance)
+    # L2B-27: prove actual apt-secure will accept a correctly signed Release
+    # with an EARLIER Date while Valid-Until remains future. No installation.
+    # Only the disposable container overlay is writable; signer key is RO.
+    mkdir -p /tmp/lanveriq-apt-rollback
+    cp -a /mnt/lanveriq-lab/repo /tmp/lanveriq-apt-rollback/repo
+    sed 's#file:/mnt/lanveriq-lab/repo#file:/tmp/lanveriq-apt-rollback/repo#' \
+      /mnt/lanveriq-lab/lab.sources > /tmp/lanveriq-apt-rollback/sources
+    opts[0]=-oDir::Etc::sourcelist=/tmp/lanveriq-apt-rollback/sources
+    apt-get "${opts[@]}" update >/tmp/lanveriq-apt-fresh-update.log 2>&1
+    grep -Fq 'InRelease' /tmp/lanveriq-apt-fresh-update.log
+    original=/tmp/lanveriq-apt-rollback/repo/dists/lab/InRelease
+    fresh_epoch=$(date -ud "$(sed -n 's/^Date: //p' /mnt/lanveriq-lab/repo/dists/lab/Release)" +%s)
+    stale_epoch=$(date -ud "$(sed -n 's/^Date: //p' /mnt/lanveriq-lab/stale-signed/Release)" +%s)
+    test "$stale_epoch" -lt "$fresh_epoch"
+    fresh_sha=$(sha256sum "$original" | cut -d' ' -f1)
+    cp /mnt/lanveriq-lab/stale-signed/InRelease "$original"
+    stale_sha=$(sha256sum "$original" | cut -d' ' -f1)
+    test "$fresh_sha" != "$stale_sha"
+    if ! apt-get "${opts[@]}" update >/tmp/lanveriq-apt-stale-update.log 2>&1; then
+      # If a later APT release gains a monotonic rollback check, that is a
+      # security improvement. This test must be reviewed rather than silently
+      # claiming APT still accepts old metadata.
+      cat /tmp/lanveriq-apt-stale-update.log >&2
+      echo 'NOT_APPROVED: expected APT native signed stale Release behavior changed' >&2
+      exit 96
+    fi
+    grep -Fq 'InRelease' /tmp/lanveriq-apt-stale-update.log
+    test ! -e /usr/bin/lanveriq-agent
+    test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
+    test ! -d /run/systemd/system
+    if dpkg-query -W lanveriq-agent-offline-preview >/dev/null 2>&1; then
+      echo 'FAIL: Agent installed during read-only stale signature probe' >&2
+      exit 97
+    fi
+    echo 'PASS: real apt accepted valid SIGNED older Release after newer; no high-water or authorized install; production ROLLBACK RISK OPEN'
+    ;;
   wrong-key|wrong-signer|unsigned|index-tamper|expired|future)
     if apt-get "${opts[@]}" update > /tmp/apt-error.log 2>&1; then
       echo 'FAIL: APT accepted forbidden signed repository' >&2
