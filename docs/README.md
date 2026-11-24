@@ -31,7 +31,7 @@
 
 ## 最近 Linux GUI/Agent 安全验收索引
 
-真实 Agent 的临时 Signed-By 原生 APT install/reinstall/remove [L2B-23 9/9](development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)；原生 Polkit 用户侧 [L2B-24](development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)；root-side D-Bus 真实发送方/防重放 [L2B-25](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)；本地恶意规则让 OS **实际 YES** 而 root ReviewLab 仍拒绝 [L2B-26](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)。这些都是 **networkless Ubuntu24 OCI L2**，不是正式 Polkit 安装器、用户授权或 Pop!_OS 实机 L3。
+真实 Agent 的临时 Signed-By 原生 APT install/reinstall/remove [L2B-23 9/9](development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)；原生 Polkit 用户侧 [L2B-24](development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)；root-side D-Bus 真实发送方/防重放 [L2B-25](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)；本地恶意规则让 OS **实际 YES** 而 root ReviewLab 仍拒绝 [L2B-26](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)。 **新增 [L2B-27 原生 APT 10/10 旧签名 Release Date 仍被接受](development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md)：独立防回退高水位尚缺，未进行实际 Agent 降级。**这些都是 **networkless Ubuntu24 OCI L2**，不是正式 Polkit 安装器、用户授权或 Pop!_OS 实机 L3。
 
 **2026-11-21 旧 docs/README 的全文快照已从工作树删除**，不会再与现行导航竞争；原文可从[固定 Git SHA 的历史快照](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/governance/documentation-index-snapshot-2026-11-21.md)核对。较早 D4/NXT/PG18 的真实失败和成功保留在各 dated reports、[历史原账本](planning/release-readiness-2026-11-13.md) 和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。
 
