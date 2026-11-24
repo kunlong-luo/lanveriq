@@ -1,0 +1,46 @@
+name: Desktop Pop!_OS 24.04 COSMIC read-only host preflight L1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_popos_local_preflight.py'
+      - 'apps/desktop/tools/test_verify_desktop_popos_local_preflight.py'
+      - '.github/workflows/desktop-popos-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: lanveriq-desktop-popos-preflight
+  cancel-in-progress: true
+
+jobs:
+  negative-host-contract:
+    name: Synthetic COSMIC/ABI checks + actual Ubuntu host rejection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Enforce source offline and no installer release
+        run: python3 apps/desktop/tools/verify_desktop_readonly.py
+      - name: Strict source-only negative tests (no PopOS hardware assumed)
+        run: |
+          set -Eeuo pipefail
+          /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_popos_local_preflight.py' -v
+          echo 'PASS: synthetic PopOS24 host contract tests; not actual L3'
+      - name: ACTUAL Ubuntu24 host must refuse and never create evidence
+        run: |
+          set -Eeuo pipefail
+          target="$RUNNER_TEMP/lanveriq-popos-denied-output.json"
+          test ! -e "$target"
+          set +e
+          /usr/bin/python3 apps/desktop/tools/verify_desktop_popos_local_preflight.py inspect --output "$target" > "$RUNNER_TEMP/lanveriq-popos-stdout.txt" 2> "$RUNNER_TEMP/lanveriq-popos-stderr.txt"
+          exit_code=$?
+          set -e
+          test "$exit_code" -eq 2
+          grep -F "NOT_POP_OS_TARGET" "$RUNNER_TEMP/lanveriq-popos-stderr.txt"
+          test ! -e "$target"
+          echo 'PASS: real Ubuntu runner refused; no PopOS/COSMIC physical evidence implied'
