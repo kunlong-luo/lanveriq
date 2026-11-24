@@ -18,6 +18,8 @@
 
 > **2026-11-24 G-05 L2 纠偏：** [功能 SHA 107dc8b4 / desktop #45315213247](https://github.com/kunlong-luo/lanveriq/actions/runs/45315213247) 最终 **FAIL**：frontend L1、Rustfmt PASS，但 Ubuntu24 从 runner APT 源下载 WebKitGTK 开发依赖时 **12 分钟超时**（日志计划 4 升级、171 新安装），Rust 单测与 Clippy SKIPPED；不代表工具链源码编译失败，也不代表此前 b6943041 的 Rust 6/6 PASS 能跨 SHA 使用。L2B-13 [#45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 新候选仍待真实完整归档审计。下一项门禁是受审 Ubuntu 构建依赖环境的来源/摘要/ABI 固定及真实 native test/Clippy；不得直接通过取消检查、扩大权限或未审包源填补。G-05/G-07/G-08/G-09 均 OPEN。
 
+> **2026-11-24 G-05/L2B-13 结果补记：** [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 的 GUI-only `.deb` 候选工作流 **overall FAIL**：前置安全负测、UI 和 Cargo 锁/Rustfmt PASS，但 WebKitGTK/GTK APT 包从 runner 预配置源下载触及 12 分钟上限；实际 Rust/Clippy、打包、Syft/ELF、官方 dpkg-shlibdeps、clean OCI APT、签名实验步骤全部 SKIPPED，**不得声称当前 SHA 存在真实审计通过的 .deb**。新 [37a57f7f / 只读 APT CI #45317328366 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45317328366) 仅证明 Ubuntu24 本地索引 `apt-get -s` 可规划 171 项安装/升级、0 删除；缓存 WebKitGTK 候选 `.1` 和真实 `apt-get update` 后 `.2` 不一致，不能将模拟等同于审核过的确定版本。下一候选 [7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 仍待结论。需要单独批准、固定 digest、可重现的 Ubuntu WebKitGTK builder 与受审 APT 来源及版本、真实同 SHA 严格全链路 PASS；G-05/G-07/G-08/G-09 均保持 OPEN，Pop!_OS COSMIC L3 NOT RUN，v0.1 NOT RELEASE READY。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |

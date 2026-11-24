@@ -1,6 +1,6 @@
 # DESKTOP-L2B-13 — 当前源码 Tauri GUI-only Debian 候选包复验
 
-**SPEC · ACTIVE · 2026-11-24 · workflow SHA [161879ea](https://github.com/kunlong-luo/lanveriq/commit/161879ea3f1b94713b413260ae6852546f92df81) · [候选 CI #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) IN PROGRESS · v0.1 NOT RELEASE READY。**
+**SPEC · ACTIVE · 2026-11-24 · candidate source/workflow SHA 161879ea [#45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) FAIL (APT 12-min timeout); diagnostic SHA 37a57f7f [#45317328366](https://github.com/kunlong-luo/lanveriq/actions/runs/45317328366) SUCCESS (simulation only); next #45316573023 PENDING final outcome · v0.1 NOT RELEASE READY。**
 
 ## 为什么必须重新验收
 
@@ -28,13 +28,24 @@
 
 **验收基础设施的可执行前置条件：** 先验证基于 Ubuntu24、受控来源、来源/版本/摘要可核验的 WebKitGTK 4.1 GTK/Tauri 构建依赖环境，确认最小工具链与 ABI、不使用不明镜像/未审签名、没有扩张构建机到终端或 Agent 权限。可以通过单独批准的固定开发镜像/隔离 runner 进行原生编译；若更换镜像或预制依赖，必须记录其 digest、包来源、受控维护/更新流程和失败回退，然后再让完全相同的 Rustfmt、`cargo test --workspace --locked`、严格 Clippy 和真实 `.deb` ABI/归档/OCI 流程跑完。此处**只规定目标，不代表已有可信镜像或完成验收**。不应简单延长超时、忽略 Clippy 或把旧 .deb 证据当作当前二进制。
 
+## L2B-13 runner dependency evidence and immutable builder exit gate (2026-11-24)
+
+1. [Candidate #45315837623, workflow/source SHA 161879ea](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) has now finished **FAIL**. The source guard and all malicious archive/receipt negative tests, frozen frontend tests/type/build, pinned Rust toolchain/Cargo.lock and Rustfmt passed; **12-minute Ubuntu24 APT prerequisite install failed** while downloading its 171-ish WebKitGTK/GTK transitive dependencies from the runner-configured `us-east-2.ec2.archive.ubuntu.com`. Source-only tests cannot elevate the failure: same-source native Rust test and strict Clippy, Tauri `.deb` build, strict payload/Syft/ELF/official shlibdeps, clean Ubuntu OCI APT and experimental Ed25519 lab were **SKIPPED**. No current-source package bytes/digest exist from this failed run. [Next strict candidate SHA 7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) has begun, overall still unverified at evidence cutoff.
+2. A separate **read-only, no-network-refresh/no-install** [Ubuntu24 APT plan diagnostic commit 37a57f7f](https://github.com/kunlong-luo/lanveriq/commit/37a57f7f311c7f7062e38a3634095c8f1583b5fe) introduces [workflow desktop-ubuntu-apt-plan-diagnostic.yml](../../.github/workflows/desktop-ubuntu-apt-plan-diagnostic.yml); [run #45317328366](https://github.com/kunlong-luo/lanveriq/actions/runs/45317328366) **SUCCESS**. It verified Ubuntu 24.04/amd64 and the existing readonly Tauri source gate, printed runner image `ubuntu24 / 20261116.376.1`, read local `apt-cache policy` and executed only `apt-get -s`: **171 simulated install or upgrade actions, 0 removals**. Its cached `libwebkit2gtk-4.1-dev` candidate version `2.52.6-0ubuntu0.24.04.1` is **not equal** to the `2.52.6-0ubuntu0.24.04.2` downloaded by the real job after `apt-get update`. This demonstrates stale-index risk; neither package selection nor origin is thereby approved. It did not run Tauri, Clippy, download packages, create a Debian archive, or install/enable Agent.
+3. **Builder infrastructure acceptance, still NOT RUN:** separately review an Ubuntu24 OCI image or isolated runner with exact parent image digest and provenance, approved signed APT repository sources and package manifest/version/hash list, preinstalled WebKitGTK4.1/GTK Tauri build prerequisites, reproducible rebuild instructions, immutable published builder digest and independent review/rollback authority. Before the builder may enter CI, check every relevant toolchain/version and dependency origin, no attached production secrets, no privilege/service/autostart expansion and exact parity to the reviewed ABI. Record source SHA, reviewed builder digest, observed installed package closure, native build/test/Clippy and complete strict `.deb` evidence on the **same** current source. This is a requirement for future engineering, not a claim that such a signed builder exists.
+4. **Never claim L2B-13 complete** on an APT simulation PASS, old unsigned candidate PASS, a partial frontend test, or a failed/cancelled CI. Do not bypass Rust/Clippy, increase APT timeout as a substitute for reliable supply-chain evidence, use an unaudited mirror, enable bundle in committed source, sign with publisher keys or install a package on a production host.
+
+[Official Tauri 2 Linux prerequisite background](https://v2.tauri.app/start/prerequisites/) · [L2B-12 GUI prereq](desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md).
+
 ## 验收记录（2026-11-24 核对）
 
 | 验收 | Exact SHA / Workflow | 当前可证明事实 | 尚未证明 |
 | --- | --- | --- | --- |
 | 历史旧 GUI .deb | [旧 L2B-10 #45303829710](https://github.com/kunlong-luo/lanveriq/actions/runs/45303829710) | 当时原生候选及 Ubuntu OCI L2 PASS | 新的 COSMIC GUI 源码 |
 | 新 GUI 原生测试 | [107dc8b4 / #45315213247](https://github.com/kunlong-luo/lanveriq/actions/runs/45315213247) | **overall FAIL**；frontend、安全 L1、Cargo lock/Rustfmt PASS；Ubuntu APT 前置 12 分钟超时 | Rust 单测/Clippy SKIPPED；该 SHA 无完整 native L2 |
-| 新源码未签名候选 | [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) | 源码敌意单测、冻结 pnpm 测试/类型/构建、Cargo lock 与 Rustfmt PASS；原生 APT 前置进行中 | 新 .deb 是否构建、ABI/归档/OCI 全流程是否 PASS |
+| 新源码未签名候选 | [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) | **overall FAIL**：源码/冻结 pnpm/Cargo lock/Rustfmt PASS，真实 Ubuntu APT 下载 12 分钟超时 | Cargo tests、Clippy、.deb/Syft/ELF/shlibdeps/OCI 均 SKIPPED，没有新包 digest |
+| 只读原生依赖计划诊断 | [37a57f7f / #45317328366](https://github.com/kunlong-luo/lanveriq/actions/runs/45317328366) | **SUCCESS**：Ubuntu24 ImageVersion 20261116.376.1，本地索引 171 模拟安装/升级、0 删除 | 真实下载、受审镜像、构建、Pop!_OS L3 全部 NOT RUN |
+| 后续当前源码候选 | [7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) | In progress at evidence cutoff | 同 SHA 完整包构建/严格归档/ABI/OCI 整链 PASS |
 | Pop!_OS24 COSMIC 实机 | [G-05 L3 issue #7](https://github.com/kunlong-luo/lanveriq/issues/7) | NOT RUN | 正常用户 GUI 启动、WebKitGTK/Wayland、授权安装生命周期 |
 
 **L2B-13 退出条件：** 必须确认真实工作流整体 SUCCESS，并分别确认对应同源包真实存在、文件哈希、归档脚本、Syft、ELF、官方 dpkg-shlibdeps 10 组 ABI 最低版本零缺口、OCI APT 模拟与先行严格 Rust/Clippy 成功；记录实际源 SHA、run/attempt、包 SHA-256。当前包哈希未知，不得复制旧包 SHA 或假定新审计成功。失败/取消保持原样。
