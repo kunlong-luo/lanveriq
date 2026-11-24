@@ -37,6 +37,37 @@ def validate(root=DESKTOP):
     native_code = (native / "src/lib.rs").read_text(encoding="utf-8")
     react_code = (root / "src/DesktopApp.tsx").read_text(encoding="utf-8")
     safety = (root / "src/safety.ts").read_text(encoding="utf-8")
+    review = (root / "src/install-review.ts").read_text(encoding="utf-8")
+    review_ui = (root / "src/InstallReviewPanel.tsx").read_text(encoding="utf-8")
+
+    # New GUI workflow is review-only. The process API and release locks
+    # remain exactly as before: no third native IPC, installer plugin or
+    # broker with untrusted client-defined command/path/service arguments.
+    require(
+        'import { InstallReviewPanel } from "./InstallReviewPanel"' in react_code
+        and "<InstallReviewPanel host={host} popos={popos} />" in react_code,
+        "install review must be mounted in the locked wizard",
+    )
+    for field in ("installAllowed", "updateAllowed", "removeAllowed",
+                  "startAllowed", "bootEnabled", "collectionAllowed",
+                  "networkAllowed", "privilegedBrokerAvailable"):
+        require(
+            re.search(r"\\b" + field + r":\\s*false\\b", review) is not None,
+            f"unreviewed installer privilege grant: {field}",
+        )
+    require(
+        "REVIEW_CONSENT_FIELDS" in review
+        and "reviewOnlyInstallPlan(host, popos, acknowledged)" in review_ui
+        and 'type="checkbox"' in review_ui,
+        "install review must show separate nonauthorizing notices",
+    )
+    for forbidden in ("invoke<", "invoke(", "fetch(", "new WebSocket(",
+                      "window.location", "tauri_plugin_", "pkexec",
+                      "Command::new", "install_agent(", "runInstaller("):
+        require(
+            forbidden not in review_ui and forbidden not in review,
+            "install review cannot dispatch IPC, native, network or process actions",
+        )
 
     require(tauri["productName"] == "lanveriq-desktop", "desktop package identity drift")
     require(tauri["bundle"]["active"] is False, "bundle must stay OFF")
