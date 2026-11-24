@@ -1,6 +1,6 @@
 # 文档权威、生命周期与维护规则
 
-**ACTIVE · 2026-11-22 · v0.1 NOT RELEASE READY。**
+**ACTIVE · 2026-11-24 · v0.1 NOT RELEASE READY。**
 
 | 类型 | 唯一入口 | 使用规则 |
 | --- | --- | --- |
@@ -25,5 +25,7 @@
 [仓库目录责任/实际删除清单](repository-layout-audit-2026-11-24.md) 是四应用、deploy 隔离试验目录与文档目录的可审入口；[工程评分](../planning/project-scorecard.md) 是优先级自评，**不能取代 release-gap register 的外部 Gate**。根和四应用 README 只说明目录/开发入口/安全边界；CURRENT_STATUS 不再重复所有历史运行日志。
 
 **删除顺序：** 先确认文件不为生产/CI/测试/唯一历史安全证据依赖，再查当前 README、历史索引和文档相对链接；删除后所有仍需引用的历史记录改为**固定 Git SHA URL**，绝不无声丢失证据。本次 `docs/development/pagevela-reference.md` 的删除曾令历史索引断链并触发真实 CI FAIL，现已修复并保留 [失败运行](https://github.com/kunlong-luo/lanveriq/actions/runs/45372711463)，是后续删除必检的反例。
+
+**2026-11-24 第二轮实际去重：** 旧 `docs/governance/documentation-index-snapshot-2026-11-21.md` 与 `docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md` 是已由 Git SHA 完全保存的全文副本，现从当前工作树删除；[归档 README](archive/README.md) 保留两份完整原文的**固定 SHA 路径**。现行状态/发布门禁/评分/路线已去除重复 L2B 每阶段长日志，其详细负测和原 CI 仍保留在 dated reports。新增 `verifyNoRetiredSnapshotLinks` 递归检查 docs Markdown 和四份根规则/历史文件的相对链接，拒绝把旧快照带回工作树；真实安全/法律/证据唯一文件不得仅凭尺寸清理。根 [中英文 README](../../README.zh.md) 是目录结构唯一入口，旧文件移除**不**意味着其历史不再可查。
 
 **自动化：** `verify-documentation-baseline.mjs` 的本地链接/仓库目录守卫覆盖双语 README、四应用 README、评分和目录审计；docs-governance 在其自身及所有 README/CHANGELOG 改动后触发。任何不在白名单的旧第二 Web、Maven/未审真实安装桥都不得因为文档“评分”提高而被重新引入。**v0.1 NOT RELEASE READY。**
