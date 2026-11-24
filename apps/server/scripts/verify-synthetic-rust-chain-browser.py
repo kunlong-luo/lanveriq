@@ -4,10 +4,12 @@
 No dummy API, screenshots, traces, deployed UI route, TLS bypass or real user
 data. The temporary test page renders the existing StagedConsoleWorkspace.
 """
+import json
 import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
@@ -47,6 +49,24 @@ def main():
             "private_chromium_nss_trust_missing")
     inventory_mode = os.environ.get("LANVERIQ_SYNTHETIC_INVENTORY_CHAIN", "0")
     require(inventory_mode in ("0", "1"), "inventory_mode_is_bounded")
+    sample_mode = os.environ.get("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE", "0")
+    require(sample_mode in ("0", "1") and
+            (sample_mode == "0" or inventory_mode == "1"),
+            "real_linux_inventory_sample_requires_explicit_chain")
+    inventory_source = None
+    if inventory_mode == "1":
+        inventory_path = Path(os.environ.get(
+            "LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE", ""))
+        require(inventory_path.is_absolute() and
+                str(inventory_path).startswith("/tmp/") and
+                inventory_path.name == "synthetic-inventory-request.json" and
+                inventory_path.is_file(), "private_rust_inventory_wire_source")
+        inventory_source = json.loads(inventory_path.read_text(encoding="utf-8"))
+        require(inventory_source.get("device_id") == DEVICE and
+                inventory_source.get("inventory_revision") == 1 and
+                inventory_source.get("interfaces") == [] and
+                inventory_source.get("volumes") == [],
+                "bound_rust_inventory_wire_source")
     container = os.environ.get("LANVERIQ_SYNTHETIC_CHAIN_DB_CID", "")
     require(bool(re.fullmatch(r"[0-9a-f]{12,64}", container)), "ephemeral_database_id")
     # Password is transferred by a private inherited FD. Never argv/env/log.
@@ -76,9 +96,8 @@ def main():
             "SELECT count(*) FROM device_inventory_current "
             f"WHERE device_id='{DEVICE}' AND inventory_revision=1 "
             "AND snapshot_id IS NOT NULL AND received_at IS NOT NULL "
-            "AND os_family='linux' AND os_name='Synthetic Inventory Linux' "
-            "AND cpu_model='Synthetic Inventory CPU' "
-            "AND memory_total_bytes=8000000000 "
+            "AND os_family='linux' AND os_name IS NOT NULL "
+            "AND cpu_model IS NOT NULL AND memory_total_bytes > 0 "
             "AND (SELECT count(*) FROM device_inventory_current)=1")
         inventory_check = subprocess.run(
             ["docker", "exec", container, "psql", "-U", "lanveriq",
@@ -178,16 +197,20 @@ def main():
             require(snapshot["overview"]["body"].get("total") == 1,
                     "overview_server_scope_count")
             if inventory_mode == "1":
+                require(inventory_source is not None, "missing_rust_inventory_source")
+                source_os = inventory_source["os"]["name"]
+                source_cpu = inventory_source["hardware"]["cpu"]["model"]
+                source_memory = inventory_source["hardware"]["memory"]["total_bytes"]
                 require(rows[0].get("os_family") == "linux" and
-                        rows[0].get("os_name") == "Synthetic Inventory Linux" and
-                        rows[0].get("cpu_model") == "Synthetic Inventory CPU" and
-                        rows[0].get("memory_total_bytes") == 8000000000 and
+                        rows[0].get("os_name") == source_os and
+                        rows[0].get("cpu_model") == source_cpu and
+                        rows[0].get("memory_total_bytes") == source_memory and
                         bool(rows[0].get("inventory_received_at")),
                         "spring_inventory_projection_matches_rust_pg")
                 detail = snapshot["detail"]["body"]
-                require(detail.get("os_name") == rows[0]["os_name"] and
-                        detail.get("cpu_model") == rows[0]["cpu_model"] and
-                        detail.get("memory_total_bytes") == 8000000000,
+                require(detail.get("os_name") == source_os and
+                        detail.get("cpu_model") == source_cpu and
+                        detail.get("memory_total_bytes") == source_memory,
                         "spring_scoped_inventory_detail_consistency")
             require(page.locator("main").get_attribute("data-candidate-principal") ==
                     "synthetic-owner", "real_session_principal")
@@ -201,10 +224,13 @@ def main():
             if inventory_mode == "1":
                 details = page.locator(
                     ".device-table tbody th[scope='row'] small").all_text_contents()
+                expected_ram = page.evaluate(
+                    """n => (n / 1000000000).toLocaleString('zh-CN',
+                      {maximumFractionDigits: 1}) + ' GB'""", source_memory)
                 require(len(details) == 2 and
-                        details[0] == "Synthetic Inventory Linux" and
-                        "Synthetic Inventory CPU" in details[1] and
-                        "8 GB" in details[1],
+                        details[0] == source_os and
+                        source_cpu in details[1] and
+                        expected_ram in details[1],
                         "rust_inventory_os_cpu_memory_visible_in_nextjs_dom")
             require(any(url.endswith("/api/v1/devices?limit=50") and status == 200
                         for url, status in api_responses),
@@ -234,9 +260,14 @@ def main():
           "real TLS/Chromium/Next.js rendered exactly one device and scoped total; "
           "cross-group 404, logout clears DOM and API returns 401.")
     if inventory_mode == "1":
-        print("PASS: Rust SQLite outbox -> mTLS inventory POST/ACK -> PG18 current "
-              "snapshot -> authorized Spring projection -> Chromium Next.js "
-              "OS, CPU and memory DOM, without actual OS collection.")
+        if sample_mode == "1":
+            print("PASS: independently corroborated Linux runner OS/CPU/RAM sample -> "
+                  "Rust SQLite outbox -> mTLS inventory ACK -> PG18 current -> "
+                  "Spring scoped API -> real Chromium Next.js DOM.")
+        else:
+            print("PASS: Rust SQLite outbox -> mTLS inventory POST/ACK -> PG18 current "
+                  "snapshot -> authorized Spring projection -> Chromium Next.js "
+                  "OS, CPU and memory DOM, without actual OS collection.")
     print("NOT PROVEN: normal production Next.js route, authorized Pop!_OS "
           "installation, real employees/devices, acquisition or release approval.")
 
