@@ -24,6 +24,8 @@
 
 > **2026-11-24 当前 GUI-only 包 CI 失败再次确认：** [7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 最终 **FAIL**，Ubuntu WebKitGTK4.1/GTK 从原 runner 配置的 Ubuntu 源下载 12 分钟超时；源码与前端测试、锁/格式 PASS，但 Rust 单测、Clippy、当前 .deb 和整链严格 ABI/归档/OCI 全部 SKIPPED。先行 [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 同类 FAIL。另 [L2B-14 独立无安装 APT 预热 b695945c / #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) 尚需验证独立 runner 的缓存恢复；此缓存不是发行身份凭证，不能关闭 G-05 或提升签名、polkit、Pop!_OS L3 权限。所有 Gate OPEN。
 
+> **2026-11-24 G-05/L2B-14 字节级缓存取证：** [ab1e3cd1](https://github.com/kunlong-luo/lanveriq/commit/ab1e3cd1a1967256426a01017e84b0f498530d0d) 在 Ubuntu24 APT 下载实验中增加 `_apt` 沙箱 root 回退日志的拒绝检查和完整 .deb 的 SHA-256 manifest；[后续 #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) 必须在独立 runner 以 exact cache key、count、manifest SHA-256 全部相等才有缓存子项 PASS。旧 [#45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) 仍待最终 CI；首版 [#45318418790](https://github.com/kunlong-luo/lanveriq/actions/runs/45318418790) 尽管整体绿色，cache post-save FAILED / APT root 下载告警不能篡改。该实验未接入现行 Tauri GUI-only `.deb`，更不是 Ubuntu signed-index 每包复核或产品发布许可；G-05/G-07/G-08/G-09 持续 OPEN。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |

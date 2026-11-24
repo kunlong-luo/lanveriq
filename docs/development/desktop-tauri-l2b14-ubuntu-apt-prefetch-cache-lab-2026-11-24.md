@@ -22,13 +22,21 @@
 
 [候选工作流 7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 现已 **overall FAIL**：Ubuntu24 APT 从其配置的 us-east-2.ec2.archive.ubuntu.com 下载开发依赖，在 12 分钟步骤界限终止（日志至第 69 项）。所有源检查、React、Cargo lock 和 Rustfmt PASS；真正 Rust 单测/Clippy、GUI .deb、Syft/ELF、官方 shlibdeps 和清洁 OCI 验收均 **SKIPPED**。必须保留这项失败，不能将它描述为缓存实验中的 PASS 或当前发布就绪。
 
+## L2B-14 SHA-256 跨 runner 增强与 sandbox 负向门禁（2026-11-24）
+
+- 工程提交 [ab1e3cd1](https://github.com/kunlong-luo/lanveriq/commit/ab1e3cd1a1967256426a01017e84b0f498530d0d) 将 APT 下载的 stdout/stderr 同时收集进日志，明确拒绝 `download is performed unsandboxed` 与 `pkgAcquire::Run ... Permission denied`。APT 自己 download-only 成功但实际回退 root 也必须 **FAIL**；不能复用 [第一版 dac7f6ad 的假阳性 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45318418790)。原生 CI 与公开软件包安装权限没有发生变化。
+- 在预热作业中通过 `find -maxdepth 1 -name '*.deb' -print0 | sort -z | xargs -0 -r sha256sum | sha256sum` 计算所有下载完成的 `.deb` 的稳定摘要，随任务 outputs 传给独立 cache-probe。第二个 runner 必须检验 `cache-hit=true`、数量和 **SHA-256 manifest 值**全部相等，任一不一致即整体 FAIL。这只是缓存间字节相同的独立验收，不代表缓存中的每个包都已在未来构建 runner 重新按 Ubuntu 签名索引认证。
+- 前一版 [b695945c / #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) 在本次记录时仍执行下载，结果 PENDING；新严格版 [ab1e3cd1 / #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) 已排队，两个 job 整体还没有 SUCCESS。**未验收缓存绝不接入实际 GUI-only Debian 严格审计或开发机**。
+- 即使 cache-probe PASS，也只关闭“缓存可被独立恢复且字节一致”的基础设施子项；之后必须在将缓存纳入候选包前，实现并实测每一份缓存 `.deb` 对同期有效 Ubuntu 签名索引所列 `SHA256`、Version、Architecture 的独立认证，再实际安装 runner 构建依赖（仅一次性 CI）并以同功能 SHA 运行全部 Cargo/Clippy、真实 `.deb`、Syft、ELF、dpkg-shlibdeps 与 clean OCI 验收。不能把没有绑定 Ubuntu 索引的两次相同缓存当成软件来源证明。
+
 ## 本轮精确来源证据
 
 | 来源 | 实际结论 | 仍然不足 |
 | --- | --- | --- |
 | [首版 SHA dac7f6ad / #45318418790](https://github.com/kunlong-luo/lanveriq/actions/runs/45318418790) | GitHub CI 总体 SUCCESS；Ubuntu APT 真实下载 **175 份 .deb，约 70 MB**，已安装 dpkg 状态未变；但日志显示 _apt 沙箱权限问题，后置 GitHub 缓存 tar 因无法读取 partial / lock **保存失败** | 不得把 overall SUCCESS 视为缓存保存或恢复通过，更不是安全 Builder |
 | [修订 SHA b695945c / #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) | 改为 _apt 可访问的 /var/tmp、完整 .deb 文件匹配、跨作业缓存恢复拒绝优先；验收运行中 | 最终 cache-probe PASS、可复用缓存、正式候选打包未验证 |
-| [候选 SHA 7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) | 当前源码候选仍在原生 APT 依赖环节，结果未完结 | 同源码 Rust/Clippy、真实归档及 ABI 未通过 |
+| [候选 SHA 7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) | **overall FAIL**；Ubuntu APT 12 分钟下载超时，源/前端与 Cargo lock/Rustfmt PASS | 同源码 Rust/Clippy、真实归档、Syft/ABI/OCI 均 SKIPPED |
+| [增强 SHA ab1e3cd1 / #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) | 增加 APT sandbox 失败检测 + 独立 runner 字节级 SHA-256 验收；排队待跑 | 下载、缓存保存/恢复、manifest 核对均 NOT VERIFIED |
 
 **关闭本实验的条件：** 同 SHA 下预热作业与独立恢复作业均 SUCCESS，工作流整体 SUCCESS，明确记录完整 .deb 数量和缓存键，且无已安装包状态变化、无不安全 root 下载回退。若任何 post-cache 或 probe 失败，保持 FAIL / NOT VERIFIED。
 
