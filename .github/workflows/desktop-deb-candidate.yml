@@ -6,6 +6,18 @@ on:
   push:
     branches: [main]
     paths:
+      # A candidate must be rebuilt when packaged GUI/Rust source or locked
+      # build inputs change; README/doc-only pushes do not trigger this L2 job.
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/src-tauri/src/**'
+      - 'apps/desktop/src-tauri/Cargo.toml'
+      - 'apps/desktop/src-tauri/Cargo.lock'
+      - 'apps/desktop/src-tauri/build.rs'
+      - 'apps/desktop/package.json'
+      - 'apps/desktop/pnpm-lock.yaml'
+      - 'apps/desktop/vite.config.ts'
+      - 'apps/desktop/tsconfig.json'
+      - 'apps/desktop/index.html'
       - 'apps/desktop/src-tauri/tauri.conf.json'
       - 'apps/desktop/src-tauri/icons/**'
       - 'apps/desktop/tools/verify-desktop-deb.py'
@@ -26,6 +38,10 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_deb_shlibdeps_audit.py'
       - 'apps/desktop/tools/verify_desktop_clean_apt_simulation.py'
       - 'apps/desktop/tools/test_verify_desktop_clean_apt_simulation.py'
+      - 'apps/desktop/tools/verify_desktop_popos_local_preflight.py'
+      - 'apps/desktop/tools/test_verify_desktop_popos_local_preflight.py'
+      - 'apps/desktop/tools/verify_desktop_readonly.py'
+      - 'apps/desktop/tools/test_verify_desktop_readonly.py'
       - '.github/workflows/desktop-deb-candidate.yml'
   workflow_dispatch:
 
@@ -58,6 +74,7 @@ jobs:
           /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_apt_installed_closure.py'
           /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_deb_shlibdeps_audit.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_clean_apt_simulation.py'
+          /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_popos_local_preflight.py'
       - name: Install pinned frontend runtime without changing pnpm lock
         uses: pnpm/setup@v3
         with:
@@ -84,11 +101,20 @@ jobs:
           cargo +1.100.0 metadata --locked --no-deps --format-version 1 > /dev/null
           cargo +1.100.0 fmt --all -- --check
       - name: Install native Ubuntu 24 Tauri build prerequisites
+        timeout-minutes: 12
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          set -Eeuo pipefail
+          # Disposable runner development headers only. No candidate install,
+          # no source/mirror change and no privilege granted to the app.
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
             libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
+      - name: Same-SHA native Rust read-only tests and strict Clippy before .deb audit
+        working-directory: apps/desktop/src-tauri
+        run: |
+          cargo +1.100.0 test --workspace --locked
+          cargo +1.100.0 clippy --workspace --all-targets --locked -- -D warnings
       - name: Compile actual unsigned GUI-only .deb using temporary CLI-only override; never install it
         shell: bash
         working-directory: apps/desktop
