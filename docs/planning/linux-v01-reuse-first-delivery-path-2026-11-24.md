@@ -15,6 +15,14 @@
 | 软件更新/发行 | **官方 `apt-secure` + deb822 `Signed-By`**、按需评估 Aptly 的仓库管理 | 生产仓库根由独立发行方审批/分发；固定来源/包名、最小权限安装事务，版本、撤销、合法回滚策略；绝不直接粘贴测试私钥 | 仓库身份独立证明 + 隔离真实 Agent 包安装 + 真实 Pop!_OS24 L3；L2B-20 的合成元数据 9/9 不能替代 |
 | 非生产授权运维/审计 | **现有 PG18/Flyway/备份工具**，独立 WORM 只在选型签字后接入 | 最少具名审阅者、真实撤销、外部托管密钥与不可回退介质恢复 | G-02/G-07/G-08 的行政域、合法性、恢复都需要**实物与人员签署**，CI 不能自证 |
 
+## 已锁定下一项集成验收：FULL-CHAIN-L2（2026-11-24）
+
+**优先级 P0；SPEC 已提交，执行未通过。** [单设备端到端验收契约](../testing/agent-to-nextjs-single-device-l2-2026-11-24.md) 规定真实 Rust 请求经**同一** Caddy/Tomcat mTLS、**同一** PostgreSQL 18 事务后，由 Spring 当前管理员/设备组授权 API 返回到 Chromium 中的 Next.js 合成候选页面。当前 [Linux Batch A](../../.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml) 写入模式明确关闭 Console；既有 Next.js/Chromium 合成读使用另行初始化的数据，因此**不得把两条成功证据相加当作一条通过**。
+
+具体下一次源码改动先做：在现有隔离脚本下通过具名 CI-only 开关联动 Rust 业务与 Console，复用首管理员 bootstrap/设备组 scope，而不是放开正式后端；然后把同一设备 UUID、实际心跳 request ID、PG 行、Spring 受权响应和 Next.js DOM 做强关联验收。真实库存发送与展示列为第二个完整链路里程碑，既不将静态 fixture 当真实提交，也不增加默认密码学测试。所有结果标注精确功能 SHA、运行链接及未执行项。
+
+**本次文档决策不改变发布 Gate，不批准正常 Next.js 页面访问业务、生产 Agent 网络、采集、自动恢复、远控、正式 CA 或普通用户 GUI 安装。G-02/G-05/G-07/G-08/G-09 OPEN，v0.1 NOT RELEASE READY。**
+
 ## P1：避免重复引入功能引擎
 
 - **RustDesk**：沿用现有隔离服务端试验与成熟客户端/NAT/Relay 技术；远控仍默认关闭，独立许可（AGPL-3.0）、管理员实时审批、设备侧授权、会话审计及 Pop!_OS COSMIC/Wayland 实测。**不另造远控音视频/输入协议**。
