@@ -41,7 +41,7 @@ Git tree 中**没有** `apps/web-next/`、旧 Vite Web 运行目录、第二套 
 | `docs/CURRENT_STATUS.md` | **CONDENSE (LIVE-FACT)** | 只有当前能力、同 SHA 真实 CI、仍关闭的 Gate 与历史账本链接；保留旧精确运行和失败在历史专题/Git 历史 |
 | `docs/planning/release-gap-register.md` | **CONDENSE (LIVE-GAP)** | 每个 Gate 一行状态、责任类型、完成所需实证；外部组织审批一律 OPEN |
 
-**本次不删除** `docs/planning/release-readiness-2026-11-13.md`、`docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md`、D4/FIDO/WORM 日期报告及所有 GitHub Actions 失败记录；它们承担可追溯的失败/安全审计角色。旧临时签名实验只能作为历史合成事实，不能给安装界面授权。
+**当前继续保留** `docs/planning/release-readiness-2026-11-13.md`、D4/FIDO/WORM 日期报告及所有 GitHub Actions 失败记录；它们仍是可追溯的独立测试/安全证据。**旧 AGENTS 全文快照已在后续本日第二轮去重中删除工作树副本，使用 [固定 Git SHA 的归档索引](archive/README.md)访问，原始 Git blob 与 CI 不受影响。** 旧临时签名实验只能作为历史合成事实，不能给安装界面授权。
 
 ## 本轮实际减负与安全校验
 
@@ -50,6 +50,21 @@ Git tree 中**没有** `apps/web-next/`、旧 Vite Web 运行目录、第二套 
 一次真实删除检测发现：旧索引快照仍有指向已删除 `pagevela-reference.md` 的链接，导致 [文档及 Web CI #45372711463/#45372711446 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45372711463)。已在 [Git 提交 3cb54c30](https://github.com/kunlong-luo/lanveriq/commit/3cb54c30ca2d50f5f9c94cd7b8f47ff1919a0154) 将该历史快照链接改为**删除前固定源码 SHA 23c94712 的 GitHub URL**：现在既能访问原研究、又不会把过时方案留在现行开发目录。**这次失败必须保留，不能声称从未存在断链。**
 
 新增 `apps/web/scripts/verify-documentation-baseline.mjs` 的 `verifyRepositoryLayout`：核查四应用和依赖目录存在、旧 `web-next`/Maven/已删除 Pagevela 路径没有复活、README 尽量不膨胀及双语目录地图。相应 Node 测试通过实际创建虚假旧目录、删除核心文件、把 README 增长到 140 行以上来验证负例。扩大文档本地链接检查到四应用 README、项目评分和本次审计。复测 [功能 SHA 0db21627 / docs-governance #45373334900 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334900)、[Next.js fast source #45373334701 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334701)、[RD-2 #45373334599 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334599)，但这只是结构/代码回归，不是正式生产上线审批。
+
+## 2026-11-24 第二轮：可删除项严格区分工作树与 Git 历史
+
+**后续审计基线：** [`80a74373`](https://github.com/kunlong-luo/lanveriq/commit/80a743739b32333881b926c0f63e953299ad1ba7) 的完整 Git tree 有 **860 个跟踪文件、211 份 docs Markdown**。没有一组相同 Git blob SHA 的 docs Markdown；许多 dated reports 提供独立失败/攻击证据，不能以标题/功能相似直接删除。本轮只删除**可由 Git 固定 SHA 完整恢复的两份过大重复快照**，保留仍可追查的原始身份和时间。
+
+| 实际后续动作 | 原大小 | 是否移除唯一证据 | 仍如何追溯 |
+| --- | ---: | --- | --- |
+| `docs/governance/documentation-index-snapshot-2026-11-21.md` 删除工作树副本 | 约 19 KB | **否**；原文是旧首页复制 | [原始 Git blob，固定 SHA](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/governance/documentation-index-snapshot-2026-11-21.md) |
+| `docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md` 删除工作树副本 | 约 189 KB | **否**；原文是旧 root AGENTS 的重复长文档和时间线 | [原始 Git blob，固定 SHA](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md)；[更早 root AGENTS](https://github.com/kunlong-luo/lanveriq/blob/436fc403b1e6b514c5c25b09d5d481cf73efdae7/AGENTS.md) |
+| 新增 [`docs/governance/archive/README.md`](archive/README.md) | 小于 2 KB | 归档目录现在只维护**链接索引** | 单一入口、逐份 pinned-Git 回溯 |
+| 压缩 LIVE 入口与 [Linux 路线图](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) | 合计约 38 KB→14 KB（四份） | **否**；历史段落仍在 Git 旧版本和 dated reports | [当前状态](../CURRENT_STATUS.md) / [发布缺口](../planning/release-gap-register.md) / [自评](../planning/project-scorecard.md) / [路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) |
+
+**目录结构保持现有单一源代码树，不人为移动 200+ 份已有相对链接的安全验收文档。** 目录职责和中英文树形图见根 README。新增 `verifyNoRetiredSnapshotLinks` 在 CI 遍历所有 docs Markdown 和根规则文件，禁止仍指向已删快照的**相对链接**；允许且鼓励固定 Git SHA 的历史回溯。另对 live status/gates/score 设置体积、重复里程碑和默认拒绝负测，阻止下一轮再复制长历史。
+
+**保留事项：** 独立 WORM、FIDO、PKI、Agent/PG18、NXT 和每个 L2B 的真实 CI 原始失败不可删，不应以“文档太多”删除仍活跃的代码/CI/安全负测；文档精简不改变产品发布门禁。**v0.1 NOT RELEASE READY。**
 
 ## 防止回退与文档所有权
 
