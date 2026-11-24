@@ -10,6 +10,9 @@ test ! -e /run/systemd/system
 test -r /mnt/lanveriq-policy/org.lanveriq.agent.package.policy
 test -r /mnt/lanveriq-broker-source/polkit-oci-dbus-broker-lab.py
 test -r /mnt/lanveriq-broker-source/polkit-oci-dbus-review.conf
+# This is an isolated test-only service. Even if Polkit unexpectedly returns
+# YES through a rogue local rule, the root review service must stay DENY.
+/usr/bin/python3 /mnt/lanveriq-broker-source/test_polkit_oci_dbus_broker_lab.py
 
 # These files are installed ONLY within disposable OCI overlay.
 install -m 0644 /mnt/lanveriq-policy/org.lanveriq.agent.package.policy \
