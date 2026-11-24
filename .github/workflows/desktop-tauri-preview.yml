@@ -16,6 +16,8 @@ on:
       - 'apps/desktop/tools/verify_desktop_popos_local_preflight.py'
       - 'apps/desktop/tools/test_verify_desktop_popos_local_preflight.py'
       - 'apps/desktop/tools/verify_desktop_deb_shlibdeps_audit.py'
+      - 'apps/desktop/tools/verify_desktop_apt_archive_cache.py'
+      - 'apps/desktop/tools/test_verify_desktop_apt_archive_cache.py'
       - 'apps/desktop/package.json'
       - 'apps/desktop/pnpm-lock.yaml'
       - 'apps/desktop/tsconfig.json'
@@ -99,16 +101,49 @@ jobs:
       - name: Rustfmt check
         working-directory: apps/desktop/src-tauri
         run: cargo +1.100.0 fmt --all -- --check
-      - name: Install Ubuntu 24 Tauri WebKitGTK 4.1 build prerequisites
-        timeout-minutes: 12
+      - name: Restore exact audited Ubuntu APT cache (untrusted acceleration only)
+        id: native_apt_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /var/tmp/lanveriq-desktop-apt-archives/*.deb
+          # Two-runner signed-index, exact-closure acceptance: #45321096944.
+          # No restore-keys, no prefix fallback and no unreviewed archive source.
+          key: lanveriq-ubuntu24-tauri-apt-v2-d3781616035a7dca93d8cc962be5b96c2430dd26cf28deee45aa287121da8f9e
+          fail-on-cache-miss: true
+      - name: Revalidate 175 cached Ubuntu native packages and install CI prerequisites without downloading
+        shell: bash
+        timeout-minutes: 15
+        env:
+          CACHE_HIT: ${{ steps.native_apt_cache.outputs.cache-hit }}
         run: |
           set -Eeuo pipefail
-          # Bounded disposable Ubuntu runner network prerequisites only.
-          # Do not change distribution mirrors, install the candidate, or grant GUI authority.
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
-            libssl-dev libxdo-dev patchelf pkg-config
+          test "$CACHE_HIT" = true || { echo 'FAIL: audited cache key not restored' >&2; exit 1; }
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(dpkg --print-architecture)" = amd64
+          archive=/var/tmp/lanveriq-desktop-apt-archives
+          # Independently authenticate the CURRENT runner's Ubuntu APT indexes.
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
+            -o APT::Get::AllowUnauthenticated=false update
+          packages=(
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+            libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
+          )
+          plan="$RUNNER_TEMP/desktop-preview-apt-plan.txt"
+          apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
+          python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
+            --archive-dir "$archive" --expected-count 175 \
+            --expected-manifest 5ac2afaff76e962e6c5131c34645248cb8024d4e8581d2790d71f622e988bc35 \
+            --expected-plan-file "$plan"
+          sudo install -d -o _apt -g root -m 700 "$archive/partial"
+          sudo DEBIAN_FRONTEND=noninteractive apt-get \
+            -o APT::Get::AllowUnauthenticated=false -o APT::Install-Recommends=false \
+            -o Dir::Cache::archives="$archive" \
+            --no-download --no-install-recommends install -y "${packages[@]}"
+          pkg-config --exists webkit2gtk-4.1 gtk+-3.0
+          echo 'PASS: disposable CI native toolchain prerequisites verified from signed APT indexes'
+          echo 'BOUNDARY: no GUI .deb or Agent installed, no product signer, no production activation'
       - name: Compile actual Tauri and test native inspectors
         working-directory: apps/desktop/src-tauri
         run: cargo +1.100.0 test --workspace --locked
