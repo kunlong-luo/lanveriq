@@ -20,6 +20,8 @@
 
 > **2026-11-24 G-05/L2B-13 结果补记：** [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 的 GUI-only `.deb` 候选工作流 **overall FAIL**：前置安全负测、UI 和 Cargo 锁/Rustfmt PASS，但 WebKitGTK/GTK APT 包从 runner 预配置源下载触及 12 分钟上限；实际 Rust/Clippy、打包、Syft/ELF、官方 dpkg-shlibdeps、clean OCI APT、签名实验步骤全部 SKIPPED，**不得声称当前 SHA 存在真实审计通过的 .deb**。新 [37a57f7f / 只读 APT CI #45317328366 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45317328366) 仅证明 Ubuntu24 本地索引 `apt-get -s` 可规划 171 项安装/升级、0 删除；缓存 WebKitGTK 候选 `.1` 和真实 `apt-get update` 后 `.2` 不一致，不能将模拟等同于审核过的确定版本。下一候选 [7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 仍待结论。需要单独批准、固定 digest、可重现的 Ubuntu WebKitGTK builder 与受审 APT 来源及版本、真实同 SHA 严格全链路 PASS；G-05/G-07/G-08/G-09 均保持 OPEN，Pop!_OS COSMIC L3 NOT RUN，v0.1 NOT RELEASE READY。
 
+> **2026-11-24 G-05 构建环境缓存隔离门禁（L2B-14）：** [dac7f6ad / APT cache 初版 #45318418790](https://github.com/kunlong-luo/lanveriq/actions/runs/45318418790) 真正下载 175 份 Ubuntu 开发 .deb 但 **缓存 post-save FAIL，APT 的 _apt 沙箱权限失效**；这不是可复用缓存 PASS，更不是当前源码 .deb 通过。已修正 [b695945c / #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) 仅缓存完整 .deb、修复 _apt 目录所有权并加独立 runner 缓存恢复核验，仍待两作业整体 SUCCESS。只有该实验完整成功后才评估把缓存接入现有严格构建流程；必须保留 APT 签名/每包 hash、Cargo/Clippy、完整 ABI/Syft/ELF/OCI 审计。G-05/G-07/G-08/G-09 OPEN，Pop!_OS L3 NOT RUN。[L2B-14 SPEC](../development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md)。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |

@@ -20,6 +20,7 @@
 - [2026-11-23 技术栈五批升级验收总账（真实 CI、遗留差距、回退边界）](development/stack-upgrade-acceptance-2026-11-23.md)。
 
 - [Tauri 2 桌面 UI + Rust 原生只读主机检测（Ubuntu24 源码/本机构建 2/2 L1 CI PASS，非发行版）](development/desktop-tauri-first-source-2026-11-23.md) · [桌面源码 README](../apps/desktop/README.md)。当前为离线预览，**不能安装 Agent**。
+- [DESKTOP-L2B-14 Ubuntu WebKitGTK/GTK 官方 APT 源预热与跨 runner 缓存证明](development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md)：首版真实下载 175 份 .deb，但缓存保存失败已显式记账；修复后的独立恢复 CI 尚待验收，非真实 Agent 安装器或签名 Builder。
 - [DESKTOP-L2B-13 当前源码 GUI-only .deb 严格归档审计与 Ubuntu 原生依赖复验](development/desktop-tauri-l2b13-current-source-gui-deb-reaudit-2026-11-24.md) · [零安装 APT 依赖计划诊断（171 项）](../.github/workflows/desktop-ubuntu-apt-plan-diagnostic.yml)：当前源码候选仍受构建环境下载瓶颈阻塞，**不是可分发 Agent 安装器**。
 - [DESKTOP-L2B-12 图形兼容性只读预检、前端 ABI 约束、防篡改与真实 CI 阻塞账本](development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md)：最新 d44327b5 的 [desktop-ui L1 子任务 #45314250801 已成功](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801)（23+22+19 测试，Python/React/.deb ABI 与 COSMIC 防漂移），原生 L2 尚无通过证据，**不能用于发行**。
 
