@@ -20,11 +20,12 @@
 - [2026-11-23 技术栈五批升级验收总账（真实 CI、遗留差距、回退边界）](development/stack-upgrade-acceptance-2026-11-23.md)。
 
 - [Tauri 2 桌面 UI + Rust 原生只读主机检测（Ubuntu24 源码/本机构建 2/2 L1 CI PASS，非发行版）](development/desktop-tauri-first-source-2026-11-23.md) · [桌面源码 README](../apps/desktop/README.md)。当前为离线预览，**不能安装 Agent**。
+- [DESKTOP-L2B-12 图形兼容性只读预检、前端 ABI 约束、防篡改与真实 CI 阻塞账本](development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md)：最新 d7fc9180 L1 回执待核、原生 L2 未通过，**不能用于发行**。
 
 ## Linux-first 图形安装与后台 Agent（2026-11-23 产品设计，**未实现**）
 
 - [ADR-0013 桌面安装器 + systemd 独立 headless Agent 决策](architecture/adrs/0013-tauri-desktop-installer-idle-agent.md) · [v0.1 GUI 用户旅程/交互/权限定义](product/linux-desktop-installer-v01.md) · [Pop!_OS24 图形安装 L1/L2/L3 验收矩阵](testing/linux-desktop-installer-acceptance.md)。
-- [现有安装与开发说明](operations/installation.md)。**现有离线 .deb 只是未签名候选，不是可向用户分发的正式图形安装器；Tauri 源码仍未建立，实际 Pop!_OS L3 未验。**
+- [现有安装与开发说明](operations/installation.md)。**Tauri 2 只读桌面原型源码与真实 Ubuntu24 GUI-only 未签名 .deb 候选已存在；但尚非可分发的 Agent 图形安装器。正式签名、受限安装授权和实际 Pop!_OS24 COSMIC L3 均未通过。**
 
 ## 源码与设计
 - [系统架构](architecture/system-overview.md) · [设备协议](architecture/device-communication-stack.md) · [注册/PKI](architecture/enrollment-bootstrap.md) · [SQLite/ACK](architecture/agent-persistence.md) · [API](architecture/api-contract.md) · [WebSocket](architecture/websocket-contract.md)。
@@ -35,7 +36,7 @@
 - [C18g 独立 WORM 管理域与实物验收协议（NOT RUN）](security/independent-worm-custody-acceptance-d4-c18g-2026-11-22.md) · [C18f 候选研究](security/independent-worm-provider-evaluation-d4-c18f-2026-11-22.md)。
 - [FIDO D4-C9–C18e 未可信证据边界总表](security/fido-trust-boundaries.md) · [C17 离线见证历史校验](security/fido-mds-anchored-history-d4-c17-2026-11-22.md) · [身份访问](security/identity-and-access.md) · [威胁模型](security/threat-model.md) · [隐私](security/privacy-and-consent.md)。
 
-- [DESKTOP-L2A Tauri 2 GUI-only 离线 .deb 候选构建／严格包审查（待 CI，不含 Agent）](development/desktop-tauri-offline-deb-candidate-2026-11-23.md)。
+- [DESKTOP-L2A Tauri 2 GUI-only 离线 .deb 候选构建／严格包审查（历史真实 Ubuntu CI 通过，不含 Agent）](development/desktop-tauri-offline-deb-candidate-2026-11-23.md)。
 
 ## 测试、发布与历史
 - [G-05-LNX3 真正安装后 systemd 生效属性只读检查（无安装/无生产授权）](testing/linux-installed-idle-inspector-g05-lnx3-2026-11-23.md)。

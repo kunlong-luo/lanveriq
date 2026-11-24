@@ -1,6 +1,6 @@
 # DESKTOP-L2B-12 — Pop!_OS/COSMIC read-only preflight in Tauri GUI
 
-**SPEC · 2026-11-24 · latest feature SHA c36a8da0 · React/source L1 PASS / native Rust L2 PENDING / Pop!_OS physical L3 NOT RUN · v0.1 NOT RELEASE READY**
+**SPEC · 2026-11-24 · latest feature SHA d7fc9180 · new same-SHA L1 PENDING / native Rust L2 NOT RUN at previous SHA / Pop!_OS physical L3 NOT RUN · v0.1 NOT RELEASE READY**
 
 ## Problem, UX decision and assurance boundary
 
@@ -35,8 +35,15 @@ Prior [L2B-11](desktop-tauri-l2b11-popos-cosmic-host-preflight-2026-11-24.md) im
 
 - **Current feature SHA [c36a8da0](https://github.com/kunlong-luo/lanveriq/commit/c36a8da08f755458d53309378831dbd3d565160f):** the React metadata contract matches all 10 exact `dpkg-shlibdeps` approved version floors, including the one intentionally unversioned JavaScriptCoreGTK dependency. The JS frontend does not implement Debian version ordering; distro `apt_pkg.version_compare` remains authoritative in the local Python check.
 - `preflight.ts` rejects any unapproved top-level field, arbitrary machine-specific/private path, unknown APT field, unapproved COSMIC session property or unexpected per-package metadata. Two added negative tests cover minimum-floor removal/alteration and smuggled extra fields.
-- [Same functional SHA Desktop Tauri workflow #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) passed React/Vitest, TypeScript, offline UI build and strict two-IPC source guard. **Native Rust Cargo tests and Clippy are PENDING** while Ubuntu WebKitGTK build prerequisites are installed. Ubuntu is not Pop!_OS COSMIC L3.
+- [Same functional SHA Desktop Tauri workflow #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) passed React/Vitest, TypeScript, offline UI build and strict two-IPC source guard. **The overall workflow FAILED:** the Ubuntu WebKitGTK prerequisite installation timed out after 12 minutes; cargo test and Clippy were **SKIPPED / NOT RUN**. They are not proven PASS or compile FAIL. Ubuntu is not Pop!_OS COSMIC L3.
 - The CI-only bounded Ubuntu prerequisite step introduced in [SHA 3a975059](https://github.com/kunlong-luo/lanveriq/commit/3a975059f1a1c1996738aa543e28c27659af15f5) remains active; older runs that were superseded do not count as native L2 passes.
+
+## Corrected CI outcome and same-SHA frontend ABI contract (2026-11-24)
+
+- [Actual desktop workflow #45310985549, functional SHA c36a8da0](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549): **overall FAIL**, due exclusively to the 12-minute Ubuntu24 APT prerequisite step timing out during extremely slow downloads from the runner's configured Ubuntu mirror. Before that, the actual desktop React/Vitest, TypeScript, disconnected build, safety source tests and Rustfmt checks passed; **cargo test and Clippy steps were SKIPPED**. The workflow does not show a native compiler result. Do not relabel this completed failure as PENDING or interpret previous successful L2B-10 .deb audits as proof of this newer GUI feature's native build.
+- [Latest safety implementation d7fc9180](https://github.com/kunlong-luo/lanveriq/commit/d7fc91803ea375b0c964a933aa3fd8596ff55bf2) extends `verify_desktop_readonly.py` so that the approved Debian package names/minimum versions (10 ordered ABI declarations in Tauri `bundle.linux.deb.depends`) and both `src/preflight.ts` read-only GUI arrays must match exactly. Three new mutation tests reject a lower libc6 minimum, substituted GUI package and newly invented minimum where the audited requirement is deliberately unversioned. This does not perform Debian version ordering in JavaScript or authorize any installation.
+- The existing `desktop-tauri-preview.yml` UI job now executes the embedded Python local Pop!_OS preflight negative unit suite, including **real non-Pop!_OS Ubuntu host rejection**, before reaching the separate expensive native prerequisite stage. This is a source/L1 assurance only; the embedded Python test is not evidence of a real Pop!_OS COSMIC session or a built Tauri native binary.
+- **Acceptance to close this subtask:** same functional SHA completes React, Python negative source checks, Rustfmt, native `cargo test --workspace --locked` and Clippy `--all-targets --locked -D warnings` on Ubuntu24, without suppressing the APT failure. If the runner mirror remains slow, document the environmental issue and use a separately reviewed, pinned prerequisite image or explicitly authorized infrastructure change; do not loosen the timeouts or replace trusted sources merely to turn CI green. Thereafter actual Pop!_OS 24.04/COSMIC L3 remains independently NOT RUN.
 
 ## Pop!_OS physical L3 and release gaps: still OPEN
 
