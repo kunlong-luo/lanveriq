@@ -1,5 +1,9 @@
 # G-05 / G-07 / G-08 / G-09 — Pop!_OS 24.04 desktop installer acceptance
 
+> **2026-11-24 最新 L2B-23：真实 Agent 包原生 APT 签名源生命周期隔离子项已 PASS。** [功能 SHA 2af1cf34 / Ubuntu24 #45376989866 attempt 1 SUCCESS 9/9](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)：真实 Rust Agent 二进制/严格归档 .deb → CI 一次性签名 InRelease/Packages/固定 Signed-By → networkless/cap-drop-all Ubuntu24 OCI 中**真实 apt-get install、同版本 reinstall、remove**；八类签名/索引/包字节/包名/过期与未来时间原生拒绝全部通过。[精确 L2B-23 证据](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。**只关闭“OCI 中真实 APT 来源验证 + Agent 包安装/重装/删除”技术子项；整个 GUI/Polkit 最小权限安装器 L2 尚 NOT RUN**。临时 signer 未经独立审批，不存在实际 Polkit broker、两版本升级/回滚、Pop!_OS24 COSMIC 实机 L3 或生产采集/联网授权；G-05/G-09 OPEN，v0.1 NOT RELEASE READY。
+
+
+
 > **2026-11-24 L2B-20：** [真实 Ubuntu24 apt-get update / `Signed-By` #45334019405](https://github.com/kunlong-luo/lanveriq/actions/runs/45334019405) **9/9 PASS**。这是官方 APT 对**合成、无二进制软件包**的本地 signed `InRelease` 与 `Packages` 完整性校验，并验证错误 keyring/签名、未签名和过期元数据会拒绝；它**没有下载、安装、升级、卸载真实 Agent .deb，也没有真实发布者信任根或最小 Polkit broker，更不包含 Pop!_OS/COSMIC L3**。因此本验收矩阵中的真正签名 Agent 安装器 L2 与实机 L3 仍 NOT RUN；G-05 不关闭。[L2B-20](../development/desktop-tauri-l2b20-real-apt-signed-by-offline-ci-2026-11-24.md)。
 
 > **2026-11-24 L2B-19 状态：** [接收端 root pin/过期/撤销/模拟回滚 #45328874536](https://github.com/kunlong-luo/lanveriq/actions/runs/45328874536) **34/34 离线 LAB PASS**；根 pin、时间和最低版本仍由测试 caller 提供，不是正式 Root TUF 预置、真实可信时间或有持久高水位的 Pop!_OS 实机。**正式签名、受限 Agent 安装器 L2、Polkit 与 COSMIC 物理 L3 都 NOT RUN**，G-05 不能关闭。[L2B-19 独立根选型/退出证据](../development/desktop-tauri-l2b19-receiver-root-preprovision-lab-2026-11-24.md)。
@@ -56,8 +60,9 @@ Source design: [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle
 - [ ] GUI closure does not trigger service control. Desktop application has no tray/login-autostart resident component.
 - [ ] Existing Agent production network/collection/remote/auto-recovery/CA flags remain default-OFF; RD-2 negative gate included.
 
-## L2 — disposable environment (NOT RUN)
+## L2 — disposable environment（真实 Signed-By Agent APT 子项 PASS；完整 GUI/Polkit L2 仍 NOT RUN）
 
+- [x] **APT 技术子项仅限 OCI L2**：使用当前编译真实 Agent .deb + CI 临时 signer 的唯一 Signed-By file: repository，经系统 APT 实际 install、同版 reinstall、remove，八类不可信签名/索引/包篡改拒绝；**不含 GUI/Polkit/官方签名**。[#45376989866 9/9 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)。
 - [ ] Build genuine Tauri Linux artifact with bundled WebKitGTK prerequisites tested, signed package verification, cryptographic provenance and exact reviewed version.
 - [ ] With isolated disposable Ubuntu24 VM and snapshot: install GUI and inspect package; it does not implicitly install or start an unapproved Agent or access employee data.
 - [ ] Using a **separately authorized** lab test policy: approved helper grants only requested package/config/service operations. Test denied/revoked/unprivileged users.
