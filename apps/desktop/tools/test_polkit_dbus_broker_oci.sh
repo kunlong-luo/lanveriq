@@ -88,6 +88,8 @@ grep -Fq "'REPLAY_DENIED'" <<<"$replayed"
 scoped=$(call_as daemon install "$(printf '%032x' 1)")
 grep -Fq "'POLKIT_DENIED'" <<<"$scoped"
 echo 'PASS: nonce replay rejected for same Unix UID, distinct Unix UID independently checked'
+# Diagnose synthetic rejected argument decoding only; no user data in this OCI.
+set -x
 
 invalid=$(call_as nobody start "$(printf '%032x' 10)")
 grep -Fq "'INVALID_OPERATION'" <<<"$invalid"
@@ -112,6 +114,7 @@ set -e
 test "$extra_status" -ne 0
 grep -Eiq 'InvalidArgs|Invalid arguments|signature|too many arguments|expects' <<<"$extra"
 
+set +x
 # Transport-supplied identity cannot be forged by caller environment.
 env_result=$(runuser -u nobody -- env PKEXEC_UID=0 \
     LANVERIQ_RELEASE_APPROVED=true \
