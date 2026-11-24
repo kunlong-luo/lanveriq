@@ -1,0 +1,30 @@
+# DESKTOP-L2B-12 — Pop!_OS/COSMIC read-only preflight in Tauri GUI
+
+**SPEC · ACTIVE 2026-11-24 · feature SHA 247d1d85 · React/source L1 PASS / native Rust L2 PENDING / Pop!_OS physical L3 NOT RUN · v0.1 NOT RELEASE READY**
+
+## Problem, UX decision and assurance boundary
+
+Prior [L2B-11](desktop-tauri-l2b11-popos-cosmic-host-preflight-2026-11-24.md) implemented a strict read-only Python/`python3-apt` local host inspector but had no graphical entry; users would still need a terminal/script. L2B-12 reuses the current [single Tauri 2 application](../../apps/desktop/src/DesktopApp.tsx), adding a visible **检查兼容性（只读）** action to Step 2 / 环境检查 and a status entry in 安全与诊断. It does not introduce a second desktop stack or any package installer. The initial native `inspect_host` remains unchanged; the heavier Pop!_OS package/COSMIC metadata scan is **only triggered by an explicit GUI click**, never automatically, from the web preview or a background scheduler.
+
+## Native delivery / no-shell contract
+
+- `src-tauri/src/lib.rs` **embeds** the reviewed Python preflight source at build time with `include_str!`. A second narrowly scoped Tauri IPC command `inspect_popos_preflight` runs `/usr/bin/python3 -I -c <embedded-script> inspect-json` through the Rust standard process API: **fixed executable, fixed arguments, no shell, no installer/plugin permissions, no user-supplied command or paths**. The process runs in `spawn_blocking`; its environment is cleared and re-populated with only bounded XDG session claims and a minimal fixed PATH/LANG. The Python check is an *external local process* under the current non-root user; successful output is bounded JSON, failure stderr is reduced to a fixed safe error code so private paths/URLs cannot appear in UI.
+- The embedded `inspect-json` mode does **not** create a report file or use the development repo path. The standalone `inspect --output` L2B-11 mode remains supported for an explicitly requested offline 0600 report. The ABI requirement list is embedded and checked against source Tauri `bundle.linux.deb.depends` by CI; in packaged GUI runtime `source_config_checked_on_host=false` explicitly says there is **no source-tree config validation on the user's PC**. No `apt update`, `apt install`, dpkg changes, network, sudo/pkexec/polkit or systemd start/enable takes place. If system `/usr/bin/python3` or distro `python3-apt` is missing, the UI fails **closed** with a readable blocker, without silently installing it.
+- The `src-tauri/capabilities/default.json` remains exactly `core:default` for a single `main` window; no Tauri shell/fs/http/updater/autostart plugins. Source guard now allows exactly **two** fixed Tauri native IPC commands and requires the embedded isolated protocol. The desktop bundle continues with `bundle.active=false`, `targets=[]`; production Agent start, package install, remote control and signing permissions all remain fixed false.
+
+## Front-end rendering and fail-closed semantics
+
+- `src/preflight.ts` validates exact schema, Pop!_OS 24.04 amd64 identity, claimed COSMIC/Wayland environment, exactly ten reviewed ABI package entries and three installed COSMIC package entries, a hashed/bounded APT sources fingerprint, and **all release/installer/Agent/L3/signer booleans or labels being unapproved**. Any malformed, unexpectedly authorized, overlarge, missing or forged report is rejected before display.
+- The user sees `idle`, `reading`, `blocked`, `checked`, or `web-preview` states. Browser mode never constructs a fake successful report. A sanitized fixed translation table maps blocked reasons such as wrong OS, missing COSMIC component, missing native apt_pkg or version below ABI minimum; arbitrary errors never reveal `/home`, APT URLs or stdout. A checked report is labelled **本机兼容性元数据已读取；不代表可安装** and shows the ten system ABI *cached candidate* versions, not a package installation decision.
+- Tauri can render this on Ubuntu CI from static app code, but **does not imply Pop!_OS COSMIC GUI launch, hardware compatibility, actual native WebKitGTK plugin readiness, accessibility completion, or approved install**.
+
+## Exact-SHA evidence
+
+- [Source SHA 247d1d85](https://github.com/kunlong-luo/lanveriq/commit/247d1d858aef60af18ce71d94f88d716d23f9edb): Rust Tauri fixed read-only IPC, GUI Step-2 button, no-browser-data policy, typed result sanitizer and 8 new React contract tests. [Desktop Tauri preview CI #45307869232](https://github.com/kunlong-luo/lanveriq/actions/runs/45307869232): **React test/typecheck/build and source guard PASS; native Rust job PENDING** at initial document update. Do not assume native compile or rustfmt/clippy SUCCESS until verified on same SHA.
+- [Prior L2B-11 Python source SHA 57c37349](https://github.com/kunlong-luo/lanveriq/commit/57c373496a40ba7fa1bf713d6eef41be90f9b5b6), [Ubuntu24 Pop!_OS negative CI #45307469157 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45307469157): 22 L1 cases after adding embedded inspect-json mode, including real non-Pop!_OS Ubuntu refusal. These earlier exact-source tests are *not* a physical Pop!_OS success or the later full native SHA proof.
+
+## Pop!_OS physical L3 and release gaps: still OPEN
+
+An independently authorized and observable Pop!_OS 24.04/COSMIC host must actually launch this GUI under the normal non-root user, click **检查兼容性（只读）**, verify a real Wayland session and package versions, test missing `python3-apt`, stale cache, wrong version, absent COSMIC and denied permissions; then measure app-close/idle-agent lifecycle, keyboard accessibility and runtime loader/plugins. This metadata panel cannot approve the real `.deb` signature, polkit helper, installation/upgrade/uninstall, Agent boot/auto-recovery, legal redistribution or independent WORM. Keep G-05/G-07/G-08/G-09 OPEN and v0.1 NOT RELEASE READY.
+
+[Current status](../CURRENT_STATUS.md) · [Release gaps](../planning/release-gap-register.md) · [Pop!_OS installer acceptance](../testing/linux-desktop-installer-acceptance.md) · [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md).
