@@ -2,6 +2,8 @@
 
 **SECURITY LAB · 2026-11-24 · OpenSSL 3 两把临时密钥/30 个测试 PASS · 独立发行者与复核方身份 NOT VERIFIED · 正式发布 NOT APPROVED · v0.1 NOT RELEASE READY**
 
+> **后继 L2B-19：** [接收端 LAB 根预置/吊销/时效/回滚 #45328874536](https://github.com/kunlong-luo/lanveriq/actions/runs/45328874536) **34/34 PASS**，但仅在同一 CI 中提供模拟根文件摘要/时间/高水位，**并无真实独立根或可信时钟**。它把根 pin 从声明本身移到单独 LAB 输入，不代表正式接收端已独立预置根，更不意味着可以启动 Agent 或安装软件。[L2B-19 限制](desktop-tauri-l2b19-receiver-root-preprovision-lab-2026-11-24.md)。
+
 ## 为什么需要此阶段
 
 [L2B-15 原生未签名 GUI-only Debian](desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md) 在源码 c4f04e44 上完成严格 L2，但那份 `lanveriq-desktop_0.1.0_amd64.deb` 没有正式发行签名、分发或安装授权。此前 L2B-2 的单一临时签名证明的是校验和密码学机制，不能证明发行者身份或双人审核。

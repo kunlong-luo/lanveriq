@@ -1,5 +1,7 @@
 # G-05 / G-07 / G-08 / G-09 — Pop!_OS 24.04 desktop installer acceptance
 
+> **2026-11-24 L2B-19 状态：** [接收端 root pin/过期/撤销/模拟回滚 #45328874536](https://github.com/kunlong-luo/lanveriq/actions/runs/45328874536) **34/34 离线 LAB PASS**；根 pin、时间和最低版本仍由测试 caller 提供，不是正式 Root TUF 预置、真实可信时间或有持久高水位的 Pop!_OS 实机。**正式签名、受限 Agent 安装器 L2、Polkit 与 COSMIC 物理 L3 都 NOT RUN**，G-05 不能关闭。[L2B-19 独立根选型/退出证据](../development/desktop-tauri-l2b19-receiver-root-preprovision-lab-2026-11-24.md)。
+
 > **2026-11-24 L2B-18 并非真实发行验签或安装器 L2：** [OpenSSL 3 临时双角色签名实验 #45326441957](https://github.com/kunlong-luo/lanveriq/actions/runs/45326441957) **30/30 PASS**，密码学负测验证不同 key 的 detached signatures 同签合成证据声明，并绑定合成包字节/source SHA/run/attempt。**两把 key 均来自同一个 CI 环境，不是实际独立发行人/审核人，未建立接收端独立批准的信任根、吊销或可信时间**。真实 Agent 安装器、Polkit、正式签名、Pop!_OS/COSMIC L3 仍 NOT RUN。本验收矩阵安装器 L1/L2/L3 的状态不因此提高。[L2B-18](../development/desktop-tauri-l2b18-dual-signature-custody-lab-2026-11-24.md)。
 
 > **2026-11-24 L2B-17 分层验收：** [39/39 DENY-ALL 离线测试 #45324617901](https://github.com/kunlong-luo/lanveriq/actions/runs/45324617901) 已验证未授权 Agent 安装意图、伪造发行签名/Polkit grant、包路径/URL、shell/argv 和各类预设 opt-in 必须拒绝；合法样例仍返回 DENIED。该协议是**尚未实施的安装器设计 L1 源检查**，不是签名 Agent 安装器实际 L1/L2 或 Pop!_OS24 COSMIC L3，后者依旧 NOT RUN；G-05 保持 OPEN。[L2B-17 规范](../development/desktop-tauri-l2b17-agent-install-intent-polkit-threat-contract-2026-11-24.md)。
