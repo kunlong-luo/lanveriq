@@ -10,6 +10,7 @@ import {
   describeReadiness, nativeDetails, RELEASE_GATE, type HostSnapshot,
 } from "./safety";
 import { parseLocalPreflight, poposSummary, type PoposDisplay } from "./preflight";
+import { InstallReviewPanel } from "./InstallReviewPanel";
 
 type Section = "setup" | "status" | "safety";
 type InspectionState = "idle" | "reading" | "loaded" | "error" | "web-preview";
@@ -250,11 +251,9 @@ export function DesktopApp() {
                   )}
                   {stage === 3 && (
                     <div>
-                      <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                        <div className="flex items-center gap-3"><LockKeyhole className="text-slate-700" size={21} /><div><div className="font-semibold">安装操作已锁定</div><div className="mt-1 text-xs text-slate-500">等待签名发行包、最小权限授权桥接及 Pop!_OS 实机验收</div></div></div>
-                      </div>
+                      <InstallReviewPanel host={host} popos={popos} />
                       <ActionButton disabled={!RELEASE_GATE.installEnabled}><PackageCheck size={17} /> 安装 Agent（尚未开放）</ActionButton>
-                      <p className="mt-4 text-xs leading-6 text-slate-500">不会调用 dpkg、systemctl、sudo、polkit，也不会开启服务。批准后的安装流程将在后续版本实现。</p>
+                      <p className="mt-4 text-xs leading-6 text-slate-500">不会调用 dpkg、apt、systemctl、sudo、polkit，也不会下载或安装软件。未来安装必须由发行者签名、独立受限 broker 和管理员逐次授权共同通过。</p>
                     </div>
                   )}
                   <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-6">
