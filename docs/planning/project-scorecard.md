@@ -30,6 +30,8 @@
 
 **2026-11-24 L2B-25 第四次评分：69 → 70/100（+1，仍为维护者主观自评）。** 唯一增加的是**默认拒绝与安全工程 12→13/15**：在此前只能由普通用户进程调用 Polkit 的基础上，本轮以真正独立的 **root-side system D-Bus ReviewLab** 获取总线真实 Unix UID/PID、内核进程启动时间/四 UID 核验，原生 `pkcheck` 进行 **8 次拒绝**、跨进程 nonce 重放和恶意参数拒绝；**9/9** 同服务端决策负测额外证明假设的 Polkit `yes` 也只能返回 `NOT_APPROVED`。[源码 91c4669d / Ubuntu24 OCI #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)。**这不是可执行任何实际 APT install 的发行 broker，没有正式根、GUI 安装事务或 Pop!_OS24 COSMIC L3；真实安装/发布能力仍 3/20，G-05/G-09 和全部正式 Gate 继续 OPEN。** [本轮验证范围](../development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)。
 
+**2026-11-24 L2B-26 复核：自评仍保持 70/100，未因单项负测而加分。** 已真正用 Ubuntu24 原生 polkitd/DBus 将 all-no XML 被本地 JavaScript 规则覆盖成 **YES（非 mock）**，并证明 root D-Bus ReviewLab 仍在缺失独立正式发行批准时返回 NOT_APPROVED、拒绝重放和非 root 服务名称冒充；[实际 CI #45385719766 SUCCESS、功能 SHA f062f144](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766)。这是**对 L2B-25 的真实攻击回归与纵深防御证据**，尚未交付可安装 Agent 的 broker、批准签名包、GUI 授权、跨版本升级或 Pop!_OS 实机 L3，所以工程成熟度与发行能力维度继续沿用 L2B-25 的 70/100、3/20，不凭重复拒绝测试虚涨评分。[准确来源](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)。
+
 ## 独立发布结论：不因为 70 分放行
 
 | 必过事项 | 真实状态 |
