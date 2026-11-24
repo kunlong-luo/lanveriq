@@ -10,17 +10,17 @@
 
 </details>
 
-| 维度 | 权重 | 清理前 | 本轮整理目标/完成后 | 可核对依据 |
+| 维度 | 权重 | 清理前 | 本轮实际整理后（同口径） | 可核对依据 |
 | --- | ---: | ---: | ---: | --- |
 | 现代技术栈与成熟组件复用 | 20 | 15 | **15** | Java25/Boot4.2.0/JPA/PG18.7、Rust1.100/SQLx、Next16.4.5、Tauri2；[实际源](../development/technology.md) |
 | 可维护架构与边界 | 15 | 12 | **12** | 单一 Web、四应用分层、Agent 默认 idle；仍有许多默认关闭/合成代码 |
 | L1/L2 自动化与可复验性 | 20 | 17 | **17** | [CI Linux 实际库存 L2 #45365942781](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781)、[Tauri 双 job #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676)；但缺实机 L3 |
 | 默认拒绝与安全工程 | 15 | 11 | **11** | mTLS/ACK/CI 负测、RD-2 OFF；官方 FIDO/真实 WORM/CA/MFA/可信签名仍无授权 |
-| **文档与仓库可发现性** | 10 | **4** | **9**（以更新后 docs-governance/布局测试 PASS 为准） | 根中英 README/四个 app README、文档入口、CURRENT_STATUS/Gate 压缩；保留历史证据与明确目录地图；[清理清单](../governance/repository-layout-audit-2026-11-24.md) |
+| **文档与仓库可发现性** | 10 | **4** | **9**（已通过结构/文档 CI） | 根中英 README/四个 app README、文档入口、CURRENT_STATUS/Gate 压缩；保留历史证据与明确目录地图；[清理清单](../governance/repository-layout-audit-2026-11-24.md) |
 | 真实产品安装与正式发布 | 20 | 2 | **2** | GUI 安装键仍锁定，Polkit/signing/Pop!_OS24 L3/法务和运维门禁 OPEN |
-| **综合工程可维护成熟度** | **100** | **61 / 100** | **66 / 100**（文档 CI 完成后） | 权重和上述加总：15+12+17+11+9+2 = 66 |
+| **综合工程可维护成熟度** | **100** | **61 / 100** | **66 / 100**（文档及布局 CI 已验证） | 权重和上述加总：15+12+17+11+9+2 = 66 |
 
-**评分提升是 +5 分，仅来自真实仓库清理、入口去重和回归门禁，不来自虚构已完成的产品功能。** 如本轮 docs-governance 或链接检查失败，目标评分不应生效。保留修改前的 61/100 作为同一自评标尺下的比较，不引用任何未经证实的外部 benchmark。
+**本轮工程维护成熟度自评从 61/100 → 66/100，+5 分只来自实际入口简化、旧参考删除和自动化结构守卫。** [文档/链接 #45373334900 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334900)、[Next.js 源码/测试 #45373334701 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334701) 在布局守卫功能 SHA 0db21627 已核实；后续文档提交仍需单独检查 docs-governance。**不把文档提升冒充已完成任何新业务功能或生产授权。**保留修改前的 61/100 作为同一自评标尺下的比较，不引用任何未经证实的外部 benchmark。
 
 ## 独立发布结论：不因为 66 分放行
 
