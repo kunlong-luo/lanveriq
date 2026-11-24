@@ -15,13 +15,15 @@
 
 **L2B-23 真正的包管理集成 L2（仍非正式安装器）：** [当前 Rust Agent release 产出实际 .deb 后，经 temporary Signed-By file: 仓库进行原生 APT install/reinstall/remove 和 8 类拒绝 #45376989866 **9/9 SUCCESS**](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)，全部在 `--network none --cap-drop ALL` 的 disposable Ubuntu24 OCI 中；没有在 runner/真实 Pop!_OS 主机安装任何 Agent，没有正式发行签名根、Polkit broker、真实可用 GUI 安装、跨版本升级或实机 L3。 [完整验收](../../docs/development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。
 
+**L2B-24 真实系统 Polkit 拒绝 L2（不是 root broker）：** 已在 networkless Ubuntu24 OCI 内真正运行上游 `polkitd`/D-Bus，将三动作 all-no policy 装入**只限 OCI overlay**；[Rust 1.100 独立固定动作 gate](tools/polkit-fixed-action-gate.rs) 自行读取 Linux PID/start-time/UID，使用官方 `pkcheck` 以 `nobody`、`daemon` 两个非特权 OS 用户对安装/升级/卸载进行 **6/6 真实拒绝**；额外参数和环境伪造也拒绝。[功能 SHA ba04f55c / #45379398181 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45379398181)。**没有连接 GUI IPC、没有成功授权的 root broker、正式签名包或真实主机安装**。[专题报告](../../docs/development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)。
+
 ## 目录责任
 
 | 目录 | 用途 |
 | --- | --- |
 | `src/` | React 只读向导、安装前条件审查/声明和纯逻辑单元测试 |
 | `src-tauri/` | Tauri2 Rust 只读主机核验、最小 IPC/capabilities、**禁用**正式 bundle 的配置 |
-| `tools/` | Debian 归档/ABI/APT 验签及 **真实 Agent OCI 安装实验**、拒绝源码检查，含安全负测；不是部署服务或生产提权 helper |
+| `tools/` | Debian 归档/ABI/APT 实装隔离实验；**polkitd/D-Bus OCI 实测 + 非提权 Rust 固定动作 gate**、安全负测；不是产品 root helper |
 | `polkit/` | **未安装的**三动作默认拒绝 XML 策略审查与说明；没有部署到系统、没有 helper 或授权规则 |
 | `package.json`、`pnpm-lock.yaml` | 桌面前端构建依赖，与唯一 Next.js Web 分离 |
 
