@@ -6,7 +6,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { documentationRequirements, verifyDocumentationBaseline,
   verifyLocalDocumentationLinks, verifyRepositoryLayout,
-  requiredRepositoryPaths, conciseLivePages } from './verify-documentation-baseline.mjs';
+  requiredRepositoryPaths, conciseLivePages,
+  verifyNoRetiredSnapshotLinks } from './verify-documentation-baseline.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'lanveriq-docs-current-'));
@@ -165,4 +166,24 @@ test('allows external citations and existing local files without network request
     '[GitHub CI](https://github.com/example/example/actions/runs/1) ' +
     '[status](../docs/README.md)');
   assert.equal(verifyLocalDocumentationLinks(root, ['docs/CURRENT_STATUS.md']), true);
+});
+
+test('all current docs are free of live relative links to archived duplicate snapshots', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+  assert.equal(verifyNoRetiredSnapshotLinks(root), true);
+});
+
+test('rejects nested documentation links to retired duplicate AGENTS and old index', t => {
+  const { root, write } = fixture(t);
+  write('docs/security/references/notes.md',
+    '[old AGENTS](../../governance/archive/AGENTS-pre-consolidation-2026-11-22.md)');
+  assert.throws(() => verifyNoRetiredSnapshotLinks(root),
+    /Retired historical snapshot linked as a live file/);
+  write('docs/security/references/notes.md',
+    '[old docs index](../../governance/documentation-index-snapshot-2026-11-21.md)');
+  assert.throws(() => verifyNoRetiredSnapshotLinks(root),
+    /Retired historical snapshot linked as a live file/);
+  write('docs/security/references/notes.md',
+    '[immutable old docs index](https://github.com/kunlong-luo/lanveriq/blob/80a74373/docs/governance/documentation-index-snapshot-2026-11-21.md)');
+  assert.equal(verifyNoRetiredSnapshotLinks(root), true);
 });
