@@ -9,6 +9,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/desktop-ubuntu-apt-prefetch.yml'
+      - 'apps/desktop/tools/verify_desktop_apt_archive_cache.py'
+      - 'apps/desktop/tools/test_verify_desktop_apt_archive_cache.py'
   workflow_dispatch:
 
 permissions:
@@ -36,6 +38,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_apt_archive_cache.py' -v
           . /etc/os-release
           test "$ID" = ubuntu
           test "$VERSION_ID" = 24.04
@@ -144,8 +147,15 @@ jobs:
     name: Independent runner restores all cached Debian archives
     needs: prefetch
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify offline hostile-cache rejection tests in fresh runner
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_apt_archive_cache.py' -v
       - name: Restore only prefetch job's exact signed-index plan cache
         id: restored
         uses: actions/cache/restore@v4
@@ -153,7 +163,20 @@ jobs:
           path: /var/tmp/lanveriq-desktop-apt-archives/*.deb
           key: ${{ needs.prefetch.outputs.cache_key }}
           fail-on-cache-miss: true
-      - name: Verify independent runner can read full cache without package install
+      - name: Refresh authenticated Ubuntu package indexes for independent cache verification
+        timeout-minutes: 9
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(dpkg --print-architecture)" = amd64
+          # Uses only the runner's configured Ubuntu sources and APT signature
+          # policy. Never permits unauthenticated metadata or source rewriting.
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
+            -o APT::Get::AllowUnauthenticated=false update
+      - name: Verify independent runner cache bytes AND signed-index package SHA256
         shell: bash
         env:
           CACHE_HIT: ${{ steps.restored.outputs.cache-hit }}
@@ -173,6 +196,12 @@ jobs:
             echo 'FAIL: independent runner restored archives with a different byte manifest' >&2
             exit 1
           fi
-          echo "PASS: independent Ubuntu24 runner restored $count byte-identical complete Debian archives from exact-plan cache"
-          echo 'UNTRUSTED: restored cache is acceleration only; actual future build must revalidate via signed APT indexes'
+          # The restored cache is untrusted even if it matches the producer's
+          # manifest. Verify every package name, epoch/version, architecture,
+          # byte size and SHA256 against this runner's fresh, signed APT index.
+          python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
+            --archive-dir "$archive" --expected-count "$EXPECTED_COUNT" \
+            --expected-manifest "$EXPECTED_SHA256"
+          echo "PASS: independent Ubuntu24 runner restored $count byte-identical signed-index-verified Debian archives"
+          echo 'UNTRUSTED: cache remains acceleration; actual native build must revalidate its own APT environment'
           echo 'NOT RUN: package installation, Rust/Clippy, GUI-only .deb, PopOS L3 or production Agent'
