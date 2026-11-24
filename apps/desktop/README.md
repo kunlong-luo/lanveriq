@@ -19,6 +19,8 @@
 
 **L2B-25 真正根侧系统总线 Peer L2（只审查，永不安装）：** [Ubuntu24 OCI #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) 新增仅 CI 使用的 [D-Bus root-side ReviewLab](tools/polkit-oci-dbus-broker-lab.py)，通过**系统总线**而不是 GUI 数据查询真实发送方 UID/PID，再以 Linux /proc 核对进程起始时间及身份。真实 Polkit **8 次**拒绝、同 UID 跨进程 nonce 重放、恶意类型/额外参数和伪造环境拒绝；同一 service **9/9** 单测证明**假设 Polkit 返回 YES 也不得安装**。**此服务没有 APT 调用或授权交易，只运行在无网络 disposable OCI；不是供用户部署的 root broker，也没有修改 Tauri 的两项只读 IPC。** [精确报告](../../docs/development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)。
 
+**L2B-26 真实恶意 Polkit 覆盖攻击 L2 PASS（绝非可用安装器）：** [Ubuntu24 OCI #45385719766 SUCCESS / 源码 f062f144](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766)。只在 disposable 无网络 Docker 里生成一条恶意 .rules，使本机上游 polkitd 对 nobody/install 返回真正 YES（不是 Python mock），但 root-side D-Bus ReviewLab 仍返回 NOT_APPROVED，无 Agent/apt 安装；非 root 不能抢占 ReviewLab 名称，nonce 重放和其他 UID/操作拒绝。**仓库中没有可分发的允许规则、真实发行签名、正式包管理 broker 或 Tauri 安装 IPC。** [详见 L2B-26 真实测试](../../docs/development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)。
+
 ## 目录责任
 
 | 目录 | 用途 |
