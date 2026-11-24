@@ -114,7 +114,7 @@ def prepare_case(directory, deb, case, homes, public_keys):
         old_release = stale / "Release"
         old_release.write_text(
             "".join(
-                f"Date: {rfc822_date(-1)}\\n"
+                f"Date: {rfc822_date(-1)}\n"
                 if row.startswith("Date: ") else row
                 for row in release.read_text(encoding="utf-8").splitlines(keepends=True)
             ), encoding="utf-8",
