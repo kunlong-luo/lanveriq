@@ -7,6 +7,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/desktop-ubuntu-apt-plan-diagnostic.yml'
+      - 'apps/desktop/tools/verify_desktop_apt_archive_cache.py'
+      - 'apps/desktop/tools/test_verify_desktop_apt_archive_cache.py'
   workflow_dispatch:
 
 permissions:
@@ -56,6 +58,7 @@ jobs:
           plan="$RUNNER_TEMP/desktop-ubuntu-apt-simulation.log"
           apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
           python3 - "$plan" <<'PY'
+          import importlib.util
           import pathlib
           import re
           import sys
@@ -70,8 +73,18 @@ jobs:
               sorted({line.split()[1] for line in install})
           ))
           print("APT simulated removal count:", len(remove))
-          if not any(re.search(r"^(Inst )?libwebkit2gtk-4\.1-dev\b", line) for line in lines):
-              raise SystemExit("FAIL: WebKitGTK prerequisite absent from local APT plan")
+          module_path = pathlib.Path("apps/desktop/tools/verify_desktop_apt_archive_cache.py")
+          spec = importlib.util.spec_from_file_location("apt_archive_guard", module_path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          planned = module.parse_install_plan("\n".join(lines))
+          if len(planned) != len(install):
+              raise SystemExit("FAIL: APT simulation parser disagrees with real Inst count")
+          if "libwebkit2gtk-4.1-dev" not in planned:
+              raise SystemExit("FAIL: real Ubuntu APT dependency closure lacks WebKitGTK")
+          print("APT actual cache-verifier selected package/versions:", len(planned))
+          print("APT current WebKitGTK version:", planned["libwebkit2gtk-4.1-dev"])
+          print("PASS: Ubuntu24 local cached APT plan parser matches real apt-get -s output")
           print("PASS: Ubuntu24 local cached APT index resolves prerequisite metadata only")
           print("NOT RUN: apt-get update, download, install, native Tauri, Clippy, .deb archive, PopOS L3")
           print("CAVEAT: runner apt indexes may be stale; simulated candidates are not an approved pinned image")
