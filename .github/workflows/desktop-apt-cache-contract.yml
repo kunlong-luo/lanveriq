@@ -1,0 +1,32 @@
+name: Desktop APT cache signed-index verifier unit contract (offline)
+
+# Fast separate tests: no Ubuntu package download/install, no native Tauri.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_apt_archive_cache.py'
+      - 'apps/desktop/tools/test_verify_desktop_apt_archive_cache.py'
+      - '.github/workflows/desktop-apt-cache-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hostile-cache-negatives:
+    name: Reject cache tampering and mismatched signed-index metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Compile offline verifier syntax and run all hostile cache mutations
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile apps/desktop/tools/verify_desktop_apt_archive_cache.py
+          python3 -m py_compile apps/desktop/tools/test_verify_desktop_apt_archive_cache.py
+          python3 -m unittest discover -s apps/desktop/tools \
+            -p 'test_verify_desktop_apt_archive_cache.py' -v
+          echo 'PASS: read-only cache verifier unit contract; no package installation or network'
