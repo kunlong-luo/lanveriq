@@ -13,7 +13,8 @@
 ## 已确认证据与仍待验收
 
 - **2026-11-24 源码安全/意图防误授权 CI：** [Desktop agent install intent DENY-ALL #45368181785](https://github.com/kunlong-luo/lanveriq/actions/runs/45368181785) **SUCCESS**，精确该工作流源码 SHA `752ed8c11d4d1799b65de620a62d4d3920318376`：原安装意图 39/39 离线拒绝通过，已更新的 `verify_desktop_readonly.py` PASS，`verify_desktop_release_evidence_boundary.py` PASS；没有执行 dpkg、apt、pkexec、Polkit、systemd start、签名发布或联网安装。
-- **完整 UI / 原生 Tauri 验收**：单独由 [Desktop Tauri preview #45368132407](https://github.com/kunlong-luo/lanveriq/actions/runs/45368132407) 和 GUI-only 候选归档 CI 审核。**不得在作业没有 SUCCESS 前声称已编译通过**。此处只描述源码/拒绝域；最终证据完成时需更新状态说明。
+- **首次桌面预览失败与修复：** [Desktop Tauri preview #45368132407 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45368132407)，第一个只读源码安全门禁跑 26 项，25 项 PASS、1 项 FAIL；原因是新增 `verify_desktop_readonly.py` 的授权字段正则匹配到了 `type ... installAllowed: false` 类型声明，即使测试故意将实际 `return { installAllowed: true }` 伪造为批准仍可能误过。**这是测试守卫错误而不是正式安装被开启**。已在 [功能修复 SHA fe92d11a](https://github.com/kunlong-luo/lanveriq/commit/fe92d11aae820b4523a91f70de5ba8c4f3140615) 将检查改为**要求实际返回对象的 `field: false,` 且全文禁止 `field: true`**；变异测试保留。该次失败的 native 阶段被正确 SKIPPED，不能冒充成功。
+- **修复后的完整 UI / 原生 Tauri 验收**：将以更新过的源码触发的 Desktop Tauri preview 与 GUI-only 候选归档 CI 为准，未完成之前**不能声称真实前端/原生编译或软件包审计通过**。暂不增加正式发行权限。
 - 本项目仍没有可部署的正式受限 broker、polkit action 安装策略和真实签名 Agent 发行源，也没有 Pop!_OS24 COSMIC 真实安装/升级/卸载 L3。不得把安装界面出现、四条说明勾选或现有 signed metadata LAB 变成正式包可安装事实。
 
 ## 下一项工程及退出标准
