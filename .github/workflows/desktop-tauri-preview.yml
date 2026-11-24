@@ -9,7 +9,13 @@ on:
       # All source, native config, locks, and build entrypoints still trigger CI.
       - 'apps/desktop/src/**'
       - 'apps/desktop/src-tauri/**'
-      - 'apps/desktop/tools/**'
+      # Only inspectors embedded in the GUI and their own safety tests affect
+      # preview native output. Offline APT cache helpers have their own CI.
+      - 'apps/desktop/tools/verify_desktop_readonly.py'
+      - 'apps/desktop/tools/test_verify_desktop_readonly.py'
+      - 'apps/desktop/tools/verify_desktop_popos_local_preflight.py'
+      - 'apps/desktop/tools/test_verify_desktop_popos_local_preflight.py'
+      - 'apps/desktop/tools/verify_desktop_deb_shlibdeps_audit.py'
       - 'apps/desktop/package.json'
       - 'apps/desktop/pnpm-lock.yaml'
       - 'apps/desktop/tsconfig.json'
@@ -24,7 +30,8 @@ permissions:
 
 concurrency:
   group: lanveriq-desktop-preview-main
-  cancel-in-progress: true
+  # Preserve started expensive native prerequisite diagnostics across commits.
+  cancel-in-progress: false
 
 jobs:
   desktop-ui:
