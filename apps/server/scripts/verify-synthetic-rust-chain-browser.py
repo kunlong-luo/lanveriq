@@ -8,7 +8,6 @@ import os
 import re
 import subprocess
 import sys
-from urllib.parse import urlsplit
 
 from playwright.sync_api import sync_playwright
 
@@ -73,19 +72,17 @@ def main():
             context = browser.new_context(service_workers="block")
             page = context.new_page()
 
-            def inspect_request(route):
-                url = urlsplit(route.request.url)
-                if (url.scheme != "https" or url.hostname !=
-                    "console.lanveriq.internal" or url.port not in (None, 443)
-                    or url.username or url.password):
-                    rejected.append("outbound_origin")
-                    route.abort()
-                else:
-                    route.continue_()
+            # Block external origins ONLY. Never intercept/rewrite a trusted
+            # first-party request: Chromium owns Origin and Sec-Fetch-* on the
+            # wire, and Spring's actual request guard must see those headers.
+            outside_console = re.compile(
+                r"^(?!https://console\\.lanveriq\\.internal(?::443)?(?:/(?!/)|$)[^#]*$).+"
+            )
+            def deny_external(route):
+                rejected.append("outbound_origin")
+                route.abort()
 
-            # Chromium still performs the TLS handshake; do not use mocking
-            # or route.fulfill for any first-party API response.
-            context.route("**/*", inspect_request)
+            context.route(outside_console, deny_external)
             page.on("websocket", lambda _: rejected.append("websocket"))
             page.on("response", lambda response: api_responses.append(
                 (response.url, response.status)) if
