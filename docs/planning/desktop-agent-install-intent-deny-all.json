@@ -1,0 +1,23 @@
+{
+  "schema": "lanveriq.desktop.agent-install-intent.v0.DENY_ALL",
+  "action": "propose-agent-install-only",
+  "agent_package": {
+    "name": "lanveriq-agent",
+    "version": null,
+    "sha256": null,
+    "source": null
+  },
+  "host_target": "pop-24.04-cosmic",
+  "notice_ack": false,
+  "install_opt_in": false,
+  "service_start_opt_in": false,
+  "boot_enable_opt_in": false,
+  "network_opt_in": false,
+  "collection_opt_in": false,
+  "remote_control_opt_in": false,
+  "publisher_signature": null,
+  "authorized_artifact": null,
+  "polkit_grant": null,
+  "external_approvals": null,
+  "request_arguments": []
+}
