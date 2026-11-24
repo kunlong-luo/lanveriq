@@ -16,6 +16,12 @@
 
 完整“哪些文件/目录保留与删除”的实际清单：[仓库结构审计](governance/repository-layout-audit-2026-11-24.md)。历史 React/Vite `apps/web` 以及 `apps/web-next` 已废止，不要重新建立。
 
+## L2B-26：真正 Polkit .rules 覆盖成 YES 仍不能越过 root-side 发行门禁（2026-11-24）
+
+**[功能 SHA f062f1443fbe1c6144f56b2e2a339b289ac70ee1 / Ubuntu24 OCI #45385719766 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766)。** 已增加**真实原生 OS 攻击测试**：只在网络关闭、无宿主总线/密钥挂载的 disposable Ubuntu24 容器内，动态植入 Polkit JavaScript .rules 让测试账号 nobody 的 install 动作**实际被 polkitd/原生 pkcheck 授权 YES（exit 0）**，原始三动作 XML 默认仍是 all-no。这并不是真实用户获得安装许可：现有 root-side system D-Bus ReviewLab 基于真实总线 UID/PID 判断后仍独立返回 **NOT_APPROVED**，严格不执行 apt/dpkg/systemctl；同 nonce 跨连接重放拒绝，普通账号抢占 root D-Bus 服务名被 system bus 拒绝，另外三种测试身份/动作仍明确拒绝。既有 Rust、Polkit、D-Bus 负测继续通过。[专题和真实 CI 证据](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)。
+
+**仅证明 OCI ReviewLab 的第二道拒绝**。测试允许规则并未放入发布包、不会写进 Pop!_OS 或本地电脑；不存在正式批准的 Agent 签名身份、可执行事务 broker、逐次管理员交互、跨重启高水位、真实设备 L3 或 GUI 一键安装。**G-05/G-09 OPEN，v0.1 NOT RELEASE READY，生产采集/联网/自动恢复/远控/CA OFF。**
+
 ## L2B-25：真正 D-Bus 根侧 OS 同行身份与重放拒绝 L2 PASS（2026-11-24）
 
 **[功能 SHA 91c4669d8b045b5cd67cf94a71101fa7beaa9821 / Ubuntu24 #45382618806 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)。** 新增**仅隔离 OCI 可运行的 root-side D-Bus ReviewLab**（发行版 `python3-dbus`+GLib，不是可分发 Agent 安装器）：由**真实系统总线** `GetConnectionUnixUser/GetConnectionUnixProcessID` 取唯一发送方 UID/PID，和 Linux /proc 的四 UID + start-time 交叉核对，再以 `pkcheck --process PID,START,UID` 针对固定 install/upgrade/remove 三动作查真实 Polkit。实际 `nobody/daemon` 6 次拒绝、不同 UID 重复 nonce 的独立检查与伪造环境检查，**合计 8 次原生 root-side Polkit 拒绝**；同 UID 跨进程 nonce 重放、GVariant Int32 混淆、额外 D-Bus 参数、未知动作/路径穿越均拒绝。新增同源 service 分支 **9/9** 测试，证明**即使模拟 Polkit 返回 YES 也只能 `NOT_APPROVED`，没有任何 APT/dpkg/systemctl 调用**；既有 policy 30/30、Rust 3/3、普通进程六组拒绝和 Tauri 只读门禁仍 PASS。新 service 仅在 networkless OCI 中运行，Docker 构建的服务依赖同样仅用于 OCI，绝无宿主机授权。前期 CI 的 GVariant 值错误和 D-Bus 多余参数 TypeError 负测误分类均保留在 [L2B-25 报告](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)。
