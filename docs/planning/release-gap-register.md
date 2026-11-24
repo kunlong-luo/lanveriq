@@ -12,13 +12,15 @@
 | **G-02 P0 独立 WORM/KMS 见证** | 合成 PG18 审计与离线 WORM 候选评估 | 数据库 root 之外的独立管理域、底层真实不可删除性、密钥/时间/高水位独立托管、回退实测 | 安全/SRE/法务 | **OPEN** |
 | **G-03 P0 管理员 WebAuthn MFA 双审** | 未可信凭据候选/源码拒绝逻辑 | 不同真人管理员硬件 MFA，真实 RP/Origin/挑战、拒绝自审、撤销和真实授权审计 | 身份安全 | **OPEN** |
 | **G-04 P0 生产 CA 与设备证书** | 隔离 Rust CSR→Java PKIX、TLS1.3 mTLS/过期与吊销负测 | 独立 CA/HSM/KMS、发行/吊销/轮换/身份所有人确认及恢复演练 | PKI/安全 | **OPEN** |
-| **G-05 P0 Agent 签名图形安装器** | Tauri 只读审核 UI + CI；Agent idle-only Debian 候选在 networkless Ubuntu OCI 中安装/重装/删除过；官方 APT Signed-By 临时 LAB | 经批准产品签名根和固定 APT 仓库、受审最小权限 Polkit broker、管理员每次明确授权、实际签名 Agent 工件与安装/升级/卸载/取消/恢复；默认不可联网或自动启动 | 发行/安全/产品 | **OPEN** |
+| **G-05 P0 Agent 签名图形安装器** | Tauri 只读审核 UI + CI；Agent idle-only Debian 候选在 networkless Ubuntu OCI 中安装/重装/删除过；官方 APT Signed-By 临时 LAB；L2B-22 另新增**未安装的 Polkit install/upgrade/remove XML 全 no**，并经 [#45375272477 39+30 项离线拒绝测试 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477)；**没有 OS 授权或 broker** | 经批准产品签名根和固定 APT 仓库、受审最小权限 Polkit broker、管理员每次明确授权、实际签名 Agent 工件与安装/升级/卸载/取消/恢复；默认不可联网或自动启动 | 发行/安全/产品 | **OPEN** |
 | **G-05 P0 Pop!_OS24 COSMIC 实机 L3** | Ubuntu24/COSMIC **元数据**与真实原生 Tauri 编译 CI，通过并非实机 | 具名合法设备，真实 Wayland/COSMIC、图形授权/键盘/缩放、签名安装/取消/卸载/后台无托盘且可发现状态、性能和失败回滚 | 用户/UX/安全 | **OPEN** |
 | **G-06 P0 生产业务端到端** | 实际一次性 Linux runner 只读 OS/CPU/RAM→Rust SQLite→双 mTLS→Spring JPA/PG18→受限 Next.js/Chromium **L2 PASS** | 正式获授权的真实 Agent、CA、管理员、Next.js 生产登录/设备/库存/恢复链和安全配置、生产数据合法告知 | 全栈/安全 | **OPEN** |
 | **G-07 P0 法律/隐私/三方许可证** | 隐私技术原则，部分第三方 ABI/copyright 哈希仅作审查输入 | 员工/设备合法用途与告知、数据保留/删除、RustDesk AGPL/Pro 与全部软件分发许可证的书面批准 | 法务/隐私 | **OPEN** |
 | **G-08 P0 生产 SRE/回滚/恢复** | PG18/Caddy 合成验证及隔离备份负测 | 最小权限环境、密钥托管/日志监控、备份/灾备/升级/回滚/应急与发布签收 | SRE/安全 | **OPEN** |
 | **G-09 P1 Web/GUI 真实 UX L3** | Tauri L1 安装资格界面、真实 Chromium 仅 CI 数据闭环 | 真实 Pop!_OS COSMIC/Wayland 高 DPI/键盘无障碍和错误/取消/卸载；正式 Web 登录/窄屏/滚动/权限拒绝态 | UI/产品 | **OPEN** |
 | **G-10 P1 Windows/RustDesk 范围** | Windows CI/远控隔离协议实验；RD-2 默认拒绝 | 独立 Windows L3 与 RustDesk 许可证/用户授权；或书面批准本版 OUT OF SCOPE | 产品/法务 | **OPEN / OUT OF SCOPE 待决定** |
+
+**2026-11-24 G-05 Polkit 仅源审查进展（不关闭 Gate）：** [L2B-22 功能 SHA efb7a558 / CI #45375272477 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477) 的 Polkit XML 3 个 action 全部 no，严格独立默认拒绝/禁止 KEEP 和隐式授权的 30/30 负测，联合原安装意图 39/39 PASS；没有安装 .policy、pkexec、root helper、可执行 broker、生产签名 Agent 包或真实 Pop!_OS24 L3。[具体审计与失败历史](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)。**G-05/G-09 OPEN、v0.1 NOT RELEASE READY。**
 
 ## 与发布无关的已通过子项（不得偷换概念）
 
