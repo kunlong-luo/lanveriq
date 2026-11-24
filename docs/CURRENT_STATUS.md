@@ -11,10 +11,16 @@
 | [Web](../apps/web/README.md) | `apps/web` Next.js 16.4.5 / React19 / Tailwind4 / Base UI | GitHub Pages 公开静态展示；真实 Spring/PG18/设备源数据仅在**临时 CI 受控路由**经过浏览器验证。NXT-28 紧凑导航/键盘/滚动为设计/测试工作 |
 | [Server](../apps/server/README.md) | Java25 / Spring Boot4.2.0 / Gradle / Hibernate JPA / Flyway / PostgreSQL18.7 | 默认拒绝身份、业务、证书签发；隔离 PG18 事务/双跳 TLS1.3 mTLS 验证通过 |
 | [Agent](../apps/agent/README.md) | Rust1.100 / SQLx SQLite durable outbox / Reqwest/rustls mTLS | 库存/心跳严格 ACK/离线重启已测；真实 CI Linux OS/CPU/RAM 最小样本通过；**常驻产品 Agent 不自动采集/上传** |
-| [Desktop](../apps/desktop/README.md) | Tauri2 / Rust / React / Vite（仅桌面窗体） | 本机只读预检、七项门禁、四条独立非授权说明；**安装/升级/卸载/启动按钮和可信 broker 不存在或禁用** |
+| [Desktop](../apps/desktop/README.md) | Tauri2 / Rust / React / Vite（仅桌面窗体） | 本机只读预检、七项门禁、四条独立非授权说明；**安装/升级/卸载/启动按钮和可信 broker 不存在或禁用**；真实 Agent APT 包生命周期只在隔离 OCI 的临时签名源 L2 验收 |
 | [Caddy/RustDesk](../deploy/caddy/Caddyfile.reference) | Caddy 参考/双跳 mTLS；RustDesk 实验隔离 | 不支持未批准公网生产路由、远控 RD-2 或员工屏幕采集 |
 
 完整“哪些文件/目录保留与删除”的实际清单：[仓库结构审计](governance/repository-layout-audit-2026-11-24.md)。历史 React/Vite `apps/web` 以及 `apps/web-next` 已废止，不要重新建立。
+
+## L2B-23：真实 Agent 包经原生 APT 临时签名仓库完成隔离生命周期 L2 PASS（2026-11-24）
+
+**[功能源码 2af1cf344afa1506d596f183f465c03248ae55ac / Ubuntu24 #45376989866 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) · 9/9 实际 APT 测试 PASS。** 已用真实 Rust 1.100 --locked release ELF 构建严格无 hook 原生 Agent .deb，放入临时 Ed25519 实验密钥生成的 file: 签名仓库；OCI 内系统 apt-get 用唯一 Signed-By，**真实 install、同版本 reinstall、remove**，验证 dpkg 归属/版本、ELF --help、模拟操作员文件跨重装/卸载保留、systemd 服务未启动/自启。另八类源签名错误、错误 key、未签名、索引篡改、过期/未来元数据、.deb 字节篡改与包名混淆**原生 APT 正确拒绝**。Ubuntu24 OCI **network none/cap drop all/no-new-privileges**；私钥不挂载，runner/真实电脑从未安装。最初 [工作流 YAML #45376908241 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45376908241) 无 jobs，修正冒号后才有上述实际 CI；失败保留。[完整报告](development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。
+
+**严格范围：** 这是**正式发行者未批准的临时 CI 签名源 + 真实 APT 包生命周期 L2**，不是独立密钥托管/发布签名，不是实际 GUI/Polkit broker，也**没有跨版本升级、真实用户/Pop!_OS24 COSMIC L3、生产联网/采集**。因此 G-05/G-09 和全部正式发布 Gate 继续 OPEN；v0.1 NOT RELEASE READY。
 
 ## L2B-22：未安装的 Polkit 最小权限动作安全基线（2026-11-24）
 
