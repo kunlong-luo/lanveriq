@@ -15,13 +15,13 @@
 | 软件更新/发行 | **官方 `apt-secure` + deb822 `Signed-By`**、按需评估 Aptly 的仓库管理 | 生产仓库根由独立发行方审批/分发；固定来源/包名、最小权限安装事务，版本、撤销、合法回滚策略；绝不直接粘贴测试私钥 | 仓库身份独立证明 + 隔离真实 Agent 包安装 + 真实 Pop!_OS24 L3；L2B-20 的合成元数据 9/9 不能替代 |
 | 非生产授权运维/审计 | **现有 PG18/Flyway/备份工具**，独立 WORM 只在选型签字后接入 | 最少具名审阅者、真实撤销、外部托管密钥与不可回退介质恢复 | G-02/G-07/G-08 的行政域、合法性、恢复都需要**实物与人员签署**，CI 不能自证 |
 
-## 已锁定下一项集成验收：FULL-CHAIN-L2（2026-11-24）
+## FULL-CHAIN-L2 已通过；下一项为受控库存闭环（2026-11-24）
 
-**优先级 P0；SPEC 已提交，执行未通过。** [单设备端到端验收契约](../testing/agent-to-nextjs-single-device-l2-2026-11-24.md) 规定真实 Rust 请求经**同一** Caddy/Tomcat mTLS、**同一** PostgreSQL 18 事务后，由 Spring 当前管理员/设备组授权 API 返回到 Chromium 中的 Next.js 合成候选页面。当前 [Linux Batch A](../../.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml) 写入模式明确关闭 Console；既有 Next.js/Chromium 合成读使用另行初始化的数据，因此**不得把两条成功证据相加当作一条通过**。
+**同设备合成心跳业务验收 L2 PASS：** [功能 SHA 2380a6a7 / Ubuntu24 两个 Job 的 CI #45360530843 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45360530843)。已在**同一隔离 PostgreSQL18.7 实例**用真实 Rust Reqwest/TLS1.3 → Caddy 双跳 mTLS → Spring JPA 事务提交心跳，并用经当前组 scope 授权的 Spring JSON 列表/详情/概览在真实 Chromium/Next.js DOM 中显示唯一源设备；跨组详情 404、注销后无残留且 API 401。真实客户端证书负例、ACK 失联/重放、恢复/吊销仍由同一运行证实。既有分离的 SQL fixture 不能冒充本条验收；完整 [退出标准与失败历史](../testing/agent-to-nextjs-single-device-l2-2026-11-24.md)。
 
-具体下一次源码改动先做：在现有隔离脚本下通过具名 CI-only 开关联动 Rust 业务与 Console，复用首管理员 bootstrap/设备组 scope，而不是放开正式后端；然后把同一设备 UUID、实际心跳 request ID、PG 行、Spring 受权响应和 Next.js DOM 做强关联验收。真实库存发送与展示列为第二个完整链路里程碑，既不将静态 fixture 当真实提交，也不增加默认密码学测试。所有结果标注精确功能 SHA、运行链接及未执行项。
+**下一工程里程碑：INV-FULL-CHAIN-L2**（尚未执行）。复用 `apps/agent` 已有 SQLite inventory snapshot/outbox、Rust `reqwest` 严格 ACK、Spring `DeviceInventoryService` / JPA 与 PostgreSQL `device_inventory_current`、现有 [设备列表投影](../../apps/web/src/lib/console-device-projection.ts)，在同一次隔离 CI 中发送**最小固定且无个人信息的合成操作系统/CPU/内存字段**，确认单次提交、ACK、防重放、重启后回执、授权 Spring 列表投影和 Next.js DOM 显示的 OS 资料同源；权限变更/断线/过期证书的反例必须保留。先复用已有业务 API，缺少证据时不要增加 osquery/Alloy 第二 Agent，不得通过直接写 SQL 或仅 React fixture 冒充 Rust 库存上传。通过前明确标记库存链路 NOT RUN。
 
-**本次文档决策不改变发布 Gate，不批准正常 Next.js 页面访问业务、生产 Agent 网络、采集、自动恢复、远控、正式 CA 或普通用户 GUI 安装。G-02/G-05/G-07/G-08/G-09 OPEN，v0.1 NOT RELEASE READY。**
+这仅关闭工程上的**合成心跳单设备全链路 L2**，不批准正式 Next.js 登录路由、真实设备联网/采集、自动恢复、远控、证书签发，且不批准 Tauri 图形 Agent 安装/Polkit/发行签名/Pop!_OS24 COSMIC L3。**G-02/G-05/G-07/G-08/G-09 OPEN，v0.1 NOT RELEASE READY。**
 
 ## P1：避免重复引入功能引擎
 
