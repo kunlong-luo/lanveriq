@@ -35,6 +35,14 @@ export const documentationRequirements = [
     forbidden: [],
   },
   {
+    path: 'docs/governance/archive/README.md',
+    required: ['HISTORICAL INDEX', '80a743739b32333881b926c0f63e953299ad1ba7',
+      'AGENTS-pre-consolidation-2026-11-22.md',
+      'documentation-index-snapshot-2026-11-21.md',
+      'v0.1 NOT RELEASE READY'],
+    forbidden: [],
+  },
+  {
     path: 'docs/governance/document-lifecycle.md',
     required: ['ACTIVE', 'LIVE-GAP', 'HISTORICAL', 'docs-governance workflow'],
     forbidden: [],
@@ -174,6 +182,7 @@ export const requiredRepositoryPaths = [
   'deploy/rustdesk-synthetic/verify_rd2_release_boundary.py',
   '.github/workflows/docs-governance.yml',
   'docs/governance/repository-layout-audit-2026-11-24.md',
+  'docs/governance/archive/README.md',
   'docs/planning/project-scorecard.md',
 ];
 
