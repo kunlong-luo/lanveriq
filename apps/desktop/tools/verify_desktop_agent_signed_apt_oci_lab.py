@@ -22,7 +22,7 @@ VERSION = "0.1.0~dev1"
 NAME = f"{PACKAGE}_{VERSION}_amd64.deb"
 CASES = ("signed-install-reinstall-remove", "wrong-key", "wrong-signer",
          "unsigned", "index-tamper", "expired", "future", "deb-tamper",
-         "package-confusion")
+         "package-confusion", "signed-valid-old-release-acceptance")
 MOUNT = "/mnt/lanveriq-lab"
 
 
@@ -105,6 +105,22 @@ def prepare_case(directory, deb, case, homes, public_keys):
     signer = "attacker" if case == "wrong-signer" else "publisher"
     run(("gpg", "--batch", "--yes", "--homedir", str(homes[signer]),
          "--clearsign", "--output", str(signed), str(release)))
+    if case == "signed-valid-old-release-acceptance":
+        # A second *validly signed* Release is one day OLDER than the first,
+        # but still within Valid-Until. Sign it with the SAME disposable key.
+        # This tests native apt-secure's rollback limitation; no APT install.
+        stale = directory / "stale-signed"
+        stale.mkdir()
+        old_release = stale / "Release"
+        old_release.write_text(
+            "".join(
+                f"Date: {rfc822_date(-1)}\\n"
+                if row.startswith("Date: ") else row
+                for row in release.read_text(encoding="utf-8").splitlines(keepends=True)
+            ), encoding="utf-8",
+        )
+        run(("gpg", "--batch", "--yes", "--homedir", str(homes["publisher"]),
+             "--clearsign", "--output", str(stale / "InRelease"), str(old_release)))
     if case == "unsigned":
         signed.unlink()
     if case == "index-tamper":
