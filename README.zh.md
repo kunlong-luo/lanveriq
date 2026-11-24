@@ -24,11 +24,27 @@
 
 **不存在需要重新启动的 `apps/web-next/`、旧版 React/Vite Web 项目、独立 Maven 后端或第二套可执行控制台。** 没有这些目录是整理后的正确状态；不要重新创建它们。根目录不是 Gradle 项目。
 
-`docs/architecture/` 保存**现行规范和 ADR**；`docs/security/` 保存安全要求；`docs/testing/` 保存测试矩阵及可复验报告；`docs/development/` 主要是实施细节与带日期的历史证据；`docs/governance/` 管理文件权威；`docs/planning/` 包含开放的 Gate、评分和路线；`docs/operations/` 是操作/发布预案；`docs/diagrams/` 是可编辑 Mermaid；`docs/visuals/` 是**示意图而非运行截图**。详细保留/删除决议见 [仓库目录审计](docs/governance/repository-layout-audit-2026-11-24.md)。
+**文档只有一套现行权威入口，按领域归档**；历史失败报告放原领域或 Git 历史，而不是复制到每份 README：
+
+```text
+docs/
+├── README.md                  # 唯一文档导航
+├── CURRENT_STATUS.md          # 唯一功能/CI 现状
+├── architecture/  adrs/       # 规范、架构决策
+├── security/                  # 身份、隐私、FIDO、WORM
+├── development/               # 技术标准 + 日期 L2B/NXT 历史验收
+├── testing/                   # L1/L2/L3 验收、真实 CI 与失败证据
+├── planning/                  # 唯一发布 Gate、现行路线/评分
+├── governance/  archive/      # 文档权威、目录审计、旧 AGENTS
+├── operations/  product/      # 操作手册与产品交互行为
+└── diagrams/    visuals/      # Mermaid、SVG 概念图（非截图）
+```
+
+[目录保留/删除审计](docs/governance/repository-layout-audit-2026-11-24.md)列出被移除的重复入口和保留原因；历史文档快照用**固定 Git SHA 链接**追溯，不保留第二份活动索引。
 
 ## 我现在能做什么？
 
-**普通 Pop!_OS 用户：** 目前不能通过签名安装器完成一键 Agent 安装。无需按照历史报告安装 Rust、Node 或手动执行 `dpkg -i`；这些是**开发者**命令，不是最终产品安装过程。[安装器真实进度](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md) · [未来 GUI 用户流程](docs/product/linux-desktop-installer-v01.md)。
+**普通 Pop!_OS 用户：** 目前不能通过签名安装器完成一键 Agent 安装。 虽然[真实 Agent .deb 经临时 Signed-By APT 仓库完成 Ubuntu24 OCI 安装/重装/卸载](docs/development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)，并且[真实恶意 Polkit 授权 YES 仍被 root D-Bus 审查阻止](docs/development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**它们都不是用户可以部署的 root 安装器**，后者没有执行任何包安装。无需按照历史报告安装 Rust、Node 或手动执行 `dpkg -i`；这些是**开发者**命令，不是最终产品安装过程。[安装器真实进度](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md) · [未来 GUI 用户流程](docs/product/linux-desktop-installer-v01.md)。
 
 **开发者：** 请先阅读 [AGENTS.md](AGENTS.md)、[贡献规范](CONTRIBUTING.md)、[工程手册](docs/governance/engineering-playbook.md)。只在独立开发环境运行：
 
