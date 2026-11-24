@@ -59,6 +59,7 @@ for op in install upgrade remove; do
         grep -Fq "'POLKIT_DENIED'" <<<"$reply" || {
             printf 'FAIL: D-Bus service did not consult real Polkit for %s %s: %s\n' \
                 "$username" "$op" "$reply" >&2
+            cat /tmp/lanveriq-review-service.log >&2
             exit 81
         }
         printf 'PASS: root-side D-Bus peer identity -> Polkit DENIED %s as %s\n' \
