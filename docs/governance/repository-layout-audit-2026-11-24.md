@@ -61,6 +61,11 @@ Git tree 中**没有** `apps/web-next/`、旧 Vite Web 运行目录、第二套 
 | `docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md` 删除工作树副本 | 约 189 KB | **否**；原文是旧 root AGENTS 的重复长文档和时间线 | [原始 Git blob，固定 SHA](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md)；[更早 root AGENTS](https://github.com/kunlong-luo/lanveriq/blob/436fc403b1e6b514c5c25b09d5d481cf73efdae7/AGENTS.md) |
 | 新增 [`docs/governance/archive/README.md`](archive/README.md) | 小于 2 KB | 归档目录现在只维护**链接索引** | 单一入口、逐份 pinned-Git 回溯 |
 | 压缩 LIVE 入口与 [Linux 路线图](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) | 合计约 38 KB→14 KB（四份） | **否**；历史段落仍在 Git 旧版本和 dated reports | [当前状态](../CURRENT_STATUS.md) / [发布缺口](../planning/release-gap-register.md) / [自评](../planning/project-scorecard.md) / [路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) |
+| 根 `CHANGELOG.md` 从重复 CI 长日志改为里程碑索引 | 约 86 KB→5 KB | **否**；原文件按 [固定旧 Git 提交](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 可原样恢复 | [当前里程碑索引](../../CHANGELOG.md) + dated CI 报告 |
+| 旧 `docs/operations/release.md` 历史进度头与预检清理 | 旧文约 12 KB→当前 Git blob 约 6 KB | **否**；已将生产安全门禁、安装授权、独立高水位、升级/恢复保留为现行规范 | [现行发行与回滚 runbook](../operations/release.md)；[旧 SHA 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/operations/release.md) |
+| `docs/operations/installation.md` / `apps/desktop/README.md` 去除重复公告 | 减少日期段落，唯一操作步骤保留 | **否**；本地开发 PostgreSQL 数据库步骤未删除 | [仅开发环境说明](../operations/installation.md) / [桌面模块责任](../../apps/desktop/README.md) |
+
+**最终树形复核：** 在本轮 L2B-27 真实测试验收报告也新增后，`main` 跟踪文件仍为 **860**、其中 `docs/` Markdown **211** 份；这不是没有发生清理，而是**删除两份大历史副本、建立一份小归档索引、新增一份 L2B-27 唯一真实验收报告**，同时把根 CHANGELOG/现行状态与发行文档的重复历史叙述实际改写。工作树中不再有两份旧历史快照的路径；原文可由固定 Git SHA 逐字核对。
 
 **目录结构保持现有单一源代码树，不人为移动 200+ 份已有相对链接的安全验收文档。** 目录职责和中英文树形图见根 README。新增 `verifyNoRetiredSnapshotLinks` 在 CI 遍历所有 docs Markdown 和根规则文件，禁止仍指向已删快照的**相对链接**；允许且鼓励固定 Git SHA 的历史回溯。另对 live status/gates/score 设置体积、重复里程碑和默认拒绝负测，阻止下一轮再复制长历史。
 
