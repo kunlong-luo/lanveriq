@@ -1,0 +1,46 @@
+name: Desktop isolated APT Signed-By authentication LAB (NO Agent install)
+
+# Genuine apt-get update on a synthetic file:// repository, without network,
+# system APT changes, real packages or any Agent .deb. Generated gpg keys,
+# APT lists/trusted keyrings/dpkg status all live under CI temporary dirs.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/test_desktop_apt_signed_by_lab.py'
+      - '.github/workflows/desktop-apt-signed-by-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-apt-signed-index:
+    name: Accept pinned synthetic InRelease; reject wrong keys, tamper and expiry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Show actual Ubuntu APT and GPG versions (no installation)
+        run: |
+          set -Eeuo pipefail
+          apt-get --version | head -n 1
+          gpg --version | head -n 1
+          python3 -m py_compile apps/desktop/tools/test_desktop_apt_signed_by_lab.py
+      - name: Run real file-only apt-get update with independently restricted Signed-By
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools \
+            -p 'test_desktop_apt_signed_by_lab.py' -v
+          echo 'PASS: real system APT validated synthetic signed index; no Agent .deb or install'
+      - name: Cross-check desktop and release authorization remain OFF
+        run: |
+          set -Eeuo pipefail
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_desktop_release_evidence_boundary.py
+          python3 apps/desktop/tools/verify_desktop_agent_install_intent.py \
+            --intent docs/planning/desktop-agent-install-intent-deny-all.json \
+            | grep -F 'DENIED: design-only Agent install intent'
+          echo 'PASS: apt-secure LAB is not a trusted publisher, package release or installer'
