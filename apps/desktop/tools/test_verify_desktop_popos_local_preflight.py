@@ -157,6 +157,23 @@ class PopOsPreflightTests(unittest.TestCase):
                 v.facts(OK_OS,"amd64",ENV,{"file_count":1,"contents_sha256":HASH},
                         self.mkconfig(t),cache(),Apt,True)
 
+    def test_embedded_mode_uses_pinned_abi_without_host_source_config(self):
+        report=v.facts(OK_OS,"amd64",ENV,{"file_count":1,"contents_sha256":HASH},
+                       None,cache(),Apt,False)
+        self.assertFalse(report["source_config_checked_on_host"])
+        self.assertFalse(report["release_approved"])
+        self.assertEqual(len(report["reviewed_abi_cache"]),10)
+
+    def test_actual_embedded_python_c_must_fail_on_non_pop_os(self):
+        import subprocess
+        import sys
+        source=(ROOT/"verify_desktop_popos_local_preflight.py").read_text()
+        result=subprocess.run([sys.executable,"-I","-c",source,"inspect-json"],
+                              check=False,capture_output=True,timeout=12)
+        self.assertEqual(result.returncode,2)
+        self.assertEqual(result.stdout,b"")
+        self.assertIn(b"NOT_POP_OS_TARGET",result.stderr)
+
     def test_arch_mismatch_is_rejected(self):
         with tempfile.TemporaryDirectory() as t:
             with self.assertRaisesRegex(ValueError,"UNSUPPORTED_POP_OS_ARCH"):

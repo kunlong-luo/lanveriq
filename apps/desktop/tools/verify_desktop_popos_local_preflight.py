@@ -13,8 +13,8 @@ import re
 import subprocess
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent
-CONFIG = ROOT.parent / "src-tauri" / "tauri.conf.json"
+ROOT = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else None
+CONFIG = ROOT.parent / "src-tauri" / "tauri.conf.json" if ROOT is not None else None
 ABI = (
     "libc6 (>= 2.39)", "libcairo2 (>= 1.10.0)",
     "libdbus-1-3 (>= 1.9.14)", "libgcc-s1 (>= 4.2)",
@@ -143,7 +143,10 @@ def facts(release, arch, env, apt_sources, config, cache, apt_pkg, root):
     parsed = os_identity(release)
     require(arch == "amd64", "UNSUPPORTED_POP_OS_ARCH")
     session = session_claim(env)
-    deps = reviewed_config(config)
+    # An embedded Tauri invocation has no source-tree tauri.conf.json.
+    # Its ABI baseline is compiled into this script and the Tauri native binary.
+    # CI's readonly source gate validates the actual checked-in config.
+    deps = reviewed_config(config) if config is not None else list(ABI)
     packages, cosmic = check_packages(cache, apt_pkg, deps)
     require(apt_sources["file_count"] > 0 and
             HASH.fullmatch(apt_sources["contents_sha256"]),
@@ -154,13 +157,14 @@ def facts(release, arch, env, apt_sources, config, cache, apt_pkg, root):
         "session": session, "reviewed_abi_cache": packages,
         "cosmic_components": cosmic, "apt_sources": apt_sources,
         "apt_cache_updated": False, "popos_install_solver": "NOT_RUN",
+        "source_config_checked_on_host": config is not None,
         "physical_l3": "NOT_APPROVED", "gui_actual_launch": "NOT_TESTED",
         "signed_package_provenance": "NOT_VERIFIED",
         "license_approval": "OPEN", "release_approved": False,
         "install_authorized": False, "agent_start_authorized": False,
     }
 
-def inspect():
+def inspect(embedded=False):
     require(os.geteuid() != 0, "PRIVILEGED_GUI_PREFLIGHT_FORBIDDEN")
     os_file = pathlib.Path("/etc/os-release").read_text(encoding="utf-8")
     os_identity(os_file)  # Refuse Ubuntu *before* scanning files or apt sources.
@@ -178,13 +182,21 @@ def inspect():
         raise ValueError("SYSTEM_PYTHON_APT_UNAVAILABLE") from err
     apt_pkg.init_system()
     return facts(os_file, dpkg.stdout.decode("utf-8").strip(), env,
-                 repo, CONFIG, apt.Cache(), apt_pkg, False)
+                 repo, None if embedded else CONFIG, apt.Cache(), apt_pkg, False)
 
 def main():
     cli = argparse.ArgumentParser(description=__doc__)
-    cli.add_argument("mode", choices=("inspect",))
-    cli.add_argument("--output", type=pathlib.Path, required=True)
+    cli.add_argument("mode", choices=("inspect", "inspect-json"))
+    cli.add_argument("--output", type=pathlib.Path)
     args = cli.parse_args()
+    if args.mode == "inspect-json":
+        # Embedded in the Tauri executable and invoked with /usr/bin/python3 -I -c.
+        # Stdout JSON only; NEVER write an output file, install or approve L3.
+        require(args.output is None, "EMBEDDED_PREFLIGHT_OUTPUT_FORBIDDEN")
+        record = inspect(embedded=True)
+        print(json.dumps(record, sort_keys=True, separators=(",", ":")))
+        return
+    require(args.output is not None, "PREFLIGHT_OUTPUT_REQUIRED")
     require(not args.output.exists() and not args.output.is_symlink(),
             "PREFLIGHT_RECEIPT_ALREADY_EXISTS")
     record = inspect()
