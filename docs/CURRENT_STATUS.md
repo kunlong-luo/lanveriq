@@ -16,6 +16,12 @@
 
 完整“哪些文件/目录保留与删除”的实际清单：[仓库结构审计](governance/repository-layout-audit-2026-11-24.md)。历史 React/Vite `apps/web` 以及 `apps/web-next` 已废止，不要重新建立。
 
+## L2B-25：真正 D-Bus 根侧 OS 同行身份与重放拒绝 L2 PASS（2026-11-24）
+
+**[功能 SHA 91c4669d8b045b5cd67cf94a71101fa7beaa9821 / Ubuntu24 #45382618806 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)。** 新增**仅隔离 OCI 可运行的 root-side D-Bus ReviewLab**（发行版 `python3-dbus`+GLib，不是可分发 Agent 安装器）：由**真实系统总线** `GetConnectionUnixUser/GetConnectionUnixProcessID` 取唯一发送方 UID/PID，和 Linux /proc 的四 UID + start-time 交叉核对，再以 `pkcheck --process PID,START,UID` 针对固定 install/upgrade/remove 三动作查真实 Polkit。实际 `nobody/daemon` 6 次拒绝、不同 UID 重复 nonce 的独立检查与伪造环境检查，**合计 8 次原生 root-side Polkit 拒绝**；同 UID 跨进程 nonce 重放、GVariant Int32 混淆、额外 D-Bus 参数、未知动作/路径穿越均拒绝。新增同源 service 分支 **9/9** 测试，证明**即使模拟 Polkit 返回 YES 也只能 `NOT_APPROVED`，没有任何 APT/dpkg/systemctl 调用**；既有 policy 30/30、Rust 3/3、普通进程六组拒绝和 Tauri 只读门禁仍 PASS。新 service 仅在 networkless OCI 中运行，Docker 构建的服务依赖同样仅用于 OCI，绝无宿主机授权。前期 CI 的 GVariant 值错误和 D-Bus 多余参数 TypeError 负测误分类均保留在 [L2B-25 报告](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)。
+
+**严格范围：** ReviewLab **只有审查/拒绝，没有 root 安装事务**；Polkit `allow_any/inactive/active=no`、Tauri 两个只读 IPC、所有 Agent 生产门禁不变。正式发布者签名根/仓库、可交互管理员身份、真正受审 root broker、持久事务/nonce、跨版本升级、Pop!_OS24 COSMIC 真实用户 L3 **NOT RUN**。**v0.1 NOT RELEASE READY，G-05/G-09/正式 G-06 与全部发布 Gate 保持 OPEN。**
+
 ## L2B-24：OS 原生 polkitd/D-Bus + Rust 固定身份授权拒绝 L2 PASS（2026-11-24）
 
 **[功能 SHA ba04f55c / Ubuntu24 native Polkit OCI #45379398181 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45379398181)。** 实际 Ubuntu24 Polkit 124 + D-Bus 读取现有三个 install/upgrade/remove 全 no policy（策略**只装入 OCI overlay**），官方 `pkaction` 确认 `any/inactive/active=no`；官方 `pkcheck` 对 **nobody、daemon 两个真实 Unix UID × 三动作共六次**均返回 **exit 1**，不能让退出 127 的服务故障冒充授权拒绝。新增独立编译的 **Rust 1.100 固定动作用户侧 gate**，只接受三个字面操作，读取自身 Linux PID/start-time/UID，使用原生 `pkcheck --process PID,START,UID` 检查；Rust 单元 **3/3**、原有 policy 负测 **30/30**、六组原生拒绝与额外参数/环境伪造负测 PASS。gate 即使 OS 回答 yes 仍因缺**发行签名与 root-side broker**而拒绝；**没有连接 Tauri IPC、没有运行 apt-get/systemctl 或安装 Agent**。[精确报告与首次失败/修复历史](development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)。第一轮 `no-new-privileges` 阻断 D-Bus setuid helper、另一次 YAML 换行错误及未挂载新 Rust gate 的失败均如实保留。
