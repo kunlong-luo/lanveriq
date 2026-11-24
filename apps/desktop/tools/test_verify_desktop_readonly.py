@@ -82,6 +82,43 @@ class DesktopReadonlyContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "frontend ABI package/version floors drift"):
             guard.validate(self.root)
 
+    def test_reject_embedded_python_abi_floor_downgrade(self):
+        self.mutate("tools/verify_desktop_popos_local_preflight.py",
+                    '"libc6 (>= 2.39)"', '"libc6 (>= 2.38)"')
+        with self.assertRaisesRegex(ValueError, "embedded Python ABI floors drift"):
+            guard.validate(self.root)
+
+    def test_reject_embedded_python_abi_package_substitution(self):
+        self.mutate("tools/verify_desktop_popos_local_preflight.py",
+                    '"libcairo2 (>= 1.10.0)"', '"libcairo42 (>= 1.10.0)"')
+        with self.assertRaisesRegex(ValueError, "embedded Python ABI floors drift"):
+            guard.validate(self.root)
+
+    def test_reject_embedded_python_cosmic_substitution(self):
+        self.mutate("tools/verify_desktop_popos_local_preflight.py",
+                    '"cosmic-session", "cosmic-comp", "xdg-desktop-portal-cosmic"',
+                    '"cosmic-session", "fake-comp", "xdg-desktop-portal-cosmic"')
+        with self.assertRaisesRegex(ValueError, "embedded Python/React COSMIC component names drift"):
+            guard.validate(self.root)
+
+    def test_reject_frontend_cosmic_component_substitution(self):
+        self.mutate("src/preflight.ts",
+                    '"cosmic-session", "cosmic-comp", "xdg-desktop-portal-cosmic"',
+                    '"cosmic-session", "fake-comp", "xdg-desktop-portal-cosmic"')
+        with self.assertRaisesRegex(ValueError, "embedded Python/React COSMIC component names drift"):
+            guard.validate(self.root)
+
+    def test_reject_duplicate_embedded_abi_binding(self):
+        self.mutate("tools/verify_desktop_popos_local_preflight.py",
+                    "COSMIC = (", 'ABI = ("libc6",)\nCOSMIC = (')
+        with self.assertRaisesRegex(ValueError, "embedded Python ABI/COSMIC constants missing or duplicated"):
+            guard.validate(self.root)
+
+    def test_reject_missing_audited_deb_dependency_source(self):
+        (self.root / "tools/verify_desktop_deb_shlibdeps_audit.py").unlink()
+        with self.assertRaisesRegex(ValueError, "missing reviewed ABI dependency audit"):
+            guard.validate(self.root)
+
     def test_reject_extra_capabilities(self):
         self.mutate("src-tauri/capabilities/default.json", '"core:default"', '"shell:allow-execute"')
         with self.assertRaisesRegex(ValueError, "unapproved desktop capabilities"):

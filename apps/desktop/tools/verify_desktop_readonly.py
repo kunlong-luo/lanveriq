@@ -4,6 +4,7 @@
 This is a source gate, NOT a sandbox for hostile native code or a signed
 software-supply-chain proof. Fail closed on unexpected Tauri commands/plugins.
 """
+import ast
 import json
 import pathlib
 import re
@@ -42,8 +43,7 @@ def validate(root=DESKTOP):
     require(tauri["bundle"]["targets"] == [], "no installer bundle targets yet")
     # A pinned dependency list does not activate bundling or grant install rights.
     # The reviewed ABI baseline must not drift without a new native audit.
-    from importlib.util import spec_from_file_location, module_from_spec
-    dep_module = DESKTOP / "tools" / "verify_desktop_deb_shlibdeps_audit.py"
+    dep_module = root / "tools" / "verify_desktop_deb_shlibdeps_audit.py"
     require(dep_module.is_file(), "missing reviewed ABI dependency audit")
     reviewed = ["libc6 (>= 2.39)","libcairo2 (>= 1.10.0)","libdbus-1-3 (>= 1.9.14)","libgcc-s1 (>= 4.2)","libgdk-pixbuf-2.0-0 (>= 2.36.9)","libglib2.0-0t64 (>= 2.66.0)","libgtk-3-0t64 (>= 3.21.5)","libjavascriptcoregtk-4.1-0","libsoup-3.0-0 (>= 3.0.3)","libwebkit2gtk-4.1-0 (>= 2.41.90)"]
     require(tauri["bundle"].get("linux", {}).get("deb", {}).get("depends") == reviewed,
@@ -77,6 +77,43 @@ def validate(root=DESKTOP):
         locked_array("ABI_PACKAGE_NAMES") == names
         and locked_array("ABI_MINIMUM_VERSIONS") == minima,
         "frontend ABI package/version floors drift from reviewed Debian Depends",
+    )
+
+    # The Python source below is embedded verbatim into the packaged Tauri
+    # binary. Parse reviewed constants as AST literals only: NEVER execute or
+    # import this untrusted/local-host inspection code in the source guard.
+    embedded_source = (root / "tools/verify_desktop_popos_local_preflight.py").read_text(
+        encoding="utf-8"
+    )
+    try:
+        parsed = ast.parse(embedded_source)
+    except SyntaxError as exc:
+        raise ValueError("embedded PopOS preflight source cannot be parsed") from exc
+    constants = [
+        (item.targets[0].id, item.value)
+        for item in parsed.body
+        if isinstance(item, ast.Assign)
+        and len(item.targets) == 1
+        and isinstance(item.targets[0], ast.Name)
+        and item.targets[0].id in {"ABI", "COSMIC"}
+    ]
+    require(
+        len(constants) == 2 and {key for key, _ in constants} == {"ABI", "COSMIC"},
+        "embedded Python ABI/COSMIC constants missing or duplicated",
+    )
+    try:
+        python_constants = {name: ast.literal_eval(value) for name, value in constants}
+    except (ValueError, TypeError, SyntaxError) as exc:
+        raise ValueError("embedded Python ABI/COSMIC constants must be literals") from exc
+    require(
+        type(python_constants["ABI"]) is tuple
+        and list(python_constants["ABI"]) == reviewed,
+        "embedded Python ABI floors drift from reviewed Debian Depends",
+    )
+    require(
+        type(python_constants["COSMIC"]) is tuple
+        and list(python_constants["COSMIC"]) == locked_array("COSMIC_PACKAGE_NAMES"),
+        "embedded Python/React COSMIC component names drift",
     )
 
     require(tauri["bundle"].get("icon") == ["icons/icon.png"], "desktop bundle icon must be the reviewed native PNG")
