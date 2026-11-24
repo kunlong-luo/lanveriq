@@ -1,0 +1,46 @@
+name: Desktop agent install intent DENY-ALL protocol (offline)
+
+# Design review only: this job cannot sign, install, invoke polkit or
+# grant Agent/network/capture/remote-control/PKI permissions.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_agent_install_intent.py'
+      - 'apps/desktop/tools/test_verify_desktop_agent_install_intent.py'
+      - 'docs/planning/desktop-agent-install-intent-deny-all.json'
+      - 'apps/desktop/src/safety.ts'
+      - 'apps/desktop/src/DesktopApp.tsx'
+      - 'apps/desktop/src-tauri/src/**'
+      - 'apps/desktop/src-tauri/capabilities/**'
+      - '.github/workflows/desktop-agent-install-intent-offline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deny-all:
+    name: Test inert Agent install intent and fail-closed Desktop source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Compile Python and run 39 synthetic intent protocol checks
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile apps/desktop/tools/verify_desktop_agent_install_intent.py
+          python3 -m py_compile apps/desktop/tools/test_verify_desktop_agent_install_intent.py
+          python3 -m unittest discover -s apps/desktop/tools \
+            -p 'test_verify_desktop_agent_install_intent.py' -v
+      - name: Require design-only sample to DENY and original GUI to remain readonly
+        run: |
+          set -Eeuo pipefail
+          python3 apps/desktop/tools/verify_desktop_agent_install_intent.py \
+            --intent docs/planning/desktop-agent-install-intent-deny-all.json | grep -Fx \
+            'DENIED: design-only Agent install intent, no publisher, signed package, polkit approval or PopOS L3'
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_desktop_release_evidence_boundary.py
+          echo 'PASS: dry design protocol has no approved install/signing/polkit/production authority'
