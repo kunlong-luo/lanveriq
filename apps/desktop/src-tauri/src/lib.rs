@@ -238,9 +238,7 @@ fn collect_popos_preflight() -> Result<String, String> {
         .env("LANG", "C.UTF-8")
         .env("PATH", "/usr/bin:/bin");
     for name in ["XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "WAYLAND_DISPLAY"] {
-        if let Ok(value) = std::env::var(name)
-            && value.len() <= 256
-        {
+        if let Ok(value) = std::env::var(name) && value.len() <= 256 {
             process.env(name, value);
         }
     }
