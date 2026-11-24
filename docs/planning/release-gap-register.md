@@ -26,6 +26,8 @@
 
 > **2026-11-24 G-05/L2B-14 字节级缓存取证：** [ab1e3cd1](https://github.com/kunlong-luo/lanveriq/commit/ab1e3cd1a1967256426a01017e84b0f498530d0d) 在 Ubuntu24 APT 下载实验中增加 `_apt` 沙箱 root 回退日志的拒绝检查和完整 .deb 的 SHA-256 manifest；[后续 #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) 必须在独立 runner 以 exact cache key、count、manifest SHA-256 全部相等才有缓存子项 PASS。旧 [#45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) 仍待最终 CI；首版 [#45318418790](https://github.com/kunlong-luo/lanveriq/actions/runs/45318418790) 尽管整体绿色，cache post-save FAILED / APT root 下载告警不能篡改。该实验未接入现行 Tauri GUI-only `.deb`，更不是 Ubuntu signed-index 每包复核或产品发布许可；G-05/G-07/G-08/G-09 持续 OPEN。
 
+> **2026-11-24 G-05/L2B-14 新独立签名索引验证器：** [9027dcf4](https://github.com/kunlong-luo/lanveriq/commit/9027dcf4d78e23c4f47872fc8641b1ced64e06d7) 加入只读 `.deb` 对 Ubuntu 新签名索引的包名、epoch/版本、架构、实际大小、SHA-256 一致性检查；[13/13 恶意缓存变异测试 #45320263339](https://github.com/kunlong-luo/lanveriq/actions/runs/45320263339) 在真实 Ubuntu24 CI **PASS**。[c141cf3e / #45320183856](https://github.com/kunlong-luo/lanveriq/actions/runs/45320183856) 现已接线要求独立 runner 刷新签名仓库索引并对**每个**已恢复缓存归档严格验真，但该真实 APT 预热/恢复全作业仍无 PASS；旧 [ab1e3cd1 / #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) 已取消，不可作成功证据。另 [08673541](https://github.com/kunlong-luo/lanveriq/commit/086735410d072f4b3d538cf64e052f9969994c66) 收窄与 GUI 无关的原生 CI 触发，避免实验工具变更无意义耗时，同时保留真正 GUI 源码的 Rust/Clippy/ABI 门禁。G-05、G-07、G-08、G-09 及 WORM G-02 继续 OPEN；v0.1 NOT RELEASE READY。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |
