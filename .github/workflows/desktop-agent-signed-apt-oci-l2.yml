@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Negative guard: never run this on host without CI and explicit consent
+      - name: Negative guard - never run on host without CI and consent
         shell: bash
         run: |
           set -Eeuo pipefail
