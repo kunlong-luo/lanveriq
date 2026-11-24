@@ -1,429 +1,52 @@
 # Lanveriq（澜维巡）
 
-> **2026-11-22 当前入口：v0.1 NOT RELEASE READY。** 最新源码和同 SHA CI 参见 [CURRENT_STATUS](docs/CURRENT_STATUS.md)，发布缺口见 [release-gap register](docs/planning/release-gap-register.md)，后续规范见 [AGENTS](AGENTS.md) / [工程手册](docs/governance/engineering-playbook.md)。下方早期时间线可能已被新源码取代。生产联网、采集、自动恢复、远控、官方 FIDO 信任和 CA 签发继续关闭。
+[English](README.md) · **简体中文** · [文档导航](docs/README.md)
 
+**Linux-first、自托管的终端资产、健康状态和审计平台**，仅面向已告知且依法获得授权的设备。主要目标操作系统为 **Pop!_OS 24.04 / COSMIC**。
 
-[English](README.md) | **中文**
+> **当前版本：v0.1 NOT RELEASE READY（不可正式分发或上线）。** 现有 CI 使用隔离 Linux runner、合成设备及临时身份。尚无可信签名、受限 Polkit 安装器、真实 Pop!_OS 实机 L3、生产 CA/MFA/独立 WORM/法律与运维批准。**真实设备联网、自动采集、远控、自动恢复及证书签发默认关闭**。下载源码并不等于取得设备管理权限。
 
-**基于局域网、自托管、面向已告知且经过授权的企业终端的资产健康与审计平台。**
+[当前真实进度及 CI](docs/CURRENT_STATUS.md) · [发布阻塞清单 G-01–G-10](docs/planning/release-gap-register.md) · [项目评分与整改优先级](docs/planning/project-scorecard.md) · [代码/文档目录审计](docs/governance/repository-layout-audit-2026-11-24.md)
 
-> **2026-11-08 最新研发基准：**以 [v0.1 A–E 业务批次、L1/L2/L3 分级测试](docs/planning/v0.1-batched-delivery-plan-2026-11-08.md) 为正式执行方案：A 注册/证书/心跳入库，B 库存与离线恢复，C 正式授权 Next.js，D WSS/事件，E Windows/Linux/安全/运维。**批次 A1 只完成默认关闭的心跳 HTTP 源码与严格 Rust ACK，不是设备上线、生产登录或完整心跳闭环。** [设备通信协议与成熟组件选型](docs/architecture/device-communication-stack.md) · [REST/gRPC/MQTT 评估 ADR](docs/architecture/adrs/0009-agent-transport-selection.md) · [本轮文档查漏补缺](docs/governance/documentation-audit-2026-11-08.md)。当前 Rust Agent HTTP 客户端只配置 **TLS1.2 最低版本**，外部 Agent→Caddy 是否强制 TLS1.3 仍需独立验证。所有真实终端/员工数据与实际 PKI/授权登录均保持未批准、未启用。
+## 哪些目录有用？不要运行哪一套旧项目？
 
+| 目录 | 功能 | 现在是什么状态 | 处理决定 |
+| --- | --- | --- | --- |
+| [`apps/web/`](apps/web/README.md) | **唯一 Web 管理控制台**；Next.js 16.4.5、React 19、Tailwind 4、Base UI | 公开 [Pages](https://kunlong-luo.github.io/lanveriq/) 和本地开发是**断开真实业务的展示**；仅隔离 CI 已将真实测试链路接入临时页面 | **保留** |
+| [`apps/server/`](apps/server/README.md) | Java 25 / Spring Boot 4.2.0 / Gradle / Hibernate JPA / Flyway / PostgreSQL 18 的业务与安全后端 | 默认拒绝的受控业务入口；PG18.7/mTLS 合成链路经 CI 测试 | **保留** |
+| [`apps/agent/`](apps/agent/README.md) | Rust 1.100 / Tokio / SQLx SQLite / reqwest-rustls 的终端 Agent 与 durable outbox | Linux 隔离 CI 已验证只读 OS/CPU/RAM→后台；常驻产品 Agent 仍无生产采集/联网授权 | **保留** |
+| [`apps/desktop/`](apps/desktop/README.md) | Tauri 2 / React 的本机安装准备、兼容性预检和状态界面 | **只读 GUI**，显示签名/Polkit/L3 缺口；没有可用安装事务或 Agent 开机启动 | **保留** |
+| [`deploy/caddy/`](deploy/caddy/Caddyfile.reference) | Caddy TLS1.3、双跳 mTLS 参考配置和隔离验收 | 测试基础设施；不是可直接公开部署的生产配置 | **保留** |
+| [`deploy/network/`](deploy/network/verify_dual_access.py) | LAN/WAN 接入边界的只读及拒绝测试 | 仅安全合同/实验 | **保留** |
+| [`deploy/rustdesk/`](deploy/rustdesk/client-release-lock.json) 与 [`deploy/rustdesk-synthetic/`](deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) | RustDesk 远控候选与 RD-2 默认拒绝、隔离协议测试 | **远控关闭**，许可证、真实权限和安全批准未完成 | **保留，仅实验** |
+| [`docs/`](docs/README.md) | 唯一文档目录：规范、架构、测试证据、历史、发布缺口 | 按[文档生命周期](docs/governance/document-lifecycle.md)区分当前规范与历史记录 | **保留并精简索引** |
+| [`.github/workflows/`](.github/workflows/docs-governance.yml) | 后端、Agent、Web、Tauri 和安全发布门禁自动 CI | 自动化测试不等于生产授权；历史失败保留在 Actions | **保留** |
 
-> **2026-11-08 当前状态：v0.1 开发中，尚不能生产上线。** Java 25/Spring Boot 4/JPA/Flyway/PG18、Rust SQLx SQLite/reqwest 和 Next.js 16.4.5 **已有实际源码、合成数据库/HTTPS/浏览器测试记录**。Batch A1 新增**双默认关闭**的设备心跳 POST 与严格 Rust ACK，Java MockMvc、Rust Linux/Windows 单测通过。**Agent 运行服务仍为空闲循环**，尚未连通真实证书注册、受控自动上传或实际设备采集；唯一主前端 `apps/web` 的 B+C 页面与公开 GitHub Pages 仍断开业务登录/真实数据。必须把 Agent→Caddy→Tomcat→PG18→授权 Next.js 全链路、生产 PKI/网络隔离、合法授权、OS 试点和恢复演练视为 **未完成**；以前合成 PG18/Caddy/Chromium 的成功不代表新心跳入口或正式上线已获批准。
+**不存在需要重新启动的 `apps/web-next/`、旧版 React/Vite Web 项目、独立 Maven 后端或第二套可执行控制台。** 没有这些目录是整理后的正确状态；不要重新创建它们。根目录不是 Gradle 项目。
 
-**Next.js 公开静态预览已部署：** [打开 GitHub Pages](https://kunlong-luo.github.io/lanveriq/)。[自动部署 #42364974627](https://github.com/kunlong-luo/lanveriq/actions/runs/42364974627) 已成功，首页、概览、登录演示页面的公开 HTTP 检查均为 200。GitHub Pages **仅展示只读、未连接数据的 UI**：登录按钮不可用，不提供 Next.js 服务端鉴权、Spring Boot、PostgreSQL、真实设备数据或 Agent 操作。它不是正式后台部署，也不允许输入真实凭据。开发中的独立 Next.js 项目在 [`apps/web`](apps/web/README.md)；实际生产网络隔离与登录体验仍需另外验收。
+`docs/architecture/` 保存**现行规范和 ADR**；`docs/security/` 保存安全要求；`docs/testing/` 保存测试矩阵及可复验报告；`docs/development/` 主要是实施细节与带日期的历史证据；`docs/governance/` 管理文件权威；`docs/planning/` 包含开放的 Gate、评分和路线；`docs/operations/` 是操作/发布预案；`docs/diagrams/` 是可编辑 Mermaid；`docs/visuals/` 是**示意图而非运行截图**。详细保留/删除决议见 [仓库目录审计](docs/governance/repository-layout-audit-2026-11-24.md)。
 
-![Lanveriq 架构概念图](docs/visuals/assets/01-overview.svg)
+## 我现在能做什么？
 
-**2026-11-21 文档同步入口：** [现行 `apps/web` Next.js 使用说明](apps/web/README.md) · [NXT-24 路径迁移与五条同 SHA CI 证据](docs/development/nextjs-path-rename-nxt24-2026-11-21.md) · [NXT-23/24 单 UI 清理的历史与现行安全规则](docs/development/nextjs-single-ui-consolidation-2026-11-21.md) · [当前技术栈](docs/development/technology.md) · [真实 CSS 色值](docs/development/frontend-design-system.md)。注意旧 Vite 源码和工作流已从主线移除，**当前同名 `apps/web` 与 `web-unit.yml` 是新 Next.js**，不能再按 NXT-23 旧检查规则删除。
+**普通 Pop!_OS 用户：** 目前不能通过签名安装器完成一键 Agent 安装。无需按照历史报告安装 Rust、Node 或手动执行 `dpkg -i`；这些是**开发者**命令，不是最终产品安装过程。[安装器真实进度](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md) · [未来 GUI 用户流程](docs/product/linux-desktop-installer-v01.md)。
 
-## 当前主前端：Next.js App Router
-
-正式前端源码统一以 [`apps/web`](apps/web/README.md) 为准，Next.js 已升级到 **16.4.5 稳定安全修复版**，并保留 Node.js 24、pnpm 12 和独立锁文件。历史 `apps/web` React/Vite 前端及工作流已从当前源码移除，仅保留 Git 历史，避免本地启动两套不同 UI。
-
-本地运行（当前只有未连接数据的预览）：
+**开发者：** 请先阅读 [AGENTS.md](AGENTS.md)、[贡献规范](CONTRIBUTING.md)、[工程手册](docs/governance/engineering-playbook.md)。只在独立开发环境运行：
 
 ```bash
+# 唯一 Web 前端：本地只读/断开业务预览
 cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
 pnpm install --frozen-lockfile
-pnpm run verify:routes
 pnpm test
-pnpm typecheck
-pnpm build
 pnpm dev
+# http://127.0.0.1:3100
 ```
 
-浏览器访问 `http://127.0.0.1:3100`。线上 UI 预览为 [https://kunlong-luo.github.io/lanveriq/](https://kunlong-luo.github.io/lanveriq/)；GitHub Pages 只托管静态文件，**不能连接正式管理员会话、Spring Boot、PostgreSQL 或真实设备**。服务器正式部署仍需通过独立的 Caddy/Next.js/Spring 网络隔离验收。
+后端使用 `cd apps/server && ./gradlew test`；Agent 使用 `cd apps/agent && cargo test --workspace --locked`；Tauri UI 使用 `cd apps/desktop && pnpm test`，这些**都是开发测试，不是安装或激活终端**。后端启动需要经验证的独立 PostgreSQL 凭据和 loopback 限制，按 [开发/安装操作指南](docs/operations/installation.md) 执行；不要把本地数据库操作脚本当成终端安装器。
 
-## 一、项目包含哪些服务？
+## 上线之前还缺什么？
 
-**三个业务组件**是前端、后端和终端 Agent。数据库与代理是它们的**部署依赖**，不是已经完工的三个业务应用。
+依照 [G-01–G-10 发布门禁](docs/planning/release-gap-register.md)，优先完成可信签名发行与受限 Polkit 安装、**经授权的 Pop!_OS 24.04 COSMIC 实机**、正式 CA/管理员 MFA、独立 WORM/密钥/可信时间、法务授权、备份恢复/回滚和正式业务登录。用户勾选一份 GUI 说明并不能代替这些批准。
 
-| 组件 | 仓库位置 / 技术 | 当前状态 | 运行方式 |
-|---|---|---|---|
-| 管理前端 Web（主项目） | `apps/web`：**Next.js 16.4.5 App Router**、React 19、TypeScript 7、Tailwind 4、Lucide、shadcn/ui 风格组件 | 已实现不接入真实数据的页面并发布 [GitHub Pages](https://kunlong-luo.github.io/lanveriq/)；真实登录、业务 API、终端采集和设备操作均关闭 | `cd apps/web && pnpm dev`（本机预览） |
-| 管理后端 Server | `apps/server`：Java 25、Spring Boot 4.1.2、Gradle、JPA/Hibernate、Flyway | 可单独构建并连接**合成测试数据库**；业务接口默认拒绝，部分功能仅源码/测试状态 | `./gradlew bootRun` |
-| 终端 Agent | `apps/agent`：Rust 1.94、Tokio、SQLx/SQLite WAL、Reqwest/rustls | 可编译、启动、停止；运行时**不采集、不上传、不监控** | `cargo run --locked -p lanveriq-agent -- --config <绝对路径>` |
-| 数据库（基础设施） | PostgreSQL 18.x；真实验收使用 18.6 | Flyway V1–V8 已编写；可复用 `spark-postgres` 中的专用 `lanveriq` 库 | 现有 Docker Compose，无需额外持久容器 |
-| Redis（可选基础设施） | `spark-redis` / Redis 8 / Spring Data Redis + Lettuce | 短期非权威提示与健康检查，**默认关闭**；不存储会话、权限、审计、ACK | 复用现有 Redis，不创建新容器 |
-| HTTPS 代理（基础设施） | Caddy | `deploy/caddy/Caddyfile.reference` **仅为安全测试参考配置**，不能直接用于生产 | 正式部署方案待验收 |
-
-设计目标：浏览器仅通过 Caddy HTTPS 同源入口访问 Spring Boot 认证 API 与受保护的管理页面，PostgreSQL 保持私网隔离；Windows/Linux 终端独立运行原生 Rust Agent，**Agent 不应部署在服务器 Docker Compose 中**。早期 D0 图使用 Vite 静态前端，但维护者已选定 **Next.js App Router** 作为迁移目标；如采用 SSR/RSC，正式部署需要一个**仅 Caddy 可访问的私有 Next.js 运行时**，而不是只把静态文件交给 Caddy。当前只有合成 CI 证明测试环境隔离，真实网络拓扑和生产部署均未获批准。详见 [部署架构](docs/architecture/deployment.md)。
-
-## 二、准备环境
-
-- Git；**JDK 25**；仓库自带 **Gradle 9.8.2 Wrapper**（无需 Maven，也无需单独安装 Gradle）。
-- Rust **1.94.0**（见 `apps/agent/rust-toolchain.toml`）、Cargo；按目标系统安装相应的 Rust 原生构建工具。
-- Docker Engine 和已运行的 `spark-db` PostgreSQL 可直接用于独立数据库的本地开发；只有需要**独立合成数据验收**时，才额外启动短期 PostgreSQL 18.6 容器。首次下载依赖/镜像可能需要联网；未来产品运行目标是离线局域网。
-- Bash、curl、OpenSSL，用于现有 Linux/WSL/macOS 开发环境下的服务器自检脚本。生产服务器及 Agent OS 服务还需要单独验收。
-- 本地 Web 合成预览需要 **Node.js 24 + pnpm 12**；独立的 `apps/server/contract-client-check` 仍只用于 Orval 契约验证，尚未与 Web 联调。
-
-克隆仓库：
-
-```bash
-git clone https://github.com/kunlong-luo/lanveriq.git
-cd lanveriq
-```
-
-## IDEA 导入项目（Gradle 仅在 Java 后端）
-
-使用 IDEA 的 **File → Open** 打开仓库根目录 `lanveriq/`，即可统一浏览 Java、React 与 Rust 代码。**根目录不是 Gradle 工程，也不应该放 Gradle Wrapper 或 `settings.gradle`。**
-
-在 IDEA 的 **View → Tool Windows → Gradle** 点击 **Link Gradle Project**，选中 `apps/server/build.gradle`；如果仅开发 Java 后端，也可以直接用 IDEA 打开 `apps/server/settings.gradle`。**Project SDK、Gradle JVM 都设置为 JDK 25**，使用 `apps/server` 自带的 **Gradle 9.8.2 Wrapper**。
-
-Windows PowerShell 在仓库根目录执行：
-
-~~~powershell
-cd apps/server
-.\gradlew.bat --version
-.\gradlew.bat test
-~~~
-
-Linux / macOS：
-
-~~~bash
-cd apps/server
-./gradlew --version
-./gradlew test
-~~~
-
-Web 由 `apps/web` 的 pnpm 管理；Rust 由 `apps/agent/Cargo.toml` 和本目录的 `Cargo.lock` 独立管理。它们都不需要 Gradle。完整步骤见 [IDEA 导入指南](docs/development/intellij-idea.md)。
-
-## 三、本地运行：直接复用已有 spark-db
-
-你提供的 Compose 工程名为 `spark-db`，其中 PostgreSQL 容器是 `spark-postgres`；默认通过 `127.0.0.1:5432` 暴露，原有业务库名为 `iot_farm`。**无需新建 PostgreSQL 容器；可选择复用现有 `spark-redis`，但不依赖 InfluxDB 或 PostGIS 扩展。**
-
-**隔离原则：** 在同一个 PostgreSQL 实例里创建独立的 `lanveriq` 数据库与 `lanveriq` 普通登录角色；Flyway 只迁移这套新库。不要把 `iot_farm` 作为 `LANVERIQ_DB_URL`，不要使用共享的 `root` 超级用户运行 Lanveriq，也不要修改或卸载现有 `spark-db` Compose/数据卷。此流程只能在已授权、没有真实员工数据的本地开发环境操作。
-
-### 1. 检查现有数据库，不重启 Compose
-
-在运行 Docker 的电脑上：
-
-```bash
-docker inspect -f '{{.State.Running}}' spark-postgres
-docker port spark-postgres 5432
-docker exec spark-postgres psql -U root -d postgres -XAtc "SHOW server_version;"
-```
-
-第一条应输出 `true`，第二条需要确认显示宿主机 `127.0.0.1:5432`（若你改过 `BIND_IP` / `POSTGRES_HOST_PORT`，以实际映射为准）。**镜像标签 `postgis/postgis:18-3.6` 仅表示 PostgreSQL 18 系列；是否为 18.6 必须以 `SHOW server_version` 为准。** 你的 Compose 还有 InfluxDB Explorer 占用宿主机 **18080**，所以 Lanveriq 使用 **18081**，不要覆盖它。
-
-如果 Compose 使用的超级用户名不再是 `root`，请在以上检查命令中替换为你实际配置的管理员角色。注意：**不会在这一步自动启动、停止、更新或修改现有服务。** 你提供的 Compose 示例含有弱默认数据库/Redis 密码；如果已经实际启用，建议在独立维护窗口内轮换，文档不会复制这些密码。
-
-### 2. 首次创建独立的 Lanveriq 数据库和账号
-
-**推荐做法：不需要再打开 DBeaver 建库。** 在 Linux（IDEA 下方的 Terminal 也可以）打开仓库根目录，拉取最新代码，执行这一条交互式命令：
-
-~~~bash
-cd /home/spark/Projects/github/lanveriq
-git pull origin main
-bash apps/server/scripts/setup-local-postgres.sh
-~~~
-
-此命令仅针对当前已有的 `spark-postgres` 容器（管理员 `root`）和 PostgreSQL 18。它会检查版本、SCRAM 安全配置、`lanveriq` 角色/数据库是否存在和权限，然后让你输入 **`CREATE lanveriq`**（全新创建）或 **`RECOVER lanveriq`**（仅当已经存在符合限制的 NOLOGIN 角色而缺少数据库时），如果数据库已建好但 `PUBLIC` 默认权限尚未撤销，并且角色仍是受限 `NOLOGIN`，脚本会要求输入 **`SECURE lanveriq`** 以仅撤销新库的公共权限；随后输入 **`PASSWORD lanveriq`** 确认进入密码设置。密码在 PostgreSQL 自带的隐藏输入界面输入两次，并在最后的连接校验中再输入一次。**这些确认词不是数据库密码**，密码不会保存在仓库或命令行里。
-
-已存在完整账号和数据库时不会重置密码；发现异常集群权限、所有权，或登录已启用但仍有 `PUBLIC` 权限时直接退出，要求人工核查。脚本不会重启/删除共享容器、触碰 `iot_farm`、运行 Flyway 或启动服务器。成功之后，才通过 `LANVERIQ_DB_PASSWORD` 配置后端。**下方保留的是高级手动 SQL 操作说明，不需要同时再运行。**
-
-**只在确认 `lanveriq` 数据库和角色都不存在时执行。** 先进入现有容器的 PostgreSQL 控制台检查 `\du lanveriq` 和 `\l lanveriq`：
-
-~~~bash
-docker exec -it spark-postgres psql -X -U root -d postgres
-~~~
-
-已有对象不应重新创建；先核对所有权和历史记录。在审批确认目标实例后，从**仓库根目录**执行纳入版本管理的 [数据库初始化脚本](apps/server/scripts/provision-lanveriq-database.sql)：
-
-~~~bash
-docker exec -i spark-postgres \
-  psql -X -v ON_ERROR_STOP=1 -U root -d postgres \
-  < apps/server/scripts/provision-lanveriq-database.sql
-~~~
-
-脚本只执行一次性 PostgreSQL **角色/数据库初始化**，不属于 Flyway 迁移。它先校验操作者、当前连接的维护库和目标对象不存在，然后创建 `NOLOGIN`、无全局管理权限的 `lanveriq` 用户与专属数据库，撤销 `PUBLIC` 对新数据库的权限；**不包含密码、不会修改 `iot_farm`，也不会自动由 Spring Boot 或 CI 运行**。`CREATE DATABASE` 不能与创建角色一起包裹在单个事务中；若中途出错，必须人工检查可能留下的 `NOLOGIN` 角色及数据库，**不要重复运行**。
-
-**DBeaver 特别注意（SQLSTATE 25001）**：工具栏的 Auto-commit 还不够，还需要在 **Preferences → Editors → SQL Editor → SQL Processing → Scripts** 中，将 **Commit type = After each query (autocommit)**，不能是 **At script end**（后者会将整份脚本放到一个事务中，导致 `CREATE DATABASE cannot run inside a transaction block`）。选择 **Error handling = 遇错停止**，然后用 **Alt+X** 按顺序执行，不能用“在不同结果页中并行执行脚本语句”。已报错的会话先确认/结束失败的事务，再通过独立会话查询 `pg_roles`、`pg_database`，确认未发生部分创建后才可以重试。参考 [DBeaver SQL Execution 官方文档](https://dbeaver.com/docs/dbeaver/SQL-Execution/)。
-
-**如果使用 IDEA / DataGrip / DBeaver / pgAdmin 的 SQL 编辑器**：直接打开同一个 `provision-lanveriq-database.sql`，数据源必须选择管理员连接到 `postgres` 维护库；设置 **Auto-commit（自动提交）**、**遇错停止**，按文件顺序执行每条语句。不能选择“整个脚本在一个事务中执行”，因为 PostgreSQL 不允许在事务块中 `CREATE DATABASE`。旧版脚本曾错误包含 `\set ON_ERROR_STOP on`，它是 **psql 专属命令**，在 JDBC SQL 编辑器中会报 `42601`；现已删除。如果运行失败先检查是否存在 `lanveriq` 角色或数据库，别重复执行。
-
-**密码无需再写一个 SQL 脚本。** 可以使用受信任的数据库客户端的角色管理/密码设置界面完成密码配置，再执行单独的 `ALTER ROLE lanveriq LOGIN;` SQL 语句；也可以使用下方的交互式 `psql` 流程。**不要在普通 SQL 编辑器直接执行 `\password`**，因为它也是 psql 专有命令。
-
-创建成功后，在单独的交互式 `psql` 会话中为角色设置密码，并在成功设置后才启用登录：
-
-~~~bash
-docker exec -it spark-postgres psql -X -U root -d postgres
-~~~
-
-在 `psql` 中执行：
-
-~~~sql
-SHOW password_encryption;
-\password lanveriq
-ALTER ROLE lanveriq LOGIN;
-\du lanveriq
-\l lanveriq
-~~~
-
-`password_encryption` 应为 `scram-sha-256`；否则先检查安全配置，不要继续启用登录。`\password` 会交互提示输入独立强密码，不会将明文写入 Git、Shell 历史或 SQL 脚本。执行 `\q` 退出。
-
-然后验证专属用户的密码连接：
-
-~~~bash
-psql -h 127.0.0.1 -p 5432 -U lanveriq -d lanveriq -W \
-  -c 'SELECT current_user, current_database();'
-~~~
-
-如果宿主机没有 `psql`，可使用其他受信任的 PostgreSQL 客户端验证。`lanveriq` 数据库账号与未来的网页管理员账号是两套独立身份。不要修改既有的 `iot_farm` 数据库、`spark-postgres` 容器、Redis 或数据卷。正式使用前还须核查该共享实例的容量和 `lanveriq` 数据库的独立备份覆盖范围。
-
-### 3. 启动 Java 后端（本地开发）
-
-在仓库根目录进入后端；用隐藏终端输入读取**刚刚为新角色设置的**密码：
-
-```bash
-cd apps/server
-export LANVERIQ_DB_URL='jdbc:postgresql://127.0.0.1:5432/lanveriq'
-export LANVERIQ_DB_USER='lanveriq'
-read -rsp 'Lanveriq PostgreSQL password: ' LANVERIQ_DB_PASSWORD
-echo
-export LANVERIQ_DB_PASSWORD
-export LANVERIQ_HTTP_BIND='127.0.0.1'
-export LANVERIQ_HTTP_PORT='18081'
-# 业务开关一律保持默认 false；不要启用真实设备接入。
-./gradlew bootRun
-```
-
-以上命令适用于后端程序运行在**与 Docker 端口映射相同的宿主机**的 Bash 终端。Windows PowerShell、WSL2、远程开发机或后端在另一容器里运行时，`127.0.0.1` 所指的机器可能不同；必须先独立验证网络可达性，**不能为了方便把共享 PostgreSQL 暴露到 0.0.0.0**。宿主机环境变量在进程存活期间包含数据库密码，仅可用于受信任的本地开发会话；正式环境应使用受保护的密钥注入方式。
-
-在另一个**Linux 终端**，从仓库根目录运行只读本地自检：
-
-```bash
-cd /home/spark/Projects/github/lanveriq
-# IDEA 直接运行 Java 主类、未设置 LANVERIQ_HTTP_PORT 时默认 8080
-bash apps/server/scripts/verify-local-server.sh 8080
-# 如果显式配置了 LANVERIQ_HTTP_PORT=18081，改为：
-# bash apps/server/scripts/verify-local-server.sh 18081
-```
-
-它仅向本机 127.0.0.1 发起两个 GET 请求，要求健康检查 HTTP 200 + JSON UP，以及未授权设备列表 HTTP 403；不读取数据库密码、不连接 PostgreSQL、不修改业务数据、不启动 Agent。**必须保持 IDEA 的 Spring Boot 进程运行。** 它不能替代真实 PG18.6 Testcontainers 事务/并发验收。2026-11-01 开发者本机启动日志已经显示真实 PostgreSQL 18.6、Flyway V1–V8 校验成功、Hibernate JPA 初始化成功和 Tomcat 8080 启动；但未授权 HTTP 的自检结果仍需要执行上述命令才能确认。
-
-健康检查预期 `{"status":"UP"}`，无权限业务请求预期 **403**。首次启动 Flyway 会在**专用的 `lanveriq` 数据库**创建 V1–V8 的表与约束。注意：`/actuator/health` 显示 UP **不代表**管理员网页、Agent HTTP 上传、浏览器登录或 PostgreSQL 全量集成测试通过。此开发 HTTP 只能绑定 loopback，不得直接公开给局域网。
-
-停止后端：在 `bootRun` 终端按 `Ctrl+C`。**不要执行** `docker stop spark-postgres`、`docker compose down` 或 `docker compose down -v`：它们可能影响 `iot_farm`、其他数据库及 Redis/InfluxDB 的服务与数据卷。
-
-### 4. 可选：启用已有 Redis 8（不新增 Redis 容器）
-
-后端**默认不依赖 Redis**。若希望在已授权的本地合成测试环境启用它，先检查：
-
-```bash
-docker inspect -f '{{.State.Running}}' spark-redis
-docker port spark-redis 6379
-```
-
-默认应通过宿主机 `127.0.0.1:6379` 访问。保持 `spark-redis` 原有容器和数据卷不变。在**启动 Java 后端的同一个 Bash 终端**、执行 `./gradlew bootRun` **之前**，设置：
-
-```bash
-export LANVERIQ_REDIS_HOST='127.0.0.1'
-export LANVERIQ_REDIS_PORT='6379'
-read -rsp '现有 spark-redis 密码: ' LANVERIQ_REDIS_PASSWORD
-echo
-export LANVERIQ_REDIS_PASSWORD
-export LANVERIQ_REDIS_ENABLED='true'
-./gradlew bootRun
-```
-
-密码必须使用现有 Compose 的真实配置值（不要复制 README 或 Compose 示例中的弱默认密码），不得提交到仓库。启用后 Redis 可参与 `/actuator/health` 健康检查；当 Redis 不可达时，健康状态可能为 DOWN。当前仅提供内部的 **90 秒 UUID 变更提示能力，尚未接入业务调用**，不会因此启动设备采集、远程操作或新的 HTTP 接口。
-
-现有 Redis 使用 `allkeys-lru`，可能随时淘汰键，因此**不能**存储权威会话、权限、审计、设备 ACK 或分布式锁；真实数据始终以 PostgreSQL 和经授权的 REST 查询为准。停止 Lanveriq 仅结束 Java 进程，**不要停止 `spark-redis`、执行 `FLUSHALL` / `FLUSHDB`、清理 Redis 卷或执行 Compose down。**
-
-### 5. 可选：独立一次性 PostgreSQL 18.6 自检（不会触碰 spark-db）
-
-如果想跑仓库既有的自动清理脚本，而不是用共享实例，它会另启**临时** `postgres:18.6` 容器，不操作 `spark-postgres`。为避开 InfluxDB Explorer 的 18080 端口，运行：
-
-```bash
-# 先停止占用 18081 的 Lanveriq 后端；这里使用独立 HTTP 端口 18082。
-LANVERIQ_SMOKE_HTTP_PORT=18082 \
-LANVERIQ_SMOKE_DB_PORT=55432 \
-bash apps/server/scripts/verify-postgres18.sh
-```
-
-自检会生成临时数据库密码、在 `127.0.0.1:55432` 建立独立容器、运行 Spring Boot、验证 Flyway/默认拒绝，然后清理**自己创建**的容器和临时文件。这不是正式部署，也不代表全套 58 个 PostgreSQL 集成测试已通过。数据库集成测试仍必须使用隔离的 Testcontainers，并取得真实执行证据；**不得将会清空测试表或创建临时触发器的集成测试指向你的共享 `iot_farm` 或 `lanveriq` 开发库。**
-
-### 本地运行 Rust Agent（只启动空闲循环）
-
-从仓库根目录进入 Agent 工程后执行：
-
-```bash
-cd apps/agent
-cargo test --workspace --locked
-cargo build --release --locked -p lanveriq-agent
-cp config/agent.example.toml /tmp/lanveriq-agent-demo.toml
-cargo run --locked -p lanveriq-agent -- \
-  --config /tmp/lanveriq-agent-demo.toml
-```
-
-配置文件必须是**绝对路径**，内容是纯合成/无密钥配置。按 `Ctrl+C` 退出；结束后可手动删除你创建的 `/tmp/lanveriq-agent-demo.toml`。此程序目前**不会**向后端发送心跳、读取设备库存或执行监控。Windows 11 可在 PowerShell 中使用：
-
-```powershell
-cd apps\agent
-Copy-Item .\config\agent.example.toml "$env:TEMP\lanveriq-agent-demo.toml"
-cargo run --locked -p lanveriq-agent -- --config "$env:TEMP\lanveriq-agent-demo.toml"
-```
-
-这是前台进程检查，**不是 Windows SCM 服务安装**。
-
-### 本地测试命令
-
-```bash
-# Rust（真实单元测试，合成数据），从仓库根目录进入子项目
-cd apps/agent
-cargo test --workspace --locked
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets --locked -- -D warnings
-
-# Java：单元测试、构建、编译 PostgreSQL 集成测试代码（不启动 Docker）
-cd ../server
-./gradlew test bootJar compileIntegrationTestJava
-```
-
-数据库集成测试是**另外的手动门槛**：`cd apps/server && ./gradlew --no-build-cache --rerun-tasks integrationTest`，必须在明确授权的隔离 Docker 环境中使用合成数据。真正通过还需要验证 7 类至少 58 个用例、零失败/跳过，并运行 JUnit 证据校验器；**当前尚无成功的真实 PostgreSQL 18.6 执行记录**。参见 [PG18 手动验收](docs/testing/server-postgres18-manual.md) 与 [GitHub 手动工作流](https://github.com/kunlong-luo/lanveriq/actions/workflows/server-postgres18-integration.yml)。
-
-## 四、部署：当前能够做什么？
-
-### 实验性部署（仅获授权的测试机）
-
-服务端仍只能作为开发 Java 进程运行，Web 已有可构建的本地合成数据预览，但**没有**正式 Docker Compose、生产 Caddy 配置、真实登录或可操作的管理界面。不能执行尚不存在的 `docker compose up -d` 来安装整套产品。
-
-### Java 后端构建部署包（仅隔离测试，不是生产部署）
-
-如果不想使用 `bootRun`，可以在完成上文数据库变量配置的**同一受信任终端**构建并前台运行 JAR：
-
-```bash
-cd apps/server  # 如果已经在 apps/server 中，请省略这一步
-./gradlew bootJar
-java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar
-```
-
-仍连接你的 `127.0.0.1:5432/lanveriq`，仍绑定 `127.0.0.1:18081`，仍默认关闭业务功能。退出按 `Ctrl+C`。JAR 属于试验性构建物，**不是**已通过 Caddy/TLS、真实浏览器及数据库集成验收的生产服务；不要用 `nohup` 或自动开机来绕过这些门槛。
-
-Linux 的 Rust Agent 仅提供**实验性 systemd 单元** `apps/agent/deploy/systemd/lanveriq-agent.service`。如果你拥有一台**隔离的测试 VM**并明确允许安装一个不采集数据的空闲服务，可从仓库根目录进入 `apps/agent` 构建，再手动安装：
-
-```bash
-cd apps/agent
-cargo build --release --locked -p lanveriq-agent
-sudo install -m 0755 target/release/lanveriq-agent /usr/local/bin/lanveriq-agent
-sudo install -d -m 0755 /etc/lanveriq-agent
-# 本例配置没有密钥；未来存放密钥的配置不能使用 0644 权限。
-sudo install -m 0644 config/agent.example.toml /etc/lanveriq-agent/agent.toml
-sudo install -m 0644 deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
-sudo systemd-analyze verify /etc/systemd/system/lanveriq-agent.service
-sudo systemctl daemon-reload
-sudo systemctl start lanveriq-agent
-sudo systemctl --no-pager status lanveriq-agent
-```
-
-**不执行 `systemctl enable`，不自动开机启动。** 此参考单元还需要在目标 Linux/systemd 上进行真实权限与停止测试。Windows 端有 SCM dispatcher 源码，但没有受验收的安装器、卸载器或正式服务安装命令。参见 [Agent 生命周期验收](docs/testing/agent-lifecycle-manual.md)。
-
-### 正式生产部署：尚不可执行
-
-计划采用 **Caddy + 私有 Next.js App Router（SSR/RSC）+ Spring Boot + 私网 PostgreSQL** 的中心端候选拓扑，以及独立 Windows/Linux 原生 Agent。旧版 Vite 静态演示已从源码移除；Next.js 正式路由、Caddy 网络隔离和真实登录尚未验收。正式部署前至少需要：
-
-1. 完成 `apps/web` 的真实鉴权/授权对接，并验收登录、设备列表和监控总览。
-2. 提供经审查的 Compose、专用数据库卷与备份/恢复、保密配置和受限网络；PostgreSQL 不对局域网发布端口。
-3. 验收 Caddy HTTPS、控制台 Host/Origin/CSRF/cookie、独立 Agent mTLS/上游 TLS 信任边界、证书轮换与密钥保存。
-4. 完成 PostgreSQL 18.6 的 **7 类 / 至少 58 用例**真实集成测试，以及 Windows/Linux 安装、停用和权限验收。
-5. 获得组织/法律要求的员工告知、数据字段、留存、访问权限批准和恢复演练。
-
-**任何真实设备注册、采集、自动上传、活动审计或屏幕录像都不能仅靠打开开发开关部署。** 更多信息见 [安装运维方案](docs/operations/installation.md)、[安全与隐私](docs/security/privacy-and-consent.md) 和 [部署架构](docs/architecture/deployment.md)。
-
-## 五、停止与卸载
-
-| 对象 | 停止 / 卸载方式 | 数据与安全提醒 |
-|---|---|---|
-| 本地 Spring Boot | 在 `bootRun` 终端按 `Ctrl+C` | 不会自动删除 PostgreSQL 数据 |
-| 共享 `spark-postgres` | **不停止、不卸载、不执行 Compose down** | `iot_farm`、Redis、InfluxDB 与持久卷必须保留；仅独立管理 `lanveriq` 库 |
-| 前台 Agent | `Ctrl+C` | 删除自己创建的临时 TOML 即可 |
-| Linux 实验性 Agent systemd | 见下方命令 | 只删除由本 README 示例安装的文件 |
-| Windows SCM Agent | 目前**没有**正式安装/卸载包 | 若已手动注册测试服务，须先按实际服务名停止、删除 SCM 服务，并经管理员确认后清理二进制/配置 |
-| Web 本地预览 | 在 `pnpm dev` 终端按 `Ctrl+C` | 仅按需清理 `apps/web/.next` 缓存；不得触碰共享 Docker 数据卷 |
-| 正式中心端 | **尚未提供一键卸载** | 后续必须先备份、验明数据所有者、遵守留存/审计与密钥撤销流程 |
-
-**仅当你已在测试 VM 按上节命令安装 systemd 服务时**，执行以下卸载（先确认没有其他应用在使用这些路径）：
-
-```bash
-sudo systemctl stop lanveriq-agent
-sudo systemctl disable lanveriq-agent  # 仅当曾经启用开机启动
-sudo rm /etc/systemd/system/lanveriq-agent.service
-sudo systemctl daemon-reload
-sudo rm /usr/local/bin/lanveriq-agent
-sudo rm /etc/lanveriq-agent/agent.toml
-sudo rmdir /etc/lanveriq-agent
-```
-
-这里**不会自动删除**任何 SQLite WAL、服务状态目录、数据库卷、证书、审计或备份数据。真实数据的删除需要单独的授权、保留政策和审计记录；不要直接删除 `/var/lib`、数据库卷或其他路径来“彻底卸载”。
-
-### 只卸载 Lanveriq 的独立数据库（可选，破坏性操作）
-
-**停止 Lanveriq 后端不需要删除数据库。** 如果确实要彻底清除**仅供测试且不需要保留**的 `lanveriq` 数据，先确认管理员授权、保留政策和备份，再针对**唯一的 Lanveriq 数据库**操作。备份命令会把数据库导出到当前目录，请把备份置于受限、加密的存储中：
-
-```bash
-umask 077
-docker exec spark-postgres pg_dump -U root -d lanveriq -Fc > lanveriq-backup.dump
-```
-
-确认备份有效并停止所有连接 `lanveriq` 的应用后，**只能人工决定是否执行以下不可逆的 SQL**。使用 `docker exec -it spark-postgres psql -U root -d postgres` 进入与待删除库不同的 `postgres` 管理库，先运行 `\l`、`\du` 核对目标，然后：
-
-```sql
--- 仅在确认 lanveriq 是专门创建、可删除的测试数据库后执行。
-DROP DATABASE lanveriq;
--- 仅在此角色没有被其他数据库/服务复用时执行。
-DROP ROLE lanveriq;
-```
-
-**绝对不要删除 `iot_farm`、停止 `spark-postgres` 或清理 `postgres-data` 卷。** 你的原有 pg_dump/Kopia/R2 备份设置可能只覆盖 `iot_farm`；不要假设它已包括新建的 `lanveriq` 数据库，需单独核实。
-
-## 六、唯一 Web UI：Next.js 本地运行
-
-已移除历史 `apps/web` Vite 前端与独立旧版 CI。**现在只允许启动
-`apps/web`：Next.js 16.4.5 / React 19 / Tailwind 4，固定本地端口 3100。**
-旧代码可通过 Git 历史追溯，不再提供第二个前端的依赖、Vite 代理或启动指令。
-
-在仓库根目录运行（Node.js 24 + pnpm 12）：
-
-~~~bash
-git switch main
-git pull --ff-only origin main
-cd apps/web
-corepack enable
-corepack pnpm install --frozen-lockfile
-corepack pnpm dev
-~~~
-
-访问 **http://127.0.0.1:3100/overview**，按 `Ctrl+C` 停止。只运行
-未连接的静态/本地设计预览，无需启动 Spring、PostgreSQL、Redis 或 Agent。
-不再提供 5173 端口的旧版 UI，也不提供 Vite 的匿名后端健康检查。
-顶栏快捷搜索仅搜索本地预览页面；真实账号登录、设备搜索、采集和远控均禁用。
-
-如果本机此前已运行旧版 Vite 进程，请在其终端手动停止；Git 删除代码
-不会自动停止现有进程，或清除本机未跟踪的旧目录、依赖文件。
-有关 Next.js 安装、测试和安全范围，参见
-[唯一主前端文档](apps/web/README.md)。
-
-## 七、前端进度和下一步
-
-原 Vite 的同源 HTTPS、CSRF/Session、授权设备投影和 Springdoc/Orval
-构建期类型验证，在 `apps/web` 已有独立受控实现及单元/负向测试，
-因此不保留第二套可运行 UI。先前 Vite 匿名健康代理、模拟在线终端
-没有合并到新 UI，避免假数据和意外访问后端。
-
-下一步仍需完成真实 PG18、受信任的 Caddy/TLS/浏览器会话负向验收、
-真实管理员 WebAuthn MFA、FIDO MDS 根链、密钥托管以及 Pop!_OS 24.04
-实机测试，才能另行评估正式授权查询。当前 v0.1 NOT RELEASE READY。
-正式采集、设备操作、自动恢复、远控、证书签发继续默认关闭。
-
-## 八、文档与许可
-
-[文档索引](docs/README.md) · [需求](docs/product/requirements.md) · [开发路线](docs/planning/roadmap.md) · [安全](SECURITY.md) · [贡献指南](CONTRIBUTING.md) · [设计图库](docs/visuals/README.md)
-
-当前仓库**尚未提交正式软件 LICENSE**；公开可见不代表授予使用或再分发权。详见 [D0 治理决策](docs/governance/d0-decision-package-2026-10-30.md)。
-
-Copyright (c) 2026 Lanveriq contributors.
+项目的工程进展评分只用于决定研发优先级，**不是发布认证**。[评分与改进记录](docs/planning/project-scorecard.md) · [路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [漏洞报告](SECURITY.md) · [变更历史](CHANGELOG.md)。
