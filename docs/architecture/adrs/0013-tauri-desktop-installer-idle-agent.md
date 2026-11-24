@@ -10,6 +10,10 @@
 
 > **Implementation note 2026-11-23（源码限定 L1 2/2 CI 已验收）：** apps/desktop Tauri 2 / React 只读离线 UI 已增加，**不包括实际安装、安装桥接、签名软件包或系统启动**；候选编译和测试需独立 CI 核验。本文较早的“仓库没有 Tauri desktop”陈述属于决议时点的历史快照。见 [首个源码阶段](../../development/desktop-tauri-first-source-2026-11-23.md)。
 
+## 2026-11-24 L2B-19 后续发行来源选型（仍处于审核阶段）
+
+依照 [L2B-19 实际接收端根 LAB / 34 项测试](../../development/desktop-tauri-l2b19-receiver-root-preprovision-lab-2026-11-24.md)，真实 Debian/Pop!_OS Agent 安装应**优先审查复用系统已有的 apt-secure/InRelease/Packages 校验与 `Signed-By` 仓库专用 keyring**，不允许让任意 GUI 输入把公钥注册为全局 APT 信任根。APT 仓库认证并非单包独立签名，须保留对外部审查的发布者身份、签名轮换、可信时间、撤销、回滚与安装策略要求；若需要安全的离线多版本交付或外部工件来源证明，再分别评估成熟 TUF 和 Sigstore 离线 bundle 客户端。现在**没有配置任何产品仓库、发行密钥、Polkit 或受限安装 broker**；Tauri 仍仅允许两个只读 IPC，发行和实机门禁全部 OPEN。
+
 ## Context and user outcome
 
 Requiring an end user to install Rust, compile Cargo, edit TOML, run dpkg manually and use systemctl is an unacceptable normal installation experience. Product goal: one reviewed graphical installer package on Pop!_OS 24.04; clear administrator consent and permissions; subsequent background operation without a permanent window, dock/taskbar icon or tray icon. A user may open a management UI again intentionally to inspect or reconfigure the installation.
