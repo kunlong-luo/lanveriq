@@ -1,41 +1,20 @@
-> **NXT-28 / 2026-11-21 compact-height UI — FOUR EXACT-SHA CI PASSES:** The sticky desktop sidebar now independently scrolls in short windows without a native scrollbar; the Base UI mobile sheet uses the same white/ink design while retaining scrolling, focus trap and Escape restoration. [functional SHA `e76cd345`](https://github.com/kunlong-luo/lanveriq/commit/e76cd34505dd8e49833ab9c0b61421288c43c353) passed FOUR same-SHA checks: [Next.js L1 #44882686781](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686781), [real Chromium #44882686713](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686713), [disconnected Pages build/deploy #44882686808](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686808), and [RD-2 default-OFF #44882686775](https://github.com/kunlong-luo/lanveriq/actions/runs/44882686775). Chromium screenshot artifact: `nxt18-visual-qa-e76cd34505dd8e49833ab9c0b61421288c43c353` (ID `14698677524`). [Implementation and acceptance](../../docs/development/frontend-compact-navigation-nxt28-2026-11-21.md). Preview disconnected, v0.1 NOT RELEASE READY.
+# Lanveriq Web — 唯一 Next.js 管理控制台
 
-> **NXT-27 / 2026-11-21 shared evidence state (FOUR SAME-SHA CI SUCCESS):** Monitoring activity, inventory freshness, device summary and hardware/network/health tabs now share the same inert `EvidenceNotice`/`EvidenceValue` components: **未连接**, **权限受限**, **尚未核验**. These labels do not imply a completed administrator authorization or trusted heartbeat. [Design/CI contract](../../docs/development/frontend-evidence-state-nxt27-2026-11-21.md). No live API, credentials or device/remote action is enabled. **NXT-27 exact-source CI SUCCESS:** functional SHA [`ff66556d72c078082ba8cfd08a97107d8ba47cf0`](https://github.com/kunlong-luo/lanveriq/commit/ff66556d72c078082ba8cfd08a97107d8ba47cf0) passed all four same-SHA gates: [Next.js frozen install, SSR/Vitest/source-negative tests, typecheck, production build and HTTP #44880424373](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424373), [real Chromium 11-route UI, monitoring/detail evidence states, keyboard/mobile, 15 screenshots and disposable NXT-26 authorized directory interaction fixture #44880424398](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424398), [public disconnected static Pages build/deploy #44880424353](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424353), [RD-2 remote default-OFF #44880424374](https://github.com/kunlong-luo/lanveriq/actions/runs/44880424374). Chromium artifact `nxt18-visual-qa-ff66556d72c078082ba8cfd08a97107d8ba47cf0` (ID `14697751956`). This proves only the isolated, disconnected UI; it does **not** approve release, live device data, FIDO MDS or Pop!_OS physical tests.
+**ACTIVE SOURCE · Next.js 16.4.5 / React 19 / TypeScript 7 / Tailwind 4 / Base UI 1.9 · v0.1 NOT RELEASE READY.**
 
-> **NXT-26 / 2026-11-21 Base UI directory controls (FOUR SAME-SHA CI PASS):** The shared device directory used by `/overview`, `/monitoring` and `/devices` now has matching Base UI 1.9 Select group and sort controls instead of system-native dropdowns. In the ordinary disconnected preview both remain **disabled**. Only the CI-only ephemeral synthetic directory fixture permits local sorting and selection, with no real data/credentials. Colors and popup sizing follow the current `console-polish.css`; [implementation and test contract](../../docs/development/frontend-base-ui-select-nxt26.md). Production OFF.
+这个目录是**唯一的 Web 管理后台**。`apps/web-next` 与历史 Vite Web 代码已经移除；不要重新建第二个 UI。Tauri 桌面端使用 Vite 仅因为它是另一个**桌面窗口**，不是额外 Web 控制台。详细 [NXT-24 历史迁移](../../docs/development/nextjs-path-rename-nxt24-2026-11-21.md)。
 
-> **NXT-26 exact-source acceptance PASSED:** functional SHA [`0750f6b55c0bc9a69416e6014485dcf213ba1406`](https://github.com/kunlong-luo/lanveriq/commit/0750f6b55c0bc9a69416e6014485dcf213ba1406) passed all four same-SHA workflows: [Next.js frozen install, tests, typecheck, build and HTTP #44879640236](https://github.com/kunlong-luo/lanveriq/actions/runs/44879640236), [real Chromium 11 pages, 15 screenshots and CI-only popup/group/sort/keyboard/revocation acceptance #44879640279](https://github.com/kunlong-luo/lanveriq/actions/runs/44879640279), [disconnected public Pages build and deployment #44879640285](https://github.com/kunlong-luo/lanveriq/actions/runs/44879640285), and [RD-2 default OFF #44879640264](https://github.com/kunlong-luo/lanveriq/actions/runs/44879640264). Visual artifact `nxt18-visual-qa-0750f6b55c0bc9a69416e6014485dcf213ba1406` (ID `14697451711`). This is isolated UI/source acceptance, NOT live admin auth/device access, production release or physical Pop!_OS acceptance.
+## 当前确切能力
 
-> **NXT-25 / 2026-11-21 DOCUMENTATION ALIGNMENT (FOUR SAME-SHA CI SUCCESS):** Canonical `apps/web` is **Next.js**, while the original Vite app that formerly occupied the same path is **removed**. See [current docs index](../../docs/README.md), [NXT-23/NXT-24 accurate migration history](../../docs/development/nextjs-single-ui-consolidation-2026-11-21.md), [NXT-24 route/CI acceptance](../../docs/development/nextjs-path-rename-nxt24-2026-11-21.md) and [current CSS token baseline](../../docs/development/frontend-design-system.md). The checked-in `web-unit.yml` is **Next.js**. Never use historical Vite/5173 launch steps or mounted business auth. Production OFF. **NXT-25 exact-source checks PASSED:** implementation SHA [`b37797d9da5d9d622df39c968b92547c2f00402d`](https://github.com/kunlong-luo/lanveriq/commit/b37797d9da5d9d622df39c968b92547c2f00402d) passed [Next.js L1 with documentation negative tests #44877774039](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774039), [real Chromium/UI/network isolation and 15 screenshots #44877774015](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774015), [disconnected static Pages build+deploy #44877774094](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774094) and [RD-2 remote default-OFF #44877774084](https://github.com/kunlong-luo/lanveriq/actions/runs/44877774084), **all on the same SHA**. Chromium artifact `nxt18-visual-qa-b37797d9da5d9d622df39c968b92547c2f00402d` (ID `14697086467`). This is documentation/preview-source acceptance, NOT release or live system approval.
+- 开发机和公开 [GitHub Pages](https://kunlong-luo.github.io/lanveriq/) 只能浏览**断开真实服务的静态展示**；不要输入真实账号密码。
+- CI 专用临时 Next.js 路由在受控 Linux runner 上已通过 Rust Agent→Caddy/mTLS→Spring/JPA→PostgreSQL18→授权 React DOM，**这不是正式产品登录和可开启的生产业务入口**。[最近真实隔离链路 L2](../../docs/testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)。
+- 保留 TypeScript 类型、API 契约和受控浏览器安全负测。不开启真实 Agent 采集、生产联网、远控、FIDO 信任或证书签发。
 
-> **NXT-24 / 2026-11-21 (DIRECTORY RENAME, FIVE SAME-SHA CI SUCCESS):** The single canonical Next.js 16 App Router has moved **to `apps/web`**, superseding the old path `apps/web-next`. No Vite UI is reintroduced; all existing Next.js component, integration-isolation, contract checks, Chromium, Pages and RD-2 release guard must pass against renamed paths. Local command from repo root: `cd apps/web && corepack pnpm install --frozen-lockfile && corepack pnpm dev`. The only UI address remains `http://127.0.0.1:3100/overview`; real device API/login/remote access stays OFF. **NXT-24 exact-source acceptance:** functional SHA `6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c` passed **all five same-SHA GitHub workflows**: [Next.js frozen pnpm, single-UI source gates, TypeScript/build/HTTP #44876019214](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019214), [real Chromium UI, keyboard/mobile and screenshots #44876019297](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019297), [disconnected static Pages build+deploy #44876019222](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019222), [RD-2 remote default-OFF #44876019189](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019189), and [Java server unit/negative checks #44876019234](https://github.com/kunlong-luo/lanveriq/actions/runs/44876019234). Chromium artifact `nxt18-visual-qa-6ed47c472b86b6385aff9f6e0c71ab70f0ef8b6c` (ID `14695613816`). This is disconnected UI/source acceptance **only**, not production rollout, real WebAuthn MFA or FIDO MDS source trust.
+## 开发者本地预览（不是终端安装）
 
-> **2026-11-21 NXT-23 ONE UI ONLY — FOUR EXACT-SHA CI PASS (NOT PRODUCTION):** Removed obsolete `apps/web` Vite runtime (32 tracked files) and `.github/workflows/web-unit.yml`; Next.js 16 `apps/web` is the **only runnable** UI, bound to `127.0.0.1:3100`. A repo-level CI verifier rejects the old frontend, Vite workflow and 5173 launch instructions. Standalone staged session/CSRF, scoped read/projection, Orval contract and fail-closed component tests stay in Next.js; former Vite anonymous-health proxy and fictional demo devices are **not** moved into the product. Stop any already-running local Vite process yourself; `git pull` does not kill processes. **NXT-23 exact-source UI acceptance:** functional commit [`e54af66aa7803b43c2b85a6bff7efd419b44a428`](https://github.com/kunlong-luo/lanveriq/commit/e54af66aa7803b43c2b85a6bff7efd419b44a428) passed all FOUR same-SHA workflows: [Next.js frozen pnpm, single-UI guard, tests/typecheck/build/HTTP #44874669194](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669194), [actual Chromium 11 routes/keyboard/mobile/screenshots #44874669221](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669221), [disconnected static Pages export+deploy #44874669171](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669171) and [RD-2 default OFF #44874669193](https://github.com/kunlong-luo/lanveriq/actions/runs/44874669193). Visual artifact `nxt18-visual-qa-e54af66aa7803b43c2b85a6bff7efd419b44a428` (ID `14695855747`). This is not production authorization. Production remains OFF; v0.1 NOT RELEASE READY. [Consolidation audit](../../docs/development/nextjs-single-ui-consolidation-2026-11-21.md).
-
-> **2026-11-21 NXT-22 local page command palette (EXACT-SHA CI ACCEPTED, NOT PROD):** Header search is now active for **allowlisted disconnected UI routes only**, not device/business search. Desktop/mobile Base UI Dialog, Ctrl/⌘+K keyboard shortcut, Escape, filtered local links and accessible empty states are implemented without networking/storage/credentials. Functional SHA `18284b101f9baf31a13024de1671918305534310` passed **four independent same-SHA workflows**: [Next.js frozen pnpm/route source + unit/typecheck/build/HTTP #44873877638](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877638), [real Chromium keyboard/mobile/filter/negative API plus 15 visual captures #44873877578](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877578), [disconnected static Pages export/deploy #44873877610](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877610), and [RD-2 fail-closed default OFF #44873877615](https://github.com/kunlong-luo/lanveriq/actions/runs/44873877615). Screenshots artifact: `nxt18-visual-qa-18284b101f9baf31a13024de1671918305534310` (ID `14695495812`). Production capabilities remain disconnected. [Design contract](../../docs/visuals/CONSOLE_CRAFTWORK_DIRECTION.md).
-
-> **NXT-21 Craftwork-inspired editorial UI (2026-11-21, exact-SHA CI ACCEPTED):** The canonical Next.js 16 Console now has a light editorial hero, high-contrast navigation selection, cleaner card hierarchy and subdued indigo/mint accents. This references https://craftwork.design/ visually without copying any templates, paid kits, fonts or graphics. Chromium visual assertions and docs changed with the CSS; exact functional SHA `e43886a3be9524f82961a09f409df3edb7af9b0c` PASSED [Next fast #44873138900](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138900), [real Chromium + 15 screenshots #44873138797](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138797), [static-only Pages #44873138865](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138865) and [RD-2 default OFF #44873138989](https://github.com/kunlong-luo/lanveriq/actions/runs/44873138989). Three old merged branches were deleted via [one-time cleanup #44873229717](https://github.com/kunlong-luo/lanveriq/actions/runs/44873229717) and its temporary write-enabled workflow removed. Production sessions, APIs, Agent, remote access, CA remain disabled; v0.1 NOT RELEASE READY. [Design notes](../../docs/visuals/CONSOLE_CRAFTWORK_DIRECTION.md).
-
-> **2026-11-21 NXT-20 operations-first Next.js UI real-browser PASS / public static PUBLISHED:** Functional source [`10035d54`](https://github.com/kunlong-luo/lanveriq/commit/10035d540249acd8fc13ae08913c920c27514796); same SHA [Next L1 build+84 component tests+HTTP #44871047654](https://github.com/kunlong-luo/lanveriq/actions/runs/44871047654), [Chromium full UI and 15 screenshot artifact #44871047701](https://github.com/kunlong-luo/lanveriq/actions/runs/44871047701), [public disconnected Pages build+deploy #44871047674](https://github.com/kunlong-luo/lanveriq/actions/runs/44871047674), [RD2 default-OFF #44871047684](https://github.com/kunlong-luo/lanveriq/actions/runs/44871047684) all SUCCESS. Live showcase https://kunlong-luo.github.io/lanveriq/ now auto updates on **UI-only** `main` changes with strict static export checks (not backend/Agent pushes). Actual source is already Next.js16 App Router, Tailwind4 and React19; prior Vite `apps/web` is reference only. Visual refresh layers calm navy/neutral `console-polish.css` after consolidated B+C legacy CSS (future consolidation still desirable), removes cartoon hero image, keeps unconnected-only stats, modern responsive cards, keyboard/mobile Base UI Dialog and hidden native vertical scrollbar with scrolling intact. Real Chromium validates 320/390/768/1440 behavior plus 15 screenshots/manifest `nxt18-visual-qa-10035d540249acd8fc13ae08913c920c27514796` (artifact ID 14693379649). Old assertions against manual-only trigger, obsolete #6A5BFF/#F8F8FC colors and <220px sidebar caused fail-closed runs; corrected in tested functional SHA; never claim old runs passed. Static public preview uses no real API, login, credentials or device records; release v0.1 still blocked.
-
-> **NXT-20 actual Chromium interactivity PASS but screenshot capture pending new SHA (2026-11-21):** [UI fast source/real HTTP #44870862723](https://github.com/kunlong-luo/lanveriq/actions/runs/44870862723), [Pages static deployment #44870862820](https://github.com/kunlong-luo/lanveriq/actions/runs/44870862820) and RD-2 succeeded on `79ac0b56`. [Real Chrome #44870862717](https://github.com/kunlong-luo/lanveriq/actions/runs/44870862717) printed `NXT-14 CHROMIUM PASS` for all routes/responsive/keyboard/mobile dialog/network isolation, then FAILED the separate NXT-18 screenshot gate that still asserted old root tokens. Replaced screenshot token requirements with the active navy/neutral palette (`#f5f7fa`, `#4d5fc9`), increased tablet nav width to 224px (screenshot requires >=220px), keeping strict 15-screenshot verification. Do not claim NXT-18 artifact acceptance until fresh run SUCCESS.
-
-> **NXT-20 visual regression corrections (new exact-SHA CI pending):** Revised UI source `f5f425fc` compiled, passed Next.js typecheck and 84 component tests, Python source checks and safe static export [Pages #44870662297](https://github.com/kunlong-luo/lanveriq/actions/runs/44870662297) SUCCESS. Full [Next L1 #44870662295](https://github.com/kunlong-luo/lanveriq/actions/runs/44870662295) failed a now-stale built HTML `#6A5BFF` expectation after design system changed to `#4D5FC9`; [real Chromium #44870662391](https://github.com/kunlong-luo/lanveriq/actions/runs/44870662391) failed the stale `#f8f8fc` root token (new `#f5f7fa`) before responsive checks. Updated actual HTML and Chromium gates to the revised token values, *not removed gates*; restored a readable single metric column at 320px, retaining two at 390px and hidden native scrollbar with actual scrolling. Real Chromium pass still pending.
-
-> **2026-11-21 NXT-20 initial CI and tightened auto-UI gate:** First UI source `d1d213b8` deployed a verified disconnected-only public Next.js static Pages export [#44870510570](https://github.com/kunlong-luo/lanveriq/actions/runs/44870510570) successfully; [fast source #44870510466](https://github.com/kunlong-luo/lanveriq/actions/runs/44870510466) and [Chromium #44870510439](https://github.com/kunlong-luo/lanveriq/actions/runs/44870510439) were RED due to *historical source test* prohibiting the newly authorized UI-only main automation, before screenshot/browser assertions. Source test updated to require `main` only when explicit Next.js UI path filters apply and to reject server/Agent/legacy Vite paths, while keeping acceptance tags/manual, offline loopback and disabled credentials. Do not report real Chromium passed until the corrected commit returns final success.
-
-> **2026-11-21 NXT-20 Next.js UI facelift / source CI PENDING:** Framework was **already migrated** on NXT-12: canonical `apps/web` is Next.js 16.4.5 App Router / React19 / Tailwind4 / Base UI + shadcn source-owned components; `apps/web` is an archived legacy Vite reference, not the active UI. NXT-20 adds final `src/app/console-polish.css` *after* consolidated B+C theme to replace dated purple/lime, heavy hero illustration and busy card chrome with a restrained navy/neutral operations console; overview removes fake decorative laptop art in favor of explicit no-data/safety limits, while keeping all real Next.js routes, semantic unknown metrics and no-API state. Design system swatches updated to the displayed tokens. Static source guard checks the theme import, responsive breakpoints, unknown-metric semantics and no fabricated devices; isolated real Chromium auto QA validates route, keyboard, scroll, responsive at UI-only main changes. Existing native right browser scroll bar stays hidden **without disabling scrolling**, mobile Base UI Dialog remains accessible. The PUBLIC, disconnected GitHub Pages static showcase now auto-builds only on **`main` Next.js UI source changes**, requiring frozen-lock pnpm tests, route isolation, TypeScript, verified Next static export and `.nojekyll`. Server, database, runtime sessions, API, RustDesk and Agent changes cannot trigger public Pages deploy. This is **not** production deployment, public authentication, live backend, user/employee information, or approval for v0.1. Source CI + public Pages deployment verification pending; don't claim visual QA until reported. Existing 2026-11-13 historical note below is superseded for the *static showroom trigger only*.
-
-> **2026-11-13 当前状态优先说明：** [Linux-first 上线差距与验收账本](../../docs/planning/release-readiness-2026-11-13.md) 是最新证据入口。`main` `758f8d9a` 的 Rust→Caddy→Tomcat TLS1.3→PG18 严格 ACK 已通过 [隔离 L2 #43356545857](https://github.com/kunlong-luo/lanveriq/actions/runs/43356545857)，不应再按旧记录认定“完全未运行”。但整批 A/B/C/D/E、正式 Pop!_OS 设备运行、Next.js/WSS/生产部署仍未完成；首发范围收敛到 **Pop!_OS 24 Linux-only**，Windows 11 另行 L3 验收，远控 RD-2 继续 OFF。本文原有时间线保留为历史，任何生产或真实数据启用须单独获批。
-
-# Lanveriq Web — primary Next.js App Router frontend
-
-## NXT-12 frontend framework cutover (2026-11-07)
-
-The canonical UI development entry point is **`apps/web`** running the reviewed **Next.js 16.4.5 stable security patch** with React 19, Node.js 24, pnpm 12, TypeScript, Tailwind 4, Lucide and shadcn-style UI components. This project now owns all main navigation routes, the GitHub Pages static showcase, TypeScript API contract compilation and subsequent UI development. The preceding Vite project `apps/web` is a **legacy migration/reference** only. The `console-navigation.ts` module owns the five workspace destinations; corresponding unit tests verify nested routes and reject API/credential pages. Existing page/route-isolation and production HTTP smoke tests remain enforced.
+要求 Node.js 24、Corepack/pnpm 12；在本目录运行：
 
 ```bash
-cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
 pnpm install --frozen-lockfile
@@ -44,223 +23,21 @@ pnpm test
 pnpm typecheck
 pnpm build
 pnpm dev
+# http://127.0.0.1:3100
 ```
 
-The default private Next.js server is localhost-only (`127.0.0.1:3100`). **The migration is framework/UI-only, not authorization for production:** real sessions, backend data, Agent collection, device operations and live Caddy/Node deployment remain OFF. The publicly available `https://kunlong-luo.github.io/lanveriq/` is a disconnected `output: 'export'` preview; it never receives real secrets or APIs. Historical synthetic acceptance records follow below.
+此开发服务只监听 127.0.0.1；成功打开页面并不意味着 Spring 后端、数据库、实际设备或登录已经连通。不要从旧 Vite/5173 工作目录运行。
 
-## Public GitHub Pages showcase — deployed (static and disconnected)
+## 目录职责和规范
 
-**Live public URL:** https://kunlong-luo.github.io/lanveriq/
+| 目录 | 功能 |
+| --- | --- |
+| `src/app/` | Next.js App Router 页面/路由和局部布局；业务路由安全放行另需授权 |
+| `src/components/` | React 管理台与受控组件展示 |
+| `src/lib/` | 客户端投影/安全逻辑、测试和共用约束 |
+| `scripts/` | 源码/路由/文档/浏览器安全验证与 CI fixtures；不要当生产初始化脚本 |
+| `public/`（若存在） | 只读公开静态资源，不包含私钥或生产终端数据 |
 
-[Automated Pages build and deployment #42364974627](https://github.com/kunlong-luo/lanveriq/actions/runs/42364974627) completed **SUCCESS** on SHA `d99b2baefc864ba958a79739e9f28f082a8c9e6f`. A subsequent uncached public HTTP check returned **200** for `/`, `/overview/` and `/login/`; the root, overview and login pages retained no-real-data disclaimers, disconnected status and disabled credential fields.
+请以[当前 UI 规范](../../docs/development/frontend-design-system.md)、[工程规范](../../docs/development/standards.md)、[协议定义](../../docs/architecture/api-contract.md)、[唯一事实入口](../../docs/CURRENT_STATUS.md)、[发布门禁](../../docs/planning/release-gap-register.md)为准。历史 NXT-02～24 的运行记录按日期保留在 `docs/testing/`、`docs/development/`，不是现行部署说明。
 
-The `pages-static-preview.yml` workflow currently runs **only on explicit `acceptance/v0.1-*` tag pushes or `workflow_dispatch`**, not routine `main` changes and publishes **only** `apps/web/out` after frozen-lock install, route-import isolation, component tests, TypeScript checks, an opt-in Next.js `output: 'export'` build and fail-closed export assertions. Only the isolated Pages build adds `basePath: '/lanveriq'` and disables unsupported server-only Next.js headers/redirects. In the disposable Actions workspace only, the dynamic `/devices/[id]` route is omitted rather than fabricating device identities. `.nojekyll` preserves `_next` assets. The normal `output: 'standalone'` build and its NXT-11 private-origin `nosniff` guard are unchanged.
-
-**GitHub Pages is publicly accessible** and provides *no* Next.js SSR/session authorization, Spring Boot API, PostgreSQL, Redis, private Caddy edge, real login, RBAC, Agent or device data. Never place user passwords, certificates, secrets or real employee/terminal information in this static site or its build inputs. All real-data production-release, actual login UX and network-topology gates remain OPEN.
-
-
-## NXT-11 first static asset boundary subgate — synthetic PASS; production OPEN
-
-[Automatic full Caddy + Spring/Tomcat + PostgreSQL 18 + Chromium #42362704645](https://github.com/kunlong-luo/lanveriq/actions/runs/42362704645) **passed** on code SHA `a73844ba41a96bf2df22b30c6381120b9fa41f89`, retaining NXT-10 direct-origin, HTML/RSC forward-auth, scoped multi-admin and logout/revocation checks. `scripts/verify-synthetic-nextjs-origin.py` now also inspects built public Next.js static artifacts and samples a real `/_next/static` JS response: successful anonymous access, correct JavaScript MIME, public immutable caching, `X-Content-Type-Options: nosniff`, exact served-build digest and identical content/headers despite forged identity claims; the per-run internal edge proof must not appear in any static artifact. The first full test [#42362499510](https://github.com/kunlong-luo/lanveriq/actions/runs/42362499510) revealed a missing private-origin `nosniff` header. A targeted `next.config.ts` security header repaired it without relaxing the verifier. [Next.js build/source #42362691430](https://github.com/kunlong-luo/lanveriq/actions/runs/42362691430) passed; the full rerun then succeeded.
-
-This is **only the first NXT-11 subgate**. Public immutable JS/CSS is distinct from protected no-store HTML/RSC/session/API data. Deployment network namespaces/firewalls, private asset/cache variants, production Caddy routing, legitimate cross-principal browser static behavior, actual accessible login/lockout flows and privacy/operational approvals still require separate acceptance. No production app routes, live employees/devices, real administrator sessions or Agent collection were enabled.
-
-
-## NXT-10 synthetic direct-origin and RSC/edge-bypass checks — PASS
-
-[Auto-triggered Caddy 2.11.7 / real Spring-Tomcat / PG18 / Chromium #42335190613](https://github.com/kunlong-luo/lanveriq/actions/runs/42335190613) completed **SUCCESS** and logged `SYNTHETIC NEXTJS ORIGIN ISOLATION PASS`, `SYNTHETIC EDGE HTML AUTH PASS`, and `SYNTHETIC EDGE RSC AUTH PASS` in one real network test. In the fourth-gated CI runner only, `next start --hostname 127.0.0.1 --port 3100` keeps the Next.js origin off nonloopback interfaces. A generated `src/proxy.ts` and separate page check use Node's `timingSafeEqual` to verify an ephemeral 256-bit internal Caddy-to-Next proof (never exposed to JS, the browser, source control or Actions logs). Calling the inner origin directly for protected HTML/RSC, even with forged session cookies or browser-supplied edge headers, yields 404. Caddy rejects a caller's claimed proof header, checks the actual Spring Session through upstream mTLS `forward_auth`, and adds the private proof to Next only for allowed routes. Public Caddy 401 responses block anonymous/disabled/revoked sessions from protected HTML and RSC; valid A/B synthetic accounts still receive the correct scoped data, no-store protected HTML and same-canonical-route RSC response with `text/x-component` MIME.
-
-The real-browser prefetch verifier now uses `fetch(...redirect: 'follow')` to accommodate Next.js normalization redirects **without relaxing** same-origin/target path, successful HTTP 200, RSC MIME, no-store, or unauthorized-RSC negative assertions. The companion [source regression run #42335206947](https://github.com/kunlong-luo/lanveriq/actions/runs/42335206947) passed. These changes are exclusively synthetic: normal `src/app` does not contain the Proxy or credentialed pages, `deploy/caddy/Caddyfile.reference` is still disabled, and actual `/login` and device/monitoring routes remain unconnected. Running in a disposable local listener does **not** approve real deployment topology, all static asset paths, use of employee data or Agent collection. CI is automatic on relevant `main` pushes.
-
-
-## NXT-09 disposable Caddy forward-auth HTML boundary: real Chromium PASS
-
-The previously accepted NXT-08 client Session revalidation is now supplemented by **server-side Caddy authorization before protected HTML reaches Next.js**—but solely inside the fourth-gated CI runner. The test-only Caddyfile generated by `apps/server/scripts/verify-agent-upstream-tls.sh` defines a dedicated `handle /synthetic-console-route/*` that invokes Caddy's built-in `forward_auth` through trusted **Spring TLS/mTLS** to `GET /api/v1/auth/session` and then sends verified sessions to the loopback Next.js listener. **No live Next.js proxy/middleware, production route handler, or real login is turned on.** A denied user sees Spring's HTTP 401, not even a Next.js document shell; authorized sessions see no-store HTML and are again checked by the staged client before any device/monitoring fetch. The temporary synthetic candidate login route remains outside the protected URL prefix only so the throwaway browser can log in.
-
-The [automatic real Chromium + Spring/PG18/Caddy run #41944796254](https://github.com/kunlong-luo/lanveriq/actions/runs/41944796254) **passed** `SYNTHETIC EDGE HTML AUTH PASS`, verifying anonymous/forged/post-logout/disabled account edge 401 with no SSR, valid synthetic A/B session 200, and continued group RBAC, zero-data revocation, CSRF/TLS and tab lifecycle. The [Server source CI #41944859643](https://github.com/kunlong-luo/lanveriq/actions/runs/41944859643) passed fail-closed checks requiring the checked-in `deploy/caddy/Caddyfile.reference` to remain disabled. **This is not a deployed production edge nor proof of isolating a separately exposed Next.js origin**: keep Caddy as the exclusive user entry point before activation, review RSC/assets and access-policy UX, and obtain approvals before real employees, devices or Agent telemetry are permitted. Normal `/login` and device/monitoring previews are still inactive. Tests run automatically on relevant main pushes.
-
-
-## NXT-08-A: three genuine disposable App Router URLs, safe Spring Session handoff
-
-The new **unmounted** `src/staged-console-route-boundary.tsx` is a multi-route read-only Console integration candidate. The guarded synthetic installer creates `src/app/synthetic-console-route/{overview,devices,monitoring}/page.tsx` **only in four-gated disposable CI**, not regular `src/app` or production builds. A separate Next.js SSR shell starts with zero identity, business rows, counters and authorized links. On client mount, each full document navigation requests **fresh** Spring `/auth/session` first, then checks authorized directory/overview responses against the same session's current group scope, without passing old principal/query cache/storage between pages. A failed session, grant or HTTP response does not display stale data; navigating away aborts in-flight requests and clears local cache. A real Spring CSRF POST is still required for explicit login and logout; route navigation sends no credentials in URLs.
-
-**Passed real E2E:** [automated Caddy/Spring/PostgreSQL 18/Chromium #41943184722](https://github.com/kunlong-luo/lanveriq/actions/runs/41943184722) emitted `SYNTHETIC MULTI-ROUTE SESSION PASS`. It tested anonymous 401/empty shell, A's two devices across three real URLs, logout, direct anonymous subroute denial, B's one device, role-scope revocation and account disable. [Next.js source/build #41943065488](https://github.com/kunlong-luo/lanveriq/actions/runs/41943065488) and [Server source regression #41943222802](https://github.com/kunlong-luo/lanveriq/actions/runs/41943222802) also passed. Normal `verify:routes` rejects a checked-in synthetic URL tree and the transitive AST import guard blocks reaching this session boundary from the ordinary previews. Normal `/login`, `/overview`, `/devices`, `/monitoring` remain **inert**. Spring API RBAC is verified; **this alone is not server-side HTML route protection**, nor authorization for real accounts/devices/Agent/production deployment. No manual GitHub run is required for routine CI.
-
-
-## NXT-06-C route dependency integrity — verified source gate
-
-Ordinary Next.js login, device and monitoring routes still render disconnected previews. The default `pnpm run verify:routes` now executes `scripts/verify-runtime-isolation.mjs`, which traverses **all runtime imports** from committed `src/app` and `src/components` through internal `src/lib` helpers. It refuses a transitive path to `staged-console-auth`, `staged-console-read`, `staged-console-workspace`, test-only credentialed components or Orval's generated contract. It covers TypeScript import/export declarations (including type imports and reexports), `@/` and relative aliases, literal dynamic imports and `require`; computed module loading and unresolved/escaping local paths are rejected, not silently accepted. This is a **static route isolation** control, not server authentication; actual RBAC and CSRF remain enforced by Spring.
-
-Project TypeScript **7.0.2** is retained for native production typechecking and Next.js; the safety analysis alone imports `typescript-ast`, a pinned `npm:typescript@6.0.3` JavaScript Compiler API alias, because native TypeScript 7.0 deliberately does **not** expose the old JS parser. The alias is locked in `pnpm-lock.yaml`. CI runs the AST regression in `scripts/test_runtime_isolation.mjs` before `verify:routes` and builds. [Next.js source/build CI #41824276231](https://github.com/kunlong-luo/lanveriq/actions/runs/41824276231) **passed**, including the frozen lock, AST regression and ordinary disabled-login production build. A later full disposable Caddy/Spring/PG18/Chromium run is a separate requirement; source success alone cannot authorize actual user-facing routing or employee/device access. All relevant main-branch changes continue to trigger synthetic tests automatically.
-
-
-## NXT-06-B keyboard and accessible session-lock gate: synthetic Chromium PASS
-
-[Automatic Console HTTPS workflow #41814699267](https://github.com/kunlong-luo/lanveriq/actions/runs/41814699267) **passed** real browser checks for keyboard Tab order across the candidate login fields and submit, accessible form labels, a locked-screen `role=status` message and explicit logout after a **synthetically dispatched** hidden-document event. It retained nonempty A/B group isolation and no persisted rows/metrics after invalidation. This supplements, but does NOT replace, human keyboard/screen-reader/visual/contrast testing, user-role sign-off, and the still-default-disabled real Next.js routing.
-
-
-## NXT-06-B authenticated view lifecycle: fail closed, test-only
-
-The unmounted `src/staged-console-workspace.tsx` now **locks** when Chromium reports a hidden document or pagehide and immediately erases currently rendered devices, current principal, aggregate metrics and TanStack Query cache. A locked UI does not show a credential form and requires a user-initiated Spring logout to verify return to `signed_out`. In-flight login, directory or overview network responses use an operation epoch and may **not** restore data after backgrounding, switching or unmounting. A first page with no next cursor must have exactly the number of entries reported by the separate authorized server overview; with a next cursor the total must be larger. These checks reject known torn snapshots on live scope changes, never fake zero values, and never make hidden-tab API requests. They do not replace Spring's authorization policy.
-
-The [automatic synthetic Chromium suite #41814258021](https://github.com/kunlong-luo/lanveriq/actions/runs/41814258021) **passed** `SYNTHETIC CONSOLE LIFECYCLE PASS` after dispatching a **synthetic** hidden-page visibility event to the real Chromium React app, then verifying the clearing/explicit-logout flow against live disposable Spring/PG18. [Next.js unit/compile CI #41814315219](https://github.com/kunlong-luo/lanveriq/actions/runs/41814315219) and [Server source checks #41814337308](https://github.com/kunlong-luo/lanveriq/actions/runs/41814337308) also passed. This is an acceptance candidate, not approved live routing or production login.
-
-
-## NXT-06-A staged product-shaped Console — automatic real-browser synthetic E2E PASSED
-
-`src/staged-console-workspace.tsx` is the actual read-only Console **candidate component**. It composes the already-tested `staged-console-auth.ts` and `staged-console-read.ts` into a React login form, server-validated read-only monitoring counters, authorized `DeviceDirectory`, explicit refresh and logout, and fail-closed session/data reset. No background polling, browser storage, fake data, recording or Agent collection is enabled. `staged-console-overview.ts` refuses contradictory counters or invalid server timestamps; API errors never display as verified zeros. The temporary candidate disables detail links to unmounted pages.
-
-**Actual proof:** [auto-triggered synthetic Caddy + Spring + PG18 + Chromium #41812852436](https://github.com/kunlong-luo/lanveriq/actions/runs/41812852436) **PASS** with the marker `SYNTHETIC STAGED CONSOLE UI PASS`. It rendered two A-group rows then one B-group row with server-scoped counts in the real React UI, changed identities without stale rows, removed visible rows after grant revocation, and removed metrics and identity after account disable. It retained the independent TLS/CSRF/CDP, multi-user cookies and 404 checks. No user needs to run the synthetic workflow manually: relevant `main` pushes trigger all gates automatically.
-
-**Not an active login product:** this file is **NOT imported by any checked-in App Router route**. The guarded installer mounts it only as `src/app/synthetic-console-candidate/page.tsx` inside a disposable GitHub Actions workspace with all four synthetic test flags. The default `verify:routes` rejects that route if checked into production. The ordinary `/login`, `/devices`, `/overview` and `/monitoring` are still static/unconnected, and real device/employee access or deployment requires separate authorization and UX/security review.
-
-
-## NXT-05-B historical test rollout (manual and automatic four-flag runs passed)
-
-The original one-admin empty-database Next.js client test has **passed real Chromium** in [#41803890599](https://github.com/kunlong-luo/lanveriq/actions/runs/41803890599). The next candidate is `src/synthetic-only-multi-admin-probe.tsx`, an **unmounted** component that is never available through normal App Router pages. The fourth `synthetic_multi_admin_probe` manual input defaults to `false` and requires **all three** earlier browser/Next.js/synthetic-auth inputs explicitly enabled. Only in that four-flag ephemeral CI job does the installer add a `/synthetic-multi-admin-probe` page alongside the single-admin temporary fixture, and the browser script seed a fresh disposable PG18 with an owner group (two devices), B group (one device), and two fresh synthetic browser-login identities. The two accounts share only the randomly generated **one-use test hash** inside the disposable database; this is not a production user-creation design.
-
-The browser candidate explicitly tests separate cookies and nonempty group-scoped reads, out-of-group detail 404, same-context A-to-B switch with TanStack Query cache purge, live permission removal and account disable. **Only the synthetic test component** overrides the ordinary `gcTime=0` cache setting to hold rows long enough to prove the wipe; the normal app keeps its original safe defaults. The old `/login` page is still disabled and the real Caddy reference is untouched. The [Next.js source/build job #41806654340](https://github.com/kunlong-luo/lanveriq/actions/runs/41806654340) passed; the subsequent [four-switch real Chromium #41810697843](https://github.com/kunlong-luo/lanveriq/actions/runs/41810697843) and [automatic equivalent #41810887203](https://github.com/kunlong-luo/lanveriq/actions/runs/41810887203) **both passed**, including `MANUAL SYNTHETIC NEXT.JS MULTI-ADMIN RBAC PASS` (legacy marker). No manual rerun is required for ordinary development. This remains synthetic test instrumentation, not real-user/Agent/production authorization.
-
-
-## NXT-05-A test-only browser login bridge (accepted synthetic test, NOT deployed)
-
-After passing the independent Caddy/Spring/Chromium and nonempty two-group PG18 Servlet RBAC synthetic gates, the next candidate can exercise **real Next.js client-side fetch** without enabling the application's normal login route. `src/synthetic-only-auth-probe.tsx` is an **unmounted test fixture**, reusing the already unit-tested `staged-console-auth.ts`, `staged-console-read.ts`, and session cache-clearing policy. Nothing in `src/app` or `src/components` imports it on the normal build. `/login` still has disabled username/password controls, and there is no Next.js API proxy or live device collection.
-
-An operator-triggered `console-https-synthetic.yml` workflow may set `browser_probe=true`, `nextjs_same_origin_probe=true`, and the new **`synthetic_auth_ui_probe=true`** (defaults to `false`). Only when **all three** gates are explicitly selected does the runner create a **temporary** `src/app/synthetic-auth-probe/page.tsx` *after* its normal committed-route safety check and before building its disposable Next.js preview. That route is never committed; the ordinary `pnpm run verify:routes` rejects it. The installer also refuses to execute outside a GitHub Actions runner with the three explicit test flags. It never changes `deploy/caddy/Caddyfile.reference`.
-
-Once the new manual gate is actually executed successfully, the synthetic-only Chromium test can prove that a real Next.js client page submits disposable credentials through browser-generated same-origin POST headers, receives Spring's rotated HttpSession/CSRF, reads an **authorized empty** device list and zero monitoring overview from disposable PG18, then logs out and observes post-logout 401. Synthetic credentials are passed through the existing inherited FD3 and are not printed or placed in URLs. This stage **does not** prove multiple browser principals, nonempty Next.js device/group cache isolation, production login page activation, visual accessibility sign-off or real user/Agent authorization. The source checks and manual runtime must be treated as separate evidence; **the new manual credentialed UI gate is pending**.
-
-
-**Do not use for real device management.** This is a separate candidate at
-`apps/web`; the existing React/Vite preview under `apps/web` is
-untouched. This candidate uses Next.js 16.4.3, React 19, TypeScript,
-Tailwind 4 and editable shadcn/ui-compatible Card components, with
-a local Node.js runtime.
-
-All routes are **synthetic-only**, show no live device counts and never
-issue login or business API requests. `/login` only renders disabled
-controls, no password submission. Caddy TLS, PostgreSQL 18, CSRF,
-Origin, Cookie and group-scoped authorization are independent pending
-manual gates. No Next.js Route Handlers, API proxies, credentials,
-server-side authenticated data fetch or WSS are enabled.
-
-Candidate routes: `/` redirects to `/overview`;
-`/overview`, `/monitoring`, `/devices`, `/devices/[id]`,
-`/enrollment`, `/settings`, `/login`.
-
-## Candidate-only local check (Node 24, pnpm 12)
-
-```sh
-cd apps/web
-corepack enable
-corepack prepare pnpm@12.0.0 --activate
-pnpm install --frozen-lockfile
-pnpm run verify:routes
-pnpm test
-pnpm typecheck
-pnpm build
-pnpm dev
-```
-
-Open `http://127.0.0.1:3100` for this **unauthenticated preview
-only**. Never enter passwords. This address is not a valid HTTPS
-business console origin.
-
-The lockfile was **actually generated by pnpm 12 in CI**, committed
-at [ddc0a61](https://github.com/kunlong-luo/lanveriq/commit/ddc0a61ff14d50fbc84501e3ca3dbfc6ee529bbe)
-and checked with a read-only `--frozen-lockfile` build. The one-time
-write-capable bootstrap was removed. [Next.js candidate CI #41287394823](https://github.com/kunlong-luo/lanveriq/actions/runs/41287394823)
-passed Node 24, component tests, TypeScript, the Next.js production
-build, and seven live preview HTTP pages with no business API proxy.
-This **does not** enable real credentials, sessions or device data.
-
-See [ADR-0008](../../docs/architecture/adrs/0008-nextjs-app-router-console.md)
-for migration plan and trust boundaries. This candidate deliberately
-does not yet implement full Vite visual/route parity or replace
-`apps/web`.
-
-## NXT-02 core management UI (preview only)
-
-The candidate now has the actual page structures of the V0.1 management
-console: fleet metrics (displaying **—**, never synthetic counts), a
-connectivity breakdown, inventory/heartbeat freshness, a read-only
-directory table with controlled local search and group selection,
-device detail hardware/network/health tabs, registration instructions,
-settings acceptance and the completely disabled administrator login.
-
-The default `/devices` view is **unconnected**, not an authenticated
-empty list. The table can display only authorized, caller-supplied rows
-and its unit-test fixtures are test-only; there is no network transport
-or real data in this Next.js runtime. Device IDs passing the shared
-UUID formatter are **not** authorization or proof of existence.
-Sensitive network inventory is withheld, and no mutation action is
-available.
-
-[Next.js CI #41288117979](https://github.com/kunlong-luo/lanveriq/actions/runs/41288117979)
-verified candidate build/route, safety and component behavior. For
-actual visual/mobile/keyboard review see
-[manual NXT-02 acceptance matrix](../../docs/testing/nextjs-nxt02-manual.md).
-This stage does not replace Vite, clear the PostgreSQL 18 manual
-test gate, authenticate browsers, or enable real device requests.
-
-## NXT-03A source-generated API contract stage (unmounted)
-
-This candidate now has `src/lib/console-device-projection.ts`:
-a fail-closed allowlist of displayed fields from the opt-in Spring
-device-list API (no MAC, IP, employee identifiers, raw event/credential
-fields). A verified authenticated empty list stays empty, whereas a
-missing required member, invalid UUID, non-ascending/duplicate
-page, invalid cursor or queue value blocks the entire page.
-Heartbeat absence is **unknown**, and even a present receipt time
-does **not** prove the endpoint is online.
-
-`src/lib/staged-console-read.ts` accepts a canonical HTTPS console
-origin, requires the current browser origin to match **exactly**, and
-can only construct three hardcoded read paths. It requires no-store
-JSON and same-origin fetch/cookie policies, rejects redirects and
-maps 401/403/429 to explicit no-data states. It does **not** run in
-the deployed Next.js preview: `scripts/verify-route-contract.mjs`
-rejects runtime page imports of the staged client.
-
-After server unit tests emit the *actual* Springdoc OpenAPI document,
-Orval generates typed model files and its React Query Fetch client.
-[Java CI #41288584413](https://github.com/kunlong-luo/lanveriq/actions/runs/41288584413)
-passed a **build-only Next.js generated-model type check** through
-`contract-check/typecheck.ts`. The generated model directory is copied
-temporarily to `.generated-contract/` and is gitignored; never commit
-manually duplicated or stale API DTOs. Runtime Orval hooks are **not
-yet installed or wired in Next.js**.
-
-NXT-03B is still blocked pending the [real manual browser
-acceptance](../../docs/testing/nextjs-nxt03-manual.md), 58-case
-PostgreSQL 18 gate, and server-side Caddy/TLS/session/RBAC security.
-The existing Vite app remains the default and no production
-monitoring feature is enabled.
-
-## NXT-03B: locked Query foundation, full Orval hook compile (still no live REST)
-
-The candidate now pins `@tanstack/react-query@5.105.0` in an
-actually pnpm-generated `pnpm-lock.yaml`, with a read-only frozen CI.
-An earlier one-time write-capable dependency regeneration workflow
-was **removed immediately** after successful generation, tests and
-lockfile commit.
-
-`PreviewQueryProvider` supplies an otherwise inert `QueryClient`
-to console routes; it does **not** mount Orval hooks or make network
-requests. In `src/lib/console-query-policy.ts`, automatic retries,
-focus/reconnect/mount refetch and cache persistence are disabled.
-The `clearConsoleSessionState` helper cancels and clears all queries.
-Unit tests with **synthetic-only fake fetch** verify that permission
-denial, session expiry, throttling and service errors cannot preserve
-previous cached device data when clearing that session.
-
-[Java CI #41289190664](https://github.com/kunlong-luo/lanveriq/actions/runs/41289190664)
-generated and typechecked the *complete* Springdoc → Orval Fetch/React
-Query client with the candidate's exact dependencies and TypeScript.
-[Next.js CI #41289252650](https://github.com/kunlong-luo/lanveriq/actions/runs/41289252650)
-verified the candidate's frozen build, fake-fetch tests and production
-preview routes. All generated clients remain in ignored,
-ephemeral build-only directories; they are **not** part of the Next.js
-deployed code. The Next.js runtime **still does not log in or request
-devices**. PostgreSQL 18 manual tests, Caddy and real browser
-security acceptance must finish before a separate runtime enablement.
+**生产 Web 登录/设备管理 OPEN；v0.1 NOT RELEASE READY。**
