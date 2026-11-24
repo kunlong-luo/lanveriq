@@ -14,13 +14,14 @@
 | 现成组件 | 实际证据 | 下一步怎么复用 |
 | --- | --- | --- |
 | **Rust Agent .deb + 系统 APT** | [L2B-23 真实 Signed-By install/reinstall/remove 9/9](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) | 正式 signer/source 独立审批后复用 native APT，禁止直接信任临时 CI 密钥。[报告](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md) |
+| **APT 有效签名旧 Release Date 回放** | [L2B-27 真实 native OCI 10/10 #45395513243](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243) | 同临时 signer/同 Packages 的旧签名 Release 被真实系统 APT 接受，**不证明安全回退保护**；独立可信外部高水位/旧索引/旧包降级测试仍 OPEN。[报告](../development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md) |
 | **OS Polkit + D-Bus 真实身份** | [L2B-25 root-side sender 核验 + 拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)、[L2B-26 OS 规则变 YES 仍拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | ReviewLab 只有隔离 OCI 内审查能力、无事务；未来固定操作 broker 需经过安全审核。[报告](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
 | **Tauri GUI-only/只读预检** | [桌面集成 #45368842676 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) | 保留身份/兼容性/用户解释状态，不以组件按钮或勾选授权 root |
 | **Linux→Spring/PG18→Next.js** | [只读 OS/CPU/RAM Linux 真 runner L2 #45365942781 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781) | 合法设备注册、实际 CA/MFA/网络/隐私授权全部通过前不能切换生产 |
 
 ## 下一阶段与退出顺序
 
-1. **P0 · L2B-27/G-05 可信发行和原生包管理：** 由**独立发行/安全责任主体**审核 signer、公钥预置/撤销与发布根托管、固定 Agent 包名/版本/来源、可信时间及回退高水位方案。未获批准前只做隔离 OCI 的 APT 有效签名旧索引/源回退、事务安全取消/锁和拒绝验证，不能打正式用户包。
+1. **P0 · L2B-28/G-05 可信发行与独立高水位：** L2B-27 已实际发现旧签名 Release Date 会被 APT 接受；由**独立发行/安全责任主体**审核 signer、公钥预置/撤销与发布根托管、固定 Agent 包名/版本/来源、可信时间、独立单调高水位以及真实旧包/旧索引回退拒绝。未获批准前只做隔离 OCI 的 APT 有效签名旧索引/源回退、事务安全取消/锁和拒绝验证，不能打正式用户包。
 2. **P0 · 可执行 broker（须独立审批）：** 设计 root-side system D-Bus 的实际请求者 OS peercred + 活跃 logind 会话 + Polkit **每操作一次**批准；服务端绑定**固定可信包来源**，防链接/任意路径/脚本/argv/额外 systemd 服务授权、锁、取消、崩溃重试、真正跨版本升级/回滚。GUI 不获得 shell/root，安装与服务启用仍分开；完成 Ubuntu24 隔离 L2 后才可申请实机。
 3. **P0 · Pop!_OS/COSMIC L3：** 取得设备所有人及法务书面许可和经批准的发行物，在具名真实 24.04 COSMIC Wayland 测试设备验证 GUI 安装/升级/卸载、键盘/辅助功能/缩放、明确授权、后台无托盘但可发现、配置/state 留存、取消/回滚及性能。**当前 NOT RUN**。
 4. **P0 · 生产信任/合规门禁：** G-01 官方 FIDO、G-02 外部 WORM、G-03 真人管理员 WebAuthn MFA、G-04 CA/KMS、G-06 正式合法业务链、G-07 数据/许可证、G-08 SRE 签收全部独立完成，才可考虑生产联网/采集；G-10 RustDesk/Windows 另行裁定。
