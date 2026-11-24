@@ -19,3 +19,11 @@
 **更新闭环：** 先检查现行规则和实现 → 修改对应 SPEC → 真实测试完成后更新 CURRENT_STATUS → 发布条件变化更新 LIVE-GAP → 架构变化写 ADR 的 Context/Alternatives/Decision/Consequences/Supersedes → 检查相对链接、版本、隐私、历史矛盾。
 
 执行 `node apps/web/scripts/verify-documentation-baseline.mjs` 和 `node --test apps/web/scripts/test_verify_documentation_baseline.mjs`；[docs-governance workflow](../../.github/workflows/docs-governance.yml) 检查当前入口和本地链接。CI 不能验证外部官网真实性、法律批准或 Pop!_OS 物理 L3。
+
+## 2026-11-24：目录治理与历史引用维护
+
+[仓库目录责任/实际删除清单](repository-layout-audit-2026-11-24.md) 是四应用、deploy 隔离试验目录与文档目录的可审入口；[工程评分](../planning/project-scorecard.md) 是优先级自评，**不能取代 release-gap register 的外部 Gate**。根和四应用 README 只说明目录/开发入口/安全边界；CURRENT_STATUS 不再重复所有历史运行日志。
+
+**删除顺序：** 先确认文件不为生产/CI/测试/唯一历史安全证据依赖，再查当前 README、历史索引和文档相对链接；删除后所有仍需引用的历史记录改为**固定 Git SHA URL**，绝不无声丢失证据。本次 `docs/development/pagevela-reference.md` 的删除曾令历史索引断链并触发真实 CI FAIL，现已修复并保留 [失败运行](https://github.com/kunlong-luo/lanveriq/actions/runs/45372711463)，是后续删除必检的反例。
+
+**自动化：** `verify-documentation-baseline.mjs` 的本地链接/仓库目录守卫覆盖双语 README、四应用 README、评分和目录审计；docs-governance 在其自身及所有 README/CHANGELOG 改动后触发。任何不在白名单的旧第二 Web、Maven/未审真实安装桥都不得因为文档“评分”提高而被重新引入。**v0.1 NOT RELEASE READY。**
