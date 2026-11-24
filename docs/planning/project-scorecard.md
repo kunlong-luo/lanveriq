@@ -22,6 +22,8 @@
 
 **本轮工程维护成熟度自评从 61/100 → 66/100，+5 分只来自实际入口简化、旧参考删除和自动化结构守卫。** [文档/链接 #45373334900 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334900)、[Next.js 源码/测试 #45373334701 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334701) 在布局守卫功能 SHA 0db21627 已核实；后续文档提交仍需单独检查 docs-governance。**不把文档提升冒充已完成任何新业务功能或生产授权。**保留修改前的 61/100 作为同一自评标尺下的比较，不引用任何未经证实的外部 benchmark。
 
+**2026-11-24 L2B-22 补充说明：** 代码仓库新增未安装的 Polkit 全拒绝动作 XML，并通过 [功能 SHA efb7a558 / 安装意图 39 + Polkit 30 项离线负测 #45375272477 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477)。它提高了未来受限 broker 的**可审基线**，但没有真正 OS 授权、已签名发行包或用户实机验收，故**本次工程成熟度自评分保持 66/100，发行能力维度仍 2/20**，不凭安全模拟测试虚增分数。[L2B-22 证据](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)。
+
 ## 独立发布结论：不因为 66 分放行
 
 | 必过事项 | 真实状态 |
