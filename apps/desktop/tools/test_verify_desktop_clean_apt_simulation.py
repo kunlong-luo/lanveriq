@@ -99,6 +99,8 @@ class CleanOCIAptTests(unittest.TestCase):
         self.assertIn("--security-opt=no-new-privileges",args)
         self.assertEqual(args[-3:], ["/bin/sh","-ceu",v.CONTAINER_SCRIPT])
         self.assertIn("apt-get -s",v.CONTAINER_SCRIPT)
+        self.assertIn("APT::Sandbox::User=root",v.CONTAINER_SCRIPT)
+        self.assertFalse(any(x.startswith("--cap-add") for x in args))
         self.assertNotIn("apt-get install -y",v.CONTAINER_SCRIPT)
         self.assertFalse(any("docker.sock" in x for x in args))
 

@@ -41,7 +41,10 @@ for package in lanveriq-desktop libwebkit2gtk-4.1-0 libgtk-3-0t64; do
 done
 echo 'LNV_BASE_GUI_LIBS absent'
 printf 'LNV_PACKAGE_SHA %s\n' "$(sha256sum /candidate.deb | cut -d ' ' -f 1)"
-apt-get -o Acquire::Retries=2 update -qq
+# With ALL Linux capabilities dropped, no-new-privileges and read-only rootfs,
+# APT cannot setuid to _apt. Its index retrieval runs only inside this
+# disposable restricted OCI root with tmpfs package indexes; no install occurs.
+apt-get -o APT::Sandbox::User=root -o Acquire::Retries=2 update -qq
 apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install /candidate.deb
 """
 
