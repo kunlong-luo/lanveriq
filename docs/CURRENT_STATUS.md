@@ -1,5 +1,8 @@
 # Lanveriq 当前状态 / Current status
 
+> **L2B-12 原生 CI 前置依赖诊断（2026-11-24 · Ubuntu runner，非 Pop!_OS L3）：** GUI 功能 SHA [ebab553a](https://github.com/kunlong-luo/lanveriq/commit/ebab553a85428f3032bb64734e090886a1e7f7cf) 的 [原生 #45308179831](https://github.com/kunlong-luo/lanveriq/actions/runs/45308179831) 前端/源码安全检查 PASS、Rustfmt PASS，但在 WebKitGTK 编译依赖安装阶段长时间未进入 `cargo test`，随后由新 CI 取代。工作流 SHA [3a975059](https://github.com/kunlong-luo/lanveriq/commit/3a975059f1a1c1996738aa543e28c27659af15f5) 给 Ubuntu CI 依赖步骤单独设置 12 分钟时限及 30 秒 APT HTTP/HTTPS 超时；**未改动生产权限、发行版镜像、桌面代码或 Agent**。[新原生 #45310426906](https://github.com/kunlong-luo/lanveriq/actions/runs/45310426906) 仍需真实通过 Rust 单测和 Clippy，不能提前计作 L2 PASS。**v0.1 NOT RELEASE READY。**
+
+
 > **DESKTOP-L2B-12 Pop!_OS/COSMIC 只读兼容性已接入现有 Tauri GUI（2026-11-24 · 前端/安全 L1 PASS，修正 Rustfmt 后原生编译 L2 PENDING）：** 功能 SHA [ebab553a](https://github.com/kunlong-luo/lanveriq/commit/ebab553a85428f3032bb64734e090886a1e7f7cf) 新增桌面环境检查中的 **“检查兼容性（只读）”** 按钮、10 组软件包最低 ABI/3 个 COSMIC 组件状态与脱敏阻塞原因。Tauri 仅新增一个固定、无 shell 的 `inspect_popos_preflight` 命令，以 `/usr/bin/python3 -I -c` 运行 **编译时嵌入的**既有只读检查器，输出只进 GUI，不写预检文件、不联网、不执行 APT 更新、安装或 Agent 启动；系统缺少 `python3-apt` 时明确拒绝。前端严格验证未授权字段，浏览器不会模拟真实兼容性；[Tauri preview CI #45308179831](https://github.com/kunlong-luo/lanveriq/actions/runs/45308179831) **React 测试/类型检查/页面构建与安全源码门禁已 PASS，原生源码 Rustfmt 已修正，真实 Rust 编译与 Clippy 仍待整体 SUCCESS**。[L2B-12 规范](development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md)。**当前不是签名正式安装器；Pop!_OS 24.04/COSMIC 实机 L3 与法务、WORM、polkit、Agent 权限仍 OPEN，v0.1 NOT RELEASE READY。**
 
 
