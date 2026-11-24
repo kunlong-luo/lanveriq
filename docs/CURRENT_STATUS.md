@@ -16,6 +16,12 @@
 
 完整“哪些文件/目录保留与删除”的实际清单：[仓库结构审计](governance/repository-layout-audit-2026-11-24.md)。历史 React/Vite `apps/web` 以及 `apps/web-next` 已废止，不要重新建立。
 
+## L2B-24：OS 原生 polkitd/D-Bus + Rust 固定身份授权拒绝 L2 PASS（2026-11-24）
+
+**[功能 SHA ba04f55c / Ubuntu24 native Polkit OCI #45379398181 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45379398181)。** 实际 Ubuntu24 Polkit 124 + D-Bus 读取现有三个 install/upgrade/remove 全 no policy（策略**只装入 OCI overlay**），官方 `pkaction` 确认 `any/inactive/active=no`；官方 `pkcheck` 对 **nobody、daemon 两个真实 Unix UID × 三动作共六次**均返回 **exit 1**，不能让退出 127 的服务故障冒充授权拒绝。新增独立编译的 **Rust 1.100 固定动作用户侧 gate**，只接受三个字面操作，读取自身 Linux PID/start-time/UID，使用原生 `pkcheck --process PID,START,UID` 检查；Rust 单元 **3/3**、原有 policy 负测 **30/30**、六组原生拒绝与额外参数/环境伪造负测 PASS。gate 即使 OS 回答 yes 仍因缺**发行签名与 root-side broker**而拒绝；**没有连接 Tauri IPC、没有运行 apt-get/systemctl 或安装 Agent**。[精确报告与首次失败/修复历史](development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)。第一轮 `no-new-privileges` 阻断 D-Bus setuid helper、另一次 YAML 换行错误及未挂载新 Rust gate 的失败均如实保留。
+
+**仅代表隔离 OCI 的真实 Polkit 拒绝 L2 子项**，不是对真实管理域、获得批准的发行者、系统活动登录会话/管理员弹窗、Polkit `.rules`、成功授权安装事务、Pop!_OS24 COSMIC L3 的结论。**G-05/G-09、正式 G-06 与全部发行 Gate 仍 OPEN；v0.1 NOT RELEASE READY**。
+
 ## L2B-23：真实 Agent 包经原生 APT 临时签名仓库完成隔离生命周期 L2 PASS（2026-11-24）
 
 **[功能源码 2af1cf344afa1506d596f183f465c03248ae55ac / Ubuntu24 #45376989866 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) · 9/9 实际 APT 测试 PASS。** 已用真实 Rust 1.100 --locked release ELF 构建严格无 hook 原生 Agent .deb，放入临时 Ed25519 实验密钥生成的 file: 签名仓库；OCI 内系统 apt-get 用唯一 Signed-By，**真实 install、同版本 reinstall、remove**，验证 dpkg 归属/版本、ELF --help、模拟操作员文件跨重装/卸载保留、systemd 服务未启动/自启。另八类源签名错误、错误 key、未签名、索引篡改、过期/未来元数据、.deb 字节篡改与包名混淆**原生 APT 正确拒绝**。Ubuntu24 OCI **network none/cap drop all/no-new-privileges**；私钥不挂载，runner/真实电脑从未安装。最初 [工作流 YAML #45376908241 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45376908241) 无 jobs，修正冒号后才有上述实际 CI；失败保留。[完整报告](development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。
