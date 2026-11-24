@@ -88,3 +88,10 @@ Git tree 中**没有** `apps/web-next/`、旧 Vite Web 运行目录、第二套 
 旧 `verifyLocalDocumentationLinks` 只覆盖约 20 个现行文档入口，其余有日期的验收/安全/规范文件链接主要依靠人工审查；现增加 `verifyAllDocumentationLinks`，遍历每个 `docs/**/*.md` 并复用本地路径存在性/目录穿越保护，在 docs-governance 同步执行。负测特意在不属于入口白名单的 dated 文档注入不存在的相对链接，必须拒绝。**此处是文档完整性门禁，不验证外部网站、Markdown 标题锚、真实安装与权限。**
 
 本轮不因为标题相似而批量删除带有唯一历史失败/攻击证据的 211 份 Markdown；确认冗余的旧全文快照仍由固定 Git SHA 归档、已经从当前树移除。下一轮删除历史规划文件前须核对所有相对引用并保存固定源码 SHA 路径。新功能验收需另外核对新提交的 GitHub Actions 真实结论，未运行不得写 PASS。**v0.1 NOT RELEASE READY。**
+
+
+## 2026-11-24 第四轮：退役过时实施顺序全文，保留 Git 固定源
+
+旧 `docs/planning/v0.1-implementation-sequence.md` 约 **35,761 字符 / 172 行**，文件明确标记为 **HISTORICAL TICKET/ORDER REFERENCE**。其中的旧技术版本与前端迁移任务已由现行代码、[Linux 首发路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)和 [LIVE-GAP](../planning/release-gap-register.md)覆盖，不应再冒充最新实施任务。此轮删除其工作树副本，完整原文可从 [固定 Git SHA](https://github.com/kunlong-luo/lanveriq/blob/dc5cb839cf47959e707a1b5d0b041d484b14d1cf/docs/planning/v0.1-implementation-sequence.md) 恢复，历史失败和原始工单细节并未被 Git 擦除。
+
+同步将 roadmap、D0 决议、2026-11-08 文档审查的引用改为历史固定 URL；归档入口与 README 补齐，并在 `verifyRepositoryLayout` 加入禁止旧文件复活的负例。本轮仅文档/门禁代码，不改生产安装行为，提交后的 CI 需以实际 run 核实，不预称 PASS。**v0.1 NOT RELEASE READY。**

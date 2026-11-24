@@ -68,3 +68,6 @@ pnpm dev
 依照 [G-01–G-10 发布门禁](docs/planning/release-gap-register.md)，优先完成可信签名发行与受限 Polkit 安装、**经授权的 Pop!_OS 24.04 COSMIC 实机**、正式 CA/管理员 MFA、独立 WORM/密钥/可信时间、法务授权、备份恢复/回滚和正式业务登录。用户勾选一份 GUI 说明并不能代替这些批准。
 
 项目的工程进展评分只用于决定研发优先级，**不是发布认证**。[评分与改进记录](docs/planning/project-scorecard.md) · [路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [漏洞报告](SECURITY.md) · [变更历史](CHANGELOG.md)。
+
+
+**历史计划去重：** `docs/planning/v0.1-implementation-sequence.md` 早期工单顺序已从工作树清理，[固定 Git SHA 归档](docs/governance/archive/README.md)完整保留原文。后续只以[现行 Linux 交付路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)和[发布缺口](docs/planning/release-gap-register.md)作为权威。**v0.1 NOT RELEASE READY。**

@@ -40,7 +40,7 @@
 | D0-PRIV-01 | wrong-group and health-only admin cannot infer MAC/IP, asset-tag, hidden device counts via REST/WSS/cursor/errors | auth unit + scoped manual test after D0 |
 | D0-OS-01 | actual session protocol and Win/Linux NIC/CPU/RAM/OS capability statuses recorded without guessing; denied/unsupported means not collected | manual platform test after D0 |
 
-Passing this *documentation review* means the assertions are written, **not** that these tests passed. See [manual acceptance](../testing/manual-acceptance.md), [D0 gate](documentation-gate.md), [implementation order](../planning/v0.1-implementation-sequence.md).
+Passing this *documentation review* means the assertions are written, **not** that these tests passed. See [manual acceptance](../testing/manual-acceptance.md), [D0 gate](documentation-gate.md), [implementation order](https://github.com/kunlong-luo/lanveriq/blob/dc5cb839cf47959e707a1b5d0b041d484b14d1cf/docs/planning/v0.1-implementation-sequence.md).
 
 ## Approval record — maintainer-directed technical sign-off
 

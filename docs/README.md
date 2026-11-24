@@ -39,3 +39,6 @@
 
 
 **防断链要求：** `docs-governance` 不仅验证现行入口，也递归检查全部 `docs/**/*.md` 的相对目标存在性；历史资料要保留独立证据，真正重复的全文副本仅以[固定 Git SHA 归档](governance/archive/README.md)替代。此检查不代表外链、标题锚或真实性的全面审计。**v0.1 NOT RELEASE READY。**
+
+
+**已退役历史长计划：** `v0.1-implementation-sequence.md` 旧工单全文通过[固定 Git SHA 归档索引](governance/archive/README.md)访问；当前施工顺序以[Linux 首发路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)为准。**v0.1 NOT RELEASE READY。**

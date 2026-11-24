@@ -187,6 +187,10 @@ test('rejects nested documentation links to retired duplicate AGENTS and old ind
   assert.throws(() => verifyNoRetiredSnapshotLinks(root),
     /Retired historical snapshot linked as a live file/);
   write('docs/security/references/notes.md',
+    '[old plan](../../planning/v0.1-implementation-sequence.md)');
+  assert.throws(() => verifyNoRetiredSnapshotLinks(root),
+    /Retired historical snapshot linked as a live file/);
+  write('docs/security/references/notes.md',
     '[immutable old docs index](https://github.com/kunlong-luo/lanveriq/blob/80a74373/docs/governance/documentation-index-snapshot-2026-11-21.md)');
   assert.equal(verifyNoRetiredSnapshotLinks(root), true);
 });

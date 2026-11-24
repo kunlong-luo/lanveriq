@@ -198,6 +198,7 @@ export const retiredRepositoryPaths = [
   'docs/development/pagevela-reference.md',
   'docs/governance/documentation-index-snapshot-2026-11-21.md',
   'docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md',
+  'docs/planning/v0.1-implementation-sequence.md',
 ];
 
 const conciseEntrypoints = [
@@ -316,6 +317,7 @@ export function verifyNoRetiredSnapshotLinks(root) {
   const retired = new Set([
     resolve(repoRoot, 'docs/governance/documentation-index-snapshot-2026-11-21.md'),
     resolve(repoRoot, 'docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md'),
+    resolve(repoRoot, 'docs/planning/v0.1-implementation-sequence.md'),
   ]);
   const files = [
     join(repoRoot, 'README.md'), join(repoRoot, 'README.zh.md'),

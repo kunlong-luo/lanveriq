@@ -68,3 +68,6 @@ For other components, `cd apps/server && ./gradlew test`, `cd apps/agent && carg
 Releasing needs independent approval of signed APT/Agent packages and a narrowly scoped Polkit broker, real consented Pop!_OS 24.04 COSMIC L3, CA/admin MFA, independently administered WORM, privacy/licensing and operational rollback. None can be bypassed by a UI checkbox or a synthetic CI result.
 
 Read [AGENTS.md](AGENTS.md), [contributing](CONTRIBUTING.md), [engineering playbook](docs/governance/engineering-playbook.md), [development plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md), [security policy](SECURITY.md), and [change history](CHANGELOG.md). Development score is **not** a release certificate. **v0.1 NOT RELEASE READY.**
+
+
+**Historical plan cleanup:** the obsolete v0.1 ticket-sequence transcript was removed from the live `docs/planning/` tree; its original content is linked from the [immutable history index](docs/governance/archive/README.md). Use the [active Linux delivery plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md). **v0.1 NOT RELEASE READY.**
