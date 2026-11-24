@@ -43,6 +43,14 @@ Git tree 中**没有** `apps/web-next/`、旧 Vite Web 运行目录、第二套 
 
 **本次不删除** `docs/planning/release-readiness-2026-11-13.md`、`docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md`、D4/FIDO/WORM 日期报告及所有 GitHub Actions 失败记录；它们承担可追溯的失败/安全审计角色。旧临时签名实验只能作为历史合成事实，不能给安装界面授权。
 
+## 本轮实际减负与安全校验
+
+九个主要入口（根中英文 README、docs/README、四应用 README、CURRENT_STATUS、release-gap register）经过实际 GitHub 更新：**总行数约从 1,871 行降为约 404 行（减少 1,467 行，约 78%）**。具体为：根英文 README **428→53**、中文 README **430→53**、文档索引 **60→43**、Web **267→44**、Server **212→40**、Agent **89→34**、Desktop **51→43**、当前事实 **254→54**、发布缺口 **80→40**。这只是**导航与文本去重**，不删 Java/Rust/Next.js/Tauri 代码、日期验收报告或 GitHub Actions 历史。
+
+一次真实删除检测发现：旧索引快照仍有指向已删除 `pagevela-reference.md` 的链接，导致 [文档及 Web CI #45372711463/#45372711446 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45372711463)。已在 [Git 提交 3cb54c30](https://github.com/kunlong-luo/lanveriq/commit/3cb54c30ca2d50f5f9c94cd7b8f47ff1919a0154) 将该历史快照链接改为**删除前固定源码 SHA 23c94712 的 GitHub URL**：现在既能访问原研究、又不会把过时方案留在现行开发目录。**这次失败必须保留，不能声称从未存在断链。**
+
+新增 `apps/web/scripts/verify-documentation-baseline.mjs` 的 `verifyRepositoryLayout`：核查四应用和依赖目录存在、旧 `web-next`/Maven/已删除 Pagevela 路径没有复活、README 尽量不膨胀及双语目录地图。相应 Node 测试通过实际创建虚假旧目录、删除核心文件、把 README 增长到 140 行以上来验证负例。扩大文档本地链接检查到四应用 README、项目评分和本次审计。复测 [功能 SHA 0db21627 / docs-governance #45373334900 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334900)、[Next.js fast source #45373334701 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334701)、[RD-2 #45373334599 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334599)，但这只是结构/代码回归，不是正式生产上线审批。
+
 ## 防止回退与文档所有权
 
 - 根/子 README 不得再重复 100 行以上的旧运行历史；稳定技术决策写 SPEC/ADR，精确 SHA/CI 写 CURRENT_STATUS/日期报告；**不能把历史 CI 当今天生产批准**。
