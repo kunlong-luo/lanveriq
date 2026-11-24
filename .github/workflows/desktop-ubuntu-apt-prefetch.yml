@@ -1,0 +1,112 @@
+name: Desktop Ubuntu24 Tauri APT signed-index prefetch lab (no install)
+
+# Separate experimental cache warmer for Ubuntu 24.04 Tauri WebKitGTK.
+# This workflow does NOT produce, install, sign or distribute Lanveriq.
+# A GHA cache is untrusted acceleration; future build jobs must independently
+# check signed Ubuntu indexes and real packages before using cached archives.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/desktop-ubuntu-apt-prefetch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-desktop-apt-prefetch-main
+  cancel-in-progress: false
+
+jobs:
+  prefetch:
+    name: Signed Ubuntu APT metadata and download-only cache laboratory
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check source remains read-only and runner remains Ubuntu24 amd64
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(dpkg --print-architecture)" = amd64
+          command -v apt-get >/dev/null
+          command -v sha256sum >/dev/null
+          printf 'PREWARM RUNNER=%s IMAGE=%s SHA=%s\n' "$ID:$VERSION_ID" "${ImageVersion:-unknown}" "$GITHUB_SHA"
+      - name: Resolve signed Ubuntu APT indexes and hash full simulated plan
+        id: plan
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          # Only use runner's existing distro repo configuration and APT
+          # signature verification; never rewrite URLs or disable auth.
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          packages=(
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+            libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
+          )
+          plan="$RUNNER_TEMP/lanveriq-apt-prefetch-plan.txt"
+          apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
+          if grep -Eq '^(Remv|Purg) ' "$plan"; then
+            echo 'FAIL: prerequisite plan proposes removing packages' >&2
+            exit 1
+          fi
+          grep -q '^Inst libwebkit2gtk-4.1-dev ' "$plan" || {
+            echo 'FAIL: missing native WebKitGTK development prerequisite' >&2
+            exit 1
+          }
+          # Include ALL transitive versioned installs, selected signed-index
+          # sources, runner image version and arch in exact-cache identity.
+          # Only hashes, not potentially sensitive APT source text, are logged.
+          fingerprint="$(
+            {
+              printf '%s\n' "$GITHUB_REPOSITORY" "${ImageVersion:-unknown}"
+              dpkg --print-architecture
+              find /etc/apt -maxdepth 2 -type f \( -name '*.sources' -o -name '*.list' \) -print0 |
+                sort -z | xargs -0 -r sha256sum
+              cat "$plan"
+            } | sha256sum | cut -d ' ' -f 1
+          )"
+          echo "cache_key=lanveriq-ubuntu24-tauri-apt-$fingerprint" >> "$GITHUB_OUTPUT"
+          printf 'APT signed-index plan sha256: %s\n' "$(sha256sum "$plan" | cut -d ' ' -f 1)"
+          printf 'APT planned package install/upgrade count: %s\n' "$(grep -c '^Inst ' "$plan" || true)"
+          printf 'APT planned removals: 0; image: %s; download-only below\n' "${ImageVersion:-unknown}"
+      - name: Read or preserve downloaded Ubuntu APT archives (acceleration, untrusted)
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/lanveriq-desktop-apt-archives
+          key: ${{ steps.plan.outputs.cache_key }}
+      - name: Download signed-index APT archives only, never install
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/lanveriq-desktop-apt-archives"
+          mkdir -p "$archive/partial"
+          chmod 755 "$archive" "$archive/partial"
+          dpkg-query -W -f='${Package} ${Version} ${db:Status-Abbrev}\n' | LC_ALL=C sort > "$RUNNER_TEMP/lanveriq-dpkg-before.txt"
+          # The official apt downloader validates each archive against Ubuntu
+          # signed indexes. Nothing is installed; no host package set changes.
+          sudo DEBIAN_FRONTEND=noninteractive apt-get \
+            -o Acquire::Retries=2 -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 -o APT::Install-Recommends=false \
+            -o Dir::Cache::archives="$archive" -o APT::Keep-Downloaded-Packages=true \
+            -y --download-only install \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+            libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
+          dpkg-query -W -f='${Package} ${Version} ${db:Status-Abbrev}\n' | LC_ALL=C sort > "$RUNNER_TEMP/lanveriq-dpkg-after.txt"
+          cmp "$RUNNER_TEMP/lanveriq-dpkg-before.txt" "$RUNNER_TEMP/lanveriq-dpkg-after.txt" || {
+            echo 'FAIL: download-only job changed installed dpkg package states' >&2
+            exit 1
+          }
+          count="$(find "$archive" -maxdepth 1 -type f -name '*.deb' | wc -l)"
+          test "$count" -gt 0
+          echo "PASS: Ubuntu apt verified $count archives against signed indexes; installed package states unchanged"
+          echo 'BOUNDARY: CI cache is not a signed immutable builder, ABI acceptance, release artifact or PopOS L3'
