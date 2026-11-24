@@ -1,50 +1,42 @@
-# Lanveriq Desktop — Tauri 2 read-only offline preview
+# Lanveriq Desktop — Tauri 2 安装准备/状态预览（不可安装）
 
-**L2B-20 actual system APT authentication LAB (NOT INSTALLER):** [Ubuntu24 #45334019405](https://github.com/kunlong-luo/lanveriq/actions/runs/45334019405) passed 9 real `apt-get update` tests for synthetic file-only deb822 `Signed-By`, GPG-clearsigned `InRelease`, package-index hash integrity, wrong keys, expired/future metadata and no unsigned-repo fallback. Source/keyrings/cache/dpkg status were redirected to disposable folders, and **no actual .deb was produced or installed**. The GUI remains read-only with no polkit, production signer or Agent installation path. [L2B-20 test plan](../../docs/development/desktop-tauri-l2b20-real-apt-signed-by-offline-ci-2026-11-24.md).
+**ACTIVE SOURCE / NONINSTALLING PREVIEW · Tauri 2 / Rust 1.100 / React 19 / Vite 8 / Tailwind 4 · v0.1 NOT RELEASE READY。**
 
-**L2B-19 receiver root LAB-only:** [Ubuntu24 #45328874536](https://github.com/kunlong-luo/lanveriq/actions/runs/45328874536) passed 34 tests covering caller-pinned root digest, dual synthetic signatures, revoked roles, expiration and simulated metadata rollback. The root digest, clock input and high-water version were all controlled by the same CI lab; they are **NOT independently provisioned production trust anchors or device state**. No package was signed for release, installed, uploaded, or authorized; Tauri remains read-only with no Agent installer or polkit broker. [Security/standards handoff](../../docs/development/desktop-tauri-l2b19-receiver-root-preprovision-lab-2026-11-24.md).
+这是本机窗口工具，不是第二个 Web 控制台（唯一后台 Web 位于 `apps/web`）。未来面向 Pop!_OS 24.04 / COSMIC 的用户目标是“一次经授权的图形安装 + 独立 systemd 后台 Agent + 可发现的停止/卸载入口”，**不是现在已经可以一键安装**。
 
-**L2B-18 two-key LAB cryptography, not publisher signing:** [Ubuntu24 run #45326441957](https://github.com/kunlong-luo/lanveriq/actions/runs/45326441957) passed 30 OpenSSL 3 tests, generating disposable publisher/reviewer Ed25519 keys and checking both signatures over the same synthetic statement tied to synthetic package bytes and source/run/attempt. No approved independent roots, custody, revocation, trusted time, release keys, Agent installation or Pop!_OS L3 were involved. [Read-only LAB verifier](tools/verify_desktop_dual_signer_lab.py) · [acceptance and missing trust boundaries](../../docs/development/desktop-tauri-l2b18-dual-signature-custody-lab-2026-11-24.md).
+## 已实现的界面和真实边界
 
-**L2B-17 design-only install-intent protocol remains DENY-ALL:** [Ubuntu24 CI #45324617901](https://github.com/kunlong-luo/lanveriq/actions/runs/45324617901) passed 39 adversarial cases and the existing source/release guard. [Parser](tools/verify_desktop_agent_install_intent.py) and [inert sample](../../docs/planning/desktop-agent-install-intent-deny-all.json) never approve, install, sign, elevate privileges, run polkit or enable Agent/network collection. A real broker, publisher trust root, authorized Agent package and physical Pop!_OS L3 do not exist yet. [Threat model](../../docs/development/desktop-tauri-l2b17-agent-install-intent-polkit-threat-contract-2026-11-24.md).
+- 四步中文安装准备、系统兼容性**只读**检测、查看本机候选 Agent/systemd 状态、发行签名/受限 Polkit/物理机 L3 缺口审查。
+- 当前只有 `inspect_host` 与 `inspect_popos_preflight` 两个 Tauri 只读 IPC。安装、升级、卸载、服务启动、开机自启、生产联网、采集和远控均不可达。
+- 四条隐私/权限说明的勾选仅是瞬时**阅读记录**，不是管理员授权、签名包或真正 Polkit grant。
+- [L2B-21 GUI 审核 CI #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) 双 job SUCCESS（独立审核测试 10/10、前端 29/29、原生 Rust 6/6）；[GUI-only unsigned .deb 隔离归档 #45368638490](https://github.com/kunlong-luo/lanveriq/actions/runs/45368638490) SUCCESS，但**该包未安装、发布或包含 Agent**，签名仅临时 LAB、不是正式根。详情 [验收报告](../../docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md)。
 
-**L2B-16 safe release-boundary regression PASS, not approval:** [Ubuntu24 offline #45324049249](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249) passed 30 synthetic checks plus the original read-only Tauri source verifier. The [checked-in evidence state](../../docs/planning/desktop-release-evidence-boundary.json) pins historical GUI-only Debian L2 while keeping signer, polkit, Agent installation, WORM and physical Pop!_OS L3 gates NOT APPROVED/OPEN. Neither this JSON nor these tests authorize signing, upload, distribution or installation. [Security contract](../../docs/development/desktop-tauri-l2b16-release-evidence-denial-contract-2026-11-24.md).
+## 目录责任
 
-**EXACT SOURCE GUI-only Debian L2 PASS, native Tauri preview PASS · NOT A SIGNED AGENT INSTALLER · v0.1 NOT RELEASE READY**
+| 目录 | 用途 |
+| --- | --- |
+| `src/` | React 只读向导、安装前条件审查/声明和纯逻辑单元测试 |
+| `src-tauri/` | Tauri2 Rust 只读主机核验、最小 IPC/capabilities、**禁用**正式 bundle 的配置 |
+| `tools/` | Debian 归档/ABI/APT 签名缓存/拒绝优先源码检查，含大量实验室负测；不是安装服务或生产提权 helper |
+| `package.json`、`pnpm-lock.yaml` | 桌面前端构建依赖，与唯一 Next.js Web 分离 |
 
-[完整 GUI-only .deb 审计 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 在指定源码 SHA c4f04e44 实际生成并完整审计 unsigned lanveriq-desktop_0.1.0_amd64.deb（SHA-256 83ab54d1331213335e3ec77e383c6b8c384690f37826e42413ffc35d2efe504a）：Rust/Clippy、恶意归档、局部 Syft SPDX、15 ELF SONAME、官方 dpkg-shlibdeps 缺口 0、干净 Ubuntu OCI APT 模拟及 LAB 临时 Ed25519 PASS；**没有安装、上传或分发该包**。[原生只读预览 CI #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 也已实际 **overall SUCCESS**（React 和原生 Rust 两个 job 都 PASS），不等于真 Pop!_OS24/COSMIC L3。安全/发布交接见 [L2B-15](../../docs/development/desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)。
+## 开发者离线预览
 
-This is the first implementation of the planned Pop!_OS 24.04 GUI install-and-config companion. The source uses Tauri 2 / Rust 1.100, React 19 / Vite 8 / Tailwind 4 and the Lanveriq light design. Tauri is separate from apps/web (the sole Next.js fleet-management console) and from apps/agent (the independent systemd Agent).
+要求 Node.js 24 / pnpm 12；在本目录运行：
 
-Currently implemented:
-- Four-stage Chinese welcome → local status → privacy notice → **disabled** install UX, plus local status/security views.
-- Exactly two **read-only** Rust IPC commands: `inspect_host` checks `/etc/os-release`, fixed `dpkg-query`/`systemctl show` properties and historical binary existence (no execution), while `inspect_popos_preflight` runs a build-embedded, fixed `/usr/bin/python3 -I -c` metadata inspector under the current non-root user only after the operator clicks **检查兼容性（只读）**. The second command does not install, run APT updates or create evidence files. React validates an exact 10-group ABI and 3-component COSMIC contract; browser-only previews cannot claim local host verification.
-- No native install/start/enable commands, no root, shell, polkit, package updater, network plugin, tray, desktop autostart or signed installer. Closing the GUI has no influence on the independent Agent service. **Never enable Agent from this preview.**
-- Source mutation negatives, pure Rust unit tests and GitHub CI on disposable Ubuntu 24.04; none of this is physical Pop!_OS L3.
+```bash
+cd apps/desktop
+corepack enable
+corepack prepare pnpm@12.0.0 --activate
+pnpm install --frozen-lockfile
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm dev
+```
 
-## Independent Ubuntu APT archive cache security lab (not native package build)
+`pnpm dev` 是**浏览器静态窗口预览**，不能读取系统受限状态，绝不意味着 Pop!_OS 兼容性通过。真正 Tauri 原生构建还需要 Linux WebKitGTK/GTK 原生系统依赖，已在隔离 CI 验证；普通终端用户**不需要自行安装 Rust、Node 或运行上述命令**。
 
-**Native validation progress (2026-11-24):** [c4f04e44 source #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) passed fresh Ubuntu signed-index verification of the reviewed 175-file cache, offline installation of disposable Ubuntu build prerequisites, actual Rust workspace tests, and strict Clippy. It is compiling the real unsigned GUI-only Debian candidate; remaining archive, Syft, ELF, ABI and OCI audits have NOT passed yet. [ea62c63c](https://github.com/kunlong-luo/lanveriq/commit/ea62c63cb9523c1ac34ac64c7f7134bbe58fbe3a) aligns the independent preview native job to the same strict cache verification and no-download prerequisite installation; [#45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) remains unverified. No end-user GUI or Agent installation is authorized.
+下一实际阶段是独立批准的可信 APT `Signed-By` 发行源、受审狭义 Polkit broker、签名 Agent 包、拒绝/取消/卸载测试，再进行真实 Pop!_OS24 COSMIC L3。[安装产品方案](../../docs/product/linux-desktop-installer-v01.md) · [当前状态](../../docs/CURRENT_STATUS.md) · [发布门禁](../../docs/planning/release-gap-register.md)。
 
-**Accepted engineering subgate:** [two-runner #45321096944](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) passed saved/cache restored **175 exact Ubuntu .deb archives** with fresh signed-index per-package hashes/sizes/versions/architecture, identical SHA-256 manifest and exact APT install closure. These are **public Ubuntu build dependencies only**. The [current full candidate #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248), code c4f04e44, now restores the exact reviewed cache and independently checks signed-index metadata again before `apt-get --no-download` installs disposable CI headers. It retains real Rust test/Clippy, unsigned GUI-only archive/Syft/ELF/dpkg-shlibdeps/OCI gates; its own native/package result is **not yet accepted**. No end-user installer, Agent activation, production signing or Pop!_OS L3 is authorized.
-
-The [L2B-14 specification](../../docs/development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md) tracks experimental read-only Ubuntu24 WebKitGTK development dependency cache prewarming. The [standalone offline GitHub workflow](../../.github/workflows/desktop-apt-cache-contract.yml) at [#45321096899](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096899) passed 20/20 synthetic tests (18 hostile negatives, two valid inputs); the separate [real Ubuntu24 no-install APT simulation #45321177263](https://github.com/kunlong-luo/lanveriq/actions/runs/45321177263) confirmed its exact dependency-closure parser on 171 selected packages. The fresh APT signed-index verifier checks every restored cache file against package/version/architecture/size/SHA256 metadata in a different CI runner; actual end-to-end cache save/recovery remains unverified. This cache has no permissions to install, activate, bundle, sign, upload or distribute the Agent. GUI-native CI now triggers only for its actual code and embedded read-only inspectors; strict Rust/Clippy tests are not weakened. All release gates remain OPEN.
-
-## Planned native .deb audit milestone (not an end-user installer)
-
-A separate **milestone-only** Ubuntu 24.04 workflow previously built and strictly audited an **unsigned, GUI-only** native `.deb`; see [historical native L2B-10 #45303829710 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45303829710) for archived package, ABI and isolated APT-simulation evidence. The committed source still has `bundle.active=false` and no Agent payload, privileged maintainer scripts or background activation. These earlier native successes **do not** prove the newer embedded Pop!_OS GUI code compiles, and the current source has only [same-SHA desktop-ui L1 success #45314250801](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801) (23 source-guard, 22 preflight, 19 Vitest tests); Rust native test/Clippy acceptance remains pending. The [L2B-13 same-current-source GUI-only .deb re-audit](../../docs/development/desktop-tauri-l2b13-current-source-gui-deb-reaudit-2026-11-24.md) has started as [candidate CI #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623). Its source safety/React/Cargo-lock/Rustfmt gates ran successfully, while native package/ELF/dpkg-shlibdeps/clean Ubuntu OCI/strict Clippy evidence remains unverified. No signed, uploaded, installed or approved end-user installer exists. [L2A documentation](../../docs/development/desktop-tauri-offline-deb-candidate-2026-11-23.md) · [L2B-12 current contract](../../docs/development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md).
-
-## Developing this source (maintainers only)
-
-On a Linux development environment with Node 24.22.3, pnpm 12, Rust 1.100 and the Tauri v2 WebKitGTK 4.1 Linux build prerequisites installed, run the following from apps/desktop:
-
-    pnpm install --frozen-lockfile
-    pnpm test
-    pnpm build
-    pnpm tauri dev
-
-Both real generated pnpm-lock.yaml and Cargo.lock have now been committed and the workflow uses frozen/locked dependency installation. This remains a NON-RELEASE preview until native compile checks, release signatures, privilege mediation, and actual Pop!_OS L3 have separately passed. Browser-only local preview runs pnpm dev but **cannot inspect the host**; do not treat browser fallback as actual installation.
-
-End users **must not** be asked to run these commands. Their future approved product receives a signed, double-clickable installation experience. There is currently **no end-user installer**. Do not run a real install on personal or production devices.
-
-[Source/CI milestone](../../docs/development/desktop-tauri-first-source-2026-11-23.md) · [ADR-0013](../../docs/architecture/adrs/0013-tauri-desktop-installer-idle-agent.md) · [L3 plan](../../docs/testing/linux-desktop-installer-acceptance.md).
+**v0.1 NOT RELEASE READY；禁止 GUI root、任意 shell、自动安装/启动或伪造发布批准。**
