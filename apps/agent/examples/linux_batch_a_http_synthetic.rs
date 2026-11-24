@@ -384,6 +384,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if staged.revision != 1 {
                 return Err("synthetic inventory first revision not monotonic".into());
             }
+            // Keep only this fixed synthetic wire body for a second, direct
+            // HTTP duplicate/revocation negative control in the SAME runner.
+            let fixture_path = PathBuf::from(
+                env::var("LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE")?
+            );
+            if !fixture_path.starts_with(pki.parent().ok_or("missing private fixture root")?)
+                || fixture_path.file_name().and_then(|n| n.to_str())
+                    != Some("synthetic-inventory-request.json")
+            {
+                return Err("inventory test body escaped disposable directory".into());
+            }
+            fs::write(fixture_path, staged.body_json.as_bytes())?;
             inventory_store.close().await;
 
             // Reopen the SQLite outbox BEFORE any HTTP POST. The actual
