@@ -14,6 +14,12 @@ on:
       - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
       - 'apps/server/scripts/verify-synthetic-console-session.sh'
+      - 'apps/server/scripts/verify-synthetic-rust-chain-browser.py'
+      - 'apps/web/scripts/install-synthetic-rust-chain-fixture.mjs'
+      - 'apps/web/src/staged-console-workspace.tsx'
+      - 'apps/web/src/lib/staged-console-read.ts'
+      - 'apps/web/src/lib/staged-console-overview.ts'
+      - 'apps/web/src/lib/console-device-projection.ts'
       - 'apps/agent/src/enrollment_linux.rs'
       - 'apps/agent/examples/linux_csr_synthetic.rs'
       - 'apps/agent/examples/linux_batch_a_http_synthetic.rs'
@@ -47,9 +53,11 @@ concurrency:
 
 jobs:
   linux-caddy-spring-tls13:
-    name: Real Rust Agent through double-mTLS/PG18 to scoped Spring Console HTTP
+    name: Real Rust Agent through double-mTLS/PG18 to real Next.js Chromium
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 65
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/lanveriq-playwright-browsers
     steps:
       - uses: actions/checkout@v7
         with:
@@ -89,22 +97,99 @@ jobs:
           java -version
           bash -n apps/server/scripts/verify-agent-upstream-tls.sh
           bash -n apps/server/scripts/verify-synthetic-console-session.sh
-      - name: Run same-device Rust Agent mTLS -> PG18 -> scoped Console API (Next.js not yet mounted)
+      - name: Install isolated Playwright/Chromium with private NSS trust
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/lanveriq-playwright"
+          "$RUNNER_TEMP/lanveriq-playwright/bin/python" -m pip install --disable-pip-version-check 'playwright==1.64.1'
+          "$RUNNER_TEMP/lanveriq-playwright/bin/python" -m playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libnss3-tools
+      - name: Set up exact Node 24/pnpm 12 for disposable Next.js build
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24.22.3
+          working-directory: apps/web
+          install: true
+          require-lockfile: true
+          cache: false
+      - name: Build isolated Next.js with CI-only source device route
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
+          LANVERIQ_SYNTHETIC_LINUX_CSR: '1'
+          LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP: '1'
+          LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '1'
+          LANVERIQ_SYNTHETIC_CHAIN_READ: '1'
+          LANVERIQ_SYNTHETIC_CHAIN_UI: '1'
+          LANVERIQ_SYNTHETIC_BROWSER_PROBE: '1'
+          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: '1'
+          LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: '0'
+          LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: '0'
+        run: |
+          set -euo pipefail
+          test "$(node --version)" = v24.22.3
+          pnpm install --frozen-lockfile
+          pnpm run verify:routes
+          pnpm test
+          node scripts/install-synthetic-rust-chain-fixture.mjs
+          pnpm typecheck
+          pnpm build
+      - name: Run same-device Rust Agent -> Spring -> PG18 -> actual Next.js Chromium
         env:
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
           LANVERIQ_SYNTHETIC_LINUX_CSR: '1'
           LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP: '1'
           LANVERIQ_SYNTHETIC_CONSOLE_SESSION: '1'
           LANVERIQ_SYNTHETIC_CHAIN_READ: '1'
-          LANVERIQ_SYNTHETIC_BROWSER_PROBE: '0'
-          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: '0'
+          LANVERIQ_SYNTHETIC_CHAIN_UI: '1'
+          LANVERIQ_SYNTHETIC_BROWSER_PROBE: '1'
+          LANVERIQ_SYNTHETIC_NEXTJS_PROBE: '1'
           LANVERIQ_SYNTHETIC_AUTH_UI_PROBE: '0'
           LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: '0'
-        # Preserve default-OFF business denial first, then opt in ONLY inside
-        # disposable runner for actual Rust POST -> Caddy -> Boot -> PG18 + ACK
-        # and replay/certificate/session/group negative checks against the
-        # SAME PG18 device. No Next.js/Chromium or installed Agent runs.
-        run: bash apps/server/scripts/verify-agent-upstream-tls.sh
+          LANVERIQ_BROWSER_PYTHON: ${{ runner.temp }}/lanveriq-playwright/bin/python
+          NEXT_TELEMETRY_DISABLED: '1'
+        # Real Rust commit and real browser read within ONE disposable DB.
+        run: |
+          set -euo pipefail
+          if (echo > /dev/tcp/127.0.0.1/3100) >/dev/null 2>&1; then
+            echo "FAIL: disposable Next.js port already occupied"
+            exit 1
+          fi
+          umask 077
+          export LANVERIQ_SYNTHETIC_EDGE_SECRET
+          LANVERIQ_SYNTHETIC_EDGE_SECRET="$(openssl rand -hex 32)"
+          [[ "$LANVERIQ_SYNTHETIC_EDGE_SECRET" =~ ^[a-f0-9]{64}$ ]] || exit 1
+          (
+            cd apps/web
+            pnpm exec next start --hostname 127.0.0.1 --port 3100
+          ) > "$RUNNER_TEMP/lanveriq-rust-chain-nextjs.log" 2>&1 &
+          next_pid=$!
+          trap 'kill "$next_pid" >/dev/null 2>&1 || true; wait "$next_pid" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for _ in $(seq 1 80); do
+            kill -0 "$next_pid" >/dev/null 2>&1 || {
+              echo "FAIL: isolated Next.js exited"
+              exit 1
+            }
+            status="$(curl --silent --noproxy '*' --max-time 3 -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/synthetic-rust-chain || true)"
+            if [[ "$status" == 200 ]]; then ready=1; break; fi
+            sleep 0.5
+          done
+          [[ "$ready" == 1 ]] || { echo "FAIL: isolated Next.js route did not become ready"; exit 1; }
+          python3 apps/web/scripts/verify-synthetic-nextjs-origin.py
+          bash apps/server/scripts/verify-agent-upstream-tls.sh
+          {
+            echo "### Single-device full-chain synthetic acceptance"
+            echo "- Source SHA: $GITHUB_SHA"
+            echo "- PASS: actual Rust/Reqwest + Caddy double TLS1.3 + PG18 durable ACK"
+            echo "- PASS: same UUID/database, Spring scoped list/detail/monitoring"
+            echo "- PASS: actual Chromium/Next.js displays same authorized Rust device"
+            echo "- PASS: cross-group 404, logout clears DOM, post-logout API 401"
+            echo "- NOT PROVEN: product login, Pop!_OS installed service or signed release"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   linux-postgres18-transactions:
     name: PG18 synthetic registration, activation, heartbeat and Console security transactions
