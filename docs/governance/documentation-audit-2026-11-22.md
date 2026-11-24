@@ -4,7 +4,7 @@
 
 | 问题 | 整改 |
 | --- | --- |
-| 根 AGENTS 超过 18 万字节、70 多条历史进度先于规则 | 原样 [完整归档](archive/AGENTS-pre-consolidation-2026-11-22.md)；根 [AGENTS](../../AGENTS.md) 精简为现行约束 |
+| 根 AGENTS 超过 18 万字节、70 多条历史进度先于规则 | 原样 [完整归档](archive/README.md)；根 [AGENTS](../../AGENTS.md) 精简为现行约束 |
 | CONTRIBUTING 称“没有代码/仅单元 CI”、SECURITY 状态过期 | 更新为真实 Java25/PG18/Rust/Next.js 合成 CI 与不放行范围 |
 | 状态、测试、发布许可混写 | [CURRENT_STATUS](../CURRENT_STATUS.md) 是唯一事实；[release-gap register](../planning/release-gap-register.md) 是唯一 OPEN Gate，禁止借合成 PASS 推断上线 |
 | FIDO 每阶段进度在导航重复 | 增设 [信任边界总表](../security/fido-trust-boundaries.md)，历史 D4-C9–C16 报告仍保留 |
