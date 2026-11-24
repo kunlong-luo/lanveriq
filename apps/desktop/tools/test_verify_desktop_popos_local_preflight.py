@@ -109,6 +109,15 @@ class PopOsPreflightTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"RELEASE_BUNDLE_LOCK_LIFTED"):
                 v.reviewed_config(cfg)
 
+    def test_reject_unreviewed_deb_installer_hook(self):
+        with tempfile.TemporaryDirectory() as t:
+            cfg=self.mkconfig(t)
+            data=json.loads(cfg.read_text())
+            data["bundle"]["linux"]["deb"]["postInstallScript"]="/etc/evil.sh"
+            cfg.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError,"UNREVIEWED_DEBIAN_INSTALLER_HOOK"):
+                v.reviewed_config(cfg)
+
     def test_abi_candidates_present_without_install(self):
         p,c=v.check_packages(cache(),Apt,list(v.ABI))
         self.assertEqual(len(p),10)

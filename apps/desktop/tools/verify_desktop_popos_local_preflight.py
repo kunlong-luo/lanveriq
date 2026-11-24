@@ -94,7 +94,11 @@ def reviewed_config(path=CONFIG):
     bundle = json.loads(path.read_text(encoding="utf-8")).get("bundle", {})
     require(bundle.get("active") is False and bundle.get("targets") == [],
             "RELEASE_BUNDLE_LOCK_LIFTED")
-    deps = bundle.get("linux", {}).get("deb", {}).get("depends")
+    require(set(bundle) <= {"active", "targets", "icon", "linux"}
+            and set(bundle.get("linux", {})) == {"deb"}
+            and set(bundle["linux"]["deb"]) == {"depends"},
+            "UNREVIEWED_DEBIAN_INSTALLER_HOOK_OR_ASSET")
+    deps = bundle["linux"]["deb"].get("depends")
     require(type(deps) is list and tuple(deps) == ABI,
             "REVIEWED_ABI_BASELINE_DRIFT")
     return deps
