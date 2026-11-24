@@ -15,6 +15,7 @@ on:
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
       - 'apps/server/scripts/verify-synthetic-console-session.sh'
       - 'apps/server/scripts/verify-synthetic-rust-chain-browser.py'
+      - 'apps/server/scripts/verify-linux-readonly-inventory-sample.py'
       - 'apps/web/scripts/install-synthetic-rust-chain-fixture.mjs'
       - 'apps/web/src/staged-console-workspace.tsx'
       - 'apps/web/src/lib/staged-console-read.ts'
@@ -23,6 +24,7 @@ on:
       - 'apps/web/src/lib/console-device-projection.test.ts'
       - 'apps/web/src/components/device-directory.tsx'
       - 'apps/agent/src/inventory.rs'
+      - 'apps/agent/src/inventory_platform.rs'
       - 'apps/agent/src/enrollment_linux.rs'
       - 'apps/agent/examples/linux_csr_synthetic.rs'
       - 'apps/agent/examples/linux_batch_a_http_synthetic.rs'
@@ -145,8 +147,9 @@ jobs:
           node scripts/install-synthetic-rust-chain-fixture.mjs
           pnpm typecheck
           pnpm build
-      - name: Run same-device Rust inventory SQLite -> mTLS -> PG18 -> Next.js Chromium
+      - name: Run live CI-host Linux OS/CPU/RAM -> Rust SQLite -> PG18 -> Next.js Chromium
         env:
+          LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE: '1'
           LANVERIQ_SYNTHETIC_INVENTORY_CHAIN: '1'
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
           LANVERIQ_SYNTHETIC_LINUX_CSR: '1'
@@ -196,8 +199,9 @@ jobs:
             echo "- PASS: actual Rust/Reqwest + Caddy double TLS1.3 + PG18 durable ACK"
             echo "- PASS: same UUID/database, Spring scoped list/detail/monitoring"
             echo "- PASS: actual Chromium/Next.js displays same authorized Rust device"
-            echo "- PASS: Rust SQLite inventory outbox, real mTLS POST/ACK -> PG18 latest -> Spring authorized OS/CPU/memory in Next.js"
-            echo "- PASS: inventory duplicate no-change and unregistered-leaf denial"
+            echo "- PASS: CI-host OS/CPU/RAM real sysinfo+os_info sample independently checked against Linux kernel facts; no NIC/disk/process/user"
+            echo "- PASS: Rust SQLite inventory outbox, real mTLS POST/ACK -> PG18 latest -> Spring authorized actual sample in Chromium Next.js"
+            echo "- PASS: inventory duplicate no-change, conflicting revision 409, real Caddy outage retains SQLite pending, expired/revoked/unregistered credentials denied"
             echo "- PASS: cross-group 404, logout clears DOM, post-logout API 401"
             echo "- NOT PROVEN: product login, Pop!_OS installed service or signed release"
           } >> "$GITHUB_STEP_SUMMARY"
