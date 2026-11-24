@@ -65,9 +65,11 @@ jobs:
       - name: Install committed desktop dependencies frozen
         working-directory: apps/desktop
         run: pnpm install --frozen-lockfile
-      - name: Test, typecheck and build disconnected UI
+      - name: Test, typecheck and build disconnected UI and nonauthorizing install review
         working-directory: apps/desktop
         run: |
+          # Dedicated evidence that no UI checkbox can grant install authority.
+          pnpm exec vitest run src/install-review.test.ts src/InstallReviewPanel.test.tsx
           pnpm test
           pnpm typecheck
           pnpm build
