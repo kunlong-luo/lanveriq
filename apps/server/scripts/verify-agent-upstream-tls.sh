@@ -19,6 +19,8 @@ LINUX_CSR_MODE="${LANVERIQ_SYNTHETIC_LINUX_CSR:-0}"
 BUSINESS_MODE="${LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP:-0}"
 # P0: CI-only same-device Rust write -> scoped Spring Console read.
 CHAIN_READ_MODE="${LANVERIQ_SYNTHETIC_CHAIN_READ:-0}"
+# P0: opt-in real Chromium reading the same Rust-origin device via Next.js.
+CHAIN_UI_MODE="${LANVERIQ_SYNTHETIC_CHAIN_UI:-0}"
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
 BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
 NEXTJS_MODE="${LANVERIQ_SYNTHETIC_NEXTJS_PROBE:-0}"
@@ -85,12 +87,23 @@ MULTI_ADMIN_MODE="${LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE:-0}"
     echo "Synthetic Agent-to-Console mode must be 0 or 1" >&2
     exit 1
 }
+[[ "$CHAIN_UI_MODE" == 0 || "$CHAIN_UI_MODE" == 1 ]] || {
+    echo "Synthetic Rust-to-Next.js mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$CHAIN_UI_MODE" == 0 ||
+    ( "$CHAIN_READ_MODE" == 1 && "$BROWSER_MODE" == 1 &&
+      "$NEXTJS_MODE" == 1 && "${LANVERIQ_BROWSER_PYTHON:-}" != "" ) ]] || {
+    echo "Rust-to-Next.js proof requires actual Chromium, Next.js and scoped Rust read" >&2
+    exit 1
+}
 [[ "$CHAIN_READ_MODE" == 0 ||
     ( "$BUSINESS_MODE" == 1 && "$CONSOLE_MODE" == 1 &&
-      "$BROWSER_MODE" == 0 && "$NEXTJS_MODE" == 0 &&
+      ( ( "$BROWSER_MODE" == 0 && "$NEXTJS_MODE" == 0 && "$CHAIN_UI_MODE" == 0 )
+        || ( "$BROWSER_MODE" == 1 && "$NEXTJS_MODE" == 1 && "$CHAIN_UI_MODE" == 1 ) ) &&
       "$AUTH_UI_MODE" == 0 && "$MULTI_ADMIN_MODE" == 0 &&
       "${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux ) ]] || {
-    echo "Same-device Console read is restricted to disposable Linux CI, not a real browser or installation" >&2
+    echo "Same-device Console read is restricted to approved disposable Linux CI modes" >&2
     exit 1
 }
 [[ "$BUSINESS_MODE" == 0 ||
@@ -1384,13 +1397,33 @@ PY
             certutil -d "sql:$BROWSER_HOME/.pki/nssdb" -N --empty-password
             certutil -d "sql:$BROWSER_HOME/.pki/nssdb" -A \
                 -n "Lanveriq disposable Caddy root" -t "C,," -i "$ROOT_CA"
-            HOME="$BROWSER_HOME" \
-                LANVERIQ_SYNTHETIC_AUTH_UI_PROBE="$AUTH_UI_MODE" \
-                LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE="$MULTI_ADMIN_MODE" \
-                LANVERIQ_SYNTHETIC_MULTI_ADMIN_DB_CID="${DB_CID}" \
-                "$LANVERIQ_BROWSER_PYTHON" \
-                "$ROOT/apps/server/scripts/verify-synthetic-console-browser.py" \
-                3<<< "$SYNTHETIC_PASSWORD"
+            if [[ "$CHAIN_UI_MODE" == 1 ]]; then
+                # Full-chain browser mode cannot borrow the separate seeded
+                # multi-admin fixture: it must render THIS Rust/PG18 device.
+                HOME="$BROWSER_HOME" \
+                    LANVERIQ_SYNTHETIC_CADDY_BRIDGE="$BRIDGE_MODE" \
+                    LANVERIQ_SYNTHETIC_LINUX_CSR="$LINUX_CSR_MODE" \
+                    LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP="$BUSINESS_MODE" \
+                    LANVERIQ_SYNTHETIC_CONSOLE_SESSION="$CONSOLE_MODE" \
+                    LANVERIQ_SYNTHETIC_CHAIN_READ="$CHAIN_READ_MODE" \
+                    LANVERIQ_SYNTHETIC_CHAIN_UI="$CHAIN_UI_MODE" \
+                    LANVERIQ_SYNTHETIC_BROWSER_PROBE="$BROWSER_MODE" \
+                    LANVERIQ_SYNTHETIC_NEXTJS_PROBE="$NEXTJS_MODE" \
+                    LANVERIQ_SYNTHETIC_AUTH_UI_PROBE="$AUTH_UI_MODE" \
+                    LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE="$MULTI_ADMIN_MODE" \
+                    LANVERIQ_SYNTHETIC_CHAIN_DB_CID="$DB_CID" \
+                    "$LANVERIQ_BROWSER_PYTHON" \
+                    "$ROOT/apps/server/scripts/verify-synthetic-rust-chain-browser.py" \
+                    3<<< "$SYNTHETIC_PASSWORD"
+            else
+                HOME="$BROWSER_HOME" \
+                    LANVERIQ_SYNTHETIC_AUTH_UI_PROBE="$AUTH_UI_MODE" \
+                    LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE="$MULTI_ADMIN_MODE" \
+                    LANVERIQ_SYNTHETIC_MULTI_ADMIN_DB_CID="${DB_CID}" \
+                    "$LANVERIQ_BROWSER_PYTHON" \
+                    "$ROOT/apps/server/scripts/verify-synthetic-console-browser.py" \
+                    3<<< "$SYNTHETIC_PASSWORD"
+            fi
         fi
         unset SYNTHETIC_PASSWORD
     fi
@@ -1401,7 +1434,12 @@ if [[ "$BUSINESS_MODE" == 1 ]]; then
     echo "PASS: synthetic Rust HTTPS request, exact Spring ACK and PG18 persistence/replay/revocation."
     if [[ "$CHAIN_READ_MODE" == 1 ]]; then
         echo "PASS: same disposable Rust device -> PG18 commit -> real scoped Spring HTTP read, no unscoped row."
-        echo "NOT PROVEN: Next.js/Chromium rendering, authorized Pop!_OS service, production CA or real device."
+        if [[ "$CHAIN_UI_MODE" == 1 ]]; then
+            echo "PASS: same source device was rendered in real Next.js/Chromium with Spring group-scoped session."
+            echo "NOT PROVEN: production Next.js login, authorized Pop!_OS installed service, real data or release keys."
+        else
+            echo "NOT PROVEN: Next.js/Chromium rendering, authorized Pop!_OS service, production CA or real device."
+        fi
     else
         echo "NOT PROVEN: authorized Pop!_OS installed service, production CA, retention epoch or live device."
     fi
