@@ -204,3 +204,47 @@ test('recursive link check includes historical Markdown outside curated entry po
   write('docs/testing/dated-evidence.md', '[removed](../development/deleted-snapshot.md)\n');
   assert.throws(() => verifyAllDocumentationLinks(root), /Broken local documentation link/);
 });
+
+test('all three superseded planning files are rejected if restored in the live tree', t => {
+  const root = mkdtempSync(join(tmpdir(), 'lanveriq-retired-planning-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  function write(path, contents = 'v0.1 NOT RELEASE READY') {
+    const file = join(root, path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, contents, 'utf8');
+  }
+  for (const path of requiredRepositoryPaths) write(path);
+  const directoryNames = [
+    'apps/web/', 'apps/server/', 'apps/agent/', 'apps/desktop/',
+    'deploy/caddy/', 'deploy/network/', 'deploy/rustdesk/',
+    'deploy/rustdesk-synthetic/', 'docs/', '.github/workflows/',
+  ];
+  for (const path of ['README.md', 'README.zh.md', 'docs/README.md',
+    'apps/web/README.md', 'apps/server/README.md', 'apps/agent/README.md',
+    'apps/desktop/README.md']) write(path, 'v0.1 NOT RELEASE READY\n' + directoryNames.join(' '));
+  for (const { path } of conciseLivePages) write(path);
+  assert.equal(verifyRepositoryLayout(root), true);
+  for (const old of ["docs/planning/backlog.md","docs/planning/roadmap.md","docs/planning/v0.1-batched-delivery-plan-2026-11-08.md"]) {
+    write(old, 'obsolete historical plan');
+    assert.throws(() => verifyRepositoryLayout(root),
+      /Retired duplicate\/obsolete repository path/);
+    rmSync(join(root, old));
+  }
+  assert.equal(verifyRepositoryLayout(root), true);
+});
+
+test('all three historical plans must use pinned Git links, not retired live relative links', t => {
+  const { root, write } = fixture(t);
+  for (const p of ['README.md', 'README.zh.md', 'AGENTS.md', 'CHANGELOG.md']) {
+    write(p, 'v0.1 NOT RELEASE READY');
+  }
+  for (const p of ["docs/planning/backlog.md","docs/planning/roadmap.md","docs/planning/v0.1-batched-delivery-plan-2026-11-08.md"]) {
+    write('docs/security/references/notes.md',
+      '[obsolete](../../planning/' + p.split('/').at(-1) + ')');
+    assert.throws(() => verifyNoRetiredSnapshotLinks(root),
+      /Retired historical snapshot linked as a live file/);
+  }
+  write('docs/security/references/notes.md',
+    '[pinned original](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4/docs/planning/roadmap.md)');
+  assert.equal(verifyNoRetiredSnapshotLinks(root), true);
+});

@@ -1,97 +1,42 @@
-# Lanveriq 仓库目录与文档去重审计（2026-11-24）
+# Lanveriq 仓库目录治理与去重审计
 
-**状态：ACTIVE STRUCTURE AUDIT · `main` only · v0.1 NOT RELEASE READY。** 此报告描述已提交的仓库布局与裁剪边界，不代表设备安装/生产授权。[现行状态](../CURRENT_STATUS.md) · [发布缺口](../planning/release-gap-register.md) · [评分](../planning/project-scorecard.md)。
+**ACTIVE STRUCTURE AUDIT · 2026-11-24 · main · v0.1 NOT RELEASE READY。** 唯一事实在 [CURRENT_STATUS](../CURRENT_STATUS.md)，唯一发布审批缺口在 [release-gap register](../planning/release-gap-register.md)，实施路线在 [Linux v0.1 计划](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)。本文件说明保留/删除原因，**不**作 CI/生产签收。
 
-## 审计范围与判定原则
+## 现行目录：保留什么
 
-原始 `main` [23c94712](https://github.com/kunlong-luo/lanveriq/commit/23c947120d5b58db1f2d9783728d9b3482f277bc) 的 Git tree 有 **838 个跟踪文件，约 6.75 MB**；顶级构成为 `apps/`、`deploy/`、`docs/`、`.github/` 和七个根级文件。检查了 Git tree、主要入口 README/AGENTS、文档生命周期与 docs-governance、源代码/CI 入口和具体待删文档的现行索引引用。**不是逐行构建全仓库调用图，不宣称所有源文件都有运行时调用。**
+| 目录 | 保留理由与用途 |
+| --- | --- |
+| `apps/web/` | **唯一 Next.js 16 / React 19 管理 Web**；Pages 断开式演示，真实后端业务仅隔离合成验收 |
+| `apps/server/` | Java 25 / Spring Boot 4 / Gradle / Hibernate-JPA / Flyway / PostgreSQL 18，业务 API、迁移与安全测试 |
+| `apps/agent/` | Rust/Tokio/SQLx SQLite/reqwest-rustls Agent、持久 ACK/outbox、Linux 采集只读隔离验证 |
+| `apps/desktop/` | Tauri 2 只读本机预检与 GUI、未安装 Polkit 拒绝规则、OCI APT/DBus 实验；**不是正式安装器** |
+| `deploy/caddy/`、`deploy/network/` | 双 mTLS 和 LAN/WAN 边界的参考配置/隔离负测，**非公网部署模板** |
+| `deploy/rustdesk/`、`deploy/rustdesk-synthetic/` | RustDesk/RD-2 许可证及默认拒绝负测；远控 **OFF** |
+| `.github/workflows/` | 快速 L1、隔离 L2 及专门安全/文档 CI，不是 Pop!_OS 真机 L3 |
+| `docs/architecture/` (`adrs/`)、`docs/security/`、`docs/product/` | 架构、信任边界、隐私/产品需求与有版本 ADR |
+| `docs/development/`、`docs/testing/` | 技术规范与逐阶段唯一测试/失败/攻击证据，**不得批量删除** |
+| `docs/planning/` | 仅 [Linux 当前路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)、[开放 Gate](../planning/release-gap-register.md)、[DoD](../planning/definition-of-done.md)、[评分](../planning/project-scorecard.md)及[历史验收账本](../planning/release-readiness-2026-11-13.md) |
+| `docs/governance/` (`archive/`)、`docs/operations/` | 文档权威/固定 Git 历史索引、受限的运维与开发手册 |
+| `docs/diagrams/`、`docs/visuals/` | Mermaid/SVG 概念图，**不是产品真实运行截图** |
 
-删除标准：① 当前没有生产实现/测试/CI/文档链接或唯一安全失败证据依赖；② 内容已被现行单一规范取代，保留只会给出过时建议；③ Git 历史即可恢复；④ 删除后由 docs-governance 核验实际文档链接。**默认保留一切唯一 CI 失败、密钥/WORM/发布拒绝证据。** 空目录并未单独提交到 Git；不能拿“业务尚未启用”作为删除仍有源码/安全测试用途的理由。
+根 `README.md`、`README.zh.md`、`AGENTS.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md` 保留；根不是 Gradle 项目。不存在第二 Web (`apps/web-next/`)、Vite Web、Maven 后端或可获 root 的 GUI shell；不能借清理之名删除仍被 workflow/代码使用的 `tools/`、测试、`docs/visuals/assets/` 或尚未批准的安全门禁。
 
-## 保留目录与实际责任
+## 本轮真正从工作树移除的内容
 
-| 路径 | 决定 | 为什么保留 |
-| --- | --- | --- |
-| `apps/web/` | **KEEP ACTIVE** | 唯一 Next.js App Router Web；组件、主题、页面、Vitest、Playwright 合成安全验证，非正式登录 |
-| `apps/server/` | **KEEP ACTIVE** | Java25/Spring Boot4.2/JPA/Flyway/PG18，gradle wrapper、事务/API/mTLS/DB/安全测试；不能删 Spring test 数据 |
-| `apps/agent/` | **KEEP ACTIVE** | Rust Agent、SQLite durable outbox、TLS1.3/mTLS 和 Linux/Windows 负测；生产服务仍 idle/default-OFF |
-| `apps/desktop/` | **KEEP ACTIVE, NONINSTALLING** | Tauri2 GUI 预检、只读安装审核、严格 .deb 归档和签名/Polkit **LAB only**；不包含真正授权的安装 bridge |
-| `deploy/caddy/` | **KEEP TEST/REFERENCE** | 真实双跳 mTLS 验证，不能把 reference Caddyfile 当正式公网配置 |
-| `deploy/network/` | **KEEP SECURITY TEST** | LAN/WAN 接入威胁模型、只读 probe |
-| `deploy/rustdesk/` 和 `deploy/rustdesk-synthetic/` | **KEEP ISOLATED** | 远控候选、协议、禁止发行的 RD-2 负测；**不表示支持远控或允许部署** |
-| `.github/workflows/` | **KEEP CI** | 43 个按源码/手动门禁触发的工作流及历史基线；CI 通过不等于 L3，工作流是否必要依赖调用与证据而非最近是否触发 |
-| `docs/architecture/`、`docs/security/`、`docs/product/` | **KEEP SPEC** | 运行边界、ADR/威胁模型/法律告知/产品行为。旧 ADR 只代表当时决策 |
-| `docs/testing/` | **KEEP TEST EVIDENCE** | L1/L2/L3 的实际证据与历史失败；不能因为今天没跑而删除 |
-| `docs/development/` | **KEEP HISTORICAL + SPEC** | 技术标准和日期实施报告，不是第二套现行规范 |
-| `docs/governance/` | **KEEP DOCUMENT AUTHORITY** | 规则、旧证据归档、目录审核；历史 AGENTS 与 D0 不能冒充新授权 |
-| `docs/planning/` | **KEEP LIVE-GAP + ROADMAP** | 唯一发布 Gate、DoD、真实业务下一步和评分；旧计划标记历史 |
-| `docs/operations/` | **KEEP RUNBOOKS** | 操作边界、安装开发环境、备份/恢复/测试；非生产部署清单 |
-| `docs/diagrams/` 和 `docs/visuals/` | **KEEP EXPLANATORY** | Mermaid 编辑图与 SVG 概念海报仍被文档/README 引用，**不是已运行界面的截图** |
+在基线 [`cea6cfd4`](https://github.com/kunlong-luo/lanveriq/commit/cea6cfd4c9ff1e1734c47efa418208c97baba752) 的 Git tree 中有 **860 个跟踪文件，211 个 `docs/**/*.md`**。三个剩余早期 planning 全文的「未实施」「待迁移」描述已超出现行真实状态，且当前决策/验收分别有权威入口；故替换所有查得的相对引用后从工作树移除：
 
-Git tree 中**没有** `apps/web-next/`、旧 Vite Web 运行目录、第二套 Maven 应用、`node_modules/`、`target/`、`build/` 等已跟踪构建目录。它们不是“该保留的空目录”，无需伪造删除记录；`docs/visuals/assets/` 是 README 实际图片资源，不能因为不是产品代码就删掉。
+| 移除路径 | 原大小（约） | 不丢失的可复核原文 |
+| --- | ---: | --- |
+| `docs/planning/backlog.md` | 23.5 KB | [固定 Git SHA](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/backlog.md) |
+| `docs/planning/roadmap.md` | 7.0 KB | [固定 Git SHA](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/roadmap.md) |
+| `docs/planning/v0.1-batched-delivery-plan-2026-11-08.md` | 6.9 KB | [固定 Git SHA](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/v0.1-batched-delivery-plan-2026-11-08.md) |
 
-## 本次直接删除和内容合并
+先前已移除的 `v0.1-implementation-sequence.md` 和旧 AGENTS/docs 快照继续以[历史归档索引](archive/README.md)回溯。约 10 KB 的本审计历次过程/CI FAIL→修复长版也用[原文固定 SHA](https://github.com/kunlong-luo/lanveriq/blob/234850dfef72b4fbe4dcc5f4157270c4dc7860e6/docs/governance/repository-layout-audit-2026-11-24.md)保存，本页只维护**当前目录决策**，不重复日记。**删除文件不代表删除 Git 历史**。
 
-| 内容 | 动作 | 理由 / 回溯 |
-| --- | --- | --- |
-| `docs/development/pagevela-reference.md` | **DELETE FROM MAIN**，由 Git 历史可恢复 | 2026-10-30 其他产品的 React/Vite/Zustand 迁移研究；当前 `apps/web` 唯一 Next.js，设计依据已在 [复用原则](../development/reuse-first-policy.md) 和 [现行 UI 设计系统](../development/frontend-design-system.md)；现行文档入口未链接其文件路径，继续保留会误导新人重新采纳旧 Vite Web |
-| 根 `README.md`、`README.zh.md` | **REWRITE/SHORTEN** | 只保留产品、四应用目录地图、开发者命令、正确状态与权威链接。删除大段 11 月初的过期版本和假定未实现的 CI 状态 |
-| `docs/README.md` | **REWRITE/SHORTEN** | 当前导航分层：权威入口/专题规范/测试证据/历史，不再平铺 L2B-1～20 的每个旧工作流 |
-| 各 `apps/*/README.md` | **REWRITE/SHORTEN** | 本目录负责什么、如何在开发机跑测试、哪些默认关闭、去哪里看完整历史；不要在 README 重复所有安全报告 |
-| `docs/CURRENT_STATUS.md` | **CONDENSE (LIVE-FACT)** | 只有当前能力、同 SHA 真实 CI、仍关闭的 Gate 与历史账本链接；保留旧精确运行和失败在历史专题/Git 历史 |
-| `docs/planning/release-gap-register.md` | **CONDENSE (LIVE-GAP)** | 每个 Gate 一行状态、责任类型、完成所需实证；外部组织审批一律 OPEN |
+期望新 Git tree：**857 个跟踪文件、208 个 docs Markdown**（无新增文件时）；以提交后实际 tree 复核为准。代码、工作流、测试夹具及生产安全默认值均不变。
 
-**当前继续保留** `docs/planning/release-readiness-2026-11-13.md`、D4/FIDO/WORM 日期报告及所有 GitHub Actions 失败记录；它们仍是可追溯的独立测试/安全证据。**旧 AGENTS 全文快照已在后续本日第二轮去重中删除工作树副本，使用 [固定 Git SHA 的归档索引](archive/README.md)访问，原始 Git blob 与 CI 不受影响。** 旧临时签名实验只能作为历史合成事实，不能给安装界面授权。
+## 自动防止误删或旧内容复活
 
-## 本轮实际减负与安全校验
+[文档源代码守卫](../../apps/web/scripts/verify-documentation-baseline.mjs) 的 `verifyRepositoryLayout` 禁止恢复旧 Vite/Maven/三份旧 planning 等路径；`verifyNoRetiredSnapshotLinks` 拒绝在各 docs/root Markdown 中相对链接到已退休的文件；`verifyAllDocumentationLinks` 检查所有 `docs/**/*.md` 本地相对目标。负例覆盖重新加入过时文件及从非导航页链接它们。[docs-governance](../../.github/workflows/docs-governance.yml) 执行检查，不能替代逐行调用图、外部链接/标题锚验证、PG18/Agent 联调或独立 L3。
 
-九个主要入口（根中英文 README、docs/README、四应用 README、CURRENT_STATUS、release-gap register）经过实际 GitHub 更新：**总行数约从 1,871 行降为约 404 行（减少 1,467 行，约 78%）**。具体为：根英文 README **428→53**、中文 README **430→53**、文档索引 **60→43**、Web **267→44**、Server **212→40**、Agent **89→34**、Desktop **51→43**、当前事实 **254→54**、发布缺口 **80→40**。这只是**导航与文本去重**，不删 Java/Rust/Next.js/Tauri 代码、日期验收报告或 GitHub Actions 历史。
-
-一次真实删除检测发现：旧索引快照仍有指向已删除 `pagevela-reference.md` 的链接，导致 [文档及 Web CI #45372711463/#45372711446 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45372711463)。已在 [Git 提交 3cb54c30](https://github.com/kunlong-luo/lanveriq/commit/3cb54c30ca2d50f5f9c94cd7b8f47ff1919a0154) 将该历史快照链接改为**删除前固定源码 SHA 23c94712 的 GitHub URL**：现在既能访问原研究、又不会把过时方案留在现行开发目录。**这次失败必须保留，不能声称从未存在断链。**
-
-新增 `apps/web/scripts/verify-documentation-baseline.mjs` 的 `verifyRepositoryLayout`：核查四应用和依赖目录存在、旧 `web-next`/Maven/已删除 Pagevela 路径没有复活、README 尽量不膨胀及双语目录地图。相应 Node 测试通过实际创建虚假旧目录、删除核心文件、把 README 增长到 140 行以上来验证负例。扩大文档本地链接检查到四应用 README、项目评分和本次审计。复测 [功能 SHA 0db21627 / docs-governance #45373334900 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334900)、[Next.js fast source #45373334701 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334701)、[RD-2 #45373334599 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334599)，但这只是结构/代码回归，不是正式生产上线审批。
-
-## 2026-11-24 第二轮：可删除项严格区分工作树与 Git 历史
-
-**后续审计基线：** [`80a74373`](https://github.com/kunlong-luo/lanveriq/commit/80a743739b32333881b926c0f63e953299ad1ba7) 的完整 Git tree 有 **860 个跟踪文件、211 份 docs Markdown**。没有一组相同 Git blob SHA 的 docs Markdown；许多 dated reports 提供独立失败/攻击证据，不能以标题/功能相似直接删除。本轮只删除**可由 Git 固定 SHA 完整恢复的两份过大重复快照**，保留仍可追查的原始身份和时间。
-
-| 实际后续动作 | 原大小 | 是否移除唯一证据 | 仍如何追溯 |
-| --- | ---: | --- | --- |
-| `docs/governance/documentation-index-snapshot-2026-11-21.md` 删除工作树副本 | 约 19 KB | **否**；原文是旧首页复制 | [原始 Git blob，固定 SHA](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/governance/documentation-index-snapshot-2026-11-21.md) |
-| `docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md` 删除工作树副本 | 约 189 KB | **否**；原文是旧 root AGENTS 的重复长文档和时间线 | [原始 Git blob，固定 SHA](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md)；[更早 root AGENTS](https://github.com/kunlong-luo/lanveriq/blob/436fc403b1e6b514c5c25b09d5d481cf73efdae7/AGENTS.md) |
-| 新增 [`docs/governance/archive/README.md`](archive/README.md) | 小于 2 KB | 归档目录现在只维护**链接索引** | 单一入口、逐份 pinned-Git 回溯 |
-| 压缩 LIVE 入口与 [Linux 路线图](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) | 合计约 38 KB→14 KB（四份） | **否**；历史段落仍在 Git 旧版本和 dated reports | [当前状态](../CURRENT_STATUS.md) / [发布缺口](../planning/release-gap-register.md) / [自评](../planning/project-scorecard.md) / [路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) |
-| 根 `CHANGELOG.md` 从重复 CI 长日志改为里程碑索引 | 约 86 KB→5 KB | **否**；原文件按 [固定旧 Git 提交](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 可原样恢复 | [当前里程碑索引](../../CHANGELOG.md) + dated CI 报告 |
-| 旧 `docs/operations/release.md` 历史进度头与预检清理 | 旧文约 12 KB→当前 Git blob 约 6 KB | **否**；已将生产安全门禁、安装授权、独立高水位、升级/恢复保留为现行规范 | [现行发行与回滚 runbook](../operations/release.md)；[旧 SHA 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/operations/release.md) |
-| `docs/operations/installation.md` / `apps/desktop/README.md` 去除重复公告 | 减少日期段落，唯一操作步骤保留 | **否**；本地开发 PostgreSQL 数据库步骤未删除 | [仅开发环境说明](../operations/installation.md) / [桌面模块责任](../../apps/desktop/README.md) |
-
-**最终树形复核：** 在本轮 L2B-27 真实测试验收报告也新增后，`main` 跟踪文件仍为 **860**、其中 `docs/` Markdown **211** 份；这不是没有发生清理，而是**删除两份大历史副本、建立一份小归档索引、新增一份 L2B-27 唯一真实验收报告**，同时把根 CHANGELOG/现行状态与发行文档的重复历史叙述实际改写。工作树中不再有两份旧历史快照的路径；原文可由固定 Git SHA 逐字核对。
-
-**目录结构保持现有单一源代码树，不人为移动 200+ 份已有相对链接的安全验收文档。** 目录职责和中英文树形图见根 README。新增 `verifyNoRetiredSnapshotLinks` 在 CI 遍历所有 docs Markdown 和根规则文件，禁止仍指向已删快照的**相对链接**；允许且鼓励固定 Git SHA 的历史回溯。另对 live status/gates/score 设置体积、重复里程碑和默认拒绝负测，阻止下一轮再复制长历史。
-
-**保留事项：** 独立 WORM、FIDO、PKI、Agent/PG18、NXT 和每个 L2B 的真实 CI 原始失败不可删，不应以“文档太多”删除仍活跃的代码/CI/安全负测；文档精简不改变产品发布门禁。**v0.1 NOT RELEASE READY。**
-
-## 防止回退与文档所有权
-
-- 根/子 README 不得再重复 100 行以上的旧运行历史；稳定技术决策写 SPEC/ADR，精确 SHA/CI 写 CURRENT_STATUS/日期报告；**不能把历史 CI 当今天生产批准**。
-- 唯一 Web 为 `apps/web`；`apps/desktop` 的 Vite 仅是 **Tauri 桌面窗口的静态前端构建器**，不是第二套后台 Web。
-- GitHub `docs-governance` 验证现行规范必有且入口相对链接存在；本次增加仓库布局回归检查，拒绝旧 `apps/web-next` 等重复项目、标识漂移和新增虚构安装许可。
-- 如需未来删除某个 CI/测试目录，先证明没有运行时、工作流、L2/历史证据或文档引用，再提交路径/审批清单；**用户要求清理不表示允许删安全负测**。
-
-**效果评价**见 [量化评分](../planning/project-scorecard.md)。本报告仅提升可导航性/文档维护分，不会自动关闭生产 Gate；**v0.1 NOT RELEASE READY**。
-
-
-## 2026-11-24 第三轮：从重点索引校验扩展为全量文档链接门禁
-
-复核基线 `83694735`：四应用及唯一 Web 目录与上一轮保持一致；已有文档治理和 RD-2 负测在同 SHA 的 [#45396948492](https://github.com/kunlong-luo/lanveriq/actions/runs/45396948492)、[#45396948537](https://github.com/kunlong-luo/lanveriq/actions/runs/45396948537) 为 SUCCESS，**这仅证明上一轮代码**。
-
-旧 `verifyLocalDocumentationLinks` 只覆盖约 20 个现行文档入口，其余有日期的验收/安全/规范文件链接主要依靠人工审查；现增加 `verifyAllDocumentationLinks`，遍历每个 `docs/**/*.md` 并复用本地路径存在性/目录穿越保护，在 docs-governance 同步执行。负测特意在不属于入口白名单的 dated 文档注入不存在的相对链接，必须拒绝。**此处是文档完整性门禁，不验证外部网站、Markdown 标题锚、真实安装与权限。**
-
-本轮不因为标题相似而批量删除带有唯一历史失败/攻击证据的 211 份 Markdown；确认冗余的旧全文快照仍由固定 Git SHA 归档、已经从当前树移除。下一轮删除历史规划文件前须核对所有相对引用并保存固定源码 SHA 路径。新功能验收需另外核对新提交的 GitHub Actions 真实结论，未运行不得写 PASS。**v0.1 NOT RELEASE READY。**
-
-
-## 2026-11-24 第四轮：退役过时实施顺序全文，保留 Git 固定源
-
-旧 `docs/planning/v0.1-implementation-sequence.md` 约 **35,761 字符 / 172 行**，文件明确标记为 **HISTORICAL TICKET/ORDER REFERENCE**。其中的旧技术版本与前端迁移任务已由现行代码、[Linux 首发路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)和 [LIVE-GAP](../planning/release-gap-register.md)覆盖，不应再冒充最新实施任务。此轮删除其工作树副本，完整原文可从 [固定 Git SHA](https://github.com/kunlong-luo/lanveriq/blob/dc5cb839cf47959e707a1b5d0b041d484b14d1cf/docs/planning/v0.1-implementation-sequence.md) 恢复，历史失败和原始工单细节并未被 Git 擦除。
-
-同步将 roadmap、D0 决议、2026-11-08 文档审查的引用改为历史固定 URL；归档入口与 README 补齐，并在 `verifyRepositoryLayout` 加入禁止旧文件复活的负例。本轮仅文档/门禁代码，不改生产安装行为，提交后的 CI 需以实际 run 核实，不预称 PASS。**v0.1 NOT RELEASE READY。**
+**下一步仍是**实际 Agent→mTLS→Spring Boot→PostgreSQL→Next.js 合成设备业务闭环以及 G-05 官方发行信任、APT 防回退高水位和 Pop!_OS COSMIC L3；独立 WORM/法务/SRE 等 Gate 均 OPEN。**v0.1 NOT RELEASE READY，生产联网/采集/远控/自动恢复/CA OFF。**

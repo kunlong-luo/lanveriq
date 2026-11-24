@@ -199,6 +199,9 @@ export const retiredRepositoryPaths = [
   'docs/governance/documentation-index-snapshot-2026-11-21.md',
   'docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md',
   'docs/planning/v0.1-implementation-sequence.md',
+  'docs/planning/backlog.md',
+  'docs/planning/roadmap.md',
+  'docs/planning/v0.1-batched-delivery-plan-2026-11-08.md',
 ];
 
 const conciseEntrypoints = [
@@ -318,6 +321,9 @@ export function verifyNoRetiredSnapshotLinks(root) {
     resolve(repoRoot, 'docs/governance/documentation-index-snapshot-2026-11-21.md'),
     resolve(repoRoot, 'docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md'),
     resolve(repoRoot, 'docs/planning/v0.1-implementation-sequence.md'),
+    resolve(repoRoot, 'docs/planning/backlog.md'),
+    resolve(repoRoot, 'docs/planning/roadmap.md'),
+    resolve(repoRoot, 'docs/planning/v0.1-batched-delivery-plan-2026-11-08.md'),
   ]);
   const files = [
     join(repoRoot, 'README.md'), join(repoRoot, 'README.zh.md'),
