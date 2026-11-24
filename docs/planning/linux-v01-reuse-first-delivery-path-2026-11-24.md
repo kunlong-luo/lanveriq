@@ -43,7 +43,13 @@
 
 在当期 Rust1.100 --locked 源码上真实编译 Agent ELF，按已有严格 allowlist 构建原生 idle-only .deb，随后通过 CI 内临时 Ed25519 OpenPGP 签名的 file: APT 仓库（明确定义唯一 Signed-By keyring、InRelease、Packages 的实际 size/SHA256）在**只读挂载软件源、networkless/cap-drop-all/no-new-privileges 的 Ubuntu24 OCI** 中执行真实 apt-get install、同版本 --reinstall、remove，核对 dpkg 文件归属/版本、模拟配置与状态留存、无 systemd 自启；八个恶意签名/索引/包修改/过期/未来/包名拒绝均由系统原生 apt-get 确认。**功能 SHA [2af1cf34 / #45376989866 attempt 1 overall SUCCESS、9/9](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)**。首次工作流 [#45376908241 FAIL/0 jobs](https://github.com/kunlong-luo/lanveriq/actions/runs/45376908241) 是 step YAML 冒号解析错误，已修复但保留。[精确安全范围与 CI](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。
 
-**下一真正 G-05 关键任务是 L2B-24 的受限 Polkit/PackageKit or APT broker**：不能让当前 CI 临时 signer 成为正式 root，也不能用不可信 GUI 同意框调用任意 apt；必须先有独立发行者/根的审批，再由可信 OS 权限控制逐次授权固定 Agent 包 install/upgrade/remove、禁止动态 argv/URI/脚本/服务，并覆盖取消、重放、跨版本升级/回滚/卸载。L2B-23 当前只证明 **OCI 内真实签名源包管理 L2 子项**，没有用户可点击 GUI、真实授权、正式签名发行或 Pop!_OS/COSMIC L3。**G-05/G-09/正式 G-06 OPEN，v0.1 NOT RELEASE READY。**
+**后续真正 G-05 关键任务是 L2B-25 的受限 Polkit/PackageKit or APT root-side broker**：不能让当前 CI 临时 signer 成为正式 root，也不能用不可信 GUI 同意框调用任意 apt；必须先有独立发行者/根的审批，再由可信 OS 权限控制逐次授权固定 Agent 包 install/upgrade/remove、禁止动态 argv/URI/脚本/服务，并覆盖取消、重放、跨版本升级/回滚/卸载。L2B-23 当前只证明 **OCI 内真实签名源包管理 L2 子项**，没有用户可点击 GUI、真实授权、正式签名发行或 Pop!_OS/COSMIC L3。**G-05/G-09/正式 G-06 OPEN，v0.1 NOT RELEASE READY。**
+
+## DESKTOP-L2B-24：原生 polkitd/D-Bus 及真实 Unix 身份绑定的 Rust 固定动作 L2 已通过
+
+上一阶段 OCI 内可以用临时 signed-APT 安装真实 Agent，但没有任何 OS 用户授权证据。本轮在固定 Ubuntu24 OCI 里安装**发行版原生 polkitd 124 + DBus**，只在容器 overlay 暂时载入源码中的 install/upgrade/remove 三动作全 no XML。官方 `pkaction` 读出三项 all-no，`pkcheck` 对 `nobody`、`daemon` **3×2=6 次实际 OS 拒绝**。新增独立编译的 **Rust1.100 非提权 gate**，只接受三个固定 action，并从本进程 Linux /proc 读取 PID、start-time、UID，使用 `pkcheck --process PID,START,UID`；非法/多余 argv、伪造环境和 root 调用拒绝，任何意外允许结果仍不能绕过正式发行审批。 [**功能 SHA ba04f55c / #45379398181 SUCCESS**](https://github.com/kunlong-luo/lanveriq/actions/runs/45379398181)，原先 policy 30/30 负测、Rust 3/3 单测、OS 6/6 + 注入均 PASS。[报告和真实 CI 失败史](../development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)。
+
+**不能升级为 G-05 已验收安装器：** 这只是用户侧固定 action 的 OS 原生**拒绝**，不是已获许可的 root-side D-Bus broker、不是逐次管理员成功授权或交易/取消与回滚；实验容器没有 systemd-logind/真实 COSMIC 用户会话。下一阶段 **L2B-25** 需要安全审核后的 OS D-Bus peercred 绑定、真正发行来源审查、狭义固定 Agent 安装事务的拒绝/授权场景，继而独立外部批准和 Pop!_OS24 COSMIC L3。正式发行者、生产密钥、用户法律许可、生产 Agent 启动/联网/采集保持 OPEN/OFF。**v0.1 NOT RELEASE READY**。
 
 ## P1：避免重复引入功能引擎
 
