@@ -80,9 +80,13 @@ jobs:
         working-directory: apps/desktop/src-tauri
         run: cargo +1.100.0 fmt --all -- --check
       - name: Install Ubuntu 24 Tauri WebKitGTK 4.1 build prerequisites
+        timeout-minutes: 12
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          set -Eeuo pipefail
+          # Bounded disposable Ubuntu runner network prerequisites only.
+          # Do not change distribution mirrors, install the candidate, or grant GUI authority.
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
             libssl-dev libxdo-dev patchelf pkg-config
       - name: Compile actual Tauri and test native inspectors
