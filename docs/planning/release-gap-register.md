@@ -10,6 +10,8 @@
 
 > **2026-11-24 G-05 CI 实际进展：** 当前 [main b6943041 / #45314600767](https://github.com/kunlong-luo/lanveriq/actions/runs/45314600767) 的桌面 L1 SUCCESS（23+22+19 测试、TypeScript、断开式构建），原生 Rustfmt/锁校验 PASS，**Ubuntu24 WebKitGTK APT 前置依赖安装首次在这一轮成功完成**；原生 cargo test 仍在执行、Clippy NOT RUN，故原生 L2 仍不可标为通过。这既不是正式签名 `.deb` 发行，也不是 Pop!_OS 24.04 COSMIC 的 L3 安装/生命周期实测；所有 Gate 仍 OPEN。
 
+> **2026-11-24 G-05 原生 L2 最新事实：** [b6943041 的 #45314600767](https://github.com/kunlong-luo/lanveriq/actions/runs/45314600767) 已真实完成 Ubuntu WebKitGTK 原生依赖及 Rust **6/6 单测 PASS**，却因 Clippy -D warnings 的 collapsible_if 规则而整体 FAIL；[53bdae8f 的 #45315086633](https://github.com/kunlong-luo/lanveriq/actions/runs/45315086633) 又因 Rustfmt 精确格式不符而 FAIL。当前 [107dc8b4](https://github.com/kunlong-luo/lanveriq/commit/107dc8b40bcd7cb5c60984dafd2f545398de9b39) 已采用 CI 输出的 Rustfmt 原样修复，[新原生 #45315213247](https://github.com/kunlong-luo/lanveriq/actions/runs/45315213247) 尚在验收。只有该功能 SHA 的 Rustfmt、cargo 6 项单测、Clippy 均实际成功，才可标原生 L2 通过；即便通过仍欠当前代码下真实 GUI .deb 严格归档/签名/polkit/Pop!_OS COSMIC L3，所有 G-05/G-07/G-08/G-09 保持 OPEN，v0.1 NOT RELEASE READY。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |
