@@ -40,8 +40,25 @@ class SyntheticConsoleBooleanFlagsTest(unittest.TestCase):
         script = HARNESS.read_text(encoding="utf-8")
         for name in FLAGS:
             with self.subTest(property=name):
-                self.assertEqual(script.count(f'--{name}="$CONSOLE_ENABLED"'), 1)
+                # The disposable harness starts Spring once for default-OFF
+                # denials and again on the SAME PG18 DB for explicitly
+                # enabled Rust business + scoped Console reads.
+                self.assertEqual(script.count(f'--{name}="$CONSOLE_ENABLED"'), 2)
                 self.assertNotIn(f'--{name}="$CONSOLE_MODE"', script)
+                self.assertNotIn(f'--{name}=true', script)
+
+    def test_same_device_read_is_ci_only_and_disabled_by_default(self):
+        script = HARNESS.read_text(encoding="utf-8")
+        self.assertIn('CHAIN_READ_MODE="${LANVERIQ_SYNTHETIC_CHAIN_READ:-0}"', script)
+        self.assertIn('"$CHAIN_READ_MODE" == 0 || "$CHAIN_READ_MODE" == 1', script)
+        self.assertIn('"$BUSINESS_MODE" == 1 && "$CONSOLE_MODE" == 1', script)
+        self.assertIn('"$BROWSER_MODE" == 0 && "$NEXTJS_MODE" == 0', script)
+        self.assertIn('"${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux', script)
+        self.assertIn('[[ "$BUSINESS_MODE" == 0 ||', script)
+        self.assertIn('if [[ "$CHAIN_READ_MODE" == 1 ]]; then', script)
+        self.assertIn('verify-synthetic-console-session.sh', script)
+        self.assertIn('"$DEVICE_ID"', script)
+        self.assertNotIn("LANVERIQ_SYNTHETIC_CHAIN_READ", (ROOT / "apps/server/src/main/resources/application.yml").read_text())
 
     def test_live_console_direct_tls_diagnostics_fail_closed(self):
         script = HARNESS.read_text(encoding="utf-8")
