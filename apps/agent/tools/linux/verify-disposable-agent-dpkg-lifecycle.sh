@@ -8,9 +8,9 @@ umask 077
 
 die() { printf 'NOT_APPROVED: %s\n' "$*" >&2; exit 2; }
 
-if [[ "\${GITHUB_ACTIONS:-}" != "true" ||
-      "\${LANVERIQ_DISPOSABLE_DPKG_L2:-}" != "1" ||
-      "\${RUNNER_OS:-}" != "Linux" ]]; then
+if [[ "${GITHUB_ACTIONS:-}" != "true" ||
+      "${LANVERIQ_DISPOSABLE_DPKG_L2:-}" != "1" ||
+      "${RUNNER_OS:-}" != "Linux" ]]; then
   die 'disposable dpkg exercise requires explicit GitHub CI-only authorization'
 fi
 if (( EUID == 0 )); then
@@ -63,8 +63,8 @@ test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
 
 # Actual dpkg database transaction in the networkless disposable container.
 dpkg --install /tmp/lanveriq-ci-only.deb
-test "$(dpkg-query -W -f='\${Status}' lanveriq-agent-offline-preview)" = 'install ok installed'
-test "$(dpkg-query -W -f='\${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
+test "$(dpkg-query -W -f='${Status}' lanveriq-agent-offline-preview)" = 'install ok installed'
+test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
 dpkg-query -S /usr/bin/lanveriq-agent | grep -Fx \
   'lanveriq-agent-offline-preview: /usr/bin/lanveriq-agent'
 dpkg-query -S /usr/lib/systemd/system/lanveriq-agent.service | grep -Fx \
