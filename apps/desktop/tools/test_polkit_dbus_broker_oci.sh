@@ -45,10 +45,14 @@ path=/org/lanveriq/Agent/ReviewLab
 method="$name.Review"
 call_as() {
     local username=$1
-    shift
+    local operation=$2
+    local nonce=$3
+    shift 3
+    # GVariant textual parser interprets all-digit 32hex as Int32, NOT a
+    # D-Bus wire string. The explicit quoted literal proves genuine ss API.
     runuser -u "$username" -- gdbus call --system \
         --dest "$name" --object-path "$path" \
-        --method "$method" "$@"
+        --method "$method" "$operation" "'$nonce'" "$@"
 }
 
 nonce_i=1
@@ -84,6 +88,12 @@ grep -Fq "'INVALID_NONCE'" <<<"$invalid"
 invalid=$(call_as nobody install 'AABBCCDD')
 grep -Fq "'INVALID_NONCE'" <<<"$invalid"
 
+# Deliberately do not quote all-numeric GVariant literal, to ensure
+# int32/wire-type confusion is NOT silently accepted as a valid nonce.
+numeric=$(runuser -u nobody -- gdbus call --system --dest "$name" \
+    --object-path "$path" --method "$method" install "$(printf '%032x' 17)")
+grep -Fq "'INVALID_NONCE'" <<<"$numeric"
+
 # Method signature is exactly ss, so no caller-supplied UID/PID/URL/path.
 set +e
 extra=$(call_as nobody install "$(printf '%032x' 15)" '0' 2>&1)
@@ -96,7 +106,7 @@ grep -Eiq 'InvalidArgs|Invalid arguments|signature|too many arguments|expects' <
 env_result=$(runuser -u nobody -- env PKEXEC_UID=0 \
     LANVERIQ_RELEASE_APPROVED=true \
     gdbus call --system --dest "$name" --object-path "$path" \
-    --method "$method" upgrade "$(printf '%032x' 16)")
+    --method "$method" upgrade "'$(printf '%032x' 16)'")
 grep -Fq "'POLKIT_DENIED'" <<<"$env_result"
 
 count=$(grep -Fc 'OS_PEER_VERIFIED operation=' /tmp/lanveriq-review-service.log)
