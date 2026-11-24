@@ -45,8 +45,8 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          docker run --rm --interactive \
-            --network none --security-opt no-new-privileges \
+          # polkitd/dbus activation requires its stock setuid helper inside OCI.\n          # No host D-Bus mount, host auth file or network; root/UID switch is\n          # confined to throwaway Docker overlay, never the GitHub runner.\n          docker run --rm --interactive \
+            --network none \
             --pids-limit 128 --memory 512m --cpus 1 \
             --mount "type=bind,src=$PWD/apps/desktop/polkit,dst=/mnt/lanveriq-policy,readonly" \
             --env LANVERIQ_POLKIT_RUNTIME_L2=disposable-oci-only \
