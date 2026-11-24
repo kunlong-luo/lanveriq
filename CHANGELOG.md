@@ -2,6 +2,13 @@
 
 > **Historical evidence, not the live status sheet.** [CURRENT_STATUS](docs/CURRENT_STATUS.md) contains current source/CI and release boundaries. Do not prepend new run summaries ahead of this title. Preserve actual failed SHA and past CI references; use [doc lifecycle](docs/governance/document-lifecycle.md).
 
+## 2026-11-24 — DESKTOP-L2B-22 Polkit source-only no-grant action review (NOT installer)
+
+- In `apps/desktop/polkit/` add uninstalled `org.lanveriq.agent.package.policy` with **only install/upgrade/remove** independent action IDs; all `allow_any/allow_inactive/allow_active=no`. No exec.path/argv1 or imply, no policies or helpers bundled; no Tauri/Agent runtime privilege changes.
+- New Python standard-library structural verifier rejects unexpected action, cached administrator authorization, implicit/helper actions, symlink, XML DTD/ENTITY and GUI bundle activation. [Exact source efb7a558](https://github.com/kunlong-luo/lanveriq/commit/efb7a558711436ae76df8082322b14c7346f249b): [Ubuntu24 offline intent/Polkit #45375272477 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477), original 39/39 deny-all tests, new Polkit 30/30 negative tests plus readonly/release guards PASS.
+- Preserve [initial #45375193990 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45375193990): one negative test made malformed root XML, corrected to well-formed wrong root; no privilege or installer was ever enabled.
+- [L2B-22 review and next true broker acceptance](docs/development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md) · [live release gaps](docs/planning/release-gap-register.md). All real signature roots, fixed-action Polkit broker, authorized Pop!_OS L3 **NOT DONE**; engineering self-score stays 66/100. **v0.1 NOT RELEASE READY**, network/collection/remote/recovery/CA OFF.
+
 ## 2026-11-24 — repo/documentation cleanup, directory ownership guard and 61→66 engineering self-score
 
 - Real `main` file removal: delete obsolete `docs/development/pagevela-reference.md` (2026-10 non-current React/Vite pattern memo). Preserve its historical content through a pinned [pre-deletion Git SHA link](https://github.com/kunlong-luo/lanveriq/blob/23c947120d5b58db1f2d9783728d9b3482f277bc/docs/development/pagevela-reference.md). First [docs #45372711463 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45372711463) accurately exposed the old index's broken relative link; restored historical navigation by linking to Git revision rather than putting stale spec back in the active tree. **Failure retained.**
