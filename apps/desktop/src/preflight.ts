@@ -7,6 +7,13 @@ export const ABI_PACKAGE_NAMES = [
   "libgdk-pixbuf-2.0-0", "libglib2.0-0t64", "libgtk-3-0t64",
   "libjavascriptcoregtk-4.1-0", "libsoup-3.0-0", "libwebkit2gtk-4.1-0",
 ] as const;
+/** Exact minima from the Ubuntu24 dpkg-shlibdeps reviewed 10-group baseline.
+ * Debian version comparison remains delegated to distro python3-apt.
+ */
+export const ABI_MINIMUM_VERSIONS = [
+  "2.39", "1.10.0", "1.9.14", "4.2", "2.36.9",
+  "2.66.0", "3.21.5", null, "3.0.3", "2.41.90",
+] as const;
 export const COSMIC_PACKAGE_NAMES = [
   "cosmic-session", "cosmic-comp", "xdg-desktop-portal-cosmic",
 ] as const;
@@ -60,6 +67,11 @@ const safeVersion = (x: unknown): x is string =>
   typeof x === "string" && /^[A-Za-z0-9.+:~_-]{1,180}$/.test(x);
 const object = (x: unknown): x is Record<string, unknown> =>
   !!x && typeof x === "object" && !Array.isArray(x);
+const exactKeys = (value: Record<string, unknown>, keys: readonly string[]): boolean => {
+  const actual = Object.keys(value);
+  return actual.length === keys.length && actual.every(key => keys.includes(key));
+};
+
 
 export function parseLocalPreflight(raw: string): PoposMetadata {
   if (typeof raw !== "string" || raw.length > 16384 || raw.length < 64) {
@@ -71,7 +83,25 @@ export function parseLocalPreflight(raw: string): PoposMetadata {
   } catch {
     throw new Error("UNTRUSTED_PREFLIGHT_RESULT");
   }
-  if (!object(result) || !object(result.host_os) ||
+  if (!object(result) ||
+      !exactKeys(result, [
+        "schema", "host_os", "architecture", "session",
+        "reviewed_abi_cache", "cosmic_components", "apt_sources",
+        "source_config_checked_on_host", "apt_cache_updated",
+        "popos_install_solver", "physical_l3", "gui_actual_launch",
+        "signed_package_provenance", "license_approval",
+        "release_approved", "install_authorized", "agent_start_authorized",
+      ]) ||
+      !object(result.host_os) ||
+      !exactKeys(result.host_os, ["id", "version"]) ||
+      !object(result.session) ||
+      !exactKeys(result.session, [
+        "environment", "compositor_running_proven", "display_socket_saved",
+      ]) ||
+      !object(result.apt_sources) ||
+      !exactKeys(result.apt_sources, [
+        "file_count", "contents_sha256", "apt_repository_signature_trust",
+      ]) ||
       result.schema !== "lanveriq.desktop.untrusted-popos-local-preflight.v1" ||
       result.host_os.id !== "pop" || result.host_os.version !== "24.04" ||
       result.architecture !== "amd64" || !object(result.session) ||
@@ -105,8 +135,10 @@ export function parseLocalPreflight(raw: string): PoposMetadata {
   }
   for (const [index, expected] of ABI_PACKAGE_NAMES.entries()) {
     const row: unknown = result.reviewed_abi_cache[index];
-    if (!object(row) || row.package !== expected ||
-        !(row.minimum === null || safeVersion(row.minimum)) ||
+    if (!object(row) ||
+        !exactKeys(row, ["package", "minimum", "cached_candidate", "installed"]) ||
+        row.package !== expected ||
+        row.minimum !== ABI_MINIMUM_VERSIONS[index] ||
         !safeVersion(row.cached_candidate) ||
         typeof row.installed !== "boolean") {
       throw new Error("UNTRUSTED_PREFLIGHT_RESULT");
@@ -114,7 +146,9 @@ export function parseLocalPreflight(raw: string): PoposMetadata {
   }
   for (const [index, expected] of COSMIC_PACKAGE_NAMES.entries()) {
     const row: unknown = result.cosmic_components[index];
-    if (!object(row) || row.package !== expected || !safeVersion(row.installed_version)) {
+    if (!object(row) ||
+        !exactKeys(row, ["package", "installed_version"]) ||
+        row.package !== expected || !safeVersion(row.installed_version)) {
       throw new Error("UNTRUSTED_PREFLIGHT_RESULT");
     }
   }

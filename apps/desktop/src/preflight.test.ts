@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ABI_PACKAGE_NAMES, COSMIC_PACKAGE_NAMES,
+  ABI_PACKAGE_NAMES, ABI_MINIMUM_VERSIONS, COSMIC_PACKAGE_NAMES,
   blockerMessage, parseLocalPreflight, poposSummary,
 } from "./preflight";
 
@@ -14,8 +14,8 @@ function record(): Record<string, unknown> {
       compositor_running_proven: false,
       display_socket_saved: false,
     },
-    reviewed_abi_cache: ABI_PACKAGE_NAMES.map(name => ({
-      package: name, minimum: "1.0", cached_candidate: "1.1", installed: false,
+    reviewed_abi_cache: ABI_PACKAGE_NAMES.map((name, index) => ({
+      package: name, minimum: ABI_MINIMUM_VERSIONS[index], cached_candidate: "999.0", installed: false,
     })),
     cosmic_components: COSMIC_PACKAGE_NAMES.map(name => ({
       package: name, installed_version: "1.0",
@@ -86,11 +86,37 @@ describe("Pop!_OS local metadata panel cannot grant installer or Agent authority
 
   it("rejects unrecognized, missing or invalid package version evidence", () => {
     const rows = (record().reviewed_abi_cache as Record<string, unknown>[]);
-    rows[0] = { package: "malicious-extra-package", minimum: "1.0", cached_candidate: "1.1", installed: false };
+    rows[0] = { package: "malicious-extra-package", minimum: ABI_MINIMUM_VERSIONS[0], cached_candidate: "999.0", installed: false };
     expect(() => parse({ ...record(), reviewed_abi_cache: rows })).toThrow();
     const versions = (record().reviewed_abi_cache as Record<string, unknown>[]);
-    versions[0] = { package: ABI_PACKAGE_NAMES[0], minimum: "1.0", cached_candidate: "/home/secret", installed: false };
+    versions[0] = { package: ABI_PACKAGE_NAMES[0], minimum: ABI_MINIMUM_VERSIONS[0], cached_candidate: "/home/secret", installed: false };
     expect(() => parse({ ...record(), reviewed_abi_cache: versions })).toThrow();
+  });
+
+
+  it("rejects downgraded or deleted minimum ABI constraints, including implicit floor removal", () => {
+    const rows = (record().reviewed_abi_cache as Record<string, unknown>[]);
+    rows[0] = { ...rows[0], minimum: null };
+    expect(() => parse({ ...record(), reviewed_abi_cache: rows })).toThrow("UNTRUSTED_PREFLIGHT_RESULT");
+    const noMinimumRow = (record().reviewed_abi_cache as Record<string, unknown>[]);
+    noMinimumRow[7] = { ...noMinimumRow[7], minimum: "0.1" };
+    expect(() => parse({ ...record(), reviewed_abi_cache: noMinimumRow })).toThrow("UNTRUSTED_PREFLIGHT_RESULT");
+  });
+
+  it("rejects undeclared result fields that could smuggle local paths or forged privileges", () => {
+    const sample = record();
+    expect(() => parse({ ...sample, home_directory: "/home/private-user" }))
+      .toThrow("UNTRUSTED_PREFLIGHT_RESULT");
+    expect(() => parse({ ...sample, host_os: { id: "pop", version: "24.04", machine_id: "private" } }))
+      .toThrow("UNTRUSTED_PREFLIGHT_RESULT");
+    const rows = sample.reviewed_abi_cache as Record<string, unknown>[];
+    rows[0] = { ...rows[0], source_uri: "https://private.invalid/" };
+    expect(() => parse({ ...sample, reviewed_abi_cache: rows }))
+      .toThrow("UNTRUSTED_PREFLIGHT_RESULT");
+    const cosmic = (record().cosmic_components as Record<string, unknown>[]);
+    cosmic[0] = { ...cosmic[0], extra_field: "unexpected" };
+    expect(() => parse({ ...record(), cosmic_components: cosmic }))
+      .toThrow("UNTRUSTED_PREFLIGHT_RESULT");
   });
 
   it("does not expose raw errors, usernames or paths as failure messages", () => {
