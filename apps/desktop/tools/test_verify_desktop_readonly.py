@@ -74,8 +74,8 @@ class DesktopReadonlyContractTests(unittest.TestCase):
 
     def test_reject_native_start_command(self):
         self.mutate("src-tauri/src/lib.rs",
-                    "tauri::generate_handler![inspect_host, inspect_popos_preflight]",
-                    "tauri::generate_handler![inspect_host, inspect_popos_preflight, start_agent]")
+                    "            inspect_popos_preflight\n        ])",
+                    "            inspect_popos_preflight, start_agent\n        ])")
         with self.assertRaisesRegex(ValueError, "unexpected handler dispatch"):
             guard.validate(self.root)
 

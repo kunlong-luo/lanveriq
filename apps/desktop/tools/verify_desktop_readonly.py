@@ -73,7 +73,7 @@ def validate(root=DESKTOP):
         "only inspect_host and inspect_popos_preflight are permitted",
     )
     require(
-        "tauri::generate_handler![inspect_host, inspect_popos_preflight]" in native_code,
+        re.search(r"tauri::generate_handler!\[\s*inspect_host,\s*inspect_popos_preflight\s*\]", native_code) is not None,
         "unexpected handler dispatch",
     )
     require(

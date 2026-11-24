@@ -182,13 +182,11 @@ fn inspect_host() -> HostSnapshot {
     }
 }
 
-
 // Pop!_OS 24.04 compatibility is metadata-only, requested by the operator
 // from the GUI. The exact reviewed Python/apt preflight is embedded at build
 // time; no external script path, Tauri shell plugin or writable temp file.
 #[cfg(target_os = "linux")]
-const BUNDLED_PREFLIGHT: &str =
-    include_str!("../../tools/verify_desktop_popos_local_preflight.py");
+const BUNDLED_PREFLIGHT: &str = include_str!("../../tools/verify_desktop_popos_local_preflight.py");
 
 #[cfg(target_os = "linux")]
 fn safe_preflight_error(stderr: &[u8]) -> String {
@@ -246,14 +244,17 @@ fn collect_popos_preflight() -> Result<String, String> {
             }
         }
     }
-    let output = process.output().map_err(|_| "SYSTEM_PYTHON_APT_UNAVAILABLE".to_string())?;
+    let output = process
+        .output()
+        .map_err(|_| "SYSTEM_PYTHON_APT_UNAVAILABLE".to_string())?;
     if !output.status.success() {
         return Err(safe_preflight_error(&output.stderr));
     }
     if output.stdout.len() > 16384 || output.stdout.len() < 64 {
         return Err("PREFLIGHT_UNAVAILABLE".into());
     }
-    let stdout = String::from_utf8(output.stdout).map_err(|_| "PREFLIGHT_UNAVAILABLE".to_string())?;
+    let stdout =
+        String::from_utf8(output.stdout).map_err(|_| "PREFLIGHT_UNAVAILABLE".to_string())?;
     // No untrusted process stdout is ever interpreted as release authority.
     if !stdout.starts_with('{') || !stdout.ends_with("}\n") {
         return Err("PREFLIGHT_UNAVAILABLE".into());
@@ -275,7 +276,10 @@ async fn inspect_popos_preflight() -> Result<String, String> {
 
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![inspect_host, inspect_popos_preflight])
+        .invoke_handler(tauri::generate_handler![
+            inspect_host,
+            inspect_popos_preflight
+        ])
         .run(tauri::generate_context!())
         .expect("failed to run offline Lanveriq desktop preview");
 }
@@ -345,7 +349,9 @@ mod tests {
                 "NOT_POP_OS_TARGET"
             );
             assert_eq!(
-                safe_preflight_error(b"NOT_APPROVED: COSMIC_COMPONENT_NOT_INSTALLED: cosmic-comp\n"),
+                safe_preflight_error(
+                    b"NOT_APPROVED: COSMIC_COMPONENT_NOT_INSTALLED: cosmic-comp\n"
+                ),
                 "COSMIC_COMPONENT_NOT_INSTALLED"
             );
             assert_eq!(
