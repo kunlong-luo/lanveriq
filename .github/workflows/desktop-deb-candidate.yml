@@ -45,6 +45,8 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_popos_local_preflight.py'
       - 'apps/desktop/tools/verify_desktop_readonly.py'
       - 'apps/desktop/tools/test_verify_desktop_readonly.py'
+      - 'apps/desktop/tools/verify_desktop_apt_archive_cache.py'
+      - 'apps/desktop/tools/test_verify_desktop_apt_archive_cache.py'
       - '.github/workflows/desktop-deb-candidate.yml'
   workflow_dispatch:
 
@@ -70,6 +72,7 @@ jobs:
         run: |
           python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_readonly.py'
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_apt_archive_cache.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_deb.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_candidate_evidence.py'
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_lab_signature.py'
@@ -105,16 +108,59 @@ jobs:
         run: |
           cargo +1.100.0 metadata --locked --no-deps --format-version 1 > /dev/null
           cargo +1.100.0 fmt --all -- --check
-      - name: Install native Ubuntu 24 Tauri build prerequisites
-        timeout-minutes: 12
+      - name: Restore exact independently audited Ubuntu APT archive cache (never trust bytes)
+        id: native_apt_cache
+        uses: actions/cache/restore@v4
+        with:
+          # Deliberately pinned to complete two-runner signed-index verification
+          # #45321096944; no fallback or restore-keys. Cache rotation requires
+          # a reviewed main commit and fresh independent L2B-14 acceptance.
+          path: /var/tmp/lanveriq-desktop-apt-archives/*.deb
+          key: lanveriq-ubuntu24-tauri-apt-v2-d3781616035a7dca93d8cc962be5b96c2430dd26cf28deee45aa287121da8f9e
+          fail-on-cache-miss: true
+      - name: Independently authenticate EVERY cached native dependency and install offline in disposable runner
+        timeout-minutes: 15
+        shell: bash
+        env:
+          CACHE_HIT: ${{ steps.native_apt_cache.outputs.cache-hit }}
+          EXPECTED_ARCHIVE_COUNT: '175'
+          EXPECTED_ARCHIVE_SHA256: 5ac2afaff76e962e6c5131c34645248cb8024d4e8581d2790d71f622e988bc35
         run: |
           set -Eeuo pipefail
-          # Disposable runner development headers only. No candidate install,
-          # no source/mirror change and no privilege granted to the app.
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+          test "$CACHE_HIT" = true || { echo 'FAIL: exact audited APT cache missing' >&2; exit 1; }
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(dpkg --print-architecture)" = amd64
+          archive=/var/tmp/lanveriq-desktop-apt-archives
+          test -d "$archive"
+          # Use only the build runner's OWN authenticated Ubuntu indexes.
+          # An index update failure or a changed dependency closure is fatal.
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
+            -o APT::Get::AllowUnauthenticated=false update
+          packages=(
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
             libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
+          )
+          plan="$RUNNER_TEMP/desktop-native-apt-closure.txt"
+          apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
+          # The cache is merely a transport. Each restored .deb MUST match a
+          # name/version/arch/size/hash in this runner's signed Ubuntu APT
+          # index AND the exact simulated install closure and manifest.
+          python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
+            --archive-dir "$archive" --expected-count "$EXPECTED_ARCHIVE_COUNT" \
+            --expected-manifest "$EXPECTED_ARCHIVE_SHA256" --expected-plan-file "$plan"
+          # Never fetch archive bytes from network in this stage. Installation
+          # concerns disposable CI build headers ONLY, never Lanveriq .deb.
+          sudo install -d -o _apt -g root -m 700 "$archive/partial"
+          sudo DEBIAN_FRONTEND=noninteractive apt-get \
+            -o APT::Get::AllowUnauthenticated=false \
+            -o APT::Install-Recommends=false \
+            -o Dir::Cache::archives="$archive" \
+            --no-download --no-install-recommends install -y "${packages[@]}"
+          pkg-config --exists webkit2gtk-4.1 gtk+-3.0
+          echo 'PASS: exact audited cache and independently authenticated closure installed build prerequisites without package downloads'
+          echo 'NOT RUN: candidate .deb install, Agent install, signer, PopOS L3 or production authority'
       - name: Same-SHA native Rust read-only tests and strict Clippy before .deb audit
         working-directory: apps/desktop/src-tauri
         run: |
