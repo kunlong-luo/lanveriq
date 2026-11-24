@@ -2,7 +2,7 @@
 
 **LIVE-GAP · 2026-11-22 · Linux-first / Pop!_OS 24.04 · v0.1 NOT RELEASE READY。** 当前已完成事实和功能 SHA 以 [CURRENT_STATUS](../CURRENT_STATUS.md) 为准。下面角色为**所需授权角色**，并非已签字人。
 
-> **2026-11-24 G-05 证据订正（DESKTOP-L2B-12）：** [原生桌面工作流 #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) 总体为 **FAIL**，失败发生在 Ubuntu24 WebKitGTK 前置 APT 安装 12 分钟超时；React/source/Rustfmt 单独 PASS，`cargo test` 与 Clippy **NOT RUN（SKIPPED）**。不能把它写成仍运行中的 PENDING。最新 [功能 SHA d7fc9180](https://github.com/kunlong-luo/lanveriq/commit/d7fc91803ea375b0c964a933aa3fd8596ff55bf2) 的 ABI 同源契约与 3 个防篡改负测已提交，但对应新 CI 回执待验收。G-05/G-07/G-08/G-09 均维持 OPEN，无正式签名、受限安装授权、Pop!_OS24/COSMIC 实机或可分发 Agent GUI 安装包。
+> **2026-11-24 G-05 证据订正（DESKTOP-L2B-12）：** [原生桌面工作流 #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) 总体为 **FAIL**，失败发生在 Ubuntu24 WebKitGTK 前置 APT 安装 12 分钟超时；React/source/Rustfmt 单独 PASS，`cargo test` 与 Clippy **NOT RUN（SKIPPED）**。不能把它写成仍运行中的 PENDING。最新 [功能 SHA d7fc9180](https://github.com/kunlong-luo/lanveriq/commit/d7fc91803ea375b0c964a933aa3fd8596ff55bf2) 的 ABI 同源契约与 3 个防篡改负测已提交，但[同功能 SHA 的 #45313752315](https://github.com/kunlong-luo/lanveriq/actions/runs/45313752315) 已实际通过 desktop-ui L1 子任务（17 Python 源码拒绝 + 22 PopOS/Ubuntu 负测 + 19 Vitest、TypeScript、静态构建）；**原生 Rust 仍无 PASS**。中间 SHA 9be4fb19 的 [#45313714759 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45313714759) 为首次审计器正则转义错误，d7fc9180 已修复后取得 L1 子任务成功。G-05/G-07/G-08/G-09 均维持 OPEN，无正式签名、受限安装授权、Pop!_OS24/COSMIC 实机或可分发 Agent GUI 安装包。
 
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
