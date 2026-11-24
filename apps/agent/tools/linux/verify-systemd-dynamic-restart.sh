@@ -29,7 +29,8 @@ nonce=$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')
 [[ "$nonce" =~ ^[0-9a-f]{8}$ ]]
 unit="lvcsrd${nonce}"
 state="lanveriq-linux-csr-ci.${nonce}"
-runtime="/run/${unit}"
+staging=$(mktemp -d -p /opt "lanveriq-ci-csr-stage.${nonce}.XXXXXXXX")
+chmod 0755 "$staging"
 private_dir="/var/lib/private/${state}"
 public_link="/var/lib/${state}"
 cleanup() {
@@ -39,14 +40,18 @@ cleanup() {
   systemctl reset-failed "${unit}.service" >/dev/null 2>&1 || :
   if [[ -L "$public_link" ]]; then rm -f -- "$public_link"; fi
   if [[ -d "$private_dir" ]]; then rm -rf --one-file-system -- "$private_dir"; fi
-  if [[ -d "$runtime" ]]; then rm -rf --one-file-system -- "$runtime"; fi
+  if [[ -d "$staging" && "$staging" == /opt/lanveriq-ci-csr-stage.* ]]; then
+    rm -rf --one-file-system -- "$staging"
+  fi
   exit "$status"
 }
 trap cleanup EXIT
 
-install -d -m 0755 "$runtime"
-install -m 0755 "$helper" "$runtime/csr-helper"
-install -m 0755 "$stage" "$runtime/stage"
+# /run can be noexec on hardened GitHub Ubuntu 24.04 runners. Keep
+# executable CI-only staging on the root filesystem (/opt), while systemd
+# continues to own the protected /run RuntimeDirectory and /var/lib StateDirectory.
+install -m 0755 "$helper" "$staging/csr-helper"
+install -m 0755 "$stage" "$staging/stage"
 
 start_phase() {
   local phase=$1
@@ -84,7 +89,7 @@ start_phase() {
     -p SystemCallArchitectures=native \
     -p MemoryDenyWriteExecute=yes \
     -p Environment=LANVERIQ_SYNTHETIC_SYSTEMD_ONLY=yes \
-    "$runtime/stage" "$phase" "$runtime/csr-helper"
+    "$staging/stage" "$phase" "$staging/csr-helper"
 }
 
 start_phase create
