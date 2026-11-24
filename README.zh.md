@@ -46,7 +46,7 @@ docs/
 
 ## 我现在能做什么？
 
-**普通 Pop!_OS 用户：** 目前不能通过签名安装器完成一键 Agent 安装。 虽然[真实 Agent .deb 经临时 Signed-By APT 仓库完成 Ubuntu24 OCI 安装/重装/卸载](docs/development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)，并且[真实恶意 Polkit 授权 YES 仍被 root D-Bus 审查阻止](docs/development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**它们都不是用户可以部署的 root 安装器**，后者没有执行任何包安装。无需按照历史报告安装 Rust、Node 或手动执行 `dpkg -i`；这些是**开发者**命令，不是最终产品安装过程。[安装器真实进度](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md) · [未来 GUI 用户流程](docs/product/linux-desktop-installer-v01.md)。
+**普通 Pop!_OS 用户：** 目前不能通过签名安装器完成一键 Agent 安装。 虽然[真实 Agent .deb 经临时 Signed-By APT 仓库完成 Ubuntu24 OCI 安装/重装/卸载](docs/development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)，并且[真实恶意 Polkit 授权 YES 仍被 root D-Bus 审查阻止](docs/development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**它们都不是用户可以部署的 root 安装器**，后者没有执行任何包安装。 [L2B-27 Ubuntu24 原生 APT 10/10 验收](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md)还证明：**仍有效且签名正确的旧 Release Date 可以被接受**，项目缺少独立的防回退高水位；本次**没有**实际降级 Agent。无需按照历史报告安装 Rust、Node 或手动执行 `dpkg -i`；这些是**开发者**命令，不是最终产品安装过程。[安装器真实进度](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md) · [未来 GUI 用户流程](docs/product/linux-desktop-installer-v01.md)。
 
 **开发者：** 请先阅读 [AGENTS.md](AGENTS.md)、[贡献规范](CONTRIBUTING.md)、[工程手册](docs/governance/engineering-playbook.md)。只在独立开发环境运行：
 
