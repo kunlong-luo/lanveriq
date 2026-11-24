@@ -65,6 +65,8 @@ class ReviewOnlyService(dbus.service.Object):
         if not isinstance(operation, (str, dbus.String)) or str(operation) not in OPERATIONS:
             return "INVALID_OPERATION"
         if not isinstance(nonce, (str, dbus.String)) or NONCE_RE.fullmatch(str(nonce)) is None:
+            print(f"REJECTED_NONCE kind={type(nonce).__name__} "
+                  f"length={len(str(nonce))} sample={str(nonce)[:40]!r}", flush=True)
             return "INVALID_NONCE"
         if not sender or not sender.startswith(":"):
             return "UNVERIFIED_PEER"
