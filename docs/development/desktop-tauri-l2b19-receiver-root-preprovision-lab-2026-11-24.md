@@ -38,6 +38,19 @@ L2B-18 的 OpenSSL 3 双签名虽能认证两个测试 key 对相同原始字节
 
 **注意：** TUF 是正式发行仓库/可信根轮换与版本策略的成熟候选；Cosign 的离线 bundle 是工件签名与证据分发候选，两者可分层组合，但目前**没有批准供应商、部署、密钥格式、签名策略或正式版本**。不应把本实验自行编写的 JSON 根冒充符合 TUF 的 root.json，也不应重复造轮子实现自有生产密码学。
 
+## 2026-11-24 原生 Debian/Pop!_OS 交付方案补充：优先评审 apt-secure
+
+**架构收敛建议，未作生产供应商选择：** 对未来由产品 GUI 请求受限安装的独立 Debian Agent，必须先比较成熟 **APT 官方仓库认证** 与 TUF/Sigstore 是否需要额外的离线策略，避免只为了“安全先进”叠加重复 SDK。
+
+| 交付与验签场景 | 优先审查的成熟机制 | 不允许假设 |
+| --- | --- | --- |
+| 经批准的系统 APT 仓库下载安装/升级 Agent | 原生 [apt-secure(8)](https://manpages.debian.org/trixie/apt/apt-secure.8.en.html) + 独立审批下发的 **deb822 `.sources` / `Signed-By` 专用 keyring**，由 APT 验签 InRelease/Release、Packages 索引与包哈希；真实目标端非生产演练后方可考虑 | **不能**把 Agent GUI 自报的 key/URI 直接加入 global trust、不能使用 `trusted=yes`、`AllowUnauthenticated=true` 或非审核 keyring；APT 仓库验证**不是**逐个 `.deb` 的发行者单独签名 |
+| 物理接收端长期离线、离线多版本分发及根阈值/轮换防回滚 | 评估成熟 [TUF](https://theupdateframework.github.io/specification/latest/) 实现及其 Root/Targets/Snapshot/Timestamp；要求独立预置初始根和真实高水位托管 | 本 LAB Python 根 JSON **不符合 TUF 规范**，不可充当生产 TUF client |
+| 工件身份/构建来源与第三方审计材料 | 评估 [Cosign 离线 bundle](https://docs.sigstore.dev/cosign/verifying/verify/) 与独立批准的证书身份、透明度证明/时间和撤销 | 可离线验证的 bundle **仍不能自举信任根**，也不直接授权 Polkit 安装 |
+| 面向最终用户的图形化安装 | GUI 只收集独立有效的授权意图；固定来源/包名/版本的受限系统包管理安装事务；默认 agent service inactive/disabled | 既有 GUI-only unsigned `.deb` CI 成功**不代表**有可安装的独立 Agent 签名包 |
+
+[Debian 的 Signed-By 文档](https://manpages.debian.org/trixie/apt/sources.list.5.en.html) 明确允许把软件源验证限制在特定 keyring。APT 的 `Valid-Until` 能限制过长的元数据重放窗口，但依赖目标设备时钟可信；它不等于完整不可回滚的设备端高水位。[第三方仓库安全建议](https://wiki.debian.org/DebianRepository/UseThirdParty) 强调独立 keyring 和避免全局扩大供应商信任。**在选型签字、真实独立根/时间/撤销、法务与 Pop!_OS24 验收之前，任何方案都没有权限接入 Tauri 安装按钮**。
+
 ## 外部依赖与下一阶段的真实退出标准
 
 在正式接收端信任链可用以前必须具备：法务批准的发行主体、独立保管方对 TUF 初始根的具名批准与安全下发、至少两管理域私钥/阈值治理决议、经认可的签名/撤销/可信时间机制及备份恢复、设备端防回滚持久性与用户告知、与确切 Agent Debian 字节及源码绑定的可复核签名、许可证与运行时依赖审批、受限 Polkit 安装桥的真实 L2 安全测试，以及具名许可的 Pop!_OS24 COSMIC 实机 L3。任何一个条件未满足都**不得发布/安装**。
