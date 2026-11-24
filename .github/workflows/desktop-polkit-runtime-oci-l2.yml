@@ -16,6 +16,7 @@ on:
       - 'apps/desktop/tools/test_polkit_oci_dbus_broker_lab.py'
       - 'apps/desktop/tools/polkit-oci-dbus-review.conf'
       - 'apps/desktop/tools/test_polkit_dbus_broker_oci.sh'
+      - 'apps/desktop/tools/test_polkit_overriding_rules_oci.sh'
       - '.github/workflows/desktop-polkit-runtime-oci-l2.yml'
   workflow_dispatch:
 
@@ -95,3 +96,24 @@ jobs:
           python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
           echo 'PASS: root-side OCI D-Bus peer review did not create an installer or grant Polkit authorization'
+
+      - name: Real hostile local Polkit YES must not bypass root-side independent publisher gate
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n apps/desktop/tools/test_polkit_overriding_rules_oci.sh
+          # Only the isolated OCI's /etc/polkit-1/rules.d is changed;
+          # no host policy, session bus, installation, Agent or product keys.
+          docker run --rm --interactive \
+            --network none \
+            --pids-limit 128 --memory 512m --cpus 1 \
+            --mount "type=bind,src=$PWD/apps/desktop/polkit,dst=/mnt/lanveriq-policy,readonly" \
+            --mount "type=bind,src=$PWD/apps/desktop/tools,dst=/mnt/lanveriq-broker-source,readonly" \
+            --env LANVERIQ_POLKIT_RUNTIME_L2=disposable-oci-only \
+            --env LANVERIQ_POLKIT_OVERRIDE_L2=ephemeral-only \
+            --entrypoint /bin/bash \
+            lanveriq-polkit-runtime-ci-only:local -seuo pipefail \
+            < apps/desktop/tools/test_polkit_overriding_rules_oci.sh
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_desktop_polkit_review.py
+          echo 'PASS: actual OS Polkit YES cannot bypass independent release denial'
