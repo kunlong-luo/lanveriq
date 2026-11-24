@@ -24,7 +24,16 @@ pkaction --action-id org.lanveriq.agent.package.install --verbose |
 /usr/bin/python3 /mnt/lanveriq-broker-source/polkit-oci-dbus-broker-lab.py \
     > /tmp/lanveriq-review-service.log 2>&1 &
 broker_pid=$!
-trap 'kill "$broker_pid" 2>/dev/null || :; wait "$broker_pid" 2>/dev/null || :' EXIT
+cleanup() {
+    status=$?
+    if [ "$status" -ne 0 ]; then
+        echo "FAIL: review-only OCI D-Bus lab exit=$status" >&2
+        tail -n 100 /tmp/lanveriq-review-service.log >&2 || :
+    fi
+    kill "$broker_pid" 2>/dev/null || :
+    wait "$broker_pid" 2>/dev/null || :
+}
+trap cleanup EXIT
 ready=0
 for _ in $(seq 1 40); do
     if grep -Fq REVIEW_ONLY_DBUS_SERVICE_READY /tmp/lanveriq-review-service.log; then
@@ -52,7 +61,7 @@ call_as() {
     # D-Bus wire string. The explicit quoted literal proves genuine ss API.
     runuser -u "$username" -- gdbus call --system \
         --dest "$name" --object-path "$path" \
-        --method "$method" "$operation" "'$nonce'" "$@"
+        --method "$method" "'$operation'" "'$nonce'" "$@"
 }
 
 nonce_i=1
@@ -78,6 +87,7 @@ grep -Fq "'REPLAY_DENIED'" <<<"$replayed"
 # Cross-UID scoping: daemon may use a nonce previously used by nobody.
 scoped=$(call_as daemon install "$(printf '%032x' 1)")
 grep -Fq "'POLKIT_DENIED'" <<<"$scoped"
+echo 'PASS: nonce replay rejected for same Unix UID, distinct Unix UID independently checked'
 
 invalid=$(call_as nobody start "$(printf '%032x' 10)")
 grep -Fq "'INVALID_OPERATION'" <<<"$invalid"
