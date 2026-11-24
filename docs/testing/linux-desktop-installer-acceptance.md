@@ -1,5 +1,9 @@
 # G-05 / G-07 / G-08 / G-09 — Pop!_OS 24.04 desktop installer acceptance
 
+> **2026-11-24 L2B-26 真正 OS 恶意 Polkit .rules 覆盖 L2 子项 PASS：** [功能 SHA f062f144 / Ubuntu24 #45385719766 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766)。一次性 networkless OCI 的测试恶意规则使 nobody/install 在真实 polkitd 下返回 **YES (exit 0)**，而原 XML 仍全 no。root D-Bus ReviewLab 依旧回答 NOT_APPROVED，不调用任何 APT/dpkg/systemctl；另已验证非 root 无法冒充 D-Bus root 服务名、nonce 重放拒绝、其它操作/账号仍 DENIED。[详细 L2B-26](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)。**真实 OS 的 YES 不是组织的发行批准或成功安装，完整 broker/GUI/L3 仍 NOT RUN；G-05 OPEN。**
+
+
+
 > **2026-11-24 L2B-25 的真实根侧 D-Bus 同行核验 L2 子项 PASS（仅拒绝）：** [功能 SHA 91c4669d / Ubuntu24 OCI #45382618806 attempt 1 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)。实际 root-side system D-Bus ReviewLab 查询真实 Unix sender UID/PID，复核 /proc 的四 UID/start-time，经原生 `pkcheck` **8 次拒绝**；同 UID 跨进程 nonce 重放、额外参数/数据类型混淆拒绝，另 9/9 决策分支单测证明模拟 Polkit 返回允许仍 `NOT_APPROVED`。服务不含包管理操作，仅在 disposable networkless Ubuntu24 OCI 里部署。**这不算真正的有权安装 broker L2：没有正式 signing、管理员活动会话/Polkit grant、可执行 Agent 安装/跨版本更新或实机 COSMIC L3**。 [L2B-25 完整证明](../development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)。
 
 
@@ -68,9 +72,10 @@ Source design: [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle
 - [ ] GUI closure does not trigger service control. Desktop application has no tray/login-autostart resident component.
 - [ ] Existing Agent production network/collection/remote/auto-recovery/CA flags remain default-OFF; RD-2 negative gate included.
 
-## L2 — disposable environment（signed-APT 包生命周期、Polkit caller 拒绝及 root-side D-Bus peer 拒绝子项 PASS；完整授权交易/GUI 仍 NOT RUN）
+## L2 — disposable environment（signed-APT 安装、Polkit caller/root peer 拒绝及实际恶意规则 YES 防线子项 PASS；完整授权交易/GUI 仍 NOT RUN）
 
 - [x] **原生 root-side D-Bus 同行核验拒绝子项仅限 OCI L2**：真实 root-side system D-Bus ReviewLab 读取系统总线提供的 Unix UID/PID、核对内核 /proc，再运行 Polkit 共 8 次拒绝，跨进程 nonce 重放及恶意 argv/环境/类型拒绝；9/9 服务端单测模拟 Polkit `yes` 仍不可安装。[#45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)。**不能认作可执行 Agent 安装事务的 root broker**。
+- [x] **真实本机 Polkit 规则覆盖负测仅限 OCI L2**：测试规则让真正 polkitd 对 nobody/install 返回 YES，但 root ReviewLab 必须因无独立签名/发行批准返回 NOT_APPROVED；D-Bus 名称冒充、nonce 重放和其它身份动作继续拒绝。**这不是成功授权安装**。[#45385719766 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766)。
 - [x] **原生 Polkit 拒绝子项仅限 OCI L2**：真实 polkitd/DBus + Ubuntu24 `pkaction/pkcheck` + Rust 固定动作自身 PID/start-time/UID 绑定；三动作 × 两非 root 系统账号 **6/6 确切拒绝**、5 类参数/环境伪造拒绝；没有管理员交互、root broker、成功 APT 授权或真实 COSMIC 会话。[#45379398181 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45379398181)。
 - [x] **APT 技术子项仅限 OCI L2**：使用当前编译真实 Agent .deb + CI 临时 signer 的唯一 Signed-By file: repository，经系统 APT 实际 install、同版 reinstall、remove，八类不可信签名/索引/包篡改拒绝；**不含 GUI/Polkit/官方签名**。[#45376989866 9/9 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)。
 - [ ] Build genuine Tauri Linux artifact with bundled WebKitGTK prerequisites tested, signed package verification, cryptographic provenance and exact reviewed version.
