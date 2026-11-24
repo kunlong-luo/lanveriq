@@ -1,0 +1,57 @@
+name: Desktop native Polkit daemon denial L2 (isolated OCI only)
+
+# Install OS polkitd/dbus only into a disposable Ubuntu24 Docker build image.
+# This job NEVER installs a policy, broker, Agent or privileges on runner/host.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/polkit/org.lanveriq.agent.package.policy'
+      - 'apps/desktop/tools/verify_desktop_polkit_review.py'
+      - 'apps/desktop/tools/test_verify_desktop_polkit_review.py'
+      - 'apps/desktop/tools/polkit-runtime-oci.Dockerfile'
+      - 'apps/desktop/tools/test_polkit_runtime_oci.sh'
+      - '.github/workflows/desktop-polkit-runtime-oci-l2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-polkit-runtime-oci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-polkit-deny:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify source policy remains inert and unable to grant install rights
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_polkit_review.py' -v
+          python3 apps/desktop/tools/verify_desktop_polkit_review.py
+          bash -n apps/desktop/tools/test_polkit_runtime_oci.sh
+      - name: Build disposable Ubuntu24 image with upstream polkitd and DBus
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker build -f apps/desktop/tools/polkit-runtime-oci.Dockerfile \
+            -t lanveriq-polkit-runtime-ci-only:local .
+      - name: Actual polkitd and system DBus reject six unprivileged OS subjects
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker run --rm --interactive \
+            --network none --security-opt no-new-privileges \
+            --pids-limit 128 --memory 512m --cpus 1 \
+            --mount "type=bind,src=$PWD/apps/desktop/polkit,dst=/mnt/lanveriq-policy,readonly" \
+            --env LANVERIQ_POLKIT_RUNTIME_L2=disposable-oci-only \
+            --entrypoint /bin/bash \
+            lanveriq-polkit-runtime-ci-only:local -seuo pipefail \
+            < apps/desktop/tools/test_polkit_runtime_oci.sh
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          echo 'PASS: native OS authorization check is L2-only and has not enabled Tauri install'
