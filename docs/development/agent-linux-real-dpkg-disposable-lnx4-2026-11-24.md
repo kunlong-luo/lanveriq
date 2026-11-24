@@ -1,10 +1,12 @@
 # G05-LNX4 — 复用原生 dpkg 的 Agent 实际安装/重装/卸载隔离 L2 验收
 
-**IN IMPLEMENTATION · 2026-11-24 · source SHA 7ef4310e · CI #45338818298 RUNNING AT INITIAL RECORD · Ubuntu24 OCI ONLY · G-05 OPEN · v0.1 NOT RELEASE READY**
+**CI-VERIFIED ENGINEERING L2 SUBGATE · 2026-11-24 · exact functional SHA eeec5f384d1639f4c191df20058445ba38e3a61b · [GitHub CI #45339799209](https://github.com/kunlong-luo/lanveriq/actions/runs/45339799209) overall SUCCESS · Ubuntu24 OCI-only real dpkg / no Agent service activation · G-05 OPEN · v0.1 NOT RELEASE READY**
 
 > **CI 首次运行纠错（2026-11-24）：** [功能 SHA 7ef4310e / #45338818298](https://github.com/kunlong-luo/lanveriq/actions/runs/45338818298) **overall FAIL**。实际 Rust release、原生 `.deb` 构建与严格解包审计均 PASS，紧接着新 LNX4 脚本因为 Bash 变量被误写成转义 `\${GITHUB_ACTIONS:-}` 等导致**合法 GitHub CI 也被 fail-closed 拒绝**，未进入 Docker，因此这次**没有真实 dpkg 安装验证**。源码修复 SHA [f0cea27f](https://github.com/kunlong-luo/lanveriq/commit/f0cea27f77ee416ad3bb70bff198339e8789faef) 仅恢复 Bash 环境变量和 `dpkg-query` 字段的正确展开、不放宽权限；[重跑 CI #45339314490](https://github.com/kunlong-luo/lanveriq/actions/runs/45339314490) 尚待最终结果。历史 FAIL 不得更名 PASS。
 
 > **CI 二次结果及 systemd 修复（2026-11-24）：** [功能修复 SHA f0cea27f / #45339314490](https://github.com/kunlong-luo/lanveriq/actions/runs/45339314490) **overall FAIL**，但是**实际 `dpkg -i`、包名/文件归属、真实 Rust ELF `--help`、同版本重装、`dpkg -r`、操作员配置/状态保留和默认不启动**的新增 LNX4 步骤在无网 Ubuntu OCI 里**全部实际 PASS**（见原始日志）。随后独立的既有 systemd DynamicUser 测试在 runner 的 `/run/lv.../stage` 执行收到 `Permission denied`，导致 workflow FAIL。修复 SHA [eeec5f38](https://github.com/kunlong-luo/lanveriq/commit/eeec5f384d1639f4c191df20058445ba38e3a61b) 将**仅 CI synthetic CSR executable** 暂存移到 runner 根文件系统 `/opt` 临时目录，保留 `DynamicUser=yes`、零 capabilities、无网络、受限 `StateDirectory`，不改产品 Agent 服务或包。新 [同功能链路 #45339799209](https://github.com/kunlong-luo/lanveriq/actions/runs/45339799209) 尚待整体结果，不能跨提交借取整体 SUCCESS。
+
+> **最终同源码实证（2026-11-24）：** [ubuntu-24.04 #45339799209](https://github.com/kunlong-luo/lanveriq/actions/runs/45339799209) **attempt 1 / overall SUCCESS**；`PASS: installed actual compiled Rust binary answers --help without Agent activation`、`PASS: real disposable dpkg install/reinstall/remove; idle binary help and operator config/state retention`、`PASS: same isolated transient systemd unit restarted, DynamicUser key persisted across distinct invocation IDs, other UID denied, offline IP socket blocked` 均有独立实际日志。**Docker 内不运行 systemd；runner systemd 只运行短命合成 CSR，未安装或启动真正 Agent**。两次中间失败的准确记录仍在本文件下方，不能把其结论改写为 PASS。
 
 ## 本阶段为什么不另造安装器
 
