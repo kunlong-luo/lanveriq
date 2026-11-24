@@ -25,7 +25,7 @@
 | `development/` | 开发规范/UI 设计 + **每阶段 dated 代码与 CI 证据** | [技术版本](development/technology.md) · [UI tokens](development/frontend-design-system.md) · [L2B-26 真实 Polkit 覆盖拒绝](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
 | `testing/` | L1/L2/L3 验收规则、真实与合成 CI 区分、失败保留 | [验收策略](testing/strategy.md) · [Linux/COSMIC 安装 L1/L2/L3](testing/linux-desktop-installer-acceptance.md) |
 | `planning/` | **唯一 Gate + 下一步路线**；旧计划/账本为历史 | [Gate 清单](planning/release-gap-register.md) · [Linux 路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [历史账本](planning/release-readiness-2026-11-13.md) |
-| `governance/` | 文档所有权、审计规范、有限历史归档 | [生命周期](governance/document-lifecycle.md) · [目录审计](governance/repository-layout-audit-2026-11-24.md) · [archive](governance/archive/AGENTS-pre-consolidation-2026-11-22.md) |
+| `governance/` | 文档所有权、审计规范、有限历史归档 | [生命周期](governance/document-lifecycle.md) · [目录审计](governance/repository-layout-audit-2026-11-24.md) · [archive](governance/archive/README.md) |
 | `operations/` · `product/` | 授权安装/备份运维指南，预期产品行为 | [开发环境](operations/installation.md) · [未来 Linux GUI 安装用户旅程](product/linux-desktop-installer-v01.md) |
 | `diagrams/` · `visuals/` | Mermaid 可编辑结构图、SVG **概念图** | [工程图](diagrams/README.md) · [8 张示意图](visuals/README.md) |
 
