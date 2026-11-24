@@ -38,7 +38,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 || !matches!(args[1].as_str(), "accepted" | "revoked" | "expired" | "offline") {
+    if args.len() != 3
+        || !matches!(
+            args[1].as_str(),
+            "accepted" | "revoked" | "expired" | "offline"
+        )
+    {
         return Err("expected one test phase and one disposable device UUID".into());
     }
     let device = Uuid::parse_str(&args[2])?;
@@ -347,17 +352,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // The new explicit gate inspects ONLY real, disposable Linux
             // OS/CPU/RAM through existing sysinfo + os_info dependencies.
             // The normal L2 mode retains the same hard-coded synthetic data.
-            let real_sample = env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE")
-                .as_deref() == Ok("1");
+            let real_sample =
+                env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE").as_deref() == Ok("1");
             let raw = if real_sample {
                 let observed = collect_minimal_linux_inventory();
-                if observed.hardware.cpu.as_ref().and_then(|v| v.model.as_ref()).is_none()
-                    || observed.hardware.memory.as_ref()
-                        .and_then(|v| v.total_bytes).is_none()
+                if observed
+                    .hardware
+                    .cpu
+                    .as_ref()
+                    .and_then(|v| v.model.as_ref())
+                    .is_none()
+                    || observed
+                        .hardware
+                        .memory
+                        .as_ref()
+                        .and_then(|v| v.total_bytes)
+                        .is_none()
                     || observed.os.name.as_deref().is_none_or(str::is_empty)
                     || !observed.interfaces.is_empty()
                     || !observed.volumes.is_empty()
-                    || observed.capabilities.get("network_interfaces").map(String::as_str)
+                    || observed
+                        .capabilities
+                        .get("network_interfaces")
+                        .map(String::as_str)
                         != Some("not_collected")
                 {
                     return Err("minimal Linux sample is incomplete or exceeds whitelist".into());
@@ -365,29 +382,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 observed
             } else {
                 RawInventory {
-                hardware: Hardware {
-                    manufacturer: None,
-                    model: None,
-                    cpu: Some(Cpu {
-                        model: Some("Synthetic Inventory CPU".into()),
+                    hardware: Hardware {
+                        manufacturer: None,
+                        model: None,
+                        cpu: Some(Cpu {
+                            model: Some("Synthetic Inventory CPU".into()),
+                            arch: Some("x86_64".into()),
+                            physical_cores: Some(4),
+                            logical_cores: Some(8),
+                        }),
+                        memory: Some(Memory {
+                            total_bytes: Some(8_000_000_000),
+                        }),
+                    },
+                    os: OperatingSystem {
+                        family: "linux".into(),
+                        name: Some("Synthetic Inventory Linux".into()),
+                        version: Some("24.04".into()),
+                        build: None,
+                        kernel_release: None,
                         arch: Some("x86_64".into()),
-                        physical_cores: Some(4),
-                        logical_cores: Some(8),
-                    }),
-                    memory: Some(Memory { total_bytes: Some(8_000_000_000) }),
-                },
-                os: OperatingSystem {
-                    family: "linux".into(),
-                    name: Some("Synthetic Inventory Linux".into()),
-                    version: Some("24.04".into()),
-                    build: None,
-                    kernel_release: None,
-                    arch: Some("x86_64".into()),
-                },
-                interfaces: Vec::new(),
-                volumes: Vec::new(),
-                capabilities: [("hardware_inventory".into(), "available".into())]
-                    .into_iter().collect(),
+                    },
+                    interfaces: Vec::new(),
+                    volumes: Vec::new(),
+                    capabilities: [("hardware_inventory".into(), "available".into())]
+                        .into_iter()
+                        .collect(),
                 }
             };
             let inventory_store = OutboxStore::open(&inventory_file).await?;
@@ -408,9 +428,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             // Keep only this fixed synthetic wire body for a second, direct
             // HTTP duplicate/revocation negative control in the SAME runner.
-            let fixture_path = PathBuf::from(
-                env::var("LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE")?
-            );
+            let fixture_path = PathBuf::from(env::var("LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE")?);
             if !fixture_path.starts_with(pki.parent().ok_or("missing private fixture root")?)
                 || fixture_path.file_name().and_then(|n| n.to_str())
                     != Some("synthetic-inventory-request.json")
@@ -424,9 +442,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // unmodified persisted JSON is passed through existing Reqwest,
             // and only exact Spring ACK can release this pending snapshot.
             let inventory_store = OutboxStore::open(&inventory_file).await?;
-            if client
-                .send_next_inventory(&inventory_store, device)
-                .await?
+            if client.send_next_inventory(&inventory_store, device).await?
                 != Some(DeliveryDisposition::Accepted)
             {
                 return Err("synthetic inventory did not receive exact mTLS ACK".into());
@@ -442,11 +458,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             inventory_store.close().await;
             let reopened = OutboxStore::open(&inventory_file).await?;
             if !matches!(
-                reopened.stage_inventory_snapshot(
-                    device, "2026-11-24T09:01:00Z", raw
-                ).await?,
+                reopened
+                    .stage_inventory_snapshot(device, "2026-11-24T09:01:00Z", raw)
+                    .await?,
                 InventoryStage::Unchanged
-            ) || client.send_next_inventory(&reopened, device).await?.is_some()
+            ) || client
+                .send_next_inventory(&reopened, device)
+                .await?
+                .is_some()
             {
                 return Err("identical inventory wrongly retransmitted after restart".into());
             }
@@ -457,13 +476,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // the credential is still valid. Expired/revoked phases must
                 // fail-closed and preserve it across process restarts.
                 let mut new_raw = collect_minimal_linux_inventory();
-                new_raw.capabilities.insert(
-                    "ci_only_retry_probe".into(), "not_collected".into()
-                );
+                new_raw
+                    .capabilities
+                    .insert("ci_only_retry_probe".into(), "not_collected".into());
                 let retry_store = OutboxStore::open(&inventory_file).await?;
                 let pending = match retry_store
                     .stage_inventory_snapshot(device, "2026-11-24T09:02:00Z", new_raw)
-                    .await? {
+                    .await?
+                {
                     InventoryStage::Staged(value) => value,
                     _ => return Err("rejected inventory attempt not durably staged".into()),
                 };
@@ -472,7 +492,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 retry_store.close().await;
                 // No timer or automatic retry is installed by this test.
-                println!("PASS: Linux-only OS/CPU/RAM read-only whitelist sampled; a separate unsubmitted revision is prepared for expired/revoked credential denial.");
+                println!(
+                    "PASS: Linux-only OS/CPU/RAM read-only whitelist sampled; a separate unsubmitted revision is prepared for expired/revoked credential denial."
+                );
             } else {
                 println!(
                     "PASS: actual Rust SQLite inventory outbox -> Reqwest double mTLS -> strict Spring ACK -> SQLite restart without resend."
@@ -483,17 +505,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE").as_deref() != Ok("1") {
             return Err("offline inventory probe requires explicit CI-only sample gate".into());
         }
-        let path = pki.parent().ok_or("missing private store root")?
+        let path = pki
+            .parent()
+            .ok_or("missing private store root")?
             .join("synthetic-inventory-outbox.sqlite");
         let store = OutboxStore::open(&path).await?;
-        let pending = store.verified_pending_inventory(device).await?
+        let pending = store
+            .verified_pending_inventory(device)
+            .await?
             .ok_or("offline inventory pending revision missing")?;
         if pending.revision != 2
-            || !matches!(client.send_next_inventory(&store, device).await,
-                         Err(TransportError::Network(_)))
+            || !matches!(
+                client.send_next_inventory(&store, device).await,
+                Err(TransportError::Network(_))
+            )
             || store.verified_pending_inventory(device).await? != Some(pending.clone())
         {
-            return Err("offline inventory send unexpectedly acknowledged or mutated pending".into());
+            return Err(
+                "offline inventory send unexpectedly acknowledged or mutated pending".into(),
+            );
         }
         store.close().await;
         let reopened = OutboxStore::open(&path).await?;
@@ -501,7 +531,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("offline pending was lost after process restart".into());
         }
         reopened.close().await;
-        println!("PASS: actual Reqwest disconnected HTTPS inventory attempt retains exact SQLite pending revision across restart.");
+        println!(
+            "PASS: actual Reqwest disconnected HTTPS inventory attempt retains exact SQLite pending revision across restart."
+        );
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
         assert_disposition(
@@ -528,20 +560,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             CredentialEpochDisposition::PauseIdentity
         );
         if env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE").as_deref() == Ok("1") {
-            let inventory_path = pki.parent()
+            let inventory_path = pki
+                .parent()
                 .ok_or("disposable inventory directory missing")?
                 .join("synthetic-inventory-outbox.sqlite");
             let inventory_store = OutboxStore::open(&inventory_path).await?;
             let before = inventory_store
-                .verified_pending_inventory(device).await?
+                .verified_pending_inventory(device)
+                .await?
                 .ok_or("expired/revoked: pending inventory was lost")?;
             if before.revision != 2
                 || client.send_next_inventory(&inventory_store, device).await?
                     != Some(DeliveryDisposition::PauseIdentity)
-                || inventory_store.verified_pending_inventory(device).await?
-                    != Some(before.clone())
+                || inventory_store.verified_pending_inventory(device).await? != Some(before.clone())
             {
-                return Err("expired/revoked inventory request did not fail closed with pending retained".into());
+                return Err(
+                    "expired/revoked inventory request did not fail closed with pending retained"
+                        .into(),
+                );
             }
             inventory_store.close().await;
             let reopened = OutboxStore::open(&inventory_path).await?;
@@ -549,7 +585,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 return Err("expired/revoked inventory pending lost after SQLite restart".into());
             }
             reopened.close().await;
-            println!("PASS: actual Rust inventory HTTP denies expired/revoked identity and keeps the exact pending revision after SQLite reopen.");
+            println!(
+                "PASS: actual Rust inventory HTTP denies expired/revoked identity and keeps the exact pending revision after SQLite reopen."
+            );
         }
         println!(
             "PASS: real Rust Reqwest heartbeat and read-only ledger lookup denied after synthetic credential {}.",
