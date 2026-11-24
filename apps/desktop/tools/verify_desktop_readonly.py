@@ -51,8 +51,11 @@ def validate(root=DESKTOP):
     for field in ("installAllowed", "updateAllowed", "removeAllowed",
                   "startAllowed", "bootEnabled", "collectionAllowed",
                   "networkAllowed", "privilegedBrokerAvailable"):
+        # Match the *returned object value*, not the readonly type
+        # declaration (which also says 'false' but is not runtime authority).
         require(
-            re.search(r"\b" + field + r":\s*false\b", review) is not None,
+            re.search(r"\b" + field + r":\s*false\s*,", review) is not None
+            and re.search(r"\b" + field + r":\s*true\b", review) is None,
             f"unreviewed installer privilege grant: {field}",
         )
     require(
