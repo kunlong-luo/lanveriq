@@ -36,6 +36,20 @@ jobs:
         run: python3 -m unittest discover -s apps/agent/tools/linux -p 'test_verify_offline_agent_deb.py'
       - name: Reject false installed-service claims and hostile effective systemd properties
         run: python3 -m unittest discover -s apps/agent/tools/linux -p 'test_verify_installed_agent_idle.py'
+      - name: Validate CI-only real dpkg lifecycle lab cannot run on unapproved hosts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n apps/agent/tools/linux/verify-disposable-agent-dpkg-lifecycle.sh
+          if env -u LANVERIQ_DISPOSABLE_DPKG_L2 bash apps/agent/tools/linux/verify-disposable-agent-dpkg-lifecycle.sh /bin/true; then
+            echo 'FAIL: dpkg lifecycle lab permitted without explicit CI consent' >&2
+            exit 1
+          fi
+          if GITHUB_ACTIONS=false LANVERIQ_DISPOSABLE_DPKG_L2=1 bash apps/agent/tools/linux/verify-disposable-agent-dpkg-lifecycle.sh /bin/true; then
+            echo 'FAIL: dpkg lifecycle lab permitted outside GitHub CI' >&2
+            exit 1
+          fi
+          echo 'PASS: lifecycle script refuses unapproved host invocation'
       - name: Confirm clean runner cannot pretend to be an installed approved Agent
         shell: bash
         run: |
@@ -81,6 +95,11 @@ jobs:
           trap 'rm -rf --one-file-system -- "$tmp"' EXIT
           bash tools/linux/build-offline-agent-deb.sh target/release/lanveriq-agent "$tmp"
           python3 tools/linux/verify-offline-agent-deb.py "$tmp/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb"
+          # LNX4: actual dpkg -i, same-version reinstall and dpkg -r, strictly
+          # inside a disposable, networkless pinned Ubuntu24 OCI container.
+          # Never install the Agent on the CI runner or a real Pop!_OS device.
+          LANVERIQ_DISPOSABLE_DPKG_L2=1 bash tools/linux/verify-disposable-agent-dpkg-lifecycle.sh \
+            "$tmp/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb"
       - name: Verify isolated systemd DynamicUser key custody across two service invocations
         # A transient synthetic systemd-run unit, never LanveriqAgent or a
         # permanent installed system service. No actual Pop!_OS host.
