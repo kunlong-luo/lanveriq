@@ -20,10 +20,10 @@
 - [2026-11-23 技术栈五批升级验收总账（真实 CI、遗留差距、回退边界）](development/stack-upgrade-acceptance-2026-11-23.md)。
 
 - [Tauri 2 桌面 UI + Rust 原生只读主机检测（Ubuntu24 源码/本机构建 2/2 L1 CI PASS，非发行版）](development/desktop-tauri-first-source-2026-11-23.md) · [桌面源码 README](../apps/desktop/README.md)。当前为离线预览，**不能安装 Agent**。
-- [DESKTOP-L2B-14 Ubuntu24 原生 APT 缓存独立签名验证与精确闭包验收](development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md)：[真实双 runner 175 份缓存/签名索引/闭包 #45321096944 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944)；[L2B-13 当前源码未签名 .deb 候选 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 已接线固定缓存，在运行中，**包/ABI/签名/实机 L3 尚未验收**。
+- [DESKTOP-L2B-14 Ubuntu24 原生 APT 缓存独立签名索引与完整闭包验收](development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md)：[双 runner 175 份缓存验收 #45321096944 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944)，且 [GUI-only L2 #45322290248 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 已完整复用；**发行签名/Agent 安装器/Pop!_OS L3 仍未验收**。
 - [DESKTOP-L2B-15 指定源码 GUI-only Debian 完整 L2 通过的包 SHA/ABI/OCI 证据及 L3 交接](development/desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)：[c4f04e44 / #45322290248 **SUCCESS**](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248)；**不代表可分发 Agent 安装器**。
 - [DESKTOP-L2B-13 当前源码真实 GUI-only .deb 严格审计](development/desktop-tauri-l2b13-current-source-gui-deb-reaudit-2026-11-24.md)：同源码 L2 已通过；真实 Pop!_OS L3、签名和安装授权未执行。
-- [DESKTOP-L2B-12 图形兼容性只读预检、前端 ABI 约束、防篡改与真实 CI 阻塞账本](development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md)：最新 d44327b5 的 [desktop-ui L1 子任务 #45314250801 已成功](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801)（23+22+19 测试，Python/React/.deb ABI 与 COSMIC 防漂移），原生 L2 尚无通过证据，**不能用于发行**。
+- [DESKTOP-L2B-12 早期图形兼容性只读预检与失败/修复历史](development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md)：当时 d44327b5 的 [L1 #45314250801 成功](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801)；后来当前只读 GUI 已在 [L2B-15 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 通过严格原生 L2，但**仍不能发行安装 Agent**。
 
 ## Linux-first 图形安装与后台 Agent（2026-11-23 产品设计，**未实现**）
 
