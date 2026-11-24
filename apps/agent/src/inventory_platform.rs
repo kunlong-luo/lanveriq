@@ -140,6 +140,66 @@ pub fn collect_local_inventory() -> RawInventory {
     }
 }
 
+/// Linux CI / explicitly approved offline inspection only: the smallest
+/// asset whitelist that can be sampled without inspecting NIC, IP, mounts,
+/// user, process, disk, hostname, serial, activity or desktop session.
+/// The installed Agent runtime never calls this function, and it performs
+/// no network request and owns no scheduling or upload side effect.
+#[cfg(target_os = "linux")]
+pub fn collect_minimal_linux_inventory() -> RawInventory {
+    let system = System::new_with_specifics(
+        RefreshKind::nothing()
+            .with_cpu(CpuRefreshKind::everything())
+            .with_memory(MemoryRefreshKind::everything()),
+    );
+    let cores = system.cpus();
+    let cpu = cores.first().map(|first| Cpu {
+        model: (!first.brand().trim().is_empty())
+            .then(|| first.brand().trim().to_string()),
+        arch: Some(std::env::consts::ARCH.to_string()),
+        physical_cores: System::physical_core_count().and_then(|n| u32::try_from(n).ok()),
+        logical_cores: u32::try_from(cores.len()).ok(),
+    });
+    let memory = (system.total_memory() > 0).then_some(Memory {
+        total_bytes: Some(system.total_memory()),
+    });
+    let os_info = os_info::get();
+    let os = OperatingSystem {
+        family: "linux".to_string(),
+        name: Some(os_info.os_type().to_string()),
+        version: match os_info.version() {
+            os_info::Version::Unknown => None,
+            value => Some(value.to_string()),
+        },
+        build: None,
+        kernel_release: System::kernel_version(),
+        arch: Some(std::env::consts::ARCH.to_string()),
+    };
+    RawInventory {
+        hardware: Hardware {
+            manufacturer: None,
+            model: None,
+            cpu,
+            memory,
+        },
+        os,
+        interfaces: Vec::new(),
+        volumes: Vec::new(),
+        capabilities: BTreeMap::from([
+            ("hardware_inventory".into(),
+             if cores.is_empty() && system.total_memory() == 0 {
+                 "unavailable".into()
+             } else {
+                 "available".into()
+             }),
+            ("network_interfaces".into(), "not_collected".into()),
+            ("mounted_volumes".into(), "not_collected".into()),
+            ("desktop_session".into(), "not_collected".into()),
+            ("manufacturer_model".into(), "not_collected".into()),
+        ]),
+    }
+}
+
 fn normalize_interface(value: OsNetworkInterface) -> NetworkInterface {
     let mut addresses = Vec::new();
     for addr in value.addr {
