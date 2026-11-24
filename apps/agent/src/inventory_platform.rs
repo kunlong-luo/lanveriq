@@ -166,10 +166,9 @@ pub fn collect_minimal_linux_inventory() -> RawInventory {
     let os = OperatingSystem {
         family: "linux".to_string(),
         name: Some(os_info.os_type().to_string()),
-        version: match os_info.version() {
-            os_info::Version::Unknown => None,
-            value => Some(value.to_string()),
-        },
+        // os_info::Version::Semantic turns Ubuntu 24.04 into 24.4.0.
+        // Preserve the distro's VERSION_ID via our existing sysinfo crate.
+        version: System::os_version(),
         build: None,
         kernel_release: System::kernel_version(),
         arch: Some(std::env::consts::ARCH.to_string()),
