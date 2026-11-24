@@ -1,0 +1,46 @@
+name: Desktop two-key detached signature interoperability (LAB ONLY)
+
+# Synthetic Ed25519 identities; no production keys, release roots,
+# package publishing, polkit installation, self-hosted deployment or upload.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/verify_desktop_dual_signer_lab.py'
+      - 'apps/desktop/tools/test_verify_desktop_dual_signer_lab.py'
+      - '.github/workflows/desktop-dual-signer-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  two-role-interoperability:
+    name: Validate two synthetic Ed25519 signatures and reject release escalation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Require Ubuntu OpenSSL 3 and verify Python syntax
+        run: |
+          set -Eeuo pipefail
+          openssl version | grep -E '^OpenSSL 3[.]'
+          python3 -m py_compile \
+            apps/desktop/tools/verify_desktop_dual_signer_lab.py \
+            apps/desktop/tools/test_verify_desktop_dual_signer_lab.py
+      - name: Run 30 disposable-key crypto, replay, tamper and approval-denial tests
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools \
+            -p 'test_verify_desktop_dual_signer_lab.py' -v
+      - name: Keep release, install, PKI, network and Agent rights disabled
+        run: |
+          set -Eeuo pipefail
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_desktop_release_evidence_boundary.py
+          python3 apps/desktop/tools/verify_desktop_agent_install_intent.py \
+            --intent docs/planning/desktop-agent-install-intent-deny-all.json \
+            | grep -F 'DENIED: design-only Agent install intent'
+          echo 'PASS: LAB ONLY, no trust root, custody, publisher approval, installer or release'
