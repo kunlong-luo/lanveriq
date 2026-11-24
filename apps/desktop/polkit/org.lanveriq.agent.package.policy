@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  L2B-22 REVIEW FIXTURE ONLY - NOT INSTALLED OR BUNDLED.
+  NO is intentional for all subjects. No implicit authentication, stored
+  authorization, pkexec annotations, general command/path, or unit control.
+  Site-specific polkit JavaScript rules can override policy defaults;
+  never interpret this source as OS-enforced authorization or a release gate.
+-->
+<policyconfig>
+  <vendor>Lanveriq</vendor>
+  <action id="org.lanveriq.agent.package.install">
+    <description>Review Lanveriq Agent installation</description>
+    <message>Lanveriq Agent install is not approved</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.lanveriq.agent.package.upgrade">
+    <description>Review Lanveriq Agent upgrade</description>
+    <message>Lanveriq Agent upgrade is not approved</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.lanveriq.agent.package.remove">
+    <description>Review Lanveriq Agent removal</description>
+    <message>Lanveriq Agent removal is not approved</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+</policyconfig>
