@@ -1,5 +1,7 @@
 # Lanveriq Desktop — Tauri 2 read-only offline preview
 
+**L2B-16 safe release-boundary regression PASS, not approval:** [Ubuntu24 offline #45324049249](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249) passed 30 synthetic checks plus the original read-only Tauri source verifier. The [checked-in evidence state](../../docs/planning/desktop-release-evidence-boundary.json) pins historical GUI-only Debian L2 while keeping signer, polkit, Agent installation, WORM and physical Pop!_OS L3 gates NOT APPROVED/OPEN. Neither this JSON nor these tests authorize signing, upload, distribution or installation. [Security contract](../../docs/development/desktop-tauri-l2b16-release-evidence-denial-contract-2026-11-24.md).
+
 **EXACT SOURCE GUI-only Debian L2 PASS, native Tauri preview PASS · NOT A SIGNED AGENT INSTALLER · v0.1 NOT RELEASE READY**
 
 [完整 GUI-only .deb 审计 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 在指定源码 SHA c4f04e44 实际生成并完整审计 unsigned lanveriq-desktop_0.1.0_amd64.deb（SHA-256 83ab54d1331213335e3ec77e383c6b8c384690f37826e42413ffc35d2efe504a）：Rust/Clippy、恶意归档、局部 Syft SPDX、15 ELF SONAME、官方 dpkg-shlibdeps 缺口 0、干净 Ubuntu OCI APT 模拟及 LAB 临时 Ed25519 PASS；**没有安装、上传或分发该包**。[原生只读预览 CI #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 也已实际 **overall SUCCESS**（React 和原生 Rust 两个 job 都 PASS），不等于真 Pop!_OS24/COSMIC L3。安全/发布交接见 [L2B-15](../../docs/development/desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)。

@@ -2,6 +2,8 @@
 
 **EVIDENCE · VERIFIED · 2026-11-24 · GUI-only disposable Ubuntu CI L2 PASS；Agent 安装器 L2 和 Pop!_OS L3 NOT RUN；v0.1 NOT RELEASE READY。**
 
+> **L2B-16 跟进：** [独立 Ubuntu24 安全契约 #45324049249](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249) 30/30 PASS + 实际只读桌面源码检查 PASS。[版本化状态 JSON](../planning/desktop-release-evidence-boundary.json) 将本 L2B-15 的 exact SHA/run/包哈希与所有发行/实机 Gate 分离，禁止把临时 Ed25519 实验等同正式签名、Ubuntu CI 等同 Pop!_OS COSMIC L3 或 GUI-only Debian 等同 Agent 安装器。这只是本仓库离线回归测试，**绝不产生发行或安装权限**。[L2B-16 规范](desktop-tauri-l2b16-release-evidence-denial-contract-2026-11-24.md)。
+
 ## 同一阶段的独立 Tauri 原生预览验收
 
 [原生只读预览 CI #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 对应源码/CI SHA ea62c63c，**overall SUCCESS**，两项作业均 SUCCESS：React 断开式 UI 安全/冻结依赖/测试/类型/构建 PASS；Ubuntu24 原生 Rustfmt、Cargo lock、已审 175 个 APT 缓存归档在独立 runner 重新按官方签名索引验真并 --no-download 安装构建头文件、实际 Tauri 只读原生检查器编译/测试、严格 Clippy PASS。此运行**不打包发行安装器、不安装 Agent**，不能取代精确 SHA c4f04e44 的 GUI-only .deb 审计，也不能证明 Pop!_OS 物理 L3。它单独证明常规 desktop L1/native preview CI 的构建依赖瓶颈已解除。

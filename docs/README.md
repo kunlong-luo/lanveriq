@@ -5,6 +5,7 @@
 > **2026-11-21 current Web baseline:** 唯一 Web 是 `apps/web` Next.js16.4.5/React19/Tailwind4/Base UI；旧 Vite 和 `web-next` 已删除/迁移。[NXT-24](development/nextjs-path-rename-nxt24-2026-11-21.md) 仅旧迁移证据。公开 Pages 是断开式预览。
 
 ## 工作规范与当前阻塞
+- [DESKTOP-L2B-16 GUI-only L2 事实与 Agent 发行权限隔离的拒绝优先契约](development/desktop-tauri-l2b16-release-evidence-denial-contract-2026-11-24.md)：[Ubuntu24 30/30 测试 #45324049249 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249)；[可审机器状态](planning/desktop-release-evidence-boundary.json) 维持所有生产/签名/安装 Gate 为 OFF/OPEN，**不是可信发行签名或授权**。
 - **事实**：[CURRENT_STATUS](CURRENT_STATUS.md)；**流程**：[根 AGENTS](../AGENTS.md) · [工程手册](governance/engineering-playbook.md) · [DoD](planning/definition-of-done.md)。
 - **发布**：[P0/P1 release-gap register](planning/release-gap-register.md) · [历史真实证据账本](planning/release-readiness-2026-11-13.md)；**文档权威**：[生命周期](governance/document-lifecycle.md) · [本次审计](governance/documentation-audit-2026-11-22.md)。
 - **架构决策**：[ADR 索引](architecture/adrs/README.md) · [成熟库优先](development/reuse-first-policy.md) · [真实依赖](development/technology.md) · [工程规范](development/standards.md)。

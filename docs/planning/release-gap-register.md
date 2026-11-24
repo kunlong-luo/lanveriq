@@ -1,5 +1,7 @@
 # Lanveriq v0.1 发布阻塞清单
 
+> **2026-11-24 G-05 发行事实机读拒绝检查：** [L2B-16 #45324049249](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249) **30/30 PASS**，并通过现有 Tauri 只读源码门禁。新的 [Gate 状态 JSON](desktop-release-evidence-boundary.json) 只允许准确记录 GUI-only L2 实测历史，**不允许宣称**已批准发行者密钥、可分发 Agent 包、Polkit 安装权限、Pop!_OS COSMIC 实机、G-02 独立 WORM 或法务/运营签字；更不得解除生产联网、采集、远控、CA 签发的默认关闭。**该 CI 不签名、不验生产可信根、不发放任何权限**；G-02/G-05/G-07/G-08/G-09 OPEN，v0.1 NOT RELEASE READY。[L2B-16](../development/desktop-tauri-l2b16-release-evidence-denial-contract-2026-11-24.md)。
+
 > **2026-11-24 G-05 最新验收分类：** [GUI-only L2 指定源码 c4f04e44 / CI #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) **overall SUCCESS**。真实 unsigned lanveriq-desktop_0.1.0_amd64.deb SHA256=83ab54d1331213335e3ec77e383c6b8c384690f37826e42413ffc35d2efe504a；Rust/Clippy、Syft **局部**载荷、15 SONAME、官方 dpkg-shlibdeps **10 组要求/12 组声明/0 缺口**、干净 Ubuntu24 OCI 模拟和 LAB 临时 Ed25519 均通过。仅能关闭此 SHA 的 **GUI-only 严格隔离 L2 子项**；未安装、上传、发布或正式签名，不能关闭 G-05。真实 Agent 安装器的签名/Polkit L2、物理 Pop!_OS/COSMIC L3、G-02 独立 WORM、G-07 法务、G-08 运维和 G-09 产品体验保持 OPEN。**v0.1 NOT RELEASE READY**。[L2B-15 证据交接](../development/desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)。
 
 > 以下早期 G-05 “正在执行/排队/失败”记录为各自时间点历史证据，不代表当前已通过工作的最新状态。
