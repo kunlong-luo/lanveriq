@@ -12,6 +12,9 @@ on:
       - 'apps/desktop/tools/polkit-runtime-oci.Dockerfile'
       - 'apps/desktop/tools/test_polkit_runtime_oci.sh'
       - 'apps/desktop/tools/polkit-fixed-action-gate.rs'
+      - 'apps/desktop/tools/polkit-oci-dbus-broker-lab.py'
+      - 'apps/desktop/tools/polkit-oci-dbus-review.conf'
+      - 'apps/desktop/tools/test_polkit_dbus_broker_oci.sh'
       - '.github/workflows/desktop-polkit-runtime-oci-l2.yml'
   workflow_dispatch:
 
@@ -73,3 +76,21 @@ jobs:
             < apps/desktop/tools/test_polkit_runtime_oci.sh
           python3 apps/desktop/tools/verify_desktop_readonly.py
           echo 'PASS: native OS authorization check is L2-only and has not enabled Tauri install'
+      - name: Real root-side D-Bus review verifies sender Unix credentials and refuses replay
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile apps/desktop/tools/polkit-oci-dbus-broker-lab.py
+          bash -n apps/desktop/tools/test_polkit_dbus_broker_oci.sh
+          docker run --rm --interactive \
+            --network none \
+            --pids-limit 128 --memory 512m --cpus 1 \
+            --mount "type=bind,src=$PWD/apps/desktop/polkit,dst=/mnt/lanveriq-policy,readonly" \
+            --mount "type=bind,src=$PWD/apps/desktop/tools,dst=/mnt/lanveriq-broker-source,readonly" \
+            --env LANVERIQ_POLKIT_RUNTIME_L2=disposable-oci-only \
+            --entrypoint /bin/bash \
+            lanveriq-polkit-runtime-ci-only:local -seuo pipefail \
+            < apps/desktop/tools/test_polkit_dbus_broker_oci.sh
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_desktop_polkit_review.py
+          echo 'PASS: root-side OCI D-Bus peer review did not create an installer or grant Polkit authorization'
