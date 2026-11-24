@@ -40,7 +40,7 @@ for op in install upgrade remove; do
             start=$(awk "{print \$22}" "/proc/$$/stat")
             subject="$$,$start,$(id -u)"
             set +e
-            pkcheck --action-id "$id" --process "$subject" > /tmp/ignore-output-unsafe 2>/dev/null
+            pkcheck --action-id "$id" --process "$subject" > /dev/null 2>&1
             status=$?
             set -e
             if [ "$status" -ne 1 ]; then
