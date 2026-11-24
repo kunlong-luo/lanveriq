@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -187,6 +187,7 @@ export const retiredRepositoryPaths = [
   'mvnw',
   'docs/development/pagevela-reference.md',
   'docs/governance/documentation-index-snapshot-2026-11-21.md',
+  'docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md',
 ];
 
 const conciseEntrypoints = [
@@ -273,11 +274,51 @@ export function verifyLocalDocumentationLinks(root, entries = documentationLinkE
   return true;
 }
 
+/**
+ * Scan ALL documentation Markdown files for links back to the retired,
+ * duplicated long-form index/AGENTS snapshots. Current guidance links to the
+ * immutable Git SHA or the lightweight archive README instead. The source
+ * guard itself has no network, file deletion or external dependencies.
+ */
+export function verifyNoRetiredSnapshotLinks(root) {
+  const repoRoot = resolve(root);
+  const docsRoot = join(repoRoot, 'docs');
+  const retired = new Set([
+    resolve(repoRoot, 'docs/governance/documentation-index-snapshot-2026-11-21.md'),
+    resolve(repoRoot, 'docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md'),
+  ]);
+  const files = [
+    join(repoRoot, 'README.md'), join(repoRoot, 'README.zh.md'),
+    join(repoRoot, 'AGENTS.md'), join(repoRoot, 'CHANGELOG.md'),
+  ];
+  const walk = dir => {
+    for (const item of readdirSync(dir, { withFileTypes: true })) {
+      const next = join(dir, item.name);
+      if (item.isDirectory()) walk(next);
+      else if (item.isFile() && item.name.endsWith('.md')) files.push(next);
+    }
+  };
+  walk(docsRoot);
+  for (const file of files) {
+    const source = readFileSync(file, 'utf8');
+    for (const match of source.matchAll(/\]\(([^)]+)\)/g)) {
+      const raw = match[1].trim().split('#', 1)[0];
+      if (!raw || /^(?:[a-z][a-z\d+.-]*:|\/)/i.test(raw)) continue;
+      if (retired.has(resolve(dirname(file), raw))) {
+        throw new Error('Retired historical snapshot linked as a live file: ' +
+                        file + ' -> ' + raw);
+      }
+    }
+  }
+  return true;
+}
+
 const here = fileURLToPath(import.meta.url);
 if (process.argv[1] && resolve(process.argv[1]) === here) {
   const root = resolve(dirname(here), '../../..');
   verifyDocumentationBaseline(root);
   verifyLocalDocumentationLinks(root);
   verifyRepositoryLayout(root);
+  verifyNoRetiredSnapshotLinks(root);
   console.log('PASS: Next.js canonical documentation, release boundaries, directory inventory and local links verified');
 }
