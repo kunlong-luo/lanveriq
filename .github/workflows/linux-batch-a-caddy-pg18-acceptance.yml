@@ -20,6 +20,9 @@ on:
       - 'apps/web/src/lib/staged-console-read.ts'
       - 'apps/web/src/lib/staged-console-overview.ts'
       - 'apps/web/src/lib/console-device-projection.ts'
+      - 'apps/web/src/lib/console-device-projection.test.ts'
+      - 'apps/web/src/components/device-directory.tsx'
+      - 'apps/agent/src/inventory.rs'
       - 'apps/agent/src/enrollment_linux.rs'
       - 'apps/agent/examples/linux_csr_synthetic.rs'
       - 'apps/agent/examples/linux_batch_a_http_synthetic.rs'
@@ -37,10 +40,15 @@ on:
       - 'apps/server/src/main/java/com/lanveriq/server/events/AgentIngressAssertionPolicy.java'
       - 'apps/server/src/main/java/com/lanveriq/server/events/AgentActivationRestController.java'
       - 'apps/server/src/main/java/com/lanveriq/server/events/AgentHeartbeatRestController.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/events/AgentInventoryRestController.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/events/AgentInventoryHttpSecurityConfiguration.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/events/DeviceInventoryService.java'
+      - 'apps/server/src/main/java/com/lanveriq/server/events/JpaDeviceInventoryRepository.java'
       - 'apps/server/src/main/java/com/lanveriq/server/events/JpaDeviceHeartbeatRepository.java'
       - 'apps/server/src/main/resources/db/migration/**'
       - 'apps/server/src/integrationTest/**'
       - 'apps/server/src/main/resources/application-agent-upstream-mtls-acceptance.yml'
+      - 'apps/server/src/main/resources/application.yml'
       - 'deploy/caddy/Caddyfile.reference'
   workflow_dispatch:
 
@@ -137,8 +145,9 @@ jobs:
           node scripts/install-synthetic-rust-chain-fixture.mjs
           pnpm typecheck
           pnpm build
-      - name: Run same-device Rust Agent -> Spring -> PG18 -> actual Next.js Chromium
+      - name: Run same-device Rust inventory SQLite -> mTLS -> PG18 -> Next.js Chromium
         env:
+          LANVERIQ_SYNTHETIC_INVENTORY_CHAIN: '1'
           LANVERIQ_SYNTHETIC_CADDY_BRIDGE: '1'
           LANVERIQ_SYNTHETIC_LINUX_CSR: '1'
           LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP: '1'
@@ -187,6 +196,8 @@ jobs:
             echo "- PASS: actual Rust/Reqwest + Caddy double TLS1.3 + PG18 durable ACK"
             echo "- PASS: same UUID/database, Spring scoped list/detail/monitoring"
             echo "- PASS: actual Chromium/Next.js displays same authorized Rust device"
+            echo "- PASS: Rust SQLite inventory outbox, real mTLS POST/ACK -> PG18 latest -> Spring authorized OS/CPU/memory in Next.js"
+            echo "- PASS: inventory duplicate no-change and unregistered-leaf denial"
             echo "- PASS: cross-group 404, logout clears DOM, post-logout API 401"
             echo "- NOT PROVEN: product login, Pop!_OS installed service or signed release"
           } >> "$GITHUB_STEP_SUMMARY"
