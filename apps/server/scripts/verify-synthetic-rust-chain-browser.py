@@ -16,9 +16,13 @@ DEVICE = "00000000-0000-7000-8000-000000000001"
 UNSCOPED = "00000000-0000-7000-8000-000000000099"
 
 
+class BrowserGateFailure(Exception):
+    """Only fixed source-authored gate names; never underlying request details."""
+
+
 def require(value, name):
     if not value:
-        raise ValueError(name)
+        raise BrowserGateFailure(name)
 
 
 def main():
@@ -38,8 +42,11 @@ def main():
             os.environ.get("LANVERIQ_SYNTHETIC_AUTH_UI_PROBE") == "0" and
             os.environ.get("LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE") == "0",
             "disposable_scope")
+    home = os.environ.get("HOME", "")
+    require(home and os.path.isdir(os.path.join(home, ".pki/nssdb")),
+            "private_chromium_nss_trust_missing")
     container = os.environ.get("LANVERIQ_SYNTHETIC_CHAIN_DB_CID", "")
-    require(bool(re.fullmatch(r"[0-9a-f]{64}", container)), "ephemeral_database_id")
+    require(bool(re.fullmatch(r"[0-9a-f]{12,64}", container)), "ephemeral_database_id")
     # Password is transferred by a private inherited FD. Never argv/env/log.
     with os.fdopen(3, "r", encoding="utf-8") as secret:
         password = secret.readline().rstrip("\r\n")
@@ -66,12 +73,21 @@ def main():
     rejected = []
     api_responses = []
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
+        # Chromium's own resolver must stay on the same loopback-only Caddy
+        # used by real curl. Without this it tries public DNS or a runner proxy
+        # and can fail before the TLS and UI checks begin.
+        chromium_args = [
+            "--host-resolver-rules=MAP console.lanveriq.internal 127.0.0.1",
+            "--no-proxy-server",
+        ]
+        browser = playwright.chromium.launch(headless=True, args=chromium_args)
         print("STAGE: Chromium launched with isolated NSS trust", flush=True)
         try:
-            # No ignore_https_errors: Chromium relies on the private NSS CA
-            # prepared by the existing isolated upstream mTLS test harness.
-            context = browser.new_context(service_workers="block")
+            # Actual certificate validation; no certificate bypass and no
+            # browser proxy, downloads or installed desktop Agent.
+            context = browser.new_context(
+                ignore_https_errors=False, accept_downloads=False,
+                service_workers="block")
             page = context.new_page()
 
             # Block external origins ONLY. Never intercept/rewrite a trusted
@@ -185,7 +201,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except ValueError as exc:
+    except BrowserGateFailure as exc:
         # require() failures have fixed, source-authored nonsecret gate names.
         # Never print raw browser exceptions, HTTP bodies or database values.
         print("FAIL: disposable Rust-to-Next.js gate: " + str(exc),
