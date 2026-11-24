@@ -154,8 +154,7 @@ pub fn collect_minimal_linux_inventory() -> RawInventory {
     );
     let cores = system.cpus();
     let cpu = cores.first().map(|first| Cpu {
-        model: (!first.brand().trim().is_empty())
-            .then(|| first.brand().trim().to_string()),
+        model: (!first.brand().trim().is_empty()).then(|| first.brand().trim().to_string()),
         arch: Some(std::env::consts::ARCH.to_string()),
         physical_cores: System::physical_core_count().and_then(|n| u32::try_from(n).ok()),
         logical_cores: u32::try_from(cores.len()).ok(),
@@ -186,12 +185,14 @@ pub fn collect_minimal_linux_inventory() -> RawInventory {
         interfaces: Vec::new(),
         volumes: Vec::new(),
         capabilities: BTreeMap::from([
-            ("hardware_inventory".into(),
-             if cores.is_empty() && system.total_memory() == 0 {
-                 "unavailable".into()
-             } else {
-                 "available".into()
-             }),
+            (
+                "hardware_inventory".into(),
+                if cores.is_empty() && system.total_memory() == 0 {
+                    "unavailable".into()
+                } else {
+                    "available".into()
+                },
+            ),
             ("network_interfaces".into(), "not_collected".into()),
             ("mounted_volumes".into(), "not_collected".into()),
             ("desktop_session".into(), "not_collected".into()),
