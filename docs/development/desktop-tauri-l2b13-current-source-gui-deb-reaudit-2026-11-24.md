@@ -19,7 +19,7 @@
 ## 候选包输入覆盖与并发取证保护（2026-11-24 更新）
 
 - [7cf23f3e](https://github.com/kunlong-luo/lanveriq/commit/7cf23f3e8da72b0a646f8edcc0edd965a53c619d) 在此前 [161879ea](https://github.com/kunlong-luo/lanveriq/commit/161879ea3f1b94713b413260ae6852546f92df81) 的严格候选 workflow 上补全三类遗漏的实际构建/安全输入：`apps/desktop/src-tauri/capabilities/**`（Tauri IPC 权限范围）、`apps/desktop/src-tauri/rust-toolchain.toml`（Rust toolchain 审计）、`apps/desktop/.node-version`（桌面 Node pin）。任一输入变化都必须触发新的来源一致性检测；README-only 变更依旧不触发。此修改**没有开启新 Tauri 权限，没有改变 Agent/桌面源代码，也没有批准签名或安装**。
-- 该候选 workflow 的 `cancel-in-progress=false` 用于保留已经开始的长耗时归档取证及失败诊断；后续提交以独立 SHA 排队验收，不会因新推送直接废弃进行中的证据。相比旧 `cancel-in-progress=true`，这可能延长等待队列，但更适合耗时的首次真实原生审核。不把旧运行的包 SHA/ABI 结果映射为新提交通过。
+- 该候选 workflow 的 `cancel-in-progress=false` 只确保**已开始的昂贵归档取证**不会被后续提交自动取消。GitHub Actions 同组最多保留一个 pending，新 pending 可能将旧 pending 标记为 CANCELLED，因此**不能保证每个新 SHA 都被保留排队并完整运行**；必须按实际 GitHub run 的 source SHA、run attempt 与 conclusion 核对，若某 SHA 未执行则不能借别的 SHA 通过。此配置只保留已运行中的证据，不做发布豁免。
 - **当前独立证据：** [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 已完成安全负测、冻结前端测试/类型/构建、Cargo lock/Rustfmt 等前置步骤，实际 Ubuntu WebKitGTK 依赖步骤尚在执行；[7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 为排队的新 workflow，**NOT RUN**（尚无 job 结论）。当前源码没有经过这两次运行确认的完整 `.deb` 构建/官方 ABI/Syft/ELF/OCI 成功结果。
 
 ## 当前源码原生预览真实失败与构建依赖隔离原则

@@ -20,7 +20,7 @@
 - [2026-11-23 技术栈五批升级验收总账（真实 CI、遗留差距、回退边界）](development/stack-upgrade-acceptance-2026-11-23.md)。
 
 - [Tauri 2 桌面 UI + Rust 原生只读主机检测（Ubuntu24 源码/本机构建 2/2 L1 CI PASS，非发行版）](development/desktop-tauri-first-source-2026-11-23.md) · [桌面源码 README](../apps/desktop/README.md)。当前为离线预览，**不能安装 Agent**。
-- [DESKTOP-L2B-14 Ubuntu WebKitGTK/GTK APT 缓存、离线敌意负测及独立签名索引逐包认证](development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md)：[离线缓存 13/13 测试 #45320263339 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45320263339)，已增加跨 runner 恢复后按新 APT 签名索引匹配每份 .deb 的 SHA-256/大小/版本；**真实缓存恢复 CI 尚未 PASS，不是发布 Builder**。
+- [DESKTOP-L2B-14 Ubuntu WebKitGTK/GTK APT 缓存、实际依赖闭包等值及逐包签名索引核验](development/desktop-tauri-l2b14-ubuntu-apt-prefetch-cache-lab-2026-11-24.md)：[离线 20/20 测试 #45321096899 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096899)，[Ubuntu24 真实 apt-get -s 171/171 #45321177263 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45321177263)，**但真实下载、缓存保存/恢复和当前 Tauri .deb 严格 L2 尚未 PASS**，不是可分发 Builder。
 - [DESKTOP-L2B-13 当前源码 GUI-only .deb 严格归档审计与 Ubuntu 原生依赖复验](development/desktop-tauri-l2b13-current-source-gui-deb-reaudit-2026-11-24.md) · [零安装 APT 依赖计划诊断（171 项）](../.github/workflows/desktop-ubuntu-apt-plan-diagnostic.yml)：当前源码候选仍受构建环境下载瓶颈阻塞，**不是可分发 Agent 安装器**。
 - [DESKTOP-L2B-12 图形兼容性只读预检、前端 ABI 约束、防篡改与真实 CI 阻塞账本](development/desktop-tauri-l2b12-cosmic-readonly-gui-integration-2026-11-24.md)：最新 d44327b5 的 [desktop-ui L1 子任务 #45314250801 已成功](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801)（23+22+19 测试，Python/React/.deb ABI 与 COSMIC 防漂移），原生 L2 尚无通过证据，**不能用于发行**。
 

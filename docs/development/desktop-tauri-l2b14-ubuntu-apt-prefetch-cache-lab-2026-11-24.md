@@ -37,7 +37,16 @@ The verification library is built on Python standard `hashlib` and native Ubuntu
 
 **CI efficiency:** [08673541 desktop-preview workflow](../../.github/workflows/desktop-tauri-preview.yml) now excludes all unrelated APT cache source/test changes from expensive real Tauri WebKitGTK/Clippy CI triggering. Actual embedded Pop!_OS/read-only inspection sources and Tauri build inputs remain covered, and native CI stays strict. The small offline contract workflow independently tests cache validation on every change of its files. Native preview in-progress jobs are preserved across newer source pushes rather than cancelled just for a documentation or unrelated security helper update.
 
-**Observed runs:** [b695945c prefetch #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) remained IN PROGRESS at download; old [ab1e3cd1 #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) is CANCELLED, not a test pass; signed-index-per-archive version [c141cf3e #45320183856](https://github.com/kunlong-luo/lanveriq/actions/runs/45320183856) is QUEUED at this review. Only an actual entire two-job workflow SUCCESS, including post-cache save and independent restore of all matching packages, can justify L2B-14 lab acceptance. Full production-origin approval, real GUI-only candidate `.deb`, official ABI and Pop!_OS L3 remain separate OPEN gates.
+**Observed runs:** [b695945c prefetch #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) remained IN PROGRESS at download; old [ab1e3cd1 #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) is CANCELLED, not a test pass; signed-index-per-archive version [c141cf3e #45320183856](https://github.com/kunlong-luo/lanveriq/actions/runs/45320183856) was CANCELLED when a newer pending run superseded it. Only an actual entire two-job workflow SUCCESS, including post-cache save and independent restore of all matching packages, can justify L2B-14 lab acceptance. Full production-origin approval, real GUI-only candidate `.deb`, official ABI and Pop!_OS L3 remain separate OPEN gates.
+
+## 本阶段增补：APT 当前安装计划的精确闭包证明（2026-11-24）
+
+- [代码提交 720e2f18](https://github.com/kunlong-luo/lanveriq/commit/720e2f183ec01bc98957fde0c13179d1c5df074c)：`verify_desktop_apt_archive_cache.py` 新增 `parse_install_plan`，拒绝 `Remv/Purg`、畸形或重复的 `Inst`，且严格绑定 `package -> version`；恢复缓存不能包含不属于独立 Ubuntu24 runner 的当前计划的归档，亦不能少于模拟计划。预热工作流第二 runner 先通过 Ubuntu APT 签名策略刷新索引，再执行九项构建前置入口的 `apt-get -s`，最后以 `--expected-plan-file` 将闭包绑定到每包签名索引 SHA-256、Size、Version/Architecture 和跨 runner manifest。该加强没有修改产品 Agent/GUI 权限，也没有授予软件安装或构建发行权限。
+- [同源离线测试 #45321096899](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096899) **overall SUCCESS，20/20 PASS（18 个拒绝负测、2 个正常输入正测）**，比旧 13/13 多 7 项。它在隔离临时合成 `.deb` 字节上运行，不触及真实 Ubuntu 软件包缓存。
+- [真实 Ubuntu24 只读诊断 #45321177263 / 代码 9838b741](https://github.com/kunlong-luo/lanveriq/actions/runs/45321177263) **overall SUCCESS**，从 runner **现有缓存** APT 索引执行 `apt-get -s`，验证真实输出里 **171 条 Inst、0 条 Remv/Purg** 且 Python 解析得 171 项；本次 runner `ImageVersion=20261116.133.1`，本地缓存 `libwebkit2gtk-4.1-dev` 版本 `2.52.6-0ubuntu0.24.04.1`。**没有刷新索引/联网下载**，所以仅可称真实 Ubuntu 的缓存计划解析成功；不能视为受审镜像、当前软件包哈希、缓存恢复或真实 `.deb` 编译成功。
+- **GitHub concurrency 的真实边界：** 相同组 `cancel-in-progress=false` 保护已开始的 run，但 GitHub Actions 同一并发组只保留一个 pending；新 pending 可覆盖/取消旧 pending。[ab1e3cd1 #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) 和 [c141cf3e #45320183856](https://github.com/kunlong-luo/lanveriq/actions/runs/45320183856) 已确认为 CANCELLED，不能把它们写成 PASS 或仍在排队。正在运行的 [b695945c #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) 仍在下载；最新 [720e2f18 #45321096944](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) 等待中。后续只凭**实际成功 run 的 exact source SHA、两作业结果和缓存 manifest**作出验收结论。
+
+**未解除的阻塞：** 本次仍没有“从 Ubuntu 签名仓库完成下载 → GitHub 缓存保存成功 → 第二 runner 精确恢复并按新签名索引逐包检验 → 当前依赖闭包完全一致”的两作业整体 SUCCESS。不能将只读诊断、离线测试或旧 GUI .deb 成功变成发布许可；严格 native Rust/Clippy、当前源码新 .deb/Syft/ELF/ABI/clean OCI、正式签名/polkit/Pop!_OS24 L3 必须独立验收。
 
 ## 本轮精确来源证据
 
@@ -48,7 +57,10 @@ The verification library is built on Python standard `hashlib` and native Ubuntu
 | [候选 SHA 7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) | **overall FAIL**；Ubuntu APT 12 分钟下载超时，源/前端与 Cargo lock/Rustfmt PASS | 同源码 Rust/Clippy、真实归档、Syft/ABI/OCI 均 SKIPPED |
 | [增强 SHA ab1e3cd1 / #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) | **CANCELLED**，未完成任何实际 cache-probe  | 不得计为 PASS |
 | [独立离线协议 f24e7883 / #45320263339](https://github.com/kunlong-luo/lanveriq/actions/runs/45320263339) | **overall SUCCESS**，13/13 缓存攻击/不匹配单测 PASS | 没有运行真正 APT 下载/恢复 |
-| [签名索引交叉验证 c141cf3e / #45320183856](https://github.com/kunlong-luo/lanveriq/actions/runs/45320183856) | 第二 runner 每包强制匹配更新的 APT index SHA256/Size/Version/Arch；尚在排队 | 真正跨 runner 缓存验收未完成 |
+| [签名索引交叉验证 c141cf3e / #45320183856](https://github.com/kunlong-luo/lanveriq/actions/runs/45320183856) | **CANCELLED**，只是已提交签名索引验证逻辑 | 不能作为真实二阶段恢复证据 |
+| [缓存闭包校验 720e2f18 / #45321096899](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096899) | **20/20 离线正负测 PASS** | 未触及真实 .deb 缓存或任何包安装 |
+| [Ubuntu24 真正模拟 9838b741 / #45321177263](https://github.com/kunlong-luo/lanveriq/actions/runs/45321177263) | **overall SUCCESS**：171 条 Inst，0 删除，解析数严格 171 | 未刷新签名索引，未执行下载、缓存保存/恢复、编译/发行 |
+| [增强版完整预热 720e2f18 / #45321096944](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) | 仍待整链结论；尚未证明完成 | 两作业 signed-index + exact closure/manifest/cache-probe 全 PASS |
 
 **关闭本实验的条件：** 同 SHA 下预热作业与独立恢复作业均 SUCCESS，工作流整体 SUCCESS，明确记录完整 .deb 数量和缓存键，且无已安装包状态变化、无不安全 root 下载回退。若任何 post-cache 或 probe 失败，保持 FAIL / NOT VERIFIED。
 
