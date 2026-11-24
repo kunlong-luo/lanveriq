@@ -2,7 +2,7 @@
 
 **日期：2026-11-08 | 计划状态：隔离 CI 已实测原版客户端注册、会合及中继；尚无可对真实终端执行的受授权远程桌面会话，RD-2 BLOCKED。**
 
-决策见 [ADR-0010](adrs/0010-rustdesk-remote-control-integration.md)，服务器强制授权的 [RD-2 16 项防绕过验收契约](rustdesk-rd2-security-acceptance.md)。本计划为远程控制能力另开项目轨道；**不替代** [v0.1 设备身份/心跳/库存/授权前端批次 A–E](../planning/v0.1-batched-delivery-plan-2026-11-08.md)，也不允许在完成该批次之前将“远程控制”记为已交付。
+决策见 [ADR-0010](adrs/0010-rustdesk-remote-control-integration.md)，服务器强制授权的 [RD-2 16 项防绕过验收契约](rustdesk-rd2-security-acceptance.md)。本计划为远程控制能力另开项目轨道；**不替代** [v0.1 设备身份/心跳/库存/授权前端批次 A–E](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/v0.1-batched-delivery-plan-2026-11-08.md)，也不允许在完成该批次之前将“远程控制”记为已交付。
 
 ## 1. 本次代码库盘点
 

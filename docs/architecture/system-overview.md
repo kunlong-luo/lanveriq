@@ -1,6 +1,6 @@
 # Architecture overview
 
-**Status (2026-11-08):** v0.1 D0 technical design approved; **parts of Agent/Rust, Java/Spring and Next.js source plus synthetic tests exist**, but enrollment→Agent→TLS→PG18→authenticated Next.js is not complete and nothing is production enabled. See [v0.1 business batches](../planning/v0.1-batched-delivery-plan-2026-11-08.md).
+**Status (2026-11-08):** v0.1 D0 technical design approved; **parts of Agent/Rust, Java/Spring and Next.js source plus synthetic tests exist**, but enrollment→Agent→TLS→PG18→authenticated Next.js is not complete and nothing is production enabled. See [v0.1 business batches](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/v0.1-batched-delivery-plan-2026-11-08.md).
 
 [Color overview for non-engineers](../visuals/assets/01-overview.svg) · [Product infographic gallery](../visuals/README.md). These assets are **concepts**, not deployed-system screenshots.
 

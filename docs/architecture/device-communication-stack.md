@@ -88,4 +88,4 @@
 - **L2（批次 A/B）**：真正生成隔离测试 CA、P-256 CSR、审批注册/签叶子→Agent `reqwest`→Caddy mTLS→Tomcat mTLS→PG18 commit→只读授权页；分别测 TLS1.2/1.3 策略、错 SNI/证书/路径/头、重复/断网/撤销、日志脱敏。
 - **L3（发布）**：Windows 11/选定 Linux 的 OS key custody、启动/重启/注销、最小权限与防篡改、更新/回滚、离线网络、证书轮换/销毁、恢复演练、性能/负载与正式法律/组织授权。**L1 green 或以往 synthetic Caddy 成功不构成真实设备上线批准。**
 
-参阅 [v0.1 A–E 批次与三级测试策略](../planning/v0.1-batched-delivery-plan-2026-11-08.md)。
+参阅 [v0.1 A–E 批次与三级测试策略](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)。

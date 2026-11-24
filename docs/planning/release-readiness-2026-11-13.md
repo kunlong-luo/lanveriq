@@ -373,7 +373,7 @@
 - 历史旧功能分支/Draft PR 须先与 `main` 比对再清理；正式 GitHub Release 和分支规则/签名产物尚需建立。不会为本次文档更新合并/删除未检验代码。
 - 2026-11-08 的“4–8 周合成闭环/2–4 个月试点”是历史计划区间，不是上线承诺。是否能上线取决于 G1–G8 的实测证据。
 
-关联：[A–E 原批准计划](v0.1-batched-delivery-plan-2026-11-08.md) · [Roadmap](roadmap.md) · [DOD](definition-of-done.md) · [发布](../operations/release.md) · [Pop!_OS OS 验收](../testing/linux-popos24-agent-acceptance.md) · [人工验收](../testing/manual-acceptance.md)。
+关联：[A–E 原批准计划](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/v0.1-batched-delivery-plan-2026-11-08.md) · [Roadmap](https://github.com/kunlong-luo/lanveriq/blob/cea6cfd4c9ff1e1734c47efa418208c97baba752/docs/planning/roadmap.md) · [DOD](definition-of-done.md) · [发布](../operations/release.md) · [Pop!_OS OS 验收](../testing/linux-popos24-agent-acceptance.md) · [人工验收](../testing/manual-acceptance.md)。
 
 ## 2026-11-17 V21 same-source acceptance — untrusted attestation rejection only
 
