@@ -36,3 +36,6 @@
 **2026-11-21 旧 docs/README 的全文快照已从工作树删除**，不会再与现行导航竞争；原文可从[固定 Git SHA 的历史快照](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/governance/documentation-index-snapshot-2026-11-21.md)核对。较早 D4/NXT/PG18 的真实失败和成功保留在各 dated reports、[历史原账本](planning/release-readiness-2026-11-13.md) 和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。
 
 **安装安全边界：没有可分发的一键 Agent 包，生产联网/采集/远控/恢复/CA 默认 OFF；v0.1 NOT RELEASE READY。**
+
+
+**防断链要求：** `docs-governance` 不仅验证现行入口，也递归检查全部 `docs/**/*.md` 的相对目标存在性；历史资料要保留独立证据，真正重复的全文副本仅以[固定 Git SHA 归档](governance/archive/README.md)替代。此检查不代表外链、标题锚或真实性的全面审计。**v0.1 NOT RELEASE READY。**

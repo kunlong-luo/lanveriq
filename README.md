@@ -42,7 +42,7 @@ docs/
 └── diagrams/    visuals/      # Mermaid and conceptual SVG (not UI shots)
 ```
 
-The [archive index](docs/governance/archive/README.md) links both removed duplicate snapshots to immutable Git commit SHA paths. The [directory keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md) records what can be safely pruned. Old document snapshots are accessed through **pinned Git links** instead of duplicated active files; unique test evidence and failure history are retained.
+The [archive index](docs/governance/archive/README.md) links both removed duplicate snapshots to immutable Git commit SHA paths. The [directory keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md) records what can be safely pruned. Old document snapshots are accessed through **pinned Git links** instead of duplicated active files; unique test evidence and failure history are retained. The documentation CI also checks local links across every `docs/**/*.md`, not just the index pages.
 
 ## What can I install today?
 

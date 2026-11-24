@@ -79,3 +79,12 @@ Git tree 中**没有** `apps/web-next/`、旧 Vite Web 运行目录、第二套 
 - 如需未来删除某个 CI/测试目录，先证明没有运行时、工作流、L2/历史证据或文档引用，再提交路径/审批清单；**用户要求清理不表示允许删安全负测**。
 
 **效果评价**见 [量化评分](../planning/project-scorecard.md)。本报告仅提升可导航性/文档维护分，不会自动关闭生产 Gate；**v0.1 NOT RELEASE READY**。
+
+
+## 2026-11-24 第三轮：从重点索引校验扩展为全量文档链接门禁
+
+复核基线 `83694735`：四应用及唯一 Web 目录与上一轮保持一致；已有文档治理和 RD-2 负测在同 SHA 的 [#45396948492](https://github.com/kunlong-luo/lanveriq/actions/runs/45396948492)、[#45396948537](https://github.com/kunlong-luo/lanveriq/actions/runs/45396948537) 为 SUCCESS，**这仅证明上一轮代码**。
+
+旧 `verifyLocalDocumentationLinks` 只覆盖约 20 个现行文档入口，其余有日期的验收/安全/规范文件链接主要依靠人工审查；现增加 `verifyAllDocumentationLinks`，遍历每个 `docs/**/*.md` 并复用本地路径存在性/目录穿越保护，在 docs-governance 同步执行。负测特意在不属于入口白名单的 dated 文档注入不存在的相对链接，必须拒绝。**此处是文档完整性门禁，不验证外部网站、Markdown 标题锚、真实安装与权限。**
+
+本轮不因为标题相似而批量删除带有唯一历史失败/攻击证据的 211 份 Markdown；确认冗余的旧全文快照仍由固定 Git SHA 归档、已经从当前树移除。下一轮删除历史规划文件前须核对所有相对引用并保存固定源码 SHA 路径。新功能验收需另外核对新提交的 GitHub Actions 真实结论，未运行不得写 PASS。**v0.1 NOT RELEASE READY。**

@@ -42,7 +42,7 @@ docs/
 └── diagrams/    visuals/      # Mermaid、SVG 概念图（非截图）
 ```
 
-历史全文可从 [归档索引](docs/governance/archive/README.md) 中的固定 Git SHA 恢复。[目录保留/删除审计](docs/governance/repository-layout-audit-2026-11-24.md)列出被移除的重复入口和保留原因；历史文档快照用**固定 Git SHA 链接**追溯，不保留第二份活动索引。
+历史全文可从 [归档索引](docs/governance/archive/README.md) 中的固定 Git SHA 恢复。[目录保留/删除审计](docs/governance/repository-layout-audit-2026-11-24.md)列出被移除的重复入口和保留原因；历史文档快照用**固定 Git SHA 链接**追溯，不保留第二份活动索引。文档 CI 现在递归检查全部 `docs/**/*.md` 的本地相对链接，而非只检查入口文件。
 
 ## 我现在能做什么？
 

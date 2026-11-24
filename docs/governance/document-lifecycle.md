@@ -18,7 +18,7 @@
 
 **更新闭环：** 先检查现行规则和实现 → 修改对应 SPEC → 真实测试完成后更新 CURRENT_STATUS → 发布条件变化更新 LIVE-GAP → 架构变化写 ADR 的 Context/Alternatives/Decision/Consequences/Supersedes → 检查相对链接、版本、隐私、历史矛盾。
 
-执行 `node apps/web/scripts/verify-documentation-baseline.mjs` 和 `node --test apps/web/scripts/test_verify_documentation_baseline.mjs`；[docs-governance workflow](../../.github/workflows/docs-governance.yml) 检查当前入口和本地链接。CI 不能验证外部官网真实性、法律批准或 Pop!_OS 物理 L3。
+执行 `node apps/web/scripts/verify-documentation-baseline.mjs` 和 `node --test apps/web/scripts/test_verify_documentation_baseline.mjs`；**所有 `docs/**/*.md` 的仓库内相对链接均接受递归检查**（不仅是 20 份入口文件）；[docs-governance workflow](../../.github/workflows/docs-governance.yml) 检查当前入口和本地链接。CI 不能验证外部官网真实性、法律批准或 Pop!_OS 物理 L3。
 
 ## 2026-11-24：目录治理与历史引用维护
 

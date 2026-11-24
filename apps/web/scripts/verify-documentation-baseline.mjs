@@ -290,6 +290,26 @@ export function verifyLocalDocumentationLinks(root, entries = documentationLinkE
  * immutable Git SHA or the lightweight archive README instead. The source
  * guard itself has no network, file deletion or external dependencies.
  */
+/** Scan every tracked Markdown page under docs/, including dated reports.
+ * This is a local-path integrity check, not a claim about historical accuracy,
+ * heading fragments, external URLs or production approval.
+ */
+export function verifyAllDocumentationLinks(root) {
+  const rootPath = resolve(root);
+  const paths = [];
+  const walk = dir => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const next = join(dir, entry.name);
+      if (entry.isDirectory()) walk(next);
+      else if (entry.isFile() && entry.name.endsWith('.md')) {
+        paths.push(next.slice(rootPath.length + 1));
+      }
+    }
+  };
+  walk(join(rootPath, 'docs'));
+  return verifyLocalDocumentationLinks(rootPath, paths);
+}
+
 export function verifyNoRetiredSnapshotLinks(root) {
   const repoRoot = resolve(root);
   const docsRoot = join(repoRoot, 'docs');
@@ -328,7 +348,8 @@ if (process.argv[1] && resolve(process.argv[1]) === here) {
   const root = resolve(dirname(here), '../../..');
   verifyDocumentationBaseline(root);
   verifyLocalDocumentationLinks(root);
+  verifyAllDocumentationLinks(root);
   verifyRepositoryLayout(root);
   verifyNoRetiredSnapshotLinks(root);
-  console.log('PASS: Next.js canonical documentation, release boundaries, directory inventory and local links verified');
+  console.log('PASS: canonical documents, ALL docs local links, release boundaries and directory inventory verified');
 }

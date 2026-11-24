@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { documentationRequirements, verifyDocumentationBaseline,
   verifyLocalDocumentationLinks, verifyRepositoryLayout,
   requiredRepositoryPaths, conciseLivePages,
-  verifyNoRetiredSnapshotLinks } from './verify-documentation-baseline.mjs';
+  verifyNoRetiredSnapshotLinks, verifyAllDocumentationLinks } from './verify-documentation-baseline.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'lanveriq-docs-current-'));
@@ -189,4 +189,14 @@ test('rejects nested documentation links to retired duplicate AGENTS and old ind
   write('docs/security/references/notes.md',
     '[immutable old docs index](https://github.com/kunlong-luo/lanveriq/blob/80a74373/docs/governance/documentation-index-snapshot-2026-11-21.md)');
   assert.equal(verifyNoRetiredSnapshotLinks(root), true);
+});
+
+
+test('recursive link check includes historical Markdown outside curated entry points', t => {
+  const { root, write } = fixture(t);
+  write('docs/testing/dated-evidence.md',
+    '[valid](../architecture/adrs/0008-nextjs-app-router-console.md)\n');
+  assert.equal(verifyAllDocumentationLinks(root), true);
+  write('docs/testing/dated-evidence.md', '[removed](../development/deleted-snapshot.md)\n');
+  assert.throws(() => verifyAllDocumentationLinks(root), /Broken local documentation link/);
 });
