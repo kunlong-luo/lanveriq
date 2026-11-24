@@ -57,17 +57,17 @@ def validate(root=DESKTOP):
     frontend_contract = (root / "src/preflight.ts").read_text(encoding="utf-8")
     def locked_array(name):
         match = re.search(
-            rf"export const {name}\\s*=\\s*\\[([^\\]]*)\\]\\s*as const\\s*;",
+            rf"export const {name}\s*=\s*\[([^\]]*)\]\s*as const\s*;",
             frontend_contract, re.S,
         )
         require(match is not None, f"missing frontend {name} ABI source")
-        raw = "[" + re.sub(r",\\s*$", "", match.group(1)) + "]"
+        raw = "[" + re.sub(r",\s*$", "", match.group(1)) + "]"
         value = json.loads(raw)
         require(isinstance(value, list), "frontend ABI contract must use fixed arrays")
         return value
 
     pairs = [
-        re.fullmatch(r"([a-z0-9][a-z0-9.+-]*)(?: \\(>= ([A-Za-z0-9.+:~_-]+)\\))?", dep)
+        re.fullmatch(r"([a-z0-9][a-z0-9.+-]*)(?: \(>= ([A-Za-z0-9.+:~_-]+)\))?", dep)
         for dep in reviewed
     ]
     require(all(m is not None for m in pairs), "invalid reviewed Debian ABI baseline")
