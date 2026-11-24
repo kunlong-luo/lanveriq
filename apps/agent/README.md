@@ -20,6 +20,8 @@
 
 **正式 Agent daemon 并未默认启动定时采集或联网。** CI 环境变量仅可在一次性合成试验中使用，不能挪入生产开关。无受信发布包、正式 CA、设备授权或 Pop!_OS24 COSMIC L3，**没有可安装给员工的 Agent**。
 
+**新 L2B-23 Agent 包管理能力实测：** [功能 SHA 2af1cf34 / #45376989866 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) 不只是用 `dpkg -i`：当期真实 Rust Agent .deb 被放进 CI 临时签名、固定 Signed-By 的 file: APT 仓库，在 networkless Ubuntu24 OCI 内执行真正的 `apt-get install`、同版本 `--reinstall` 和 `remove`；八个错误签名、索引/归档篡改、日期、包名替换负例原生 APT 拒绝。**产品仍没有可分发的正式签名 Agent、受限 Polkit GUI 安装器或 Pop!_OS24 实机授权；跨版本升级 NOT RUN。** [详细隔离安装验收](../../docs/development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。
+
 ## 维护者开发测试（不是普通用户操作）
 
 ```bash
