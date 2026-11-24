@@ -2,6 +2,8 @@
 
 **Status: ACCEPTED FOR DEVELOPMENT (design only) · Date: 2026-11-23 · v0.1 Linux-first · NOT APPROVED FOR REAL DEPLOYMENT**
 
+> **2026-11-24 L2B-17 仅设计 L1 证据：** [Ubuntu24 offline #45324617901](https://github.com/kunlong-luo/lanveriq/actions/runs/45324617901) 已完成 39/39 安装意图拒绝测试，实际 Tauri 两个只读 IPC、禁用 bundle/installer 和 L2B-16 发行权限门禁均 PASS。此阶段并未引入真正的 Polkit action、privileged broker、Agent 包签名或安装/启停，不能批准生产部署。后续逐次授权不能依赖 Polkit 保留授权缓存或客户端自报 command_line；必须由独立 broker 对发行者/工件和实际授权主体做验证。[L2B-17 规范](../../development/desktop-tauri-l2b17-agent-install-intent-polkit-threat-contract-2026-11-24.md)。
+
 > **Implementation note 2026-11-23（源码限定 L1 2/2 CI 已验收）：** apps/desktop Tauri 2 / React 只读离线 UI 已增加，**不包括实际安装、安装桥接、签名软件包或系统启动**；候选编译和测试需独立 CI 核验。本文较早的“仓库没有 Tauri desktop”陈述属于决议时点的历史快照。见 [首个源码阶段](../../development/desktop-tauri-first-source-2026-11-23.md)。
 
 ## Context and user outcome

@@ -2,6 +2,8 @@
 
 **ENGINEERING SECURITY CONTRACT · 2026-11-24 · OFFLINE · 不建立信任根、不签名、不安装、不发行 · v0.1 NOT RELEASE READY**
 
+> **后继 L2B-17：** [新 Ubuntu24 CI #45324617901](https://github.com/kunlong-luo/lanveriq/actions/runs/45324617901) 39/39 离线安装意图拒绝测试 PASS，同时沿用并再次通过 L2B-16 历史发行事实 JSON 检查和实际 Tauri 两只读 IPC 源码守卫。新协议只接受无授权能力的设计样例，任何有效样例亦返回 DENIED；不产生 Polkit/安装器功能或可信发行身份。[L2B-17 设计说明](desktop-tauri-l2b17-agent-install-intent-polkit-threat-contract-2026-11-24.md)。
+
 ## 目的与本轮完成内容
 
 真实 [c4f04e44 / GUI-only Debian 严格审计 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 已 PASS，不代表“Agent 一键安装器 / 正式发行 / 真 Pop!_OS L3” PASS。本轮把这种不能混同的证据边界固化为**可机读但不产生权限的仓库回归契约**：

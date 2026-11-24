@@ -1,5 +1,7 @@
 # Lanveriq Desktop — Tauri 2 read-only offline preview
 
+**L2B-17 design-only install-intent protocol remains DENY-ALL:** [Ubuntu24 CI #45324617901](https://github.com/kunlong-luo/lanveriq/actions/runs/45324617901) passed 39 adversarial cases and the existing source/release guard. [Parser](tools/verify_desktop_agent_install_intent.py) and [inert sample](../../docs/planning/desktop-agent-install-intent-deny-all.json) never approve, install, sign, elevate privileges, run polkit or enable Agent/network collection. A real broker, publisher trust root, authorized Agent package and physical Pop!_OS L3 do not exist yet. [Threat model](../../docs/development/desktop-tauri-l2b17-agent-install-intent-polkit-threat-contract-2026-11-24.md).
+
 **L2B-16 safe release-boundary regression PASS, not approval:** [Ubuntu24 offline #45324049249](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249) passed 30 synthetic checks plus the original read-only Tauri source verifier. The [checked-in evidence state](../../docs/planning/desktop-release-evidence-boundary.json) pins historical GUI-only Debian L2 while keeping signer, polkit, Agent installation, WORM and physical Pop!_OS L3 gates NOT APPROVED/OPEN. Neither this JSON nor these tests authorize signing, upload, distribution or installation. [Security contract](../../docs/development/desktop-tauri-l2b16-release-evidence-denial-contract-2026-11-24.md).
 
 **EXACT SOURCE GUI-only Debian L2 PASS, native Tauri preview PASS · NOT A SIGNED AGENT INSTALLER · v0.1 NOT RELEASE READY**
