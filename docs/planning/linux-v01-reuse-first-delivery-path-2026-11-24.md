@@ -15,13 +15,15 @@
 | 软件更新/发行 | **官方 `apt-secure` + deb822 `Signed-By`**、按需评估 Aptly 的仓库管理 | 生产仓库根由独立发行方审批/分发；固定来源/包名、最小权限安装事务，版本、撤销、合法回滚策略；绝不直接粘贴测试私钥 | 仓库身份独立证明 + 隔离真实 Agent 包安装 + 真实 Pop!_OS24 L3；L2B-20 的合成元数据 9/9 不能替代 |
 | 非生产授权运维/审计 | **现有 PG18/Flyway/备份工具**，独立 WORM 只在选型签字后接入 | 最少具名审阅者、真实撤销、外部托管密钥与不可回退介质恢复 | G-02/G-07/G-08 的行政域、合法性、恢复都需要**实物与人员签署**，CI 不能自证 |
 
-## FULL-CHAIN-L2 已通过；下一项为受控库存闭环（2026-11-24）
+## P0 业务闭环两个合成 L2 里程碑均已通过（2026-11-24）
 
-**同设备合成心跳业务验收 L2 PASS：** [功能 SHA 2380a6a7 / Ubuntu24 两个 Job 的 CI #45360530843 attempt 1 overall SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45360530843)。已在**同一隔离 PostgreSQL18.7 实例**用真实 Rust Reqwest/TLS1.3 → Caddy 双跳 mTLS → Spring JPA 事务提交心跳，并用经当前组 scope 授权的 Spring JSON 列表/详情/概览在真实 Chromium/Next.js DOM 中显示唯一源设备；跨组详情 404、注销后无残留且 API 401。真实客户端证书负例、ACK 失联/重放、恢复/吊销仍由同一运行证实。既有分离的 SQL fixture 不能冒充本条验收；完整 [退出标准与失败历史](../testing/agent-to-nextjs-single-device-l2-2026-11-24.md)。
+**阶段 1 · 同设备心跳→Web：** [2380a6a7 / Ubuntu24 #45360530843](https://github.com/kunlong-luo/lanveriq/actions/runs/45360530843) attempt 1 overall SUCCESS，真实 Rust Reqwest、Caddy/Tomcat 双跳 TLS1.3、PG18.7 的激活/心跳、严格 ACK 和授权 Spring API 经 Chromium/Next.js 展示唯一设备。详见 [FULL-CHAIN-L2](../testing/agent-to-nextjs-single-device-l2-2026-11-24.md)。
 
-**下一工程里程碑：INV-FULL-CHAIN-L2**（尚未执行）。复用 `apps/agent` 已有 SQLite inventory snapshot/outbox、Rust `reqwest` 严格 ACK、Spring `DeviceInventoryService` / JPA 与 PostgreSQL `device_inventory_current`、现有 [设备列表投影](../../apps/web/src/lib/console-device-projection.ts)，在同一次隔离 CI 中发送**最小固定且无个人信息的合成操作系统/CPU/内存字段**，确认单次提交、ACK、防重放、重启后回执、授权 Spring 列表投影和 Next.js DOM 显示的 OS 资料同源；权限变更/断线/过期证书的反例必须保留。先复用已有业务 API，缺少证据时不要增加 osquery/Alloy 第二 Agent，不得通过直接写 SQL 或仅 React fixture 冒充 Rust 库存上传。通过前明确标记库存链路 NOT RUN。
+**阶段 2 · 库存 outbox→Web：** [**addd7685 / Ubuntu24 #45362450357**](https://github.com/kunlong-luo/lanveriq/actions/runs/45362450357) attempt 1 **overall SUCCESS，两个 jobs 均 SUCCESS**。同一隔离 PostgreSQL18.7 实例中，Rust SQLx SQLite 库存 snapshot/outbox 重启 → 真实 Reqwest/mTLS POST → Spring JPA 当前设备凭据事务与严格 ACK → PG18 `device_inventory_current` → 当前授权管理员的设备列表/详情 API → Chromium 的 Next.js 页面真实显示**合成** OS/CPU/8 GB 内存；重复相同库存不修改 revision/snapshot/received_at/digest，未注册但同 CA 签发的另一叶证书 403，跨组 404、注销 401。浏览器数据同源，不是另行填充的 SQL 数据或静态 React 行。完整 [INV-FULL-CHAIN-L2 证据](../testing/agent-inventory-to-nextjs-full-chain-l2-2026-11-24.md)。
 
-这仅关闭工程上的**合成心跳单设备全链路 L2**，不批准正式 Next.js 登录路由、真实设备联网/采集、自动恢复、远控、证书签发，且不批准 Tauri 图形 Agent 安装/Polkit/发行签名/Pop!_OS24 COSMIC L3。**G-02/G-05/G-07/G-08/G-09 OPEN，v0.1 NOT RELEASE READY。**
+这两个 L2 子项证明底层技术链可以复用，**仍不等于实际 Linux 主机采集或普通用户可安装产品**：前端只在一次性 CI 中临时挂载受控 `StagedConsoleWorkspace`，没有真实员工/设备/常驻 agent、生产联网/证书、正式 Next.js 登录/业务路由。当前 G-02/G-05/G-07/G-08/G-09、正式业务 G-06 均 OPEN，v0.1 NOT RELEASE READY。
+
+**下一项 P0（未执行）：** 优先在独立无员工数据的 Ubuntu24 沙箱内，按最小白名单使用现有 Rust/Linux 原生只读采集能力获得真实 OS/CPU/内存并与系统事实对照；由明确授权的一次性运行进入当前经过验证的库存 outbox/传输链，并补充库存路径独立的证书过期/吊销、重试/断网及版本冲突负测。不要新造采集平台，不默认引入 osquery/Alloy 第二个守护程序，不启用真实终端自动采集。同时独立推进 Tauri 只读 GUI → 经审核的最小权限 Polkit 安装桥、受信任正式发行签名及 Pop!_OS24 COSMIC 实机 L3；这些外部 gate 不由 CI 自动批准。
 
 ## P1：避免重复引入功能引擎
 
