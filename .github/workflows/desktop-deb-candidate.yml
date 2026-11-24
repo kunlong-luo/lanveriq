@@ -109,6 +109,9 @@ jobs:
             exit 1
           fi
           python3 tools/verify-desktop-deb.py "$package"
+          # APT read-only simulation on this already-provisioned Ubuntu24 runner;
+          # no installation, no change of system package state, NOT a clean PopOS L3.
+          apt-get -s -o Debug::NoLocking=1 install "$PWD/$package"
           sha256sum -- "$package"
           echo 'PASS: unsigned unapproved GUI-only candidate inspected in disposable CI; not installed, enabled, uploaded or published'
       - name: Source-only SPDX using pinned Anchore Syft, no artifact uploads
@@ -274,6 +277,9 @@ jobs:
           print("ABI generated Debian requirement expression:",data["official_generated_shlibs_depends"])
           print("ABI actual Debian control Depends:",data["archive_actual_depends"])
           print("ABI gap evidence remains unsigned:",data["direct_package_metadata"])
+          assert comparison["direct_declaration_gap_count"] == 0, "NO_APPROVAL: ABI minimum not covered by candidate .deb"
+          assert data["direct_package_metadata"] == "NO_GAP_DETECTED_UNAPPROVED"
+          print("PASS: official dpkg-shlibdeps Ubuntu24 direct-version declaration gaps = 0; NO RELEASE APPROVAL")
           assert data["license_review"]=="OPEN_NOT_APPROVED"
           assert not data["release_approved"] and not data["install_authorized"]
           PY

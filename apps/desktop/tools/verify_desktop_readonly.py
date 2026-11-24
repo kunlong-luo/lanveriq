@@ -40,6 +40,18 @@ def validate(root=DESKTOP):
     require(tauri["productName"] == "lanveriq-desktop", "desktop package identity drift")
     require(tauri["bundle"]["active"] is False, "bundle must stay OFF")
     require(tauri["bundle"]["targets"] == [], "no installer bundle targets yet")
+    # A pinned dependency list does not activate bundling or grant install rights.
+    # The reviewed ABI baseline must not drift without a new native audit.
+    from importlib.util import spec_from_file_location, module_from_spec
+    dep_module = DESKTOP / "tools" / "verify_desktop_deb_shlibdeps_audit.py"
+    require(dep_module.is_file(), "missing reviewed ABI dependency audit")
+    reviewed = ["libc6 (>= 2.39)","libcairo2 (>= 1.10.0)","libdbus-1-3 (>= 1.9.14)","libgcc-s1 (>= 4.2)","libgdk-pixbuf-2.0-0 (>= 2.36.9)","libglib2.0-0t64 (>= 2.66.0)","libgtk-3-0t64 (>= 3.21.5)","libjavascriptcoregtk-4.1-0","libsoup-3.0-0 (>= 3.0.3)","libwebkit2gtk-4.1-0 (>= 2.41.90)"]
+    require(tauri["bundle"].get("linux", {}).get("deb", {}).get("depends") == reviewed,
+            "Ubuntu24 native GUI-only ABI dependency baseline drift")
+    require(not any(tauri["bundle"]["linux"]["deb"].get(key) for key in
+                    ("files", "preInstallScript", "postInstallScript",
+                     "preRemoveScript", "postRemoveScript")),
+            "GUI-only bundle must not contain installer hooks or added files")
     require(tauri["bundle"].get("icon") == ["icons/icon.png"], "desktop bundle icon must be the reviewed native PNG")
     require(tauri["build"]["frontendDist"] == "../dist", "unexpected asset target")
     require(tauri["app"].get("trayIcon") is None, "resident tray forbidden")

@@ -34,6 +34,8 @@ APPROVED_DEPENDENCIES = frozenset({
     "libayatana-appindicator3-1", "libappindicator3-1",
     "librsvg2-2", "libssl3", "libssl3t64", "libjavascriptcoregtk-4.1-0",
     "libgdk-pixbuf-2.0-0", "libglib2.0-0", "libpango-1.0-0",
+    "libcairo2", "libdbus-1-3", "libgcc-s1", "libglib2.0-0t64",
+    "libgtk-3-0t64", "libsoup-3.0-0",
 })
 APPROVED_CONTROL_FIELDS = frozenset({
     "Package", "Version", "Architecture", "Section", "Priority", "Maintainer",
