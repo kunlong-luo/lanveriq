@@ -43,13 +43,19 @@
 
 在当期 Rust1.100 --locked 源码上真实编译 Agent ELF，按已有严格 allowlist 构建原生 idle-only .deb，随后通过 CI 内临时 Ed25519 OpenPGP 签名的 file: APT 仓库（明确定义唯一 Signed-By keyring、InRelease、Packages 的实际 size/SHA256）在**只读挂载软件源、networkless/cap-drop-all/no-new-privileges 的 Ubuntu24 OCI** 中执行真实 apt-get install、同版本 --reinstall、remove，核对 dpkg 文件归属/版本、模拟配置与状态留存、无 systemd 自启；八个恶意签名/索引/包修改/过期/未来/包名拒绝均由系统原生 apt-get 确认。**功能 SHA [2af1cf34 / #45376989866 attempt 1 overall SUCCESS、9/9](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)**。首次工作流 [#45376908241 FAIL/0 jobs](https://github.com/kunlong-luo/lanveriq/actions/runs/45376908241) 是 step YAML 冒号解析错误，已修复但保留。[精确安全范围与 CI](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。
 
-**后续真正 G-05 关键任务是 L2B-25 的受限 Polkit/PackageKit or APT root-side broker**：不能让当前 CI 临时 signer 成为正式 root，也不能用不可信 GUI 同意框调用任意 apt；必须先有独立发行者/根的审批，再由可信 OS 权限控制逐次授权固定 Agent 包 install/upgrade/remove、禁止动态 argv/URI/脚本/服务，并覆盖取消、重放、跨版本升级/回滚/卸载。L2B-23 当前只证明 **OCI 内真实签名源包管理 L2 子项**，没有用户可点击 GUI、真实授权、正式签名发行或 Pop!_OS/COSMIC L3。**G-05/G-09/正式 G-06 OPEN，v0.1 NOT RELEASE READY。**
+**后续真正 G-05 关键任务已是 L2B-26 的经审批受限 Polkit/PackageKit or APT root-side 安装事务 broker**：不能让当前 CI 临时 signer 成为正式 root，也不能用不可信 GUI 同意框调用任意 apt；必须先有独立发行者/根的审批，再由可信 OS 权限控制逐次授权固定 Agent 包 install/upgrade/remove、禁止动态 argv/URI/脚本/服务，并覆盖取消、重放、跨版本升级/回滚/卸载。L2B-23 当前只证明 **OCI 内真实签名源包管理 L2 子项**，没有用户可点击 GUI、真实授权、正式签名发行或 Pop!_OS/COSMIC L3。**G-05/G-09/正式 G-06 OPEN，v0.1 NOT RELEASE READY。**
 
 ## DESKTOP-L2B-24：原生 polkitd/D-Bus 及真实 Unix 身份绑定的 Rust 固定动作 L2 已通过
 
 上一阶段 OCI 内可以用临时 signed-APT 安装真实 Agent，但没有任何 OS 用户授权证据。本轮在固定 Ubuntu24 OCI 里安装**发行版原生 polkitd 124 + DBus**，只在容器 overlay 暂时载入源码中的 install/upgrade/remove 三动作全 no XML。官方 `pkaction` 读出三项 all-no，`pkcheck` 对 `nobody`、`daemon` **3×2=6 次实际 OS 拒绝**。新增独立编译的 **Rust1.100 非提权 gate**，只接受三个固定 action，并从本进程 Linux /proc 读取 PID、start-time、UID，使用 `pkcheck --process PID,START,UID`；非法/多余 argv、伪造环境和 root 调用拒绝，任何意外允许结果仍不能绕过正式发行审批。 [**功能 SHA ba04f55c / #45379398181 SUCCESS**](https://github.com/kunlong-luo/lanveriq/actions/runs/45379398181)，原先 policy 30/30 负测、Rust 3/3 单测、OS 6/6 + 注入均 PASS。[报告和真实 CI 失败史](../development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)。
 
-**不能升级为 G-05 已验收安装器：** 这只是用户侧固定 action 的 OS 原生**拒绝**，不是已获许可的 root-side D-Bus broker、不是逐次管理员成功授权或交易/取消与回滚；实验容器没有 systemd-logind/真实 COSMIC 用户会话。下一阶段 **L2B-25** 需要安全审核后的 OS D-Bus peercred 绑定、真正发行来源审查、狭义固定 Agent 安装事务的拒绝/授权场景，继而独立外部批准和 Pop!_OS24 COSMIC L3。正式发行者、生产密钥、用户法律许可、生产 Agent 启动/联网/采集保持 OPEN/OFF。**v0.1 NOT RELEASE READY**。
+**不能升级为 G-05 已验收安装器：** 这只是用户侧固定 action 的 OS 原生**拒绝**，不是已获许可的 root-side D-Bus broker、不是逐次管理员成功授权或交易/取消与回滚；实验容器没有 systemd-logind/真实 COSMIC 用户会话。**L2B-25 已把前一部分 OS system D-Bus sender peercred 验证落为 OCI 内真实拒绝证据**，但真正发行来源审查、成功的逐次管理员授权、固定 Agent 安装事务的拒绝/成功/取消与回滚仍归 **L2B-26 及以后的独立审批工作**；Pop!_OS24 COSMIC L3 尚未通过。正式发行者、生产密钥、用户法律许可、生产 Agent 启动/联网/采集保持 OPEN/OFF。**v0.1 NOT RELEASE READY**。
+
+## DESKTOP-L2B-25：真实 root-side D-Bus 发送方内核身份核验与 Polkit 拒绝 L2
+
+前阶段 Rust 非特权 CLI 自查 Linux PID/UID，不能证明未来 root 服务端真的从 IPC transport 获得 caller 身份。本轮在 **Ubuntu24 networkless/disposable OCI** 中用发行版 `python3-dbus` + GLib 真正建立一个 root-side system D-Bus **ReviewLab**，通过 DBus 自身的 `GetConnectionUnixUser/GetConnectionUnixProcessID` 取得真实 Unix sender，结合 /proc 四 UID/start-time 和 `pkcheck` 进行验证。三动作 × 两 Unix 用户 **6 次**+不同 UID 同 nonce 及恶意环境测试合计 **8 次**真实 root-side Polkit 拒绝；同 UID 跨进程 nonce 重放拒绝、GVariant Int32 及额外参数、未知 shell/path 拒绝。额外 **9/9** 同服务端单元测试确认**模拟 Polkit 允许 = NOT_APPROVED，而不是安装**。以前的 Polkit XML 30/30、Rust 3/3 和 Tauri readonly 继续通过。[**功能 SHA 91c4669d / CI #45382618806 overall SUCCESS**](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)，原始失败/修复见 [L2B-25 完整报告](../development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)。
+
+**真正 L2B-26 尚未执行：** ReviewLab **不能安装任何包**，没有用户可用 Tauri 安装动作、独立发行人根、公钥预置/撤销、管理员 logind 活跃会话、受审可执行事务 broker、durable nonce/可信时间、取消和回滚能力。只有当独立发行者、管理人/安全责任主体审批实际签名包/操作边界之后，才可在隔离 L2 研发**固定包名/版本/来源、session 和 D-Bus peercred 与 Polkit 逐次授权在同一事务核验**的安装器，随后经具名 Pop!_OS24 COSMIC L3。任何实验 root policy、测试密钥和 ReviewLab 都不得打进产品分发。**G-05/G-09 OPEN，v0.1 NOT RELEASE READY**。
 
 ## P1：避免重复引入功能引擎
 
