@@ -1,6 +1,6 @@
 # DESKTOP-L2B-9 — Ubuntu24 Debian ABI Depends candidate repair
 
-**SPEC · 2026-11-24 · SOURCE SHA e425616a · L1/L2 PENDING · UNSIGNED / NO INSTALL / NOT RELEASE READY**
+**SPEC · 2026-11-24 · SOURCE SHA e425616a · native L2 PASS / 10 official ABI groups covered, 0 gaps · UNSIGNED / NO INSTALL / NOT RELEASE READY**
 
 ## Why and how
 
@@ -21,7 +21,7 @@ The CI additionally invokes `apt-get -s -o Debug::NoLocking=1 install <absolute-
 ## Evidence status
 
 - First functional SHA [a8783d1c](https://github.com/kunlong-luo/lanveriq/commit/a8783d1c1d100ce1c7a5da0ce5a8d487b177fe3a), [native CI #45301458349](https://github.com/kunlong-luo/lanveriq/actions/runs/45301458349) and [Tauri L1 #45301458456](https://github.com/kunlong-luo/lanveriq/actions/runs/45301458456): **FAIL** before native build because existing unit fixtures expected the icon's JSON syntax to stay on one line. It was a fixture-layout mismatch, not an ABI safety-bypass; no permissions were enabled.
-- Exact functional correction [e425616a](https://github.com/kunlong-luo/lanveriq/commit/e425616a69775f4d165043d3ca54208719c6339e) preserves icon formatting, same dependency policy and all other release locks. [Tauri L1 #45301534178](https://github.com/kunlong-luo/lanveriq/actions/runs/45301534178) and [native `.deb` #45301534228](https://github.com/kunlong-luo/lanveriq/actions/runs/45301534228) are **PENDING** until the exact feature SHA actually succeeds. In particular, do not claim `GAPS_FOUND` is resolved without inspecting the generated .deb control and the recomputed official ABI relation groups.
+- Exact functional correction [e425616a](https://github.com/kunlong-luo/lanveriq/commit/e425616a69775f4d165043d3ca54208719c6339e) preserves icon formatting, same dependency policy and all other release locks. [Tauri L1 #45301534178](https://github.com/kunlong-luo/lanveriq/actions/runs/45301534178) passed source reject constraints, and [native `.deb` #45301534228 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45301534228) completed exact-SHA real ABI and simulation acceptance. In particular, do not claim `GAPS_FOUND` is resolved without inspecting the generated .deb control and the recomputed official ABI relation groups.
 
 ## Remaining release gates
 
@@ -30,3 +30,26 @@ G-05 still requires a **clean, controlled Pop!_OS 24.04** APT simulation (not me
 **v0.1 NOT RELEASE READY.**
 
 [Current status](../CURRENT_STATUS.md) · [Release gaps](../planning/release-gap-register.md) · [Pop!_OS installer acceptance](../testing/linux-desktop-installer-acceptance.md).
+
+## Accepted real Ubuntu 24.04 native L2 results
+
+**Functional SHA:** [e425616a](https://github.com/kunlong-luo/lanveriq/commit/e425616a69775f4d165043d3ca54208719c6339e). [Native workflow #45301534228 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45301534228). This is an actual Tauri GUI-only unsigned Debian bundle in a disposable Ubuntu24 CI; source `bundle.active=false`, no Agent, no installed, uploaded or distributed `.deb`, no official signing key. Actual archive SHA256: `74fc9f9c2fabf6c267a4ff8b23ae9599d6221167bbdab4c7371b9e806155919e`.
+
+| Verified native observation | Actual value |
+| --- | --- |
+| Official GNU/DPKG `dpkg-shlibdeps` ELF minimum requirement groups | **10** |
+| Final `.deb` control Depends groups | **12** |
+| Missing directly declared groups | **0** |
+| Declared but insufficient minimum-version groups | **0** |
+| Direct declaration gaps | **0** |
+| Result schema status | `NO_GAP_DETECTED_UNAPPROVED` |
+| `apt-get -s -o Debug::NoLocking=1 install <absolute .deb>` on populated Ubuntu24 builder | **PASS** (simulation only) |
+| Actual Pop!_OS24 COSMIC clean-host install, upgrade, removal and launch | **NOT RUN** |
+
+The Tauri bundler includes its legacy default `libwebkit2gtk-4.1-0` and `libgtk-3-0` entries as well as the ten explicit reviewed requirements. Their presence explains **12** declared groups instead of 10. The official direct ABI minimum/apt_pkg version comparison is zero-gap; this should **not** be confused with APT repository policy, legacy/t64 virtual package behavior, license or clean-host installation correctness. The read-only simulation ran against an already provisioned CI host where Tauri build dependencies were installed; it is not an empty-system test.
+
+The same SHA passed actual Debian archive shape, both pinned Syft SPDX jobs, source/payload byte digests, approved ELF loader and direct SONAME audit, actual host package owner and copyright digests, read-only APT dependency metadata, and ephemeral CI-only signature lab. **This proves only an isolated candidate dependency metadata subcheck.** G-05/G-07/G-08/G-09 remain OPEN, actual Pop!_OS 24.04 and official trusted publisher/provenance remain absent.
+
+## Next technical and organizational exit
+
+Create a truly clean and explicit Pop!_OS24 package repository/apt solver input, verify that the pinned `-t64` package names and minimum versions resolve, then obtain an approved COSMIC/Wayland real-machine install/uninstall/user-consent session and security/legal review. Do not enable privileged Agent installation merely because Ubuntu24's `apt-get -s` returned success.
