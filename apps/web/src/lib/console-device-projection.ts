@@ -37,7 +37,11 @@ function parseRow(raw: unknown): DirectoryRow | null {
       !boundedText(raw.label) || !boundedText(raw.group_name) ||
       typeof raw.enrollment_state !== 'string' ||
       !enrollments.has(raw.enrollment_state) ||
-      !optionalText(raw.os_name) || !optionalText(raw.agent_version) ||
+      !optionalText(raw.os_name) || !optionalText(raw.cpu_model) ||
+      (raw.memory_total_bytes !== null && raw.memory_total_bytes !== undefined &&
+       (typeof raw.memory_total_bytes !== 'number' ||
+        !Number.isSafeInteger(raw.memory_total_bytes) || raw.memory_total_bytes < 0)) ||
+      !optionalText(raw.agent_version) ||
       !receivedAt(raw.heartbeat_received_at) ||
       (raw.queue_count !== null && raw.queue_count !== undefined &&
        (typeof raw.queue_count !== 'number' ||
@@ -49,6 +53,8 @@ function parseRow(raw: unknown): DirectoryRow | null {
     label: raw.label,
     group: raw.group_name,
     os: raw.os_name || null,
+    cpu: typeof raw.cpu_model === 'string' ? raw.cpu_model : null,
+    memoryBytes: typeof raw.memory_total_bytes === 'number' ? raw.memory_total_bytes : null,
     enrollment: raw.enrollment_state as DirectoryRow['enrollment'],
     // The current REST projection includes enrollment + last heartbeat
     // evidence but NO authoritative connectivity status. Do not infer
