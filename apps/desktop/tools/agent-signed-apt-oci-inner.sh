@@ -57,8 +57,8 @@ case "$LANVERIQ_L2B23_CASE" in
     mkdir -p /tmp/lanveriq-apt-rollback
     cp -R /mnt/lanveriq-lab/repo /tmp/lanveriq-apt-rollback/repo
     sed 's#file:/mnt/lanveriq-lab/repo#file:/tmp/lanveriq-apt-rollback/repo#' \
-      /mnt/lanveriq-lab/lab.sources > /tmp/lanveriq-apt-rollback/sources
-    opts[0]=-oDir::Etc::sourcelist=/tmp/lanveriq-apt-rollback/sources
+      /mnt/lanveriq-lab/lab.sources > /tmp/lanveriq-apt-rollback/lab.sources
+    opts[0]=-oDir::Etc::sourcelist=/tmp/lanveriq-apt-rollback/lab.sources
     if ! apt-get "${opts[@]}" update >/tmp/lanveriq-apt-fresh-update.log 2>&1; then
       cat /tmp/lanveriq-apt-fresh-update.log >&2
       echo 'NOT_APPROVED: first native APT snapshot validation failed, no replay verdict' >&2
