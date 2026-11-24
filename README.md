@@ -30,17 +30,19 @@ The **canonical documentation tree** is deliberately shallow at its active entry
 docs/
 ├── README.md                  # single documentation index
 ├── CURRENT_STATUS.md          # single live implementation/CI summary
-├── architecture/  adrs/       # normative architecture and decisions
+├── architecture/             # normative architecture
+│   └── adrs/                 # accepted/proposed decisions
 ├── security/                  # identity, privacy, FIDO, WORM boundaries
 ├── development/               # specifications and dated L2B/NXT evidence
 ├── testing/                   # L1/L2/L3 matrices and original failures
 ├── planning/                  # one live release-gap register and roadmap
-├── governance/  archive/      # doc lifecycle, audit, historical AGENTS
+├── governance/               # doc ownership and audit
+│   └── archive/              # pinned-Git historical index, no duplicate texts
 ├── operations/  product/      # authorized runbooks and expected UX
 └── diagrams/    visuals/      # Mermaid and conceptual SVG (not UI shots)
 ```
 
-The [directory keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md) records what can be safely pruned. Old document snapshots are accessed through **pinned Git links** instead of duplicated active files; unique test evidence and failure history are retained.
+The [archive index](docs/governance/archive/README.md) links both removed duplicate snapshots to immutable Git commit SHA paths. The [directory keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md) records what can be safely pruned. Old document snapshots are accessed through **pinned Git links** instead of duplicated active files; unique test evidence and failure history are retained.
 
 ## What can I install today?
 
