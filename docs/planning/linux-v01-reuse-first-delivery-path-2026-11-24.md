@@ -33,6 +33,12 @@
 
 **实际下一项 P0（尚未实现/无发布许可）：** 在独立批准发行身份和软件源之后，以成熟**APT Signed-By/PackageKit + 系统 Polkit** 实现固定包名、来源和操作集合的受限安装事务 broker。验证 root 侧的程序绝不接受 GUI 自传 shell、路径、URL 或任意服务名，验证同一安装事务的预览/执行一致性、管理员身份、逐次用户同意、撤销/取消、异常关机及重复安装/卸载/保留配置。**安装并不隐含开机启动或生产采集许可**；签名包+broker 先在 Ubuntu24 一次性隔离机证明严格负例，再由具名 Pop!_OS24 COSMIC L3 真实机器/责任人独立验收。G-02/G-05/G-07/G-08/G-09/正式 G-06 全部 OPEN，v0.1 NOT RELEASE READY。
 
+## DESKTOP-L2B-22：Polkit 三动作的未安装、拒绝优先策略草案
+
+本阶段明确采用原生 Polkit 动作模型（而非 GUI 直接运行 root shell），仓库在 `apps/desktop/polkit/org.lanveriq.agent.package.policy` 新增 **install/upgrade/remove** 三个不相互隐式授权的 action，所有 `allow_any`/`allow_inactive`/`allow_active` 均设为 `no`，没有任何 pkexec 绑定或 Javascript rules；静态策略**并未安装到系统，不能当作真实 OS 授权测试**。[功能源码 efb7a558 / Ubuntu24 CI #45375272477 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477) 原 39 项安装意图拒绝+新增 30 项 Polkit XML/注解/缓存授权/助手注入负测全部 PASS；先前 [#45375193990](https://github.com/kunlong-luo/lanveriq/actions/runs/45375193990) 的一个畸形 root XML 负例失败已修复并保留记录。[本轮详细证明](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)。
+
+**真实工程下一项 L2B-23（尚未执行）：** 在独立发行者批准、正式 Agent 包、Signed-By 预置信任根和设备操作员许可后，以**OS 原生 APT/PackageKit 与 Polkit** 实现**不常驻**、只有固定 install/upgrade/remove 三种操作的受限事务 broker，root 端复核可信包、身份/当前活动会话、版本/摘要与取消/重放/回滚；安装不意味着服务启动、boot enable、联网或采集。先 Ubuntu24 隔离实际 L2，后 Pop!_OS24 COSMIC 具名真实 L3。**生产发布 Gate 全部保持 OPEN，不因静态 policy 多一个文件而增加发布评分。**
+
 ## P1：避免重复引入功能引擎
 
 - **RustDesk**：沿用现有隔离服务端试验与成熟客户端/NAT/Relay 技术；远控仍默认关闭，独立许可（AGPL-3.0）、管理员实时审批、设备侧授权、会话审计及 Pop!_OS COSMIC/Wayland 实测。**不另造远控音视频/输入协议**。
