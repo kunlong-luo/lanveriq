@@ -26,6 +26,7 @@ jobs:
     outputs:
       cache_key: ${{ steps.plan.outputs.cache_key }}
       archive_count: ${{ steps.download.outputs.archive_count }}
+      archive_sha256: ${{ steps.download.outputs.archive_sha256 }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -108,13 +109,20 @@ jobs:
           dpkg-query -W -f='${Package} ${Version} ${db:Status-Abbrev}\n' | LC_ALL=C sort > "$RUNNER_TEMP/lanveriq-dpkg-before.txt"
           # The official apt downloader validates each archive against Ubuntu
           # signed indexes. Nothing is installed; no host package set changes.
+          # Preserve apt's warnings for a real fail-closed sandbox check;
+          # pipefail makes any download/verification failure fatal.
+          log="$RUNNER_TEMP/lanveriq-desktop-prefetch-apt.log"
           sudo DEBIAN_FRONTEND=noninteractive apt-get \
             -o Acquire::Retries=2 -o Acquire::http::Timeout=30 \
             -o Acquire::https::Timeout=30 -o APT::Install-Recommends=false \
             -o Dir::Cache::archives="$archive" -o APT::Keep-Downloaded-Packages=true \
             -y --download-only install \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
-            libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
+            libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev 2>&1 | tee "$log"
+          if grep -Eqi 'download is performed unsandboxed|pkgacquire::run.*permission denied' "$log"; then
+            echo 'FAIL: APT download escaped the _apt sandbox' >&2
+            exit 1
+          fi
           dpkg-query -W -f='${Package} ${Version} ${db:Status-Abbrev}\n' | LC_ALL=C sort > "$RUNNER_TEMP/lanveriq-dpkg-after.txt"
           cmp "$RUNNER_TEMP/lanveriq-dpkg-before.txt" "$RUNNER_TEMP/lanveriq-dpkg-after.txt" || {
             echo 'FAIL: download-only job changed installed dpkg package states' >&2
@@ -123,7 +131,14 @@ jobs:
           count="$(find "$archive" -maxdepth 1 -type f -name '*.deb' | wc -l)"
           test "$count" -gt 0
           echo "archive_count=$count" >> "$GITHUB_OUTPUT"
+          # Bind byte-for-byte restored files, not merely their count, across
+          # independent runner jobs. No archive content is executed or parsed.
+          archive_sha256="$(find "$archive" -maxdepth 1 -type f -name '*.deb' -print0 |
+            sort -z | xargs -0 -r sha256sum | sha256sum | cut -d ' ' -f 1)"
+          test -n "$archive_sha256"
+          echo "archive_sha256=$archive_sha256" >> "$GITHUB_OUTPUT"
           echo "PASS: Ubuntu apt verified $count archives against signed indexes; installed package states unchanged"
+          echo "EXPECTED archive manifest SHA256: $archive_sha256"
           echo 'BOUNDARY: CI cache is not a signed immutable builder, ABI acceptance, release artifact or PopOS L3'
   cache-probe:
     name: Independent runner restores all cached Debian archives
@@ -143,6 +158,7 @@ jobs:
         env:
           CACHE_HIT: ${{ steps.restored.outputs.cache-hit }}
           EXPECTED_COUNT: ${{ needs.prefetch.outputs.archive_count }}
+          EXPECTED_SHA256: ${{ needs.prefetch.outputs.archive_sha256 }}
         run: |
           set -Eeuo pipefail
           test "$CACHE_HIT" = true
@@ -150,6 +166,13 @@ jobs:
           archive="/var/tmp/lanveriq-desktop-apt-archives"
           count="$(find "$archive" -maxdepth 1 -type f -name '*.deb' -readable | wc -l)"
           test "$count" -eq "$EXPECTED_COUNT"
-          echo "PASS: independent Ubuntu24 runner restored $count complete Debian archives from exact-plan cache"
+          digest="$(find "$archive" -maxdepth 1 -type f -name '*.deb' -print0 |
+            sort -z | xargs -0 -r sha256sum | sha256sum | cut -d ' ' -f 1)"
+          test -n "$EXPECTED_SHA256"
+          if test "$digest" != "$EXPECTED_SHA256"; then
+            echo 'FAIL: independent runner restored archives with a different byte manifest' >&2
+            exit 1
+          fi
+          echo "PASS: independent Ubuntu24 runner restored $count byte-identical complete Debian archives from exact-plan cache"
           echo 'UNTRUSTED: restored cache is acceleration only; actual future build must revalidate via signed APT indexes'
           echo 'NOT RUN: package installation, Rust/Clippy, GUI-only .deb, PopOS L3 or production Agent'
