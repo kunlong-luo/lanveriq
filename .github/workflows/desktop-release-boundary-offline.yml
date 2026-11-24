@@ -1,0 +1,44 @@
+name: Desktop GUI-only L2 evidence and release-denial contract (offline)
+
+# A CI test can never approve a release; this job only refuses false claims
+# and checks that the checked-in Desktop UI still has install/network OFF.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/planning/desktop-release-evidence-boundary.json'
+      - 'apps/desktop/tools/verify_desktop_release_evidence_boundary.py'
+      - 'apps/desktop/tools/test_verify_desktop_release_evidence_boundary.py'
+      - 'apps/desktop/src/safety.ts'
+      - 'apps/desktop/src/DesktopApp.tsx'
+      - 'apps/desktop/src-tauri/tauri.conf.json'
+      - 'apps/desktop/src-tauri/src/**'
+      - 'apps/desktop/src-tauri/capabilities/**'
+      - '.github/workflows/desktop-release-boundary-offline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  false-release-claims-denied:
+    name: Verify source remains read-only and release evidence does not authorize anything
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test evidence parser with 30 hostile and baseline cases
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile apps/desktop/tools/verify_desktop_release_evidence_boundary.py
+          python3 -m py_compile apps/desktop/tools/test_verify_desktop_release_evidence_boundary.py
+          python3 -m unittest discover -s apps/desktop/tools \
+            -p 'test_verify_desktop_release_evidence_boundary.py' -v
+      - name: Require exact historical L2 facts, all release gates OPEN, no installation authority
+        run: |
+          set -Eeuo pipefail
+          python3 apps/desktop/tools/verify_desktop_release_evidence_boundary.py
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          echo 'PASS: source-only, offline contract: no trusted release signer or Agent installer authorized'
