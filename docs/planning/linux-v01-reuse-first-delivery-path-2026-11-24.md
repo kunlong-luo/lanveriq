@@ -37,7 +37,13 @@
 
 本阶段明确采用原生 Polkit 动作模型（而非 GUI 直接运行 root shell），仓库在 `apps/desktop/polkit/org.lanveriq.agent.package.policy` 新增 **install/upgrade/remove** 三个不相互隐式授权的 action，所有 `allow_any`/`allow_inactive`/`allow_active` 均设为 `no`，没有任何 pkexec 绑定或 Javascript rules；静态策略**并未安装到系统，不能当作真实 OS 授权测试**。[功能源码 efb7a558 / Ubuntu24 CI #45375272477 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477) 原 39 项安装意图拒绝+新增 30 项 Polkit XML/注解/缓存授权/助手注入负测全部 PASS；先前 [#45375193990](https://github.com/kunlong-luo/lanveriq/actions/runs/45375193990) 的一个畸形 root XML 负例失败已修复并保留记录。[本轮详细证明](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)。
 
-**真实工程下一项 L2B-23（尚未执行）：** 在独立发行者批准、正式 Agent 包、Signed-By 预置信任根和设备操作员许可后，以**OS 原生 APT/PackageKit 与 Polkit** 实现**不常驻**、只有固定 install/upgrade/remove 三种操作的受限事务 broker，root 端复核可信包、身份/当前活动会话、版本/摘要与取消/重放/回滚；安装不意味着服务启动、boot enable、联网或采集。先 Ubuntu24 隔离实际 L2，后 Pop!_OS24 COSMIC 具名真实 L3。**生产发布 Gate 全部保持 OPEN，不因静态 policy 多一个文件而增加发布评分。**
+**L2B-22 阶段已结束；后续 L2B-23 优先复用真实签名 APT 包管理体系，在隔离 OCI 验证 Agent install/reinstall/remove，已通过下述真实 CI。** 真正的每次会话 Polkit broker 仍需独立发行者签名和管理员权限审批，不因 XML 自身存在而授权启动、boot enable、联网或采集。**L2B-24 转为 fixed-action OS broker 安全审核/实现，Pop!_OS24 COSMIC 具名真实 L3 必须另行批准。**
+
+## DESKTOP-L2B-23：真实 Agent 临时签名 APT 仓库安装/重装/卸载 L2 已通过
+
+在当期 Rust1.100 --locked 源码上真实编译 Agent ELF，按已有严格 allowlist 构建原生 idle-only .deb，随后通过 CI 内临时 Ed25519 OpenPGP 签名的 file: APT 仓库（明确定义唯一 Signed-By keyring、InRelease、Packages 的实际 size/SHA256）在**只读挂载软件源、networkless/cap-drop-all/no-new-privileges 的 Ubuntu24 OCI** 中执行真实 apt-get install、同版本 --reinstall、remove，核对 dpkg 文件归属/版本、模拟配置与状态留存、无 systemd 自启；八个恶意签名/索引/包修改/过期/未来/包名拒绝均由系统原生 apt-get 确认。**功能 SHA [2af1cf34 / #45376989866 attempt 1 overall SUCCESS、9/9](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)**。首次工作流 [#45376908241 FAIL/0 jobs](https://github.com/kunlong-luo/lanveriq/actions/runs/45376908241) 是 step YAML 冒号解析错误，已修复但保留。[精确安全范围与 CI](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。
+
+**下一真正 G-05 关键任务是 L2B-24 的受限 Polkit/PackageKit or APT broker**：不能让当前 CI 临时 signer 成为正式 root，也不能用不可信 GUI 同意框调用任意 apt；必须先有独立发行者/根的审批，再由可信 OS 权限控制逐次授权固定 Agent 包 install/upgrade/remove、禁止动态 argv/URI/脚本/服务，并覆盖取消、重放、跨版本升级/回滚/卸载。L2B-23 当前只证明 **OCI 内真实签名源包管理 L2 子项**，没有用户可点击 GUI、真实授权、正式签名发行或 Pop!_OS/COSMIC L3。**G-05/G-09/正式 G-06 OPEN，v0.1 NOT RELEASE READY。**
 
 ## P1：避免重复引入功能引擎
 
