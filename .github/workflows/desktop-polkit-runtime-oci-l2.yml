@@ -11,6 +11,7 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_polkit_review.py'
       - 'apps/desktop/tools/polkit-runtime-oci.Dockerfile'
       - 'apps/desktop/tools/test_polkit_runtime_oci.sh'
+      - 'apps/desktop/tools/polkit-fixed-action-gate.rs'
       - '.github/workflows/desktop-polkit-runtime-oci-l2.yml'
   workflow_dispatch:
 
@@ -35,6 +36,20 @@ jobs:
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_polkit_review.py' -v
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
           bash -n apps/desktop/tools/test_polkit_runtime_oci.sh
+      - name: Compile and test Rust 1.100 fixed-action Polkit request gate
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rustup toolchain install 1.100.0 --profile minimal
+          gate_dir=$(mktemp -d -t lanveriq-polkit-gate.XXXXXXXX)
+          chmod 0755 "$gate_dir"
+          echo "LANVERIQ_POLKIT_GATE=$gate_dir" >> "$GITHUB_ENV"
+          rustc +1.100.0 --edition=2024 --test \
+            apps/desktop/tools/polkit-fixed-action-gate.rs -o "$gate_dir/gate-tests"
+          "$gate_dir/gate-tests"
+          rustc +1.100.0 --edition=2024 -C opt-level=2 \
+            apps/desktop/tools/polkit-fixed-action-gate.rs -o "$gate_dir/polkit-fixed-action-gate"
+          test -x "$gate_dir/polkit-fixed-action-gate"
       - name: Build disposable Ubuntu24 image with upstream polkitd and DBus
         shell: bash
         run: |
@@ -51,6 +66,7 @@ jobs:
             --network none \
             --pids-limit 128 --memory 512m --cpus 1 \
             --mount "type=bind,src=$PWD/apps/desktop/polkit,dst=/mnt/lanveriq-policy,readonly" \
+            --mount "type=bind,src=$LANVERIQ_POLKIT_GATE,dst=/mnt/lanveriq-gate,readonly" \
             --env LANVERIQ_POLKIT_RUNTIME_L2=disposable-oci-only \
             --entrypoint /bin/bash \
             lanveriq-polkit-runtime-ci-only:local -seuo pipefail \
