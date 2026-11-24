@@ -8,6 +8,8 @@
 
 > **2026-11-24 自动测试范围修正：** 已将桌面 preview 的 push 路径由 `apps/desktop/**` 调整为所有源码、Tauri 配置、构建入口、锁文件、工具与工作流自身，单纯桌面 README 修改不会再触发原生 GTK 编译。该变动不减少源码变更的测试，也不豁免 WebKitGTK 依赖超时后的 Rust/Clippy L2 验收。[#45314250801](https://github.com/kunlong-luo/lanveriq/actions/runs/45314250801) 的 L1 子任务确实 PASS，但整个流程随后因新 README 文档提交而 CANCELLED；**不代表完整原生 L2 PASS**。G-05 及其他发布 Gate 均 OPEN。
 
+> **2026-11-24 G-05 CI 实际进展：** 当前 [main b6943041 / #45314600767](https://github.com/kunlong-luo/lanveriq/actions/runs/45314600767) 的桌面 L1 SUCCESS（23+22+19 测试、TypeScript、断开式构建），原生 Rustfmt/锁校验 PASS，**Ubuntu24 WebKitGTK APT 前置依赖安装首次在这一轮成功完成**；原生 cargo test 仍在执行、Clippy NOT RUN，故原生 L2 仍不可标为通过。这既不是正式签名 `.deb` 发行，也不是 Pop!_OS 24.04 COSMIC 的 L3 安装/生命周期实测；所有 Gate 仍 OPEN。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |
