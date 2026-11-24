@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 || !matches!(args[1].as_str(), "accepted" | "revoked" | "expired") {
+    if args.len() != 3 || !matches!(args[1].as_str(), "accepted" | "revoked" | "expired" | "offline") {
         return Err("expected one test phase and one disposable device UUID".into());
     }
     let device = Uuid::parse_str(&args[2])?;
@@ -460,7 +460,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 new_raw.capabilities.insert(
                     "ci_only_retry_probe".into(), "not_collected".into()
                 );
-                let pending = match OutboxStore::open(&inventory_file).await?
+                let retry_store = OutboxStore::open(&inventory_file).await?;
+                let pending = match retry_store
                     .stage_inventory_snapshot(device, "2026-11-24T09:02:00Z", new_raw)
                     .await? {
                     InventoryStage::Staged(value) => value,
@@ -469,7 +470,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if pending.revision != 2 {
                     return Err("rejected inventory revision must be 2".into());
                 }
-                // SQLite opens are scoped; use explicit instance closure.
+                retry_store.close().await;
                 // No timer or automatic retry is installed by this test.
                 println!("PASS: Linux-only OS/CPU/RAM read-only whitelist sampled; a separate unsubmitted revision is prepared for expired/revoked credential denial.");
             } else {
@@ -478,6 +479,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
         }
+    } else if args[1] == "offline" {
+        if env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE").as_deref() != Ok("1") {
+            return Err("offline inventory probe requires explicit CI-only sample gate".into());
+        }
+        let path = pki.parent().ok_or("missing private store root")?
+            .join("synthetic-inventory-outbox.sqlite");
+        let store = OutboxStore::open(&path).await?;
+        let pending = store.verified_pending_inventory(device).await?
+            .ok_or("offline inventory pending revision missing")?;
+        if pending.revision != 2
+            || !matches!(client.send_next_inventory(&store, device).await,
+                         Err(TransportError::Network(_)))
+            || store.verified_pending_inventory(device).await? != Some(pending.clone())
+        {
+            return Err("offline inventory send unexpectedly acknowledged or mutated pending".into());
+        }
+        store.close().await;
+        let reopened = OutboxStore::open(&path).await?;
+        if reopened.verified_pending_inventory(device).await? != Some(pending) {
+            return Err("offline pending was lost after process restart".into());
+        }
+        reopened.close().await;
+        println!("PASS: actual Reqwest disconnected HTTPS inventory attempt retains exact SQLite pending revision across restart.");
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
         assert_disposition(
