@@ -5,6 +5,8 @@
 > **2026-11-21 current Web baseline:** 唯一 Web 是 `apps/web` Next.js16.4.5/React19/Tailwind4/Base UI；旧 Vite 和 `web-next` 已删除/迁移。[NXT-24](development/nextjs-path-rename-nxt24-2026-11-21.md) 仅旧迁移证据。公开 Pages 是断开式预览。
 
 ## 工作规范与当前阻塞
+- [Linux v0.1 原生系统组件复用、Agent 安装与设备到 Web 真业务闭环计划](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)：优先复用系统 dpkg/APT/systemd 和既有 Rust/Java/Next.js；osquery/Fleet/RustDesk 按独立集成价值与许可审查，不再反复自研基础设施。
+- [G05-LNX4 真实 Rust Agent `.deb` 在 disposable Ubuntu24 OCI 的 dpkg 安装/同版本重装/卸载验收](development/agent-linux-real-dpkg-disposable-lnx4-2026-11-24.md)：[功能 SHA 7ef4310e / #45338818298](https://github.com/kunlong-luo/lanveriq/actions/runs/45338818298) **完整 CI 待最终验收**；不触碰真实设备、不打开生产功能。
 - [DESKTOP-L2B-20 系统级 APT `Signed-By` / `InRelease` 真实离线验真与 9 项 hostile 测试](development/desktop-tauri-l2b20-real-apt-signed-by-offline-ci-2026-11-24.md)：[实际 Ubuntu24 #45334019405 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45334019405)，只使用合成索引和临时签名密钥；**无 Agent 安装包、真实发行根、Polkit 或 Pop!_OS 实机**。
 - [DESKTOP-L2B-19 接收端实验根 pin、撤销/过期/回滚拒绝测试与 TUF/Sigstore 选型入口](development/desktop-tauri-l2b19-receiver-root-preprovision-lab-2026-11-24.md)：[Ubuntu24 34/34 临时双签名及模拟根检测 #45328874536 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45328874536)；**没有独立审批的生产根、可信时间或实际设备持久防回滚**。
 - [DESKTOP-L2B-18 OpenSSL 3 双角色临时签名验证、CI 身份绑定与独立托管退出标准](development/desktop-tauri-l2b18-dual-signature-custody-lab-2026-11-24.md)：[Ubuntu24 两把临时 Ed25519 key 的 30/30 正负测 #45326441957 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45326441957)，**仅密码学实验，正式发布可信根/签名与独立审核域仍 NOT APPROVED**。

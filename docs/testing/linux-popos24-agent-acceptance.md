@@ -1,5 +1,7 @@
 # Pop!_OS 24.04 Linux-first Agent: offline identity and custody acceptance
 
+> **2026-11-24 G05-LNX4 新增功能验收路径：** [Linux Agent custody CI #45338818298](https://github.com/kunlong-luo/lanveriq/actions/runs/45338818298) 在已有真实 locked Rust release / no-hook Agent Debian 验收后，新增**无网络 Ubuntu24 容器内真正 dpkg 安装、同版重装、卸载与 operator-owned config/state 保留**；未授权环境直接拒绝执行。[代码与退出证据](../development/agent-linux-real-dpkg-disposable-lnx4-2026-11-24.md)。**CI 目前仍在执行，不能报告 L2 真正 dpkg PASS**。即使成功也只是一次性 OCI 包管理操作，不代表系统级 systemd 已装/已启、实际 Pop!_OS24/COSMIC L3、Polkit 最小权限或生产签名/许可证已批准。**G-05 保持 OPEN。**
+
 > **最新事实订正（2026-11-24）：** Tauri 2 **只读 GUI 已实现**；[完整 GUI-only .deb 审计 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 的真实 GUI-only unsigned Debian 完整隔离 L2 PASS，[原生只读预览 CI #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 的 React/native Rust 两个 job 同样 PASS。但**受限 polkit 安装桥、正式签名 Agent 包及受权安装/启停/升级流程均未实施，真实 Pop!_OS24 COSMIC L3 未执行**。2026-11-23 历史段落“未实现”仅适用于当时所指的安装器能力，不可用于否定已存在的只读 GUI。所有生产网络、采集、远控仍 OFF。[L2B-15 交接](../development/desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)。
 
 > **2026-11-23 新增安装器验收线（完全未执行）：** v0.1 规划以 Tauri 2 提供 GUI 安装/配置/诊断、基于真实签名包与范围受限的 polkit 管理 Linux systemd 独立后台 Agent，默认不在 Dock/任务栏/托盘驻留；但安装与安全告知、授权启动/开机自启分别 opt-in，保留可发现的查看与卸载入口。**Tauri/安装桥/正式安装包均未实现，Pop!_OS24 COSMIC L3 NOT RUN。** 现有 Agent Debian preview 及 Ubuntu 负测不构成实际安装器验收。详见 [桌面安装器 L1/L2/L3 实操矩阵](linux-desktop-installer-acceptance.md) 和 [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md)。生产启用权限保持 OFF。
