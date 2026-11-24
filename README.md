@@ -1,427 +1,52 @@
 # Lanveriq
 
-> **2026-11-22 current entry: v0.1 NOT RELEASE READY.** See [CURRENT_STATUS](docs/CURRENT_STATUS.md) for actual code/CI, [release-gap register](docs/planning/release-gap-register.md) for remaining production blockers and [AGENTS](AGENTS.md) / [engineering playbook](docs/governance/engineering-playbook.md) for future development standards. Older dated sections below may reflect a historical source SHA. Production networking, collection, recovery, remote control, FIDO trust and CA issuance remain OFF.
+**English** · [简体中文](README.zh.md) · [Documentation index](docs/README.md)
 
+Lanveriq is a Linux-first, self-hosted endpoint inventory, health-state and audit project for **lawfully disclosed, explicitly authorized** workplace devices. The first target is **Pop!_OS 24.04 / COSMIC**.
 
-> **2026-11-08 LAN/WAN + RustDesk architecture direction:** Adopt an independent RustDesk hbbs/hbbr remote-access plane, reuse its client/protocol/NAT/ICE/relay rather than developing our own, and preserve Lanveriq Next.js + Spring + Rust Agent business correctness. The target supports both LAN (private split DNS) and authorized WAN (VPN first; public HTTPS Console requires separate release/security approval) behind **one owned Console HTTPS hostname**. **This is a decision and unactivated network test scaffold, not an Internet-accessible production service.** See [ADR-0011](docs/architecture/adrs/0011-rustdesk-dual-network-access.md), [dual-network runbook](docs/operations/dual-network-acceptance.md), [deployment](docs/architecture/deployment.md) and [read-only network probe](deploy/network/verify_dual_access.py). The [opt-in RustDesk OSS pilot](docs/operations/rustdesk-pilot.md) pins the official 1.1.16 image digest with isolated Compose and CI-local binary smoke testing; it has **not** been enabled on any real LAN/WAN endpoint. RustDesk software/license/API integration, trusted DNS/CA, independent LAN+WAN acceptance and existing A–E v0.1 gates remain OPEN. Public GitHub Pages stays disconnected.
+> **Release: v0.1 NOT RELEASE READY.** There is no signed, independently approved, one-click Agent installer or authorized production deployment. All real-device networking, automatic inventory collection, remote access, automatic recovery and certificate issuance remain **default OFF**. CI successes demonstrate isolated tests, not consent or deployment authority.
 
-[**English**](README.md) | [简体中文](README.zh.md)
+[Current verified status](docs/CURRENT_STATUS.md) · [Open release gates G-01–G-10](docs/planning/release-gap-register.md) · [Engineering scorecard](docs/planning/project-scorecard.md) · [Keep/delete repository audit](docs/governance/repository-layout-audit-2026-11-24.md)
 
-**LAN-first, self-hosted asset health and audit platform for workplace endpoints with lawful notice and authorization.**
+## Which directories are real and why do they exist?
 
-> **2026-11-08 current development plan:** [v0.1 feature batches A–E and three-tier CI](docs/planning/v0.1-batched-delivery-plan-2026-11-08.md) now govern work: A device enrollment/PKI/heartbeat→PG18; B inventory/offline recovery; C authorized Next.js; D WSS/events; E platform/security/release. The `apps/web` B+C preview remains disconnected; Agent service is still idle. **Batch A1 has a default-OFF mTLS-gated heartbeat POST source and strict Rust ACK, not the completed end-to-end device loop.** See [canonical device protocol and gRPC/MQTT decision](docs/architecture/device-communication-stack.md), [ADR-0009](docs/architecture/adrs/0009-agent-transport-selection.md), and [documentation audit](docs/governance/documentation-audit-2026-11-08.md). The Rust transport currently configures a **TLS 1.2 minimum**; end-to-end TLS1.3-only, production key custody and Agent→Caddy→PG18 integration remain OPEN. Existing successful isolated PostgreSQL/Caddy/Chromium checks are historical synthetic evidence, not authorization to enable real device collection.
+| Path | Purpose and stack | Current boundary | Decision |
+| --- | --- | --- | --- |
+| [`apps/web/`](apps/web/README.md) | The **only Web admin console**, Next.js 16.4.5 / React 19 / Tailwind 4 / Base UI | Public [Pages preview](https://kunlong-luo.github.io/lanveriq/) is disconnected; real business data is only proven in disposable CI | **KEEP** |
+| [`apps/server/`](apps/server/README.md) | Java 25 / Spring Boot 4.2.0 / Gradle / JPA-Hibernate / Flyway / PostgreSQL 18 | Deny-by-default business APIs; real PG18 and TLS synthetic integration tested | **KEEP** |
+| [`apps/agent/`](apps/agent/README.md) | Rust 1.100 / Tokio / SQLx SQLite / reqwest-rustls Agent | Durable outbox and read-only host sampling tested in isolated CI; no authorized live collection | **KEEP** |
+| [`apps/desktop/`](apps/desktop/README.md) | Tauri 2 + React local install-readiness and status GUI | **Read-only**; no trusted installer/Polkit broker, service activation or production entitlement | **KEEP** |
+| [`deploy/caddy/`](deploy/caddy/Caddyfile.reference) | TLS1.3 / double-mTLS reference and disposable testing | Not a production Internet-facing configuration | **KEEP** |
+| [`deploy/network/`](deploy/network/verify_dual_access.py) | LAN/WAN boundary tests | Isolated security validation only | **KEEP** |
+| [`deploy/rustdesk/`](deploy/rustdesk/client-release-lock.json) and [`deploy/rustdesk-synthetic/`](deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) | Optional RustDesk protocol/pilot and RD-2 release-denial tests | Remote control is **OFF**; licensing and security approval absent | **KEEP (isolated)** |
+| [`docs/`](docs/README.md) | Architecture, current status, tests, release gaps, dated audit evidence | [Lifecycle rules](docs/governance/document-lifecycle.md) distinguish authoritative from historical material | **KEEP** |
+| [`.github/workflows/`](.github/workflows/docs-governance.yml) | Test/build/security/documentation CI | CI is not production sign-off | **KEEP** |
 
+The old `apps/web-next/` and the previous React/Vite **Web console** are no longer present. **Do not recreate a second Web frontend, Maven build, or independent agent control plane.** The Vite build under `apps/desktop` is only for the Tauri window, not a second Web console. This repository root is intentionally **not** a Gradle project.
 
-> **Status as of 2026-11-08 — v0.1 development, NOT a production-ready endpoint monitoring product.** Java 25/Spring Boot 4 with Flyway/JPA/PostgreSQL18 has real source and **some isolated PG18/Caddy/Chromium acceptance runs**; Batch A1 adds a **dual-default-OFF Agent heartbeat POST** and Rust strictly typed heartbeat ACK, verified in unit/MockMvc/Linux/Windows tests. **The Rust service binary is still idle**, without enrollment/key custody, automatic network uploads or authorized real-device collection. Next.js 16.4.5 `apps/web` remains the only canonical B+C UI; GitHub Pages is a disconnected static showcase with no login or live business data. The **new Agent→Caddy→Tomcat→PG18→protected Next.js** business loop, production CA custody, deployment isolation, legal/organizational privacy and real Windows/Linux pilot remain **OPEN**. Earlier synthetic PG18/TLS/console successes do not prove this new route or authorize real data.
+Inside `docs/`, keep `architecture/` for ADRs and technical design, `security/` for security boundaries, `testing/` for exact test results, `development/` for technical specs and dated implementation evidence, `governance/` for document authority, `planning/` for release gaps and priorities, `operations/` for carefully scoped runbooks, `product/` for expected user behavior, `diagrams/` for editable Mermaid, and `visuals/` for conceptual SVGs (not screenshots). The [repository audit](docs/governance/repository-layout-audit-2026-11-24.md) explains what has been deleted and why other directories remain.
 
-![Architecture concept (not a screenshot of the product)](docs/visuals/assets/01-overview.svg)
+## What can I install today?
 
-## Architecture: three application components
+**Ordinary endpoint users: not yet.** The planned Tauri one-click installation, signed Agent distribution, fixed-action Polkit broker, real Pop!_OS hardware acceptance and legal approvals are unfinished. Historical instructions to compile Rust, execute `dpkg -i`, edit TOML or enable systemd are **not** a customer installation guide. See [installer product scope](docs/product/linux-desktop-installer-v01.md) and [actual desktop L1 status](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md).
 
-The **three product components** are **Web**, **Server**, and **Agent**. PostgreSQL and Caddy are separate **infrastructure dependencies**, not completed applications.
-
-| Component | Path and technology | What runs today? |
-|---|---|---|
-| Web admin dashboard (primary) | `apps/web`: Next.js **16.4.5** App Router / React 19 / TypeScript 7 / Tailwind 4 / Lucide / shadcn-style components | Verified static disconnected management preview, seven pages, disabled login and asset/device operations; [public GitHub Pages preview](https://kunlong-luo.github.io/lanveriq/). NO real login, business API, or Agent access. The former `apps/web` Vite runtime was removed; its Git history remains available. |
-| API and admin server | `apps/server`, Java 25 / Spring Boot 4.1.2 / Gradle / JPA / Flyway | A buildable Spring Boot process with health checks; other business routes default to denial. Real DB/security approval pending. |
-| Endpoint Agent | `apps/agent`, Rust 1.94 / Tokio / SQLx SQLite WAL / Reqwest-rustls | Builds and starts an **idle** process; **no automatic monitoring, inventory collection, or uploads**. |
-| PostgreSQL (dependency) | PostgreSQL 18.x (18.6 for manual acceptance); Flyway V1–V8 | Reuse dedicated `lanveriq` database in existing `spark-postgres`; full PG18.6 integration acceptance pending. |
-| Redis (optional dependency) | Existing `spark-redis` / Redis 8 / Spring Data Redis + Lettuce | Optional **default-OFF** bounded ephemeral refetch-hint bean and Actuator health; not a queue, session, RBAC store or WSS broker. |
-| Caddy (dependency) | `deploy/caddy/Caddyfile.reference` | A **reference-only** TLS test config, not a production reverse proxy. |
-
-Candidate central topology: **Caddy HTTPS → private Next.js App Router (HTML/RSC/static) and independent Spring Boot API over mTLS → private PostgreSQL**. Caddy must authorize protected HTML/RSC through Spring before proxying, with the internal Next.js origin inaccessible to LAN clients. **This is not yet a deployable production topology.** The Rust Agent runs natively on expressly authorized endpoints, not centrally in Docker. GitHub Pages hosts only an isolated public static preview. See [deployment architecture](docs/architecture/deployment.md).
-
-**Canonical documentation (updated 2026-11-21):** [Web README](apps/web/README.md) · [NXT-24 migration](docs/development/nextjs-path-rename-nxt24-2026-11-21.md) · [single-UI migration audit](docs/development/nextjs-single-ui-consolidation-2026-11-21.md) · [current CSS tokens](docs/development/frontend-design-system.md). Ignore any old Git-history Vite 5173 instructions; `apps/web` is Next.js and `.github/workflows/web-unit.yml` is its Next.js fast test.
-
-## Primary Next.js frontend (public preview only)
-
-Visit [Lanveriq GitHub Pages](https://kunlong-luo.github.io/lanveriq/) for the publicly deployed, read-only static showcase. For a local private Next.js preview:
+**Developers only**, from a trusted, isolated machine:
 
 ```bash
+# Single Next.js management preview; no real login or device data
 cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
 pnpm install --frozen-lockfile
-pnpm run verify:routes
 pnpm test
-pnpm typecheck
-pnpm build
 pnpm dev
+# http://127.0.0.1:3100
 ```
 
-The Next.js server binds `127.0.0.1:3100`; no Spring session or business data is connected. **Never submit real credentials to the disabled login screen.** The former Vite implementation was deleted from the active tree in NXT-23; the current `apps/web` folder and its `web-unit.yml` workflow were then populated with **Next.js** in NXT-24. Only this Next.js package starts a frontend.
+For other components, `cd apps/server && ./gradlew test`, `cd apps/agent && cargo test --workspace --locked`, or `cd apps/desktop && pnpm test`. These are **development tests, not endpoint installation or activation**. To configure a separately isolated backend database, follow [local development runbook](docs/operations/installation.md), not an obsolete README transcript.
 
-## Prerequisites
+## Release and contribution rules
 
-- Git and **JDK 25**; the backend at `apps/server` includes the **Gradle 9.8.2 Wrapper**, so you need neither system Gradle nor Maven.
-- **Rust 1.94.0** / Cargo from `apps/agent/rust-toolchain.toml`, plus your operating system's native Rust build prerequisites.
-- Docker Engine with the existing running `spark-db` PostgreSQL container; a separate short-lived **synthetic-only** PostgreSQL 18.6 container is optional for independent acceptance.
-- Bash, curl and OpenSSL for the existing Linux/WSL/macOS local server smoke script.
-- **Node.js 24 and pnpm 12** are required for the primary Next.js Web preview. `apps/server/contract-client-check` generates and checks OpenAPI clients against the pinned Next.js React Query types. No authenticated API runs in the ordinary preview.
+Releasing needs independent approval of signed APT/Agent packages and a narrowly scoped Polkit broker, real consented Pop!_OS 24.04 COSMIC L3, CA/admin MFA, independently administered WORM, privacy/licensing and operational rollback. None can be bypassed by a UI checkbox or a synthetic CI result.
 
-Dependencies and Docker images may require Internet access on first download; offline operation is a **future product runtime** objective, not a promise about development dependency installation.
-
-```bash
-git clone https://github.com/kunlong-luo/lanveriq.git
-cd lanveriq
-```
-
-## Local development and testing
-
-### Import Lanveriq into IntelliJ IDEA
-
-Open the repository root `lanveriq/` with **File → Open** to browse the full Java/Rust/React codebase. **The repository root intentionally is NOT a Gradle project.** In **View → Tool Windows → Gradle**, select **Link Gradle Project** and choose **`apps/server/build.gradle`** (or directly open `apps/server/settings.gradle` if you only work on Java). Configure **JDK 25** for both Project SDK and Gradle JVM, and use the **Gradle Wrapper** located at `apps/server/gradlew`.
-
-Run backend Gradle commands **from `apps/server`**, not the repository root:
-
-~~~bash
-cd apps/server
-./gradlew test
-~~~
-
-Windows PowerShell uses `cd apps/server` followed by `.\gradlew.bat test`. The primary Next.js App Router frontend is a standalone pnpm app under `apps/web`; the Rust package is controlled by `apps/agent/Cargo.toml`. Neither is a Java Gradle module. See the [IDEA import guide](docs/development/intellij-idea.md); importing and unit testing do not need a running database or any device monitoring.
-
-## 1. Reuse your existing `spark-db` PostgreSQL instance
-
-Your local Docker Compose project is named `spark-db`, with an existing `spark-postgres` container, `iot_farm` business database, and (by default) a host-only `127.0.0.1:5432` PostgreSQL port. **Do not start a second persistent PostgreSQL instance.** Lanveriq may **optionally reuse the existing Redis** for best-effort transient hints/health, but needs neither InfluxDB nor PostGIS extensions. Keep the entire existing Compose stack and all of its volumes intact.
-
-The isolation boundary is a **new `lanveriq` database owned by a separate non-superuser `lanveriq` role** in the existing PostgreSQL cluster. Never run Flyway against `iot_farm` and do not run the Lanveriq application as the shared PostgreSQL superuser.
-
-Verify the existing database **without changing or restarting Compose**:
-
-```bash
-docker inspect -f '{{.State.Running}}' spark-postgres
-docker port spark-postgres 5432
-docker exec spark-postgres psql -U root -d postgres -XAtc "SHOW server_version;"
-```
-
-Expected: `true`, a host mapping such as `127.0.0.1:5432`, and PostgreSQL **18.x**. The `postgis/postgis:18-3.6` image label does **not** prove that the running patch is 18.6; verify the actual `server_version`. If your Compose variables `POSTGRES_USER`, `BIND_IP` or `POSTGRES_HOST_PORT` differ from the supplied defaults, substitute the actual values. The supplied Redis/PostgreSQL password defaults are weak; rotate any real credentials under a separate maintenance plan. These README instructions never copy or reuse those passwords.
-
-Your existing InfluxDB Explorer maps host **port 18080**, so the local Lanveriq server uses **18081**.
-
-### 2. Bootstrap a dedicated PostgreSQL database and role (manual only)
-
-**Recommended Linux path: skip DBeaver's SQL editor.** In a trusted local terminal, run the interactive, manually invoked helper from the repository root:
-
-~~~bash
-cd /home/spark/Projects/github/lanveriq
-git pull origin main
-bash apps/server/scripts/setup-local-postgres.sh
-~~~
-
-It checks the existing `spark-postgres` container, PostgreSQL 18, SCRAM settings and the current `lanveriq` role/database before any changes. Confirm **`CREATE lanveriq`** for a fresh, absent pair, or **`RECOVER lanveriq`** only for the narrowly verified NOLOGIN-role-without-database state. If a verified NOLOGIN-owned database still has default PUBLIC grants, confirm **`SECURE lanveriq`** to revoke only those grants. Confirm **`PASSWORD lanveriq`** to enter PostgreSQL's hidden password prompts (twice), then enter the chosen password once more for the TCP verification. The confirmation text is *not* your password. Existing usable logins are not reset, while unexpected ownership/privileges stop the script. No other database, container, monitoring, Flyway or production service is touched. The manual SQL steps below are an **alternative**, not additional steps to perform after this helper.
-
-First inspect the existing `spark-postgres` container through its Unix socket:
-
-~~~bash
-docker exec -it spark-postgres psql -X -U root -d postgres
-~~~
-
-Check `\du lanveriq` and `\l lanveriq`, then exit using `\q`. **If either object exists, stop and inspect ownership/history; never recreate or overwrite it.** When the intended container is verified and both are absent, invoke the reviewed, **password-free** [one-time bootstrap SQL](apps/server/scripts/provision-lanveriq-database.sql) from the repository root:
-
-~~~bash
-docker exec -i spark-postgres \
-  psql -X -v ON_ERROR_STOP=1 -U root -d postgres \
-  < apps/server/scripts/provision-lanveriq-database.sql
-~~~
-
-The script verifies the maintenance database is `postgres`, the operator is a cluster administrator, and the target objects are absent. It creates only a `NOLOGIN` non-superuser role and a separate database owned by that role, revoking default `PUBLIC` privileges on the new database. It **does not** migrate `iot_farm`, change other services, store a password, or run automatically during Spring Boot startup/CI. PostgreSQL cannot run `CREATE DATABASE` in a transaction: if anything fails partway through, investigate the partial state before any manual recovery; do **not** rerun blindly.
-
-**DBeaver SQLSTATE 25001:** Toolbar Auto-commit alone may not change how scripts commit. Open **Preferences → Editors → SQL Editor → SQL Processing → Scripts**, choose **Commit type = After each query (autocommit)** instead of **At script end**, and set Error handling to stop on error. Run sequentially with **Alt+X**; do not use parallel execution or a surrounding transaction. After any error, confirm the transaction is closed and inspect `pg_roles` and `pg_database` on a fresh session for partial creation before a retry. See [DBeaver's official SQL execution options](https://dbeaver.com/docs/dbeaver/SQL-Execution/).
-
-**Using an IDEA / DataGrip / DBeaver / pgAdmin SQL console?** Open the **same** `provision-lanveriq-database.sql`, with an administrator's connection to the maintenance database `postgres`. Enable **Auto-commit** and **Stop on error**; execute statements in order, **not in a single transaction** (PostgreSQL forbids `CREATE DATABASE` within a transaction block). A previous revision incorrectly included `\set ON_ERROR_STOP on`, a psql-only command that causes SQLSTATE 42601 in JDBC SQL consoles; it has been removed. If a statement fails, inspect whether the role/database was partially created and do not rerun blindly.
-
-**No second SQL file is needed for the password.** Set a unique strong password through your trusted database client's role credential editor, and then execute `ALTER ROLE lanveriq LOGIN;` after successful password assignment. Or use the interactive psql workflow below. Never paste `\password` into a JDBC SQL editor: it is a psql-only command.
-
-After successful bootstrap, open a **separate interactive** `psql`:
-
-~~~bash
-docker exec -it spark-postgres psql -X -U root -d postgres
-~~~
-
-Execute:
-
-~~~sql
-SHOW password_encryption;
-\password lanveriq
-ALTER ROLE lanveriq LOGIN;
-\du lanveriq
-\l lanveriq
-~~~
-
-Verify `password_encryption` is `scram-sha-256` before setting the unique strong password; enable LOGIN **only after** the password prompt succeeds. `\password` avoids putting the plaintext password in Git, command arguments or shell history. Exit with `\q`, then test the dedicated TCP credentials:
-
-~~~bash
-psql -h 127.0.0.1 -p 5432 -U lanveriq -d lanveriq -W \
-  -c 'SELECT current_user, current_database();'
-~~~
-
-If the host lacks `psql`, use a trusted local PostgreSQL client. The database role is different from the future web administrator login. The original `iot_farm` database, shared container/volumes, Redis and backups must not be changed by this procedure. Flyway V1–V8 owns **only application-schema migrations**, not cluster-level role/database provisioning.
-
-**Read-only local readiness check:** keep the Java process running, then from the repository root invoke `bash apps/server/scripts/verify-local-server.sh 8080` for an IDE launch with the default `application.yml` port, or pass `18081` when `LANVERIQ_HTTP_PORT=18081` was actually set. The helper sends only two local GETs to `127.0.0.1`, requires health 200/UP and anonymous devices 403, and never contacts the DB directly or writes records. This is not the Docker-backed PG18 transaction acceptance.
-
-### 3. Start Spring Boot with the existing database (development only)
-
-On the **same host** that publishes Docker's loopback PostgreSQL port, open a trusted Bash terminal:
-
-```bash
-cd apps/server
-export LANVERIQ_DB_URL='jdbc:postgresql://127.0.0.1:5432/lanveriq'
-export LANVERIQ_DB_USER='lanveriq'
-read -rsp 'Lanveriq PostgreSQL password: ' LANVERIQ_DB_PASSWORD
-echo
-export LANVERIQ_DB_PASSWORD
-export LANVERIQ_HTTP_BIND='127.0.0.1'
-export LANVERIQ_HTTP_PORT='18081'
-# Leave all optional LANVERIQ_* business feature flags default OFF.
-./gradlew bootRun
-```
-
-The hidden password prompt avoids putting credentials into the command line/history; process environments are still sensitive, so this is **for trusted local development only**. On Windows PowerShell, WSL2, remote development hosts, or from inside a container, `127.0.0.1` may refer to a different network namespace; validate connectivity rather than opening PostgreSQL to `0.0.0.0`.
-
-From another terminal:
-
-```bash
-curl -fsS http://127.0.0.1:18081/actuator/health
-curl -i http://127.0.0.1:18081/api/v1/devices
-```
-
-A healthy default-deny development instance is expected to report `{"status":"UP"}` and to reject the unauthenticated business API with **403**. On first start, Flyway runs V1–V8 only against the **new, isolated `lanveriq` database**. This is **not** a working dashboard/login/Agent API or real integration acceptance. HTTP must stay **loopback-only**.
-
-To stop, press `Ctrl+C` in the `bootRun` terminal. **Never stop `spark-postgres`, run `docker compose down`, or run `docker compose down -v`** as part of Lanveriq teardown.
-
-### 4. Optional existing Redis 8 (synthetic-only, no Redis container to create)
-
-Redis is **not required** by the default-deny Java process. To opt in on a
-trusted local development host, first check that **your existing** container is
-running and still bound to loopback:
-
-```bash
-docker inspect -f '{{.State.Running}}' spark-redis
-docker port spark-redis 6379
-```
-
-From the **same Bash shell as the Spring Boot process**, before `bootRun`:
-
-```bash
-export LANVERIQ_REDIS_HOST='127.0.0.1'
-export LANVERIQ_REDIS_PORT='6379'
-read -rsp 'Existing spark-redis password: ' LANVERIQ_REDIS_PASSWORD
-echo
-export LANVERIQ_REDIS_PASSWORD
-export LANVERIQ_REDIS_ENABLED='true'
-./gradlew bootRun
-```
-
-Do not run a second Redis container or overwrite the existing Compose
-credentials. This opt-in exposes Redis availability through the existing
-`/actuator/health` check; Redis unavailable can cause health to be DOWN.
-The only code-level Redis feature is a **currently unused internal**
-90-second UUID refetch hint; it does not enable monitoring or a new API.
-PostgreSQL remains the source of truth. Your Redis uses `allkeys-lru`,
-so never store critical session/role/ACK/audit/locking data in it.
-Stop only the Java process; **do not stop `spark-redis`, flush keys, run
-Compose down, or delete Redis volumes**.
-
-### 5. Optional disposable PostgreSQL 18.6 smoke (separate from spark-db)
-
-The existing `apps/server/scripts/verify-postgres18.sh` still creates its **own short-lived** `postgres:18.6` container. It **does not connect to, stop or delete** `spark-postgres`. To avoid the InfluxDB Explorer port conflict, run this optional isolated script on **18082**, not 18080:
-
-```bash
-# Stop any prior smoke process occupying these isolated test ports.
-LANVERIQ_SMOKE_HTTP_PORT=18082 \
-LANVERIQ_SMOKE_DB_PORT=55432 \
-bash apps/server/scripts/verify-postgres18.sh
-```
-
-The script creates and removes only its own synthetic database container, secret file and Spring process. It verifies startup/health/migrations/default denial, but **does not** establish real PG18 integration or production TLS acceptance. The 7-class / >=58-case manual Testcontainers suite must remain **disposable and isolated**: never point its destructive synthetic tests at the shared `iot_farm` or the developer `lanveriq` database.
-
-### 3. Run the idle Rust Agent
-
-From the repository root, enter the Agent project:
-
-```bash
-cd apps/agent
-cargo test --workspace --locked
-cargo build --release --locked -p lanveriq-agent
-cp config/agent.example.toml /tmp/lanveriq-agent-demo.toml
-cargo run --locked -p lanveriq-agent -- \
-  --config /tmp/lanveriq-agent-demo.toml
-```
-
-The example config is non-secret; the Agent demands an **absolute path**. Press `Ctrl+C` to exit and optionally remove the copied `/tmp/lanveriq-agent-demo.toml`. The executable is currently idle: **no device inventory, network request, telemetry or recording takes place**.
-
-For a Windows 11 **foreground** test in PowerShell:
-
-```powershell
-cd apps\agent
-Copy-Item .\config\agent.example.toml "$env:TEMP\lanveriq-agent-demo.toml"
-cargo run --locked -p lanveriq-agent -- --config "$env:TEMP\lanveriq-agent-demo.toml"
-```
-
-This is not an installed Windows SCM service.
-
-### 4. Local unit tests and builds
-
-```bash
-# Rust tests and checks (from repository root)
-cd apps/agent
-cargo test --workspace --locked
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets --locked -- -D warnings
-
-# Backend — Java JUnit, JAR and *compilation only* of optional DB test sources
-cd ../server
-./gradlew test bootJar compileIntegrationTestJava
-```
-
-Real PostgreSQL **manual** integration execution is a **separate security gate** (7 classes, at least 58 passed cases, zero failed/skipped), not part of standard CI:
-
-```bash
-cd apps/server
-./gradlew --no-build-cache --rerun-tasks integrationTest
-python3 scripts/assert-postgres18-junit.py build/test-results/integrationTest
-```
-
-Run that only against disposable, explicitly authorized Docker-backed synthetic fixtures. The repository has **no observed successful PostgreSQL 18.6 manual run**. See [manual acceptance instructions](docs/testing/server-postgres18-manual.md) or the [manual GitHub Actions workflow](https://github.com/kunlong-luo/lanveriq/actions/workflows/server-postgres18-integration.yml).
-
-## Deployment and installation
-
-### What is actually deployable now?
-
-- **Backend:** a local development Spring process and buildable Boot JAR — **not** a reviewed production application server.
-- **Agent:** a compiled **idle** binary, plus an **experimental** Linux systemd unit. No approved automatic installation, device collection, upload or Windows installer.
-- **Frontend:** only the disconnected Next.js preview builds. No authenticated business API, live database health indicator, real-device data or deployable production management console is enabled.
-- **Infrastructure:** no deployable Docker Compose file, production-ready Caddy configuration, real certificate provisioning, completed backup/restore drill, or production-ready network policy.
-
-**Do not run an invented `docker compose up -d` command: no Compose stack exists yet.**
-
-### Run a test backend JAR (not a production release)
-
-With the **same environment** already set for the dedicated `127.0.0.1:5432/lanveriq` database and `127.0.0.1:18081` listener, you may build and launch the backend as a foreground JAR instead of using `bootRun`:
-
-```bash
-cd apps/server  # Skip if already inside apps/server.
-./gradlew bootJar
-java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar
-```
-
-Stop with `Ctrl+C`. This starts a **default-deny synthetic development process**, not a reviewed publicly reachable API; it has no production Caddy/TLS/browser release approval. Do not auto-start it or enable collection to work around those gates.
-
-### Optional Linux-only idle Agent service trial
-
-**Only on an explicitly authorized isolated test VM**, after inspecting the [systemd unit](apps/agent/deploy/systemd/lanveriq-agent.service):
-
-```bash
-cd apps/agent
-cargo build --release --locked -p lanveriq-agent
-sudo install -m 0755 target/release/lanveriq-agent /usr/local/bin/lanveriq-agent
-sudo install -d -m 0755 /etc/lanveriq-agent
-# This exact example config has no secrets; never use mode 0644 for future keys.
-sudo install -m 0644 config/agent.example.toml /etc/lanveriq-agent/agent.toml
-sudo install -m 0644 deploy/systemd/lanveriq-agent.service /etc/systemd/system/lanveriq-agent.service
-sudo systemd-analyze verify /etc/systemd/system/lanveriq-agent.service
-sudo systemctl daemon-reload
-sudo systemctl start lanveriq-agent
-sudo systemctl --no-pager status lanveriq-agent
-```
-
-This example intentionally does **not** `systemctl enable` the unit at boot. Linux systemd permission and OS lifecycle tests are pending. Windows has an SCM dispatcher in source, but **no tested service installer/uninstaller or MSI**; review the [Agent lifecycle test plan](docs/testing/agent-lifecycle-manual.md).
-
-### Production installation: blocked
-
-Planned central deployment requires a reviewed **Caddy / Spring Boot / PostgreSQL** stack with built static React assets and native Agent installation, but cannot be completed today. Gates include: implementing the dashboard; packaging/Compose; real PG18.6 transaction/rollback tests; Caddy TLS/mTLS, Host/Origin/CSRF and browser cookies; per-device certificates and OS credential custody; backups/restore; Windows/Linux installation tests; and organizational privacy notice/approval.
-
-No real device enrollment, user-activity collection, automated uploads, monitoring or screen recording may be enabled simply by changing development flags. See [installation runbook](docs/operations/installation.md), [privacy and notice](docs/security/privacy-and-consent.md), and [D0 gate](docs/governance/documentation-gate.md).
-
-## Stop and uninstall
-
-| Component | Safe development teardown | Data warning |
-|---|---|---|
-| Spring Boot `bootRun` | `Ctrl+C` in its terminal | Does not delete database files |
-| Existing `spark-postgres` | **Do not stop, uninstall or run Compose down** | Preserve `iot_farm`, other databases, Redis/InfluxDB and all volumes |
-| Foreground idle Agent | `Ctrl+C`; remove only your copied test TOML | Does not uninstall any OS service |
-| Linux experimental systemd Agent | Instructions below | Remove only files you installed and verified |
-| Windows test SCM service | No supported installer/uninstaller yet; if manually created, stop/delete the exact known test service using Windows SCM and review its ACLs/data | Never delete an unknown service name |
-| Local Web preview | Stop `pnpm dev` with `Ctrl+C` | Only remove generated `apps/web/.next` / `apps/web/node_modules` if absolutely necessary; do not touch shared Docker volumes |
-| Production backend/DB/Caddy | **No approved one-command uninstall** | Backup, retention, key revocation and audit controls required |
-
-For a Linux Agent **installed using exactly the isolated-VM commands above**, confirm file ownership and paths first, then:
-
-```bash
-sudo systemctl stop lanveriq-agent
-sudo systemctl disable lanveriq-agent  # Only if someone explicitly enabled it
-sudo rm /etc/systemd/system/lanveriq-agent.service
-sudo systemctl daemon-reload
-sudo rm /usr/local/bin/lanveriq-agent
-sudo rm /etc/lanveriq-agent/agent.toml
-sudo rmdir /etc/lanveriq-agent
-```
-
-This intentionally does **not** delete `/var/lib` state, SQLite/WAL, database volumes, certificates, audit history or backups. Destructive real-data removal requires its own authorization, backup and retention review.
-
-### Optionally delete **only** the dedicated Lanveriq database
-
-Stopping Lanveriq does **not** require deleting `lanveriq`. If (and only if) this is a disposable, authorized test database with no retention obligations, take and verify a restricted backup before any irreversible change:
-
-```bash
-umask 077
-docker exec spark-postgres pg_dump -U root -d lanveriq -Fc > lanveriq-backup.dump
-```
-
-Store the backup securely. After **all Lanveriq applications are stopped**, separately enter the PostgreSQL admin console with `docker exec -it spark-postgres psql -U root -d postgres`; inspect `\l` and `\du` to confirm the exact targets. Only if the `lanveriq` database was expressly created for this project and approved for deletion:
-
-```sql
--- DESTRUCTIVE: execute only against the exact dedicated Lanveriq test DB.
-DROP DATABASE lanveriq;
--- Only if the role is unused by any other database or application.
-DROP ROLE lanveriq;
-```
-
-Do **not** delete `iot_farm`, stop `spark-postgres` or remove its `postgres-data` volume. Your existing pg_dump/Kopia/R2 backup workflow may back up only `iot_farm`; independently confirm whether the new `lanveriq` DB is covered.
-
-## Local Web preview — the ONLY runnable frontend
-
-Use Node.js 24 and pinned pnpm 12. The repository has **one** frontend:
-`apps/web` (Next.js 16 App Router). The historical `apps/web` Vite
-tree and its separate CI workflow were deleted after verifying their staged
-HTTPS/session/read-projection coverage already exists in Next.js. The former
-Vite health-only proxy and fictitious demo device view are intentionally not
-ported to the active console.
-
-From the repository root:
-
-~~~bash
-git switch main
-git pull --ff-only origin main
-cd apps/web
-corepack enable
-corepack pnpm install --frozen-lockfile
-corepack pnpm dev
-~~~
-
-Open **http://127.0.0.1:3100/overview**. Stop with `Ctrl+C`. No backend,
-PostgreSQL or Agent is required; all device data remains disconnected,
-credentials are disabled, and the command palette navigates only local public
-pages. `5173` and `vite` are no longer supported UI entry points. If an
-obsolete process is still running on your machine, stop it separately; deleting
-its checked-in files does not stop processes or remove untracked local
-`node_modules`. See [canonical Next.js guide](apps/web/README.md).
-
-## Frontend progress
-
-Next.js 16.4.5 / React 19 / TypeScript 7 / Tailwind 4 is the only mainline
-console. Public Pages is a read-only disconnected design preview, not a
-production login or device monitoring tool. The staged same-origin HTTPS
-session transport, authorized read projections, Springdoc/Orval contract
-checks and their negative tests remain unmounted and protected in
-`apps/web`; they are **not** permissions to enable production networking.
-See [frontend design system](docs/development/frontend-design-system.md),
-[dashboard UX](docs/development/dashboard-ux.md), [roadmap](docs/planning/roadmap.md),
-and [architecture drawings](docs/diagrams/README.md).
-
-## License and contributing
-
-The public repository **has no final software LICENSE**; visibility is not a grant of use or redistribution rights. See [CONTRIBUTING](CONTRIBUTING.md), [SECURITY](SECURITY.md) and [documentation index](docs/README.md). Never submit real credentials, personal data or recordings in issues.
-
-Copyright (c) 2026 Lanveriq contributors.
+Read [AGENTS.md](AGENTS.md), [contributing](CONTRIBUTING.md), [engineering playbook](docs/governance/engineering-playbook.md), [development plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md), [security policy](SECURITY.md), and [change history](CHANGELOG.md). Development score is **not** a release certificate. **v0.1 NOT RELEASE READY.**
