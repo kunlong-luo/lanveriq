@@ -39,6 +39,23 @@ The verification library is built on Python standard `hashlib` and native Ubuntu
 
 **Observed runs:** [b695945c prefetch #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) remained IN PROGRESS at download; old [ab1e3cd1 #45319542159](https://github.com/kunlong-luo/lanveriq/actions/runs/45319542159) is CANCELLED, not a test pass; signed-index-per-archive version [c141cf3e #45320183856](https://github.com/kunlong-luo/lanveriq/actions/runs/45320183856) was CANCELLED when a newer pending run superseded it. Only an actual entire two-job workflow SUCCESS, including post-cache save and independent restore of all matching packages, can justify L2B-14 lab acceptance. Full production-origin approval, real GUI-only candidate `.deb`, official ABI and Pop!_OS L3 remain separate OPEN gates.
 
+## L2B-14 最终双 runner 归档与 L2B-13 固定缓存接入（2026-11-24）
+
+**状态层级：L2B-14 APT 缓存传输 + 新签名索引逐包认证 + 当前完整依赖闭包独立验收 PASS；L2B-13 同源真实 GUI-only `.deb` L2 仍未 PASS；v0.1 NOT RELEASE READY。**
+
+| 来源与目标 | 真实证据 | 安全边界 |
+| --- | --- | --- |
+| [原生 APT 预热完整工作流 #45321096944](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) · source 720e2f18 | **overall SUCCESS**，首个作业从 Ubuntu 原有签名 APT 源 download-only 下载 175 个 `.deb`，约 70MB；dpkg 安装状态无变化、无 root 沙箱回退；GitHub post-cache 保存 SUCCESS | 没有构建、安装或分发 Lanveriq |
+| [同 run 独立 runner #45321096944](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) | **SUCCESS**；精确缓存键命中；新 `apt-get update` 后，缓存 **175/175** 文件的 Package、Version、Architecture、Size、SHA256 与 Ubuntu 签名索引一致；`apt-get -s` 175 项无下载依赖闭包精确匹配；与生产者全量文件 manifest 一致 | 证明缓存来源和跨 runner 可恢复，不是 OCI Builder 镜像 digest、二进制签名或 GUI L2 |
+| [更早 b695945c / #45318613848](https://github.com/kunlong-luo/lanveriq/actions/runs/45318613848) | **overall SUCCESS**，两个 runner 的缓存保存/恢复及数量检查已通过 | 较旧代码**没有**强制新签名索引逐包加闭包及全文件哈希验收，不可代替新的严格 run |
+| [当前严格候选源码 c4f04e44 / #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) | 工程接线已落地，执行中；未有全部 Rust/Clippy/真实 `.deb`/Syft/ELF/ABI/OCI 审计结果 | 只有该新 run 的每个后续步骤实际 PASS 才允许继续下一阶段 |
+
+通过 #45321096944 的**唯一候选固定缓存 key**：`lanveriq-ubuntu24-tauri-apt-v2-d3781616035a7dca93d8cc962be5b96c2430dd26cf28deee45aa287121da8f9e`；**175 份 .deb 文件集合的 SHA-256 manifest**：`5ac2afaff76e962e6c5131c34645248cb8024d4e8581d2790d71f622e988bc35`。该缓存只存 Ubuntu 公共原生构建依赖，不包含 Lanveriq 二进制、生产密钥、用户资料或远控权限。
+
+[新候选 CI c4f04e44](https://github.com/kunlong-luo/lanveriq/commit/c4f04e442be7da8181e9e62293764fbbb80e41d0) 将缓存恢复设置为**精确 key、fail-on-cache-miss、无 prefix/fallback**，把数量和 manifest 锁定在源码中。它在独立 Ubuntu24 runner 使用全新官方 APT 签名索引再次逐一检查归档、版本及模拟安装闭包，然后通过 `apt-get --no-download --no-install-recommends` 仅在**一次性构建 runner**安装构建头文件。全流程不安装 Lanveriq GUI/Agent、不修改被提交的 Tauri bundle.active=false、不签名或上传产品安装包，继续运行原先所有真正的 Rust/Clippy/归档/ABI/OCI 等严格检查。
+
+**阻断及换代规则：** 若缓存过期、Ubuntu 新版索引/镜像基线漂移、任何依赖遗漏/混入、key 或 SHA 不一致、APT 离线安装缺依赖，构建必须 FAIL；不能退回不受审镜像、未经认证软件源或直接重新联网下载等规避。需先重跑独立两 runner 验收取得新 key/manifest，再在 main 经审查更新固定值。**目前 G-05、正式 GUI-only L2 和 Pop!_OS L3 尚未完成，不因本阶段缓存子项 PASS 而关闭。**
+
 ## 本阶段增补：APT 当前安装计划的精确闭包证明（2026-11-24）
 
 - [代码提交 720e2f18](https://github.com/kunlong-luo/lanveriq/commit/720e2f183ec01bc98957fde0c13179d1c5df074c)：`verify_desktop_apt_archive_cache.py` 新增 `parse_install_plan`，拒绝 `Remv/Purg`、畸形或重复的 `Inst`，且严格绑定 `package -> version`；恢复缓存不能包含不属于独立 Ubuntu24 runner 的当前计划的归档，亦不能少于模拟计划。预热工作流第二 runner 先通过 Ubuntu APT 签名策略刷新索引，再执行九项构建前置入口的 `apt-get -s`，最后以 `--expected-plan-file` 将闭包绑定到每包签名索引 SHA-256、Size、Version/Architecture 和跨 runner manifest。该加强没有修改产品 Agent/GUI 权限，也没有授予软件安装或构建发行权限。

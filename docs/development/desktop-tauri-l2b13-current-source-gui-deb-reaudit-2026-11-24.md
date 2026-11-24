@@ -28,6 +28,12 @@
 
 **验收基础设施的可执行前置条件：** 先验证基于 Ubuntu24、受控来源、来源/版本/摘要可核验的 WebKitGTK 4.1 GTK/Tauri 构建依赖环境，确认最小工具链与 ABI、不使用不明镜像/未审签名、没有扩张构建机到终端或 Agent 权限。可以通过单独批准的固定开发镜像/隔离 runner 进行原生编译；若更换镜像或预制依赖，必须记录其 digest、包来源、受控维护/更新流程和失败回退，然后再让完全相同的 Rustfmt、`cargo test --workspace --locked`、严格 Clippy 和真实 `.deb` ABI/归档/OCI 流程跑完。此处**只规定目标，不代表已有可信镜像或完成验收**。不应简单延长超时、忽略 Clippy 或把旧 .deb 证据当作当前二进制。
 
+## 正式 GUI-only 未签名包 CI 首次消费已审 APT 缓存（2026-11-24）
+
+[代码 c4f04e44](https://github.com/kunlong-luo/lanveriq/commit/c4f04e442be7da8181e9e62293764fbbb80e41d0) 将旧版阻塞于 Ubuntu WebKitGTK 12 分钟在线依赖下载的关键流程改为 **精确缓存 key 恢复 → 当前 runner 官方签名 `apt-get update` → 按固定 175 包/manifest、逐包官方 SHA256/Size/Version/Arch 和 no-install 精确闭包二次验真 → `apt-get --no-download` 离线安装仅 Ubuntu24 CI 的原生构建依赖**。采用 [已完成完整双 job 严格核验 #45321096944](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) 的固定缓存，未允许 `restore-keys` 或无审查缓存降级。
+
+**[严格同源候选 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248)** 在本文记录时仍在运行。仍需逐项看到：同 SHA 实际 Rust `cargo test --workspace --locked` 和 Clippy `-D warnings`，真实 unsigned GUI-only `.deb` 文件/哈希、恶意归档拒绝、Syft source/payload、ELF 直接 SONAME 与 official `dpkg-shlibdeps`、干净 Ubuntu24 OCI `apt-get -s`、实验 Ed25519 验签。历史旧 SHA 成功不可冒充当前通过。Agent 或 GUI 包本身未在生产系统安装，也没有获得任何签名/授权或 Pop!_OS COSMIC 实机 L3 成功证据。**G-05 OPEN。**
+
 ## Candidate SHA 7cf23f3e failed native prerequisite timeout
 
 [Strict candidate run #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023), exact workflow SHA 7cf23f3e, has now completed **FAIL** on the 12-minute Ubuntu24 APT WebKitGTK prerequisite step. Source guard, synthetic rejection tests, frozen frontend/type/build, Cargo lock and Rustfmt passed; Rust tests, strict Clippy and all actual archive/ABI/OCI validation were **SKIPPED**. The runner's Ubuntu source downloads only reached the 69th package by timeout. Older source-specific package audit success cannot be substituted. The separate L2B-14 APT download-only cache work is not yet wired into a strict package build and cannot be treated as native L2.
