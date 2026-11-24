@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { documentationRequirements, verifyDocumentationBaseline,
   verifyLocalDocumentationLinks, verifyRepositoryLayout,
-  requiredRepositoryPaths } from './verify-documentation-baseline.mjs';
+  requiredRepositoryPaths, conciseLivePages } from './verify-documentation-baseline.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'lanveriq-docs-current-'));
@@ -87,6 +87,7 @@ test('layout guard refuses a duplicate Web, missing canonical runtime and bloate
     'deploy/rustdesk-synthetic/', 'docs/', '.github/workflows/',
   ];
   for (const path of entries) write(path, 'v0.1 NOT RELEASE READY\n' + map.join(' '));
+  for (const { path } of conciseLivePages) write(path, 'v0.1 NOT RELEASE READY\n');
   assert.equal(verifyRepositoryLayout(root), true);
   write('apps/web-next/package.json', 'obsolete');
   assert.throws(() => verifyRepositoryLayout(root),
@@ -99,6 +100,25 @@ test('layout guard refuses a duplicate Web, missing canonical runtime and bloate
     Array.from({ length: 145 }, () => map.join(' ')).join('\n'));
   assert.throws(() => verifyRepositoryLayout(root),
     /README grew into outdated chronology/);
+  write('README.md', 'v0.1 NOT RELEASE READY\n' + map.join(' '));
+  write('docs/CURRENT_STATUS.md',
+    'v0.1 NOT RELEASE READY\n' + 'Historical transcript\n'.repeat(80));
+  assert.throws(() => verifyRepositoryLayout(root),
+    /LIVE documentation expanded into a duplicate CI log/);
+  write('docs/CURRENT_STATUS.md',
+    'v0.1 NOT RELEASE READY\n## L2B-99: repeated old acceptance transcript\n');
+  assert.throws(() => verifyRepositoryLayout(root),
+    /Historical milestone transcript reintroduced into LIVE document/);
+  write('docs/CURRENT_STATUS.md', 'v0.1 NOT RELEASE READY\n');
+  write('docs/planning/release-gap-register.md',
+    'v0.1 NOT RELEASE READY\n**2026-11-24 G-05 redundant status**');
+  assert.throws(() => verifyRepositoryLayout(root),
+    /Historical milestone transcript reintroduced into LIVE document/);
+  write('docs/planning/release-gap-register.md', 'v0.1 NOT RELEASE READY\n');
+  write('docs/governance/documentation-index-snapshot-2026-11-21.md',
+    'duplicate historical docs homepage');
+  assert.throws(() => verifyRepositoryLayout(root),
+    /Retired duplicate\/obsolete repository path/);
 });
 
 test('rejects obsolete no-code contribution instructions', t => {
