@@ -17,6 +17,8 @@ BRIDGE_MODE="${LANVERIQ_SYNTHETIC_CADDY_BRIDGE:-0}"
 LINUX_CSR_MODE="${LANVERIQ_SYNTHETIC_LINUX_CSR:-0}"
 # Independent, CI-only actual Rust HTTPS business request opt-in.
 BUSINESS_MODE="${LANVERIQ_SYNTHETIC_AGENT_BUSINESS_LOOP:-0}"
+# P0: CI-only same-device Rust write -> scoped Spring Console read.
+CHAIN_READ_MODE="${LANVERIQ_SYNTHETIC_CHAIN_READ:-0}"
 CONSOLE_MODE="${LANVERIQ_SYNTHETIC_CONSOLE_SESSION:-0}"
 BROWSER_MODE="${LANVERIQ_SYNTHETIC_BROWSER_PROBE:-0}"
 NEXTJS_MODE="${LANVERIQ_SYNTHETIC_NEXTJS_PROBE:-0}"
@@ -79,9 +81,22 @@ MULTI_ADMIN_MODE="${LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE:-0}"
     echo "Synthetic Agent business mode must be 0 or 1" >&2
     exit 1
 }
+[[ "$CHAIN_READ_MODE" == 0 || "$CHAIN_READ_MODE" == 1 ]] || {
+    echo "Synthetic Agent-to-Console mode must be 0 or 1" >&2
+    exit 1
+}
+[[ "$CHAIN_READ_MODE" == 0 ||
+    ( "$BUSINESS_MODE" == 1 && "$CONSOLE_MODE" == 1 &&
+      "$BROWSER_MODE" == 0 && "$NEXTJS_MODE" == 0 &&
+      "$AUTH_UI_MODE" == 0 && "$MULTI_ADMIN_MODE" == 0 &&
+      "${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux ) ]] || {
+    echo "Same-device Console read is restricted to disposable Linux CI, not a real browser or installation" >&2
+    exit 1
+}
 [[ "$BUSINESS_MODE" == 0 ||
     ( "$BRIDGE_MODE" == 1 && "$LINUX_CSR_MODE" == 1 &&
-      "$CONSOLE_MODE" == 0 && "${GITHUB_ACTIONS:-}" == true &&
+      ( "$CONSOLE_MODE" == 0 || "$CHAIN_READ_MODE" == 1 ) &&
+      "${GITHUB_ACTIONS:-}" == true &&
       "${RUNNER_OS:-}" == Linux ) ]] || {
     echo "Real synthetic Agent POST is restricted to disposable Linux CI only" >&2
     exit 1
@@ -933,6 +948,35 @@ VALUES ('$DEVICE_ID', '$CLIENT_FP', 'synthetic-approved-agent-ca',
         clock_timestamp() - INTERVAL '1 hour',
         clock_timestamp() + INTERVAL '1 hour');
 SQL
+        if [[ "$CHAIN_READ_MODE" == 1 ]]; then
+            # This temporary scope is not a global owner bypass. The real
+            # SQL-backed Console guard must honor the CURRENT admin/group.
+            # A separate unscoped device proves list/detail cannot leak it.
+            docker exec -i "$DB_CID" psql -U lanveriq -d lanveriq -Xq \
+                -v ON_ERROR_STOP=1 >/dev/null <<SQL
+UPDATE devices SET device_label='RustToConsoleSynthetic' WHERE id='$DEVICE_ID';
+INSERT INTO user_role_scopes(user_id, role_id, device_group_id)
+ SELECT u.id, r.id, g.id FROM users u
+ CROSS JOIN roles r CROSS JOIN device_groups g
+ WHERE u.normalized_login='synthetic-owner'
+   AND r.code='it_operator' AND g.name='synthetic-batch-a-http';
+INSERT INTO device_groups(name) VALUES ('synthetic-out-of-scope');
+INSERT INTO devices(id, group_id, device_label, enrollment_state)
+ VALUES ('00000000-0000-7000-8000-000000000099',
+         (SELECT id FROM device_groups WHERE name='synthetic-out-of-scope'),
+         'NeverAuthorizedSynthetic', 'active');
+SQL
+            [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                SELECT count(*) FROM user_role_scopes s
+                JOIN users u ON u.id=s.user_id
+                JOIN roles r ON r.id=s.role_id
+                JOIN device_groups g ON g.id=s.device_group_id
+                WHERE u.normalized_login='synthetic-owner'
+                  AND r.code='it_operator' AND g.name='synthetic-batch-a-http'")" == 1 ]] || {
+                echo "FAIL: temporary operator scope was not granted exactly once" >&2
+                exit 1
+            }
+        fi
         # Restart the SAME disposable TLS connector against the SAME PG18
         # database with TWO explicit flags. Never modify application.yml
         # or start the installed Agent service.
@@ -944,7 +988,11 @@ SQL
             --lanveriq.agent.activation.http-enabled=true \
             --lanveriq.agent.heartbeat.http-enabled=true \
             --lanveriq.agent.credential-epoch.http-enabled=true \
-            --lanveriq.console.auth.enabled=false \
+            --lanveriq.console.auth.enabled="$CONSOLE_ENABLED" \
+            --lanveriq.console.auth.origin=https://console.lanveriq.internal \
+            --lanveriq.device-directory.enabled="$CONSOLE_ENABLED" \
+            --lanveriq.device-directory.http-enabled="$CONSOLE_ENABLED" \
+            --lanveriq.monitoring.overview-http-enabled="$CONSOLE_ENABLED" \
             >"$TMP/spring-business.log" 2>&1 &
         APP_PID=$!
         BUSINESS_READY=0
@@ -1310,9 +1358,15 @@ PY
         # Keep even disposable credentials out of the process argv and
         # environment. FD 3 is a one-shot private stdin channel to the
         # verifier, not an exposed CLI option or runner log.
-        bash "$ROOT/apps/server/scripts/verify-synthetic-console-session.sh" \
-            "$ROOT_CA" "$TMP" "$DB_CID" "$SYNTHETIC_LOGIN" \
-            3<<< "$SYNTHETIC_PASSWORD"
+        if [[ "$CHAIN_READ_MODE" == 1 ]]; then
+            bash "$ROOT/apps/server/scripts/verify-synthetic-console-session.sh" \
+                "$ROOT_CA" "$TMP" "$DB_CID" "$SYNTHETIC_LOGIN" "$DEVICE_ID" \
+                3<<< "$SYNTHETIC_PASSWORD"
+        else
+            bash "$ROOT/apps/server/scripts/verify-synthetic-console-session.sh" \
+                "$ROOT_CA" "$TMP" "$DB_CID" "$SYNTHETIC_LOGIN" \
+                3<<< "$SYNTHETIC_PASSWORD"
+        fi
         if [[ "$BROWSER_MODE" == 1 ]]; then
             # Chromium must trust this ephemeral Caddy CA through an isolated
             # NSS certificate DB. Never set ignoreHTTPSErrors or -k.
@@ -1345,7 +1399,12 @@ fi
 echo "MANUAL SYNTHETIC PASS: real Spring/Tomcat mTLS, PG18 Flyway startup, default deny."
 if [[ "$BUSINESS_MODE" == 1 ]]; then
     echo "PASS: synthetic Rust HTTPS request, exact Spring ACK and PG18 persistence/replay/revocation."
-    echo "NOT PROVEN: authorized Pop!_OS installed service, production CA, retention epoch or live device."
+    if [[ "$CHAIN_READ_MODE" == 1 ]]; then
+        echo "PASS: same disposable Rust device -> PG18 commit -> real scoped Spring HTTP read, no unscoped row."
+        echo "NOT PROVEN: Next.js/Chromium rendering, authorized Pop!_OS service, production CA or real device."
+    else
+        echo "NOT PROVEN: authorized Pop!_OS installed service, production CA, retention epoch or live device."
+    fi
 elif [[ "$BRIDGE_MODE" == 0 ]]; then
     echo "NOT PROVEN: real Caddy-to-Tomcat handshake, Agent business route or live device."
 else
