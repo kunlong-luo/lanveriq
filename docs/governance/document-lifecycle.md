@@ -1,31 +1,25 @@
-# 文档权威、生命周期与维护规则
+# 文档权威与生命周期
 
-**ACTIVE · 2026-11-24 · v0.1 NOT RELEASE READY。**
+**ACTIVE · 2026-11-24 · v0.1 NOT RELEASE READY。** 规则变更必须以源码和实际 SHA/CI 为依据；文档不是信任根、发行许可证或产品开关。
 
-| 类型 | 唯一入口 | 使用规则 |
+| 类别 | 唯一权威 | 维护规则 |
 | --- | --- | --- |
-| **LIVE-FACT** | [CURRENT_STATUS](../CURRENT_STATUS.md) | 当前源码与确切功能 SHA/CI、发布状态；新 PASS 需实际执行 |
-| **NORMATIVE** | [AGENTS](../../AGENTS.md)、[工程手册](engineering-playbook.md)、[DoD](../planning/definition-of-done.md) | 稳定规范，禁止每次附上整段最新 CI |
-| **LIVE-GAP** | [release-gap register](../planning/release-gap-register.md) | 未完成发布 Gate、职责类型、退出证据；合成 PASS 不自动关闭 |
-| **ADR** | [ADR 索引](../architecture/adrs/README.md) | 批准的是架构选择；记录 Proposed/Accepted/Superseded，取代关系 |
-| **SPEC** | architecture / security / development 专题 | 接口、行为、反例和限制；不跨 SHA 复用验收 |
-| **HISTORICAL** | 日期报告/旧计划/CHANGELOG/[旧 AGENTS](archive/README.md) | 保留原始失败与日期，不能冒充现行开发规则 |
-| **INDEX** | [docs/README](../README.md)、根 README | 只放导航和发布边界，不复制最新 CI 表 |
+| LIVE-FACT | [CURRENT_STATUS](../CURRENT_STATUS.md) | 当前功能、确切 SHA/CI、真实测试范围；不能复制每个旧日志 |
+| LIVE-GAP | [release-gap register](../planning/release-gap-register.md) | G-01～G-10 未完成项目及真实退出条件 |
+| ACTIVE PLAN | [Linux 交付路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) | 当前单一实施顺序，不再引用旧 roadmap/backlog 为权威 |
+| NORMATIVE | [AGENTS](../../AGENTS.md)、[工程手册](engineering-playbook.md)、[DoD](../planning/definition-of-done.md) | 版本、权限、安全与开发规则 |
+| ADR/SPEC | [ADR](../architecture/adrs/README.md)、architecture/security/development | 决策、接口与信任边界；历史 ADR 要标记被替代 |
+| HISTORICAL | [固定 Git SHA 归档](archive/README.md)、各日期报告与原始 CI | 只作追溯；保留独立真实失败、攻击与合成测试证据 |
+| INDEX | [docs/README](../README.md)、[根中英文 README](../../README.zh.md) | 目录职责、入口与边界，不是日常 CI 时间线 |
 
-实际软件事实以代码、lockfile、Flyway、feature flags 为准；CURRENT_STATUS 负责可核对证据；D0/ADR 历史决议不批准正式上线。发生冲突先核对 Git SHA 与原始 CI，再改 LIVE-FACT，不放松安全。
+## 修改、清理和验收规则
 
-**新现行文件元数据：** 标题、状态 ACTIVE/PROPOSED/BLOCKED/HISTORICAL/SUPERSEDED、核对日期、适用范围、相关权威链接、不可推导的权限。声称测试结果时必须带功能 SHA、run 链接、环境、PASS/FAIL/PENDING/NOT RUN 和不能证明的内容。明确区分 feature commit 与 docs commit。
+1. 核对当前 `main` SHA、代码与测试、相关 ADR、功能标记和 [发布 Gate](../planning/release-gap-register.md)，再决定修改。
+2. **删除前**确认文件已被当前唯一规范替代，不含独立证据、编译/运行依赖、真实失败或审批信息。历史原文保留固定 Git SHA，修改所有仍需引用它的相对链接。
+3. [目录保留/删除审计](repository-layout-audit-2026-11-24.md) 维护当前结构。旧 `backlog.md`、`roadmap.md`、2026-11-08 批次计划、旧 implementation sequence 已从当前树清理；不能把历史「待开发」「框架迁移」当成今天的事实。
+4. 更新相应 SPEC/ADR；测试实际 PASS 才写入 CURRENT_STATUS。记录 exact **functional SHA、run ID、环境、PASS/FAIL/PENDING/NOT RUN**，不要用 docs-only CI 替代产品验收；仅在真实外部验收变化时更新 LIVE-GAP。
+5. 执行 `node apps/web/scripts/verify-documentation-baseline.mjs` 与 `node --test apps/web/scripts/test_verify_documentation_baseline.mjs`。[docs-governance workflow](../../.github/workflows/docs-governance.yml) 验证目录、入口、所有 `docs/**/*.md` 本地链接和过时路径负例；不验证外链/标题锚、法务批准或 Pop!_OS L3。
 
-**更新闭环：** 先检查现行规则和实现 → 修改对应 SPEC → 真实测试完成后更新 CURRENT_STATUS → 发布条件变化更新 LIVE-GAP → 架构变化写 ADR 的 Context/Alternatives/Decision/Consequences/Supersedes → 检查相对链接、版本、隐私、历史矛盾。
+早期目录清理出现过真实断链 FAIL [#45372711463](https://github.com/kunlong-luo/lanveriq/actions/runs/45372711463)，后经固定 SHA 引用修复；不得抹去失败历史。详细旧文档治理过程可从[本次精简前固定原文](https://github.com/kunlong-luo/lanveriq/blob/234850dfef72b4fbe4dcc5f4157270c4dc7860e6/docs/governance/document-lifecycle.md)查询。
 
-执行 `node apps/web/scripts/verify-documentation-baseline.mjs` 和 `node --test apps/web/scripts/test_verify_documentation_baseline.mjs`；**所有 `docs/**/*.md` 的仓库内相对链接均接受递归检查**（不仅是 20 份入口文件）；[docs-governance workflow](../../.github/workflows/docs-governance.yml) 检查当前入口和本地链接。CI 不能验证外部官网真实性、法律批准或 Pop!_OS 物理 L3。
-
-## 2026-11-24：目录治理与历史引用维护
-
-[仓库目录责任/实际删除清单](repository-layout-audit-2026-11-24.md) 是四应用、deploy 隔离试验目录与文档目录的可审入口；[工程评分](../planning/project-scorecard.md) 是优先级自评，**不能取代 release-gap register 的外部 Gate**。根和四应用 README 只说明目录/开发入口/安全边界；CURRENT_STATUS 不再重复所有历史运行日志。
-
-**删除顺序：** 先确认文件不为生产/CI/测试/唯一历史安全证据依赖，再查当前 README、历史索引和文档相对链接；删除后所有仍需引用的历史记录改为**固定 Git SHA URL**，绝不无声丢失证据。本次 `docs/development/pagevela-reference.md` 的删除曾令历史索引断链并触发真实 CI FAIL，现已修复并保留 [失败运行](https://github.com/kunlong-luo/lanveriq/actions/runs/45372711463)，是后续删除必检的反例。
-
-**2026-11-24 第二轮实际去重：** 旧 `docs/governance/documentation-index-snapshot-2026-11-21.md` 与 `docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md` 是已由 Git SHA 完全保存的全文副本，现从当前工作树删除；[归档 README](archive/README.md) 保留两份完整原文的**固定 SHA 路径**。现行状态/发布门禁/评分/路线已去除重复 L2B 每阶段长日志，其详细负测和原 CI 仍保留在 dated reports。新增 `verifyNoRetiredSnapshotLinks` 递归检查 docs Markdown 和四份根规则/历史文件的相对链接，拒绝把旧快照带回工作树；真实安全/法律/证据唯一文件不得仅凭尺寸清理。根 [中英文 README](../../README.zh.md) 是目录结构唯一入口，旧文件移除**不**意味着其历史不再可查。
-
-**自动化：** `verify-documentation-baseline.mjs` 的本地链接/仓库目录守卫覆盖双语 README、四应用 README、评分和目录审计；docs-governance 在其自身及所有 README/CHANGELOG 改动后触发。任何不在白名单的旧第二 Web、Maven/未审真实安装桥都不得因为文档“评分”提高而被重新引入。**v0.1 NOT RELEASE READY。**
+**安全 Gate 全部 OPEN。v0.1 NOT RELEASE READY。**

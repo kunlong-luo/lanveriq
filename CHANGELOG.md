@@ -4,6 +4,12 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-24 — 规划文件真实裁剪与目录权威再收敛
+
+- 在唯一 `main` 先修复[历史架构/治理引用](https://github.com/kunlong-luo/lanveriq/commit/479602698cd3d4a4bde61f60aa6f2ee10e6cfa5c)，再修复[现行规范引用](https://github.com/kunlong-luo/lanveriq/commit/234850dfef72b4fbe4dcc5f4157270c4dc7860e6)，将旧规划引用分类为固定 Git SHA 历史或现行 Linux 实施路线。
+- [实际清理 `20719b0e`](https://github.com/kunlong-luo/lanveriq/commit/20719b0e6bc020117c64d8ecaf894ee84d972e82)：删除 3 份已被取代的旧规划全文，Git tree **860→857 文件、docs Markdown 211→208**；[固定历史原文](docs/governance/archive/README.md)不丢失，现行[目录审计](docs/governance/repository-layout-audit-2026-11-24.md)由约 9.8 KB 收敛到约 3.7 KB。
+- 更新中英文 README、唯一 docs 导航和生命周期规则，并新增三份旧计划重新引入及相对链接的拒绝负测。**仅文档/源级安全回归，不是 Agent、APT 防回退或 Pop!_OS L3 新验收。**
+
 ## 2026-11-24 — 文档全域完整性与 L2B-28 发行证据门禁
 
 - [文档全域链接检查 `dc5cb839`](https://github.com/kunlong-luo/lanveriq/commit/dc5cb839cf47959e707a1b5d0b041d484b14d1cf)：将 CI 从重点索引扩展到全部 `docs/**/*.md` 相对链接，包含非入口历史文档负测；[#45400108591 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400108591)。

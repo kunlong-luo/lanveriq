@@ -1,75 +1,67 @@
 # Lanveriq
 
-**English** · [简体中文](README.zh.md) · [Documentation index](docs/README.md)
+**English** · [简体中文](README.zh.md) · [Documentation home](docs/README.md)
 
-Lanveriq is a Linux-first, self-hosted endpoint inventory, health-state and audit project for **lawfully disclosed, explicitly authorized** workplace devices. The first target is **Pop!_OS 24.04 / COSMIC**.
+Lanveriq is a Linux-first, self-hosted endpoint inventory, health-state and audit platform for **disclosed, lawfully authorized** workplace devices. First target: **Pop!_OS 24.04 / COSMIC**.
 
-> **Release: v0.1 NOT RELEASE READY.** There is no signed, independently approved, one-click Agent installer or authorized production deployment. All real-device networking, automatic inventory collection, remote access, automatic recovery and certificate issuance remain **default OFF**. CI successes demonstrate isolated tests, not consent or deployment authority.
+> **v0.1 NOT RELEASE READY.** No approved signed one-click Agent installer, privileged Polkit transaction broker, physical Pop!_OS L3, production CA/MFA, independent WORM or legal/SRE sign-off exists. Production networking, automatic collection/recovery, remote control and certificate issuance remain **OFF**. Synthetic CI PASS is not production authorization.
 
-[Current verified status](docs/CURRENT_STATUS.md) · [Open release gates G-01–G-10](docs/planning/release-gap-register.md) · [Engineering scorecard](docs/planning/project-scorecard.md) · [Keep/delete repository audit](docs/governance/repository-layout-audit-2026-11-24.md)
+[Single current status](docs/CURRENT_STATUS.md) · [Release gates G-01–G-10](docs/planning/release-gap-register.md) · [Active Linux delivery plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [Keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md)
 
-## Which directories are real and why do they exist?
+## Source directories — what stays
 
-| Path | Purpose and stack | Current boundary | Decision |
-| --- | --- | --- | --- |
-| [`apps/web/`](apps/web/README.md) | The **only Web admin console**, Next.js 16.4.5 / React 19 / Tailwind 4 / Base UI | Public [Pages preview](https://kunlong-luo.github.io/lanveriq/) is disconnected; real business data is only proven in disposable CI | **KEEP** |
-| [`apps/server/`](apps/server/README.md) | Java 25 / Spring Boot 4.2.0 / Gradle / JPA-Hibernate / Flyway / PostgreSQL 18 | Deny-by-default business APIs; real PG18 and TLS synthetic integration tested | **KEEP** |
-| [`apps/agent/`](apps/agent/README.md) | Rust 1.100 / Tokio / SQLx SQLite / reqwest-rustls Agent | Durable outbox and read-only host sampling tested in isolated CI; no authorized live collection | **KEEP** |
-| [`apps/desktop/`](apps/desktop/README.md) | Tauri 2 + React local install-readiness and status GUI | **Read-only**; no trusted installer/Polkit broker, service activation or production entitlement | **KEEP** |
-| [`deploy/caddy/`](deploy/caddy/Caddyfile.reference) | TLS1.3 / double-mTLS reference and disposable testing | Not a production Internet-facing configuration | **KEEP** |
-| [`deploy/network/`](deploy/network/verify_dual_access.py) | LAN/WAN boundary tests | Isolated security validation only | **KEEP** |
-| [`deploy/rustdesk/`](deploy/rustdesk/client-release-lock.json) and [`deploy/rustdesk-synthetic/`](deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) | Optional RustDesk protocol/pilot and RD-2 release-denial tests | Remote control is **OFF**; licensing and security approval absent | **KEEP (isolated)** |
-| [`docs/`](docs/README.md) | Architecture, current status, tests, release gaps, dated audit evidence | [Lifecycle rules](docs/governance/document-lifecycle.md) distinguish authoritative from historical material | **KEEP** |
-| [`.github/workflows/`](.github/workflows/docs-governance.yml) | Test/build/security/documentation CI | CI is not production sign-off | **KEEP** |
+| Path | Responsibility | Decision |
+| --- | --- | --- |
+| [`apps/web/`](apps/web/README.md) | **Only Web console** — Next.js 16 / React 19 / Tailwind 4 / Base UI; public Pages is disconnected | **KEEP** |
+| [`apps/server/`](apps/server/README.md) | Java 25 / Spring Boot 4.2 / **Gradle** / JPA-Hibernate / Flyway / PostgreSQL 18; mTLS, domain APIs and transactions | **KEEP** |
+| [`apps/agent/`](apps/agent/README.md) | Rust / Tokio / SQLx SQLite / reqwest-rustls; isolated read-only Linux probe, durable outbox and strict ACK; production automatic collection OFF | **KEEP** |
+| [`apps/desktop/`](apps/desktop/README.md) | Tauri 2 / React **read-only** installation-readiness GUI; Vite builds the Tauri window, not another Web console | **KEEP** |
+| [`deploy/caddy/`](deploy/caddy/Caddyfile.reference) | TLS 1.3 / double mTLS references and isolated CI; **not** a production Internet-facing config | **KEEP** |
+| [`deploy/network/`](deploy/network/verify_dual_access.py) | LAN/WAN boundary refusal tests | **KEEP** |
+| [`deploy/rustdesk/`](deploy/rustdesk/client-release-lock.json), [`deploy/rustdesk-synthetic/`](deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) | Candidate RustDesk protocol, license and RD-2 release-denial tests; remote control OFF | **KEEP (lab only)** |
+| [`docs/`](docs/README.md) | Architecture, specifications, current status/gates, unique dated security/CI evidence and immutable historical pointers | **KEEP and deduplicate** |
+| [`.github/workflows/`](.github/workflows/docs-governance.yml) | Focused L1, disposable L2, RD-2 and documentation/release-evidence tests; not physical L3 approval | **KEEP** |
 
-The old `apps/web-next/` and the previous React/Vite **Web console** are no longer present. **Do not recreate a second Web frontend, Maven build, or independent agent control plane.** The Vite build under `apps/desktop` is only for the Tauri window, not a second Web console. This repository root is intentionally **not** a Gradle project.
+Root [`AGENTS.md`](AGENTS.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md) and [`CHANGELOG.md`](CHANGELOG.md) each have a distinct purpose. The repository root is **neither a Gradle nor Maven application**. Do not recreate the removed `apps/web-next/`, legacy Vite Web, secondary Maven backend or independent Agent control plane.
 
-The **canonical documentation tree** is deliberately shallow at its active entry points; historical results stay in the relevant topic folder and Git history:
+## Documentation ownership
 
 ```text
 docs/
-├── README.md                  # single documentation index
-├── CURRENT_STATUS.md          # single live implementation/CI summary
-├── architecture/             # normative architecture
-│   └── adrs/                 # accepted/proposed decisions
-├── security/                  # identity, privacy, FIDO, WORM boundaries
-├── development/               # specifications and dated L2B/NXT evidence
-├── testing/                   # L1/L2/L3 matrices and original failures
-├── planning/                  # one live release-gap register and roadmap
-├── governance/               # doc ownership and audit
-│   └── archive/              # pinned-Git historical index, no duplicate texts
-├── operations/  product/      # authorized runbooks and expected UX
-└── diagrams/    visuals/      # Mermaid and conceptual SVG (not UI shots)
+├── README.md             # single documentation index
+├── CURRENT_STATUS.md     # single current implementation / CI fact ledger
+├── architecture/adrs/    # architecture, protocols and ADRs
+├── security/             # identity, FIDO, WORM, privacy and unique threat evidence
+├── development/          # standards, frontend design and dated implementation reports
+├── testing/              # L1/L2/L3 validation, failures and hostile cases
+├── planning/             # active Linux plan, single gate register, DoD/scorecard, historical acceptance
+├── governance/archive/   # ownership, layout audit and pinned-Git history index
+├── operations/           # development, backup, recovery and release controls
+├── product/              # product requirements and expected UX
+├── diagrams/             # Mermaid source diagrams
+└── visuals/              # conceptual SVG, not screenshots of running UI
 ```
 
-The [archive index](docs/governance/archive/README.md) links both removed duplicate snapshots to immutable Git commit SHA paths. The [directory keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md) records what can be safely pruned. Old document snapshots are accessed through **pinned Git links** instead of duplicated active files; unique test evidence and failure history are retained. The documentation CI also checks local links across every `docs/**/*.md`, not just the index pages.
+Obsolete `docs/planning/backlog.md`, `roadmap.md`, `v0.1-batched-delivery-plan-2026-11-08.md` and the former implementation-sequence transcript have been **removed from the working tree**. Their full original text remains accessible through the [pinned Git history index](docs/governance/archive/README.md). Keep independent failures, signed-package attack evidence and original ADRs. For current work use only the [Linux delivery plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md), [CURRENT_STATUS](docs/CURRENT_STATUS.md) and [release-gap register](docs/planning/release-gap-register.md). Documentation CI checks links across all `docs/**/*.md` and denies resurrected paths.
 
-## What can I install today?
+## Developer preview — not endpoint installation
 
-**Ordinary endpoint users: not yet.** The planned Tauri one-click installation, signed Agent distribution, fixed-action Polkit broker, real Pop!_OS hardware acceptance and legal approvals are unfinished. In isolated Ubuntu24 OCI only, [actual audited Rust Agent signed-APT transactions passed](docs/development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md), and [an actual malicious local Polkit YES rule was still rejected by the root-side ReviewLab](docs/development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md). **Neither is a user installer; the ReviewLab cannot run APT transactions.** [L2B-27's native 10/10 APT proof](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md) additionally shows that an **older yet validly signed Release Date is accepted** without a trusted independent rollback high-water check; this was not an actual Agent downgrade. Historical instructions to compile Rust, execute `dpkg -i`, edit TOML or enable systemd are **not** a customer installation guide. See [installer product scope](docs/product/linux-desktop-installer-v01.md) and [actual desktop L1 status](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md).
-
-**Developers only**, from a trusted, isolated machine:
+From an authorized isolated development machine:
 
 ```bash
-# Single Next.js management preview; no real login or device data
 cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
 pnpm install --frozen-lockfile
 pnpm test
 pnpm dev
-# http://127.0.0.1:3100
+# http://127.0.0.1:3100 — disconnected preview
 ```
 
-For other components, `cd apps/server && ./gradlew test`, `cd apps/agent && cargo test --workspace --locked`, or `cd apps/desktop && pnpm test`. These are **development tests, not endpoint installation or activation**. To configure a separately isolated backend database, follow [local development runbook](docs/operations/installation.md), not an obsolete README transcript.
+Other developer tests: `cd apps/server && ./gradlew test`, `cd apps/agent && cargo test --workspace --locked`, `cd apps/desktop && pnpm test`. See [development-only PostgreSQL/loopback setup](docs/operations/installation.md). End users should **not** compile Rust, invoke `dpkg -i` or enable systemd services as a substitute for an approved installer.
 
-## Release and contribution rules
+## Release boundary and next work
 
-Releasing needs independent approval of signed APT/Agent packages and a narrowly scoped Polkit broker, real consented Pop!_OS 24.04 COSMIC L3, CA/admin MFA, independently administered WORM, privacy/licensing and operational rollback. None can be bypassed by a UI checkbox or a synthetic CI result.
+An isolated [Agent→mTLS→Spring/PostgreSQL→Next.js synthetic chain](docs/testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md) has passed. Native [APT accepted a valid older signed Release](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md); the [L2B-28 source-only approval-denial contract](docs/development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) does **not** implement an independent trusted anti-rollback high-water, release publisher or installation authorization.
 
-Read [AGENTS.md](AGENTS.md), [contributing](CONTRIBUTING.md), [engineering playbook](docs/governance/engineering-playbook.md), [development plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md), [security policy](SECURITY.md), and [change history](CHANGELOG.md). Development score is **not** a release certificate. **v0.1 NOT RELEASE READY.**
-
-
-**Verified G-05 source-only boundary:** [L2B-28 offline evidence-denial tests #45400903033 passed](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033); this is not a trusted APT anti-rollback high-water, publisher approval or installer. **v0.1 NOT RELEASE READY.**
-
-**Historical plan cleanup:** the obsolete v0.1 ticket-sequence transcript was removed from the live `docs/planning/` tree; its original content is linked from the [immutable history index](docs/governance/archive/README.md). Use the [active Linux delivery plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md). **v0.1 NOT RELEASE READY.**
+Before any production deployment: independently approved publisher root, secure monotonic high-water and trusted time, least-privilege Polkit authorization, consented Pop!_OS COSMIC L3, administrator MFA/CA, externally administered WORM, legal and SRE disaster-recovery sign-offs. See [AGENTS.md](AGENTS.md), [security policy](SECURITY.md) and [release runbook](docs/operations/release.md). **v0.1 NOT RELEASE READY.**

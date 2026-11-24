@@ -1,47 +1,36 @@
 # Lanveriq 文档导航 / Documentation home
 
-**ACTIVE INDEX · 2026-11-24 · v0.1 NOT RELEASE READY。** 从这里读取**当前权威**，而不是按旧 CI 文章末尾的“下一步”执行操作。根入口：[中文](../README.zh.md) / [English](../README.md)。
+**ACTIVE INDEX · 2026-11-24 · v0.1 NOT RELEASE READY。** [中文项目首页](../README.zh.md) · [English README](../README.md)。只在这里寻找当前文件入口；历史报告中的「下一步」「未实现」应按其日期理解。
 
-> **2026-11-21 current Web baseline:** 唯一 Console 在 `apps/web`，Next.js 16.4.5；[NXT-24 旧 Vite→Next.js 路径迁移](development/nextjs-path-rename-nxt24-2026-11-21.md) 是**历史验收**。Tauri 使用 Vite 只构建桌面窗口，不能建立 `apps/web-next`。
+> **2026-11-21 current Web baseline:** `apps/web` 是唯一 Next.js 16 Console；[NXT-24 旧 Vite→Next.js 迁移](development/nextjs-path-rename-nxt24-2026-11-21.md) 是历史验收。Tauri 内部使用 Vite 只构建桌面窗口，不存在 `apps/web-next`。
 
-## 五个权威入口（不可再复制成多份）
+## 唯一现行权威
 
-| 用途 | 唯一当前文件 |
+| 问题 | 现行唯一入口 |
 | --- | --- |
-| 目前实际完成了什么 | [CURRENT_STATUS.md](CURRENT_STATUS.md)（真实功能 SHA、CI、边界） |
-| 何时能上线、缺哪项 | [release-gap register](planning/release-gap-register.md)（G-01～G-10 的 LIVE-GAP，全部 OPEN） |
-| 怎么实现、怎么审查 | [AGENTS.md](../AGENTS.md) · [工程手册](governance/engineering-playbook.md) · [DoD](planning/definition-of-done.md) |
-| 架构/技术/目录归属 | [ADR 索引](architecture/adrs/README.md) · [技术栈](development/technology.md) · [唯一目录审计](governance/repository-layout-audit-2026-11-24.md) |
-| 实施目标/自评 | [Linux 首发路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [工程自评分](planning/project-scorecard.md)（非发布许可证） |
+| 什么已经实现、哪次真实 CI 通过？ | [CURRENT_STATUS.md](CURRENT_STATUS.md)（LIVE-FACT） |
+| 能上线了吗、哪些 G-01～G-10 还缺外部批准？ | [release-gap register](planning/release-gap-register.md)（LIVE-GAP） |
+| 下一阶段优先实施什么？ | [Linux 首发实施路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)（ACTIVE PLAN） |
+| 架构/技术/协议依据？ | [ADR](architecture/adrs/README.md)、[设备通信协议](architecture/device-communication-stack.md)、[技术栈](development/technology.md) |
+| 工程规约、DoD 与项目评分？ | [AGENTS](../AGENTS.md)、[工程手册](governance/engineering-playbook.md)、[DoD](planning/definition-of-done.md)、[评分](planning/project-scorecard.md) |
 
-[文档生命周期](governance/document-lifecycle.md) 分别定义 LIVE-FACT、LIVE-GAP、SPEC、ADR、INDEX、HISTORICAL。**每个事实只在一个当前入口维护，精确旧日志进日期报告。**
+## 每个子目录负责什么
 
-## 按责任而不是日期找文档
-
-| 目录 | 定位 | 关键入口 |
+| 目录 | 权威或代表入口 | 不应误解为 |
 | --- | --- | --- |
-| `architecture/` · `adrs/` | 系统、设备协议、正式架构决议 | [系统图](architecture/system-overview.md) · [设备通信协议](architecture/device-communication-stack.md) · [ADR](architecture/adrs/README.md) |
-| `security/` | 信任根、PKI、授权/隐私/WORM 要求与独立验收计划 | [安全身份](security/identity-and-access.md) · [FIDO 边界](security/fido-trust-boundaries.md) |
-| `development/` | 开发规范/UI 设计 + **每阶段 dated 代码与 CI 证据** | [技术版本](development/technology.md) · [UI tokens](development/frontend-design-system.md) · [L2B-26 真实 Polkit 覆盖拒绝](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
-| `testing/` | L1/L2/L3 验收规则、真实与合成 CI 区分、失败保留 | [验收策略](testing/strategy.md) · [Linux/COSMIC 安装 L1/L2/L3](testing/linux-desktop-installer-acceptance.md) |
-| `planning/` | **唯一 Gate + 下一步路线**；旧计划/账本为历史 | [Gate 清单](planning/release-gap-register.md) · [Linux 路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [历史账本](planning/release-readiness-2026-11-13.md) |
-| `governance/` | 文档所有权、审计规范、有限历史归档 | [生命周期](governance/document-lifecycle.md) · [目录审计](governance/repository-layout-audit-2026-11-24.md) · [archive](governance/archive/README.md) |
-| `operations/` · `product/` | 授权安装/备份运维指南，预期产品行为 | [开发环境](operations/installation.md) · [未来 Linux GUI 安装用户旅程](product/linux-desktop-installer-v01.md) |
-| `diagrams/` · `visuals/` | Mermaid 可编辑结构图、SVG **概念图** | [工程图](diagrams/README.md) · [8 张示意图](visuals/README.md) |
+| `architecture/`、`adrs/` | [系统架构](architecture/system-overview.md)、[ADR](architecture/adrs/README.md) | 历史 ADR 自动赋予生产许可 |
+| `security/` | [身份](security/identity-and-access.md)、[FIDO 边界](security/fido-trust-boundaries.md) | 已建成正式 CA/FIDO/WORM |
+| `development/` | [工程版本](development/technology.md)、[现行 UI 设计系统](development/frontend-design-system.md)、[L2B-28](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) | 每份日期报告都代表当前进度 |
+| `testing/` | [L1/L2/L3 规则](testing/strategy.md)、[Linux/COSMIC 安装验收](testing/linux-desktop-installer-acceptance.md) | Ubuntu/合成 CI 等于真机 L3 |
+| `planning/` | [唯一 Gate](planning/release-gap-register.md)、[唯一 Linux 路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)、[原始验收账本](planning/release-readiness-2026-11-13.md) | 旧 roadmap、backlog、批次旧稿仍是现行计划 |
+| `governance/`、`archive/` | [生命周期](governance/document-lifecycle.md)、[目录审计](governance/repository-layout-audit-2026-11-24.md)、[固定 Git SHA 归档](governance/archive/README.md) | 归档内容需要复制回工作树 |
+| `operations/`、`product/` | [开发环境](operations/installation.md)、[发行规则](operations/release.md)、[Linux GUI 用户旅程](product/linux-desktop-installer-v01.md) | 用户端已可安装 |
+| `diagrams/`、`visuals/` | [Mermaid 图](diagrams/README.md)、[SVG 图](visuals/README.md) | 产品运行截图 |
 
-## 最近 Linux GUI/Agent 安全验收索引
+## 去重与防断链
 
-真实 Agent 的临时 Signed-By 原生 APT install/reinstall/remove [L2B-23 9/9](development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)；原生 Polkit 用户侧 [L2B-24](development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)；root-side D-Bus 真实发送方/防重放 [L2B-25](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md)；本地恶意规则让 OS **实际 YES** 而 root ReviewLab 仍拒绝 [L2B-26](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)。 **新增 [L2B-27 原生 APT 10/10 旧签名 Release Date 仍被接受](development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md)：独立防回退高水位尚缺，未进行实际 Agent 降级。**这些都是 **networkless Ubuntu24 OCI L2**，不是正式 Polkit 安装器、用户授权或 Pop!_OS 实机 L3。
+已删除旧 `docs/planning/backlog.md`、`roadmap.md`、`v0.1-batched-delivery-plan-2026-11-08.md` 和 `v0.1-implementation-sequence.md` 的**工作树副本**；原始完整内容仍在[固定 Git SHA 历史索引](governance/archive/README.md)。旧全文 AGENTS/目录快照、早期审计也在那里可查。真正独立的失败、攻击负测、FIDO/WORM 和 Agent/PG18 报告保留原专题，不按文件大小批量删。
 
-**2026-11-21 旧 docs/README 的全文快照已从工作树删除**，不会再与现行导航竞争；原文可从[固定 Git SHA 的历史快照](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/governance/documentation-index-snapshot-2026-11-21.md)核对。较早 D4/NXT/PG18 的真实失败和成功保留在各 dated reports、[历史原账本](planning/release-readiness-2026-11-13.md) 和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。
+`docs-governance` 递归检查全部 `docs/**/*.md` 本地相对链接并拒绝重新引入过期目录。它不验证外部网址、标题锚、正式签名、真实用户许可或 Pop!_OS 实机。
 
-**安装安全边界：没有可分发的一键 Agent 包，生产联网/采集/远控/恢复/CA 默认 OFF；v0.1 NOT RELEASE READY。**
-
-
-**防断链要求：** `docs-governance` 不仅验证现行入口，也递归检查全部 `docs/**/*.md` 的相对目标存在性；历史资料要保留独立证据，真正重复的全文副本仅以[固定 Git SHA 归档](governance/archive/README.md)替代。此检查不代表外链、标题锚或真实性的全面审计。**v0.1 NOT RELEASE READY。**
-
-
-**已退役历史长计划：** `v0.1-implementation-sequence.md` 旧工单全文通过[固定 Git SHA 归档索引](governance/archive/README.md)访问；当前施工顺序以[Linux 首发路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)为准。**v0.1 NOT RELEASE READY。**
-
-
-**L2B-28 源级发行证据合同：** [APT 旧签名索引回放事实、防回退/可信时钟缺口与负向批准门禁](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md)。该合同仅防止 JSON/文档冒称已获批准，不提供真实可信高水位或安装器。**v0.1 NOT RELEASE READY。**
+**发行边界：无可正式分发的 Agent 安装包；G-01～G-10 OPEN；生产联网、采集、远控、自动恢复和 CA 签发 OFF；v0.1 NOT RELEASE READY。**

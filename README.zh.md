@@ -2,56 +2,53 @@
 
 [English](README.md) · **简体中文** · [文档导航](docs/README.md)
 
-**Linux-first、自托管的终端资产、健康状态和审计平台**，仅面向已告知且依法获得授权的设备。主要目标操作系统为 **Pop!_OS 24.04 / COSMIC**。
+Lanveriq 是面向**明确告知并合法授权**的办公终端的 Linux-first、自托管资产清单、设备健康与审计平台。首发目标：**Pop!_OS 24.04 / COSMIC**。
 
-> **当前版本：v0.1 NOT RELEASE READY（不可正式分发或上线）。** 现有 CI 使用隔离 Linux runner、合成设备及临时身份。尚无可信签名、受限 Polkit 安装器、真实 Pop!_OS 实机 L3、生产 CA/MFA/独立 WORM/法律与运维批准。**真实设备联网、自动采集、远控、自动恢复及证书签发默认关闭**。下载源码并不等于取得设备管理权限。
+> **v0.1 NOT RELEASE READY。** 尚无可供普通用户分发的一键签名 Agent 安装器，也没有获批准的 root Polkit 安装事务、Pop!_OS 实机 L3、正式 CA/MFA、独立 WORM 与法务/SRE 签收。生产联网、自动采集、自动恢复、远控、证书签发保持 **OFF**；合成 CI PASS 不是生产授权。
 
-[当前真实进度及 CI](docs/CURRENT_STATUS.md) · [发布阻塞清单 G-01–G-10](docs/planning/release-gap-register.md) · [项目评分与整改优先级](docs/planning/project-scorecard.md) · [代码/文档目录审计](docs/governance/repository-layout-audit-2026-11-24.md)
+[唯一当前事实与 CI](docs/CURRENT_STATUS.md) · [唯一发布 Gate G-01～G-10](docs/planning/release-gap-register.md) · [Linux 当前交付路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [目录去重审计](docs/governance/repository-layout-audit-2026-11-24.md)
 
-## 哪些目录有用？不要运行哪一套旧项目？
+## 目录保留/删除决策（以实际代码为准）
 
-| 目录 | 功能 | 现在是什么状态 | 处理决定 |
-| --- | --- | --- | --- |
-| [`apps/web/`](apps/web/README.md) | **唯一 Web 管理控制台**；Next.js 16.4.5、React 19、Tailwind 4、Base UI | 公开 [Pages](https://kunlong-luo.github.io/lanveriq/) 和本地开发是**断开真实业务的展示**；仅隔离 CI 已将真实测试链路接入临时页面 | **保留** |
-| [`apps/server/`](apps/server/README.md) | Java 25 / Spring Boot 4.2.0 / Gradle / Hibernate JPA / Flyway / PostgreSQL 18 的业务与安全后端 | 默认拒绝的受控业务入口；PG18.7/mTLS 合成链路经 CI 测试 | **保留** |
-| [`apps/agent/`](apps/agent/README.md) | Rust 1.100 / Tokio / SQLx SQLite / reqwest-rustls 的终端 Agent 与 durable outbox | Linux 隔离 CI 已验证只读 OS/CPU/RAM→后台；常驻产品 Agent 仍无生产采集/联网授权 | **保留** |
-| [`apps/desktop/`](apps/desktop/README.md) | Tauri 2 / React 的本机安装准备、兼容性预检和状态界面 | **只读 GUI**，显示签名/Polkit/L3 缺口；没有可用安装事务或 Agent 开机启动 | **保留** |
-| [`deploy/caddy/`](deploy/caddy/Caddyfile.reference) | Caddy TLS1.3、双跳 mTLS 参考配置和隔离验收 | 测试基础设施；不是可直接公开部署的生产配置 | **保留** |
-| [`deploy/network/`](deploy/network/verify_dual_access.py) | LAN/WAN 接入边界的只读及拒绝测试 | 仅安全合同/实验 | **保留** |
-| [`deploy/rustdesk/`](deploy/rustdesk/client-release-lock.json) 与 [`deploy/rustdesk-synthetic/`](deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) | RustDesk 远控候选与 RD-2 默认拒绝、隔离协议测试 | **远控关闭**，许可证、真实权限和安全批准未完成 | **保留，仅实验** |
-| [`docs/`](docs/README.md) | 唯一文档目录：规范、架构、测试证据、历史、发布缺口 | 按[文档生命周期](docs/governance/document-lifecycle.md)区分当前规范与历史记录 | **保留并精简索引** |
-| [`.github/workflows/`](.github/workflows/docs-governance.yml) | 后端、Agent、Web、Tauri 和安全发布门禁自动 CI | 自动化测试不等于生产授权；历史失败保留在 Actions | **保留** |
+| 路径 | 负责什么 | 决定 |
+| --- | --- | --- |
+| [`apps/web/`](apps/web/README.md) | **唯一 Web 后台**：Next.js 16 / React 19 / Tailwind 4 / Base UI；公开 Pages 仅断开式演示 | **保留** |
+| [`apps/server/`](apps/server/README.md) | Java 25 / Spring Boot 4.2 / **Gradle** / JPA-Hibernate / Flyway / PostgreSQL 18；mTLS、业务事务与 API | **保留** |
+| [`apps/agent/`](apps/agent/README.md) | Rust/Tokio/SQLx SQLite/reqwest-rustls；Linux 只读采样、durable outbox、严格 ACK，生产自动采集仍关闭 | **保留** |
+| [`apps/desktop/`](apps/desktop/README.md) | Tauri 2 + React 的本机安装资格与状态**只读 GUI**；Vite 仅构建 Tauri 窗口，不是第二套 Web | **保留** |
+| [`deploy/caddy/`](deploy/caddy/Caddyfile.reference) | TLS 1.3 / 双 mTLS 参考配置、隔离联调；不是现成的公网生产部署 | **保留** |
+| [`deploy/network/`](deploy/network/verify_dual_access.py) | LAN/WAN 边界负测 | **保留** |
+| [`deploy/rustdesk/`](deploy/rustdesk/client-release-lock.json)、[`deploy/rustdesk-synthetic/`](deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) | RustDesk 候选与 RD-2 发行拒绝测试；**远控 OFF**，尚无许可批准 | **保留（隔离）** |
+| [`docs/`](docs/README.md) | 技术规范、现行状态/Gate、日期验收、不可替代的安全失败证据、固定 Git 历史索引 | **保留并去重** |
+| [`.github/workflows/`](.github/workflows/docs-governance.yml) | 按需 L1、隔离 L2、RD-2、文档与发行证据 CI；不是实机或生产签收 | **保留** |
 
-**不存在需要重新启动的 `apps/web-next/`、旧版 React/Vite Web 项目、独立 Maven 后端或第二套可执行控制台。** 没有这些目录是整理后的正确状态；不要重新创建它们。根目录不是 Gradle 项目。
+根目录的 [`AGENTS.md`](AGENTS.md)、[`CONTRIBUTING.md`](CONTRIBUTING.md)、[`SECURITY.md`](SECURITY.md)、[`CHANGELOG.md`](CHANGELOG.md) 都有独立用途，保留。根目录**不是** Gradle/Maven 工程。不得恢复 `apps/web-next/`、旧 Vite Web、第二 Maven 后端或独立 Agent 控制平面；现行仓库也不存在这些第二套项目。
 
-**文档只有一套现行权威入口，按领域归档**；历史失败报告放原领域或 Git 历史，而不是复制到每份 README：
+## 文档组织方式
 
 ```text
 docs/
-├── README.md                  # 唯一文档导航
-├── CURRENT_STATUS.md          # 唯一功能/CI 现状
-├── architecture/             # 规范、协议、系统架构
-│   └── adrs/                 # 当前/历史架构决策
-├── security/                  # 身份、隐私、FIDO、WORM
-├── development/               # 技术标准 + 日期 L2B/NXT 历史验收
-├── testing/                   # L1/L2/L3 验收、真实 CI 与失败证据
-├── planning/                  # 唯一发布 Gate、现行路线/评分
-├── governance/               # 文档所有权、审计规则
-│   └── archive/              # 历史固定 Git SHA 索引，不重复保留全文
-├── operations/  product/      # 操作手册与产品交互行为
-└── diagrams/    visuals/      # Mermaid、SVG 概念图（非截图）
+├── README.md             # 唯一文档导航
+├── CURRENT_STATUS.md     # 唯一当前功能/CI 事实
+├── architecture/adrs/    # 架构、协议与架构决策
+├── security/             # 身份、FIDO、WORM、隐私、安全规范与历史证据
+├── development/          # 技术标准、UI 规范、独立日期实施/CI 报告
+├── testing/              # L1/L2/L3 验收、真实失败与反例
+├── planning/             # 当前 Linux 路线、唯一 Gate、DoD/评分、历史验收账本
+├── governance/archive/   # 文档规则、目录审计、固定 SHA 历史原文索引
+├── operations/           # 开发/备份/恢复/发布操作边界
+├── product/              # 产品需求与用户体验方案
+├── diagrams/             # Mermaid 源图
+└── visuals/              # SVG 概念图、非真实 UI 截图
 ```
 
-历史全文可从 [归档索引](docs/governance/archive/README.md) 中的固定 Git SHA 恢复。[目录保留/删除审计](docs/governance/repository-layout-audit-2026-11-24.md)列出被移除的重复入口和保留原因；历史文档快照用**固定 Git SHA 链接**追溯，不保留第二份活动索引。文档 CI 现在递归检查全部 `docs/**/*.md` 的本地相对链接，而非只检查入口文件。
+**已从工作树删除**不再维护的旧 `docs/planning/backlog.md`、`roadmap.md`、`v0.1-batched-delivery-plan-2026-11-08.md` 和更早的 `v0.1-implementation-sequence.md`；它们的**完整原文仍在 [固定 Git SHA 历史索引](docs/governance/archive/README.md)**。历史 ADR/失败测试不因重名或体积大而删除。当前只使用 [Linux 实施路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)、[CURRENT_STATUS](docs/CURRENT_STATUS.md) 与 [release-gap register](docs/planning/release-gap-register.md) 制定下一步。文档 CI 递归检查全部 `docs/**/*.md` 本地相对链接并拒绝旧路径复活。
 
-## 我现在能做什么？
+## 开发者入口（不是用户安装说明）
 
-**普通 Pop!_OS 用户：** 目前不能通过签名安装器完成一键 Agent 安装。 虽然[真实 Agent .deb 经临时 Signed-By APT 仓库完成 Ubuntu24 OCI 安装/重装/卸载](docs/development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)，并且[真实恶意 Polkit 授权 YES 仍被 root D-Bus 审查阻止](docs/development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**它们都不是用户可以部署的 root 安装器**，后者没有执行任何包安装。 [L2B-27 Ubuntu24 原生 APT 10/10 验收](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md)还证明：**仍有效且签名正确的旧 Release Date 可以被接受**，项目缺少独立的防回退高水位；本次**没有**实际降级 Agent。无需按照历史报告安装 Rust、Node 或手动执行 `dpkg -i`；这些是**开发者**命令，不是最终产品安装过程。[安装器真实进度](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md) · [未来 GUI 用户流程](docs/product/linux-desktop-installer-v01.md)。
-
-**开发者：** 请先阅读 [AGENTS.md](AGENTS.md)、[贡献规范](CONTRIBUTING.md)、[工程手册](docs/governance/engineering-playbook.md)。只在独立开发环境运行：
+在合法隔离开发机上，Web 本地**断开式预览**：
 
 ```bash
-# 唯一 Web 前端：本地只读/断开业务预览
 cd apps/web
 corepack enable
 corepack prepare pnpm@12.0.0 --activate
@@ -61,15 +58,10 @@ pnpm dev
 # http://127.0.0.1:3100
 ```
 
-后端使用 `cd apps/server && ./gradlew test`；Agent 使用 `cd apps/agent && cargo test --workspace --locked`；Tauri UI 使用 `cd apps/desktop && pnpm test`，这些**都是开发测试，不是安装或激活终端**。后端启动需要经验证的独立 PostgreSQL 凭据和 loopback 限制，按 [开发/安装操作指南](docs/operations/installation.md) 执行；不要把本地数据库操作脚本当成终端安装器。
+其他组件分别在对应目录执行 `cd apps/server && ./gradlew test`、`cd apps/agent && cargo test --workspace --locked`、`cd apps/desktop && pnpm test`。后端独立 PostgreSQL/loopback 配置参见[开发环境指南](docs/operations/installation.md)。**普通终端用户不应自行编译 Rust、使用 `dpkg -i` 或启用 systemd 作为“安装方式”。**
 
-## 上线之前还缺什么？
+## 安全与下一步
 
-依照 [G-01–G-10 发布门禁](docs/planning/release-gap-register.md)，优先完成可信签名发行与受限 Polkit 安装、**经授权的 Pop!_OS 24.04 COSMIC 实机**、正式 CA/管理员 MFA、独立 WORM/密钥/可信时间、法务授权、备份恢复/回滚和正式业务登录。用户勾选一份 GUI 说明并不能代替这些批准。
+已有 [Agent→mTLS→Spring/PG18→Next.js 隔离合成链路](docs/testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，并有 [原生 signed-APT 有效旧 Release 被接受的风险证据](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md)。[L2B-28](docs/development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) 只能阻止伪造高水位/发布批准的**源级声明**，并未实现真实可信防回退器、正式签名者或安装权限。
 
-项目的工程进展评分只用于决定研发优先级，**不是发布认证**。[评分与改进记录](docs/planning/project-scorecard.md) · [路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [漏洞报告](SECURITY.md) · [变更历史](CHANGELOG.md)。
-
-
-**G-05 源级安全门禁验收：** [L2B-28 离线发行证据拒绝测试 #45400903033 已通过](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033)；这不能替代独立的 APT 防回退高水位、发行签名批准和真实安装器。**v0.1 NOT RELEASE READY。**
-
-**历史计划去重：** `docs/planning/v0.1-implementation-sequence.md` 早期工单顺序已从工作树清理，[固定 Git SHA 归档](docs/governance/archive/README.md)完整保留原文。后续只以[现行 Linux 交付路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)和[发布缺口](docs/planning/release-gap-register.md)作为权威。**v0.1 NOT RELEASE READY。**
+必须补齐独立发行/可信时间/防回退高水位、受限 Polkit 安装授权、获得设备所有人许可的 COSMIC 实机 L3、正式管理员 MFA/CA、独立 WORM、法务许可及 SRE 灾备验收，才能重新评审 G-01～G-10。详见 [AGENTS](AGENTS.md)、[安全政策](SECURITY.md) 和 [发行 runbook](docs/operations/release.md)。**v0.1 NOT RELEASE READY。**
