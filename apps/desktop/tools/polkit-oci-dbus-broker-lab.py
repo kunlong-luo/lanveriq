@@ -62,9 +62,9 @@ class ReviewOnlyService(dbus.service.Object):
     def Review(self, operation, nonce, sender=None):
         # No supplied caller UID/PID, package, service, URI, command or argv.
         # Method's D-Bus sender is provided by the BUS transport, not the GUI.
-        if not isinstance(operation, str) or operation not in OPERATIONS:
+        if not isinstance(operation, (str, dbus.String)) or str(operation) not in OPERATIONS:
             return "INVALID_OPERATION"
-        if not isinstance(nonce, str) or NONCE_RE.fullmatch(nonce) is None:
+        if not isinstance(nonce, (str, dbus.String)) or NONCE_RE.fullmatch(str(nonce)) is None:
             return "INVALID_NONCE"
         if not sender or not sender.startswith(":"):
             return "UNVERIFIED_PEER"
@@ -80,6 +80,8 @@ class ReviewOnlyService(dbus.service.Object):
         except (dbus.DBusException, OSError, ValueError, IndexError, TypeError):
             return "UNVERIFIED_PEER"
 
+        # dbus-python preserves wire strings as dbus.String, not always str.
+        operation, nonce = str(operation), str(nonce)
         token = (uid, nonce)
         if token in self.seen:
             print("OS_PEER_REPLAY_REJECTED", flush=True)
