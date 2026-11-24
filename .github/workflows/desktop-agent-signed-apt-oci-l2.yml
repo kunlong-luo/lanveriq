@@ -1,0 +1,79 @@
+name: Desktop actual Agent package Signed-By APT OCI L2 (CI-only)
+
+# Real locked Rust Agent .deb from current main, real native APT install/reinstall/remove
+# only in an ephemeral pinned Ubuntu24 networkless OCI, with throwaway signer.
+# This NEVER signs for release, installs to host, runs polkit or enables Agent.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/agent/src/**'
+      - 'apps/agent/Cargo.toml'
+      - 'apps/agent/Cargo.lock'
+      - 'apps/agent/rust-toolchain.toml'
+      - 'apps/agent/deploy/systemd/lanveriq-agent.service'
+      - 'apps/agent/tools/linux/build-offline-agent-deb.sh'
+      - 'apps/agent/tools/linux/verify-offline-agent-deb.py'
+      - 'apps/agent/tools/linux/verify-systemd-popos24.py'
+      - 'apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py'
+      - 'apps/desktop/tools/agent-signed-apt-oci-inner.sh'
+      - '.github/workflows/desktop-agent-signed-apt-oci-l2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lanveriq-signed-agent-apt-oci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  signed-agent-apt-oci:
+    name: Real APT Signed-By Agent OCI transactions + 8 hostile refusals
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      LANVERIQ_SIGNED_AGENT_APT_L2: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Negative guard: never run this on host without CI and explicit consent
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py
+          bash -n apps/desktop/tools/agent-signed-apt-oci-inner.sh
+          if GITHUB_ACTIONS=false python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py /bin/true; then
+            echo 'FAIL: host lab accepted non-CI invocation' >&2
+            exit 1
+          fi
+          if env -u LANVERIQ_SIGNED_AGENT_APT_L2 python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py /bin/true; then
+            echo 'FAIL: host lab accepted missing consent' >&2
+            exit 1
+          fi
+          echo 'PASS: real APT transaction refuses unapproved host invocation'
+      - name: Install reviewed Rust 1.100 toolchain
+        run: rustup toolchain install 1.100.0 --profile minimal
+      - name: Compile actual locked release Rust Agent; audit its native Debian archive
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cd apps/agent
+          cargo +1.100.0 build --release --locked -p lanveriq-agent
+          test -x target/release/lanveriq-agent
+          tmp=$(mktemp -d -t lanveriq-l2b23-actual-agent.XXXXXXXX)
+          echo "LANVERIQ_L2B23_TEMP=$tmp" >> "$GITHUB_ENV"
+          bash tools/linux/build-offline-agent-deb.sh target/release/lanveriq-agent "$tmp"
+          python3 tools/linux/verify-offline-agent-deb.py "$tmp/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb"
+      - name: Actual native APT authenticated package install, reinstall, remove and 8 security refusals in networkless OCI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          # The CI runner is never the APT/dpkg target; script uses docker --network none,
+          # --cap-drop ALL, no-new-privileges, a read-only local signed repo and a pinned OCI.
+          python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py \
+            "$LANVERIQ_L2B23_TEMP/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb"
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_desktop_polkit_review.py
+          echo 'PASS: only OCI lab APT transactions; no official signer, polkit broker or Pop!_OS L3'
