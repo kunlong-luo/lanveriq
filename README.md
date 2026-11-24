@@ -24,11 +24,27 @@ Lanveriq is a Linux-first, self-hosted endpoint inventory, health-state and audi
 
 The old `apps/web-next/` and the previous React/Vite **Web console** are no longer present. **Do not recreate a second Web frontend, Maven build, or independent agent control plane.** The Vite build under `apps/desktop` is only for the Tauri window, not a second Web console. This repository root is intentionally **not** a Gradle project.
 
-Inside `docs/`, keep `architecture/` for ADRs and technical design, `security/` for security boundaries, `testing/` for exact test results, `development/` for technical specs and dated implementation evidence, `governance/` for document authority, `planning/` for release gaps and priorities, `operations/` for carefully scoped runbooks, `product/` for expected user behavior, `diagrams/` for editable Mermaid, and `visuals/` for conceptual SVGs (not screenshots). The [repository audit](docs/governance/repository-layout-audit-2026-11-24.md) explains what has been deleted and why other directories remain.
+The **canonical documentation tree** is deliberately shallow at its active entry points; historical results stay in the relevant topic folder and Git history:
+
+```text
+docs/
+├── README.md                  # single documentation index
+├── CURRENT_STATUS.md          # single live implementation/CI summary
+├── architecture/  adrs/       # normative architecture and decisions
+├── security/                  # identity, privacy, FIDO, WORM boundaries
+├── development/               # specifications and dated L2B/NXT evidence
+├── testing/                   # L1/L2/L3 matrices and original failures
+├── planning/                  # one live release-gap register and roadmap
+├── governance/  archive/      # doc lifecycle, audit, historical AGENTS
+├── operations/  product/      # authorized runbooks and expected UX
+└── diagrams/    visuals/      # Mermaid and conceptual SVG (not UI shots)
+```
+
+The [directory keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md) records what can be safely pruned. Old document snapshots are accessed through **pinned Git links** instead of duplicated active files; unique test evidence and failure history are retained.
 
 ## What can I install today?
 
-**Ordinary endpoint users: not yet.** The planned Tauri one-click installation, signed Agent distribution, fixed-action Polkit broker, real Pop!_OS hardware acceptance and legal approvals are unfinished. Historical instructions to compile Rust, execute `dpkg -i`, edit TOML or enable systemd are **not** a customer installation guide. See [installer product scope](docs/product/linux-desktop-installer-v01.md) and [actual desktop L1 status](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md).
+**Ordinary endpoint users: not yet.** The planned Tauri one-click installation, signed Agent distribution, fixed-action Polkit broker, real Pop!_OS hardware acceptance and legal approvals are unfinished. In isolated Ubuntu24 OCI only, [actual audited Rust Agent signed-APT transactions passed](docs/development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md), and [an actual malicious local Polkit YES rule was still rejected by the root-side ReviewLab](docs/development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md). **Neither is a user installer; the ReviewLab cannot run APT transactions.** Historical instructions to compile Rust, execute `dpkg -i`, edit TOML or enable systemd are **not** a customer installation guide. See [installer product scope](docs/product/linux-desktop-installer-v01.md) and [actual desktop L1 status](docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md).
 
 **Developers only**, from a trusted, isolated machine:
 
