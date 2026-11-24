@@ -23,9 +23,10 @@
 | L2B-24 | **68 → 69** | 上游 [Polkit 真实 UID 和 Rust PID/start-time 拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45379398181) |
 | L2B-25 | **69 → 70** | [root-side D-Bus 身份核验、Polkit 和 nonce](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) |
 | L2B-26 | **70 → 70** | [恶意本地 Polkit 规则真 YES 仍拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) 是纵深防御回归，不是可用安装能力 |
+| L2B-27 | **70 → 70** | [真正 Signed-By APT 同 signer 的旧有效 Release Date 被接受，10/10 CI](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243)；**暴露独立高水位缺口**，不是新发布能力 |
 
 完整**当时的评分解释/失败**保存在 [Git 旧版本](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/docs/planning/project-scorecard.md)、[dated evidence](../README.md) 和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)，不在 LIVE 自评复制每轮 1 KB 里程碑叙述。
 
 ## 下一次加分只能来自真正缺失的交付
 
-先取得独立发行者密钥/固定可信源的**真实审批**，完成安全审查的 OS broker、合法逐次用户授权、跨版本升级/失败取消与回滚，然后在具名 Pop!_OS 24.04 COSMIC 实机 L3 复验。并行由外部责任人完成官方 FIDO、独立 WORM、管理员 WebAuthn/CA、隐私法律及 SRE/备份恢复签收。未达成前，**真实安装/发行维度仍 3/20；G-01–G-10 OPEN；v0.1 NOT RELEASE READY。**
+先取得独立发行者密钥/固定可信源的**真实审批**和独立单调高水位/可信时间（L2B-27 已证明旧有效签名 Date 可被 APT 接受），再完成安全审查的 OS broker、合法逐次用户授权、跨版本升级/失败取消与回滚，然后在具名 Pop!_OS 24.04 COSMIC 实机 L3 复验。并行由外部责任人完成官方 FIDO、独立 WORM、管理员 WebAuthn/CA、隐私法律及 SRE/备份恢复签收。未达成前，**真实安装/发行维度仍 3/20；G-01–G-10 OPEN；v0.1 NOT RELEASE READY。**
