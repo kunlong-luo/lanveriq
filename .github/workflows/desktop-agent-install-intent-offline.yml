@@ -1,4 +1,4 @@
-name: Desktop agent install intent DENY-ALL protocol (offline)
+name: Desktop agent intent and Polkit action DENY-ALL review (offline)
 
 # Design review only: this job cannot sign, install, invoke polkit or
 # grant Agent/network/capture/remote-control/PKI permissions.
@@ -8,6 +8,9 @@ on:
     paths:
       - 'apps/desktop/tools/verify_desktop_agent_install_intent.py'
       - 'apps/desktop/tools/test_verify_desktop_agent_install_intent.py'
+      - 'apps/desktop/tools/verify_desktop_polkit_review.py'
+      - 'apps/desktop/tools/test_verify_desktop_polkit_review.py'
+      - 'apps/desktop/polkit/**'
       - 'docs/planning/desktop-agent-install-intent-deny-all.json'
       - 'apps/desktop/src/safety.ts'
       - 'apps/desktop/src/DesktopApp.tsx'
@@ -41,6 +44,14 @@ jobs:
           python3 -m py_compile apps/desktop/tools/test_verify_desktop_agent_install_intent.py
           python3 -m unittest discover -s apps/desktop/tools \
             -p 'test_verify_desktop_agent_install_intent.py' -v
+      - name: Real XML parsing plus hostile Polkit authorization and helper mutations
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile apps/desktop/tools/verify_desktop_polkit_review.py
+          python3 -m py_compile apps/desktop/tools/test_verify_desktop_polkit_review.py
+          python3 -m unittest discover -s apps/desktop/tools \
+            -p 'test_verify_desktop_polkit_review.py' -v
+          python3 apps/desktop/tools/verify_desktop_polkit_review.py
       - name: Require design-only sample to DENY and original GUI to remain readonly
         run: |
           set -Eeuo pipefail
