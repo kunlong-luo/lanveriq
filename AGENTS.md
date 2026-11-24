@@ -1,6 +1,6 @@
 # Lanveriq — AI agent rules (CURRENT)
 
-**ACTIVE · 2026-11-24 · v0.1 NOT RELEASE READY · `main` only.** All former milestone notes are preserved in [historical AGENTS](docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md). Do not prepend CI logs to this file.
+**ACTIVE · 2026-11-24 · v0.1 NOT RELEASE READY · `main` only.** Former milestone logs remain accessible by pinned Git SHA in the [history archive index](docs/governance/archive/README.md), not as live development guidance. Do not prepend CI logs to this file.
 
 ## Source authority
 Read [CURRENT_STATUS](docs/CURRENT_STATUS.md), [engineering playbook](docs/governance/engineering-playbook.md), [document lifecycle](docs/governance/document-lifecycle.md), [DoD](docs/planning/definition-of-done.md), [release gaps](docs/planning/release-gap-register.md), [technical standards](docs/development/standards.md) and [ADR index](docs/architecture/adrs/README.md). Code, locks and DB migrations determine implemented behavior; verified CI at exact functional SHA determines test claims. Historical D0 approvals do not authorize production.
@@ -25,4 +25,4 @@ Read [CURRENT_STATUS](docs/CURRENT_STATUS.md), [engineering playbook](docs/gover
 4. Update feature SPEC and [CURRENT_STATUS](docs/CURRENT_STATUS.md), plus [release-gap register](docs/planning/release-gap-register.md) when a gate changes. Follow [documentation authority](docs/governance/document-lifecycle.md) and [repository keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md). Keep detailed logs in dated reports and CHANGELOG, not AGENTS or any README. Never delete historical failures or break archived links; replace removed-path historical references with pinned Git URLs.
 5. End with actual implementation, verified results, failures, unresolved blockers and next acceptance criterion. **v0.1 NOT RELEASE READY** until independent release approval.
 
-[Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) · [Historical archive](docs/governance/archive/AGENTS-pre-consolidation-2026-11-22.md).
+[Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) · [Historical archive](docs/governance/archive/README.md).
