@@ -9,6 +9,7 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import {
   describeReadiness, nativeDetails, RELEASE_GATE, type HostSnapshot,
 } from "./safety";
+import { parseLocalPreflight, poposSummary, type PoposDisplay } from "./preflight";
 
 type Section = "setup" | "status" | "safety";
 type InspectionState = "idle" | "reading" | "loaded" | "error" | "web-preview";
@@ -57,6 +58,9 @@ export function DesktopApp() {
   const [noticeRead, setNoticeRead] = useState(false);
   const [host, setHost] = useState<HostSnapshot | null>(null);
   const [inspection, setInspection] = useState<InspectionState>("idle");
+  const [popos, setPopos] = useState<PoposDisplay>({
+    status: "idle", code: "", data: null,
+  });
 
   const inspect = useCallback(async () => {
     if (!isTauri()) {
@@ -72,6 +76,24 @@ export function DesktopApp() {
     } catch {
       setHost(null);
       setInspection("error");
+    }
+  }, []);
+
+  // An explicit operator click, never an automatic host scan or install step.
+  const checkPoposCompatibility = useCallback(async () => {
+    if (!isTauri()) {
+      setPopos({ status: "web-preview", code: "", data: null });
+      return;
+    }
+    setPopos({ status: "reading", code: "", data: null });
+    try {
+      const raw = await invoke<string>("inspect_popos_preflight");
+      const data = parseLocalPreflight(raw);
+      setPopos({ status: "checked", code: "", data });
+    } catch (error) {
+      const code = typeof error === "string"
+        ? error : error instanceof Error ? error.message : "PREFLIGHT_UNAVAILABLE";
+      setPopos({ status: "blocked", code, data: null });
     }
   }, []);
 
@@ -176,6 +198,41 @@ export function DesktopApp() {
                         <DataItem title="安装资格" value={currentStatus.label} />
                       </div>
                       <button type="button" onClick={() => { void inspect(); }} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-900"><RefreshCw size={15} /> 重新检测（只读）</button>
+                      <section aria-label="Pop!_OS 和 COSMIC 兼容性预检" className="mt-7 rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900"><MonitorCog size={17} /> Pop!_OS / COSMIC 兼容性</h3>
+                            <p className="mt-1 text-xs leading-6 text-slate-500">检查本机只读软件包缓存和会话环境。不更新软件源、不安装、不启动 Agent。</p>
+                          </div>
+                          <ActionButton secondary disabled={popos.status === "reading" || !isTauri()}
+                            onClick={() => { void checkPoposCompatibility(); }}>
+                            <RefreshCw size={15} /> {popos.status === "reading" ? "检查中…" : "检查兼容性（只读）"}
+                          </ActionButton>
+                        </div>
+                        <p role="status" aria-live="polite" className="mt-4 rounded-xl border border-slate-200 bg-white p-3 text-xs leading-6 text-slate-700">{poposSummary(popos)}</p>
+                        {popos.status === "checked" && popos.data && (
+                          <div className="mt-4 space-y-4">
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <DataItem title="目标发行版 / 架构" value="Pop!_OS 24.04 · amd64（系统标识）" />
+                              <DataItem title="桌面会话声明" value="COSMIC / Wayland（尚未验证窗口和合成器）" />
+                              <DataItem title="本机 ABI 依赖缓存" value={`${popos.data.reviewed_abi_cache.length} 组可查询 · 不代表安装求解`} />
+                              <DataItem title="COSMIC 组件" value={`${popos.data.cosmic_components.length} 个已安装包 · 未测试启动`} />
+                            </div>
+                            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                              <table className="w-full text-left text-xs">
+                                <caption className="px-3 py-3 text-left font-semibold text-slate-700">系统库候选版本（仅本机 APT 缓存）</caption>
+                                <thead className="bg-slate-50 text-slate-500"><tr><th scope="col" className="px-3 py-2">软件包</th><th scope="col" className="px-3 py-2">最低要求</th><th scope="col" className="px-3 py-2">缓存候选</th></tr></thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {popos.data.reviewed_abi_cache.map(row => (
+                                    <tr key={row.package}><th scope="row" className="px-3 py-2 font-medium text-slate-700">{row.package}</th><td className="px-3 py-2 text-slate-500">{row.minimum ?? "未规定"}</td><td className="px-3 py-2 text-slate-700">{row.cached_candidate}</td></tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <p className="text-xs leading-6 text-amber-800">以上不验证源签名、真实 GUI 运行、法务许可或 Pop!_OS L3，安装授权始终关闭。</p>
+                          </div>
+                        )}
+                      </section>
                     </div>
                   )}
                   {stage === 2 && (
@@ -244,6 +301,7 @@ export function DesktopApp() {
                       ["远程控制与屏幕采集", "默认关闭"],
                       ["生产证书签发与管理员 MFA", "尚未批准"],
                       ["图形化查看状态", inspection === "loaded" ? "只读本机状态" : "需本机运行"],
+                      ["Pop!_OS/COSMIC 兼容性", popos.status === "checked" ? "只读元数据预检（非 L3）" : popos.status === "blocked" ? "检查受阻 · 未验收" : "尚未核验"],
                     ].map(([name, state]) => (
                       <div key={name} className="flex items-center justify-between gap-4 py-4"><div className="flex items-center gap-2 text-sm text-slate-700"><ShieldCheck size={16} className="shrink-0 text-slate-400" />{name}</div><span className="text-xs font-semibold text-slate-500">{state}</span></div>
                     ))}
