@@ -10,21 +10,23 @@
 
 </details>
 
-| 维度 | 权重 | 清理前 | 本轮实际整理后（同口径） | 可核对依据 |
+| 维度 | 权重 | 清理前 | L2B-23 后（同口径） | 可核对依据 |
 | --- | ---: | ---: | ---: | --- |
 | 现代技术栈与成熟组件复用 | 20 | 15 | **15** | Java25/Boot4.2.0/JPA/PG18.7、Rust1.100/SQLx、Next16.4.5、Tauri2；[实际源](../development/technology.md) |
 | 可维护架构与边界 | 15 | 12 | **12** | 单一 Web、四应用分层、Agent 默认 idle；仍有许多默认关闭/合成代码 |
-| L1/L2 自动化与可复验性 | 20 | 17 | **17** | [CI Linux 实际库存 L2 #45365942781](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781)、[Tauri 双 job #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676)；但缺实机 L3 |
+| L1/L2 自动化与可复验性 | 20 | 17 | **18** | [CI Linux 实际库存 L2 #45365942781](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781)、[Tauri 双 job #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676)、[真 Agent signed-APT OCI 9/9 L2 #45376989866](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)；实机 L3 仍缺 |
 | 默认拒绝与安全工程 | 15 | 11 | **11** | mTLS/ACK/CI 负测、RD-2 OFF；官方 FIDO/真实 WORM/CA/MFA/可信签名仍无授权 |
 | **文档与仓库可发现性** | 10 | **4** | **9**（已通过结构/文档 CI） | 根中英 README/四个 app README、文档入口、CURRENT_STATUS/Gate 压缩；保留历史证据与明确目录地图；[清理清单](../governance/repository-layout-audit-2026-11-24.md) |
-| 真实产品安装与正式发布 | 20 | 2 | **2** | GUI 安装键仍锁定，Polkit/signing/Pop!_OS24 L3/法务和运维门禁 OPEN |
-| **综合工程可维护成熟度** | **100** | **61 / 100** | **66 / 100**（文档及布局 CI 已验证） | 权重和上述加总：15+12+17+11+9+2 = 66 |
+| 真实产品安装与正式发布 | 20 | 2 | **3** | **真实 Agent .deb 经一次性签名 APT 8 项拒绝+install/reinstall/remove L2 PASS**；但 GUI 安装键仍锁定，正式 Polkit/发行根/Pop!_OS24 L3/法务和运维门禁 OPEN |
+| **综合工程可维护成熟度** | **100** | **61 / 100** | **68 / 100**（有实际 L2 证据） | 15+12+18+11+9+3 = 68；2026-11-24 文档重整中间基线 66/100 |
 
 **本轮工程维护成熟度自评从 61/100 → 66/100，+5 分只来自实际入口简化、旧参考删除和自动化结构守卫。** [文档/链接 #45373334900 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334900)、[Next.js 源码/测试 #45373334701 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45373334701) 在布局守卫功能 SHA 0db21627 已核实；后续文档提交仍需单独检查 docs-governance。**不把文档提升冒充已完成任何新业务功能或生产授权。**保留修改前的 61/100 作为同一自评标尺下的比较，不引用任何未经证实的外部 benchmark。
 
 **2026-11-24 L2B-22 补充说明：** 代码仓库新增未安装的 Polkit 全拒绝动作 XML，并通过 [功能 SHA efb7a558 / 安装意图 39 + Polkit 30 项离线负测 #45375272477 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477)。它提高了未来受限 broker 的**可审基线**，但没有真正 OS 授权、已签名发行包或用户实机验收，故**本次工程成熟度自评分保持 66/100，发行能力维度仍 2/20**，不凭安全模拟测试虚增分数。[L2B-22 证据](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)。
 
-## 独立发布结论：不因为 66 分放行
+**2026-11-24 L2B-23 实际集成后的第二次评分：66 → 68 / 100（+2）。** 这一次分值提升**来自真实功能验收**而不是增加文档：自动化可复验性 **17→18/20**（真实当期 Agent 包与官方 APT 签名索引、原生安装/重装/卸载及八类篡改负测 [#45376989866 9/9 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866)）；发布工程能力 **2→3/20**（真实 OCI 中已能通过签名源完成 Agent 包生命周期，不再只是独立 dpkg 和虚构包的 apt-get update）。但**这仍不包含获批准发行身份、实际 Polkit broker、用户 GUI 安装、真实 Pop!_OS COSMIC L3、跨版本升级**，所以发行能力仅 3/20，**G-05/G-09/G-06 全 OPEN，v0.1 NOT RELEASE READY**。[L2B-23 精确证据](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md)。
+
+## 独立发布结论：不因为 68 分放行
 
 | 必过事项 | 真实状态 |
 | --- | --- |
