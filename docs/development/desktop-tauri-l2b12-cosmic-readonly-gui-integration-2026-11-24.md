@@ -1,6 +1,6 @@
 # DESKTOP-L2B-12 — Pop!_OS/COSMIC read-only preflight in Tauri GUI
 
-**SPEC · ACTIVE 2026-11-24 · functional SHA ebab553a · React/source L1 PASS / native Rust L2 PENDING / Pop!_OS physical L3 NOT RUN · v0.1 NOT RELEASE READY**
+**SPEC · 2026-11-24 · latest feature SHA c36a8da0 · React/source L1 PASS / native Rust L2 PENDING / Pop!_OS physical L3 NOT RUN · v0.1 NOT RELEASE READY**
 
 ## Problem, UX decision and assurance boundary
 
@@ -30,6 +30,13 @@ Prior [L2B-11](desktop-tauri-l2b11-popos-cosmic-host-preflight-2026-11-24.md) im
 
 - Functional app source [ebab553a](https://github.com/kunlong-luo/lanveriq/commit/ebab553a85428f3032bb64734e090886a1e7f7cf) previously passed React/typecheck/offline build, desktop safety gate and Rustfmt in [#45308179831](https://github.com/kunlong-luo/lanveriq/actions/runs/45308179831), but its Ubuntu WebKitGTK **build prerequisites** delayed Rust compilation and the workflow was superseded. This does not establish compiler failure or success.
 - Workflow-only SHA [3a975059](https://github.com/kunlong-luo/lanveriq/commit/3a975059f1a1c1996738aa543e28c27659af15f5) limits disposable Ubuntu prerequisite installation to 12 minutes and APT network requests to 30 seconds plus bounded retries. Neither ABI/package policy nor production permissions, app source, package mirrors or signing are changed. [Re-run #45310426906](https://github.com/kunlong-luo/lanveriq/actions/runs/45310426906) must complete native cargo test and Clippy on the exact workflow SHA. Until then, **native L2 remains PENDING**.
+
+## Result integrity hardening following initial GUI integration
+
+- **Current feature SHA [c36a8da0](https://github.com/kunlong-luo/lanveriq/commit/c36a8da08f755458d53309378831dbd3d565160f):** the React metadata contract matches all 10 exact `dpkg-shlibdeps` approved version floors, including the one intentionally unversioned JavaScriptCoreGTK dependency. The JS frontend does not implement Debian version ordering; distro `apt_pkg.version_compare` remains authoritative in the local Python check.
+- `preflight.ts` rejects any unapproved top-level field, arbitrary machine-specific/private path, unknown APT field, unapproved COSMIC session property or unexpected per-package metadata. Two added negative tests cover minimum-floor removal/alteration and smuggled extra fields.
+- [Same functional SHA Desktop Tauri workflow #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) passed React/Vitest, TypeScript, offline UI build and strict two-IPC source guard. **Native Rust Cargo tests and Clippy are PENDING** while Ubuntu WebKitGTK build prerequisites are installed. Ubuntu is not Pop!_OS COSMIC L3.
+- The CI-only bounded Ubuntu prerequisite step introduced in [SHA 3a975059](https://github.com/kunlong-luo/lanveriq/commit/3a975059f1a1c1996738aa543e28c27659af15f5) remains active; older runs that were superseded do not count as native L2 passes.
 
 ## Pop!_OS physical L3 and release gaps: still OPEN
 

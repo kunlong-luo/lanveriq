@@ -1,5 +1,8 @@
 # Lanveriq 当前状态 / Current status
 
+> **DESKTOP-L2B-12 GUI 兼容性结果防篡改补强（2026-11-24 · 前端 L1 PASS / 原生 L2 PENDING）：** 最新源码 SHA [c36a8da0](https://github.com/kunlong-luo/lanveriq/commit/c36a8da08f755458d53309378831dbd3d565160f) 将 10 组官方已审核 ABI 最低版本与 React 预检契约逐项绑定；顶层/OS/会话/ABI/COSMIC/APT 源数据都严格**拒绝未知字段、被降低或移除的版本下限，以及伪造安装/签名/L3 授权字段**。真实 Debian 版本比较仍使用系统 `python3-apt`，前端不另造版本比较算法。[Desktop CI #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) 的 React 单测、TypeScript、离线构建与安全源码门禁 PASS；Ubuntu 原生 Rust test/Clippy 仍等待 WebKitGTK 依赖前置步骤，**不得记录为 L2 PASS**。bundle、Agent 安装、开机自启、采集和远控依然关闭。**v0.1 NOT RELEASE READY。**
+
+
 > **L2B-12 原生 CI 前置依赖诊断（2026-11-24 · Ubuntu runner，非 Pop!_OS L3）：** GUI 功能 SHA [ebab553a](https://github.com/kunlong-luo/lanveriq/commit/ebab553a85428f3032bb64734e090886a1e7f7cf) 的 [原生 #45308179831](https://github.com/kunlong-luo/lanveriq/actions/runs/45308179831) 前端/源码安全检查 PASS、Rustfmt PASS，但在 WebKitGTK 编译依赖安装阶段长时间未进入 `cargo test`，随后由新 CI 取代。工作流 SHA [3a975059](https://github.com/kunlong-luo/lanveriq/commit/3a975059f1a1c1996738aa543e28c27659af15f5) 给 Ubuntu CI 依赖步骤单独设置 12 分钟时限及 30 秒 APT HTTP/HTTPS 超时；**未改动生产权限、发行版镜像、桌面代码或 Agent**。[新原生 #45310426906](https://github.com/kunlong-luo/lanveriq/actions/runs/45310426906) 仍需真实通过 Rust 单测和 Clippy，不能提前计作 L2 PASS。**v0.1 NOT RELEASE READY。**
 
 

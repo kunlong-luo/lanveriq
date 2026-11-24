@@ -28,6 +28,8 @@
 
 > **L2B-12 原生 CI 前置依赖诊断：** [原生 #45308179831](https://github.com/kunlong-luo/lanveriq/actions/runs/45308179831) 前端/源码、Rustfmt PASS，但 Ubuntu WebKitGTK 依赖准备耗时过长，Rust test/Clippy 未获完成证据；已增设 [CI 时限 SHA 3a975059](https://github.com/kunlong-luo/lanveriq/commit/3a975059f1a1c1996738aa543e28c27659af15f5)，[新原生 #45310426906](https://github.com/kunlong-luo/lanveriq/actions/runs/45310426906) PENDING。**CI 网络依赖问题不等于真实 Pop!_OS L3 成功或失败。**
 
+> **L2B-12 GUI 预检结果完整性补强：** [源码 SHA c36a8da0](https://github.com/kunlong-luo/lanveriq/commit/c36a8da08f755458d53309378831dbd3d565160f) 已锁定官方 Debian ABI 10 组最低版本，拒绝未知私有字段、降级最低要求和伪造安装授权；[React/源码 #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) PASS，**原生 Rust L2 PENDING**。不能因 GUI 显示依赖候选版本就解锁 Agent、签名发行或声称 Pop!_OS COSMIC L3 通过。
+
 Source design: [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md), [desktop product scope](../product/linux-desktop-installer-v01.md). This plan covers the existing read-only Tauri 2 preview plus a future scoped OS authorization bridge. The read-only GUI source exists; the privileged bridge, signed integrated installer and installation authority do NOT exist. LNX1–3 Ubuntu synthetic unit/package checks do not satisfy the tests below.
 
 > **2026-11-23 L1 已通过范围：** apps/desktop 只读 status、React 预览、9 项 Python 安全负测、5 项 React 测试、4 项 Rust 单测、原生 Tauri 编译/Clippy，在 [源码功能 SHA 86c3 Desktop #45148201067](https://github.com/kunlong-luo/lanveriq/actions/runs/45148201067) 的 **2/2 Ubuntu24 CI SUCCESS**。**下列 GUI 可访问性、真正安装/签名/polkit/L2/L3 验收清单并没有因此自动通过**；全部真实安装与授权测试 NOT RUN。参见 [源码里程碑](../development/desktop-tauri-first-source-2026-11-23.md)。
