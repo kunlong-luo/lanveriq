@@ -81,6 +81,10 @@ lanveriq:
     # assertion parser was independently configured for a synthetic test.
     heartbeat:
       http-enabled: ${LANVERIQ_AGENT_HEARTBEAT_HTTP_ENABLED:false}
+    # Separate inventory upload: explicit HTTP capability, OFF even when
+    # heartbeat ingress has independently passed mTLS acceptance.
+    inventory:
+      http-enabled: ${LANVERIQ_AGENT_INVENTORY_HTTP_ENABLED:false}
     # Separate third default-OFF mount gate. Not ACK or rotation approval.
     credential-epoch:
       http-enabled: ${LANVERIQ_AGENT_CREDENTIAL_EPOCH_HTTP_ENABLED:false}
