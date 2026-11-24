@@ -57,6 +57,31 @@ describe('NXT-03 authorized REST response -> Next.js display state', () => {
     }
   });
 
+  it('projects only bounded scoped CPU/memory and rejects unsafe inventory types', () => {
+    const result = validateScopedDirectoryPage(page([{
+      ...device(), os_name: 'Synthetic Inventory Linux',
+      cpu_model: 'Synthetic Inventory CPU', memory_total_bytes: 8_000_000_000,
+    }]));
+    expect(result).toMatchObject({
+      kind: 'ready', rows: [{
+        id: one, os: 'Synthetic Inventory Linux',
+        cpu: 'Synthetic Inventory CPU', memoryBytes: 8_000_000_000,
+      }],
+    });
+    for (const patch of [
+      {cpu_model: {serialized: 'unsafe'}},
+      {cpu_model: 'x'.repeat(256)},
+      {memory_total_bytes: -1},
+      {memory_total_bytes: '8000000000'},
+      {memory_total_bytes: Number.MAX_SAFE_INTEGER + 1},
+    ]) {
+      expect(validateScopedDirectoryPage(page([{...device(), ...patch}])))
+        .toEqual({kind: 'unavailable'});
+    }
+    // Raw sensitive inventory never becomes a DirectoryRow.
+    expect(JSON.stringify(result)).not.toMatch(/SECRET-MAC|SECRET-IP|SECRET-USER/);
+  });
+
   it('enforces bounded ascending UUID keyset pagination without duplicates', () => {
     expect(validateScopedDirectoryPage(page([device(one), device(two)],two),{limit:2}))
       .toMatchObject({kind:'ready',hasMore:true,nextCursor:two});
