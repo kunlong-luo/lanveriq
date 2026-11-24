@@ -70,4 +70,6 @@ pnpm dev
 项目的工程进展评分只用于决定研发优先级，**不是发布认证**。[评分与改进记录](docs/planning/project-scorecard.md) · [路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [漏洞报告](SECURITY.md) · [变更历史](CHANGELOG.md)。
 
 
+**G-05 源级安全门禁验收：** [L2B-28 离线发行证据拒绝测试 #45400903033 已通过](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033)；这不能替代独立的 APT 防回退高水位、发行签名批准和真实安装器。**v0.1 NOT RELEASE READY。**
+
 **历史计划去重：** `docs/planning/v0.1-implementation-sequence.md` 早期工单顺序已从工作树清理，[固定 Git SHA 归档](docs/governance/archive/README.md)完整保留原文。后续只以[现行 Linux 交付路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)和[发布缺口](docs/planning/release-gap-register.md)作为权威。**v0.1 NOT RELEASE READY。**

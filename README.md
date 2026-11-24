@@ -70,4 +70,6 @@ Releasing needs independent approval of signed APT/Agent packages and a narrowly
 Read [AGENTS.md](AGENTS.md), [contributing](CONTRIBUTING.md), [engineering playbook](docs/governance/engineering-playbook.md), [development plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md), [security policy](SECURITY.md), and [change history](CHANGELOG.md). Development score is **not** a release certificate. **v0.1 NOT RELEASE READY.**
 
 
+**Verified G-05 source-only boundary:** [L2B-28 offline evidence-denial tests #45400903033 passed](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033); this is not a trusted APT anti-rollback high-water, publisher approval or installer. **v0.1 NOT RELEASE READY.**
+
 **Historical plan cleanup:** the obsolete v0.1 ticket-sequence transcript was removed from the live `docs/planning/` tree; its original content is linked from the [immutable history index](docs/governance/archive/README.md). Use the [active Linux delivery plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md). **v0.1 NOT RELEASE READY.**

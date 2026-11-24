@@ -20,6 +20,7 @@
 
 | 子链路 | 精确功能 SHA / 实际 CI | 证明与限制 |
 | --- | --- | --- |
+| **L2B-28 发行证据可信边界（仅离线 L1）** | [`03420e61` / #45400903033 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) | v2 严格负测拒绝伪造独立 APT 高水位、可信时钟和正式签名者，并保留旧签名 Release 被 APT 接受的事实；**没有真实高水位、安装事务或新原生重放拒绝**。[报告](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) |
 | **签名索引日期的真实回放风险 L2B-27** | [`09a4e3b3` / #45395513243 10/10 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243) | 先 `apt-get update` 较新有效签名 Release，后换成仍有效的**较旧 Date、同 Packages、同临时 signer**，APT 实际再次接受；说明没有独立的单调高水位证明。**未发生软件包降级**。[报告](development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md) |
 | **Agent 实包 → 真签名源 → APT** | [`2af1cf34` / #45376989866 L2 9/9 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) | 临时 Ed25519 Signed-By 仓库，Ubuntu24 networkless OCI 内真实 install/reinstall/remove 和 8 项拒绝；没有正式发行者身份或实机安装。[详情](development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md) |
 | **原生 Polkit + root-side D-Bus 身份** | [`91c4669d` / #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) | 真实 D-Bus 发送者 UID/PID/内核启动时间，8 次 Polkit 拒绝与 nonce 负测；只有 **ReviewLab**，永远不执行安装。[详情](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md) |
@@ -29,7 +30,7 @@
 
 ## 下一项退出目标（不等于批准上线）
 
-**L2B-28 / G-05：** L2B-27 已在真实 OCI **证明仍有效的签名旧 Release 日期会被 APT 接受**；必须优先解决**独立批准的可信发行根、单调防回放高水位与签名工件、固定可信 APT 软件源、真实可审 root-side 最小权限事务、逐次操作者授权、可取消/恢复/回滚**。目前仅能在 disposable OCI 内继续证明安全负例；无实际授权就**不**把 ReviewLab/恶意 .rules/临时钥匙移到桌面或用户主机，也不允许 GUI 动态 root shell、systemd 自动启用、生产数据采集。Pop!_OS 24.04 COSMIC 实机 L3 须另取得设备所有人书面许可。
+**L2B-28 / G-05：** v2 离线证据拒绝负测已通过，但只能阻止伪造发布批准，**不是独立签名 APT 防回退器**；L2B-27 已在真实 OCI **证明仍有效的签名旧 Release 日期会被 APT 接受**；必须优先解决**独立批准的可信发行根、单调防回放高水位与签名工件、固定可信 APT 软件源、真实可审 root-side 最小权限事务、逐次操作者授权、可取消/恢复/回滚**。目前仅能在 disposable OCI 内继续证明安全负例；无实际授权就**不**把 ReviewLab/恶意 .rules/临时钥匙移到桌面或用户主机，也不允许 GUI 动态 root shell、systemd 自动启用、生产数据采集。Pop!_OS 24.04 COSMIC 实机 L3 须另取得设备所有人书面许可。
 
 并行阻塞：**G-01/G-03/G-04** 官方 FIDO/MFA/CA，**G-02** 外部独立管理 WORM，**G-06** 生产合法业务全链，**G-07/G-08** 法务许可与 SRE，**G-09** UI/Pop!_OS L3，**G-10** Windows/RustDesk 范围书面决定。以 [唯一发布门禁](planning/release-gap-register.md) 为准。
 

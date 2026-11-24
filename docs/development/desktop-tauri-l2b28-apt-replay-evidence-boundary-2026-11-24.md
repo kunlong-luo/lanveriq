@@ -1,6 +1,6 @@
 # DESKTOP-L2B-28 — Signed APT 旧 Release 回放风险的发行证据拒绝边界
 
-**ACTIVE SOURCE CONTRACT · 2026-11-24 · CI NOT RUN at authoring · G-05 OPEN · v0.1 NOT RELEASE READY。**
+**ACTIVE SOURCE CONTRACT · 2026-11-24 · exact functional SHA [`03420e61ae61e8e2739eb3cc436685c910d356a1`](https://github.com/kunlong-luo/lanveriq/commit/03420e61ae61e8e2739eb3cc436685c910d356a1) · [offline negative contract #45400903033 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) · [docs-governance #45400903073 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903073) · G-05 OPEN · v0.1 NOT RELEASE READY。**
 
 ## 输入事实和问题
 
@@ -13,6 +13,10 @@
 3. 新增回归负例：篡改签名回放结论、将 CI 临时签名者冒充正式签发者、声称发生真实软件降级、伪造高水位/可信时钟审批、删除回放证据必须拒绝。由 [desktop-release-boundary-offline](../../.github/workflows/desktop-release-boundary-offline.yml) 低成本 CI 自动检查。
 
 **不在范围：** 本合同**不验签**、**不创建独立密钥或可信时间**、**不存储不可回退高水位**、**不阻止 APT 原生接受旧签名元数据**、**不发行任何 Agent**，更不会开放 Tauri 安装 IPC、Polkit/root D-Bus 实际安装事务或 systemd 启动。JSON 是版本控制下的**不可信声明与回归证据**，不能作为操作授权凭据。
+
+## 本次真实 CI 与不可推导结论
+
+在功能 SHA `03420e61ae61e8e2739eb3cc436685c910d356a1`，离线发布证据门禁 [#45400903033](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) **SUCCESS**：Python 证据校验与对篡改声明的拒绝测试通过，同时检查桌面只读边界。[#45400903073](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903073) 文档治理 **SUCCESS**。两者均为源码/离线测试；**本提交未重新运行原生 APT 旧 Release 回放，也没有阻止其被接受**。真实 L2B-27 观察事实只属于原功能 SHA 及其 CI。
 
 ## 下一真实验收条件（未通过）
 

@@ -4,6 +4,12 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-24 — 文档全域完整性与 L2B-28 发行证据门禁
+
+- [文档全域链接检查 `dc5cb839`](https://github.com/kunlong-luo/lanveriq/commit/dc5cb839cf47959e707a1b5d0b041d484b14d1cf)：将 CI 从重点索引扩展到全部 `docs/**/*.md` 相对链接，包含非入口历史文档负测；[#45400108591 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400108591)。
+- [旧实施工单序列归档 `1a323eb6`](https://github.com/kunlong-luo/lanveriq/commit/1a323eb628965ce5e92385de9542efa13fbd8639)：从当前规划目录删除约 35 KB 过时全文，并在[固定 SHA 归档索引](docs/governance/archive/README.md)保留原始记录；[#45400491080 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400491080)。
+- [L2B-28 离线否认越权证据 v2 `03420e61`](https://github.com/kunlong-luo/lanveriq/commit/03420e61ae61e8e2739eb3cc436685c910d356a1)：旧签名 APT Release 接受风险、无独立高水位及临时发布者边界进入拒绝优先 JSON/测试；[#45400903033 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033)；[文档 CI #45400903073 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903073)。**本项未实现真正防回退器或发行安装权限；G-05 OPEN**。
+
 ## 2026-11-24 — L2B-27 原生 APT 已签旧 Release Date 回放风险实测
 
 - [功能 SHA `09a4e3b3` / Ubuntu24 Signed-By Agent OCI #45395513243 — 10/10 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243)：真实 Rust Agent Debian 包经临时签名源 install/reinstall/remove，8 类错误公钥/签名/过期/篡改/包名拒绝，再在**相同 APT lists 状态**先载入较新有效 Release，之后观察系统仍接受**同 signer、同 Packages、较旧但有效的签名 Release Date**。无 Agent 降级/正式发行或真实主机安装。**G-05 独立可信高水位/正式 signer 仍 OPEN**。[实际报告和前期 CI 失败历史](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md)。
