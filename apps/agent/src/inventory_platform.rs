@@ -162,10 +162,11 @@ pub fn collect_minimal_linux_inventory() -> RawInventory {
     let memory = (system.total_memory() > 0).then_some(Memory {
         total_bytes: Some(system.total_memory()),
     });
-    let os_info = os_info::get();
     let os = OperatingSystem {
         family: "linux".to_string(),
-        name: Some(os_info.os_type().to_string()),
+        // sysinfo retains NAME and VERSION_ID from the Linux distro record,
+        // avoiding lossy numeric normalization of releases like Ubuntu 24.04.
+        name: System::name(),
         // os_info::Version::Semantic turns Ubuntu 24.04 into 24.4.0.
         // Preserve the distro's VERSION_ID via our existing sysinfo crate.
         version: System::os_version(),
