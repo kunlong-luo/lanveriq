@@ -81,7 +81,7 @@
 - [Technology selection](../development/technology.md)
 - [Spring Boot/Gradle backend stable-version and dependency decisions](../development/backend-stack.md)
 - [Gradle 9.8.2 Groovy DSL example (documentation only)](../development/backend-gradle-reference.md)
-- [Pagevela reference: reuse and differences](../development/pagevela-reference.md)
+- [Pagevela reference: reuse and differences (historical Git SHA; removed from current development directory)](https://github.com/kunlong-luo/lanveriq/blob/23c947120d5b58db1f2d9783728d9b3482f277bc/docs/development/pagevela-reference.md)
 - [Repository layout and conventions](../development/standards.md)
 - [Dashboard UI/UX contract](../development/dashboard-ux.md)
 - [Dedicated Monitoring Center design](../development/monitoring-center.md)
