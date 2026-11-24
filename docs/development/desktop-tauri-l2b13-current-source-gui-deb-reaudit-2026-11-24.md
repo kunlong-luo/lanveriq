@@ -22,12 +22,18 @@
 - 该候选 workflow 的 `cancel-in-progress=false` 用于保留已经开始的长耗时归档取证及失败诊断；后续提交以独立 SHA 排队验收，不会因新推送直接废弃进行中的证据。相比旧 `cancel-in-progress=true`，这可能延长等待队列，但更适合耗时的首次真实原生审核。不把旧运行的包 SHA/ABI 结果映射为新提交通过。
 - **当前独立证据：** [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 已完成安全负测、冻结前端测试/类型/构建、Cargo lock/Rustfmt 等前置步骤，实际 Ubuntu WebKitGTK 依赖步骤尚在执行；[7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 为排队的新 workflow，**NOT RUN**（尚无 job 结论）。当前源码没有经过这两次运行确认的完整 `.deb` 构建/官方 ABI/Syft/ELF/OCI 成功结果。
 
+## 当前源码原生预览真实失败与构建依赖隔离原则
+
+[功能 SHA 107dc8b4 / Preview #45315213247](https://github.com/kunlong-luo/lanveriq/actions/runs/45315213247) 已最终 **FAIL**。desktop-ui 源码负测/Pop!_OS 合成及真实 Ubuntu 拒绝/React/TypeScript 与构建 PASS，native Cargo lock 和 Rustfmt PASS；但 **Ubuntu24 runner 原生构建前置 APT 步骤超出 12 分钟**，原生 Rust 单测、Clippy **SKIPPED**。Runner 日志保留 `us-east-2.ec2.archive.ubuntu.com` 来源、`4 upgraded, 171 newly installed` 计划及下载未完成记录。不得把该失败重写为仍在执行或把历史其它提交的 6/6 Rust 单测转记为此 SHA 通过。
+
+**验收基础设施的可执行前置条件：** 先验证基于 Ubuntu24、受控来源、来源/版本/摘要可核验的 WebKitGTK 4.1 GTK/Tauri 构建依赖环境，确认最小工具链与 ABI、不使用不明镜像/未审签名、没有扩张构建机到终端或 Agent 权限。可以通过单独批准的固定开发镜像/隔离 runner 进行原生编译；若更换镜像或预制依赖，必须记录其 digest、包来源、受控维护/更新流程和失败回退，然后再让完全相同的 Rustfmt、`cargo test --workspace --locked`、严格 Clippy 和真实 `.deb` ABI/归档/OCI 流程跑完。此处**只规定目标，不代表已有可信镜像或完成验收**。不应简单延长超时、忽略 Clippy 或把旧 .deb 证据当作当前二进制。
+
 ## 验收记录（2026-11-24 核对）
 
 | 验收 | Exact SHA / Workflow | 当前可证明事实 | 尚未证明 |
 | --- | --- | --- | --- |
 | 历史旧 GUI .deb | [旧 L2B-10 #45303829710](https://github.com/kunlong-luo/lanveriq/actions/runs/45303829710) | 当时原生候选及 Ubuntu OCI L2 PASS | 新的 COSMIC GUI 源码 |
-| 新 GUI 原生测试 | [107dc8b4 / #45315213247](https://github.com/kunlong-luo/lanveriq/actions/runs/45315213247) | frontend、安全 L1 与 Rustfmt PASS，WebKitGTK APT 前置执行中 | 该 SHA 完整 Rust/Clippy L2 |
+| 新 GUI 原生测试 | [107dc8b4 / #45315213247](https://github.com/kunlong-luo/lanveriq/actions/runs/45315213247) | **overall FAIL**；frontend、安全 L1、Cargo lock/Rustfmt PASS；Ubuntu APT 前置 12 分钟超时 | Rust 单测/Clippy SKIPPED；该 SHA 无完整 native L2 |
 | 新源码未签名候选 | [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) | 源码敌意单测、冻结 pnpm 测试/类型/构建、Cargo lock 与 Rustfmt PASS；原生 APT 前置进行中 | 新 .deb 是否构建、ABI/归档/OCI 全流程是否 PASS |
 | Pop!_OS24 COSMIC 实机 | [G-05 L3 issue #7](https://github.com/kunlong-luo/lanveriq/issues/7) | NOT RUN | 正常用户 GUI 启动、WebKitGTK/Wayland、授权安装生命周期 |
 

@@ -16,6 +16,8 @@
 
 > **2026-11-24 G-05 工作流覆盖/并发补正：** [7cf23f3e](https://github.com/kunlong-luo/lanveriq/commit/7cf23f3e8da72b0a646f8edcc0edd965a53c619d) 将 Tauri capability ACL、Rust/Node 固定工具链列为真实未签名 `.deb` 复验触发输入，并保留昂贵原生包作业不因后续推送而自动取消。旧 [#45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 仍处于 Ubuntu APT 前置步骤，新 [#45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) 排队待跑；**尚无最新同源 `.deb` 全面严格审计成功证据**。该变更不放宽 Rust/Clippy/ABI/OCI、签名和 L3 要求；G-05/G-07/G-08/G-09 保持 OPEN。
 
+> **2026-11-24 G-05 L2 纠偏：** [功能 SHA 107dc8b4 / desktop #45315213247](https://github.com/kunlong-luo/lanveriq/actions/runs/45315213247) 最终 **FAIL**：frontend L1、Rustfmt PASS，但 Ubuntu24 从 runner APT 源下载 WebKitGTK 开发依赖时 **12 分钟超时**（日志计划 4 升级、171 新安装），Rust 单测与 Clippy SKIPPED；不代表工具链源码编译失败，也不代表此前 b6943041 的 Rust 6/6 PASS 能跨 SHA 使用。L2B-13 [#45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) 新候选仍待真实完整归档审计。下一项门禁是受审 Ubuntu 构建依赖环境的来源/摘要/ABI 固定及真实 native test/Clippy；不得直接通过取消检查、扩大权限或未审包源填补。G-05/G-07/G-08/G-09 均 OPEN。
+
 | Gate | 当前缺口 | 允许关闭的实际证据 | 状态 |
 | --- | --- | --- | --- |
 | **P0 G-01 官方 FIDO 根与 CRL** | D4-C9–C16 仅未可信离线合成材料 | 真实官方 BLOB 受控获取、证书链/R46 独立根批准、CRL CDP/签名/撤销/版本/时间防回退，来源独立审计 | **OPEN** 安全/PKI |
