@@ -1,6 +1,8 @@
 # DESKTOP-L2B-14 — Ubuntu 24.04 Tauri 开发依赖预热与缓存独立验收
 
-**SPEC · ACTIVE · 2026-11-24 · 仅限隔离构建基础设施，不是签名 Builder / 发行授权 · v0.1 NOT RELEASE READY。**
+**SPEC · COMPLETED SUBGATE · 2026-11-24 · [APT 双 runner #45321096944 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45321096944) · 仅 Ubuntu 开发依赖缓存证明，不是不可变 Builder 或发布授权 · v0.1 NOT RELEASE READY。**
+
+> 现已确认：[完整 GUI-only .deb 审计 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 及 [原生只读预览 CI #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 均已 SUCCESS，均对固定 175 包缓存重新执行 Ubuntu 签名索引/闭包验证。**前者仅 GUI-only 未签名包 L2，后者仅原生只读预览；两者都非真实 Agent 安装器，Pop!_OS L3 仍 NOT RUN**。下文较早“排队中/尚未下载”的条目保留为历史快照。
 
 ## 背景与目标
 

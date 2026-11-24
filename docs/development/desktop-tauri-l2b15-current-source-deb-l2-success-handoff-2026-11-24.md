@@ -2,6 +2,10 @@
 
 **EVIDENCE · VERIFIED · 2026-11-24 · GUI-only disposable Ubuntu CI L2 PASS；Agent 安装器 L2 和 Pop!_OS L3 NOT RUN；v0.1 NOT RELEASE READY。**
 
+## 同一阶段的独立 Tauri 原生预览验收
+
+[原生只读预览 CI #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 对应源码/CI SHA ea62c63c，**overall SUCCESS**，两项作业均 SUCCESS：React 断开式 UI 安全/冻结依赖/测试/类型/构建 PASS；Ubuntu24 原生 Rustfmt、Cargo lock、已审 175 个 APT 缓存归档在独立 runner 重新按官方签名索引验真并 --no-download 安装构建头文件、实际 Tauri 只读原生检查器编译/测试、严格 Clippy PASS。此运行**不打包发行安装器、不安装 Agent**，不能取代精确 SHA c4f04e44 的 GUI-only .deb 审计，也不能证明 Pop!_OS 物理 L3。它单独证明常规 desktop L1/native preview CI 的构建依赖瓶颈已解除。
+
 ## 已通过的真实原生候选包审计
 
 [精确源码和工作流 SHA c4f04e442be7da8181e9e62293764fbbb80e41d0](https://github.com/kunlong-luo/lanveriq/commit/c4f04e442be7da8181e9e62293764fbbb80e41d0) 的 [Actions #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) **run attempt 1、overall SUCCESS、原生审计 job SUCCESS**。执行时间 2026-11-24 03:50–03:57 UTC，Ubuntu24 runner 镜像版本 20261116.133.1。此次证据仅适用于该源码 SHA，不得从旧版 .deb 的成功结果继承。

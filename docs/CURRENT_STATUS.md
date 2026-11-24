@@ -1,5 +1,7 @@
 # Lanveriq 当前状态 / Current status
 
+> **补充原生预览验证（2026-11-24）：** [原生只读预览 CI #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592)（源码 SHA ea62c63c）现为 **overall SUCCESS**：React 离线只读 UI 作业和真实 Tauri native Rust 作业均 SUCCESS，官方 Ubuntu 已验签缓存 175 份依赖再认证、离线安装构建头文件、只读 IPC 原生编译/测试及 Clippy 全 PASS。该结果和 [完整 GUI-only .deb 审计 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248)（SHA c4f04e44）的实际 GUI-only 严格 L2 PASS 是**不同 exact SHA 的独立证据**，不得互相代替；均没有安装、签名或发布 Agent，也不是 Pop!_OS COSMIC L3。v0.1 NOT RELEASE READY。
+
 > **最新权威验收（2026-11-24）：** 当前 GUI-only Tauri Debian 候选 [精确源码 c4f04e44 / CI #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) **attempt 1 overall SUCCESS**：真实未签名 lanveriq-desktop_0.1.0_amd64.deb（SHA-256 **83ab54d1331213335e3ec77e383c6b8c384690f37826e42413ffc35d2efe504a**）、Rust/Clippy、严格归档、Syft 源码/局部载荷 SPDX、15 ELF SONAME、官方 dpkg-shlibdeps 10 组要求/12 组声明/直接缺口 0、干净 Ubuntu24 OCI APT 只读模拟、临时 LAB Ed25519 验真均 PASS。OCI digest **ubuntu@sha256:562111b88caa79c71391c0c4d3c2114a7d5c35915c20561fd893cb1e07929e6b**。这是**指定 SHA 的 GUI-only L2 工程验证成功**，包**没有上传、安装、签名或正式发布**；外部运行时库未被完整 SBOM 覆盖。真实 Agent 图形安装/Polkit 授权、正式发行密钥/许可证、Pop!_OS24 COSMIC 物理 L3 全部 NOT RUN；G-02/G-05/G-07/G-08/G-09 OPEN，**v0.1 NOT RELEASE READY**。[L2B-15 证据与下一阶段](development/desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)。
 
 > 以下“正在编译/等待 CI”旧段落属于按提交时间保留的历史快照，不能覆盖本段最新最终成功结论。

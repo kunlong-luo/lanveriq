@@ -1,6 +1,8 @@
 # Lanveriq Desktop — Tauri 2 read-only offline preview
 
-**DEVELOPER SOURCE ONLY · NOT AN INSTALLER · v0.1 NOT RELEASE READY**
+**EXACT SOURCE GUI-only Debian L2 PASS, native Tauri preview PASS · NOT A SIGNED AGENT INSTALLER · v0.1 NOT RELEASE READY**
+
+[完整 GUI-only .deb 审计 #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) 在指定源码 SHA c4f04e44 实际生成并完整审计 unsigned lanveriq-desktop_0.1.0_amd64.deb（SHA-256 83ab54d1331213335e3ec77e383c6b8c384690f37826e42413ffc35d2efe504a）：Rust/Clippy、恶意归档、局部 Syft SPDX、15 ELF SONAME、官方 dpkg-shlibdeps 缺口 0、干净 Ubuntu OCI APT 模拟及 LAB 临时 Ed25519 PASS；**没有安装、上传或分发该包**。[原生只读预览 CI #45322718592](https://github.com/kunlong-luo/lanveriq/actions/runs/45322718592) 也已实际 **overall SUCCESS**（React 和原生 Rust 两个 job 都 PASS），不等于真 Pop!_OS24/COSMIC L3。安全/发布交接见 [L2B-15](../../docs/development/desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)。
 
 This is the first implementation of the planned Pop!_OS 24.04 GUI install-and-config companion. The source uses Tauri 2 / Rust 1.100, React 19 / Vite 8 / Tailwind 4 and the Lanveriq light design. Tauri is separate from apps/web (the sole Next.js fleet-management console) and from apps/agent (the independent systemd Agent).
 
