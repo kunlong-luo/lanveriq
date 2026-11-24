@@ -18,6 +18,10 @@ export type DirectoryRow = Readonly<{
   id: string;
   label: string;
   os: string | null;
+  // Only the server's current group-scoped inventory projection, never
+  // background platform probing or client inference.
+  cpu?: string | null;
+  memoryBytes?: number | null;
   group: string;
   enrollment: 'pending_certificate' | 'active' | 'revoked' | 'retired';
   connectivity: 'online' | 'stale' | 'offline' | 'unknown';
@@ -199,6 +203,11 @@ export function DeviceDirectory({
           <TableBody>{visible.map(row => <TableRow key={row.id}>
             <TableHead scope="row" className="device-row-heading">
               <strong>{row.label}</strong><small>{row.os ?? '操作系统未上报'}</small>
+              {(row.cpu || row.memoryBytes !== null && row.memoryBytes !== undefined) &&
+                <small>{row.cpu ? `CPU：${row.cpu}` : 'CPU：未上报'}
+                  {row.memoryBytes !== null && row.memoryBytes !== undefined
+                    ? ` · 内存：${(row.memoryBytes / 1_000_000_000).toLocaleString('zh-CN', { maximumFractionDigits: 1 })} GB`
+                    : ''}</small>}
             </TableHead>
             <TableCell>{row.group}</TableCell><TableCell>{enrollmentLabel[row.enrollment]}</TableCell>
             <TableCell><span className={`health-pill health-${row.connectivity}`}>
