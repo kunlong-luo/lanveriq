@@ -61,11 +61,13 @@ def main():
         capture_output=True, text=True, timeout=15, check=False)
     require(check.returncode == 0 and check.stdout.strip() == "1",
             "rust_postgres_committed_identity")
+    print("STAGE: fixed-source PG18 receipt confirmed", flush=True)
 
     rejected = []
     api_responses = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
+        print("STAGE: Chromium launched with isolated NSS trust", flush=True)
         try:
             # No ignore_https_errors: Chromium relies on the private NSS CA
             # prepared by the existing isolated upstream mTLS test harness.
@@ -97,10 +99,12 @@ def main():
                     "initial_no_session")
             require(page.locator(".device-table tbody tr").count() == 0,
                     "no_prelogin_device")
+            print("STAGE: real Next.js anonymous view verified", flush=True)
             page.locator("#candidate-username").fill("synthetic-owner")
             page.locator("#candidate-password").fill(password)
             page.get_by_role("button", name="安全登录并获取授权设备").click()
             page.locator("main[data-candidate-status='ready']").wait_for(timeout=30000)
+            print("STAGE: Spring session and React authorized render ready", flush=True)
 
             # Network facts come from real Spring JSON, and DOM identity must
             # exactly match the same source UUID and server scoped total.
@@ -151,6 +155,7 @@ def main():
                         for url, status in api_responses),
                     "actual_chromium_scoped_http_read")
             require(not rejected, "no_external_network_or_websocket")
+            print("STAGE: PG18/Spring JSON matches Next.js DOM", flush=True)
 
             page.get_by_role("button", name="登出并清除数据").click()
             page.locator("main[data-candidate-status='signed_out']").wait_for(timeout=30000)
@@ -180,9 +185,15 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except ValueError as exc:
+        # require() failures have fixed, source-authored nonsecret gate names.
+        # Never print raw browser exceptions, HTTP bodies or database values.
+        print("FAIL: disposable Rust-to-Next.js gate: " + str(exc),
+              file=sys.stderr)
+        raise SystemExit(1) from None
     except Exception:
         # Deliberately no traceback: browser exception objects may contain
         # private cookies, synthetic passwords, headers and response bodies.
-        print("FAIL: disposable Rust-to-Next.js Chromium chain or trust gate",
+        print("FAIL: disposable Rust-to-Next.js Chromium runtime/trust exception",
               file=sys.stderr)
         raise SystemExit(1) from None
