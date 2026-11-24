@@ -1,6 +1,6 @@
 # ADR 索引（现行与历史）
 
-**ACTIVE INDEX · 2026-11-22 · v0.1 NOT RELEASE READY。** ADR 是开发决策，不构成生产权限。当前实际代码和 CI 查 [CURRENT_STATUS](../../CURRENT_STATUS.md)。
+**ACTIVE INDEX · 2026-11-24 · v0.1 NOT RELEASE READY。** ADR 是开发决策，不构成生产权限。当前实际代码和 CI 查 [CURRENT_STATUS](../../CURRENT_STATUS.md)。
 
 | 决议 | 状态/取代说明 |
 | --- | --- |
@@ -14,6 +14,6 @@
 | [0010 RustDesk](0010-rustdesk-remote-control-integration.md) · [0011 双网](0011-rustdesk-dual-network-access.md) | 候选方向，RD-2/公网未放行 |
 | [0012 外部见证 WORM 存储方案](0012-independent-fido-witness-object-lock.md) | **ACCEPTED FOR DEVELOPMENT: 云中立存储抽象；供应商/独立托管 PROPOSED/未批准**。AWS/S3 只保留为可选候选，已从默认服务端依赖移除 |
 
-| [0013 Tauri 图形安装器 + 独立 headless Agent](0013-tauri-desktop-installer-idle-agent.md) | **ACCEPTED FOR DEVELOPMENT**：v0.1 Pop!_OS24 GUI 安装/配置/诊断方向，Agent systemd 独立无托盘后台运行；源码/安装器尚未实现、真实部署仍禁止 |
+| [0013 Tauri 图形安装器 + 独立 headless Agent](0013-tauri-desktop-installer-idle-agent.md) | **ACCEPTED FOR DEVELOPMENT**：v0.1 Pop!_OS24 GUI 安装/配置/诊断方向，Agent systemd 独立无托盘后台运行；Tauri 2 **只读安装准备 UI** 已在 L2B-21 的 React/Rust 合成 CI 验证；**真正的签名 Agent 安装器/受限 Polkit/真实 Pop!_OS L3 未实现或未批准** |
 
 新 ADR 必须记录 Status(Proposed/Accepted-for-development/Superseded/Rejected)、Date、Context、Alternatives、Decision、Tradeoffs、Supersedes、Approval scope 与 Explicit non-authorizations。旧已取代决议仍保留原历史。[文档标准](../../governance/document-lifecycle.md)。
