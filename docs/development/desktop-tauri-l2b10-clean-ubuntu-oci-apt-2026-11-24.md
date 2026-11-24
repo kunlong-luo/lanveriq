@@ -1,6 +1,6 @@
 # DESKTOP-L2B-10 — clean Ubuntu 24.04 OCI APT simulation and Pop!_OS L3 separation
 
-**SPEC · 2026-11-24 · feature SHA a13ac215 · synthetic L1 PASS / native L2 PENDING · NO INSTALL · v0.1 NOT RELEASE READY**
+**SPEC · 2026-11-24 · corrected feature SHA 11dd7762 · synthetic L1 PASS / native L2 PENDING · NO INSTALL · v0.1 NOT RELEASE READY**
 
 ## Security objective and existing evidence
 
@@ -20,6 +20,12 @@ The container verifies `/etc/os-release` says `ubuntu:24.04` and dpkg arch `amd6
 
 - **L1 PASS:** exact feature SHA [a13ac215](https://github.com/kunlong-luo/lanveriq/commit/a13ac2158dcb5153b2c945dece86a457e6cc4059), [synthetic OCI plan/manifest proof CI #45303283606 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45303283606): 16 new negative/positive tests, no actual Docker or native candidate. This is not an installation test.
 - **Native L2 PENDING:** [same feature SHA #45303283595](https://github.com/kunlong-luo/lanveriq/actions/runs/45303283595): actual native Debian build; pinned Syft source/payload, receipt/payload/ELF/apt installed graph, dpkg-shlibdeps direct zero gap, then fresh Docker rootfs APT simulation and digest-bound read-only report, followed by ephemeral lab signature. Only if all steps finish SUCCESS may the clean-Ubuntu *simulation* be recorded as L2 PASS.
+
+## First native failure and scoped CI-only correction
+
+- [Initial native run #45303283595 FAILED](https://github.com/kunlong-luo/lanveriq/actions/runs/45303283595), source SHA [a13ac215](https://github.com/kunlong-luo/lanveriq/commit/a13ac2158dcb5153b2c945dece86a457e6cc4059). Existing native Debian build/source+payload Syft/ELF/direct-ABI 10-of-10 verification **passed**, but APT network index refresh inside an OCI container with every Linux capability dropped failed to switch credentials to its `_apt` sandbox user (`setuid`, `setgid`, `chown`: operation not permitted). This was a **container sandbox constraint**, not evidence of APT package unsatisfiability; the actual clean-root solver never completed.
+- Correction [source SHA 11dd7762](https://github.com/kunlong-luo/lanveriq/commit/11dd7762dd59984ca9c45d7b7dbc50c330c90882): keep `--cap-drop=ALL`, `--security-opt=no-new-privileges`, read-only root filesystem, tmpfs APT lists/cache and read-only candidate mount. Only for downloading APT indexes within that disposable container, pass `-o APT::Sandbox::User=root` instead of enabling `CAP_SETUID`, `CAP_SETGID` and `CAP_CHOWN`. This prevents an impossible `_apt` credential transition while maintaining the no-capabilities boundary; it **does not** grant host root, GUI, installer or production networking.
+- [Exact new SHA synthetic L1 #45303829608 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45303829608): 16 refusal cases including explicit all-caps-dropped/no-cap-add check. [Same SHA native candidate #45303829710](https://github.com/kunlong-luo/lanveriq/actions/runs/45303829710) is **PENDING**. Do not count previous failed native run as L2 acceptance.
 
 ## Pop!_OS 24.04 COSMIC L3 exit criteria (NOT RUN)
 

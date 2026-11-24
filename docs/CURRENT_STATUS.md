@@ -1,5 +1,8 @@
 # Lanveriq 当前状态 / Current status
 
+> **DESKTOP-L2B-10 干净 Ubuntu24 OCI APT 模拟修正（2026-11-24 · 新 L1 PASS / 原生 L2 PENDING）：** 首轮源码 [a13ac215](https://github.com/kunlong-luo/lanveriq/commit/a13ac2158dcb5153b2c945dece86a457e6cc4059) 的 [真实原生链路 #45303283595 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45303283595) 实际已通过 `.deb`、双 Syft/ELF/ABI 零差距，随后 Docker 中全部撤销 capabilities 导致 APT `_apt` 用户 `setuid/setgid` 拒绝，**并非 Debian 依赖无法解析**。修正源码 SHA [11dd7762](https://github.com/kunlong-luo/lanveriq/commit/11dd7762dd59984ca9c45d7b7dbc50c330c90882) 保持容器**所有 capabilities 均撤销、no-new-privileges、只读根及候选包**，仅让该受限容器内部的 APT 索引获取使用容器 root，无任何 `cap-add` 或 `.deb` 安装。新 [L1 #45303829608 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45303829608) 16 项合成测试 PASS；同 SHA [原生 L2 #45303829710](https://github.com/kunlong-luo/lanveriq/actions/runs/45303829710) 仍待真实 Docker/apt 仓库求解结果。**不等于 Pop!_OS 24.04 COSMIC L3、正式许可证签名与 Agent 授权；v0.1 NOT RELEASE READY。**
+
+
 > **DESKTOP-L2B-10 干净 Ubuntu24 OCI 中的 `.deb` APT 解析模拟（2026-11-24 · 合成 L1 PASS / 原生 L2 PENDING）：** 最新功能 SHA [a13ac215](https://github.com/kunlong-luo/lanveriq/commit/a13ac2158dcb5153b2c945dece86a457e6cc4059) 在 [独立 OCI 证据拒绝测试 #45303283606 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45303283606) 的 **16 个新用例** PASS。新增 [L2B-10 规范](development/desktop-tauri-l2b10-clean-ubuntu-oci-apt-2026-11-24.md)：在原生 `.deb`/ABI 零差距后，以 Docker 官方 Ubuntu 24.04 的实际 `ubuntu@sha256` 内容摘要运行干净根文件系统，仅只读挂载候选包、撤销容器 capabilities，APT 索引写入容器临时卷，执行 **`apt-get -s`** 并绑定包 SHA/工作流/已审 ABI 证据。**这不是 Pop!_OS24 实机或 COSMIC 桌面；也没有安装、签名发行、许可证或 polkit/Agent 授权。** [同功能 SHA 原生 L2 #45303283595](https://github.com/kunlong-luo/lanveriq/actions/runs/45303283595) 尚未完成，G-05/G-07/G-08/G-09 OPEN，**v0.1 NOT RELEASE READY**。
 
 
