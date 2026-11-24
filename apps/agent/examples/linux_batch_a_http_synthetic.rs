@@ -12,7 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     use lanveriq_agent::heartbeat_runtime::{HeartbeatAttemptOutcome, run_explicit_heartbeat_once};
     use lanveriq_agent::heartbeat_schedule::HeartbeatHalt;
-    use lanveriq_agent::store::OutboxStore;
+    use lanveriq_agent::inventory::{Cpu, Hardware, Memory, OperatingSystem, RawInventory};
+    use lanveriq_agent::store::{InventoryStage, OutboxStore};
     use lanveriq_agent::transport::{
         ActivationRequest, AgentTlsTransport, CredentialEpochDisposition, DeliveryDisposition,
         Heartbeat, HeartbeatLookupDisposition, TransportError,
@@ -330,6 +331,96 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "PASS: real Rust Reqwest TLS1.3 activation, SQLite restart/strict ACK, injected post-commit ACK loss with durable quarantine, committed/unknown read-only ledger lookup, replay and wrong-device denial."
         );
+
+        // INV-FULL-CHAIN-L2. This exact fixture carries NO real OS sample,
+        // NIC, MAC, IP, volume, hostname, user or employee activity.
+        // Installed Agent and non-opted-in acceptance never send inventory.
+        if env::var("LANVERIQ_SYNTHETIC_INVENTORY_CHAIN").as_deref() == Ok("1") {
+            if env::var("LANVERIQ_SYNTHETIC_CHAIN_UI").as_deref() != Ok("1") {
+                return Err("inventory synthetic POST requires full-chain UI opt-in".into());
+            }
+            let inventory_file = pki
+                .parent()
+                .ok_or("synthetic private inventory parent missing")?
+                .join("synthetic-inventory-outbox.sqlite");
+            let raw = RawInventory {
+                hardware: Hardware {
+                    manufacturer: None,
+                    model: None,
+                    cpu: Some(Cpu {
+                        model: Some("Synthetic Inventory CPU".into()),
+                        arch: Some("x86_64".into()),
+                        physical_cores: Some(4),
+                        logical_cores: Some(8),
+                    }),
+                    memory: Some(Memory { total_bytes: Some(8_000_000_000) }),
+                },
+                os: OperatingSystem {
+                    family: "linux".into(),
+                    name: Some("Synthetic Inventory Linux".into()),
+                    version: Some("24.04".into()),
+                    build: None,
+                    kernel_release: None,
+                    arch: Some("x86_64".into()),
+                },
+                interfaces: Vec::new(),
+                volumes: Vec::new(),
+                capabilities: [("hardware_inventory".into(), "available".into())]
+                    .into_iter().collect(),
+            };
+            let inventory_store = OutboxStore::open(&inventory_file).await?;
+            if !matches!(
+                inventory_store
+                    .stage_inventory_snapshot(device, "2026-11-24T09:00:00Z", raw.clone())
+                    .await?,
+                InventoryStage::Staged(_)
+            ) {
+                return Err("synthetic inventory outbox was not durably staged".into());
+            }
+            let staged = inventory_store
+                .verified_pending_inventory(device)
+                .await?
+                .ok_or("inventory outbox did not hold the verified payload")?;
+            if staged.revision != 1 {
+                return Err("synthetic inventory first revision not monotonic".into());
+            }
+            inventory_store.close().await;
+
+            // Reopen the SQLite outbox BEFORE any HTTP POST. The actual
+            // unmodified persisted JSON is passed through existing Reqwest,
+            // and only exact Spring ACK can release this pending snapshot.
+            let inventory_store = OutboxStore::open(&inventory_file).await?;
+            if client
+                .send_next_inventory(&inventory_store, device)
+                .await?
+                != Some(DeliveryDisposition::Accepted)
+            {
+                return Err("synthetic inventory did not receive exact mTLS ACK".into());
+            }
+            if inventory_store
+                .verified_pending_inventory(device)
+                .await?
+                .is_some()
+                || inventory_store.latest_inventory_revision().await? != Some(1)
+            {
+                return Err("inventory ACK did not atomically clear exact pending snapshot".into());
+            }
+            inventory_store.close().await;
+            let reopened = OutboxStore::open(&inventory_file).await?;
+            if !matches!(
+                reopened.stage_inventory_snapshot(
+                    device, "2026-11-24T09:01:00Z", raw
+                ).await?,
+                InventoryStage::Unchanged
+            ) || client.send_next_inventory(&reopened, device).await?.is_some()
+            {
+                return Err("identical inventory wrongly retransmitted after restart".into());
+            }
+            reopened.close().await;
+            println!(
+                "PASS: actual Rust SQLite inventory outbox -> Reqwest double mTLS -> strict Spring ACK -> SQLite restart without resend."
+            );
+        }
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
         assert_disposition(
