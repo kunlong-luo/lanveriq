@@ -11,6 +11,8 @@
 - 四条隐私/权限说明的勾选仅是瞬时**阅读记录**，不是管理员授权、签名包或真正 Polkit grant。
 - [L2B-21 GUI 审核 CI #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) 双 job SUCCESS（独立审核测试 10/10、前端 29/29、原生 Rust 6/6）；[GUI-only unsigned .deb 隔离归档 #45368638490](https://github.com/kunlong-luo/lanveriq/actions/runs/45368638490) SUCCESS，但**该包未安装、发布或包含 Agent**，签名仅临时 LAB、不是正式根。详情 [验收报告](../../docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md)。
 
+**L2B-22 源码安全基线（非实际 Polkit 安装）：** [`polkit/`](polkit/README.md) 现含**未安装**的系统 Polkit XML 策略草案，固定安装/升级/卸载三个 action，每个场景全为 `no`。 [Ubuntu24 安装意图 39 项 + Polkit 30 项负测 #45375272477 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45375272477)；[实际报告](../../docs/development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)。**没有 polkitd/pkexec/实际 broker 运行，也没有让 GUI 获得任何权限。**
+
 ## 目录责任
 
 | 目录 | 用途 |
@@ -18,6 +20,7 @@
 | `src/` | React 只读向导、安装前条件审查/声明和纯逻辑单元测试 |
 | `src-tauri/` | Tauri2 Rust 只读主机核验、最小 IPC/capabilities、**禁用**正式 bundle 的配置 |
 | `tools/` | Debian 归档/ABI/APT 签名缓存/拒绝优先源码检查，含大量实验室负测；不是安装服务或生产提权 helper |
+| `polkit/` | **未安装的**三动作默认拒绝 XML 策略审查与说明；没有部署到系统、没有 helper 或授权规则 |
 | `package.json`、`pnpm-lock.yaml` | 桌面前端构建依赖，与唯一 Next.js Web 分离 |
 
 ## 开发者离线预览
