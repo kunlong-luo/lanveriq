@@ -1,5 +1,9 @@
 # Lanveriq v0.1 发布阻塞清单
 
+> **2026-11-24 G-05 最新验收分类：** [GUI-only L2 指定源码 c4f04e44 / CI #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) **overall SUCCESS**。真实 unsigned lanveriq-desktop_0.1.0_amd64.deb SHA256=83ab54d1331213335e3ec77e383c6b8c384690f37826e42413ffc35d2efe504a；Rust/Clippy、Syft **局部**载荷、15 SONAME、官方 dpkg-shlibdeps **10 组要求/12 组声明/0 缺口**、干净 Ubuntu24 OCI 模拟和 LAB 临时 Ed25519 均通过。仅能关闭此 SHA 的 **GUI-only 严格隔离 L2 子项**；未安装、上传、发布或正式签名，不能关闭 G-05。真实 Agent 安装器的签名/Polkit L2、物理 Pop!_OS/COSMIC L3、G-02 独立 WORM、G-07 法务、G-08 运维和 G-09 产品体验保持 OPEN。**v0.1 NOT RELEASE READY**。[L2B-15 证据交接](../development/desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)。
+
+> 以下早期 G-05 “正在执行/排队/失败”记录为各自时间点历史证据，不代表当前已通过工作的最新状态。
+
 **LIVE-GAP · 2026-11-22 · Linux-first / Pop!_OS 24.04 · v0.1 NOT RELEASE READY。** 当前已完成事实和功能 SHA 以 [CURRENT_STATUS](../CURRENT_STATUS.md) 为准。下面角色为**所需授权角色**，并非已签字人。
 
 > **2026-11-24 G-05 证据订正（DESKTOP-L2B-12）：** [原生桌面工作流 #45310985549](https://github.com/kunlong-luo/lanveriq/actions/runs/45310985549) 总体为 **FAIL**，失败发生在 Ubuntu24 WebKitGTK 前置 APT 安装 12 分钟超时；React/source/Rustfmt 单独 PASS，`cargo test` 与 Clippy **NOT RUN（SKIPPED）**。不能把它写成仍运行中的 PENDING。最新 [功能 SHA d7fc9180](https://github.com/kunlong-luo/lanveriq/commit/d7fc91803ea375b0c964a933aa3fd8596ff55bf2) 的 ABI 同源契约与 3 个防篡改负测已提交，但[同功能 SHA 的 #45313752315](https://github.com/kunlong-luo/lanveriq/actions/runs/45313752315) 已实际通过 desktop-ui L1 子任务（17 Python 源码拒绝 + 22 PopOS/Ubuntu 负测 + 19 Vitest、TypeScript、静态构建）；**原生 Rust 仍无 PASS**。中间 SHA 9be4fb19 的 [#45313714759 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45313714759) 为首次审计器正则转义错误，d7fc9180 已修复后取得 L1 子任务成功。G-05/G-07/G-08/G-09 均维持 OPEN，无正式签名、受限安装授权、Pop!_OS24/COSMIC 实机或可分发 Agent GUI 安装包。

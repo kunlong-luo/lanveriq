@@ -1,6 +1,14 @@
 # DESKTOP-L2B-13 — 当前源码 Tauri GUI-only Debian 候选包复验
 
-**SPEC · ACTIVE · 2026-11-24 · candidate source/workflow SHA 161879ea [#45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) FAIL (APT 12-min timeout); diagnostic SHA 37a57f7f [#45317328366](https://github.com/kunlong-luo/lanveriq/actions/runs/45317328366) SUCCESS (simulation only); next #45316573023 PENDING final outcome · v0.1 NOT RELEASE READY。**
+**SPEC · VERIFIED exact SHA c4f04e44 · [real GUI-only .deb full audit #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) attempt 1 overall SUCCESS · Agent installer/Pop!_OS L3 NOT RUN · v0.1 NOT RELEASE READY。**
+
+## 最新指定源码原生完整审计已通过（2026-11-24）
+
+[exact source c4f04e44 / CI #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) **overall SUCCESS**，实际一次性 Ubuntu24 CI 生成并严审未签名 **lanveriq-desktop_0.1.0_amd64.deb**，SHA-256 **83ab54d1331213335e3ec77e383c6b8c384690f37826e42413ffc35d2efe504a**；Rust workspace/Clippy、恶意归档、Syft 源码与局部 payload SPDX、15 个 ELF SONAME、官方 dpkg-shlibdeps 10 组最低要求/12 组包声明/直接依赖缺口 **0**、干净 Ubuntu24 OCI APT 模拟和临时 LAB Ed25519 验签全部 PASS。固定 OCI manifest **ubuntu@sha256:562111b88caa79c71391c0c4d3c2114a7d5c35915c20561fd893cb1e07929e6b**。
+
+严格界限：这是**仅 GUI-only，指定源码的未签名 Debian L2 工程成功**；包没有上传、安装或发布，临时签名不是受信任发行签名，载荷 SPDX 只是局部 SBOM。真正的 Agent 安装器、签名/Polkit 授权、Pop!_OS COSMIC 物理 L3 均 NOT RUN；G-05 整体继续 OPEN。[L2B-15 精确证据与后续验收](desktop-tauri-l2b15-current-source-deb-l2-success-handoff-2026-11-24.md)。
+
+以下历史运行中的条目保留为开发快照，不覆盖上述最终结论。
 
 ## 为什么必须重新验收
 
@@ -62,7 +70,8 @@
 | 新 GUI 原生测试 | [107dc8b4 / #45315213247](https://github.com/kunlong-luo/lanveriq/actions/runs/45315213247) | **overall FAIL**；frontend、安全 L1、Cargo lock/Rustfmt PASS；Ubuntu APT 前置 12 分钟超时 | Rust 单测/Clippy SKIPPED；该 SHA 无完整 native L2 |
 | 新源码未签名候选 | [161879ea / #45315837623](https://github.com/kunlong-luo/lanveriq/actions/runs/45315837623) | **overall FAIL**：源码/冻结 pnpm/Cargo lock/Rustfmt PASS，真实 Ubuntu APT 下载 12 分钟超时 | Cargo tests、Clippy、.deb/Syft/ELF/shlibdeps/OCI 均 SKIPPED，没有新包 digest |
 | 只读原生依赖计划诊断 | [37a57f7f / #45317328366](https://github.com/kunlong-luo/lanveriq/actions/runs/45317328366) | **SUCCESS**：Ubuntu24 ImageVersion 20261116.376.1，本地索引 171 模拟安装/升级、0 删除 | 真实下载、受审镜像、构建、Pop!_OS L3 全部 NOT RUN |
-| 后续当前源码候选 | [7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) | In progress at evidence cutoff | 同 SHA 完整包构建/严格归档/ABI/OCI 整链 PASS |
+| 旧源码候选（历史） | [7cf23f3e / #45316573023](https://github.com/kunlong-luo/lanveriq/actions/runs/45316573023) | **FAIL**：WebKitGTK 下载超时 | 不能用于新 SHA 的 L2 证明 |
+| **当前真正 GUI-only 完整审计** | [c4f04e44 / #45322290248](https://github.com/kunlong-luo/lanveriq/actions/runs/45322290248) | **attempt 1 overall SUCCESS**：真实 .deb、Rust/Clippy、严格归档/Syft/ELF/官方 ABI、clean OCI/临时 LAB Ed25519 | 不代表真实 Agent 安装器、发行签名、Pop!_OS L3 |
 | Pop!_OS24 COSMIC 实机 | [G-05 L3 issue #7](https://github.com/kunlong-luo/lanveriq/issues/7) | NOT RUN | 正常用户 GUI 启动、WebKitGTK/Wayland、授权安装生命周期 |
 
 **L2B-13 退出条件：** 必须确认真实工作流整体 SUCCESS，并分别确认对应同源包真实存在、文件哈希、归档脚本、Syft、ELF、官方 dpkg-shlibdeps 10 组 ABI 最低版本零缺口、OCI APT 模拟与先行严格 Rust/Clippy 成功；记录实际源 SHA、run/attempt、包 SHA-256。当前包哈希未知，不得复制旧包 SHA 或假定新审计成功。失败/取消保持原样。
