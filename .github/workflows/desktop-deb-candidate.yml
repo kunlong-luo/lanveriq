@@ -24,6 +24,8 @@ on:
       - 'apps/desktop/tools/test_verify_desktop_apt_installed_closure.py'
       - 'apps/desktop/tools/verify_desktop_deb_shlibdeps_audit.py'
       - 'apps/desktop/tools/test_verify_desktop_deb_shlibdeps_audit.py'
+      - 'apps/desktop/tools/verify_desktop_clean_apt_simulation.py'
+      - 'apps/desktop/tools/test_verify_desktop_clean_apt_simulation.py'
       - '.github/workflows/desktop-deb-candidate.yml'
   workflow_dispatch:
 
@@ -55,6 +57,7 @@ jobs:
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_ubuntu_runtime_packages.py'
           /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_apt_installed_closure.py'
           /usr/bin/python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_deb_shlibdeps_audit.py'
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_clean_apt_simulation.py'
       - name: Install pinned frontend runtime without changing pnpm lock
         uses: pnpm/setup@v3
         with:
@@ -284,6 +287,37 @@ jobs:
           assert not data["release_approved"] and not data["install_authorized"]
           PY
           echo 'PASS: official shlibdeps ABI audit recorded; packaging compatibility and release still NOT APPROVED'
+      - name: L2B-10 clean Ubuntu24 OCI APT simulation with read-only package and immutable image digest
+        shell: bash
+        working-directory: apps/desktop
+        timeout-minutes: 15
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          EVIDENCE_DIR: ${{ runner.temp }}
+        run: |
+          set -Eeuo pipefail
+          command -v docker >/dev/null
+          test -f "$EVIDENCE_DIR/deb-shlibdeps-gap-evidence.json"
+          package=$(find src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' -print -quit)
+          test -f "$package"
+          args=(--package "$package" --previous "$EVIDENCE_DIR/deb-shlibdeps-gap-evidence.json" --log "$EVIDENCE_DIR/clean-ubuntu-apt-stdout.txt" --output "$EVIDENCE_DIR/clean-ubuntu-apt-proof.json" --source-sha "$SOURCE_SHA" --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT")
+          python3 tools/verify_desktop_clean_apt_simulation.py collect "${args[@]}"
+          python3 tools/verify_desktop_clean_apt_simulation.py verify "${args[@]}"
+          python3 - "$EVIDENCE_DIR/clean-ubuntu-apt-proof.json" <<'PY'
+          import json,sys
+          record=json.load(open(sys.argv[1],encoding="utf-8"))
+          print("L2B-10 clean Ubuntu OCI pinned resolved manifest:",record["oci_resolved_manifest_digest"])
+          print("L2B-10 pristine installed package count:",record["simulation"]["initial_installed_package_count"])
+          print("L2B-10 simulated install actions:",record["simulation"]["planned_install_count"])
+          print("L2B-10 removals:",record["simulation"]["planned_removal_count"])
+          print("L2B-10 .deb SHA256:",record["deb_sha256"])
+          assert record["apt_action"]=="SIMULATE_ONLY_NO_PACKAGES_INSTALLED"
+          assert record["pop_os_24_cosmic"]=="NOT_TESTED"
+          assert not record["release_approved"] and not record["install_authorized"]
+          PY
+          echo 'PASS: clean disposable Ubuntu24 OCI APT resolution only; no install, PopOS, COSMIC or Agent authorization'
       - name: LAB ONLY prove offline detached Ed25519 verification with ephemeral test key
         shell: bash
         working-directory: apps/desktop
