@@ -145,6 +145,7 @@ export const documentationLinkEntries = [
   'docs/README.md', 'docs/CURRENT_STATUS.md',
   'README.md', 'README.zh.md',
   'docs/governance/repository-layout-audit-2026-11-24.md',
+  'docs/governance/archive/README.md',
   'docs/planning/project-scorecard.md',
   'apps/web/README.md',
   'apps/server/README.md',
