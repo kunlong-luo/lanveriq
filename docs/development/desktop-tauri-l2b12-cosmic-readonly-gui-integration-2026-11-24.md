@@ -1,6 +1,6 @@
 # DESKTOP-L2B-12 — Pop!_OS/COSMIC read-only preflight in Tauri GUI
 
-**SPEC · ACTIVE 2026-11-24 · feature SHA 247d1d85 · React/source L1 PASS / native Rust L2 PENDING / Pop!_OS physical L3 NOT RUN · v0.1 NOT RELEASE READY**
+**SPEC · ACTIVE 2026-11-24 · functional SHA ebab553a · React/source L1 PASS / native Rust L2 PENDING / Pop!_OS physical L3 NOT RUN · v0.1 NOT RELEASE READY**
 
 ## Problem, UX decision and assurance boundary
 
@@ -20,7 +20,10 @@ Prior [L2B-11](desktop-tauri-l2b11-popos-cosmic-host-preflight-2026-11-24.md) im
 
 ## Exact-SHA evidence
 
-- [Source SHA 247d1d85](https://github.com/kunlong-luo/lanveriq/commit/247d1d858aef60af18ce71d94f88d716d23f9edb): Rust Tauri fixed read-only IPC, GUI Step-2 button, no-browser-data policy, typed result sanitizer and 8 new React contract tests. [Desktop Tauri preview CI #45307869232](https://github.com/kunlong-luo/lanveriq/actions/runs/45307869232): **React test/typecheck/build and source guard PASS; native Rust job PENDING** at initial document update. Do not assume native compile or rustfmt/clippy SUCCESS until verified on same SHA.
+- **Corrected functional SHA** [ebab553a](https://github.com/kunlong-luo/lanveriq/commit/ebab553a85428f3032bb64734e090886a1e7f7cf): [Tauri CI #45308179831](https://github.com/kunlong-luo/lanveriq/actions/runs/45308179831) React/frontend tests, TypeScript and offline build, source safety guard and Rustfmt PASS; **native Rust cargo test/Clippy PENDING** at this revision. Earlier [#45307869232](https://github.com/kunlong-luo/lanveriq/actions/runs/45307869232) had React PASS but native Rustfmt FAIL; corrected source-formatting only, no privilege expansion.
+
+
+- [Original source SHA 247d1d85 (rustfmt failed, corrected on ebab553a)](https://github.com/kunlong-luo/lanveriq/commit/247d1d858aef60af18ce71d94f88d716d23f9edb): Rust Tauri fixed read-only IPC, GUI Step-2 button, no-browser-data policy, typed result sanitizer and 8 new React contract tests. [Desktop Tauri preview CI #45307869232](https://github.com/kunlong-luo/lanveriq/actions/runs/45307869232): **React test/typecheck/build and source guard PASS; native Rust job PENDING** at initial document update. Do not assume native compile or rustfmt/clippy SUCCESS until verified on same SHA.
 - [Prior L2B-11 Python source SHA 57c37349](https://github.com/kunlong-luo/lanveriq/commit/57c373496a40ba7fa1bf713d6eef41be90f9b5b6), [Ubuntu24 Pop!_OS negative CI #45307469157 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45307469157): 22 L1 cases after adding embedded inspect-json mode, including real non-Pop!_OS Ubuntu refusal. These earlier exact-source tests are *not* a physical Pop!_OS success or the later full native SHA proof.
 
 ## Pop!_OS physical L3 and release gaps: still OPEN
