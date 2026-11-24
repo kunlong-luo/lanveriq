@@ -168,6 +168,26 @@ class DesktopReadonlyContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "extra IPC"):
             guard.validate(self.root)
 
+    def test_reject_install_review_privilege_lift(self):
+        self.mutate("src/install-review.ts", "installAllowed: false,",
+                    "installAllowed: true,")
+        with self.assertRaisesRegex(ValueError, "unreviewed installer privilege grant"):
+            guard.validate(self.root)
+
+    def test_reject_install_review_ipc_injection(self):
+        self.mutate("src/InstallReviewPanel.tsx",
+                    "export function InstallReviewPanel({",
+                    'const smuggled = "invoke<void>(\\\"install_agent\\\")";\nexport function InstallReviewPanel({')
+        with self.assertRaisesRegex(ValueError, "cannot dispatch IPC"):
+            guard.validate(self.root)
+
+    def test_reject_install_review_missing_from_wizard(self):
+        self.mutate("src/DesktopApp.tsx",
+                    "<InstallReviewPanel host={host} popos={popos} />",
+                    "<div>Unreviewed approval granted</div>")
+        with self.assertRaisesRegex(ValueError, "must be mounted"):
+            guard.validate(self.root)
+
 
 if __name__ == "__main__":
     unittest.main()
