@@ -1,0 +1,44 @@
+{
+  "schema": "lanveriq.desktop.release-evidence-boundary.v1",
+  "evidence_date": "2026-11-24",
+  "gui_only_debian_l2": {
+    "status": "PASSED_UNSIGNED_UBUNTU24_CI_ONLY",
+    "source_sha": "c4f04e442be7da8181e9e62293764fbbb80e41d0",
+    "github_run_id": 45322290248,
+    "github_run_attempt": 1,
+    "deb_name": "lanveriq-desktop_0.1.0_amd64.deb",
+    "deb_sha256": "83ab54d1331213335e3ec77e383c6b8c384690f37826e42413ffc35d2efe504a",
+    "oci_ubuntu24_digest": "ubuntu@sha256:562111b88caa79c71391c0c4d3c2114a7d5c35915c20561fd893cb1e07929e6b",
+    "uploaded_for_distribution": false,
+    "signed_by_release_publisher": false,
+    "installed_during_audit": false
+  },
+  "desktop_native_preview": {
+    "status": "PASSED_READONLY_UBUNTU24_CI_ONLY",
+    "source_sha": "ea62c63cb9523c1ac34ac64c7f7134bbe58fbe3a",
+    "github_run_id": 45322718592,
+    "native_and_frontend_jobs_passed": true,
+    "popos_device_proven": false
+  },
+  "release_gates": {
+    "G-02_independent_worm": "OPEN",
+    "G-05_popos24_cosmic_physical_l3": "NOT_RUN",
+    "G-07_legal_license": "OPEN",
+    "G-08_operations_backup": "OPEN",
+    "G-09_installer_ux": "OPEN",
+    "trusted_publisher_signing": "NOT_APPROVED",
+    "restricted_polkit_agent_install": "NOT_IMPLEMENTED",
+    "agent_installer_l2": "NOT_RUN",
+    "external_runtime_license_review": "NOT_APPROVED"
+  },
+  "release_authority": {
+    "v01_release_ready": false,
+    "agent_one_click_installer_available": false,
+    "distributable_artifact_available": false,
+    "production_agent_install_authorized": false,
+    "production_network_authorized": false,
+    "production_collection_authorized": false,
+    "production_remote_control_authorized": false,
+    "production_ca_issuance_authorized": false
+  }
+}
