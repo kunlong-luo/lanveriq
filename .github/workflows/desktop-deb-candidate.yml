@@ -13,6 +13,9 @@ on:
       - 'apps/desktop/src-tauri/Cargo.toml'
       - 'apps/desktop/src-tauri/Cargo.lock'
       - 'apps/desktop/src-tauri/build.rs'
+      - 'apps/desktop/src-tauri/capabilities/**'
+      - 'apps/desktop/src-tauri/rust-toolchain.toml'
+      - 'apps/desktop/.node-version'
       - 'apps/desktop/package.json'
       - 'apps/desktop/pnpm-lock.yaml'
       - 'apps/desktop/vite.config.ts'
@@ -50,7 +53,9 @@ permissions:
 
 concurrency:
   group: lanveriq-desktop-gui-deb-candidate-main
-  cancel-in-progress: true
+  # Preserve expensive started native/ABI evidence across main pushes.
+  # Later commits queue their own check instead of cancelling the active run.
+  cancel-in-progress: false
 
 jobs:
   gui-only-deb:
