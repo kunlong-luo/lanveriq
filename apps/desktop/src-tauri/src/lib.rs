@@ -182,9 +182,100 @@ fn inspect_host() -> HostSnapshot {
     }
 }
 
+
+// Pop!_OS 24.04 compatibility is metadata-only, requested by the operator
+// from the GUI. The exact reviewed Python/apt preflight is embedded at build
+// time; no external script path, Tauri shell plugin or writable temp file.
+#[cfg(target_os = "linux")]
+const BUNDLED_PREFLIGHT: &str =
+    include_str!("../../tools/verify_desktop_popos_local_preflight.py");
+
+#[cfg(target_os = "linux")]
+fn safe_preflight_error(stderr: &[u8]) -> String {
+    let text = std::str::from_utf8(stderr).unwrap_or("");
+    let code = text
+        .lines()
+        .find_map(|line| line.strip_prefix("NOT_APPROVED: "))
+        .unwrap_or("PREFLIGHT_UNAVAILABLE")
+        .split(':')
+        .next()
+        .unwrap_or("PREFLIGHT_UNAVAILABLE")
+        .trim();
+    // Never relay arbitrary stderr containing local usernames/paths/sources.
+    const PUBLIC_CODES: &[&str] = &[
+        "NOT_POP_OS_TARGET",
+        "PRIVILEGED_GUI_PREFLIGHT_FORBIDDEN",
+        "UNSUPPORTED_POP_OS_ARCH",
+        "NOT_COSMIC_WAYLAND_SESSION",
+        "SYSTEM_PYTHON_APT_UNAVAILABLE",
+        "DPKG_ARCH_UNAVAILABLE",
+        "COSMIC_COMPONENT_NOT_INSTALLED",
+        "NO_LOCAL_ABI_APT_CANDIDATE",
+        "ABI_CANDIDATE_VERSION_TOO_OLD",
+        "MISSING_OR_EXCESS_APT_SOURCES",
+        "UNTRUSTED_APT_SOURCE_PATH",
+        "EXCESS_APT_SOURCES_BYTES",
+        "INVALID_APT_SOURCES_DIRECTORY",
+        "REVIEWED_ABI_BASELINE_DRIFT",
+        "INVALID_APT_RELATION",
+        "UNSAFE_APT_PACKAGE_VERSION",
+    ];
+    if PUBLIC_CODES.contains(&code) {
+        code.to_string()
+    } else {
+        "PREFLIGHT_UNAVAILABLE".to_string()
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn collect_popos_preflight() -> Result<String, String> {
+    use std::process::Command;
+    // Fixed binary, fixed args and script embedded in the Tauri executable.
+    // No shell, user-supplied command line or privileged operation.
+    let mut process = Command::new("/usr/bin/python3");
+    process
+        .args(["-I", "-c", BUNDLED_PREFLIGHT, "inspect-json"])
+        .current_dir("/")
+        .env_clear()
+        .env("LANG", "C.UTF-8")
+        .env("PATH", "/usr/bin:/bin");
+    for name in ["XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "WAYLAND_DISPLAY"] {
+        if let Ok(value) = std::env::var(name) {
+            if value.len() <= 256 {
+                process.env(name, value);
+            }
+        }
+    }
+    let output = process.output().map_err(|_| "SYSTEM_PYTHON_APT_UNAVAILABLE".to_string())?;
+    if !output.status.success() {
+        return Err(safe_preflight_error(&output.stderr));
+    }
+    if output.stdout.len() > 16384 || output.stdout.len() < 64 {
+        return Err("PREFLIGHT_UNAVAILABLE".into());
+    }
+    let stdout = String::from_utf8(output.stdout).map_err(|_| "PREFLIGHT_UNAVAILABLE".to_string())?;
+    // No untrusted process stdout is ever interpreted as release authority.
+    if !stdout.starts_with('{') || !stdout.ends_with("}\n") {
+        return Err("PREFLIGHT_UNAVAILABLE".into());
+    }
+    Ok(stdout)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn collect_popos_preflight() -> Result<String, String> {
+    Err("NOT_POP_OS_TARGET".into())
+}
+
+#[tauri::command]
+async fn inspect_popos_preflight() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(collect_popos_preflight)
+        .await
+        .unwrap_or_else(|_| Err("PREFLIGHT_UNAVAILABLE".into()))
+}
+
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![inspect_host])
+        .invoke_handler(tauri::generate_handler![inspect_host, inspect_popos_preflight])
         .run(tauri::generate_context!())
         .expect("failed to run offline Lanveriq desktop preview");
 }
@@ -243,6 +334,36 @@ mod tests {
             parse_unit_properties(""),
             ("unverified", "unverified", "unverified", "unverified")
         );
+    }
+
+    #[test]
+    fn preflight_error_codes_are_redacted_and_non_authoritative() {
+        #[cfg(target_os = "linux")]
+        {
+            assert_eq!(
+                safe_preflight_error(b"NOT_APPROVED: NOT_POP_OS_TARGET\n"),
+                "NOT_POP_OS_TARGET"
+            );
+            assert_eq!(
+                safe_preflight_error(b"NOT_APPROVED: COSMIC_COMPONENT_NOT_INSTALLED: cosmic-comp\n"),
+                "COSMIC_COMPONENT_NOT_INSTALLED"
+            );
+            assert_eq!(
+                safe_preflight_error(b"NOT_APPROVED: /home/secret@example.invalid\n"),
+                "PREFLIGHT_UNAVAILABLE"
+            );
+        }
+    }
+
+    #[test]
+    fn bundled_preflight_has_no_installer_privileges() {
+        #[cfg(target_os = "linux")]
+        {
+            assert!(BUNDLED_PREFLIGHT.contains("inspect-json"));
+            assert!(BUNDLED_PREFLIGHT.contains("agent_start_authorized"));
+            assert!(BUNDLED_PREFLIGHT.contains("\"install_authorized\": False"));
+            assert!(!BUNDLED_PREFLIGHT.contains("apt-get install"));
+        }
     }
 
     #[test]
