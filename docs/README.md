@@ -35,6 +35,10 @@
 
 [断网后的 Rust SQLite 清单恢复 → mTLS ACK → PG18 当前 revision → Next.js 手动刷新 L2](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)（**功能 SHA `db570181`：[Linux L2 #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)；仅隔离 L2，正式发布仍 OFF**）。上一个 OS/CPU/RAM 首次入库 L2 已单独 [PASS](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，不要混淆两次功能 SHA。
 
+## 当前 G-05 原生 APT 差异索引观察
+
+[L2B-29 真实 signed InRelease / 不同 Packages 的核验范围与失败记录](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md)。仅 disposable Ubuntu OCI，不是签名发行、正式 APT 高水位或 Pop!_OS L3。**绝不可将原生 `apt-get update` 成功等同于旧 Packages 被采用。**
+
 ## 去重与防断链
 
 已删除旧 `docs/planning/backlog.md`、`roadmap.md`、`v0.1-batched-delivery-plan-2026-11-08.md` 和 `v0.1-implementation-sequence.md` 的**工作树副本**；原始完整内容仍在[固定 Git SHA 历史索引](governance/archive/README.md)。旧全文 AGENTS/目录快照、早期审计也在那里可查。真正独立的失败、攻击负测、FIDO/WORM 和 Agent/PG18 报告保留原专题，不按文件大小批量删。

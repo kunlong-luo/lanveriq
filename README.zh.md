@@ -66,6 +66,10 @@ pnpm dev
 
 正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项已按功能 SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c) 通过[真实隔离 Linux L2 #45554279736（两个 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)。** 这不代表正式 Agent 可安装、具备后台自动恢复或生产采集授权。
 
+## G-05 原生 APT 回放行为的下一项实测
+
+[L2B-29 专项报告](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 正在区分：旧有效签名 `InRelease` 被 APT 接受，与内容不同的旧 `Packages` **真的进入 APT 可见元数据**，是两种不同结论。前两次隔离原生 CI **尚未证明后者**；不能据此宣称 Agent 版本降级或正式防回退已完成。**G-05 OPEN，生产安装 OFF。**
+
 ## 安全与下一步
 
 已有 [Agent→mTLS→Spring/PG18→Next.js 隔离合成链路](docs/testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，并有 [原生 signed-APT 有效旧 Release 被接受的风险证据](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md)。[L2B-28](docs/development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) 只能阻止伪造高水位/发布批准的**源级声明**，并未实现真实可信防回退器、正式签名者或安装权限。

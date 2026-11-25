@@ -66,6 +66,10 @@ Other developer tests: `cd apps/server && ./gradlew test`, `cd apps/agent && car
 
 The next isolated business-loop milestone is [durable Linux inventory recovery after a real Caddy outage, exact mTLS ACK, PG18 revision advance and operator-triggered Chromium refresh](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md). **Verified at functional SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c): [Linux L2 #45554279736 — both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736).** This is not a product installer, automatic Agent recovery or production approval.
 
+## Latest signed APT index acceptance investigation
+
+The [L2B-29 native APT report](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) distinguishes an older valid signed `InRelease` being accepted from APT **actually adopting different older `Packages` metadata**. Initial native runs did **not** confirm the latter; keep G-05 OPEN and do not claim a package downgrade or anti-rollback enforcement.
+
 ## Release boundary and next work
 
 An isolated [Agent→mTLS→Spring/PostgreSQL→Next.js synthetic chain](docs/testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md) has passed. Native [APT accepted a valid older signed Release](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md); the [L2B-28 source-only approval-denial contract](docs/development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) does **not** implement an independent trusted anti-rollback high-water, release publisher or installation authorization.

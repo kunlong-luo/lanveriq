@@ -7,6 +7,8 @@
 1. **固定范围：** v0.1 Linux-first（Pop!_OS 24.04 COSMIC），Windows/RustDesk 另行书面决定。生产联网、自动采集、远控 RD-2、自动恢复、CA 签发等开关保持 OFF，**不因系统安装、图形界面勾选或 GitHub CI 成功而开启**。
 2. **独立发行主体与根：** 获取具名组织、法务/安全批准的发行签名者、硬件/隔离管理域的密钥托管、预置信任根及撤销/轮换流程；只认固定包名、版本/架构、来源和已批准的签名策略。CI 一次性实验密钥绝不能当正式根。
 3. **独立高水位/可信时间：** 不能只依赖 `apt-secure` 的有效签名和 `Valid-Until`；[L2B-27 原生 APT 10/10](../development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md) 实测接受**同 signer、同 Packages、仍有效但日期更旧的签名 Release**。必须由独立可信主体审批准入序列和持久版本高水位，并对真实旧仓库索引/旧软件包、回退、断网、错时钟、重装、版本降级做负测。
+**原生 APT 新观察（L2B-29）：** [内容不同的有效签名旧 Packages 观察](../development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 已进入隔离 CI；首次原生运行的第十一项 FAIL：旧签名 `InRelease` 被接受，但未观察到旧 Packages 描述。**不是**高水位防回退通过，更不是实际包版本降级。仍须区分原生索引获取/缓存与用户包安装层。
+
 4. **最小权限 GUI 安装：** Tauri 只能请求固定动作，不持有 root shell/可自选 URI/任意安装路径；必须经原生 D-Bus 实际发送者身份、真正 logind 活跃会话和 Polkit 每操作一次授权、root-side 固定工件/事务证据核验。安装/升级/卸载、服务启动、boot enable、联网、采集须分别审批和审计。当前只有 [root-side ReviewLab 拒绝与恶意 OS YES 纵深负测](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**没有能执行安装的获批 broker**。
 5. **具名 Linux L3：** 先在 Ubuntu24 disposable L2 验证安全交易及拒绝/取消，再经用户/设备所有人真实书面许可，在 Pop!_OS24 COSMIC/Wayland 实机验证 GUI、背景服务可发现性、停止/卸载、升级/回滚、隐私告知、权限/性能。实机通过前不可分发。
 6. **生产信任/合规：** 官方 FIDO、真人管理员 WebAuthn MFA、CA/KMS、独立管理域 WORM、PG18/备份恢复、法律/许可证、SRE/应急/运营签收及正式 Agent→Spring/PG18→Next.js 全链，全部必须独立满足。[G-01～G-10](../planning/release-gap-register.md) 仍 **OPEN**。

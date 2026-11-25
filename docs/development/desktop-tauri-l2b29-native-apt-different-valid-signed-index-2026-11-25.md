@@ -1,6 +1,6 @@
 # DESKTOP-L2B-29 — 原生 APT 使用较旧且不同的有效签名 Packages 索引
 
-**实际功能源码：** [`bd6d46646b6bad9fb7578a0097921084af059650`](https://github.com/kunlong-luo/lanveriq/commit/bd6d46646b6bad9fb7578a0097921084af059650)。**验收状态：PENDING L2**（[原生 OCI #45558040197](https://github.com/kunlong-luo/lanveriq/actions/runs/45558040197)），不得凭提交或测试夹具声称成功。**G-05 OPEN，v0.1 NOT RELEASE READY。**
+**实际功能源码：** [`bd6d46646b6bad9fb7578a0097921084af059650`](https://github.com/kunlong-luo/lanveriq/commit/bd6d46646b6bad9fb7578a0097921084af059650)。**验收状态：FAIL（初始 L2 #45558040197）→ FAIL（分段诊断 #45558342030）→ PENDING（索引拉取判定 #45558662699）；不得提前声称 11/11 PASS。****G-05 OPEN，v0.1 NOT RELEASE READY。**
 
 ## 为什么在 L2B-27 / L2B-28 之后仍需此测试
 
@@ -15,6 +15,14 @@
 - [定向源级负测](../../apps/desktop/tools/test_signed_apt_index_replay.py)及[路径过滤 L2 CI](../../.github/workflows/desktop-agent-signed-apt-oci-l2.yml)：保证旧索引构造只改变描述字段、不冒充实际新旧版本/软件降级、遇到重复或无标记则拒绝。**实际 APT 接受与否必须由原生 OCI job 结果决定**。
 
 **强制环境：** `GITHUB_ACTIONS=true`、`RUNNER_OS=Linux`、显式 `LANVERIQ_SIGNED_AGENT_APT_L2=1`、rootless runner 的容器调用、`docker --network none --cap-drop ALL --security-opt no-new-privileges`、仅读挂载测试仓库、固定 Ubuntu 24 digest、临时实验公私钥。无外部网络、正式发行者/CA、用户主机事务、用户/员工数据或本地 Polkit 授权。
+
+## 本阶段原始失败与保留证据
+
+| 功能 SHA | 真实运行 | 已经观察到的事实 |
+| --- | --- | --- |
+| [`bd6d4664`](https://github.com/kunlong-luo/lanveriq/commit/bd6d46646b6bad9fb7578a0097921084af059650) | [#45558040197 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45558040197) | 原有 10 个原生 APT 场景通过；第 11 项未通过。最初仅有新描述输出，不可据此判定具体缺口 |
+| [`d29da39a`](https://github.com/kunlong-luo/lanveriq/commit/d29da39ab00ef352585c3593022a7fa314982bf6) | [#45558342030 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45558342030) | 旧 Release 日期确实更早、Packages SHA256 确实不同、第二次原生 `apt-get update` 接受旧 `InRelease`，但 `apt-cache` **未显示旧 Packages 的描述**。因此不能宣称不同内容旧索引被实际采用 |
+| [`607e7b17`](https://github.com/kunlong-luo/lanveriq/commit/607e7b171feecc74361e5ff7da3c1908d9688b47) | [#45558662699 待完成](https://github.com/kunlong-luo/lanveriq/actions/runs/45558662699) | 分别统计第二次 update 是否取得 `Packages`、当前缓存仍是新版还是已变成旧版；不跳过原生 APT/签名检查 |
 
 ## 精确允许的结论与不能推论的能力
 
