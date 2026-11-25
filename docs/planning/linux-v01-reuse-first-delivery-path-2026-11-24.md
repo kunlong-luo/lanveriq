@@ -25,7 +25,7 @@
 
 **G-06 隔离 L2 连续性：** [恢复后乱序/冲突](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md) 功能 9ba85399、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)；[ACK 未送达 Rust 而 PG18 已提交后重送](../development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**本轮新阶段 L2 PASS：** [PostgreSQL18 SIGKILL/WAL 恢复→原 SQLite 请求重送](../development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。当前仍需 G-05 发行签收/Polkit、G-06 生产身份授权、G-08 灾备与 Pop!_OS 真机 L3。
 
-**G-08：** [WAL/归档/完整行与篡改拒绝 #45612605286 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)；[恢复后独立重启及实验时间](../development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` / [#45615090308 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)。后续转向独立保管/密钥、获批准跨机演练、实际 RPO/RTO 和 SRE 签字。
+**G-08：** [原生 PG18 恢复→重启/实测合成秒数](../development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` / [#45615090308 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)；下一项 [真实 Spring Boot/Hibernate 无 Web 接管恢复库](../development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)。随后优先经独立 SRE/法务许可的跨主机备份保管/真实 DR，而非反复新增密码学单测。
 
 ## 下一阶段与退出顺序
 

@@ -41,7 +41,7 @@
 
 **新阶段 L2 PASS：** [PG18 真实 SIGKILL/WAL 恢复后同请求重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)；功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。生产灾备与实际设备仍未验收。
 
-**G-08：** [完整行/篡改 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)；[恢复后重启与实验耗时 L2](development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) [#45615090308 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)；[备份运维边界](operations/backup.md)。**G-08 OPEN。**
+**G-08：** [恢复库重启/计时 #45615090308 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)；[真实 Spring JPA 验证恢复库](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) [#45616194271 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)。[备份 runbook](operations/backup.md)；G-08 OPEN。
 
 ## G-05 原生 APT：不同 ELF、分离签名与冷缓存双回放
 

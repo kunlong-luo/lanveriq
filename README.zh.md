@@ -70,7 +70,7 @@ pnpm dev
 
 **新增 G-06 L2 PASS：** [PG18 已提交但 Rust 未见 ACK 的原始 SQLite 请求重送](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**本阶段新增 L2 PASS：** [PG18 真正 SIGKILL/WAL 恢复后 Rust 重送](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。这是合成 Linux runner，不是可发布安装器、真实 TCP 丢包或生产灾备。
 
-**G-08 隔离备份：** [完整行/等数量篡改拒绝 #45612605286 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)；[恢复库独立重启与 CI 实验耗时](docs/development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` / [#45615090308 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)。无正式生产 RPO/RTO 或独立备份签收。
+**G-08 隔离备份：** [原生恢复→重启/计时 #45615090308 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)；[真实 Spring Boot/JPA 无 Web 连接恢复库](docs/development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)。不代表生产 DR、CA/MFA 或授权。
 
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 

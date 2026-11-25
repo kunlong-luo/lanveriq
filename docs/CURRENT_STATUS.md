@@ -39,7 +39,7 @@
 
 ## G-08 最新备份 L2
 
-**G-08：** [全内容/等数量篡改 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)；[独立重启与 CI 实验耗时](development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` / [#45615090308 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)。**G-08 OPEN；非生产 RPO/RTO。**
+**G-08：** [新库重启/合成秒数 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)（dump 0.125s、恢复重启复查 4.052s）；[真实 Spring/JPA 接入恢复库](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)。**G-02/G-08 OPEN；非生产灾备。**
 
 ## 下一项退出目标（不等于批准上线）
 

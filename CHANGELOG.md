@@ -21,9 +21,13 @@
 
 - [功能 `06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b)：Python 标准库 `create/verify`，12 项损坏/软链接/篡改拒绝负测；[Server L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。[备份与恢复边界](docs/operations/backup.md)；[功能 `94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89) 已接入真实 `pg_dump` 正反向核验，[Linux #45589325627 L2 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；外部 WORM 未建。
 
-## 2026-11-25 — G-08 恢复库独立重启与 CI 实验耗时（L2 PENDING）
+## 2026-11-25 — G-06/G-08 真实 Spring Boot/Hibernate 连接恢复后 PG18（L2 PENDING）
 
-- [`e6a7ae12`](https://github.com/kunlong-luo/lanveriq/commit/e6a7ae12cebb42f3f0f29f2cd24147afb00bb640) 对已恢复 PG18 原生容器独立重启、可查询和全量内容再次验收，并记录私有同域实验 `pg_dump` 与恢复重启秒数；[Linux #45615090308 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)。[专题报告](docs/development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md)，非生产 RPO/RTO。
+- [功能 `dcde55e1`](https://github.com/kunlong-luo/lanveriq/commit/dcde55e18e8249fbfc4eaf6399cc5ce59f4d100d) 在恢复库独立重启及全量对比后，通过隔离内部 Docker 桥仅向 CI 宿主开放连接、**不映射主机端口**，启动实际 Spring Boot JAR 的 non-web/JPA schema validate（Flyway/管理员注册关闭），再次确认数据不变并销毁网络；[Linux #45616194271 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)。[专项报告](docs/development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md)。非生产切流或 DR。
+
+## 2026-11-25 — G-08 恢复库独立重启与 CI 实验耗时（L2 PASS）
+
+- [`e6a7ae12`](https://github.com/kunlong-luo/lanveriq/commit/e6a7ae12cebb42f3f0f29f2cd24147afb00bb640) 对已恢复 PG18 原生容器独立重启、可查询和全量内容再次验收，并记录私有同域实验 `pg_dump` 与恢复重启秒数；[Linux #45615090308 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)。[专题报告](docs/development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md)，非生产 RPO/RTO。
 
 ## 2026-11-25 — G-08 全量恢复内容一致性及等数量篡改拒绝（L2 PASS）
 
