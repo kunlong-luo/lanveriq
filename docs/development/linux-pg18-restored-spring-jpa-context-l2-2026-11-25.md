@@ -1,6 +1,6 @@
 # G-06/G-08 — 真实 Spring Boot/Hibernate 接管已重启的恢复 PG18（无 Web L2）
 
-**2026-11-25 · 首轮 L2 FAIL；修复重测 PENDING · main · v0.1 NOT RELEASE READY。**
+**2026-11-25 · 首轮 L2 FAIL → 修复 L2 PASS · main · v0.1 NOT RELEASE READY。**
 
 ## 已验收基线（不能冒充本阶段）
 
@@ -18,7 +18,7 @@
 
 **首轮失败已保留：** 功能 `dcde55e1` 的 #45616194271 在恢复库完整重启/比对 PASS 后，因 Docker `--network none` 容器无法后续连接私有 bridge 而 FAIL；Spring/JPA 没有实际运行，不能计为 PASS。
 
-**修复重测：** [`45683e64`](https://github.com/kunlong-luo/lanveriq/commit/45683e64e88e6f23a50eaa98ce2c4423f32a22ef) 让恢复库从创建起就在 `--internal` 私有 bridge，仍无任何端口映射或外部路由；原生恢复、重启与无 Web Spring/JPA 使用同一实例。不再声称新恢复库字面上为 `--network none`。[Linux #45618414247 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。仅当本功能 SHA 的两个 job SUCCESS 且原生日志出现 `PASS: actual non-web Spring Boot/Hibernate started on recovered PG18 after independent restart`、源库/恢复库内容不变及原 Rust/mTLS/Next.js 全链通过，才能改为 L2 PASS。任何失败须保留。
+**修复重测：** [`45683e64`](https://github.com/kunlong-luo/lanveriq/commit/45683e64e88e6f23a50eaa98ce2c4423f32a22ef) 让恢复库从创建起就在 `--internal` 私有 bridge，仍无任何端口映射或外部路由；原生恢复、重启与无 Web Spring/JPA 使用同一实例。不再声称新恢复库字面上为 `--network none`。[Linux #45618414247 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。仅当本功能 SHA 的两个 job SUCCESS 且原生日志出现 `PASS: actual non-web Spring Boot/Hibernate started on recovered PG18 after independent restart`、源库/恢复库内容不变及原 Rust/mTLS/Next.js 全链通过，才能改为 L2 PASS。原生 job 日志已出现上述 Spring/JPA PASS、全量一致性、等数量篡改拒绝与后续 Rust/mTLS 链通过。**此项仅 L2 PASS**，原始失败保留；独立保管/真实跨机/SRE 仍 NOT RUN。
 
 这不是生产恢复能力。**G-02/G-08** 的真实跨主机备份保管、独立受托方、加密密钥、可信时间/高水位、生产 RPO/RTO、真实 SRE/安全审批，以及 **G-06** 的合法生产用户/RBAC、CA/MFA、完整界面切换仍未完成。
 
