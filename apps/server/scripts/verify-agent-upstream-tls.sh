@@ -347,20 +347,32 @@ export LANVERIQ_BACKEND_TLS_CADDY_CLIENT_TRUSTSTORE_PASSWORD="$TLS_PASS"
 printf '%s' "$DB_PASS" > "$TMP/postgres-password"
 chmod 600 "$TMP/postgres-password"
 
-# A random Docker-chosen host port prevents accidental interference with LAN DBs.
-# Keep the disposable container ID available for a real SIGKILL/WAL recovery
-# inside the synthetic G-06 test. cleanup() always force-removes it; this is
-# not a persistent or externally reachable PostgreSQL instance.
+# Ask the kernel for an ephemeral LOOPBACK host port then pin that
+# exact number in Docker's publish configuration. An auto-assigned Docker
+# mapping is NOT stable across docker start after an unclean stop.
+# There is a small bind/release race: Docker fails closed on collision.
+PG_PORT="$(python3 - <<'PY'
+import socket
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+    probe.bind(("127.0.0.1", 0))
+    print(probe.getsockname()[1])
+PY
+)"
+[[ "$PG_PORT" =~ ^[0-9]+$ && "$PG_PORT" -ge 1024 ]] || {
+    echo "Cannot reserve temporary loopback PostgreSQL port" >&2
+    exit 1
+}
+# Preserve the same disposable container for actual SIGKILL/WAL recovery;
+# cleanup() always force-removes it. Never expose a non-loopback listener.
 DB_CID="$(docker run --detach \
-    --publish 127.0.0.1::5432 \
+    --publish "127.0.0.1:$PG_PORT:5432" \
     --env POSTGRES_DB=lanveriq \
     --env POSTGRES_USER=lanveriq \
     --env POSTGRES_PASSWORD_FILE=/run/secrets/synthetic-password \
     --volume "$TMP/postgres-password:/run/secrets/synthetic-password:ro" \
     postgres:18.7)"
-PG_PORT="$(docker port "$DB_CID" 5432/tcp | awk -F: 'NR==1 {print $NF}')"
-[[ "$PG_PORT" =~ ^[0-9]+$ ]] || {
-    echo "Cannot determine isolated PostgreSQL port" >&2
+[[ "$(docker port "$DB_CID" 5432/tcp | awk -F: 'NR==1 {print $NF}')" == "$PG_PORT" ]] || {
+    echo "Isolated Docker PostgreSQL port mapping not pinned" >&2
     exit 1
 }
 ready=0
