@@ -20,10 +20,14 @@ IMAGE = "ubuntu@sha256:562111b88caa79c71391c0c4d3c2114a7d5c35915c20561fd893cb1e0
 PACKAGE = "lanveriq-agent-offline-preview"
 VERSION = "0.1.0~dev1"
 NAME = f"{PACKAGE}_{VERSION}_amd64.deb"
+PRIOR_VERSION = "0.1.0~dev0"
+PRIOR_NAME = f"{PACKAGE}_{PRIOR_VERSION}_amd64.deb"
+VERSION_CASES = ("signed-two-versions-unattended-downgrade-refused",
+                 "signed-two-versions-explicit-oci-downgrade")
 CASES = ("signed-install-reinstall-remove", "wrong-key", "wrong-signer",
          "unsigned", "index-tamper", "expired", "future", "deb-tamper",
          "package-confusion", "signed-valid-old-release-acceptance",
-         "signed-old-different-packages-retained")
+         "signed-old-different-packages-retained", *VERSION_CASES)
 MOUNT = "/mnt/lanveriq-lab"
 CURRENT_DESCRIPTION = b"Description: audited idle Agent, disposable signing test ONLY"
 PRIOR_DESCRIPTION = b"Description: audited idle Agent, historical signed index ONLY"
@@ -58,6 +62,51 @@ def run(args, *, stdout=None, timeout=60):
     return result
 
 
+
+def create_prior_version_archive(audited_current, prior_dest):
+    """CI-only control-Version repack of an audited real Agent, same ELF bytes.
+
+    This is not an independently built historic Agent or approved publisher
+    release. All real package transactions happen later INSIDE disposable OCI.
+    """
+    check(prior_dest.name == PRIOR_NAME and not prior_dest.exists(),
+          "only one exact historical CI archive may be constructed")
+    with tempfile.TemporaryDirectory(prefix="lanveriq-l2b30-repack-") as temp:
+        stage = pathlib.Path(temp) / "unpacked"
+        run(("dpkg-deb", "--raw-extract", str(audited_current), str(stage)))
+        control = stage / "DEBIAN/control"
+        original = control.read_text(encoding="utf-8")
+        check(original.count(f"Version: {VERSION}\\n") == 1 and
+              sum(row.startswith("Version: ") for row in original.splitlines()) == 1,
+              "audited baseline control version must be unambiguous")
+        path_elf = "usr/bin/lanveriq-agent"
+        path_unit = "usr/lib/systemd/system/lanveriq-agent.service"
+        check((stage / path_elf).is_file() and (stage / path_unit).is_file(),
+              "expected audited payload missing")
+        expected_elf = hashlib.sha256((stage / path_elf).read_bytes()).hexdigest()
+        expected_unit = hashlib.sha256((stage / path_unit).read_bytes()).hexdigest()
+        control.write_text(original.replace(f"Version: {VERSION}\\n",
+                                            f"Version: {PRIOR_VERSION}\\n"),
+                           encoding="utf-8")
+        run(("dpkg-deb", "--build", "--root-owner-group",
+             str(stage), str(prior_dest)))
+        check(prior_dest.is_file() and prior_dest.stat().st_size < 100 * 1024 * 1024,
+              "historical CI package too large or missing")
+        check(run(("dpkg-deb", "--field", str(prior_dest), "Version")
+                  ).stdout.decode("utf-8").strip() == PRIOR_VERSION,
+              "dpkg historical package Version mismatch")
+        run(("dpkg", "--compare-versions", PRIOR_VERSION, "lt", VERSION))
+        old_stage = pathlib.Path(temp) / "old-unpacked"
+        run(("dpkg-deb", "--raw-extract", str(prior_dest), str(old_stage)))
+        check(hashlib.sha256((old_stage / path_elf).read_bytes()).hexdigest()
+              == expected_elf, "historical repack changed Rust ELF")
+        check(hashlib.sha256((old_stage / path_unit).read_bytes()).hexdigest()
+              == expected_unit, "historical repack changed idle systemd unit")
+        check({item.name for item in (old_stage / "DEBIAN").iterdir()}
+              <= {"control", "md5sums"}, "historical repack gained install hooks")
+    return prior_dest
+
+
 def private_signer(home, public, label):
     home.mkdir(mode=0o700)
     run(("gpg", "--batch", "--homedir", str(home), "--passphrase", "",
@@ -74,7 +123,7 @@ def rfc822_date(days=0):
             datetime.timedelta(days=days)).strftime("%a, %d %b %Y %H:%M:%S +0000")
 
 
-def prepare_case(directory, deb, case, homes, public_keys):
+def prepare_case(directory, deb, case, homes, public_keys, historical=None):
     keys = directory / "keyrings"
     keys.mkdir()
     for role in ("publisher", "attacker"):
@@ -97,6 +146,25 @@ def prepare_case(directory, deb, case, homes, public_keys):
         " NOT APPROVED for release or real endpoint installation.\n\n",
         encoding="utf-8",
     )
+    if case in VERSION_CASES:
+        check(historical is not None and historical.name == PRIOR_NAME and
+              historical.is_file() and not historical.is_symlink(),
+              "real historic-version .deb required for version downgrade lab")
+        old_target = pool / PRIOR_NAME
+        shutil.copyfile(historical, old_target)
+        old_bytes = old_target.read_bytes()
+        old_rel = "pool/main/l/lanveriq-agent-offline-preview/" + PRIOR_NAME
+        with index.open("a", encoding="utf-8") as stream:
+            stream.write(
+                f"Package: {PACKAGE}\\nVersion: {PRIOR_VERSION}\\n"
+                "Architecture: amd64\\n"
+                "Maintainer: Lanveriq disposable test <ci@example.invalid>\\n"
+                f"Filename: {old_rel}\\nSize: {len(old_bytes)}\\n"
+                f"SHA256: {hashlib.sha256(old_bytes).hexdigest()}\\n"
+                "Description: historic control-version repack of audited idle "
+                "Agent, disposable CI ONLY\\n"
+                " NOT APPROVED for release or real endpoint installation.\\n\\n"
+            )
     payload = index.read_bytes()
     delta_date = -1 / 1440
     delta_expiration = 2
@@ -216,10 +284,11 @@ def main():
             for role in ("publisher", "attacker"):
                 homes[role] = signing / (role + "-gnupg")
                 private_signer(homes[role], pubs / (role + ".gpg"), role)
+            historical = create_prior_version_archive(archive, base / PRIOR_NAME)
             for case in CASES:
                 directory = base / case
                 directory.mkdir(mode=0o755)
-                prepare_case(directory, archive, case, homes, pubs)
+                prepare_case(directory, archive, case, homes, pubs, historical)
                 execute_case(case, directory)
     print(f"PASS: {len(CASES)} real APT Agent package L2 OCI cases; "
           "all private keys destroyed, never host-installed or release-approved")
