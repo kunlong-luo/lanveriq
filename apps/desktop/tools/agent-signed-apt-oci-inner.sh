@@ -106,12 +106,29 @@ case "$LANVERIQ_L2B23_CASE" in
       exit 107
     }
     echo 'STAGE: second native apt update accepted old signed InRelease'
-    if ! apt-cache "${opts[@]}" show lanveriq-agent-offline-preview \
-      | grep -Fx 'Description: audited idle Agent, historical signed index ONLY'; then
-      echo 'NOT_APPROVED: old signed Packages was not visible in native apt-cache' >&2
-      exit 108
+    # APT can validate InRelease without refetching a changed Packages list.
+    # Diagnose that distinction rather than treating update exit 0 as proof
+    # of the old index being adopted by APT's native package cache.
+    if grep -Eq '^Get:[0-9]+ .*Packages' "$work/old-apt.log"; then
+      echo 'STAGE: second native APT update downloaded Packages'
+    else
+      echo 'STAGE: second native APT update did not download Packages'
     fi
-    echo 'STAGE: native apt-cache used DIFFERENT older signed Packages'
+    apt_metadata="$(apt-cache "${opts[@]}" show lanveriq-agent-offline-preview)" || {
+      echo 'NOT_APPROVED: native apt-cache could not read any package metadata' >&2
+      exit 109
+    }
+    if printf '%s\n' "$apt_metadata" |
+         grep -Fxq 'Description: audited idle Agent, historical signed index ONLY'; then
+      echo 'STAGE: native apt-cache used DIFFERENT older signed Packages'
+    elif printf '%s\n' "$apt_metadata" |
+         grep -Fxq 'Description: audited idle Agent, disposable signing test ONLY'; then
+      echo 'NOT_APPROVED: old signed InRelease accepted, but native apt-cache retained fresh Packages' >&2
+      exit 108
+    else
+      echo 'NOT_APPROVED: native apt-cache has unexpected/missing package description' >&2
+      exit 110
+    fi
     test ! -e /usr/bin/lanveriq-agent
     test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
     test ! -d /run/systemd/system
