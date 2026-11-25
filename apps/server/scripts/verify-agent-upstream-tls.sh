@@ -8,6 +8,7 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 TMP="$(mktemp -d)"
 DB_CID=""
 RESTORE_CID=""
+RESTORE_NET=""
 APP_PID=""
 CADDY_CID=""
 CADDY_DATA_VOLUME=""
@@ -177,6 +178,9 @@ cleanup() {
     fi
     if [[ -n "$RESTORE_CID" ]]; then
         docker rm -f "$RESTORE_CID" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$RESTORE_NET" ]]; then
+        docker network rm "$RESTORE_NET" >/dev/null 2>&1 || true
     fi
     if [[ -n "$DB_CID" ]]; then
         docker rm -f "$DB_CID" >/dev/null 2>&1 || true
@@ -1527,6 +1531,61 @@ print("PASS: isolated PG18 recovery/restart drill measured; "
       "NOT production RPO/RTO or independent DR.")
 PY
                 echo "PASS: independently restarted recovered PG18 remains queryable with unchanged full inventory and Flyway content (CI-only)."
+                # G-06/G-08: PostgreSQL itself being queryable is not enough.
+                # Start the ACTUAL Spring Boot 4/JPA/Hibernate application
+                # against the RESTORED PG18 database, with NO web connector,
+                # NO bootstrap, NO Flyway migration, NO Agent ingress.
+                # A disposable INTERNAL bridge permits only local CI-host
+                # access. No published ports, no user/device collection.
+                [[ "${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux ]] || {
+                    echo "FAIL: Spring restored-DB context only allowed in disposable Linux CI" >&2
+                    exit 1
+                }
+                recovery_net_name="lanveriq-restored-pg18-$(openssl rand -hex 8)"
+                RESTORE_NET="$(docker network create --internal --driver bridge \
+                    --label lanveriq.synthetic=postgres-recovery "$recovery_net_name")"
+                [[ -n "$RESTORE_NET" ]] || {
+                    echo "FAIL: isolated internal restored-DB network unavailable" >&2
+                    exit 1
+                }
+                docker network connect "$RESTORE_NET" "$RESTORE_CID" || {
+                    echo "FAIL: cannot attach restored PG18 to isolated verification bridge" >&2
+                    exit 1
+                }
+                restored_pg_ip="$(docker inspect --format \
+                    '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$RESTORE_CID")"
+                python3 - "$restored_pg_ip" <<'PY'
+import ipaddress
+import sys
+try:
+    address = ipaddress.IPv4Address(sys.argv[1])
+except ipaddress.AddressValueError as exc:
+    raise SystemExit("FAIL: restored PostgreSQL no private IPv4 address") from exc
+if not (address.is_private and not address.is_link_local
+        and not address.is_loopback and not address.is_multicast):
+    raise SystemExit("FAIL: restored PostgreSQL verification bridge not private")
+PY
+                if ! LANVERIQ_DB_URL="jdbc:postgresql://$restored_pg_ip:5432/lanveriq" \
+                    LANVERIQ_DB_USER=lanveriq LANVERIQ_DB_PASSWORD="$DB_PASS" \
+                    timeout --signal=TERM --kill-after=5s 90s \
+                    java -jar "$ROOT/apps/server/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar" \
+                    --spring.main.web-application-type=none \
+                    --spring.flyway.enabled=false \
+                    --lanveriq.bootstrap.enabled=false \
+                    > "$TMP/restored-spring-jpa-context.log" 2>&1; then
+                    echo "FAIL: real Spring Boot/Hibernate cannot start against recovered PG18" >&2
+                    python3 "$ROOT/apps/server/scripts/diagnose-synthetic-bootstrap.py" \
+                        "$TMP/restored-spring-jpa-context.log" || true
+                    exit 1
+                fi
+                [[ "$(pg18_full_restore_fingerprint "$RESTORE_CID")" == "$original_full_fingerprint" ]] || {
+                    echo "FAIL: restored Spring/JPA preflight modified canonical PG18 rows" >&2
+                    exit 1
+                }
+                docker network disconnect "$RESTORE_NET" "$RESTORE_CID"
+                docker network rm "$RESTORE_NET" >/dev/null
+                RESTORE_NET=""
+                echo "PASS: actual non-web Spring Boot/Hibernate started on recovered PG18 after independent restart; full rows unchanged, no exposed DB port (CI-only)."
                 # G-08 integrity/atomicity negative tests: never treat a
                 # corrupt or incomplete dump as a successful disaster restore.
                 # Everything stays in this CI runner's private temporary dir.
