@@ -23,7 +23,21 @@ python3 apps/server/scripts/pg_backup_evidence.py create /private/lab.dump /priv
 python3 apps/server/scripts/pg_backup_evidence.py verify /private/lab.dump /private/lab.evidence.json
 ```
 
-如果同一管理员同时改写归档和证据，依然可以生成一致 SHA-256：**这不是签名、高水位、独立 WORM、可信时间、生产灾备或可恢复性证明**。现已在 [真实 Linux PG18 WAL→备份→新库恢复验收](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 中接入 `create/verify`，要求正常归档通过、格式损坏及截断档与冒充生产授权的 JSON 被拒绝，且原有真实 Rust/mTLS/Next.js 链不断。功能 [`94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89)，[Linux #45589325627 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)。原生执行日志已验证归档证据 create/verify、损坏档和伪造生产授权拒绝及完整 Rust/mTLS/PG18 恢复；**同一 CI 管理域**不是外部保管。[全库存/子表/Flyway 完整内容比对及等数量篡改拒绝](../development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) `8e52d9ab` / [Linux #45612605286 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。本轮 [恢复库独立重启](../development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` / [#45615090308 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)，单次合成 dump 0.125s、恢复重启复查 4.052s。下一步 [真实 Spring Boot/Hibernate 无 Web 连接恢复库](../development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)；这只是同 runner 内部私网连通性，不是自动恢复/生产切流或真实 RPO/RTO。G-08 OPEN。
+如果同一管理员同时改写归档和证据，依然可以生成一致 SHA-256：**这不是签名、高水位、独立 WORM、可信时间、生产灾备或可恢复性证明**。现已在 [真实 Linux PG18 WAL→备份→新库恢复验收](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 中接入 `create/verify`，要求正常归档通过、格式损坏及截断档与冒充生产授权的 JSON 被拒绝，且原有真实 Rust/mTLS/Next.js 链不断。功能 [`94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89)，[Linux #45589325627 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)。原生执行日志已验证归档证据 create/verify、损坏档和伪造生产授权拒绝及完整 Rust/mTLS/PG18 恢复；**同一 CI 管理域**不是外部保管。[全库存/子表/Flyway 完整内容比对及等数量篡改拒绝](../development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) `8e52d9ab` / [Linux #45612605286 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。本轮 [恢复库独立重启](../development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` / [#45615090308 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)，单次合成 dump 0.125s、恢复重启复查 4.052s。下一步 [真实 Spring Boot/Hibernate 无 Web 连接恢复库](../development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)（Docker none 后续不能挂 bridge）；修复 `45683e64` / [#45618414247 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)；这只是同 runner 内部私网连通性，不是自动恢复/生产切流或真实 RPO/RTO。G-08 OPEN。
+
+## 下一阶段 G-02/G-08：独立保管、真实跨机器恢复、SRE 签收（NOT RUN）
+
+**严格前置：** [恢复库 Spring/JPA 实测](../development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) 的修复功能 SHA 两个 job 必须先 L2 PASS。当前首轮 FAIL、修复重测 PENDING。以下任务为**待审批的实际验收清单**，不可用加密单测、同一 runner 或签字模板代替实证。
+
+| 阶段 | 验收对象与负向证据 | 独立责任方 | 当前 |
+| --- | --- | --- | --- |
+| 1. 保管管理域 | 备份管理、数据库 root、介质删除权、KMS/HSM 与不可回退高水位分别由不同主体控制；真实 ACL、跨管理员删除/回退、密钥封存与撤销测试；Object Lock API 不代替底层 root 控制 | 独立保管人 + 安全 | **NOT RUN** |
+| 2. 完整的离线备份移交 | PG18 数据与 WAL/恢复点、Flyway/配置/证书依赖明确范围；可信时间、来源、完整性、保留期、独立签名回执；不可由原管理员同时改写原文及见证 | 备份保管人 + PKI | **NOT RUN** |
+| 3. 不同实体机器恢复 | 经批准在另一台隔离物理主机、新介质、新 PG18 实例操作；恢复库与子表完整内容/Flyway 核验、Spring 只读启动、损坏归档/失效密钥/回滚拒绝、不得原地覆写或生产切流 | 恢复操作员 + 独立审核 | **NOT RUN** |
+| 4. 故障注入和目标测量 | 源机不可用、备份不完整、保管人失联、密钥不可取、篡改及恢复失败；记录原始时间戳、真实 RPO/RTO、差异和回滚。试行目标 RPO ≤24h、RTO ≤4h，未达标不得标 PASS | SRE | **NOT RUN** |
+| 5. 签收与可追溯证据 | 功能/脚本 SHA、GitHub run、真实源/目标主机证明、独立管理 ACL/KMS/WORM/高水位证据、归档及恢复日志、原始失败、双人复核和 SRE/安全/法务签名/日期 | SRE + 安全 + 法务 | **NOT RUN** |
+
+**拒绝优先：** 任一签收缺失、由同一主体自审、证据不可复核、权限边界可被源系统 root 越过、跨机器恢复失败或 RPO/RTO 未达目标，均保持 **G-02/G-08 OPEN**。仅在事先授权的隔离设备执行，不采集真实员工数据；生产联网、采集、自动恢复、远控、证书签发和未经授权安装继续 OFF。供应商选择参见 [独立 WORM 真实验收](../security/independent-worm-custody-acceptance-d4-c18g-2026-11-22.md)，无需默认加入任何对象存储 SDK。
 
 ## Scope
 Back up PostgreSQL database, application configuration and policy versions, internal CA/required certificates and secrets through a protected separate channel, media manifests and video segments according to retention. Agent SQLite outbox is endpoint-local; it is **not** the central audit authority until accepted by server.
