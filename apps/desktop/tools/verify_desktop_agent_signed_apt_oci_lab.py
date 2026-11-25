@@ -76,7 +76,7 @@ def create_prior_version_archive(audited_current, prior_dest):
         run(("dpkg-deb", "--raw-extract", str(audited_current), str(stage)))
         control = stage / "DEBIAN/control"
         original = control.read_text(encoding="utf-8")
-        check(original.count(f"Version: {VERSION}\\n") == 1 and
+        check(original.count(f"Version: {VERSION}\n") == 1 and
               sum(row.startswith("Version: ") for row in original.splitlines()) == 1,
               "audited baseline control version must be unambiguous")
         path_elf = "usr/bin/lanveriq-agent"
@@ -85,8 +85,8 @@ def create_prior_version_archive(audited_current, prior_dest):
               "expected audited payload missing")
         expected_elf = hashlib.sha256((stage / path_elf).read_bytes()).hexdigest()
         expected_unit = hashlib.sha256((stage / path_unit).read_bytes()).hexdigest()
-        control.write_text(original.replace(f"Version: {VERSION}\\n",
-                                            f"Version: {PRIOR_VERSION}\\n"),
+        control.write_text(original.replace(f"Version: {VERSION}\n",
+                                            f"Version: {PRIOR_VERSION}\n"),
                            encoding="utf-8")
         run(("dpkg-deb", "--build", "--root-owner-group",
              str(stage), str(prior_dest)))
@@ -156,14 +156,14 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None):
         old_rel = "pool/main/l/lanveriq-agent-offline-preview/" + PRIOR_NAME
         with index.open("a", encoding="utf-8") as stream:
             stream.write(
-                f"Package: {PACKAGE}\\nVersion: {PRIOR_VERSION}\\n"
-                "Architecture: amd64\\n"
-                "Maintainer: Lanveriq disposable test <ci@example.invalid>\\n"
-                f"Filename: {old_rel}\\nSize: {len(old_bytes)}\\n"
-                f"SHA256: {hashlib.sha256(old_bytes).hexdigest()}\\n"
+                f"Package: {PACKAGE}\nVersion: {PRIOR_VERSION}\n"
+                "Architecture: amd64\n"
+                "Maintainer: Lanveriq disposable test <ci@example.invalid>\n"
+                f"Filename: {old_rel}\nSize: {len(old_bytes)}\n"
+                f"SHA256: {hashlib.sha256(old_bytes).hexdigest()}\n"
                 "Description: historic control-version repack of audited idle "
-                "Agent, disposable CI ONLY\\n"
-                " NOT APPROVED for release or real endpoint installation.\\n\\n"
+                "Agent, disposable CI ONLY\n"
+                " NOT APPROVED for release or real endpoint installation.\n\n"
             )
     payload = index.read_bytes()
     delta_date = -1 / 1440
