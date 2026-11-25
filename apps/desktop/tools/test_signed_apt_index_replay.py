@@ -55,10 +55,27 @@ class NativeSignedIndexFixtureTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     lab.require_distinct_elf_bytes(a, b)
 
+    def test_signed_witness_binds_sequence_and_real_signed_release_digest(self):
+        import hashlib
+
+        sample = b"-----BEGIN PGP SIGNED MESSAGE-----" + bytes([10]) + b"test"
+        manifest = lab.witness_manifest(2, sample)
+        self.assertIn(b"sequence=2" + bytes([10]), manifest)
+        self.assertIn(("release_sha256=" +
+                       hashlib.sha256(sample).hexdigest()).encode(), manifest)
+        self.assertEqual(len(manifest.splitlines()), 3)
+        self.assertNotEqual(manifest, lab.witness_manifest(1, sample))
+        self.assertNotEqual(manifest, lab.witness_manifest(2, sample + b"old"))
+        for gen, release in ((0, sample), (3, sample), (2, b"not APT signed")):
+            with self.subTest(gen=gen, release=release[:12]):
+                with self.assertRaises(ValueError):
+                    lab.witness_manifest(gen, release)
+
     def test_case_remains_ci_only_and_not_publisher_authority(self):
         self.assertIn("signed-old-different-packages-retained", lab.CASES)
         self.assertIn("signed-valid-old-release-acceptance", lab.CASES)
-        self.assertEqual(len(lab.CASES), 15)
+        self.assertEqual(len(lab.CASES), 17)
+        self.assertEqual(len(lab.WITNESS_CASES), 2)
         self.assertEqual(len(lab.VERSION_CASES), 2)
         self.assertEqual(len(lab.SOURCE_DISTINCT_CASES), 2)
         self.assertRegex(lab.PINNED_HISTORICAL_AGENT_SHA, r"^[0-9a-f]{40}$")

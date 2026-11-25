@@ -17,6 +17,7 @@ on:
       - 'apps/agent/tools/linux/verify-systemd-popos24.py'
       - 'apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py'
       - 'apps/desktop/tools/test_signed_apt_index_replay.py'
+      - 'apps/desktop/tools/verify_signed_apt_witness_oci.sh'
       - 'apps/desktop/tools/agent-signed-apt-oci-inner.sh'
       - '.github/workflows/desktop-agent-signed-apt-oci-l2.yml'
   workflow_dispatch:
@@ -30,7 +31,7 @@ concurrency:
 
 jobs:
   signed-agent-apt-oci:
-    name: Real signed APT Agent 15 cases incl pinned historical source/different ELF
+    name: Native signed APT 17 OCI cases including separate CI witness and distinct ELF
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -53,6 +54,7 @@ jobs:
           set -Eeuo pipefail
           python3 -m py_compile apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py
           bash -n apps/desktop/tools/agent-signed-apt-oci-inner.sh
+          bash -n apps/desktop/tools/verify_signed_apt_witness_oci.sh
           # Pass the COMPLETE argument shape so a usage error cannot masquerade
           # as the actual CI-only/consent denial we intend to test.
           if rejection="$(GITHUB_ACTIONS=false python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py /bin/true /bin/true 2>&1)"; then
@@ -119,4 +121,4 @@ jobs:
             "$GITHUB_WORKSPACE/l2b31-historical/apps/agent/target/release/lanveriq-agent"
           python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
-          echo 'PASS: 15 native OCI APT cases including 2 byte-distinct Git-source Rust ELFs, unattended refusal and explicit downgrade; NOT RELEASE READY'
+          echo 'PASS: 17 native OCI APT cases incl separate gpgv witness validity/sequence/refusal and pinned historic distinct Rust ELF; NO trusted high-water or release authority'
