@@ -1,12 +1,12 @@
 # G-08 PostgreSQL 18 损坏/截断备份拒绝与事务原子性
 
-**2026-11-25 · L2 PENDING · v0.1 NOT RELEASE READY。**
+**2026-11-25 · L2 PASS · v0.1 NOT RELEASE READY。**
 
 ## 基线及本次功能 SHA
 
 上一阶段 [SIGKILL/WAL → pg_dump → 新 PG18 数据库恢复](linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 已在功能 SHA `b64a14ad` 的 [Linux #45586283694（两 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) 验证；真实日志显示 `custom pg_dump from WAL recovered PG18 -> fresh no-network PG18 restore has identical inventory, child counts and Flyway history`。
 
-**本次功能 SHA：** [`3687edd7`](https://github.com/kunlong-luo/lanveriq/commit/3687edd70df087d7b69e7d061407de49fb941688)；[真实 Linux L2 #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)；[Server unit #45587202694 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202694)。
+**本次功能 SHA：** [`3687edd7`](https://github.com/kunlong-luo/lanveriq/commit/3687edd70df087d7b69e7d061407de49fb941688)；[真实 Linux L2 #45588502849 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)；[Server unit #45588502992 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502992)。
 
 ## 在现有全链脚本中新增的实际负测
 
@@ -23,15 +23,15 @@
 ## 首轮失败与修复
 
 - [初始功能 `f77d8454`](https://github.com/kunlong-luo/lanveriq/commit/f77d84549a738cc012080971518ce5aa64e15b37) 的 [真实 Linux L2 #45587202877 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)：PG18 transaction job SUCCESS，但完整链在夹具生成时报 `FAIL: corrupt archive fixture not distinct`。原因是测试错误地要求**修改归档头必须缩短长度**；等长内容变化是正确场景。本次没有到达真正的 pg_restore 拒绝测试，不得计 PASS。
-- [修复功能 `3687edd7`](https://github.com/kunlong-luo/lanveriq/commit/3687edd70df087d7b69e7d061407de49fb941688) 改为比较真实字节是否不同，并保留两种损坏类型；[Linux #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)，须重新验收两项真实 jobs。
+- [修复功能 `3687edd7`](https://github.com/kunlong-luo/lanveriq/commit/3687edd70df087d7b69e7d061407de49fb941688) 改为比较真实字节是否不同，并保留两种损坏类型；[Linux #45588502849 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)，须重新验收两项真实 jobs。
 
 ## 第二轮失败与原生错误措辞修正
 
 - 修复版 `b6957916` 的 [Linux #45587871391 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391)：PG18 事务 job SUCCESS，Rust/Linux 全链已到达原生损坏文件 `pg_restore --list`，**命令按预期拒绝**，但脚本仅接受固定英文关键词而输出 `FAIL: invalid backup header rejection was not a format failure`；没有完成后续截断/原子性验证，不能标 PASS。
-- [新修正功能 `3687edd7`](https://github.com/kunlong-luo/lanveriq/commit/3687edd70df087d7b69e7d061407de49fb941688) 改为只接收 `pg_restore: error:` 真实原生诊断，不限制错误正文措辞，且诊断缺失时打印前 10 行以便排错。[Linux #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)。原先两次真实失败及其功能 SHA 均保留。
+- [新修正功能 `3687edd7`](https://github.com/kunlong-luo/lanveriq/commit/3687edd70df087d7b69e7d061407de49fb941688) 改为只接收 `pg_restore: error:` 真实原生诊断，不限制错误正文措辞，且诊断缺失时打印前 10 行以便排错。[Linux #45588502849 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)。原先两次真实失败及其功能 SHA 均保留。
 
 ## 退出与剩余阻塞
 
-只有 SHA `3687edd7` 对应的 [Linux #45588502849](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849) 两个 jobs 均 SUCCESS，且原生日志有损坏头、截断归档、原子失败恢复以及正常库内容保持不变的明确 PASS，才能将本阶段标 PASS。失败/取消均须保留原始证据。后续 G-08 需跨主机保管、加密/独立密钥、备份定期演练、RPO/RTO 与 SRE 签收。
+功能 SHA `3687edd7` 的 [Linux #45588502849 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)。原生 job 日志实际出现 `PASS: pg_restore rejects corrupt header and truncated custom dump; atomic failed restore leaves no inventory schema, verified restore stays intact (CI-only)`，随后正常数据库库存/Flyway 比对及 Rust SQLite mTLS ACK 也成功；之前两次失败均保留。下一项 [本地备份证据 CLI 与原生 PG18 串联](../operations/backup.md) 需单独按 `94f21974` / [Linux #45589325627 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627) 验收。真实跨机保管、独立密钥、RPO/RTO 和 SRE 仍未通过。
 
 [当前项目事实](../CURRENT_STATUS.md) · [G-08 发布 Gate](../planning/release-gap-register.md) · [唯一 Linux 路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)。**G-08 OPEN · v0.1 NOT RELEASE READY。**

@@ -19,12 +19,12 @@
 
 ## 2026-11-25 — G-08 本地备份证据 CLI（L1 PASS）
 
-- [功能 `06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b)：Python 标准库 `create/verify`，12 项损坏/软链接/篡改拒绝负测；[Server L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。[备份与恢复边界](docs/operations/backup.md)；尚未进入原生 PG18 L2 或外部 WORM 保管。
+- [功能 `06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b)：Python 标准库 `create/verify`，12 项损坏/软链接/篡改拒绝负测；[Server L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。[备份与恢复边界](docs/operations/backup.md)；[功能 `94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89) 已接入真实 `pg_dump` 正反向核验，[Linux #45589325627 L2 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；外部 WORM 未建。
 
-## 2026-11-25 — G-08 PG18 恢复 L2 PASS 与损坏归档负测 PENDING
+## 2026-11-25 — G-08 原生 PG18 恢复及损坏归档拒绝 L2 PASS
 
 - [功能 `b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f)：[全新无网络 PG18 恢复](docs/development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) [#45586283694 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)。初版 `abdebe66` 的工作流因后续修复而取消；非生产 DR。
-- [初始 `f77d8454`](https://github.com/kunlong-luo/lanveriq/commit/f77d84549a738cc012080971518ce5aa64e15b37) [Linux #45587202877 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)：错误要求头部损坏文件长度减少。[首修 `b6957916`](https://github.com/kunlong-luo/lanveriq/commit/b69579169f5ecd323021def3e1f39f2c8909bf75) [Linux #45587871391 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391)：原生拒绝已发生，但固定英文措辞断言错误。[修复 `3687edd7`](https://github.com/kunlong-luo/lanveriq/commit/3687edd70df087d7b69e7d061407de49fb941688) [Linux #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)。[完整失败与退出条件](docs/development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md)，G-08 OPEN。
+- [初始 `f77d8454`](https://github.com/kunlong-luo/lanveriq/commit/f77d84549a738cc012080971518ce5aa64e15b37) [Linux #45587202877 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)：错误要求头部损坏文件长度减少。[首修 `b6957916`](https://github.com/kunlong-luo/lanveriq/commit/b69579169f5ecd323021def3e1f39f2c8909bf75) [Linux #45587871391 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391)：原生拒绝已发生，但固定英文措辞断言错误。[修复 `3687edd7`](https://github.com/kunlong-luo/lanveriq/commit/3687edd70df087d7b69e7d061407de49fb941688) [Linux #45588502849 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)。[完整失败与退出条件](docs/development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md)，G-08 OPEN。
 
 ## 2026-11-25 — L2B-33 冷缓存双重回放与分离 RO CI 锚点 L2
 
