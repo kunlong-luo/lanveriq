@@ -31,6 +31,14 @@ FIELDS = frozenset((
 EVIDENCE_FIELDS = frozenset((
     "functional_sha", "linux_l2_run_id", "agent_l1_run_id", "environment",
 ))
+# Exact completed GitHub CI facts belong to this ONE dev.1 candidate.
+# A syntactically valid but arbitrary SHA or run number is not evidence.
+VERIFIED_SYNTHETIC_EVIDENCE = {
+    "functional_sha": "db570181d603a7f069a85a23c009658e9a8bed4c",
+    "linux_l2_run_id": 45554279736,
+    "agent_l1_run_id": 45554279741,
+    "environment": "disposable_ubuntu_24_04_only",
+}
 
 
 class PreviewRejected(Exception):
@@ -86,6 +94,8 @@ def validate_contract(data: object) -> None:
                 "synthetic_ci_run_id")
     require(evidence["environment"] == "disposable_ubuntu_24_04_only",
             "cannot_claim_physical_popos")
+    require(evidence == VERIFIED_SYNTHETIC_EVIDENCE,
+            "source_preview_requires_exact_verified_ci_evidence")
     # Explicitly NEVER call the GitHub API or inspect a candidate installable
     # payload: this tool is an offline contract check only.
 

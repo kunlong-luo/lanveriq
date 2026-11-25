@@ -121,6 +121,9 @@ class SourceOnlyPreviewTests(unittest.TestCase):
     def test_synthetic_evidence_is_not_real_device_approval(self):
         for key, value in (
             ("functional_sha", "db570181"),
+            ("functional_sha", "a" * 40),
+            ("linux_l2_run_id", 45554279737),
+            ("agent_l1_run_id", 45554279740),
             ("linux_l2_run_id", True),
             ("linux_l2_run_id", 0),
             ("agent_l1_run_id", "45554279741"),
