@@ -39,7 +39,7 @@
 
 ## G-08 最新备份 L2
 
-**G-08：** [新库重启/合成秒数 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)（dump 0.125s、恢复重启复查 4.052s）；[真实 Spring/JPA 接入恢复库](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)（Docker none→bridge 冲突）；修复 `45683e64` / [#45618414247 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。**G-02/G-08 OPEN；非生产灾备。**
+**G-08：** [新库重启/合成秒数 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)（dump 0.125s、恢复重启复查 4.052s）；[真实 Spring/JPA 接入恢复库](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)（Docker none→bridge 冲突）；修复 `45683e64` / [#45618414247 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。**G-02/G-08 OPEN；非生产灾备。**
 
 ## 下一项退出目标（不等于批准上线）
 
