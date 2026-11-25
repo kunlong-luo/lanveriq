@@ -443,24 +443,24 @@ def main():
 
 
 def run_cases(signing, base, anchor_base, archive, historical_elf, elf_digests):
-            homes = {}
-            pubs = base / "public-keyrings"
-            pubs.mkdir()
-            for role in ("publisher", "attacker", "witness"):
-                homes[role] = signing / (role + "-gnupg")
-                private_signer(homes[role], pubs / (role + ".gpg"), role)
-            historical = create_prior_version_archive(archive, base / PRIOR_NAME)
-            src_dir = base / "distinct-elf-source"
-            src_dir.mkdir()
-            distinct_historical = create_prior_version_archive(
-                archive, src_dir / PRIOR_NAME, historical_elf)
-            for case in CASES:
-                directory = base / case
-                directory.mkdir(mode=0o755)
-                anchor_dir = anchor_base / case if case in ANCHOR_CASES else None
-                prepare_case(directory, archive, case, homes, pubs, historical,
-                             distinct_historical, elf_digests, anchor_dir)
-                execute_case(case, directory, anchor_dir)
+    homes = {}
+    pubs = base / "public-keyrings"
+    pubs.mkdir()
+    for role in ("publisher", "attacker", "witness"):
+        homes[role] = signing / (role + "-gnupg")
+        private_signer(homes[role], pubs / (role + ".gpg"), role)
+    historical = create_prior_version_archive(archive, base / PRIOR_NAME)
+    src_dir = base / "distinct-elf-source"
+    src_dir.mkdir()
+    distinct_historical = create_prior_version_archive(
+        archive, src_dir / PRIOR_NAME, historical_elf)
+    for case in CASES:
+        directory = base / case
+        directory.mkdir(mode=0o755)
+        anchor_dir = anchor_base / case if case in ANCHOR_CASES else None
+        prepare_case(directory, archive, case, homes, pubs, historical,
+                     distinct_historical, elf_digests, anchor_dir)
+        execute_case(case, directory, anchor_dir)
     print(f"PASS: {len(CASES)} real APT Agent package L2 OCI cases; "
           "all private keys destroyed, never host-installed or release-approved")
 
