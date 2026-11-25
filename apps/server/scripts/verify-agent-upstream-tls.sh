@@ -1446,8 +1446,12 @@ PY
                     echo "FAIL: pg_restore accepted invalid backup archive header" >&2
                     exit 1
                 fi
-                grep -Eiq 'magic string|not.*valid archive|too short' "$TMP/invalid-pg18-magic.log" || {
-                    echo "FAIL: invalid backup header rejection was not a format failure" >&2
+                # pg_restore may identify damaged custom input as SQL/text
+                # in different minor versions; do not pin the English words.
+                # --list has no DB connection and must itself report the error.
+                grep -Eiq 'pg_restore: error:' "$TMP/invalid-pg18-magic.log" || {
+                    echo "FAIL: corrupt archive refusal did not come from native pg_restore" >&2
+                    sed -n '1,10p' "$TMP/invalid-pg18-magic.log" >&2
                     exit 1
                 }
 
