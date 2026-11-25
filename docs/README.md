@@ -37,7 +37,7 @@
 
 ## 当前 G-05 原生 APT 索引与包版本验收
 
-[L2B-29 旧签名索引与缓存保留 11/11](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) · [L2B-30 两个真实 `.deb` 版本与原生降级/恢复 13/13](development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md)（[OCI #45561370502 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)）。默认无人值守降级拒绝，但隔离显式覆盖确实降级，**不是正式发行可信高水位或实机 L3**。
+[L2B-29 原生旧签名索引 11/11](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) · [L2B-30 两个 Debian 包版本 13/13](development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md) · [L2B-31 固定历史源码真正不同 ELF 15/15](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md)（[OCI #45563578245 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245)）。默认无人值守降级拒绝，隔离显式覆盖可实际降级再恢复 ELF；**不是正式签名者、高水位或 Pop!_OS L3。**
 
 ## 去重与防断链
 

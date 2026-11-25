@@ -66,9 +66,9 @@ pnpm dev
 
 正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项已按功能 SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c) 通过[真实隔离 Linux L2 #45554279736（两个 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)。** 这不代表正式 Agent 可安装、具备后台自动恢复或生产采集授权。
 
-## G-05 原生 APT 回放行为的下一项实测
+## G-05 不同 Rust ELF 的原生 APT 降级与恢复验收
 
-[L2B-29 专项报告](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 正在区分：旧有效签名 `InRelease` 被 APT 接受，与内容不同的旧 `Packages` **真的进入 APT 可见元数据**，是两种不同结论。[L2B-29 OCI 11/11](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) 验证旧签名 Release 接受但未采用不同旧 Packages；[L2B-30 OCI 13/13](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) 已用**两个真实 `.deb` 版本**证明：无人值守降级拒绝，但隔离显式覆盖后确实降级、恢复，操作员状态保留（同一 ELF，并非两个源码版本）。[专项报告](docs/development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md)。**正式发行根与独立高水位仍缺失，G-05 OPEN。**
+[L2B-31 原生 Ubuntu OCI #45563578245 — 15/15 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245) 已在两份**固定历史 Git 源码独立编译、ELF 哈希确实不同**的 Rust Agent 间完成原生 APT 实测：无人值守降级被拒；仅在隔离实验中明确覆盖后，安装文件真正切换到旧版，再升级恢复新版，操作员配置/state 保留。CI-only / 缺少授权的负测也已验证实际环境拒绝原因，而非参数数量错误。[L2B-31 专项报告](docs/development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md)。**正式签名根、独立高水位、Polkit 安装 broker 和 Pop!_OS 实机 L3 仍未获批；G-05 OPEN。**
 
 ## 安全与下一步
 

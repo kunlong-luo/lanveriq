@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — L2B-31 固定历史 Rust 源不同 ELF 的原生 APT L2
+
+- [功能提交 84c5a717](https://github.com/kunlong-luo/lanveriq/commit/84c5a7174fd4e6b9b56027d4e9c05eef4e0c4407)、[原生 OCI #45562937199 15/15 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45562937199)：用完整固定历史 Git SHA cd031894 与当前 Agent 通过相同 Cargo.lock 独立构建不同 ELF；新增两项原生 APT 测试证实默认降级拒绝、仅在无网络 OCI 显式覆盖时发生真实 ELF 文件替换与升级恢复，配置/state 保留。
+- 复核发现初次 CI-only 负测可能仅由参数数量错误拒绝。修正脚本先核验环境权限、负测传入完整参数并匹配实际拒绝原因；[修正 SHA 473f90d9](https://github.com/kunlong-luo/lanveriq/commit/473f90d9b183f63c30d121cc2d1135fe84e949b)、[严格复验 #45563578245 15/15 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245)，四项 L1 负测、两份真正不同的 Rust ELF 和 15 项 Ubuntu24 原生 APT L2 全部通过。[专项报告](docs/development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) 保留首轮与修正证据。**G-05 正式签名、高水位、Polkit broker、实机 L3 仍 OPEN。**
+
 ## 2026-11-25 — L2B-30 两版真实 Debian 包的原生 APT 降级 L2
 
 - [功能修复 SHA `a7899ed1`](https://github.com/kunlong-luo/lanveriq/commit/a7899ed167ccc22b675bdffc07a3f396c456c7f7) · [真实 Ubuntu24 OCI #45561370502 13/13 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)：从已严格审计的 Rust Agent `dev1` 候选构造控制版本为 `dev0` 的第二份真实 Debian 包（**ELF 与 systemd 单元相同**），临时签名 `Signed-By` APT 在 OCI 中验证无人值守降级拒绝、明确覆盖后实际降级/升级和操作员私有配置/state 保留，无服务启动/开机启用。
