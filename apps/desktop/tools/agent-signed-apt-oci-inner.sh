@@ -50,11 +50,66 @@ case "$LANVERIQ_L2B23_CASE" in
     test ! -d /run/systemd/system
     echo 'PASS: real signed-index APT installed/reinstalled/removed audited Rust Agent only in disposable OCI; no start/network'
     ;;
+  signed-two-versions-unattended-downgrade-refused|signed-two-versions-explicit-oci-downgrade)
+    # L2B-30: two genuine Debian packages with different dpkg versions and
+    # byte-identical audited idle Rust ELF/systemd payload, signed by one
+    # ephemeral repository identity. Not an independent old Agent binary.
+    # ALL changes remain in the networkless disposable OCI overlay.
+    apt-get "${opts[@]}" update
+    apt-cache "${opts[@]}" policy lanveriq-agent-offline-preview |
+      grep -Fq '0.1.0~dev0'
+    apt-cache "${opts[@]}" policy lanveriq-agent-offline-preview |
+      grep -Fq '0.1.0~dev1'
+    apt-get "${opts[@]}" --no-install-recommends -y install lanveriq-agent-offline-preview=0.1.0~dev1
+    test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
+    test -x /usr/bin/lanveriq-agent
+    /usr/bin/lanveriq-agent --help | grep -Fq 'Usage:'
+    test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
+    test ! -d /run/systemd/system
+    install -d -m 0700 /etc/lanveriq-agent /var/lib/private/lanveriq-agent
+    printf '%s\n' 'synthetic-l2b30-operator-config' > /etc/lanveriq-agent/agent.toml
+    printf '%s\n' 'synthetic-l2b30-private-state' > /var/lib/private/lanveriq-agent/state
+    chmod 0600 /etc/lanveriq-agent/agent.toml /var/lib/private/lanveriq-agent/state
+    if [ "$LANVERIQ_L2B23_CASE" = signed-two-versions-unattended-downgrade-refused ]; then
+      if apt-get "${opts[@]}" --no-install-recommends -y install \
+          lanveriq-agent-offline-preview=0.1.0~dev0 > /tmp/l2b30-refusal.log 2>&1; then
+        echo 'FAIL: unattended APT downgraded without explicit override' >&2
+        exit 121
+      fi
+      grep -Eiq 'allow-downgrades|downgrad' /tmp/l2b30-refusal.log || {
+        cat /tmp/l2b30-refusal.log >&2
+        echo 'NOT_APPROVED: APT refusal not caused by downgrade protection' >&2
+        exit 122
+      }
+      test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
+      echo 'STAGE: native unattended APT refused validly signed older dpkg version'
+    else
+      # Deliberate OCI attack/exception demonstration, never product workflow.
+      # Allow-downgrades proves system APT is NOT independent trusted highwater.
+      apt-get "${opts[@]}" --no-install-recommends -y --allow-downgrades install \
+        lanveriq-agent-offline-preview=0.1.0~dev0
+      test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev0'
+      echo 'STAGE: actual dpkg installed-version DOWNGRADE inside OCI only'
+      apt-get "${opts[@]}" --no-install-recommends -y install lanveriq-agent-offline-preview=0.1.0~dev1
+      test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
+    fi
+    test "$(cat /etc/lanveriq-agent/agent.toml)" = synthetic-l2b30-operator-config
+    test "$(cat /var/lib/private/lanveriq-agent/state)" = synthetic-l2b30-private-state
+    test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
+    test ! -d /run/systemd/system
+    apt-get "${opts[@]}" -y remove lanveriq-agent-offline-preview
+    test ! -e /usr/bin/lanveriq-agent
+    test ! -e /usr/lib/systemd/system/lanveriq-agent.service
+    test "$(cat /etc/lanveriq-agent/agent.toml)" = synthetic-l2b30-operator-config
+    test "$(cat /var/lib/private/lanveriq-agent/state)" = synthetic-l2b30-private-state
+    test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
+    echo "PASS: native two-version APT $LANVERIQ_L2B23_CASE; idle, state preserved, no boot enable"
+    ;;
   signed-old-different-packages-retained)
     # L2B-29: both indexes are signed by the SAME throwaway publisher,
     # but their Packages bytes/description and signed Release hashes differ.
-    # Prove the real system APT loaded the older package *index*, not merely
-    # accepted an older Date attached to identical Packages.
+    # Check the real APT cache retains the newer Packages, not simply that it
+    # accepts old InRelease signatures; this is NOT external highwater.
     work=/tmp/lanveriq-apt-index-rollback
     mkdir -p "$work"
     cp -R /mnt/lanveriq-lab/repo "$work/repo"

@@ -47,7 +47,10 @@ class NativeSignedIndexFixtureTests(unittest.TestCase):
     def test_case_remains_ci_only_and_not_publisher_authority(self):
         self.assertIn("signed-old-different-packages-retained", lab.CASES)
         self.assertIn("signed-valid-old-release-acceptance", lab.CASES)
-        self.assertEqual(len(lab.CASES), 11)
+        self.assertEqual(len(lab.CASES), 13)
+        self.assertEqual(len(lab.VERSION_CASES), 2)
+        self.assertIn("dev0", lab.PRIOR_NAME)
+        self.assertIn("dev1", lab.NAME)
         self.assertIn("ubuntu@sha256:", lab.IMAGE)
         self.assertNotIn("APPROVED", lab.PRIOR_DESCRIPTION.decode("utf-8"))
 
