@@ -70,7 +70,7 @@ pnpm dev
 
 **新增 G-06 L2 PASS：** [PG18 已提交但 Rust 未见 ACK 的原始 SQLite 请求重送](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**本阶段新增 L2 PASS：** [PG18 真正 SIGKILL/WAL 恢复后 Rust 重送](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。这是合成 Linux runner，不是可发布安装器、真实 TCP 丢包或生产灾备。
 
-**G-08 隔离备份：** [真实 PG18 归档、本地证据、全新恢复及坏档拒绝 #45589325627 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；[全量库存/Flyway 行及等数量篡改负测](docs/development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) `d6259ba2` / [#45611916004 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004)。不代表生产灾备签收。
+**G-08 隔离备份：** [真实 PG18 归档、本地证据、全新恢复及坏档拒绝 #45589325627 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；[全量库存/Flyway 行及等数量篡改负测](docs/development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) `8e52d9ab` / [#45612605286 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。不代表生产灾备签收。
 
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 

@@ -25,7 +25,7 @@
 
 **G-06 隔离 L2 连续性：** [恢复后乱序/冲突](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md) 功能 9ba85399、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)；[ACK 未送达 Rust 而 PG18 已提交后重送](../development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**本轮新阶段 L2 PASS：** [PostgreSQL18 SIGKILL/WAL 恢复→原 SQLite 请求重送](../development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。当前仍需 G-05 发行签收/Polkit、G-06 生产身份授权、G-08 灾备与 Pop!_OS 真机 L3。
 
-**G-08：** [WAL 后全新 PG18 恢复](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) / [本地证据集成 #45589325627 两 jobs PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；[全量库存及 Flyway 行/等数量篡改检测](../development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) 功能 `d6259ba2` / [Linux #45611916004 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004)。后续优先独立跨机保管、密钥、可测量 RPO/RTO 和 SRE 实操；不再叠加无关独立加密测试。
+**G-08：** [WAL 后全新 PG18 恢复](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) / [本地证据集成 #45589325627 两 jobs PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；[全量库存及 Flyway 行/等数量篡改检测](../development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) 功能 `8e52d9ab` / [Linux #45612605286 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。后续优先独立跨机保管、密钥、可测量 RPO/RTO 和 SRE 实操；不再叠加无关独立加密测试。
 
 ## 下一阶段与退出顺序
 

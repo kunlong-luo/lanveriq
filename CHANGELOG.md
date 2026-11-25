@@ -23,7 +23,7 @@
 
 ## 2026-11-25 — G-08 全量恢复内容一致性及等数量篡改拒绝（L2 PENDING）
 
-- 功能 [`d6259ba2`](https://github.com/kunlong-luo/lanveriq/commit/d6259ba2621853fc95a3d142481164053322d46a)：在真实 PG18 WAL→原生 dump→隔离新库→Rust mTLS 既有全链中对完整 inventory/current、interfaces、addresses、volumes 和 Flyway 行按主键排序后比较内容指纹，并故意对恢复副本 JSONB 字段做等数量篡改，要求检测出来。[Linux #45611916004 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004)、[专项报告](docs/development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md)。全程合成，非独立灾备/生产许可。
+- 初版功能 [`d6259ba2`](https://github.com/kunlong-luo/lanveriq/commit/d6259ba2621853fc95a3d142481164053322d46a) 的 [Linux #45611916004 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004)：完整行内容对等已通过，但单行合成篡改的 SQL 输出断言未通过，未达到篡改检测 PASS。功能 [`8e52d9ab`](https://github.com/kunlong-luo/lanveriq/commit/8e52d9ab53cc820183305ef021b7d709fa076156) 改为原生 CTE UPDATE 后 SELECT count(*)，[新 Linux #45612605286 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。[专题报告](docs/development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md)，G-08 OPEN。
 
 ## 2026-11-25 — G-08 原生 PG18 恢复及损坏归档拒绝 L2 PASS
 
