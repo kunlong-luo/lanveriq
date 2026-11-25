@@ -22,8 +22,25 @@ VERSION = "0.1.0~dev1"
 NAME = f"{PACKAGE}_{VERSION}_amd64.deb"
 CASES = ("signed-install-reinstall-remove", "wrong-key", "wrong-signer",
          "unsigned", "index-tamper", "expired", "future", "deb-tamper",
-         "package-confusion", "signed-valid-old-release-acceptance")
+         "package-confusion", "signed-valid-old-release-acceptance",
+         "signed-valid-old-index-acceptance")
 MOUNT = "/mnt/lanveriq-lab"
+CURRENT_DESCRIPTION = b"Description: audited idle Agent, disposable signing test ONLY"
+PRIOR_DESCRIPTION = b"Description: audited idle Agent, historical signed index ONLY"
+
+
+def previous_packages_index(current: bytes) -> bytes:
+    """Alter signed package metadata, not the real audited Agent .deb binary.
+
+    The historical signed index describes the exact same package/version and
+    SHA256 artifact, so observing APT use it is NOT an Agent downgrade proof.
+    """
+    if current.count(CURRENT_DESCRIPTION) != 1 or PRIOR_DESCRIPTION in current:
+        raise ValueError("NOT_APPROVED: invalid base package-index fixture")
+    older = current.replace(CURRENT_DESCRIPTION, PRIOR_DESCRIPTION)
+    if older == current or len(older) == len(current) and older == current:
+        raise ValueError("NOT_APPROVED: old index did not differ")
+    return older
 
 
 def check(ok, message):
@@ -105,17 +122,27 @@ def prepare_case(directory, deb, case, homes, public_keys):
     signer = "attacker" if case == "wrong-signer" else "publisher"
     run(("gpg", "--batch", "--yes", "--homedir", str(homes[signer]),
          "--clearsign", "--output", str(signed), str(release)))
-    if case == "signed-valid-old-release-acceptance":
+    if case in ("signed-valid-old-release-acceptance",
+                "signed-valid-old-index-acceptance"):
         # A second *validly signed* Release is one day OLDER than the first,
         # but still within Valid-Until. Sign it with the SAME disposable key.
         # This tests native apt-secure's rollback limitation; no APT install.
         stale = directory / "stale-signed"
         stale.mkdir()
         old_release = stale / "Release"
+        older_payload = (previous_packages_index(payload)
+                         if case == "signed-valid-old-index-acceptance"
+                         else payload)
+        if case == "signed-valid-old-index-acceptance":
+            (stale / "Packages").write_bytes(older_payload)
         old_release.write_text(
             "".join(
-                f"Date: {rfc822_date(-1)}\n"
-                if row.startswith("Date: ") else row
+                f"Date: {rfc822_date(-1)}\n" if row.startswith("Date: ") else
+                (f" {hashlib.sha256(older_payload).hexdigest()} "
+                 f"{len(older_payload)} main/binary-amd64/Packages\n")
+                if case == "signed-valid-old-index-acceptance"
+                and row.endswith(" main/binary-amd64/Packages\n")
+                else row
                 for row in release.read_text(encoding="utf-8").splitlines(keepends=True)
             ), encoding="utf-8",
         )

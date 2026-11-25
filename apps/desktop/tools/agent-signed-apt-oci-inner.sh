@@ -50,6 +50,56 @@ case "$LANVERIQ_L2B23_CASE" in
     test ! -d /run/systemd/system
     echo 'PASS: real signed-index APT installed/reinstalled/removed audited Rust Agent only in disposable OCI; no start/network'
     ;;
+  signed-valid-old-index-acceptance)
+    # L2B-29: both indexes are signed by the SAME throwaway publisher,
+    # but their Packages bytes/description and signed Release hashes differ.
+    # Prove the real system APT loaded the older package *index*, not merely
+    # accepted an older Date attached to identical Packages.
+    work=/tmp/lanveriq-apt-index-rollback
+    mkdir -p "$work"
+    cp -R /mnt/lanveriq-lab/repo "$work/repo"
+    sed "s#file:/mnt/lanveriq-lab/repo#file:$work/repo#" \
+      /mnt/lanveriq-lab/lab.sources > "$work/lab.sources"
+    opts[0]=-oDir::Etc::sourcelist="$work/lab.sources"
+    if ! apt-get "${opts[@]}" update > "$work/fresh-apt.log" 2>&1; then
+      cat "$work/fresh-apt.log" >&2
+      echo 'NOT_APPROVED: original genuine APT index update failed' >&2
+      exit 101
+    fi
+    grep -Fq 'InRelease' "$work/fresh-apt.log"
+    apt-cache "${opts[@]}" show lanveriq-agent-offline-preview \
+      | grep -Fx 'Description: audited idle Agent, disposable signing test ONLY'
+    release_new=/mnt/lanveriq-lab/repo/dists/lab/Release
+    release_old=/mnt/lanveriq-lab/stale-signed/Release
+    test "$(date -ud "$(sed -n 's/^Date: //p' "$release_old")" +%s)" \
+      -lt "$(date -ud "$(sed -n 's/^Date: //p' "$release_new")" +%s)"
+    fresh_index="$work/repo/dists/lab/main/binary-amd64/Packages"
+    stale_index=/mnt/lanveriq-lab/stale-signed/Packages
+    test -s "$stale_index"
+    fresh_digest="$(sha256sum "$fresh_index" | cut -d' ' -f1)"
+    stale_digest="$(sha256sum "$stale_index" | cut -d' ' -f1)"
+    test "$fresh_digest" != "$stale_digest"
+    # Native Signed-By verifies old InRelease; its SHA256 authenticates the
+    # old Packages. No --allow-downgrades, no unchecked repositories.
+    cp "$stale_index" "$fresh_index"
+    cp /mnt/lanveriq-lab/stale-signed/InRelease "$work/repo/dists/lab/InRelease"
+    if ! apt-get "${opts[@]}" update > "$work/old-apt.log" 2>&1; then
+      cat "$work/old-apt.log" >&2
+      echo 'NOT_APPROVED: genuine APT did not accept older signed Packages' >&2
+      exit 102
+    fi
+    grep -Fq 'InRelease' "$work/old-apt.log"
+    apt-cache "${opts[@]}" show lanveriq-agent-offline-preview \
+      | grep -Fx 'Description: audited idle Agent, historical signed index ONLY'
+    test ! -e /usr/bin/lanveriq-agent
+    test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
+    test ! -d /run/systemd/system
+    if dpkg-query -W lanveriq-agent-offline-preview >/dev/null 2>&1; then
+      echo 'FAIL: replay index test accidentally installed an Agent package' >&2
+      exit 103
+    fi
+    echo 'PASS: actual APT replaced fresh validly signed Packages with older DIFFERENT signed Packages; no package downgrade, no independent high-water'
+    ;;
   signed-valid-old-release-acceptance)
     # L2B-27: prove actual apt-secure will accept a correctly signed Release
     # with an EARLIER Date while Valid-Until remains future. No installation.
