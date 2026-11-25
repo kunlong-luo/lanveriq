@@ -4,7 +4,7 @@
 # This fixture is deliberately NOT an independently custodied high-water.
 set -Eeuo pipefail
 if [ "${LANVERIQ_SYNTHETIC_WITNESS_L2:-}" != 1 ] ||
-   [ "${LANVERIQ_L2B23_CASE:-}" != signed-witness-* ] ||
+   [[ "${LANVERIQ_L2B23_CASE:-}" != signed-witness-* ]] ||
    [ "$(cat /proc/1/comm)" = systemd ]; then
   echo 'NOT_APPROVED: witness preflight is disposable OCI only' >&2
   exit 30
