@@ -25,7 +25,7 @@
 
 **G-06 隔离 L2 连续性：** [恢复后乱序/冲突](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md) 功能 9ba85399、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)；[ACK 未送达 Rust 而 PG18 已提交后重送](../development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**本轮新阶段 L2 PASS：** [PostgreSQL18 SIGKILL/WAL 恢复→原 SQLite 请求重送](../development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。当前仍需 G-05 发行签收/Polkit、G-06 生产身份授权、G-08 灾备与 Pop!_OS 真机 L3。
 
-**G-08 下一项（实际 L2 待验收）：** [SIGKILL/WAL 后使用 PG18 原生 `pg_dump`→全新无网络 PG18 的 `pg_restore`，逐项对照设备和 Flyway](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md)，功能 `b64a14ad`，[Linux #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**。成功仅说明单 runner 的逻辑备份能恢复，接下来仍须真实隔离备份保管、加密/密钥、跨机恢复、监控和 RPO/RTO 验收。
+**G-08：** [WAL→原生备份→全新 PG18 恢复](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) `b64a14ad` / [#45586283694 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)；[损坏/截断归档拒绝](../development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md) `f77d8454` / [#45587202877 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)。仍需真实跨机器隔离保管、加密、RPO/RTO 与 SRE 签收。
 
 ## 下一阶段与退出顺序
 

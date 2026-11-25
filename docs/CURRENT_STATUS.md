@@ -37,9 +37,9 @@
 
 [ACK 未交付 Rust、PG18 已提交、原始 SQLite 请求经真实 mTLS 重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 已在功能 SHA f83aeab6 的 [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)、[Agent #45581861744 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861744)、[Server #45581861736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861736) 验收。这是合成未交付 ACK，不是 TCP 真正断线。新增 [PG18 SIGKILL/WAL 恢复→Rust 重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009，[Linux L2 #45583968475](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475) **两 jobs SUCCESS**（首轮端口重映射 #45583252985 FAIL 保留在专题报告）；不能把前一项 PASS 冒充本项验收。G-06/G-08 继续 OPEN。
 
-## G-08 新一轮备份可恢复性验证（L2 PENDING）
+## G-08 最新备份 L2
 
-[实际 PostgreSQL 18 SIGKILL/WAL 后 `pg_dump`→全新无网 PG18 容器 `pg_restore`→同一设备及 Flyway 记录核验](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 已提交功能 SHA [`b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f)；[Linux L2 #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**，不能把先前 WAL 自恢复的 PASS 当成全新数据库恢复 PASS。**G-08 OPEN；非跨机灾备验收。**
+[PG18 全新实例恢复](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) `b64a14ad` / [#45586283694 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)；[损坏与截断归档拒绝](development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md) `f77d8454` / [#45587202877 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)。**G-08 OPEN；非生产灾备。**
 
 ## 下一项退出目标（不等于批准上线）
 
