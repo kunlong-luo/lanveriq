@@ -23,7 +23,7 @@
 
 **源码预览候选（2026-11-25）**：[v0.1.0-dev.1](../operations/source-preview-v0.1.0-dev.1.md) 源码发布前负测 [#45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790)，只验证文档/配置中的源码限定、无二进制附件和 G 门禁不被错误标绿；**没有创建 tag/Release、没有部署或批准任何正式 Agent 安装能力**。它不能替代后续 G-05 高水位/发行签名/Polkit/实机事务测试。
 
-**G-06 本轮补强（L2 PENDING，非生产）：** [2026-11-25 恢复后延迟请求幂等测试](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 SHA `9ba85399`、[Linux Batch A #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) 待完成；验证 revision 2 同请求重复、旧 revision 1 迟到、revision 2 冲突在真正 mTLS/PG18 路径不破坏当前数据库记录。现有 G-05 独立发行与 L3 仍是正式发布阻塞；此项不能代替外部批准。
+**G-06 本轮补强（L2 PASS，非生产）：** [恢复后延迟重复/乱序/冲突](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 `9ba85399`、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)。下一项补**服务端已提交但 Rust 未处理 ACK**的合成异常窗口和原 SQLite outbox 重送验证；G-05 发行、Polkit 和 L3 仍阻塞正式发布。
 
 ## 下一阶段与退出顺序
 

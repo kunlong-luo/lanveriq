@@ -66,7 +66,7 @@ Other developer tests: `cd apps/server && ./gradlew test`, `cd apps/agent && car
 
 The next isolated business-loop milestone is [durable Linux inventory recovery after a real Caddy outage, exact mTLS ACK, PG18 revision advance and operator-triggered Chromium refresh](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md). **Verified at functional SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c): [Linux L2 #45554279736 — both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736).** This is not a product installer, automatic Agent recovery or production approval.
 
-**G-06 incremental L2, PENDING:** [Late post-reconnect duplicate/stale/conflicting inventory against real mTLS and PG18](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md) was committed at [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942); [Linux #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) is **PENDING**, not validated. This changes only disposable synthetic tests, not production Agent behavior or approval.
+**G-06 incremental L2 PASS:** [Post-reconnect duplicate/stale/conflict PG18 invariants](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md), functional SHA [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942), [Linux #45571463449 both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449). Synthetic-only; G-06 OPEN.
 
 ## Native APT: cold-cache signed repository and witness double-replay (L2B-33)
 

@@ -66,7 +66,7 @@ pnpm dev
 
 正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项已按功能 SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c) 通过[真实隔离 Linux L2 #45554279736（两个 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)。** 这不代表正式 Agent 可安装、具备后台自动恢复或生产采集授权。
 
-**当前 G-06 增量（L2 PENDING）：** [断网恢复后延迟重送、迟到旧版本、同版本冲突与 PG18 不变性](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942) · [Linux #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) **PENDING**。只加强合成业务链测试，不是正式端点功能或发布许可。
+**G-06 增量 L2 PASS：** [断网恢复后的延迟重复、迟到旧版及同版冲突](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942) · [Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)。仅合成验收，G-06 OPEN。
 
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 

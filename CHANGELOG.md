@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — G-06 恢复后乱序/重复清单 L2 与文档治理
+
+- [功能 SHA `9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942) · [Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) · [server unit #45571463462 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463462)：真实 Caddy mTLS 重送 revision 2 同包、旧 revision 1 迟到和同 revision 2 冲突，要求 PG18 snapshot/revision/received_at/digest 全部不变；[专项报告](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)。
+- [后续 docs SHA `0a31ab73`](https://github.com/kunlong-luo/lanveriq/commit/0a31ab7318be0a39071bfc7e24b5c4528dec3868) 的 [文档 CI #45571620903 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45571620903)、[Next.js fast #45571621032 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45571621032)：LIVE 页超过既定精简阈值；收敛文字到专项报告并重新验证，不改变阈值。v0.1 **NOT RELEASE READY**。
+
 ## 2026-11-25 — L2B-33 冷缓存双重回放与分离 RO CI 锚点 L2
 
 - [修正功能 SHA c177f281](https://github.com/kunlong-luo/lanveriq/commit/c177f28112c8cdfc4ab681e8314a7e8f3833d3ca) · [原生 Ubuntu24 OCI #45569177575 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)：保留前 17 项 Rust Agent、签名 APT、不同 ELF、见证验收，新增三项空缓存原生场景。空缓存 APT **实际采用不同旧 Packages**，与之对应的旧 InRelease 和同序列真签名旧 witness 均正确验签；**另行 RO 挂载的 CI 批准 witness 摘要拒绝联合回放**。正确批准材料通过，缺失锚点默认拒绝；L1 六项负测、Polkit all-no/Tauri readonly 同时通过。

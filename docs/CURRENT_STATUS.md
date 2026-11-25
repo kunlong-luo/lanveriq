@@ -22,8 +22,8 @@
 | --- | --- | --- |
 | **dev.1 源码预览 L1（未发布）** | [`a1473c9e` / #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) | 仅源码合约与安全拒绝测试；无 tag/Release、正式签名或可安装包；全部 Gate OPEN。[候选说明](operations/source-preview-v0.1.0-dev.1.md) |
 | **Linux 清单断网→恢复→精确 ACK→PG18→Next.js（隔离 L2）** | [`db570181` / Linux #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) · [Agent unit #45554279741 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279741) | 真实 Caddy 断网保留 Rust SQLite revision 2、恢复 mTLS 后同一原始请求取得精确 ACK 并提交 PG18 latest=2；revision 3 在过期/吊销凭据下仍待发；真实 Chromium 经授权手动刷新，仅证明 Ubuntu runner 合成链。[报告](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md) |
-| **L2B-28 发行证据可信边界（仅离线 L1）** | [`03420e61` / #45400903033 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) | v2 严格负测拒绝伪造独立 APT 高水位、可信时钟和正式签名者，并保留旧签名 Release 被 APT 接受的事实；**没有真实高水位、安装事务或新原生重放拒绝**。[报告](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) |
-| **APT 冷缓存双回放 L2B-33** | [c177f281 / #45569177575 20/20](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) | 空缓存 APT**确实采用不同旧 Packages**，旧 Release 与同序列真签名旧 witness 有效，但另行 RO CI 目录中的批准摘要拒绝双回放；缺锚点也拒绝。**非外部可信高水位**。[报告](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) |
+| **L2B-28 发行边界 L1** | [`03420e61` / #45400903033 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) | 拒绝伪造发行批准；**非真实防回退高水位**。[报告](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) |
+| **APT 冷缓存双回放 L2B-33** | [c177f281 / #45569177575 20/20](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) | 旧有效双签名被分离 RO CI 锚点拒绝；**非外部高水位**。[报告](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) |
 | **Agent 实包 → 真签名源 → APT** | [`2af1cf34` / #45376989866 L2 9/9 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) | 临时 Ed25519 Signed-By 仓库，Ubuntu24 networkless OCI 内真实 install/reinstall/remove 和 8 项拒绝；没有正式发行者身份或实机安装。[详情](development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md) |
 | **原生 Polkit + root-side D-Bus 身份** | [`91c4669d` / #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) | 真实 D-Bus 发送者 UID/PID/内核启动时间，8 次 Polkit 拒绝与 nonce 负测；只有 **ReviewLab**，永远不执行安装。[详情](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md) |
 | **本机恶意规则使 Polkit 真正 YES** | [`f062f1443fbe1c6144f56b2e2a339b289ac70ee1` / #45385719766 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | OCI 内假定本机规则覆盖后，root-side 审查仍 **NOT_APPROVED**、D-Bus 名称冒充与重放拒绝；**不是**可用安装器。[详情](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
@@ -32,9 +32,9 @@
 
 **发行预览边界：** `v0.1.0-dev.1` 仅完成了[源码预览候选 L1](operations/source-preview-v0.1.0-dev.1.md)，**NOT PUBLISHED**，无正式安装包；不能将源码预览的自动负测计为 G-05 已通过。
 
-## 正在验证的 G-06 增量（不能计为通过）
+## G-06 新验收：恢复后乱序、冲突仍保持 PG18 原值
 
-[断网恢复后的实际 mTLS 延迟重复/旧版本/同版本冲突 → PG18 不变性](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md) 已提交功能 SHA [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942)。[Linux Batch A #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) **PENDING**；要求两项 L2 jobs 实际 SUCCESS 后才能计为通过。原有 `db570181` 的 PASS 不代表新增断言 PASS；不改变任何发布 Gate。
+[专项报告](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)：功能 SHA [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942)、[真实 Linux Batch A #45571463449（两 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)、[Server unit #45571463462 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463462)。新增恢复后重复、旧版本迟到、同版本冲突的 mTLS/PG18 负测；**仍只适用于隔离 CI，G-06 OPEN**。
 
 ## 下一项退出目标（不等于批准上线）
 

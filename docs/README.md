@@ -35,7 +35,7 @@
 
 [断网后的 Rust SQLite 清单恢复 → mTLS ACK → PG18 当前 revision → Next.js 手动刷新 L2](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)（**功能 SHA `db570181`：[Linux L2 #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)；仅隔离 L2，正式发布仍 OFF**）。上一个 OS/CPU/RAM 首次入库 L2 已单独 [PASS](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，不要混淆两次功能 SHA。
 
-**进行中（未验收）：** [Linux 恢复后延迟重复/旧版本/冲突保持 PG18 当前行 L2](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)；功能 `9ba85399`、[Linux L2 #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) **PENDING**。此前 `db570181` 已通过的链路单独保留，不混为一谈。
+**新增 L2 PASS：** [Linux 恢复后迟到重复/旧版本/冲突不改变 PG18 当前行](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 `9ba85399`、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)；只适用于隔离合成环境，G-06 OPEN。
 
 ## G-05 原生 APT：不同 ELF、分离签名与冷缓存双回放
 
