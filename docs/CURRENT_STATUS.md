@@ -39,7 +39,7 @@
 
 ## G-08 最新备份 L2
 
-[PG18 全新实例恢复](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) `b64a14ad` / [#45586283694 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)；[损坏与截断归档拒绝](development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md) `f77d8454` / [#45587202877 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)。**G-08 OPEN；非生产灾备。**
+[PG18 全新实例恢复](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) `b64a14ad` / [#45586283694 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)；[损坏与截断归档拒绝](development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md) `b6957916` / [#45587871391 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391)。**G-08 OPEN；非生产灾备。**
 
 ## 下一项退出目标（不等于批准上线）
 

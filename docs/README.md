@@ -41,7 +41,7 @@
 
 **新阶段 L2 PASS：** [PG18 真实 SIGKILL/WAL 恢复后同请求重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)；功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。生产灾备与实际设备仍未验收。
 
-**G-08 备份验收：** [全新无网 PG18 恢复](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) `b64a14ad` / [#45586283694 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)；[坏归档拒绝](development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md) `f77d8454` / [#45587202877 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)；均非真实灾备批准。
+**G-08 备份验收：** [全新无网 PG18 恢复](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) `b64a14ad` / [#45586283694 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)；[坏归档拒绝](development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md) `b6957916` / [#45587871391 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391)；均非真实灾备批准。
 
 ## G-05 原生 APT：不同 ELF、分离签名与冷缓存双回放
 

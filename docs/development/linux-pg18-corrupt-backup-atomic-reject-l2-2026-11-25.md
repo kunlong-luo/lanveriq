@@ -6,7 +6,7 @@
 
 上一阶段 [SIGKILL/WAL → pg_dump → 新 PG18 数据库恢复](linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 已在功能 SHA `b64a14ad` 的 [Linux #45586283694（两 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) 验证；真实日志显示 `custom pg_dump from WAL recovered PG18 -> fresh no-network PG18 restore has identical inventory, child counts and Flyway history`。
 
-**本次功能 SHA：** [`f77d8454`](https://github.com/kunlong-luo/lanveriq/commit/f77d84549a738cc012080971518ce5aa64e15b37)；[真实 Linux L2 #45587202877 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)；[Server unit #45587202694 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202694)。
+**本次功能 SHA：** [`b6957916`](https://github.com/kunlong-luo/lanveriq/commit/b69579169f5ecd323021def3e1f39f2c8909bf75)；[真实 Linux L2 #45587871391 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391)；[Server unit #45587202694 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202694)。
 
 ## 在现有全链脚本中新增的实际负测
 
@@ -20,8 +20,13 @@
 
 **安全边界：** 不上传归档或数据，不运行真实设备、不开放生产网络/自动采集/远控、不执行安装/Polkit；所有归档、密钥与摘要仅由**同一 CI 管理域**生成，不能称独立备份、WORM、防特权篡改或生产灾备。
 
+## 首轮失败与修复
+
+- [初始功能 `f77d8454`](https://github.com/kunlong-luo/lanveriq/commit/f77d84549a738cc012080971518ce5aa64e15b37) 的 [真实 Linux L2 #45587202877 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)：PG18 transaction job SUCCESS，但完整链在夹具生成时报 `FAIL: corrupt archive fixture not distinct`。原因是测试错误地要求**修改归档头必须缩短长度**；等长内容变化是正确场景。本次没有到达真正的 pg_restore 拒绝测试，不得计 PASS。
+- [修复功能 `b6957916`](https://github.com/kunlong-luo/lanveriq/commit/b69579169f5ecd323021def3e1f39f2c8909bf75) 改为比较真实字节是否不同，并保留两种损坏类型；[Linux #45587871391 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391)，须重新验收两项真实 jobs。
+
 ## 退出与剩余阻塞
 
-只有 SHA `f77d8454` 对应的 [Linux #45587202877](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877) 两个 jobs 均 SUCCESS，且原生日志有损坏头、截断归档、原子失败恢复以及正常库内容保持不变的明确 PASS，才能将本阶段标 PASS。失败/取消均须保留原始证据。后续 G-08 需跨主机保管、加密/独立密钥、备份定期演练、RPO/RTO 与 SRE 签收。
+只有 SHA `b6957916` 对应的 [Linux #45587871391](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391) 两个 jobs 均 SUCCESS，且原生日志有损坏头、截断归档、原子失败恢复以及正常库内容保持不变的明确 PASS，才能将本阶段标 PASS。失败/取消均须保留原始证据。后续 G-08 需跨主机保管、加密/独立密钥、备份定期演练、RPO/RTO 与 SRE 签收。
 
 [当前项目事实](../CURRENT_STATUS.md) · [G-08 发布 Gate](../planning/release-gap-register.md) · [唯一 Linux 路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)。**G-08 OPEN · v0.1 NOT RELEASE READY。**

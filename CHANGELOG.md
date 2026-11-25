@@ -20,7 +20,7 @@
 ## 2026-11-25 — G-08 PG18 恢复 L2 PASS 与损坏归档负测 PENDING
 
 - [功能 `b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f)：[全新无网络 PG18 恢复](docs/development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) [#45586283694 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)。初版 `abdebe66` 的工作流因后续修复而取消；非生产 DR。
-- [功能 `f77d8454`](https://github.com/kunlong-luo/lanveriq/commit/f77d84549a738cc012080971518ce5aa64e15b37)：[归档头损坏、截断恢复、原子性与完整恢复不变](docs/development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md) [#45587202877 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)。仅 CI 域，G-08 OPEN。
+- [初始 `f77d8454`](https://github.com/kunlong-luo/lanveriq/commit/f77d84549a738cc012080971518ce5aa64e15b37) [Linux #45587202877 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45587202877)：坏归档头的长度判定错误，未进入真正的 pg_restore 拒绝。[修正 `b6957916`](https://github.com/kunlong-luo/lanveriq/commit/b69579169f5ecd323021def3e1f39f2c8909bf75) 改为检查实际字节不同，[Linux #45587871391 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45587871391)。[专项报告](docs/development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md)，G-08 OPEN。
 
 ## 2026-11-25 — L2B-33 冷缓存双重回放与分离 RO CI 锚点 L2
 
