@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.len() != 3
         || !matches!(
             args[1].as_str(),
-            "accepted" | "revoked" | "expired" | "offline"
+            "accepted" | "revoked" | "expired" | "offline" | "recovered"
         )
     {
         return Err("expected one test phase and one disposable device UUID".into());
@@ -501,6 +501,81 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
         }
+    } else if args[1] == "recovered" {
+        // Recovery is explicit, CI-only and occurs while the SAME registered
+        // disposable credential remains valid. Never schedule a background send.
+        if env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE").as_deref() != Ok("1")
+            || env::var("LANVERIQ_SYNTHETIC_INVENTORY_CHAIN").as_deref() != Ok("1")
+        {
+            return Err("recovery requires the explicit Linux read-only CI chain".into());
+        }
+        let parent = pki.parent().ok_or("missing disposable recovery parent")?;
+        let path = parent.join("synthetic-inventory-outbox.sqlite");
+        let store = OutboxStore::open(&path).await?;
+        let pending = store
+            .verified_pending_inventory(device)
+            .await?
+            .ok_or("recovery revision missing before reconnected send")?;
+        if pending.revision != 2 {
+            return Err("recovery must consume the exact pending revision 2".into());
+        }
+        let body: serde_json::Value = serde_json::from_str(&pending.body_json)?;
+        if body["inventory_revision"].as_u64() != Some(2)
+            || body["device_id"].as_str() != Some("00000000-0000-7000-8000-000000000001")
+            || body["snapshot_id"].as_str().is_none()
+        {
+            return Err("recovery body lost durable device/revision binding".into());
+        }
+        let recovered_file = PathBuf::from(
+            env::var("LANVERIQ_SYNTHETIC_INVENTORY_RECOVERED_BODY_FILE")?,
+        );
+        if !recovered_file.starts_with(parent)
+            || recovered_file.file_name().and_then(|v| v.to_str())
+                != Some("synthetic-inventory-recovered.json")
+        {
+            return Err("recovery fixture escaped private disposable directory".into());
+        }
+        // Preserve the exact bytes that Reqwest sends for independent PG18
+        // matching. The source fixture never contains credentials or user data.
+        fs::write(&recovered_file, pending.body_json.as_bytes())?;
+        if client.send_next_inventory(&store, device).await?
+            != Some(DeliveryDisposition::Accepted)
+            || store.verified_pending_inventory(device).await?.is_some()
+            || store.latest_inventory_revision().await? != Some(2)
+        {
+            return Err("reconnected inventory was not released by exact Spring ACK".into());
+        }
+        store.close().await;
+        let reopened = OutboxStore::open(&path).await?;
+        if reopened.verified_pending_inventory(device).await?.is_some()
+            || reopened.latest_inventory_revision().await? != Some(2)
+        {
+            return Err("successful recovery was not durable across SQLite reopen".into());
+        }
+        // A DIFFERENT third snapshot stays pending for the following expired
+        // and revoked credential probes. A recovered ACK must never unlock
+        // a future revision or silently bypass credential expiration.
+        let mut third = collect_minimal_linux_inventory();
+        third
+            .capabilities
+            .insert("ci_only_revoked_probe".into(), "not_collected".into());
+        let staged = reopened
+            .stage_inventory_snapshot(device, "2026-11-24T09:03:00Z", third)
+            .await?;
+        if !matches!(staged, InventoryStage::Staged(ref value) if value.revision == 3)
+            || reopened
+                .verified_pending_inventory(device)
+                .await?
+                .as_ref()
+                .map(|v| v.revision) != Some(3)
+        {
+            return Err("third pending inventory was not isolated from recovery ACK".into());
+        }
+        reopened.close().await;
+        println!(
+            "PASS: restored real Caddy mTLS accepted exact durable Rust revision 2, \
+             Spring ACK cleared only revision 2 across restart; future revision 3 remained queued."
+        );
     } else if args[1] == "offline" {
         if env::var("LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE").as_deref() != Ok("1") {
             return Err("offline inventory probe requires explicit CI-only sample gate".into());
@@ -569,7 +644,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .verified_pending_inventory(device)
                 .await?
                 .ok_or("expired/revoked: pending inventory was lost")?;
-            if before.revision != 2
+            if before.revision != 3
                 || client.send_next_inventory(&inventory_store, device).await?
                     != Some(DeliveryDisposition::PauseIdentity)
                 || inventory_store.verified_pending_inventory(device).await? != Some(before.clone())
