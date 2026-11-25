@@ -39,7 +39,7 @@
 
 ## G-08 新一轮备份可恢复性验证（L2 PENDING）
 
-[实际 PostgreSQL 18 SIGKILL/WAL 后 `pg_dump`→全新无网 PG18 容器 `pg_restore`→同一设备及 Flyway 记录核验](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 已提交功能 SHA [`b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f)；[Linux L2 #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**，不能把先前 WAL 自恢复的 PASS 当成全新数据库恢复 PASS。**仍不构成跨机生产灾备、RPO/RTO 签收；G-08 OPEN。**
+[实际 PostgreSQL 18 SIGKILL/WAL 后 `pg_dump`→全新无网 PG18 容器 `pg_restore`→同一设备及 Flyway 记录核验](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 已提交功能 SHA [`b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f)；[Linux L2 #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**，不能把先前 WAL 自恢复的 PASS 当成全新数据库恢复 PASS。**G-08 OPEN；非跨机灾备验收。**
 
 ## 下一项退出目标（不等于批准上线）
 
