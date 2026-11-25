@@ -1264,6 +1264,111 @@ PY
                     echo "FAIL: recovered inventory did not advance PG18 current row" >&2
                     exit 1
                 }
+                # A delayed retry AFTER the Rust outbox was ACKed must be
+                # idempotent against the newest durable PostgreSQL snapshot.
+                # The initial revision-1 request may also arrive late, but
+                # must never roll back the canonical revision 2 or its time.
+                recovered_duplicate_code="$(curl --silent --show-error --noproxy '*' --http2 \
+                    --tlsv1.3 --tls-max 1.3 --max-time 12 \
+                    --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+                    --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+                    -H 'Content-Type: application/json' \
+                    --data-binary @"$TMP/synthetic-inventory-recovered.json" \
+                    -D "$TMP/recovered-duplicate-headers" -o "$TMP/recovered-duplicate.json" \
+                    -w '%{http_code}' \
+                    "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/inventory")"
+                [[ "$recovered_duplicate_code" == 200 ]] &&
+                    grep -iq '^cache-control:.*no-store' "$TMP/recovered-duplicate-headers" || {
+                    echo "FAIL: recovered revision 2 delayed duplicate not accepted with no-store" >&2
+                    exit 1
+                }
+                python3 - "$TMP/recovered-duplicate.json" "$DEVICE_ID" "$recovered_snapshot" <<'PY'
+import json,sys
+from pathlib import Path
+receipt=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert receipt.get("schema_version")==1
+assert receipt.get("device_id")==sys.argv[2]
+assert receipt.get("snapshot_id")==sys.argv[3]
+assert receipt.get("inventory_revision")==2
+assert receipt.get("outcome")=="duplicate"
+PY
+                [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_recovered" ]] || {
+                    echo "FAIL: delayed revision 2 duplicate rewrote committed PG18 state" >&2
+                    exit 1
+                }
+
+                # Deliver exactly the old real Rust revision-1 wire JSON after
+                # revision 2. The backend must acknowledge a stale_ignored
+                # receipt referencing the CURRENT revision, not the old one.
+                stale_code="$(curl --silent --show-error --noproxy '*' --http2 \
+                    --tlsv1.3 --tls-max 1.3 --max-time 12 \
+                    --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+                    --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+                    -H 'Content-Type: application/json' \
+                    --data-binary @"$TMP/synthetic-inventory-request.json" \
+                    -D "$TMP/late-stale-headers" -o "$TMP/late-stale.json" \
+                    -w '%{http_code}' \
+                    "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/inventory")"
+                [[ "$stale_code" == 200 ]] &&
+                    grep -iq '^cache-control:.*no-store' "$TMP/late-stale-headers" || {
+                    echo "FAIL: delayed old revision not handled as no-store stale response" >&2
+                    exit 1
+                }
+                python3 - "$TMP/late-stale.json" "$DEVICE_ID" "$recovered_snapshot" <<'PY'
+import json,sys
+from pathlib import Path
+receipt=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert receipt.get("schema_version")==1
+assert receipt.get("device_id")==sys.argv[2]
+assert receipt.get("snapshot_id")==sys.argv[3]
+assert receipt.get("inventory_revision")==2
+assert receipt.get("outcome")=="stale_ignored"
+PY
+                [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_recovered" ]] || {
+                    echo "FAIL: late revision 1 rolled back committed PG18 revision 2" >&2
+                    exit 1
+                }
+
+                # Same revision, conflicting snapshot UUID must be a real
+                # fail-closed 409 even after an outage and an Agent restart.
+                python3 - "$TMP/synthetic-inventory-recovered.json" \
+                    "$TMP/recovered-conflict.json" <<'PY'
+import json,sys
+from pathlib import Path
+doc=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert doc["inventory_revision"]==2
+doc["snapshot_id"]="00000000-0000-7000-8000-000000000077"
+Path(sys.argv[2]).write_text(json.dumps(doc),encoding="utf-8")
+PY
+                recovered_conflict_code="$(curl --silent --show-error --noproxy '*' --http2 \
+                    --tlsv1.3 --tls-max 1.3 --max-time 12 \
+                    --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+                    --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+                    -H 'Content-Type: application/json' \
+                    --data-binary @"$TMP/recovered-conflict.json" \
+                    -D "$TMP/recovered-conflict-headers" -o "$TMP/recovered-conflict-body" \
+                    -w '%{http_code}' \
+                    "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/inventory")"
+                [[ "$recovered_conflict_code" == 409 && ! -s "$TMP/recovered-conflict-body" ]] &&
+                    grep -iq '^cache-control:.*no-store' "$TMP/recovered-conflict-headers" || {
+                    echo "FAIL: conflicting recovered revision 2 did not fail closed" >&2
+                    exit 1
+                }
+                [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_recovered" ]] || {
+                    echo "FAIL: conflicting recovered revision changed PG18 current state" >&2
+                    exit 1
+                }
+                echo "PASS: recovered delayed duplicate / late old revision / conflicting same revision preserve exact PG18 row."
+
                 # All later expiration/revocation probes must compare to the
                 # NEW committed revision 2; revision 3 stays pending in SQLite.
                 inventory_before="$inventory_recovered"
