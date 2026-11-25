@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -54,6 +55,9 @@ def main():
             (sample_mode == "0" or inventory_mode == "1"),
             "real_linux_inventory_sample_requires_explicit_chain")
     inventory_source = None
+    recovered_source = None
+    recovery_snapshot_id = None
+    expected_inventory_revision = 1
     if inventory_mode == "1":
         inventory_path = Path(os.environ.get(
             "LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE", ""))
@@ -67,6 +71,40 @@ def main():
                 inventory_source.get("interfaces") == [] and
                 inventory_source.get("volumes") == [],
                 "bound_rust_inventory_wire_source")
+        if sample_mode == "1":
+            # A different, exact SQLite-origin wire request is delivered
+            # AFTER actual Caddy disconnection and transport recovery.
+            recovered_path = Path(os.environ.get(
+                "LANVERIQ_SYNTHETIC_INVENTORY_RECOVERED_BODY_FILE", ""))
+            require(recovered_path.is_absolute() and
+                    str(recovered_path).startswith("/tmp/") and
+                    recovered_path.name == "synthetic-inventory-recovered.json" and
+                    recovered_path.is_file(),
+                    "private_recovered_rust_inventory_wire_source")
+            recovered_source = json.loads(recovered_path.read_text(encoding="utf-8"))
+            require(recovered_source.get("device_id") == DEVICE and
+                    recovered_source.get("inventory_revision") == 2 and
+                    recovered_source.get("interfaces") == [] and
+                    recovered_source.get("volumes") == [] and
+                    recovered_source.get("schema_version") == 1,
+                    "bound_recovered_rust_inventory_wire_source")
+            try:
+                recovery_snapshot_id = str(uuid.UUID(recovered_source["snapshot_id"]))
+            except (ValueError, KeyError, TypeError, AttributeError):
+                raise BrowserGateFailure("valid_recovered_snapshot_uuid") from None
+            require(recovery_snapshot_id != inventory_source.get("snapshot_id"),
+                    "recovered_inventory_has_new_snapshot")
+            # This is still the same actual CI Linux host. The release
+            # request only adds an explicitly CI-only capability probe; no
+            # sensitive NIC, disk, user, or process values may appear.
+            for key in ("os",):
+                require(recovered_source.get(key) == inventory_source.get(key),
+                        "recovered_os_source_matches_original_linux_host")
+            for key in ("cpu", "memory"):
+                require(recovered_source.get("hardware", {}).get(key) ==
+                        inventory_source.get("hardware", {}).get(key),
+                        "recovered_hardware_source_matches_original_linux_host")
+            expected_inventory_revision = 2
     container = os.environ.get("LANVERIQ_SYNTHETIC_CHAIN_DB_CID", "")
     require(bool(re.fullmatch(r"[0-9a-f]{12,64}", container)), "ephemeral_database_id")
     # Password is transferred by a private inherited FD. Never argv/env/log.
@@ -94,11 +132,13 @@ def main():
     if inventory_mode == "1":
         inventory_sql = (
             "SELECT count(*) FROM device_inventory_current "
-            f"WHERE device_id='{DEVICE}' AND inventory_revision=1 "
+            f"WHERE device_id='{DEVICE}' AND inventory_revision={expected_inventory_revision} "
             "AND snapshot_id IS NOT NULL AND received_at IS NOT NULL "
             "AND os_family='linux' AND os_name IS NOT NULL "
             "AND cpu_model IS NOT NULL AND memory_total_bytes > 0 "
-            "AND (SELECT count(*) FROM device_inventory_current)=1")
+            "AND (SELECT count(*) FROM device_inventory_current)=1"
+            + (f" AND snapshot_id='{recovery_snapshot_id}'"
+               if recovery_snapshot_id else "")) 
         inventory_check = subprocess.run(
             ["docker", "exec", container, "psql", "-U", "lanveriq",
              "-d", "lanveriq", "-XAtqc", inventory_sql],
@@ -106,7 +146,7 @@ def main():
         require(inventory_check.returncode == 0 and
                 inventory_check.stdout.strip() == "1",
                 "rust_inventory_pg18_source_row")
-        print("STAGE: Rust inventory PG18 source verified", flush=True)
+        print("STAGE: exact Rust inventory PG18 source and latest revision verified", flush=True)
 
     rejected = []
     api_responses = []
@@ -237,6 +277,27 @@ def main():
                     "actual_chromium_scoped_http_read")
             require(not rejected, "no_external_network_or_websocket")
             print("STAGE: PG18/Spring JSON matches Next.js DOM", flush=True)
+            if sample_mode == "1":
+                # Confirm the product-shaped UI refresh is a real, explicit
+                # HTTP read of the UPDATED PG18 inventory (no hidden polling).
+                with page.expect_response(
+                    lambda response:
+                        response.url.endswith("/api/v1/devices?limit=50")
+                        and response.status == 200,
+                    timeout=30000,
+                ):
+                    page.get_by_role("button", name="手动刷新").click()
+                page.locator("main[data-candidate-status='ready']").wait_for(
+                    timeout=30000)
+                require(page.locator(".device-table tbody tr").count() == 1 and
+                        page.locator(".device-table tbody th[scope='row'] strong")
+                        .all_text_contents() == ["RustToConsoleSynthetic"] and
+                        page.get_by_test_id("candidate-metric-已授权设备总数")
+                        .text_content() == "1",
+                        "manual_refresh_keeps_only_latest_scoped_rust_device")
+                require(not rejected, "no_external_after_manual_refresh")
+                print("STAGE: actual operator-triggered Next.js refresh reread PG18",
+                      flush=True)
 
             page.get_by_role("button", name="登出并清除数据").click()
             page.locator("main[data-candidate-status='signed_out']").wait_for(timeout=30000)
@@ -261,9 +322,10 @@ def main():
           "cross-group 404, logout clears DOM and API returns 401.")
     if inventory_mode == "1":
         if sample_mode == "1":
-            print("PASS: independently corroborated Linux runner OS/CPU/RAM sample -> "
-                  "Rust SQLite outbox -> mTLS inventory ACK -> PG18 current -> "
-                  "Spring scoped API -> real Chromium Next.js DOM.")
+            print("PASS: independently corroborated Linux runner OS/CPU/RAM -> "
+                  "SQLite pending revision 2 retained on Caddy outage -> restored "
+                  "mTLS exact ACK -> PostgreSQL 18 current revision 2 -> "
+                  "Spring scoped API -> operator-triggered Chromium Next.js refresh.")
         else:
             print("PASS: Rust SQLite outbox -> mTLS inventory POST/ACK -> PG18 current "
                   "snapshot -> authorized Spring projection -> Chromium Next.js "
