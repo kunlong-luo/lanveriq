@@ -182,9 +182,14 @@ def witness_manifest(sequence, inrelease: bytes) -> bytes:
     check(inrelease.startswith(b"-----BEGIN PGP SIGNED MESSAGE-----"),
           "signed APT InRelease required")
     digest = hashlib.sha256(inrelease).hexdigest()
-    return (f"LANVERIQ-CI-ONLY-APT-WITNESS-V1\\n"
-            f"sequence={sequence}\\n"
-            f"release_sha256={digest}\\n").encode("ascii")
+    # Assemble real LF bytes, not literal backslash-n escape text.
+    return bytes([10]).join((
+        b"LANVERIQ-CI-ONLY-APT-WITNESS-V1",
+        f"sequence={sequence}".encode("ascii"),
+        f"release_sha256={digest}".encode("ascii"),
+        b"",
+    ))
+
 
 
 def detached_witness_signature(home, manifest, output):

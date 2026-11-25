@@ -74,6 +74,10 @@ jobs:
             exit 1
           }
           echo 'PASS: correct CI-only and missing-consent guard executed, not argument usage rejection'
+      - name: Local package-index revision fixture negative checks
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s apps/desktop/tools -p 'test_signed_apt_index_replay.py' -v
       - name: Install reviewed Rust 1.100 toolchain
         run: rustup toolchain install 1.100.0 --profile minimal
       - name: Compile actual locked release Rust Agent; audit its native Debian archive
@@ -106,10 +110,6 @@ jobs:
             exit 1
           fi
           echo 'PASS: pinned original Git source builds different Rust ELF; CI-only, no signing authority'
-      - name: Local package-index revision fixture negative checks
-        run: |
-          set -Eeuo pipefail
-          python3 -m unittest discover -s apps/desktop/tools -p 'test_signed_apt_index_replay.py' -v
       - name: Actual APT real Agent lifecycle, 8 refusals and signed stale Release/index replay in networkless OCI
         shell: bash
         run: |
