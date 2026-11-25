@@ -1,5 +1,15 @@
 # Backup and recovery design
 
+## 2026-11-25 现行 G-08 设备清单备份验证与恢复流程（隔离合成，非生产 runbook）
+
+**范围：** 先证明真实数据库事务可在原始 PG18 SIGKILL/WAL 之后提交，再用原生 `pg_dump -Fc` 导出，`pg_restore --list` 核对库存模式，然后恢复到全新、未发布端口、无网络的 PG18.7 OCI 数据库，比较 `device_inventory_current` 的 snapshot UUID、revision、received_at、digest 及 interfaces/volumes/Flyway 行数。仅使用真实 Rust SQLite→mTLS→Spring→PG18→Next.js 的 GitHub disposable synthetic fixtures；**不面向员工设备执行**。
+
+- **已通过：** [真实 PG18 全新实例恢复，功能 `b64a14ad` / Linux #45586283694 两 jobs SUCCESS](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md)；此流程不是 PostgreSQL WAL/PITR 的替代，也没有验证附件/系统配置/CA/KMS 的恢复。
+- **损坏拒绝正在复验：** [格式头损坏、截断归档及 `--single-transaction` 失败原子性](../development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md)，功能 `3687edd7` / [Linux #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)。失败与修复均留在专项报告。
+- **恢复前门禁：** 有合法授权的测试范围与隔离数据；校验备份来源、创建者、完整性摘要、版本、权限、保留时间及独立受托方签收；缺失任何独立证据**不得把实验演练标为 G-08 生产 PASS**。成功导入≠备份来自真实可信源。
+- **恢复时：** 使用隔离新实例/新库和 `pg_restore --exit-on-error --single-transaction`，拒绝已有业务库原地覆盖，失败要审计和销毁临时恢复环境；核对清单及迁移版本后，才由独立审核人决定是否可用于后续非生产检查。
+- **灾备无法闭环的事实：** 尚无获批准的独立备份管理域、加密与密钥封存、可信时间与抗回滚高水位、生产定时备份/告警、跨机保管、真实演练记录、可测量 RPO/RTO、批准的恢复主体、Pop!_OS L3；G-02/G-08 OPEN。不能把同一个 CI 管理员创建的 SHA-256 自证完整性视为安全托管。
+
 ## Scope
 Back up PostgreSQL database, application configuration and policy versions, internal CA/required certificates and secrets through a protected separate channel, media manifests and video segments according to retention. Agent SQLite outbox is endpoint-local; it is **not** the central audit authority until accepted by server.
 
