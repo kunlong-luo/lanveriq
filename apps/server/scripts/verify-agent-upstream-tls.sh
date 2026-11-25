@@ -348,7 +348,10 @@ printf '%s' "$DB_PASS" > "$TMP/postgres-password"
 chmod 600 "$TMP/postgres-password"
 
 # A random Docker-chosen host port prevents accidental interference with LAN DBs.
-DB_CID="$(docker run --detach --rm \
+# Keep the disposable container ID available for a real SIGKILL/WAL recovery
+# inside the synthetic G-06 test. cleanup() always force-removes it; this is
+# not a persistent or externally reachable PostgreSQL instance.
+DB_CID="$(docker run --detach \
     --publish 127.0.0.1::5432 \
     --env POSTGRES_DB=lanveriq \
     --env POSTGRES_USER=lanveriq \
@@ -1276,6 +1279,45 @@ PY
                     echo "FAIL: ACK-withheld mTLS request did not commit a new PG18 revision" >&2
                     exit 1
                 }
+                # G-06: prove that the ACK-withheld commit survives a REAL
+                # abrupt PostgreSQL container SIGKILL + WAL recovery before
+                # the original Rust pending outbox is sent again. This runs
+                # only on the disposable GitHub Linux full-chain fixture.
+                [[ "${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux &&
+                   "$LINUX_SAMPLE_MODE" == 1 && "$INVENTORY_CHAIN_MODE" == 1 ]] || {
+                    echo "FAIL: PG18 crash-recovery probe lacks isolated Linux CI consent" >&2
+                    exit 1
+                }
+                docker kill --signal=KILL "$DB_CID" >/dev/null
+                [[ "$(docker inspect -f '{{.State.Running}}' "$DB_CID")" == false ]] || {
+                    echo "FAIL: PostgreSQL container did not actually stop on SIGKILL" >&2
+                    exit 1
+                }
+                docker start "$DB_CID" >/dev/null
+                pg_recovered=0
+                for _ in $(seq 1 60); do
+                    if docker exec "$DB_CID" pg_isready -U lanveriq -d lanveriq >/dev/null 2>&1; then
+                        pg_recovered=1
+                        break
+                    fi
+                    sleep 2
+                done
+                [[ "$pg_recovered" == 1 ]] || {
+                    echo "FAIL: killed PostgreSQL did not recover WAL within bounded CI time" >&2
+                    exit 1
+                }
+                [[ "$(docker port "$DB_CID" 5432/tcp | awk -F: 'NR==1 {print $NF}')" == "$PG_PORT" ]] || {
+                    echo "FAIL: PostgreSQL restart unexpectedly changed isolated host port" >&2
+                    exit 1
+                }
+                [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_withheld_commit" ]] || {
+                    echo "FAIL: PG18 SIGKILL/WAL recovery lost or changed committed inventory" >&2
+                    exit 1
+                }
+                echo "PASS: real PostgreSQL18 SIGKILL/WAL recovery preserves ACK-withheld committed revision 2."
                 # Rust never saw that first HTTP ACK. The original verified
                 # revision 2 must still be pending in SQLite after reopen.
                 # Real Rust Reqwest sends the same bytes, receives the
