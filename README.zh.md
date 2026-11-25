@@ -60,7 +60,7 @@ pnpm dev
 
 其他组件分别在对应目录执行 `cd apps/server && ./gradlew test`、`cd apps/agent && cargo test --workspace --locked`、`cd apps/desktop && pnpm test`。后端独立 PostgreSQL/loopback 配置参见[开发环境指南](docs/operations/installation.md)。**普通终端用户不应自行编译 Rust、使用 `dpkg -i` 或启用 systemd 作为“安装方式”。**
 
-正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项 CI 待验收，不代表已 PASS 或可正式安装。**
+正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项已按功能 SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c) 通过[真实隔离 Linux L2 #45554279736（两个 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)。** 这不代表正式 Agent 可安装、具备后台自动恢复或生产采集授权。
 
 ## 安全与下一步
 

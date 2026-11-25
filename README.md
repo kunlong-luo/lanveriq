@@ -60,7 +60,7 @@ pnpm dev
 
 Other developer tests: `cd apps/server && ./gradlew test`, `cd apps/agent && cargo test --workspace --locked`, `cd apps/desktop && pnpm test`. See [development-only PostgreSQL/loopback setup](docs/operations/installation.md). End users should **not** compile Rust, invoke `dpkg -i` or enable systemd services as a substitute for an approved installer.
 
-The next isolated business-loop milestone is [durable Linux inventory recovery after a real Caddy outage, exact mTLS ACK, PG18 revision advance and operator-triggered Chromium refresh](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md). **Its CI status is PENDING, not a product release approval.**
+The next isolated business-loop milestone is [durable Linux inventory recovery after a real Caddy outage, exact mTLS ACK, PG18 revision advance and operator-triggered Chromium refresh](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md). **Verified at functional SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c): [Linux L2 #45554279736 — both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736).** This is not a product installer, automatic Agent recovery or production approval.
 
 ## Release boundary and next work
 
