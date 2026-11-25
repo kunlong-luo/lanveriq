@@ -17,6 +17,10 @@
 - [功能 SHA `9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942) · [Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) · [server unit #45571463462 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463462)：真实 Caddy mTLS 重送 revision 2 同包、旧 revision 1 迟到和同 revision 2 冲突，要求 PG18 snapshot/revision/received_at/digest 全部不变；[专项报告](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)。
 - [后续 docs SHA `0a31ab73`](https://github.com/kunlong-luo/lanveriq/commit/0a31ab7318be0a39071bfc7e24b5c4528dec3868) 的 [文档 CI #45571620903 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45571620903)、[Next.js fast #45571621032 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45571621032)：LIVE 页超过既定精简阈值；收敛文字到专项报告并重新验证，不改变阈值。v0.1 **NOT RELEASE READY**。
 
+## 2026-11-25 — G-08 原生 PG18 备份恢复到新实例 L2（PENDING）
+
+- [功能 `b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f) 将 WAL 恢复后的数据库经 `pg_dump` 导出，并在无网新 PostgreSQL 18.7 容器中 `pg_restore`、对比现行设备记录/子表和 Flyway；[Linux L2 #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**，不得与以前原实例 WAL 自恢复 PASS 混淆。[专题测试及限制](docs/development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md)。不证明跨机、不可篡改离线存储、加密密钥、RPO/RTO 或 SRE 生产签收。G-08 OPEN。
+
 ## 2026-11-25 — L2B-33 冷缓存双重回放与分离 RO CI 锚点 L2
 
 - [修正功能 SHA c177f281](https://github.com/kunlong-luo/lanveriq/commit/c177f28112c8cdfc4ab681e8314a7e8f3833d3ca) · [原生 Ubuntu24 OCI #45569177575 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)：保留前 17 项 Rust Agent、签名 APT、不同 ELF、见证验收，新增三项空缓存原生场景。空缓存 APT **实际采用不同旧 Packages**，与之对应的旧 InRelease 和同序列真签名旧 witness 均正确验签；**另行 RO 挂载的 CI 批准 witness 摘要拒绝联合回放**。正确批准材料通过，缺失锚点默认拒绝；L1 六项负测、Polkit all-no/Tauri readonly 同时通过。

@@ -37,6 +37,10 @@
 
 [ACK 未交付 Rust、PG18 已提交、原始 SQLite 请求经真实 mTLS 重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 已在功能 SHA f83aeab6 的 [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)、[Agent #45581861744 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861744)、[Server #45581861736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861736) 验收。这是合成未交付 ACK，不是 TCP 真正断线。新增 [PG18 SIGKILL/WAL 恢复→Rust 重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009，[Linux L2 #45583968475](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475) **两 jobs SUCCESS**（首轮端口重映射 #45583252985 FAIL 保留在专题报告）；不能把前一项 PASS 冒充本项验收。G-06/G-08 继续 OPEN。
 
+## G-08 新一轮备份可恢复性验证（L2 PENDING）
+
+[实际 PostgreSQL 18 SIGKILL/WAL 后 `pg_dump`→全新无网 PG18 容器 `pg_restore`→同一设备及 Flyway 记录核验](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 已提交功能 SHA [`b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f)；[Linux L2 #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**，不能把先前 WAL 自恢复的 PASS 当成全新数据库恢复 PASS。**仍不构成跨机生产灾备、RPO/RTO 签收；G-08 OPEN。**
+
 ## 下一项退出目标（不等于批准上线）
 
 **G-05 下一项：** [L2B-33 20/20 原生 L2](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) 已验证冷缓存双签名同序列回放由 RO CI 批准摘要拒绝；**仍无独立管理域正式发行/见证根、可信时间或不可回退高水位**。下一步须具名发行/安全主体独立批准密钥、持久版本/摘要及恢复规则，再实测合法离线、重装、升级/恢复；Polkit root broker 和 Pop!_OS COSMIC 实机 L3 另行授权。生产安装/联网/采集/远控 OFF。

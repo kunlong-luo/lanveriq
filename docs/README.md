@@ -41,6 +41,8 @@
 
 **新阶段 L2 PASS：** [PG18 真实 SIGKILL/WAL 恢复后同请求重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)；功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。生产灾备与实际设备仍未验收。
 
+**G-08 测试进行中（不计 PASS）：** [PG18 WAL 恢复→原生逻辑备份→全新离线数据库恢复与同设备数据核验](development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md)；功能 `b64a14ad`、[Linux #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**；不是外部灾备。
+
 ## G-05 原生 APT：不同 ELF、分离签名与冷缓存双回放
 
 [L2B-31 不同 Rust ELF 15/15](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) · [L2B-32 分离 CI witness 17/17](development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md) · [L2B-33 冷缓存双回放/分离 RO 批准锚点 20/20](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md)（[实际 OCI #45569177575 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)）。真实 APT 可采用旧不同 Packages，CI 分离批准 witness 摘要拒绝同序列旧 witness 联合回放；**仍缺少生产外部高水位、正式安装授权或 Pop!_OS L3**。

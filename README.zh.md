@@ -70,6 +70,8 @@ pnpm dev
 
 **新增 G-06 L2 PASS：** [PG18 已提交但 Rust 未见 ACK 的原始 SQLite 请求重送](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**本阶段新增 L2 PASS：** [PG18 真正 SIGKILL/WAL 恢复后 Rust 重送](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。这是合成 Linux runner，不是可发布安装器、真实 TCP 丢包或生产灾备。
 
+**G-08 隔离备份恢复 L2（PENDING）：** [PG18 SIGKILL/WAL 之后原生备份→全新无网 PG18 恢复及设备/Flyway 一致性](docs/development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md)，功能 [`b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f)、[Linux #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**。这是 CI 故障恢复，不是生产跨机灾备签收。
+
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 
 [L2B-33 原生 Ubuntu OCI #45569177575 — 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) 保留前 17 项真实 APT 验收，新增冷缓存下的**旧有效签名 Release + 不同旧 Packages + 同 sequence=2 的真签名旧 witness** 联合回放。原生 APT 确实采用旧 Packages，但另行只读挂载的 CI 批准 witness 摘要拒绝这组材料；批准的材料通过，锚点缺失默认拒绝。包含早期失败记录的 [L2B-33 专项报告](docs/development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md)。**仍非正式独立管理域高水位、发行签名根或可用安装器，G-05 OPEN。**
