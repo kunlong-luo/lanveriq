@@ -53,15 +53,25 @@ jobs:
           set -Eeuo pipefail
           python3 -m py_compile apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py
           bash -n apps/desktop/tools/agent-signed-apt-oci-inner.sh
-          if GITHUB_ACTIONS=false python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py /bin/true; then
+          # Pass the COMPLETE argument shape so a usage error cannot masquerade
+          # as the actual CI-only/consent denial we intend to test.
+          if rejection="$(GITHUB_ACTIONS=false python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py /bin/true /bin/true 2>&1)"; then
             echo 'FAIL: host lab accepted non-CI invocation' >&2
             exit 1
           fi
-          if env -u LANVERIQ_SIGNED_AGENT_APT_L2 python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py /bin/true; then
+          printf '%s\n' "$rejection" | grep -F 'CI-only, unprivileged Linux runner with explicit lab consent' > /dev/null || {
+            echo 'FAIL: host lab refused for a reason other than environment guard' >&2
+            exit 1
+          }
+          if rejection="$(env -u LANVERIQ_SIGNED_AGENT_APT_L2 python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py /bin/true /bin/true 2>&1)"; then
             echo 'FAIL: host lab accepted missing consent' >&2
             exit 1
           fi
-          echo 'PASS: real APT transaction refuses unapproved host invocation'
+          printf '%s\n' "$rejection" | grep -F 'CI-only, unprivileged Linux runner with explicit lab consent' > /dev/null || {
+            echo 'FAIL: missing-consent scenario was not denied by actual environment guard' >&2
+            exit 1
+          }
+          echo 'PASS: correct CI-only and missing-consent guard executed, not argument usage rejection'
       - name: Install reviewed Rust 1.100 toolchain
         run: rustup toolchain install 1.100.0 --profile minimal
       - name: Compile actual locked release Rust Agent; audit its native Debian archive

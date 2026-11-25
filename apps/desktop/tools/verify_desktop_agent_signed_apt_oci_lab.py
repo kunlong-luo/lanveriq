@@ -322,13 +322,15 @@ def execute_case(case, directory):
 
 
 def main():
-    check(len(sys.argv) == 3,
-          "usage: signed-apt-ci AUDITED_AGENT_DEB PINNED_HISTORICAL_ELF")
+    # Permission guard MUST execute before argument shape validation:
+    # otherwise a CI negative test could pass only due to a usage error.
     check(os.getenv("GITHUB_ACTIONS") == "true"
           and os.getenv("LANVERIQ_SIGNED_AGENT_APT_L2") == "1"
           and os.getenv("RUNNER_OS") == "Linux"
           and os.geteuid() != 0 and sys.platform == "linux",
           "CI-only, unprivileged Linux runner with explicit lab consent")
+    check(len(sys.argv) == 3,
+          "usage: signed-apt-ci AUDITED_AGENT_DEB PINNED_HISTORICAL_ELF")
     for binary in ("docker", "gpg", "dpkg-deb"):
         check(shutil.which(binary), f"missing native CI tool: {binary}")
     archive = pathlib.Path(sys.argv[1])
