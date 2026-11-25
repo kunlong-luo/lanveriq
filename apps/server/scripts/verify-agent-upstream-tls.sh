@@ -7,6 +7,7 @@ umask 077
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 TMP="$(mktemp -d)"
 DB_CID=""
+RESTORE_CID=""
 APP_PID=""
 CADDY_CID=""
 CADDY_DATA_VOLUME=""
@@ -173,6 +174,9 @@ cleanup() {
     if [[ -n "$APP_PID" ]]; then
         kill "$APP_PID" >/dev/null 2>&1 || true
         wait "$APP_PID" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$RESTORE_CID" ]]; then
+        docker rm -f "$RESTORE_CID" >/dev/null 2>&1 || true
     fi
     if [[ -n "$DB_CID" ]]; then
         docker rm -f "$DB_CID" >/dev/null 2>&1 || true
@@ -1330,6 +1334,83 @@ PY
                     exit 1
                 }
                 echo "PASS: real PostgreSQL18 SIGKILL/WAL recovery preserves ACK-withheld committed revision 2."
+                # G-08 synthetic disaster-recovery evidence: do not trust
+                # pg_dump exit=0 alone. Restore a private custom-format dump
+                # into a SECOND fresh PG18.7 OCI database with no published
+                # ports and verify the committed snapshot and Flyway schema.
+                # Neither DB nor archive leaves this disposable runner.
+                backup_archive="$TMP/synthetic-pg18-recovery.dump"
+                umask 077
+                docker exec "$DB_CID" pg_dump -U lanveriq -d lanveriq \
+                    --format=custom --no-owner --no-acl > "$backup_archive"
+                [[ -s "$backup_archive" && ! -L "$backup_archive" ]] || {
+                    echo "FAIL: disposable PG18 custom-format backup empty/linked" >&2
+                    exit 1
+                }
+                chmod 600 "$backup_archive"
+                docker exec "$DB_CID" pg_restore --list < "$backup_archive" > "$TMP/synthetic-pg18-recovery.toc"
+                grep -F 'device_inventory_current' "$TMP/synthetic-pg18-recovery.toc" >/dev/null || {
+                    echo "FAIL: disposable PG18 archive omitted current inventory table" >&2
+                    exit 1
+                }
+                RESTORE_CID="$(docker run --detach --network none \
+                    --env POSTGRES_DB=lanveriq \
+                    --env POSTGRES_USER=lanveriq \
+                    --env POSTGRES_PASSWORD_FILE=/run/secrets/synthetic-password \
+                    --volume "$TMP/postgres-password:/run/secrets/synthetic-password:ro" \
+                    postgres:18.7)"
+                [[ -n "$RESTORE_CID" ]] || {
+                    echo "FAIL: no isolated restore container" >&2
+                    exit 1
+                }
+                restore_ready=0
+                for _ in $(seq 1 60); do
+                    if docker exec "$RESTORE_CID" pg_isready -U lanveriq -d lanveriq >/dev/null 2>&1; then
+                        restore_ready=1
+                        break
+                    fi
+                    sleep 2
+                done
+                [[ "$restore_ready" == 1 ]] || {
+                    echo "FAIL: fresh isolated PG18 restore container not ready" >&2
+                    exit 1
+                }
+                # pg_restore consumes stdin (no archive persisted in the
+                # restore container). Stop at the first SQL/constraint error.
+                docker exec -i "$RESTORE_CID" pg_restore -U lanveriq -d lanveriq \
+                    --exit-on-error --single-transaction --no-owner --no-acl \
+                    < "$backup_archive" > "$TMP/synthetic-pg18-restore.log" 2>&1 || {
+                    echo "FAIL: PG18 restore into fresh isolated database failed" >&2
+                    exit 1
+                }
+                restored_inventory="$(docker exec "$RESTORE_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")"
+                [[ -n "$restored_inventory" && "$restored_inventory" == "$inventory_withheld_commit" ]] || {
+                    echo "FAIL: restored PG18 snapshot differs from durable WAL recovered source" >&2
+                    exit 1
+                }
+                source_counts="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|',
+                        (SELECT count(*) FROM device_inventory_current),
+                        (SELECT count(*) FROM device_inventory_interfaces),
+                        (SELECT count(*) FROM device_inventory_volumes),
+                        (SELECT count(*) FROM flyway_schema_history))")"
+                restore_counts="$(docker exec "$RESTORE_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|',
+                        (SELECT count(*) FROM device_inventory_current),
+                        (SELECT count(*) FROM device_inventory_interfaces),
+                        (SELECT count(*) FROM device_inventory_volumes),
+                        (SELECT count(*) FROM flyway_schema_history))")"
+                [[ -n "$source_counts" && "$source_counts" == "$restore_counts" ]] || {
+                    echo "FAIL: restored PG18 schema/inventory counts differ" >&2
+                    exit 1
+                }
+                docker rm -f "$RESTORE_CID" >/dev/null
+                RESTORE_CID=""
+                echo "PASS: custom pg_dump from WAL recovered PG18 -> fresh no-network PG18 restore has identical inventory, child counts and Flyway history; CI-only, not independent DR."
+
                 # Rust never saw that first HTTP ACK. The original verified
                 # revision 2 must still be pending in SQLite after reopen.
                 # Real Rust Reqwest sends the same bytes, receives the
