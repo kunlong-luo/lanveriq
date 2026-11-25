@@ -1348,7 +1348,7 @@ PY
                     exit 1
                 }
                 chmod 600 "$backup_archive"
-                docker exec "$DB_CID" pg_restore --list < "$backup_archive" > "$TMP/synthetic-pg18-recovery.toc"
+                docker exec -i "$DB_CID" pg_restore --list < "$backup_archive" > "$TMP/synthetic-pg18-recovery.toc"
                 grep -F 'device_inventory_current' "$TMP/synthetic-pg18-recovery.toc" >/dev/null || {
                     echo "FAIL: disposable PG18 archive omitted current inventory table" >&2
                     exit 1
