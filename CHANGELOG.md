@@ -17,9 +17,13 @@
 - [功能 SHA `9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942) · [Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) · [server unit #45571463462 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463462)：真实 Caddy mTLS 重送 revision 2 同包、旧 revision 1 迟到和同 revision 2 冲突，要求 PG18 snapshot/revision/received_at/digest 全部不变；[专项报告](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)。
 - [后续 docs SHA `0a31ab73`](https://github.com/kunlong-luo/lanveriq/commit/0a31ab7318be0a39071bfc7e24b5c4528dec3868) 的 [文档 CI #45571620903 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45571620903)、[Next.js fast #45571621032 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45571621032)：LIVE 页超过既定精简阈值；收敛文字到专项报告并重新验证，不改变阈值。v0.1 **NOT RELEASE READY**。
 
-## 2026-11-25 — G-08 本地备份证据 CLI（L1 PASS）
+## 2026-11-25 — G-08 本地备份证据 CLI（L1/L2 PASS）
 
-- [功能 `06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b)：Python 标准库 `create/verify`，12 项损坏/软链接/篡改拒绝负测；[Server L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。[备份与恢复边界](docs/operations/backup.md)；[功能 `94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89) 已接入真实 `pg_dump` 正反向核验，[Linux #45589325627 L2 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；外部 WORM 未建。
+- [功能 `06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b)：Python 标准库 `create/verify`，12 项损坏/软链接/篡改拒绝负测；[Server L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。[备份与恢复边界](docs/operations/backup.md)；[功能 `94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89) 已接入真实 `pg_dump` 正反向核验，[Linux #45589325627 L2 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；外部 WORM 未建。
+
+## 2026-11-25 — G-08 全量恢复内容一致性及等数量篡改拒绝（L2 PENDING）
+
+- 功能 [`d6259ba2`](https://github.com/kunlong-luo/lanveriq/commit/d6259ba2621853fc95a3d142481164053322d46a)：在真实 PG18 WAL→原生 dump→隔离新库→Rust mTLS 既有全链中对完整 inventory/current、interfaces、addresses、volumes 和 Flyway 行按主键排序后比较内容指纹，并故意对恢复副本 JSONB 字段做等数量篡改，要求检测出来。[Linux #45611916004 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004)、[专项报告](docs/development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md)。全程合成，非独立灾备/生产许可。
 
 ## 2026-11-25 — G-08 原生 PG18 恢复及损坏归档拒绝 L2 PASS
 

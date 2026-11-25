@@ -10,7 +10,7 @@
 - **恢复时：** 使用隔离新实例/新库和 `pg_restore --exit-on-error --single-transaction`，拒绝已有业务库原地覆盖，失败要审计和销毁临时恢复环境；核对清单及迁移版本后，才由独立审核人决定是否可用于后续非生产检查。
 - **灾备无法闭环的事实：** 尚无获批准的独立备份管理域、加密与密钥封存、可信时间与抗回滚高水位、生产定时备份/告警、跨机保管、真实演练记录、可测量 RPO/RTO、批准的恢复主体、Pop!_OS L3；G-02/G-08 OPEN。不能把同一个 CI 管理员创建的 SHA-256 自证完整性视为安全托管。
 
-## G-08 本地 PG18 归档证据工具（2026-11-25 · L1 PASS；L2 PENDING）
+## G-08 本地 PG18 归档证据工具（2026-11-25 · L1/L2 PASS）
 
 [源码](../../apps/server/scripts/pg_backup_evidence.py) · [12 项拒绝测试](../../apps/server/scripts/test_pg_backup_evidence.py) · 功能 [`06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b) · [Server unit #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。
 
@@ -23,7 +23,7 @@ python3 apps/server/scripts/pg_backup_evidence.py create /private/lab.dump /priv
 python3 apps/server/scripts/pg_backup_evidence.py verify /private/lab.dump /private/lab.evidence.json
 ```
 
-如果同一管理员同时改写归档和证据，依然可以生成一致 SHA-256：**这不是签名、高水位、独立 WORM、可信时间、生产灾备或可恢复性证明**。现已在 [真实 Linux PG18 WAL→备份→新库恢复验收](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 中接入 `create/verify`，要求正常归档通过、格式损坏及截断档与冒充生产授权的 JSON 被拒绝，且原有真实 Rust/mTLS/Next.js 链不断。功能 [`94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89)，[Linux #45589325627 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)。**仅代码已接入，结果尚未验收**；外部独立保管和签收依然未完成，G-08 OPEN。
+如果同一管理员同时改写归档和证据，依然可以生成一致 SHA-256：**这不是签名、高水位、独立 WORM、可信时间、生产灾备或可恢复性证明**。现已在 [真实 Linux PG18 WAL→备份→新库恢复验收](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 中接入 `create/verify`，要求正常归档通过、格式损坏及截断档与冒充生产授权的 JSON 被拒绝，且原有真实 Rust/mTLS/Next.js 链不断。功能 [`94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89)，[Linux #45589325627 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)。原生执行日志已验证归档证据 create/verify、损坏档和伪造生产授权拒绝及完整 Rust/mTLS/PG18 恢复；**同一 CI 管理域**不是外部保管。下一项 [全库存/子表/Flyway 内容比较及等数量篡改拒绝](../development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) `d6259ba2` / [Linux #45611916004 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004)。G-08 OPEN。
 
 ## Scope
 Back up PostgreSQL database, application configuration and policy versions, internal CA/required certificates and secrets through a protected separate channel, media manifests and video segments according to retention. Agent SQLite outbox is endpoint-local; it is **not** the central audit authority until accepted by server.
