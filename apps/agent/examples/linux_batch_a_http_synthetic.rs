@@ -526,9 +526,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             return Err("recovery body lost durable device/revision binding".into());
         }
-        let recovered_file = PathBuf::from(
-            env::var("LANVERIQ_SYNTHETIC_INVENTORY_RECOVERED_BODY_FILE")?,
-        );
+        let recovered_file = PathBuf::from(env::var(
+            "LANVERIQ_SYNTHETIC_INVENTORY_RECOVERED_BODY_FILE",
+        )?);
         if !recovered_file.starts_with(parent)
             || recovered_file.file_name().and_then(|v| v.to_str())
                 != Some("synthetic-inventory-recovered.json")
@@ -538,8 +538,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Preserve the exact bytes that Reqwest sends for independent PG18
         // matching. The source fixture never contains credentials or user data.
         fs::write(&recovered_file, pending.body_json.as_bytes())?;
-        if client.send_next_inventory(&store, device).await?
-            != Some(DeliveryDisposition::Accepted)
+        if client.send_next_inventory(&store, device).await? != Some(DeliveryDisposition::Accepted)
             || store.verified_pending_inventory(device).await?.is_some()
             || store.latest_inventory_revision().await? != Some(2)
         {
@@ -567,7 +566,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .verified_pending_inventory(device)
                 .await?
                 .as_ref()
-                .map(|v| v.revision) != Some(3)
+                .map(|v| v.revision)
+                != Some(3)
         {
             return Err("third pending inventory was not isolated from recovery ACK".into());
         }
