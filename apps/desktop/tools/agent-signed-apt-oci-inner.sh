@@ -57,13 +57,13 @@ case "$LANVERIQ_L2B23_CASE" in
     # ALL changes remain in the networkless disposable OCI overlay.
     apt-get "${opts[@]}" update
     apt-cache "${opts[@]}" policy lanveriq-agent-offline-preview |
-      grep -Fq '0.1.0~dev0'
+      grep -F '0.1.0~dev0' > /dev/null
     apt-cache "${opts[@]}" policy lanveriq-agent-offline-preview |
-      grep -Fq '0.1.0~dev1'
+      grep -F '0.1.0~dev1' > /dev/null
     apt-get "${opts[@]}" --no-install-recommends -y install lanveriq-agent-offline-preview=0.1.0~dev1
     test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
     test -x /usr/bin/lanveriq-agent
-    /usr/bin/lanveriq-agent --help | grep -Fq 'Usage:'
+    /usr/bin/lanveriq-agent --help | grep -F 'Usage:' > /dev/null
     test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
     test ! -d /run/systemd/system
     install -d -m 0700 /etc/lanveriq-agent /var/lib/private/lanveriq-agent
