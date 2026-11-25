@@ -35,9 +35,9 @@
 
 [断网后的 Rust SQLite 清单恢复 → mTLS ACK → PG18 当前 revision → Next.js 手动刷新 L2](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)（**功能 SHA `db570181`：[Linux L2 #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)；仅隔离 L2，正式发布仍 OFF**）。上一个 OS/CPU/RAM 首次入库 L2 已单独 [PASS](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，不要混淆两次功能 SHA。
 
-## G-05 原生 APT 安全实验：不同 ELF 与双签名见证
+## G-05 原生 APT：不同 ELF、分离签名与冷缓存双回放
 
-[L2B-31 两份不同 Rust ELF 15/15](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) · [L2B-32 分离 CI GPG signer / 原生 APT 见证 17/17](development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md)（[OCI #45566961126 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)）。APT 可接受旧有效签名 Release；实验独立 signer 见证按序列/摘要拒绝。**未有外部可信高水位、正式安装权限或 Pop!_OS L3。**
+[L2B-31 不同 Rust ELF 15/15](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) · [L2B-32 分离 CI witness 17/17](development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md) · [L2B-33 冷缓存双回放/分离 RO 批准锚点 20/20](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md)（[实际 OCI #45569177575 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)）。真实 APT 可采用旧不同 Packages，CI 分离批准 witness 摘要拒绝同序列旧 witness 联合回放；**仍缺少生产外部高水位、正式安装授权或 Pop!_OS L3**。
 
 ## 去重与防断链
 

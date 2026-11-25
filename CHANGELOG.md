@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — L2B-33 冷缓存双重回放与分离 RO CI 锚点 L2
+
+- [修正功能 SHA c177f281](https://github.com/kunlong-luo/lanveriq/commit/c177f28112c8cdfc4ab681e8314a7e8f3833d3ca) · [原生 Ubuntu24 OCI #45569177575 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)：保留前 17 项 Rust Agent、签名 APT、不同 ELF、见证验收，新增三项空缓存原生场景。空缓存 APT **实际采用不同旧 Packages**，与之对应的旧 InRelease 和同序列真签名旧 witness 均正确验签；**另行 RO 挂载的 CI 批准 witness 摘要拒绝联合回放**。正确批准材料通过，缺失锚点默认拒绝；L1 六项负测、Polkit all-no/Tauri readonly 同时通过。
+- [#45568609482 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568609482) 与 [#45568690884 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568690884) 是 Python 函数缩进造成的编译前快速失败，[#45568837764 CANCELLED](https://github.com/kunlong-luo/lanveriq/actions/runs/45568837764) 为 RO 摘要目录权限修正后的并发取消；历史保留在 [L2B-33 详细报告](docs/development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md)。锚点仍由**同一 CI 管理域**创建，可被该管理员重置，不能等同外部真实不可回退高水位、发行签收或可用安装器。**G-05 OPEN；v0.1 NOT RELEASE READY。**
+
 ## 2026-11-25 — L2B-32 原生 APT 与单独 GPG witness 签名 L2
 
 - [功能修复 SHA `55de6e71`](https://github.com/kunlong-luo/lanveriq/commit/55de6e714bde3bb8a3c2f5a0050b413ff38f70c9) · [Ubuntu24 OCI #45566961126 17/17 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)：仍由 APT 验证 publisher Signed-By，另以**不同的一次性 CI witness signer** 的原生 `gpgv` 见证校验 fixed sequence=2 和实际 `InRelease` SHA256。真实 `apt-get update` 仍接受旧有效签名 Release，但 witness 拒绝其摘要；真正见证签名的低序列、publisher 伪造及篡改均拒绝；原有 15 个不同 Rust ELF / APT 负例回归成功。
