@@ -4,9 +4,9 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
-## 2026-11-25 — G-06 PostgreSQL18 实际 SIGKILL/WAL 恢复增量（L2 PENDING）
+## 2026-11-25 — G-06 PostgreSQL18 实际 SIGKILL/WAL 恢复增量（首次失败后复验 PENDING）
 
-- 功能 [9ee4681e](https://github.com/kunlong-luo/lanveriq/commit/9ee4681ec4b7689fd0e7b2f0ef1251889c196cc3) 在先前真实 ACK withheld 已提交 revision 2 后，杀掉 PostgreSQL18 容器并经 WAL 重启，要求 PG18 持久化四字段不变，随后 Rust SQLite 原请求取得幂等 ACK。[Linux L2 #45583252985 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45583252985)。[报告](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)。不能算生产 G-06/G-08 验收。
+- 功能 [3e5b7009](https://github.com/kunlong-luo/lanveriq/commit/3e5b7009c4b7689fd0e7b2f0ef1251889c196cc3) 在先前真实 ACK withheld 已提交 revision 2 后，杀掉 PostgreSQL18 容器并经 WAL 重启，要求 PG18 持久化四字段不变，随后 Rust SQLite 原请求取得幂等 ACK。[Linux L2 #45583968475 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。[报告](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)。不能算生产 G-06/G-08 验收。
 
 ## 2026-11-25 — G-06 服务端已提交、Rust ACK 未知的合成重送实验
 
