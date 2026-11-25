@@ -1574,11 +1574,14 @@ PY
                 # untouched and continue their existing acceptance afterwards.
                 changed_restore_rows="$(docker exec "$RESTORE_CID" psql -U lanveriq -d lanveriq -XAt \
                     -v ON_ERROR_STOP=1 -c "
-                    UPDATE device_inventory_current
-                    SET capabilities_json = capabilities_json ||
+                    WITH changed AS (
+                        UPDATE device_inventory_current
+                        SET capabilities_json = capabilities_json ||
                         '{\"lanveriq_synthetic_restore_tamper_probe\":true}'::jsonb
-                    WHERE device_id = '$DEVICE_ID'
-                    RETURNING 1")"
+                        WHERE device_id = '$DEVICE_ID'
+                        RETURNING device_id
+                    )
+                    SELECT count(*) FROM changed")"
                 [[ "$changed_restore_rows" == 1 ]] || {
                     echo "FAIL: synthetic one-row restore-copy tamper did not execute" >&2
                     exit 1
