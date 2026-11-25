@@ -75,6 +75,8 @@ jobs:
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_cloud_neutral_witness_boundary.py'
       - name: C18i WORM control-graph intake negatives (synthetic-only; no approval)
         run: python3 -m unittest discover -s apps/server/scripts -p 'test_inspect_worm_acceptance_bundle.py'
+      - name: Test local-only PostgreSQL backup evidence refusal contract
+        run: python3 -m unittest discover -s apps/server/scripts -p 'test_pg_backup_evidence.py' -v
       - name: Run real unit tests (no integration/E2E)
         working-directory: apps/server
         run: ./gradlew test
