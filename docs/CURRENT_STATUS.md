@@ -39,7 +39,7 @@
 
 ## G-08 最新备份 L2
 
-**G-08：** `b64a14ad` [新库恢复 #45586283694 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)；`3687edd7` [损坏归档 #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)；`06897384` [备份证据 L1 #45588705792 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)、L2 NOT RUN。[具体报告与边界](operations/backup.md)。**G-08 OPEN。**
+**G-08：** `b64a14ad` [新库恢复 #45586283694 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)；`3687edd7` [损坏归档 #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)；`06897384` [备份证据 L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)、L2 NOT RUN。[具体报告与边界](operations/backup.md)。**G-08 OPEN。**
 
 ## 下一项退出目标（不等于批准上线）
 

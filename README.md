@@ -70,7 +70,7 @@ The next isolated business-loop milestone is [durable Linux inventory recovery a
 
 **G-06 isolated L2 PASS:** [Original SQLite replay after PostgreSQL commit with ACK withheld from Rust](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md), functional SHA f83aeab6, [Linux #45581861955 both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955). **New L2 PASS:** [Real PostgreSQL18 SIGKILL/WAL restart before exact Rust outbox replay](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md), functional SHA 3e5b7009, [Linux #45583968475 both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475). Neither validates true on-wire ACK loss or production disaster recovery.
 
-**G-08 isolated backup:** [PG18 restore #45586283694 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694); [corrupt archive #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849). [Same-admin backup evidence CLI](docs/operations/backup.md) `06897384` [L1 #45588705792 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792), L2 NOT RUN; never production DR approval.
+**G-08 isolated backup:** [PG18 restore #45586283694 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694); [corrupt archive #45588502849 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849). [Same-admin backup evidence CLI](docs/operations/backup.md) `06897384` [L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792), L2 NOT RUN; never production DR approval.
 
 ## Native APT: cold-cache signed repository and witness double-replay (L2B-33)
 
