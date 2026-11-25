@@ -60,6 +60,8 @@ pnpm dev
 
 其他组件分别在对应目录执行 `cd apps/server && ./gradlew test`、`cd apps/agent && cargo test --workspace --locked`、`cd apps/desktop && pnpm test`。后端独立 PostgreSQL/loopback 配置参见[开发环境指南](docs/operations/installation.md)。**普通终端用户不应自行编译 Rust、使用 `dpkg -i` 或启用 systemd 作为“安装方式”。**
 
+正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项 CI 待验收，不代表已 PASS 或可正式安装。**
+
 ## 安全与下一步
 
 已有 [Agent→mTLS→Spring/PG18→Next.js 隔离合成链路](docs/testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，并有 [原生 signed-APT 有效旧 Release 被接受的风险证据](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md)。[L2B-28](docs/development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) 只能阻止伪造高水位/发布批准的**源级声明**，并未实现真实可信防回退器、正式签名者或安装权限。

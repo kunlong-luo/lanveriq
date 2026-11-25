@@ -27,6 +27,10 @@
 | `operations/`、`product/` | [开发环境](operations/installation.md)、[发行规则](operations/release.md)、[Linux GUI 用户旅程](product/linux-desktop-installer-v01.md) | 用户端已可安装 |
 | `diagrams/`、`visuals/` | [Mermaid 图](diagrams/README.md)、[SVG 图](visuals/README.md) | 产品运行截图 |
 
+## 当前进行中的 Linux 业务链验收
+
+[断网后的 Rust SQLite 清单恢复 → mTLS ACK → PG18 当前 revision → Next.js 手动刷新 L2](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)（**PENDING CI；未证明 PASS**）。上一个 OS/CPU/RAM 首次入库 L2 已单独 [PASS](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，不要混淆两次功能 SHA。
+
 ## 去重与防断链
 
 已删除旧 `docs/planning/backlog.md`、`roadmap.md`、`v0.1-batched-delivery-plan-2026-11-08.md` 和 `v0.1-implementation-sequence.md` 的**工作树副本**；原始完整内容仍在[固定 Git SHA 历史索引](governance/archive/README.md)。旧全文 AGENTS/目录快照、早期审计也在那里可查。真正独立的失败、攻击负测、FIDO/WORM 和 Agent/PG18 报告保留原专题，不按文件大小批量删。

@@ -60,6 +60,8 @@ pnpm dev
 
 Other developer tests: `cd apps/server && ./gradlew test`, `cd apps/agent && cargo test --workspace --locked`, `cd apps/desktop && pnpm test`. See [development-only PostgreSQL/loopback setup](docs/operations/installation.md). End users should **not** compile Rust, invoke `dpkg -i` or enable systemd services as a substitute for an approved installer.
 
+The next isolated business-loop milestone is [durable Linux inventory recovery after a real Caddy outage, exact mTLS ACK, PG18 revision advance and operator-triggered Chromium refresh](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md). **Its CI status is PENDING, not a product release approval.**
+
 ## Release boundary and next work
 
 An isolated [Agent→mTLS→Spring/PostgreSQL→Next.js synthetic chain](docs/testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md) has passed. Native [APT accepted a valid older signed Release](docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md); the [L2B-28 source-only approval-denial contract](docs/development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) does **not** implement an independent trusted anti-rollback high-water, release publisher or installation authorization.
