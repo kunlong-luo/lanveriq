@@ -1,6 +1,6 @@
 # DESKTOP-L2B-32 — 两种实验签名身份：原生 APT 可接受旧 Release，但独立见证前置拒绝
 
-**实验功能 SHA：** [`10f970662682a450739b6d63cf3f457707859384`](https://github.com/kunlong-luo/lanveriq/commit/10f970662682a450739b6d63cf3f457707859384)。[首轮 OCI #45566159779 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45566159779)；**修正 SHA [`55de6e714bde3bb8a3c2f5a0050b413ff38f70c9`](https://github.com/kunlong-luo/lanveriq/commit/55de6e714bde3bb8a3c2f5a0050b413ff38f70c9) · [原生 CI #45566961126 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)；不得提前声称 17/17。G-05 OPEN · v0.1 NOT RELEASE READY。**
+**L2 17/17 SUCCESS。** 首轮 [#45566159779 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45566159779) 因见证清单 LF 格式错误未运行 APT，保留失败；修正功能 SHA [55de6e714bde3bb8a3c2f5a0050b413ff38f70c9](https://github.com/kunlong-luo/lanveriq/commit/55de6e714bde3bb8a3c2f5a0050b413ff38f70c9)，[原生 OCI #45566961126 17/17 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)。**G-05 OPEN · v0.1 NOT RELEASE READY。**
 
 ## 从 L2B-31 再推进一个具体的发行安全边界
 
@@ -23,7 +23,7 @@
 ## 保留真实失败和修复记录
 
 - **[#45566159779 FAIL / 功能 SHA `10f97066`](https://github.com/kunlong-luo/lanveriq/actions/runs/45566159779)：** 真实当前 Rust Agent 构建、`.deb` 归档审计、固定旧源码第二次 Rust 编译均成功，但随后五项源级测试中的 witness 清单格式测试正确发现了**字面量反斜线-n（`\\n`），而不是实际 LF 换行**。因此从未进入新增的原生 gpgv/APT 见证实验，**不是见证拒绝通过**。
-- **[修正 SHA `55de6e71` / #45566961126](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)：** 改由 `bytes([10]).join(...)` 构造严格三行清单，并将轻量 L1 单元/负测放到两次昂贵 Rust 编译之前；原生 OCI 结果尚须实测。保留首轮失败和原始日志，不覆盖它。
+- **[修正 SHA `55de6e71` / #45566961126 17/17 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)：** 改由 `bytes([10]).join(...)` 生成真实 LF，并将 **5 项 L1 负测提前到 Rust 编译前，全部通过**。真实两个 Rust ELF 构建/归档审计后，原有 15 项 native OCI APT PASS，新增 2 项均 PASS：**APT 接受旧有效签名 Release，但独立实验见证因哈希不同拒绝**；**真正的旧 witness GPG 签名通过原生 gpgv，但 sequence=1 被固定实验序列拒绝**，发布者伪造与篡改见证同样被原生 gpgv 拒绝。Tauri 只读与 Polkit DENY-ALL 继续 PASS。首轮失败和原始日志保留。
 
 ## 必须分开记录的三个层次
 
