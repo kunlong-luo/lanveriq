@@ -21,9 +21,9 @@
 
 - [功能 `06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b)：Python 标准库 `create/verify`，12 项损坏/软链接/篡改拒绝负测；[Server L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。[备份与恢复边界](docs/operations/backup.md)；[功能 `94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89) 已接入真实 `pg_dump` 正反向核验，[Linux #45589325627 L2 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；外部 WORM 未建。
 
-## 2026-11-25 — G-06/G-08 真实 Spring Boot/Hibernate 连接恢复后 PG18（首轮 L2 FAIL，修复重测 PENDING）
+## 2026-11-25 — G-06/G-08 真实 Spring Boot/Hibernate 连接恢复后 PG18（首轮 L2 FAIL，修复 L2 PASS）
 
-- [功能 `dcde55e1`](https://github.com/kunlong-luo/lanveriq/commit/dcde55e18e8249fbfc4eaf6399cc5ce59f4d100d) 在恢复库独立重启及全量对比后，通过隔离内部 Docker 桥仅向 CI 宿主开放连接、**不映射主机端口**，启动实际 Spring Boot JAR 的 non-web/JPA schema validate（Flyway/管理员注册关闭），再次确认数据不变并销毁网络；[Linux #45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)：Docker none 无法后连私有 bridge，JPA 未执行；修复 [`45683e64`](https://github.com/kunlong-luo/lanveriq/commit/45683e64e88e6f23a50eaa98ce2c4423f32a22ef) 改为创建容器时用 internal-only bridge，[重测 #45618414247 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。[专项报告](docs/development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md)。非生产切流或 DR。
+- [功能 `dcde55e1`](https://github.com/kunlong-luo/lanveriq/commit/dcde55e18e8249fbfc4eaf6399cc5ce59f4d100d) 在恢复库独立重启及全量对比后，通过隔离内部 Docker 桥仅向 CI 宿主开放连接、**不映射主机端口**，启动实际 Spring Boot JAR 的 non-web/JPA schema validate（Flyway/管理员注册关闭），再次确认数据不变并销毁网络；[Linux #45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)：Docker none 无法后连私有 bridge，JPA 未执行；修复 [`45683e64`](https://github.com/kunlong-luo/lanveriq/commit/45683e64e88e6f23a50eaa98ce2c4423f32a22ef) 改为创建容器时用 internal-only bridge，[重测 #45618414247 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。[专项报告](docs/development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md)。非生产切流或 DR。
 
 ## 2026-11-25 — G-08 恢复库独立重启与 CI 实验耗时（L2 PASS）
 
