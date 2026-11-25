@@ -21,9 +21,13 @@
 
 - [功能 `06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b)：Python 标准库 `create/verify`，12 项损坏/软链接/篡改拒绝负测；[Server L1 #45588705792 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。[备份与恢复边界](docs/operations/backup.md)；[功能 `94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89) 已接入真实 `pg_dump` 正反向核验，[Linux #45589325627 L2 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)；外部 WORM 未建。
 
-## 2026-11-25 — G-08 全量恢复内容一致性及等数量篡改拒绝（L2 PENDING）
+## 2026-11-25 — G-08 恢复库独立重启与 CI 实验耗时（L2 PENDING）
 
-- 初版功能 [`d6259ba2`](https://github.com/kunlong-luo/lanveriq/commit/d6259ba2621853fc95a3d142481164053322d46a) 的 [Linux #45611916004 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004)：完整行内容对等已通过，但单行合成篡改的 SQL 输出断言未通过，未达到篡改检测 PASS。功能 [`8e52d9ab`](https://github.com/kunlong-luo/lanveriq/commit/8e52d9ab53cc820183305ef021b7d709fa076156) 改为原生 CTE UPDATE 后 SELECT count(*)，[新 Linux #45612605286 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。[专题报告](docs/development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md)，G-08 OPEN。
+- [`e6a7ae12`](https://github.com/kunlong-luo/lanveriq/commit/e6a7ae12cebb42f3f0f29f2cd24147afb00bb640) 对已恢复 PG18 原生容器独立重启、可查询和全量内容再次验收，并记录私有同域实验 `pg_dump` 与恢复重启秒数；[Linux #45615090308 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)。[专题报告](docs/development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md)，非生产 RPO/RTO。
+
+## 2026-11-25 — G-08 全量恢复内容一致性及等数量篡改拒绝（L2 PASS）
+
+- 初版功能 [`d6259ba2`](https://github.com/kunlong-luo/lanveriq/commit/d6259ba2621853fc95a3d142481164053322d46a) 的 [Linux #45611916004 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004)：完整行内容对等已通过，但单行合成篡改的 SQL 输出断言未通过，未达到篡改检测 PASS。功能 [`8e52d9ab`](https://github.com/kunlong-luo/lanveriq/commit/8e52d9ab53cc820183305ef021b7d709fa076156) 改为原生 CTE UPDATE 后 SELECT count(*)，[修复 Linux #45612605286 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。[专题报告](docs/development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md)，G-08 OPEN。
 
 ## 2026-11-25 — G-08 原生 PG18 恢复及损坏归档拒绝 L2 PASS
 

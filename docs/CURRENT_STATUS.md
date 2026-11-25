@@ -39,7 +39,7 @@
 
 ## G-08 最新备份 L2
 
-**G-08：** [归档→全新 PG18 L2 #45589325627 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)（含本地证据/坏档拒绝）；[全量行内容+等数量篡改检测](development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) `8e52d9ab` / [#45612605286 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。**G-08 OPEN；无独立灾备。**
+**G-08：** [全内容/等数量篡改 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)；[独立重启与 CI 实验耗时](development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` / [#45615090308 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)。**G-08 OPEN；非生产 RPO/RTO。**
 
 ## 下一项退出目标（不等于批准上线）
 

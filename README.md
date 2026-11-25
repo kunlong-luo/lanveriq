@@ -70,7 +70,7 @@ The next isolated business-loop milestone is [durable Linux inventory recovery a
 
 **G-06 isolated L2 PASS:** [Original SQLite replay after PostgreSQL commit with ACK withheld from Rust](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md), functional SHA f83aeab6, [Linux #45581861955 both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955). **New L2 PASS:** [Real PostgreSQL18 SIGKILL/WAL restart before exact Rust outbox replay](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md), functional SHA 3e5b7009, [Linux #45583968475 both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475). Neither validates true on-wire ACK loss or production disaster recovery.
 
-**G-08 isolated PG18 backup L2:** [real custom dump, local evidence, fresh restore and corrupt-archive rejection #45589325627 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627). [Full inventory/Flyway row checks and equal-count tamper rejection](docs/development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) `8e52d9ab` [#45612605286 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286). No external custody or production DR authorization.
+**G-08 PG18 recovery:** [real full-row restore and equal-count tamper rejection #45612605286 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286); [restarted recovered database & measured CI drill](docs/development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` [#45615090308 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308). Not production DR or measured RPO/RTO.
 
 ## Native APT: cold-cache signed repository and witness double-replay (L2B-33)
 

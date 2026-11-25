@@ -1,6 +1,6 @@
 # G-08：PG18 全量库存/Flyway 行内容恢复与等数量篡改拒绝（Linux L2）
 
-**2026-11-25 · L2 PENDING · v0.1 NOT RELEASE READY。**
+**2026-11-25 · L2 PASS · v0.1 NOT RELEASE READY。**
 
 ## 背景与精确依赖
 
@@ -8,7 +8,7 @@
 
 ## 本阶段原生可执行断言
 
-- 功能提交 [`8e52d9ab`](https://github.com/kunlong-luo/lanveriq/commit/8e52d9ab53cc820183305ef021b7d709fa076156)，[Linux Batch A #45612605286 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)，[Server unit #45611916035 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916035)。
+- 功能提交 [`8e52d9ab`](https://github.com/kunlong-luo/lanveriq/commit/8e52d9ab53cc820183305ef021b7d709fa076156)，[Linux Batch A #45612605286 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)，[Server unit #45612605023 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916035)。
 - 代码复用现有唯一的 [Rust→mTLS→Spring→PG18→Next.js Linux L2](../../apps/server/scripts/verify-agent-upstream-tls.sh)。从真实 Rust SQLite ACK 未见的已提交 PostgreSQL18 在 SIGKILL/WAL 恢复之后导出原生 custom-format `pg_dump`，先核验原档与本地证据，再恢复至独立、`--network none` 的 PG18.7 容器。
 - 除原有快照四字段、子表/Flyway 数量断言，新增 PostgreSQL 原生 **JSONB 按主键排序的完整行内容序列化**，对 `device_inventory_current`、`device_inventory_interfaces`、`device_inventory_addresses`、`device_inventory_volumes` 和 `flyway_schema_history` 做一次性本地 SHA-256 比对；源与新库必须一致。使用 psql、sha256sum、已有 PostgreSQL 能力，不引入 pgcrypto/云 SDK/私有协议。
 - **必须实际识别等数量篡改：** 在正常恢复以及坏档拒绝成功后，*只修改一次性恢复副本*的一项 `capabilities_json` 测试字段；行数和原 snapshot 四字段必须保持不变，但全行内容指纹必须不同。再检查原始 WAL 数据库指纹不变，然后销毁恢复副本。后续原 Rust SQLite pending 继续通过真实 mTLS duplicate ACK 验收。
@@ -22,6 +22,6 @@
 
 ## 完成条件
 
-只有功能 SHA `8e52d9ab` 对应 [Linux #45612605286](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286) **两个 job 全部 SUCCESS**，且原生执行日志出现完整行内容对等以及恢复副本等数量篡改被拒绝两项 PASS，才能将此报告从 PENDING 改为 PASS。若出现 FAIL/CANCELLED，保留精确功能 SHA、Run ID 与修复过程；不得借用上一阶段 PASS。G-08 仍需独立密钥和备份托管、生产 RPO/RTO、法务/SRE 签收。
+功能 `8e52d9ab` 的 [Linux #45612605286 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)，原生日志分别打印 `PASS: full-row canonical content matches WAL source` 和 `PASS: full-row restore verification rejects equal-count, unchanged-snapshot-tuple JSONB tamper; source unaffected`；Rust mTLS exact ACK 继续通过。首次 `d6259ba2` [#45611916004 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45611916004) 仍保留。下一阶段 [恢复后重启与实验时间](linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md)。**G-08 OPEN**。
 
 [当前事实](../CURRENT_STATUS.md) · [发布门禁](../planning/release-gap-register.md) · [备份操作边界](../operations/backup.md)。**G-08 OPEN；v0.1 NOT RELEASE READY。**
