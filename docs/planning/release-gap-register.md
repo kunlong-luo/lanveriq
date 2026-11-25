@@ -27,14 +27,14 @@
 | --- | --- | --- |
 | **L2B-23** | [2af1cf34 / #45376989866 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) | 临时签名源下真实 Agent APT 安装/同版重装/卸载与 8 个拒绝；无正式发布身份。[报告](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md) |
 | **L2B-25** | [91c4669d / #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) | networkless OCI root-side D-Bus 实际发送者 UID/PID/Polkit 拒绝 + nonce；**没有安装事务**。[报告](../development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md) |
-| **L2B-31/32** | [不同 Rust ELF 15/15](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245) · [双 CI signer/gpgv 17/17](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126) | APT 仍接受旧有效签名 Release，但独立**实验**见证摘要/序列拒绝；签名者分离不等于外部托管高水位/可信时钟。[L2B-32](../development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md) |
+| **L2B-32/33** | [双 CI signer/gpgv 17/17](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126) · [空缓存双回放/分离 RO 锚点 20/20](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) | APT 确实采用旧不同 Packages，同序列旧 witness 真签名也有效，分离 CI 批准摘要拒绝双回放与缺锚点。**非独立托管高水位**。[报告](../development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) |
 | **L2B-26** | [f062f144 / #45385719766 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | 本机恶意 Polkit .rules 确实覆盖为 YES，root ReviewLab 仍 **NOT_APPROVED**，D-Bus 名称冒充与重放拒绝。[报告](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
 
 早期 [L2B-22](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)、[L2B-24](../development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)、NXT/D4/FIDO/WORM 以及所有 CI **FAIL→修复**链保留在原 dated reports、[GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions) 和 [历史验收账本](release-readiness-2026-11-13.md)；不能当成今天的生产许可。
 
 ## 下一项退出顺序
 
-1. **G-05 下一项（待独立审批）**：L2B-32 [native 17/17](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126) 只证明同 CI 中分离 signer 的见证拒绝。须具名第三方安全/发行主体批准真实根、独立持久高水位/可信时间和密钥托管，验证冷缓存/断网/重装及签名索引+见证双回放；未经批准不得发布安装包或 root broker。
+1. **G-05 下一项（待独立审批）**：L2B-33 [原生 20/20](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) 只证明同 CI 中分离 RO 摘要能够拒绝空缓存双回放。需具名独立发行/安全主体批准正式签名根、撤销、可信时间、持久不可回退高水位与恢复权，再实测真实离线/重装/合法回滚。不发布 Agent 安装包或执行 root broker。
 2. **G-05/G-09 L3**：具名设备/操作者书面许可，真实 Pop!_OS 24.04 COSMIC / Polkit 对话框/升级回滚/卸载和合法独立无托盘 Agent 生命周期。
 3. **G-01～04/G-07～08/G-06**：官方可信源、独立 WORM、CA/MFA、法务/SRE 与真实业务全链签收；G-10 另定首发范围。只有真实责任人、对应**功能 SHA+CI+L3 证据**、拒绝负测和回滚均齐全才可改变状态。
 
