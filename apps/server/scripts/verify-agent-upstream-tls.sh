@@ -1407,6 +1407,86 @@ PY
                     echo "FAIL: restored PG18 schema/inventory counts differ" >&2
                     exit 1
                 }
+                # G-08 integrity/atomicity negative tests: never treat a
+                # corrupt or incomplete dump as a successful disaster restore.
+                # Everything stays in this CI runner's private temporary dir.
+                # The SHA256 is SAME-ADMIN synthetic evidence, not an
+                # independently administered checksum or WORM witness.
+                backup_sha256="$(sha256sum "$backup_archive" | awk '{print $1}')"
+                [[ "$backup_sha256" =~ ^[0-9a-f]{64}$ ]] || {
+                    echo "FAIL: no valid CI-only backup digest" >&2
+                    exit 1
+                }
+                python3 - "$backup_archive" "$TMP/invalid-pg18-magic.dump" "$TMP/truncated-pg18.dump" <<'PY'
+from pathlib import Path
+import sys
+source, invalid_header, truncated = map(Path, sys.argv[1:])
+data = source.read_bytes()
+if len(data) < 2048 or not data.startswith(b"PGDMP"):
+    raise SystemExit("FAIL: valid custom-format dump fixture not present")
+invalid_header.write_bytes(b"NOTPG" + data[5:])
+truncated.write_bytes(data[:len(data) // 2])
+for path in (invalid_header, truncated):
+    path.chmod(0o600)
+    if path.stat().st_size >= len(data):
+        raise SystemExit("FAIL: corrupt archive fixture not distinct")
+PY
+                [[ "$(sha256sum "$backup_archive" | awk '{print $1}')" == "$backup_sha256" ]] || {
+                    echo "FAIL: valid CI backup changed during recovery checks" >&2
+                    exit 1
+                }
+                for bad_archive in "$TMP/invalid-pg18-magic.dump" "$TMP/truncated-pg18.dump"; do
+                    [[ "$(sha256sum "$bad_archive" | awk '{print $1}')" != "$backup_sha256" ]] || {
+                        echo "FAIL: deliberately corrupted backup still equals approved CI digest" >&2
+                        exit 1
+                    }
+                done
+                if docker exec -i "$RESTORE_CID" pg_restore --list \
+                    < "$TMP/invalid-pg18-magic.dump" > "$TMP/invalid-pg18-magic.log" 2>&1; then
+                    echo "FAIL: pg_restore accepted invalid backup archive header" >&2
+                    exit 1
+                fi
+                grep -Eiq 'magic string|not.*valid archive|too short' "$TMP/invalid-pg18-magic.log" || {
+                    echo "FAIL: invalid backup header rejection was not a format failure" >&2
+                    exit 1
+                }
+
+                # Use a THIRD, empty database within the same networkless
+                # disposable PG18 OCI for a real, intentionally incomplete
+                # archive restore. pg_restore must reject it with a nonzero
+                # exit, and --single-transaction must leave no partial schema.
+                docker exec "$RESTORE_CID" psql -U lanveriq -d postgres \
+                    -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE lanveriq_corrupt_probe' \
+                    > /dev/null
+                [[ "$(docker exec "$RESTORE_CID" psql -U lanveriq -d lanveriq_corrupt_probe \
+                    -XAtqc 'SELECT current_database()')" == lanveriq_corrupt_probe ]] || {
+                    echo "FAIL: separate empty corrupt-restore database unavailable" >&2
+                    exit 1
+                }
+                if docker exec -i "$RESTORE_CID" pg_restore -U lanveriq -d lanveriq_corrupt_probe \
+                    --exit-on-error --single-transaction --no-owner --no-acl \
+                    < "$TMP/truncated-pg18.dump" > "$TMP/truncated-pg18-restore.log" 2>&1; then
+                    echo "FAIL: truncated custom PG18 archive was accepted as complete" >&2
+                    exit 1
+                fi
+                grep -Eiq 'pg_restore: error:|unexpected EOF|end of file|could not read' \
+                    "$TMP/truncated-pg18-restore.log" || {
+                    echo "FAIL: incomplete archive refusal lacked a pg_restore error" >&2
+                    exit 1
+                }
+                [[ "$(docker exec "$RESTORE_CID" psql -U lanveriq -d lanveriq_corrupt_probe -XAtqc "
+                    SELECT to_regclass('public.device_inventory_current') IS NULL")" == t ]] || {
+                    echo "FAIL: truncated archive left an imported inventory schema" >&2
+                    exit 1
+                }
+                [[ "$(docker exec "$RESTORE_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_withheld_commit" ]] || {
+                    echo "FAIL: corrupt-restore probes modified the verified good restore" >&2
+                    exit 1
+                }
+                echo "PASS: pg_restore rejects corrupt header and truncated custom dump; atomic failed restore leaves no inventory schema, verified restore stays intact (CI-only)."
                 docker rm -f "$RESTORE_CID" >/dev/null
                 RESTORE_CID=""
                 echo "PASS: custom pg_dump from WAL recovered PG18 -> fresh no-network PG18 restore has identical inventory, child counts and Flyway history; CI-only, not independent DR."
