@@ -12,12 +12,13 @@
 | `apps/desktop/` | Tauri 2 只读本机预检与 GUI、未安装 Polkit 拒绝规则、OCI APT/DBus 实验；**不是正式安装器** |
 | `deploy/caddy/`、`deploy/network/` | 双 mTLS 和 LAN/WAN 边界的参考配置/隔离负测，**非公网部署模板** |
 | `deploy/rustdesk/`、`deploy/rustdesk-synthetic/` | RustDesk/RD-2 许可证及默认拒绝负测；远控 **OFF** |
-| `.github/workflows/` | 快速 L1、隔离 L2 及专门安全/文档 CI，不是 Pop!_OS 真机 L3 |
+| `.github/workflows/` | 快速 L1、隔离 L2、源码预览的只读发布前检查及专门安全/文档 CI，不是 Pop!_OS 真机 L3 |
 | `docs/architecture/` (`adrs/`)、`docs/security/`、`docs/product/` | 架构、信任边界、隐私/产品需求与有版本 ADR |
 | `docs/development/`、`docs/testing/` | 技术规范与逐阶段唯一测试/失败/攻击证据，**不得批量删除** |
 | `docs/planning/` | 仅 [Linux 当前路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)、[开放 Gate](../planning/release-gap-register.md)、[DoD](../planning/definition-of-done.md)、[评分](../planning/project-scorecard.md)及[历史验收账本](../planning/release-readiness-2026-11-13.md) |
 | `docs/governance/` (`archive/`)、`docs/operations/` | 文档权威/固定 Git 历史索引、受限的运维与开发手册 |
 | `docs/diagrams/`、`docs/visuals/` | Mermaid/SVG 概念图，**不是产品真实运行截图** |
+| `tools/release/` | `v0.1.0-dev.1` source-only 预览发行的本地元数据拒绝门禁与负测；**没有发布或上传权限**，不提供 Agent 安装器 |
 
 根 `README.md`、`README.zh.md`、`AGENTS.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CHANGELOG.md` 保留；根不是 Gradle 项目。不存在第二 Web (`apps/web-next/`)、Vite Web、Maven 后端或可获 root 的 GUI shell；不能借清理之名删除仍被 workflow/代码使用的 `tools/`、测试、`docs/visuals/assets/` 或尚未批准的安全门禁。
 
@@ -33,7 +34,7 @@
 
 先前已移除的 `v0.1-implementation-sequence.md` 和旧 AGENTS/docs 快照继续以[历史归档索引](archive/README.md)回溯。约 10 KB 的本审计历次过程/CI FAIL→修复长版也用[原文固定 SHA](https://github.com/kunlong-luo/lanveriq/blob/234850dfef72b4fbe4dcc5f4157270c4dc7860e6/docs/governance/repository-layout-audit-2026-11-24.md)保存，本页只维护**当前目录决策**，不重复日记。**删除文件不代表删除 Git 历史**。
 
-期望新 Git tree：**857 个跟踪文件、208 个 docs Markdown**（无新增文件时）；以提交后实际 tree 复核为准。代码、工作流、测试夹具及生产安全默认值均不变。
+**当时清理提交**的 Git tree 为 857 个跟踪文件、208 个 docs Markdown（从 860/211 实际减少 3）；2026-11-25 新的 `tools/release/`、发布候选文档与验收报告是在此之后的**有实际用途增量**，数字不应误认为当前树固定大小。代码、工作流、测试夹具及生产安全默认值均不变。
 
 ## 自动防止误删或旧内容复活
 

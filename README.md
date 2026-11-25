@@ -44,6 +44,10 @@ docs/
 
 Obsolete `docs/planning/backlog.md`, `roadmap.md`, `v0.1-batched-delivery-plan-2026-11-08.md` and the former implementation-sequence transcript have been **removed from the working tree**. Their full original text remains accessible through the [pinned Git history index](docs/governance/archive/README.md). Keep independent failures, signed-package attack evidence and original ADRs. For current work use only the [Linux delivery plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md), [CURRENT_STATUS](docs/CURRENT_STATUS.md) and [release-gap register](docs/planning/release-gap-register.md). Documentation CI checks links across all `docs/**/*.md` and denies resurrected paths.
 
+## v0.1.0-dev.1 source-only preview candidate (NOT PUBLISHED)
+
+[Candidate release notes](docs/operations/source-preview-v0.1.0-dev.1.md) · [Offline preflight source](tools/release/verify_source_preview.py) · [L1 #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790). This is a **source-only development review candidate**, with no Git tag or GitHub Release, no downloadable Agent installer/GUI installation asset and **no approval to deploy**. The verifier rejects fake approved publisher/Polkit/anti-rollback claims, enabled production switches and added assets. The CI identity is pinned to the exact historical synthetic SHA and run IDs; this is **not independent release provenance**.
+
 ## Developer preview — not endpoint installation
 
 From an authorized isolated development machine:

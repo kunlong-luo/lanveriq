@@ -20,6 +20,7 @@
 
 | 子链路 | 精确功能 SHA / 实际 CI | 证明与限制 |
 | --- | --- | --- |
+| **v0.1.0-dev.1 源码预览门禁（非发行 L1）** | [`a1473c9e` / #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) | 精确绑定上轮 Linux L2 功能 SHA/Run ID，拒绝添加发行附件、Agent 安装包、虚假的正式信任/Polkit/实机批准或开启生产能力；只生成临时本地 SHA256 源码清单，**无 Git Tag/Release/发布/生产签名**。[候选说明](operations/source-preview-v0.1.0-dev.1.md) |
 | **Linux 清单断网→恢复→精确 ACK→PG18→Next.js（隔离 L2）** | [`db570181` / Linux #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) · [Agent unit #45554279741 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279741) | 真实 Caddy 断网保留 Rust SQLite revision 2、恢复 mTLS 后同一原始请求取得精确 ACK 并提交 PG18 latest=2；revision 3 在过期/吊销凭据下仍待发；真实 Chromium 经授权手动刷新，仅证明 Ubuntu runner 合成链。[报告](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md) |
 | **L2B-28 发行证据可信边界（仅离线 L1）** | [`03420e61` / #45400903033 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) | v2 严格负测拒绝伪造独立 APT 高水位、可信时钟和正式签名者，并保留旧签名 Release 被 APT 接受的事实；**没有真实高水位、安装事务或新原生重放拒绝**。[报告](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) |
 | **签名索引日期的真实回放风险 L2B-27** | [`09a4e3b3` / #45395513243 10/10 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243) | 先 `apt-get update` 较新有效签名 Release，后换成仍有效的**较旧 Date、同 Packages、同临时 signer**，APT 实际再次接受；说明没有独立的单调高水位证明。**未发生软件包降级**。[报告](development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md) |
@@ -28,6 +29,8 @@
 | **本机恶意规则使 Polkit 真正 YES** | [`f062f1443fbe1c6144f56b2e2a339b289ac70ee1` / #45385719766 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | OCI 内假定本机规则覆盖后，root-side 审查仍 **NOT_APPROVED**、D-Bus 名称冒充与重放拒绝；**不是**可用安装器。[详情](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
 | **只读 Linux → TLS/PG18 → Next.js** | [`e6b56c88` / #45365942781 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781) | 一次性 Ubuntu24 runner 的 OS/CPU/RAM、Rust SQLite/TLS1.3 mTLS、Spring JPA PG18 和真实 Chromium 合成链；不是员工终端。[详情](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md) |
 | **GUI 只读安全审查** | [`a42094bb` / #45368842676 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) | Tauri 原生编译/React 门禁/只读负测；没有安装按钮或产品 root helper。[详情](development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md) |
+
+**发行预览边界：** `v0.1.0-dev.1` 仅完成了[源码预览候选 L1](operations/source-preview-v0.1.0-dev.1.md)，**NOT PUBLISHED**，无正式安装包；不能将源码预览的自动负测计为 G-05 已通过。
 
 ## 下一项退出目标（不等于批准上线）
 

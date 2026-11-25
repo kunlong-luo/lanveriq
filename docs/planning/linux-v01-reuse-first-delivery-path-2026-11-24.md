@@ -21,6 +21,8 @@
 
 **2026-11-25 合成业务连续性增量：** [真实 Linux runner 的 Caddy 断网 → SQLite 待发 revision 2 → 恢复同源 mTLS 精确 ACK → PG18 current revision 2 → Chromium/Next.js 手动刷新](../development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md) 已在功能 SHA `db570181` 的 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两个 L2 jobs 成功；revision 3 的过期/撤销拒绝也在同一运行通过。**这是 CI runner 上的显式测试，不是产品后台自动恢复。** 下一项仍需独立发行信任/高水位/受限安装权限和 Pop!_OS 实机 L3。
 
+**源码预览候选（2026-11-25）**：[v0.1.0-dev.1](../operations/source-preview-v0.1.0-dev.1.md) 源码发布前负测 [#45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790)，只验证文档/配置中的源码限定、无二进制附件和 G 门禁不被错误标绿；**没有创建 tag/Release、没有部署或批准任何正式 Agent 安装能力**。它不能替代后续 G-05 高水位/发行签名/Polkit/实机事务测试。
+
 ## 下一阶段与退出顺序
 
 1. **P0 · L2B-28/G-05 可信发行与独立高水位：** L2B-27 已实际发现旧签名 Release Date 会被 APT 接受；由**独立发行/安全责任主体**审核 signer、公钥预置/撤销与发布根托管、固定 Agent 包名/版本/来源、可信时间、独立单调高水位以及真实旧包/旧索引回退拒绝。未获批准前只做隔离 OCI 的 APT 有效签名旧索引/源回退、事务安全取消/锁和拒绝验证，不能打正式用户包。

@@ -44,6 +44,10 @@ docs/
 
 **已从工作树删除**不再维护的旧 `docs/planning/backlog.md`、`roadmap.md`、`v0.1-batched-delivery-plan-2026-11-08.md` 和更早的 `v0.1-implementation-sequence.md`；它们的**完整原文仍在 [固定 Git SHA 历史索引](docs/governance/archive/README.md)**。历史 ADR/失败测试不因重名或体积大而删除。当前只使用 [Linux 实施路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)、[CURRENT_STATUS](docs/CURRENT_STATUS.md) 与 [release-gap register](docs/planning/release-gap-register.md) 制定下一步。文档 CI 递归检查全部 `docs/**/*.md` 本地相对链接并拒绝旧路径复活。
 
+## v0.1.0-dev.1 源码开发预览候选（尚未发布）
+
+[候选发布说明](docs/operations/source-preview-v0.1.0-dev.1.md) · [离线源码门禁](tools/release/verify_source_preview.py) · [L1 #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790)。本轮只有**源码预览候选和自动负测**，未创建 Git Tag / GitHub Release，没有可下载的正式 Agent `.deb`、GUI 安装器或获准的生产部署。门禁拒绝伪造正式签名根、APT 高水位、Polkit/L3 批准、生产开关与发布附件；已有 CI 证据绑定精确功能 SHA 和 Run ID，但**不是独立可信发行证明**。
+
 ## 开发者入口（不是用户安装说明）
 
 在合法隔离开发机上，Web 本地**断开式预览**：

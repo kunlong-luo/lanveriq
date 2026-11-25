@@ -1,6 +1,6 @@
 # Lanveriq v0.1 发行、升级与回滚操作门禁
 
-**ACTIVE RUNBOOK · 2026-11-24 · `main` · v0.1 NOT RELEASE READY · NO CUSTOMER INSTALLATION AUTHORIZED。** 这里是**候选发行与验收流程**，不是已发布安装说明。**2026-11-21 现行发布边界：** 唯一 Web 前端 `apps/web` 为 Next.js，官方 Pages 是断开业务的演示；Rust Agent/桌面 Tauri/Java 后端均没有获批的生产发行与部署路径。最新 CI/功能 SHA 请查 [CURRENT_STATUS.md](../CURRENT_STATUS.md)，Gate 以[唯一发布缺口登记](../planning/release-gap-register.md)为准，不在本文件复制全部旧日志。
+**ACTIVE RUNBOOK · 2026-11-25 · `main` · v0.1 NOT RELEASE READY · NO CUSTOMER INSTALLATION AUTHORIZED。** 这里是**候选发行与验收流程**，不是已发布安装说明。**2026-11-21 现行发布边界：** 唯一 Web 前端 `apps/web` 为 Next.js，官方 Pages 是断开业务的演示；Rust Agent/桌面 Tauri/Java 后端均没有获批的生产发行与部署路径。最新 CI/功能 SHA 请查 [CURRENT_STATUS.md](../CURRENT_STATUS.md)，Gate 以[唯一发布缺口登记](../planning/release-gap-register.md)为准，不在本文件复制全部旧日志。
 
 ## 发布状态和权限顺序
 
@@ -10,6 +10,13 @@
 4. **最小权限 GUI 安装：** Tauri 只能请求固定动作，不持有 root shell/可自选 URI/任意安装路径；必须经原生 D-Bus 实际发送者身份、真正 logind 活跃会话和 Polkit 每操作一次授权、root-side 固定工件/事务证据核验。安装/升级/卸载、服务启动、boot enable、联网、采集须分别审批和审计。当前只有 [root-side ReviewLab 拒绝与恶意 OS YES 纵深负测](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**没有能执行安装的获批 broker**。
 5. **具名 Linux L3：** 先在 Ubuntu24 disposable L2 验证安全交易及拒绝/取消，再经用户/设备所有人真实书面许可，在 Pop!_OS24 COSMIC/Wayland 实机验证 GUI、背景服务可发现性、停止/卸载、升级/回滚、隐私告知、权限/性能。实机通过前不可分发。
 6. **生产信任/合规：** 官方 FIDO、真人管理员 WebAuthn MFA、CA/KMS、独立管理域 WORM、PG18/备份恢复、法律/许可证、SRE/应急/运营签收及正式 Agent→Spring/PG18→Next.js 全链，全部必须独立满足。[G-01～G-10](../planning/release-gap-register.md) 仍 **OPEN**。
+
+## 源码开发预览候选：不是用户安装版本
+
+- **唯一当前预览候选：** [`v0.1.0-dev.1` 来源与待发布说明](source-preview-v0.1.0-dev.1.md)、[严格 JSON 元数据](../planning/source-preview-v0.1.0-dev.1.json)。状态为 `NOT_PUBLISHED`，尚无 Git Tag / GitHub Release，也**不代表 G-05 获得批准**。
+- **自动化 L1 验收：** [`tools/release/verify_source_preview.py`](../../tools/release/verify_source_preview.py) 与[负测](../../tools/release/test_verify_source_preview.py) 经 [#45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) 检验：只能准备 GitHub 自动生成的源代码归档，附件/Agent 安装包为空；独立发行根、APT 高水位、可信时钟、Polkit 事务、Pop!_OS 实机、生产网络/采集/远控/恢复/CA 全部仍为未批准或 OFF。
+- **GitHub Actions 仅有读取权限：** [源码预览 preflight 工作流](../../.github/workflows/source-preview-preflight.yml) 在 main 与手动触发时做本地源代码一致性检查，**没有创建 tag、release、签名或上传工件的能力**。即使 PASS 也只是候选审核，不自动发布。
+- **独立发布决策：** 具名维护人必须另行判断源代码公开许可、安全披露、第三方源分发与最终 release notes，并在明确审批后才可创建**标注 NOT RELEASE READY 的 source-only GitHub prerelease**；不得上传 `.deb`、AppImage、RPM、执行二进制、临时签名源或可安装 Agent 工件。正式生产发布仍要求下面全部 G Gate。
 
 ## 候选工件与发布记录最低字段
 

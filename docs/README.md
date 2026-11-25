@@ -1,6 +1,6 @@
 # Lanveriq 文档导航 / Documentation home
 
-**ACTIVE INDEX · 2026-11-24 · v0.1 NOT RELEASE READY。** [中文项目首页](../README.zh.md) · [English README](../README.md)。只在这里寻找当前文件入口；历史报告中的「下一步」「未实现」应按其日期理解。
+**ACTIVE INDEX · 2026-11-25 · v0.1 NOT RELEASE READY。** [中文项目首页](../README.zh.md) · [English README](../README.md)。只在这里寻找当前文件入口；历史报告中的「下一步」「未实现」应按其日期理解。
 
 > **2026-11-21 current Web baseline:** `apps/web` 是唯一 Next.js 16 Console；[NXT-24 旧 Vite→Next.js 迁移](development/nextjs-path-rename-nxt24-2026-11-21.md) 是历史验收。Tauri 内部使用 Vite 只构建桌面窗口，不存在 `apps/web-next`。
 
@@ -27,7 +27,11 @@
 | `operations/`、`product/` | [开发环境](operations/installation.md)、[发行规则](operations/release.md)、[Linux GUI 用户旅程](product/linux-desktop-installer-v01.md) | 用户端已可安装 |
 | `diagrams/`、`visuals/` | [Mermaid 图](diagrams/README.md)、[SVG 图](visuals/README.md) | 产品运行截图 |
 
-## 当前进行中的 Linux 业务链验收
+## 源码预览发布候选（不等于发行）
+
+[预览版 v0.1.0-dev.1 说明](operations/source-preview-v0.1.0-dev.1.md)、[源级门禁](../tools/release/verify_source_preview.py)和 [#45557337790 实际 L1 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790)。**NOT PUBLISHED**，无 tag/Release/正式 Agent 安装包；所有生产 G 门禁 OPEN。
+
+## 最近通过的 Linux 业务链验收
 
 [断网后的 Rust SQLite 清单恢复 → mTLS ACK → PG18 当前 revision → Next.js 手动刷新 L2](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)（**功能 SHA `db570181`：[Linux L2 #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)；仅隔离 L2，正式发布仍 OFF**）。上一个 OS/CPU/RAM 首次入库 L2 已单独 [PASS](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，不要混淆两次功能 SHA。
 

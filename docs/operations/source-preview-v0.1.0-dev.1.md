@@ -4,6 +4,10 @@
 
 This is a **draft of the release notes**, not a GitHub Release, release tag, signed source attestation, verified package, installation instruction, or independent authorization.
 
+## Verified developer-preflight evidence (NOT a release)
+
+- Source-only candidate preflight at [`a1473c9e`](https://github.com/kunlong-luo/lanveriq/commit/a1473c9e1908d959113dbf2829ed4636270ee578): [GitHub Actions #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790). Tests reject synthetic CI SHA/run substitution, attached executable/installer assets, forged G-01–G-10 approvals, fake signer/high-water/time/Polkit/L3 approval and any production feature enablement. **L1 source-contract test only**, not a GitHub Release or signed provenance.
+
 ## What is available to review
 
 - The existing **single Next.js Console candidate**, Spring Boot 4.2 / PostgreSQL 18, Rust Agent with SQLite durable outbox, and read-only Tauri 2 preflight **source code**.

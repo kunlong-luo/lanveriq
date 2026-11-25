@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — v0.1.0-dev.1 源码预览发布前拒绝门禁 L1
+
+- [功能 SHA `a1473c9e`](https://github.com/kunlong-luo/lanveriq/commit/a1473c9e1908d959113dbf2829ed4636270ee578)、[GitHub Actions #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790)：新增只读 `tools/release/` 门禁、负面测试、固定 SHA/真实 CI/全 G-OPEN 元数据、候选发布说明与 source-only 工作流；明确拒绝任何已发行/已签名/可安装声明。仅 L1 合约门禁，不是发行信任根。
+- [候选说明](docs/operations/source-preview-v0.1.0-dev.1.md) 严格注明 **NOT PUBLISHED**；没有创建 Git Tag、GitHub Release 或 Agent `.deb`。正式签名、高水位、Polkit、Pop!_OS 实机及法务/SRE 依然 OPEN，任何生产开关未变。
+
 ## 2026-11-25 — Linux 全链清单断网后人工恢复实际 L2 PASS
 
 - [功能 SHA `db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c)：CI-only Rust 从断网保留的 SQLite revision 2 重发，真实 Caddy/TLS1.3→Spring/JPA→PG18 当前版本 2、精确 ACK；新 pending revision 3 在凭据过期/吊销后仍保持。授权 Chromium/Next.js 的手动刷新真实 HTTP 取回当前 PG18 项。
