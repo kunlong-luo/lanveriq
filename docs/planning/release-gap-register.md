@@ -29,10 +29,7 @@
 
 | 截止阶段 | 功能 SHA / 实际原生 CI | 仅证明 |
 | --- | --- | --- |
-| **L2B-23** | [2af1cf34 / #45376989866 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) | 临时签名源下真实 Agent APT 安装/同版重装/卸载与 8 个拒绝；无正式发布身份。[报告](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md) |
-| **L2B-25** | [91c4669d / #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) | networkless OCI root-side D-Bus 实际发送者 UID/PID/Polkit 拒绝 + nonce；**没有安装事务**。[报告](../development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md) |
 | **L2B-32/33** | [双 CI signer/gpgv 17/17](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126) · [空缓存双回放/分离 RO 锚点 20/20](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) | APT 确实采用旧不同 Packages，同序列旧 witness 真签名也有效，分离 CI 批准摘要拒绝双回放与缺锚点。**非独立托管高水位**。[报告](../development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) |
-| **L2B-26** | [f062f144 / #45385719766 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | 本机恶意 Polkit .rules 确实覆盖为 YES，root ReviewLab 仍 **NOT_APPROVED**，D-Bus 名称冒充与重放拒绝。[报告](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
 
 早期 [L2B-22](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)、[L2B-24](../development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)、NXT/D4/FIDO/WORM 以及所有 CI **FAIL→修复**链保留在原 dated reports、[GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions) 和 [历史验收账本](release-readiness-2026-11-13.md)；不能当成今天的生产许可。
 
