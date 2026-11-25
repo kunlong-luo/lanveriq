@@ -69,28 +69,49 @@ case "$LANVERIQ_L2B23_CASE" in
     grep -Fq 'InRelease' "$work/fresh-apt.log"
     apt-cache "${opts[@]}" show lanveriq-agent-offline-preview \
       | grep -Fx 'Description: audited idle Agent, disposable signing test ONLY'
+    echo 'STAGE: first native APT update and fresh Packages description observed'
     release_new=/mnt/lanveriq-lab/repo/dists/lab/Release
     release_old=/mnt/lanveriq-lab/stale-signed/Release
     test "$(date -ud "$(sed -n 's/^Date: //p' "$release_old")" +%s)" \
-      -lt "$(date -ud "$(sed -n 's/^Date: //p' "$release_new")" +%s)"
+      -lt "$(date -ud "$(sed -n 's/^Date: //p' "$release_new")" +%s)" || {
+      echo 'NOT_APPROVED: stale index Date was not earlier than fresh Date' >&2
+      exit 104
+    }
+    echo 'STAGE: older Release Date confirmed'
     fresh_index="$work/repo/dists/lab/main/binary-amd64/Packages"
     stale_index=/mnt/lanveriq-lab/stale-signed/Packages
-    test -s "$stale_index"
+    test -s "$stale_index" || {
+      echo 'NOT_APPROVED: old Packages bytes missing' >&2
+      exit 105
+    }
     fresh_digest="$(sha256sum "$fresh_index" | cut -d' ' -f1)"
     stale_digest="$(sha256sum "$stale_index" | cut -d' ' -f1)"
-    test "$fresh_digest" != "$stale_digest"
+    test "$fresh_digest" != "$stale_digest" || {
+      echo 'NOT_APPROVED: older Packages was not different' >&2
+      exit 106
+    }
+    echo 'STAGE: two different signed package-index hashes confirmed'
     # Native Signed-By verifies old InRelease; its SHA256 authenticates the
     # old Packages. No --allow-downgrades, no unchecked repositories.
     cp "$stale_index" "$fresh_index"
     cp /mnt/lanveriq-lab/stale-signed/InRelease "$work/repo/dists/lab/InRelease"
+    echo 'STAGE: old signed Release and different Packages swapped in disposable OCI'
     if ! apt-get "${opts[@]}" update > "$work/old-apt.log" 2>&1; then
       cat "$work/old-apt.log" >&2
       echo 'NOT_APPROVED: genuine APT did not accept older signed Packages' >&2
       exit 102
     fi
-    grep -Fq 'InRelease' "$work/old-apt.log"
-    apt-cache "${opts[@]}" show lanveriq-agent-offline-preview \
-      | grep -Fx 'Description: audited idle Agent, historical signed index ONLY'
+    grep -Fq 'InRelease' "$work/old-apt.log" || {
+      echo 'NOT_APPROVED: native apt update had no old signed InRelease fetch' >&2
+      exit 107
+    }
+    echo 'STAGE: second native apt update accepted old signed InRelease'
+    if ! apt-cache "${opts[@]}" show lanveriq-agent-offline-preview \
+      | grep -Fx 'Description: audited idle Agent, historical signed index ONLY'; then
+      echo 'NOT_APPROVED: old signed Packages was not visible in native apt-cache' >&2
+      exit 108
+    fi
+    echo 'STAGE: native apt-cache used DIFFERENT older signed Packages'
     test ! -e /usr/bin/lanveriq-agent
     test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
     test ! -d /run/systemd/system
