@@ -16,6 +16,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 AUDIT = ROOT / "apps/agent/tools/linux/verify-offline-agent-deb.py"
 INNER = ROOT / "apps/desktop/tools/agent-signed-apt-oci-inner.sh"
+WITNESS_SCRIPT = ROOT / "apps/desktop/tools/verify_signed_apt_witness_oci.sh"
 IMAGE = "ubuntu@sha256:562111b88caa79c71391c0c4d3c2114a7d5c35915c20561fd893cb1e07929e6b"
 PACKAGE = "lanveriq-agent-offline-preview"
 VERSION = "0.1.0~dev1"
@@ -23,6 +24,10 @@ NAME = f"{PACKAGE}_{VERSION}_amd64.deb"
 PRIOR_VERSION = "0.1.0~dev0"
 PRIOR_NAME = f"{PACKAGE}_{PRIOR_VERSION}_amd64.deb"
 PINNED_HISTORICAL_AGENT_SHA = "cd031894048dfcdc479aeaddd72e6254abde7303"
+WITNESS_CASES = (
+    "signed-witness-valid-old-release-refused",
+    "signed-witness-old-seal-and-forged-signatures-refused",
+)
 SOURCE_DISTINCT_CASES = (
     "signed-distinct-elf-unattended-downgrade-refused",
     "signed-distinct-elf-explicit-oci-downgrade",
@@ -33,7 +38,7 @@ CASES = ("signed-install-reinstall-remove", "wrong-key", "wrong-signer",
          "unsigned", "index-tamper", "expired", "future", "deb-tamper",
          "package-confusion", "signed-valid-old-release-acceptance",
          "signed-old-different-packages-retained", *VERSION_CASES,
-         *SOURCE_DISTINCT_CASES)
+         *SOURCE_DISTINCT_CASES, *WITNESS_CASES)
 MOUNT = "/mnt/lanveriq-lab"
 CURRENT_DESCRIPTION = b"Description: audited idle Agent, disposable signing test ONLY"
 PRIOR_DESCRIPTION = b"Description: audited idle Agent, historical signed index ONLY"
@@ -171,6 +176,22 @@ def private_signer(home, public, label):
     check(public.stat().st_size > 50, "test public key missing")
 
 
+def witness_manifest(sequence, inrelease: bytes) -> bytes:
+    """Build a strict signed *fixture* for gpgv, NOT a release trust schema."""
+    check(sequence in (1, 2), "unapproved CI witness sequence")
+    check(inrelease.startswith(b"-----BEGIN PGP SIGNED MESSAGE-----"),
+          "signed APT InRelease required")
+    digest = hashlib.sha256(inrelease).hexdigest()
+    return (f"LANVERIQ-CI-ONLY-APT-WITNESS-V1\\n"
+            f"sequence={sequence}\\n"
+            f"release_sha256={digest}\\n").encode("ascii")
+
+
+def detached_witness_signature(home, manifest, output):
+    run(("gpg", "--batch", "--yes", "--homedir", str(home),
+         "--detach-sign", "--output", str(output), str(manifest)))
+
+
 def rfc822_date(days=0):
     return (datetime.datetime.now(datetime.timezone.utc) +
             datetime.timedelta(days=days)).strftime("%a, %d %b %Y %H:%M:%S +0000")
@@ -182,6 +203,11 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
     keys.mkdir()
     for role in ("publisher", "attacker"):
         shutil.copyfile(public_keys / (role + ".gpg"), keys / (role + ".gpg"))
+    if case in WITNESS_CASES:
+        check((public_keys / "publisher.gpg").read_bytes() !=
+              (public_keys / "witness.gpg").read_bytes(),
+              "witness signer must differ from APT publisher")
+        shutil.copyfile(public_keys / "witness.gpg", keys / "witness.gpg")
     pool = directory / "repo/pool/main/l/lanveriq-agent-offline-preview"
     pool.mkdir(parents=True)
     target = pool / NAME
@@ -255,7 +281,7 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
     run(("gpg", "--batch", "--yes", "--homedir", str(homes[signer]),
          "--clearsign", "--output", str(signed), str(release)))
     if case in ("signed-valid-old-release-acceptance",
-                "signed-old-different-packages-retained"):
+                "signed-old-different-packages-retained", *WITNESS_CASES):
         # A second *validly signed* Release is one day OLDER than the first,
         # but still within Valid-Until. Sign it with the SAME disposable key.
         # This tests native apt-secure's rollback limitation; no APT install.
@@ -280,6 +306,26 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
         )
         run(("gpg", "--batch", "--yes", "--homedir", str(homes["publisher"]),
              "--clearsign", "--output", str(stale / "InRelease"), str(old_release)))
+    if case in WITNESS_CASES:
+        check((stale / "InRelease").is_file(),
+              "genuine old signed APT Release witness input missing")
+        shutil.copyfile(WITNESS_SCRIPT, directory / "verify-witness.sh")
+        witness = directory / "witness"
+        witness.mkdir()
+        approved = witness / "approved.manifest"
+        approved.write_bytes(witness_manifest(2, signed.read_bytes()))
+        detached_witness_signature(homes["witness"], approved,
+                                   witness / "approved.sig")
+        old = witness / "old.manifest"
+        old.write_bytes(witness_manifest(1,
+                                         (stale / "InRelease").read_bytes()))
+        detached_witness_signature(homes["witness"], old, witness / "old.sig")
+        # Negative controls: unauthenticated publisher-forged witness signature
+        # and mutated manifest, both must fail actual native gpgv.
+        detached_witness_signature(homes["publisher"], approved,
+                                   witness / "forged-publisher.sig")
+        (witness / "tampered.manifest").write_bytes(
+            approved.read_bytes().replace(b"sequence=2", b"sequence=8"))
     if case == "unsigned":
         signed.unlink()
     if case == "index-tamper":
@@ -307,6 +353,7 @@ def execute_case(case, directory):
            "--pids-limit", "96", "--memory", "512m", "--cpus", "1",
            "--mount", f"type=bind,src={directory},dst={MOUNT},readonly",
            "--env", f"LANVERIQ_L2B23_CASE={case}",
+           "--env", f"LANVERIQ_SYNTHETIC_WITNESS_L2={int(case in WITNESS_CASES)}",
            "--entrypoint", "/bin/bash", IMAGE, "-seuo", "pipefail")
     result = subprocess.run(cmd, input=INNER.read_bytes(),
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -357,7 +404,7 @@ def main():
             base = pathlib.Path(root)
             pubs = base / "public-keyrings"
             pubs.mkdir()
-            for role in ("publisher", "attacker"):
+            for role in ("publisher", "attacker", "witness"):
                 homes[role] = signing / (role + "-gnupg")
                 private_signer(homes[role], pubs / (role + ".gpg"), role)
             historical = create_prior_version_archive(archive, base / PRIOR_NAME)
