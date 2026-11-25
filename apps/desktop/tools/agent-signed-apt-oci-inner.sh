@@ -219,6 +219,101 @@ case "$LANVERIQ_L2B23_CASE" in
     fi
     echo 'PASS: native APT accepted older valid signed InRelease but retained newer DIFFERENT Packages; no independent persistent high-water'
     ;;
+  signed-witness-cold-cache-approved-anchor-accepted|signed-witness-cold-cache-double-replay-refused|signed-witness-cold-cache-missing-anchor-refused)
+    # L2B-33 CI-only. APT cache intentionally fresh and separate from host.
+    # Approved anchor comes from a DIFFERENT runner temp tree, mounted RO.
+    # Same runner admin still controls all three: NOT production high-water.
+    work=/tmp/lanveriq-witness-cold-anchor
+    mkdir -p "$work/lists/partial" "$work/archives/partial"
+    cp -R /mnt/lanveriq-lab/repo "$work/repo"
+    sed "s#file:/mnt/lanveriq-lab/repo#file:$work/repo#" \
+      /mnt/lanveriq-lab/lab.sources > "$work/lab.sources"
+    opts[0]=-oDir::Etc::sourcelist="$work/lab.sources"
+    opts+=("-oDir::State::lists=$work/lists" "-oDir::Cache::archives=$work/archives")
+    test -z "$(find "$work/lists" -maxdepth 1 -type f -print -quit)"
+    test -z "$(find "$work/archives" -maxdepth 1 -type f -print -quit)"
+    target="$work/repo/dists/lab/InRelease"
+    verifier=/mnt/lanveriq-lab/verify-witness.sh
+    manifest=/mnt/lanveriq-lab/witness/approved.manifest
+    signature=/mnt/lanveriq-lab/witness/approved.sig
+    if [ "$LANVERIQ_L2B23_CASE" = signed-witness-cold-cache-double-replay-refused ]; then
+      cp /mnt/lanveriq-lab/stale-signed/Packages \
+        "$work/repo/dists/lab/main/binary-amd64/Packages"
+      cp /mnt/lanveriq-lab/stale-signed/InRelease "$target"
+      manifest=/mnt/lanveriq-lab/witness/replayed-sequence2.manifest
+      signature=/mnt/lanveriq-lab/witness/replayed-sequence2.sig
+    fi
+    apt-get "${opts[@]}" update > "$work/update.log" 2>&1 || {
+      cat "$work/update.log" >&2
+      echo 'NOT_APPROVED: cold-cache native APT failed before witness verdict' >&2
+      exit 151
+    }
+    grep -F 'InRelease' "$work/update.log" > /dev/null
+    apt_metadata="$(apt-cache "${opts[@]}" show lanveriq-agent-offline-preview)"
+    if [ "$LANVERIQ_L2B23_CASE" = signed-witness-cold-cache-double-replay-refused ]; then
+      printf '%s\n' "$apt_metadata" |
+        grep -Fx 'Description: audited idle Agent, historical signed index ONLY' > /dev/null || {
+        echo 'NOT_APPROVED: old DIFFERENT Packages not adopted in cold cache' >&2
+        exit 152
+      }
+      # Both old signatures are genuinely valid, and witness sequence=2.
+      gpgv --keyring /mnt/lanveriq-lab/keyrings/witness.gpg \
+        "$signature" "$manifest" > /dev/null 2>&1 || {
+        echo 'NOT_APPROVED: replayed same-sequence witness not authentic' >&2
+        exit 153
+      }
+      grep -Fx 'sequence=2' "$manifest" > /dev/null
+      digest="$(sha256sum "$target" | cut -d' ' -f1)"
+      grep -Fx "release_sha256=$digest" "$manifest" > /dev/null
+      test "$(sha256sum "$manifest" | cut -d' ' -f1)" != \
+        "$(cat /mnt/lanveriq-anchor/approved-witness.sha256)"
+      echo 'STAGE: cold APT adopted old Packages and both replayed signatures/sequence were valid'
+    else
+      printf '%s\n' "$apt_metadata" |
+        grep -Fx 'Description: audited idle Agent, disposable signing test ONLY' > /dev/null || {
+        echo 'NOT_APPROVED: original package index absent in cold APT cache' >&2
+        exit 154
+      }
+    fi
+    if [ "$LANVERIQ_L2B23_CASE" = signed-witness-cold-cache-approved-anchor-accepted ]; then
+      bash "$verifier" "$manifest" "$signature" "$target" > /dev/null || {
+        echo 'NOT_APPROVED: approved cold-cache signer/witness/anchor rejected' >&2
+        exit 155
+      }
+      echo 'STAGE: approved cold-cache signed source and separate RO anchor accepted'
+    else
+      if refusal="$(bash "$verifier" "$manifest" "$signature" "$target" 2>&1)"; then
+        echo 'FAIL: cold-cache preflight accepted jointly replayed pair or missing anchor' >&2
+        exit 156
+      fi
+      case "$LANVERIQ_L2B23_CASE" in
+        signed-witness-cold-cache-double-replay-refused)
+          [[ "$refusal" == *'NOT_APPROVED: separately mounted approved witness digest mismatch'* ]] || {
+            printf '%s\n' "$refusal" >&2
+            echo 'NOT_APPROVED: joint replay failed for unexpected reason' >&2
+            exit 157
+          }
+          echo 'STAGE: separate RO CI anchor refused old APT+same-sequence witness jointly replayed'
+          ;;
+        signed-witness-cold-cache-missing-anchor-refused)
+          [[ "$refusal" == *'NOT_APPROVED: independent read-only witness anchor missing'* ]] || {
+            printf '%s\n' "$refusal" >&2
+            echo 'NOT_APPROVED: missing anchor failed for unexpected reason' >&2
+            exit 158
+          }
+          echo 'STAGE: missing anchor correctly refused before any Agent install'
+          ;;
+      esac
+    fi
+    test ! -e /usr/bin/lanveriq-agent
+    test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
+    test ! -d /run/systemd/system
+    if dpkg-query -W lanveriq-agent-offline-preview >/dev/null 2>&1; then
+      echo 'FAIL: cold-cache witness case installed Agent' >&2
+      exit 159
+    fi
+    echo 'PASS: cold-cache APT with separate read-only CI anchor, approved acceptance and double replay/missing-anchor denial; NOT production high-water'
+    ;;
   signed-witness-valid-old-release-refused|signed-witness-old-seal-and-forged-signatures-refused)
     # L2B-32 CI-only: gpgv verifies a different signer from APT. This fixture
     # pins sequence=2 and the exact InRelease hash but is NOT external custody.
