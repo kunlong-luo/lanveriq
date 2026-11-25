@@ -1,0 +1,62 @@
+name: Source-only v0.1.0-dev.1 preview preflight (NO release)
+# L1 metadata/source audit only. Does not create Git tags, upload artifacts,
+# package Agents or enable any production feature. Explicit release approval is
+# a separate operator action and is NOT granted by this job.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/source-preview-preflight.yml'
+      - 'tools/release/**'
+      - 'docs/planning/source-preview-v0.1.0-dev.1.json'
+      - 'docs/operations/source-preview-v0.1.0-dev.1.md'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'docs/CURRENT_STATUS.md'
+      - 'docs/planning/release-gap-register.md'
+      - 'docs/operations/release.md'
+  pull_request:
+    paths:
+      - '.github/workflows/source-preview-preflight.yml'
+      - 'tools/release/**'
+      - 'docs/planning/source-preview-v0.1.0-dev.1.json'
+      - 'docs/operations/source-preview-v0.1.0-dev.1.md'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'docs/CURRENT_STATUS.md'
+      - 'docs/planning/release-gap-register.md'
+      - 'docs/operations/release.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-only-refusal:
+    name: Deny installable assets, fake publisher approvals and production release claims
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test all source-only preview refusal cases
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest discover -s tools/release -p 'test_*.py' -v
+      - name: Verify exact source contract and informational commit manifest
+        run: |
+          set -Eeuo pipefail
+          python3 tools/release/verify_source_preview.py \
+            --manifest "$RUNNER_TEMP/lanveriq-source-preview-preflight.json"
+          python3 - <<'PY'
+          import json,os,pathlib
+          path=pathlib.Path(os.environ["RUNNER_TEMP"])/"lanveriq-source-preview-preflight.json"
+          data=json.loads(path.read_text(encoding="utf-8"))
+          assert data["source_commit_sha"]==os.environ["GITHUB_SHA"]
+          assert data["state"]=="SOURCE_ONLY_PREVIEW_PREFLIGHT_NOT_PUBLISHED"
+          assert data["attached_assets"]==[]
+          assert data["official_release_authorized"] is False
+          assert len(data["source_file_sha256"])==6
+          print("PASS: exact read-only source commit preflight, no distribution authority")
+          PY

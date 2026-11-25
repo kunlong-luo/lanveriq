@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "candidate_version": "v0.1.0-dev.1",
+  "channel": "developer_preview_source_only",
+  "publication_state": "NOT_PUBLISHED",
+  "production_release_state": "NOT_RELEASE_READY",
+  "distribution": "github_generated_source_archives_only",
+  "release_creation_authorized": false,
+  "approved_publisher_signer": false,
+  "independent_apt_highwater_approved": false,
+  "trusted_release_clock_approved": false,
+  "privileged_polkit_install_approved": false,
+  "physical_popos_l3_approved": false,
+  "attached_assets": [],
+  "installable_agent_packages": [],
+  "production_switches": {
+    "networking": false,
+    "inventory_collection": false,
+    "automatic_recovery": false,
+    "remote_control": false,
+    "ca_issuance": false
+  },
+  "gates": {
+    "G-01": "OPEN",
+    "G-02": "OPEN",
+    "G-03": "OPEN",
+    "G-04": "OPEN",
+    "G-05": "OPEN",
+    "G-06": "OPEN",
+    "G-07": "OPEN",
+    "G-08": "OPEN",
+    "G-09": "OPEN",
+    "G-10": "OPEN"
+  },
+  "verified_synthetic_evidence": {
+    "functional_sha": "db570181d603a7f069a85a23c009658e9a8bed4c",
+    "linux_l2_run_id": 45554279736,
+    "agent_l1_run_id": 45554279741,
+    "environment": "disposable_ubuntu_24_04_only"
+  }
+}
