@@ -37,6 +37,8 @@
 
 **新增 L2 PASS：** [Linux 恢复后迟到重复/旧版本/冲突不改变 PG18 当前行](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 `9ba85399`、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)；只适用于隔离合成环境，G-06 OPEN。
 
+**下一项合成 L2 PENDING：** [Rust 未收到 ACK、PG18 已应用、原 SQLite 请求经真实 mTLS 重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md)；功能 `f83aeab6`、[Linux #45581861955](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955) 尚无 PASS，不能把 ACK withheld 说成实际 TCP 中断。
+
 ## G-05 原生 APT：不同 ELF、分离签名与冷缓存双回放
 
 [L2B-31 不同 Rust ELF 15/15](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) · [L2B-32 分离 CI witness 17/17](development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md) · [L2B-33 冷缓存双回放/分离 RO 批准锚点 20/20](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md)（[实际 OCI #45569177575 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)）。真实 APT 可采用旧不同 Packages，CI 分离批准 witness 摘要拒绝同序列旧 witness 联合回放；**仍缺少生产外部高水位、正式安装授权或 Pop!_OS L3**。

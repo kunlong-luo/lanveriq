@@ -4,6 +4,10 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — G-06 服务端已提交、Rust ACK 未知的合成重送实验
+
+- [功能 SHA `f83aeab6`](https://github.com/kunlong-luo/lanveriq/commit/f83aeab61199fa59256e3422c84a34b34383ab91) 将 `revision 2` 原始 SQLite JSON 在 Caddy 恢复后先由 CI 驱动通过真实 mTLS 提交到 PG18，故意不向 Rust 交付 ACK；Rust 再按现有 Reqwest 精确重复确认逻辑处理同份 pending，要求 PG18 状态不再改写。[专项报告](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) · [原生 L2 #45581861955 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**这仅模拟 ACK 未见，不是 TCP 层真断线；生产 OFF。**
+
 ## 2026-11-25 — G-06 恢复后乱序/重复清单 L2 与文档治理
 
 - [功能 SHA `9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942) · [Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) · [server unit #45571463462 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463462)：真实 Caddy mTLS 重送 revision 2 同包、旧 revision 1 迟到和同 revision 2 冲突，要求 PG18 snapshot/revision/received_at/digest 全部不变；[专项报告](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)。
