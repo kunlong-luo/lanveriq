@@ -23,7 +23,7 @@
 
 **源码预览候选（2026-11-25）**：[v0.1.0-dev.1](../operations/source-preview-v0.1.0-dev.1.md) 源码发布前负测 [#45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790)，只验证文档/配置中的源码限定、无二进制附件和 G 门禁不被错误标绿；**没有创建 tag/Release、没有部署或批准任何正式 Agent 安装能力**。它不能替代后续 G-05 高水位/发行签名/Polkit/实机事务测试。
 
-**G-06 本轮补强（L2 PASS，非生产）：** [恢复后延迟重复/乱序/冲突](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 `9ba85399`、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)。**下一项已实现但验收 PENDING：** [ACK 未交付 Rust 而 PG18 已提交后原 SQLite 请求重送](../development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md)，功能 `f83aeab6`、[Linux #45581861955](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955) 待验收；G-05 发行、Polkit 和 L3 仍阻塞正式发布。
+**G-06 隔离 L2 连续性：** [恢复后乱序/冲突](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md) 功能 9ba85399、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)；[ACK 未送达 Rust 而 PG18 已提交后重送](../development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**本轮新阶段 PENDING：** [PostgreSQL18 SIGKILL/WAL 恢复→原 SQLite 请求重送](../development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 9ee4681e、[Linux #45583252985](https://github.com/kunlong-luo/lanveriq/actions/runs/45583252985)。当前仍需 G-05 发行签收/Polkit、G-06 生产身份授权、G-08 灾备与 Pop!_OS 真机 L3。
 
 ## 下一阶段与退出顺序
 

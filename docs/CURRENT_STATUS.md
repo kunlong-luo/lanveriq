@@ -36,6 +36,10 @@
 
 [专项报告](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)：功能 SHA [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942)、[真实 Linux Batch A #45571463449（两 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)、[Server unit #45571463462 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463462)。新增恢复后重复、旧版本迟到、同版本冲突的 mTLS/PG18 负测；**仍只适用于隔离 CI，G-06 OPEN**。
 
+## 最新 G-06 L2 验收与故障注入
+
+[ACK 未交付 Rust、PG18 已提交、原始 SQLite 请求经真实 mTLS 重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 已在功能 SHA f83aeab6 的 [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)、[Agent #45581861744 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861744)、[Server #45581861736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861736) 验收。这是合成未交付 ACK，不是 TCP 真正断线。新增 [PG18 SIGKILL/WAL 恢复→Rust 重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 9ee4681e，[Linux L2 #45583252985](https://github.com/kunlong-luo/lanveriq/actions/runs/45583252985) **PENDING**；不能把前一项 PASS 冒充本项验收。G-06/G-08 继续 OPEN。
+
 ## 下一项退出目标（不等于批准上线）
 
 **G-05 下一项：** [L2B-33 20/20 原生 L2](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) 已验证冷缓存双签名同序列回放由 RO CI 批准摘要拒绝；**仍无独立管理域正式发行/见证根、可信时间或不可回退高水位**。下一步须具名发行/安全主体独立批准密钥、持久版本/摘要及恢复规则，再实测合法离线、重装、升级/恢复；Polkit root broker 和 Pop!_OS COSMIC 实机 L3 另行授权。生产安装/联网/采集/远控 OFF。

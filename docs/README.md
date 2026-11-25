@@ -37,7 +37,9 @@
 
 **新增 L2 PASS：** [Linux 恢复后迟到重复/旧版本/冲突不改变 PG18 当前行](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 `9ba85399`、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)；只适用于隔离合成环境，G-06 OPEN。
 
-**下一项合成 L2 PENDING：** [Rust 未收到 ACK、PG18 已应用、原 SQLite 请求经真实 mTLS 重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md)；功能 `f83aeab6`、[Linux #45581861955](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955) 尚无 PASS，不能把 ACK withheld 说成实际 TCP 中断。
+**新增 L2 PASS：** [ACK 未交付 Rust、PG18 已提交、原 SQLite 请求重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md)；功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。这是合成未交付 HTTP ACK，不是实际 TCP 断线。
+
+**新阶段 L2 PENDING：** [PG18 真实 SIGKILL/WAL 恢复后同请求重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)；功能 9ee4681e、[Linux #45583252985](https://github.com/kunlong-luo/lanveriq/actions/runs/45583252985)。生产灾备与实际设备仍未验收。
 
 ## G-05 原生 APT：不同 ELF、分离签名与冷缓存双回放
 

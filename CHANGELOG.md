@@ -4,9 +4,13 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — G-06 PostgreSQL18 实际 SIGKILL/WAL 恢复增量（L2 PENDING）
+
+- 功能 [9ee4681e](https://github.com/kunlong-luo/lanveriq/commit/9ee4681ec4b7689fd0e7b2f0ef1251889c196cc3) 在先前真实 ACK withheld 已提交 revision 2 后，杀掉 PostgreSQL18 容器并经 WAL 重启，要求 PG18 持久化四字段不变，随后 Rust SQLite 原请求取得幂等 ACK。[Linux L2 #45583252985 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45583252985)。[报告](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)。不能算生产 G-06/G-08 验收。
+
 ## 2026-11-25 — G-06 服务端已提交、Rust ACK 未知的合成重送实验
 
-- [功能 SHA `f83aeab6`](https://github.com/kunlong-luo/lanveriq/commit/f83aeab61199fa59256e3422c84a34b34383ab91) 将 `revision 2` 原始 SQLite JSON 在 Caddy 恢复后先由 CI 驱动通过真实 mTLS 提交到 PG18，故意不向 Rust 交付 ACK；Rust 再按现有 Reqwest 精确重复确认逻辑处理同份 pending，要求 PG18 状态不再改写。[专项报告](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) · [原生 L2 #45581861955 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**这仅模拟 ACK 未见，不是 TCP 层真断线；生产 OFF。**
+- [功能 SHA `f83aeab6`](https://github.com/kunlong-luo/lanveriq/commit/f83aeab61199fa59256e3422c84a34b34383ab91) 将 `revision 2` 原始 SQLite JSON 在 Caddy 恢复后先由 CI 驱动通过真实 mTLS 提交到 PG18，故意不向 Rust 交付 ACK；Rust 再按现有 Reqwest 精确重复确认逻辑处理同份 pending，要求 PG18 状态不再改写。[专项报告](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) · [原生 L2 #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**这仅模拟 ACK 未见，不是 TCP 层真断线；生产 OFF。** [Agent #45581861744 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861744)、[Server #45581861736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861736) 已核验。
 
 ## 2026-11-25 — G-06 恢复后乱序/重复清单 L2 与文档治理
 

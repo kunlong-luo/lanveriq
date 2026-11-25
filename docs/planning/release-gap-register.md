@@ -21,6 +21,8 @@
 
 **G-06 隔离增量 L2 PASS：** [恢复后重复、迟到旧版、同版本冲突仍保持 PG18 行不变](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)；功能 `9ba85399`、[Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)。**正式设备/身份/授权仍未验收，G-06 OPEN。**
 
+**G-06/G-08 补充证据：** [ACK 未送达 Rust、PG18 已提交的原请求重送](../development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6 / [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)；[PG18 SIGKILL/WAL 恢复后重送](../development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 9ee4681e / [Linux #45583252985](https://github.com/kunlong-luo/lanveriq/actions/runs/45583252985) **PENDING**。没有真实跨机备份、法务许可、真实设备 CA/MFA、L3 或 RPO/RTO，两个 Gate 均 OPEN。
+
 **预览发布 ≠ 正式 Agent 发行：** `v0.1.0-dev.1` [源码预览候选](../operations/source-preview-v0.1.0-dev.1.md) 的 [L1 #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) 只证明本地合约拒绝虚假批准和安装包附件，**未创建 Release/tag，不能视为 G-05/G-07 或任何 Gate 签收。**
 
 ## 最近实测 ≠ Gate 放行
