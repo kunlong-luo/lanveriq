@@ -1,6 +1,6 @@
 # DESKTOP-L2B-29 — 原生 APT 接受旧签名 Release，但保留不同的较新 Packages 索引
 
-**当前观察回归源码：** [`ef9954610622c4ff8a09e1548a1418bdf5c10ce0`](https://github.com/kunlong-luo/lanveriq/commit/ef9954610622c4ff8a09e1548a1418bdf5c10ce0)。**验收：前三次未通过的新假设仍留存；修正为拒绝优先的原生观察后 [#45559034203](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) **overall SUCCESS，11/11 真实 OCI APT 场景 PASS**（当前功能 SHA `ef995461`）。仅证明本固定环境缓存保留，G-05 OPEN，v0.1 NOT RELEASE READY。**
+**功能源码：** [`ef9954610622c4ff8a09e1548a1418bdf5c10ce0`](https://github.com/kunlong-luo/lanveriq/commit/ef9954610622c4ff8a09e1548a1418bdf5c10ce0)。**隔离原生 APT L2：[运行 #45559034203](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) 11/11 SUCCESS。** 先前三次 FAIL 均保留原始证据；仅证明本固定 OCI 中较新版 Packages 被保留。**G-05 OPEN · v0.1 NOT RELEASE READY。**
 
 ## 为什么在 L2B-27 / L2B-28 之后仍需此测试
 
