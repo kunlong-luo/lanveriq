@@ -66,9 +66,9 @@ pnpm dev
 
 正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项已按功能 SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c) 通过[真实隔离 Linux L2 #45554279736（两个 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)。** 这不代表正式 Agent 可安装、具备后台自动恢复或生产采集授权。
 
-## G-05 不同 Rust ELF 的原生 APT 降级与恢复验收
+## G-05 原生 APT 与第二签名身份见证回放拒绝
 
-[L2B-31 原生 Ubuntu OCI #45563578245 — 15/15 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245) 已在两份**固定历史 Git 源码独立编译、ELF 哈希确实不同**的 Rust Agent 间完成原生 APT 实测：无人值守降级被拒；仅在隔离实验中明确覆盖后，安装文件真正切换到旧版，再升级恢复新版，操作员配置/state 保留。CI-only / 缺少授权的负测也已验证实际环境拒绝原因，而非参数数量错误。[L2B-31 专项报告](docs/development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md)。**正式签名根、独立高水位、Polkit 安装 broker 和 Pop!_OS 实机 L3 仍未获批；G-05 OPEN。**
+[L2B-32 原生 Ubuntu OCI #45566961126 — 17/17 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126) 保留前 15 项真实 APT 与不同 Rust ELF 验收，并用**单独生成的 CI 实验 GPG 见证签名者**做新增负测：APT 仍接受较旧但有效签名的 Release，见证预检却依序列/摘要拒绝；有效旧见证、发布者冒充和篡改见证也被拒绝。五项轻量源级负测已前移至 Rust 编译之前。[L2B-32 报告（含首轮失败）](docs/development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md)。**尚非外部独立保管的高水位、正式发行签名或获批 Agent 安装器；G-05 OPEN。**
 
 ## 安全与下一步
 

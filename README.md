@@ -66,9 +66,9 @@ Other developer tests: `cd apps/server && ./gradlew test`, `cd apps/agent && car
 
 The next isolated business-loop milestone is [durable Linux inventory recovery after a real Caddy outage, exact mTLS ACK, PG18 revision advance and operator-triggered Chromium refresh](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md). **Verified at functional SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c): [Linux L2 #45554279736 — both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736).** This is not a product installer, automatic Agent recovery or production approval.
 
-## Native APT: pinned historical Rust ELF downgrade proof (L2)
+## Native APT + separately signed GPG witness (L2B-32)
 
-[L2B-31 native APT #45563578245 — 15/15 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245) built two **different Rust ELFs from exact pinned Git sources**, then verified actual APT-installed file downgrade and restoration **only in a disposable networkless Ubuntu OCI**. Unattended downgrade was refused; an explicit lab-only override changed the installed ELF and preserved local configuration/state. The CI-only/consent negative checks now verify the actual denial reason, not an argument error. See [L2B-31 evidence](docs/development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md). **G-05 remains OPEN: no approved publisher signer, independent anti-rollback high-water, operator installation broker or Pop!_OS COSMIC L3.**
+[L2B-32 native Ubuntu OCI #45566961126 — 17/17 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126) retains the previous pinned-source ELF APT tests and adds a **separately generated, CI-only GPG witness key**. Real apt-secure still accepted an older validly signed `InRelease`, while `gpgv`-verified witness sequence/digest rejected it; an authentic older witness sequence, publisher forgery and tampered witness were also rejected. Light negative tests now run before expensive Rust builds. See [L2B-32 evidence and first failed run](docs/development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md). **Not an independently custodied high-water, approved publisher, user installer or Pop!_OS L3. G-05 OPEN.**
 
 ## Release boundary and next work
 

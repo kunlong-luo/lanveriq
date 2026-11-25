@@ -35,9 +35,9 @@
 
 [断网后的 Rust SQLite 清单恢复 → mTLS ACK → PG18 当前 revision → Next.js 手动刷新 L2](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)（**功能 SHA `db570181`：[Linux L2 #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)；仅隔离 L2，正式发布仍 OFF**）。上一个 OS/CPU/RAM 首次入库 L2 已单独 [PASS](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，不要混淆两次功能 SHA。
 
-## 当前 G-05 原生 APT 索引与包版本验收
+## G-05 原生 APT 安全实验：不同 ELF 与双签名见证
 
-[L2B-29 原生旧签名索引 11/11](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) · [L2B-30 两个 Debian 包版本 13/13](development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md) · [L2B-31 固定历史源码真正不同 ELF 15/15](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md)（[OCI #45563578245 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245)）。默认无人值守降级拒绝，隔离显式覆盖可实际降级再恢复 ELF；**不是正式签名者、高水位或 Pop!_OS L3。**
+[L2B-31 两份不同 Rust ELF 15/15](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) · [L2B-32 分离 CI GPG signer / 原生 APT 见证 17/17](development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md)（[OCI #45566961126 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)）。APT 可接受旧有效签名 Release；实验独立 signer 见证按序列/摘要拒绝。**未有外部可信高水位、正式安装权限或 Pop!_OS L3。**
 
 ## 去重与防断链
 

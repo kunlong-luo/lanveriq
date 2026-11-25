@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — L2B-32 原生 APT 与单独 GPG witness 签名 L2
+
+- [功能修复 SHA `55de6e71`](https://github.com/kunlong-luo/lanveriq/commit/55de6e714bde3bb8a3c2f5a0050b413ff38f70c9) · [Ubuntu24 OCI #45566961126 17/17 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)：仍由 APT 验证 publisher Signed-By，另以**不同的一次性 CI witness signer** 的原生 `gpgv` 见证校验 fixed sequence=2 和实际 `InRelease` SHA256。真实 `apt-get update` 仍接受旧有效签名 Release，但 witness 拒绝其摘要；真正见证签名的低序列、publisher 伪造及篡改均拒绝；原有 15 个不同 Rust ELF / APT 负例回归成功。
+- [首轮原生 OCI #45566159779 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45566159779) 因严格源级负测发现见证清单错误写入字面量 `\\n`，还没走到 APT；修正真实 LF 并**将 5 项轻量源级负测前移到双 Rust 编译前**，保留原失败证据。详见 [L2B-32 专项报告](docs/development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md)。同一 CI 内的 signer、固定序列和只读挂载仍**不是独立管理域托管的防回退高水位**，**G-05 OPEN**。
+
 ## 2026-11-25 — L2B-31 固定历史 Rust 源不同 ELF 的原生 APT L2
 
 - [功能提交 84c5a717](https://github.com/kunlong-luo/lanveriq/commit/84c5a7174fd4e6b9b56027d4e9c05eef4e0c4407)、[原生 OCI #45562937199 15/15 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45562937199)：用完整固定历史 Git SHA cd031894 与当前 Agent 通过相同 Cargo.lock 独立构建不同 ELF；新增两项原生 APT 测试证实默认降级拒绝、仅在无网络 OCI 显式覆盖时发生真实 ELF 文件替换与升级恢复，配置/state 保留。
