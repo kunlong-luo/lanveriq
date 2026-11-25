@@ -1348,6 +1348,12 @@ PY
                     exit 1
                 }
                 chmod 600 "$backup_archive"
+                # G-08 reusable, local-only archive evidence: the custom
+                # pg_dump must match its private same-admin JSON before any
+                # pg_restore; this is NOT independent custody or a signature.
+                backup_evidence="$TMP/synthetic-pg18-recovery.evidence.json"
+                python3 "$ROOT/apps/server/scripts/pg_backup_evidence.py" create "$backup_archive" "$backup_evidence"
+                python3 "$ROOT/apps/server/scripts/pg_backup_evidence.py" verify "$backup_archive" "$backup_evidence"
                 docker exec -i "$DB_CID" pg_restore --list < "$backup_archive" > "$TMP/synthetic-pg18-recovery.toc"
                 grep -F 'device_inventory_current' "$TMP/synthetic-pg18-recovery.toc" >/dev/null || {
                     echo "FAIL: disposable PG18 archive omitted current inventory table" >&2
@@ -1440,7 +1446,41 @@ PY
                         echo "FAIL: deliberately corrupted backup still equals approved CI digest" >&2
                         exit 1
                     }
+                    if python3 "$ROOT/apps/server/scripts/pg_backup_evidence.py" verify \
+                        "$bad_archive" "$backup_evidence" > "$TMP/bad-backup-evidence.log" 2>&1; then
+                        echo "FAIL: local-only evidence verifier accepted a corrupted archive" >&2
+                        exit 1
+                    fi
+                    grep -Fq 'INCOMPLETE: local PG18 archive evidence refused' \
+                        "$TMP/bad-backup-evidence.log" || {
+                        echo "FAIL: corrupted archive refusal was not the evidence verifier" >&2
+                        exit 1
+                    }
                 done
+                # An attacker can alter both local dump and manifest under
+                # shared admin authority. At least refuse any synthetic
+                # manifest that claims a production trust/restore approval.
+                python3 - "$backup_evidence" "$TMP/forged-pg18-evidence.json" <<'PY'
+import json,sys
+from pathlib import Path
+good, forged = map(Path, sys.argv[1:])
+data = json.loads(good.read_text(encoding="utf-8"))
+data["production_restore_authorized"] = True
+forged.write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
+forged.chmod(0o600)
+PY
+                if python3 "$ROOT/apps/server/scripts/pg_backup_evidence.py" verify \
+                    "$backup_archive" "$TMP/forged-pg18-evidence.json" > "$TMP/forged-backup-evidence.log" 2>&1; then
+                    echo "FAIL: local-only verifier accepted forged production restore authorization" >&2
+                    exit 1
+                fi
+                grep -Fq 'INCOMPLETE: local PG18 archive evidence refused' \
+                    "$TMP/forged-backup-evidence.log" || {
+                    echo "FAIL: forged-authorization refusal was not the evidence verifier" >&2
+                    exit 1
+                }
+                python3 "$ROOT/apps/server/scripts/pg_backup_evidence.py" verify "$backup_archive" "$backup_evidence"
+                echo "PASS: actual PG18 custom archive matched private same-admin evidence; corrupted dumps and forged restore permission refused (CI-only)."
                 if docker exec -i "$RESTORE_CID" pg_restore --list \
                     < "$TMP/invalid-pg18-magic.dump" > "$TMP/invalid-pg18-magic.log" 2>&1; then
                     echo "FAIL: pg_restore accepted invalid backup archive header" >&2

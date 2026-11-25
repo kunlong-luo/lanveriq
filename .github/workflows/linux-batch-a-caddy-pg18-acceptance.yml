@@ -13,6 +13,8 @@ on:
       - 'apps/server/src/test/java/com/lanveriq/server/security/ConsoleSessionBrowserFlowWebMvcTest.java'
       - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
+      - 'apps/server/scripts/pg_backup_evidence.py'
+      - 'apps/server/scripts/test_pg_backup_evidence.py'
       - 'apps/server/scripts/verify-synthetic-console-session.sh'
       - 'apps/server/scripts/verify-synthetic-rust-chain-browser.py'
       - 'apps/server/scripts/verify-linux-readonly-inventory-sample.py'
