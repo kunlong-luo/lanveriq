@@ -20,7 +20,7 @@
 
 | 子链路 | 精确功能 SHA / 实际 CI | 证明与限制 |
 | --- | --- | --- |
-| **v0.1.0-dev.1 源码预览门禁（非发行 L1）** | [`a1473c9e` / #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) | 精确绑定上轮 Linux L2 功能 SHA/Run ID，拒绝添加发行附件、Agent 安装包、虚假的正式信任/Polkit/实机批准或开启生产能力；只生成临时本地 SHA256 源码清单，**无 Git Tag/Release/发布/生产签名**。[候选说明](operations/source-preview-v0.1.0-dev.1.md) |
+| **dev.1 源码预览 L1（未发布）** | [`a1473c9e` / #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) | 仅源码合约与安全拒绝测试；无 tag/Release、正式签名或可安装包；全部 Gate OPEN。[候选说明](operations/source-preview-v0.1.0-dev.1.md) |
 | **Linux 清单断网→恢复→精确 ACK→PG18→Next.js（隔离 L2）** | [`db570181` / Linux #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) · [Agent unit #45554279741 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279741) | 真实 Caddy 断网保留 Rust SQLite revision 2、恢复 mTLS 后同一原始请求取得精确 ACK 并提交 PG18 latest=2；revision 3 在过期/吊销凭据下仍待发；真实 Chromium 经授权手动刷新，仅证明 Ubuntu runner 合成链。[报告](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md) |
 | **L2B-28 发行证据可信边界（仅离线 L1）** | [`03420e61` / #45400903033 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) | v2 严格负测拒绝伪造独立 APT 高水位、可信时钟和正式签名者，并保留旧签名 Release 被 APT 接受的事实；**没有真实高水位、安装事务或新原生重放拒绝**。[报告](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) |
 | **签名索引日期的真实回放风险 L2B-27** | [`09a4e3b3` / #45395513243 10/10 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243) | 先 `apt-get update` 较新有效签名 Release，后换成仍有效的**较旧 Date、同 Packages、同临时 signer**，APT 实际再次接受；说明没有独立的单调高水位证明。**未发生软件包降级**。[报告](development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md) |
