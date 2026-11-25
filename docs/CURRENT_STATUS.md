@@ -35,7 +35,7 @@
 
 ## 最新 G-06 L2 验收与故障注入
 
-[ACK 未交付 Rust、PG18 已提交、原始 SQLite 请求经真实 mTLS 重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 已在功能 SHA f83aeab6 的 [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)、[Agent #45581861744 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861744)、[Server #45581861736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861736) 验收。这是合成未交付 ACK，不是 TCP 真正断线。新增 [PG18 SIGKILL/WAL 恢复→Rust 重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009，[Linux L2 #45583968475](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475) **PENDING**（首次端口重映射 #45583252985 FAIL，失败保留在专题报告）；不能把前一项 PASS 冒充本项验收。G-06/G-08 继续 OPEN。
+[ACK 未交付 Rust、PG18 已提交、原始 SQLite 请求经真实 mTLS 重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 已在功能 SHA f83aeab6 的 [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)、[Agent #45581861744 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861744)、[Server #45581861736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861736) 验收。这是合成未交付 ACK，不是 TCP 真正断线。新增 [PG18 SIGKILL/WAL 恢复→Rust 重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009，[Linux L2 #45583968475](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475) **两 jobs SUCCESS**（首轮端口重映射 #45583252985 FAIL 保留在专题报告）；不能把前一项 PASS 冒充本项验收。G-06/G-08 继续 OPEN。
 
 ## 下一项退出目标（不等于批准上线）
 
