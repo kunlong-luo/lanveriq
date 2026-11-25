@@ -1,6 +1,6 @@
 # DESKTOP-L2B-29 — 原生 APT 接受旧签名 Release，但保留不同的较新 Packages 索引
 
-**当前观察回归源码：** [`ef9954610622c4ff8a09e1548a1418bdf5c10ce0`](https://github.com/kunlong-luo/lanveriq/commit/ef9954610622c4ff8a09e1548a1418bdf5c10ce0)。**验收：此前三次均 FAIL，新的拒绝优先缓存保留测试 [#45559034203](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) 尚未完成，不能提前称 11/11 PASS。G-05 OPEN，v0.1 NOT RELEASE READY。**
+**当前观察回归源码：** [`ef9954610622c4ff8a09e1548a1418bdf5c10ce0`](https://github.com/kunlong-luo/lanveriq/commit/ef9954610622c4ff8a09e1548a1418bdf5c10ce0)。**验收：前三次未通过的新假设仍留存；修正为拒绝优先的原生观察后 [#45559034203](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) **overall SUCCESS，11/11 真实 OCI APT 场景 PASS**（当前功能 SHA `ef995461`）。仅证明本固定环境缓存保留，G-05 OPEN，v0.1 NOT RELEASE READY。**
 
 ## 为什么在 L2B-27 / L2B-28 之后仍需此测试
 
@@ -23,7 +23,11 @@
 | [`bd6d4664`](https://github.com/kunlong-luo/lanveriq/commit/bd6d46646b6bad9fb7578a0097921084af059650) | [#45558040197 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45558040197) | 原有 10 个原生 APT 场景通过；第 11 项未通过。最初仅有新描述输出，不可据此判定具体缺口 |
 | [`d29da39a`](https://github.com/kunlong-luo/lanveriq/commit/d29da39ab00ef352585c3593022a7fa314982bf6) | [#45558342030 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45558342030) | 旧 Release 日期确实更早、Packages SHA256 确实不同、第二次原生 `apt-get update` 接受旧 `InRelease`，但 `apt-cache` **未显示旧 Packages 的描述**。因此不能宣称不同内容旧索引被实际采用 |
 | [`607e7b17`](https://github.com/kunlong-luo/lanveriq/commit/607e7b171feecc74361e5ff7da3c1908d9688b47) | [#45558662699 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45558662699) | 第二次 APT `update` 接受旧签名 InRelease，**没有下载旧 Packages、`apt-cache` 留在新版**；原测试期待旧内容被采用，因此依设计失败 |
-| [`ef995461`](https://github.com/kunlong-luo/lanveriq/commit/ef9954610622c4ff8a09e1548a1418bdf5c10ce0) | [#45559034203 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) | 将第 11 项改为**真实 APT 保留较新 Packages 的回归门禁**；如果后续开始采用不同的旧 Packages，fail closed。尚需 CI 同 SHA 验证 |
+| [`ef995461`](https://github.com/kunlong-luo/lanveriq/commit/ef9954610622c4ff8a09e1548a1418bdf5c10ce0) | [#45559034203 SUCCESS：11/11](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) | 实际 `apt-get update` 接受较旧的有效签名 InRelease；未下载不同旧 Packages、`apt-cache` 保留较新描述；正式签名高水位仍不存在。若将来下载/采用旧 Packages，回归 CI fail-closed |
+
+## 同一 SHA 原生验收结果
+
+[Linux APT L2 #45559034203](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) 的原始日志确认真实 Rust Agent `--release --locked` 编译、严格 `.deb` 归档审计、三项定向 Python 负测均 PASS；十项既有原生 APT 正反例继续 PASS；新增第 11 项 `signed-old-different-packages-retained` PASS。测试脚本和原生 APT 同时确认：两份 Packages SHA256 不同、较旧的签名 Release Date、更旧 `InRelease` 被接受、无旧 Packages 下载、`apt-cache` 保持新描述、无 Agent 安装。只读 Tauri/Polkit DENY-ALL 继续 PASS。完整历史失败 #45558040197 / #45558342030 / #45558662699 不删除。
 
 ## 精确允许的结论与不能推论的能力
 

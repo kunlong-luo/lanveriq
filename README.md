@@ -68,7 +68,7 @@ The next isolated business-loop milestone is [durable Linux inventory recovery a
 
 ## Latest signed APT index acceptance investigation
 
-The [L2B-29 native APT report](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) distinguishes an older valid signed `InRelease` being accepted from APT **actually adopting different older `Packages` metadata**. Initial native runs did **not** confirm the latter; keep G-05 OPEN and do not claim a package downgrade or anti-rollback enforcement.
+The [L2B-29 native APT report](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) distinguishes an older valid signed `InRelease` being accepted from APT **actually adopting different older `Packages` metadata**. Native [11/11 OCI L2 #45559034203 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) verified the old signed Release was accepted **without downloading or adopting the different older Packages**. Keep G-05 OPEN: no trusted independent high-water, actual version downgrade proof or installation authority.
 
 ## Release boundary and next work
 

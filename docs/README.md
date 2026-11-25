@@ -37,7 +37,7 @@
 
 ## 当前 G-05 原生 APT 差异索引观察
 
-[L2B-29 真实 signed InRelease / 不同 Packages 的核验范围与失败记录](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md)。仅 disposable Ubuntu OCI，不是签名发行、正式 APT 高水位或 Pop!_OS L3。**绝不可将原生 `apt-get update` 成功等同于旧 Packages 被采用。**
+[L2B-29 真实 signed InRelease / 不同 Packages 观察及三次失败记录](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) · [原生 OCI #45559034203 11/11 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203)。旧 `InRelease` 被接受，但不同旧 Packages 未下载、新版包描述保留；**非正式防回退高水位/Pop!_OS L3**。
 
 ## 去重与防断链
 

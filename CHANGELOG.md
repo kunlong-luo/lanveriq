@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — L2B-29 原生 APT 旧签名 Release / 不同 Packages 行为 L2
+
+- [功能 SHA `ef995461`](https://github.com/kunlong-luo/lanveriq/commit/ef9954610622c4ff8a09e1548a1418bdf5c10ce0)、[原生 Ubuntu24 无网络 OCI #45559034203 11/11 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203)：复用真实 Rust Agent `.deb` 与一次性签名 APT；确认旧有效签名 InRelease 被接受，而**内容不同的旧 Packages 未被重新下载，APT 继续显示较新元数据**；新增拒绝优先负测在未来旧内容被采用时 FAIL。
+- 三次失败及分段定位 [#45558040197](https://github.com/kunlong-luo/lanveriq/actions/runs/45558040197)、[#45558342030](https://github.com/kunlong-luo/lanveriq/actions/runs/45558342030)、[#45558662699](https://github.com/kunlong-luo/lanveriq/actions/runs/45558662699) 保留在[独立 L2B-29 报告](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md)，**不能将旧签名 Release 接受推导成包索引回退或正式防回退**。G-05 OPEN。
+
 ## 2026-11-25 — v0.1.0-dev.1 源码预览发布前拒绝门禁 L1
 
 - [功能 SHA `a1473c9e`](https://github.com/kunlong-luo/lanveriq/commit/a1473c9e1908d959113dbf2829ed4636270ee578)、[GitHub Actions #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790)：新增只读 `tools/release/` 门禁、负面测试、固定 SHA/真实 CI/全 G-OPEN 元数据、候选发布说明与 source-only 工作流；明确拒绝任何已发行/已签名/可安装声明。仅 L1 合约门禁，不是发行信任根。
