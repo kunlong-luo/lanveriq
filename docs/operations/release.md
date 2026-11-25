@@ -15,6 +15,8 @@
 
 **L2B-32 原生 APT + 单独见证 signer：** [55de6e71 / #45566961126 17/17 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)；[专项报告](../development/desktop-tauri-l2b32-separated-gpgv-witness-signed-apt-replay-oci-2026-11-25.md) 展示 APT 真正接受旧有效签名 Release，随后独立**CI 实验签名者**的 gpgv 序列/摘要校验将其拒绝，旧见证签名、发布者伪造和改动内容也拒绝。**没有外部高水位、可信时间/正式签发或产品强制执行路径**，不能作为客户升级/回滚权限。
 
+**L2B-33 冷缓存双重回放 L2：** [功能 SHA c177f281 / 原生 OCI #45569177575 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)。[专项报告](../development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) 证明原生 APT 在空缓存真实采用不同旧 Packages，旧 Release 与旧 witness（同 sequence=2）都签名有效，但另行 RO 挂载的 CI 批准摘要**拒绝**这组共同回放；缺锚点拒绝、批准材料通过。**CI 锚点不是独立管理域高水位，不能作为产品安装许可或正式根。**
+
 4. **最小权限 GUI 安装：** Tauri 只能请求固定动作，不持有 root shell/可自选 URI/任意安装路径；必须经原生 D-Bus 实际发送者身份、真正 logind 活跃会话和 Polkit 每操作一次授权、root-side 固定工件/事务证据核验。安装/升级/卸载、服务启动、boot enable、联网、采集须分别审批和审计。当前只有 [root-side ReviewLab 拒绝与恶意 OS YES 纵深负测](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**没有能执行安装的获批 broker**。
 5. **具名 Linux L3：** 先在 Ubuntu24 disposable L2 验证安全交易及拒绝/取消，再经用户/设备所有人真实书面许可，在 Pop!_OS24 COSMIC/Wayland 实机验证 GUI、背景服务可发现性、停止/卸载、升级/回滚、隐私告知、权限/性能。实机通过前不可分发。
 6. **生产信任/合规：** 官方 FIDO、真人管理员 WebAuthn MFA、CA/KMS、独立管理域 WORM、PG18/备份恢复、法律/许可证、SRE/应急/运营签收及正式 Agent→Spring/PG18→Next.js 全链，全部必须独立满足。[G-01～G-10](../planning/release-gap-register.md) 仍 **OPEN**。
