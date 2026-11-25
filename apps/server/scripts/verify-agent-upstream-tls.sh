@@ -1413,6 +1413,42 @@ PY
                     echo "FAIL: restored PG18 schema/inventory counts differ" >&2
                     exit 1
                 }
+                # Compare WHOLE source/restored rows, not just counts or the
+                # canonical device snapshot 4-tuple. Use PostgreSQL's JSONB
+                # serialization to normalize each table in deterministic PK
+                # order; sha256sum is local CI transport comparison only.
+                # No pgcrypto, cloud SDK, extra service or saved data export.
+                pg18_full_restore_fingerprint() {
+                    local database_container="$1"
+                    docker exec "$database_container" psql -U lanveriq -d lanveriq \
+                        -XAt -v ON_ERROR_STOP=1 -c "
+                        SELECT jsonb_build_object(
+                          'inventory_current', COALESCE(
+                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.device_id)
+                             FROM device_inventory_current r), '[]'::jsonb),
+                          'inventory_interfaces', COALESCE(
+                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.device_id, r.interface_key)
+                             FROM device_inventory_interfaces r), '[]'::jsonb),
+                          'inventory_addresses', COALESCE(
+                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.device_id, r.interface_key, r.ip, r.prefix_length)
+                             FROM device_inventory_addresses r), '[]'::jsonb),
+                          'inventory_volumes', COALESCE(
+                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.device_id, r.volume_key)
+                             FROM device_inventory_volumes r), '[]'::jsonb),
+                          'flyway_history', COALESCE(
+                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.installed_rank)
+                             FROM flyway_schema_history r), '[]'::jsonb)
+                        )::text
+                        " | sha256sum | awk '{print $1}'
+                }
+                original_full_fingerprint="$(pg18_full_restore_fingerprint "$DB_CID")"
+                restored_full_fingerprint="$(pg18_full_restore_fingerprint "$RESTORE_CID")"
+                [[ "$original_full_fingerprint" =~ ^[a-f0-9]{64}$ &&
+                   "$restored_full_fingerprint" == "$original_full_fingerprint" ]] || {
+                    echo "FAIL: restored PG18 full inventory child rows/Flyway differ from WAL source" >&2
+                    exit 1
+                }
+                echo "PASS: full-row canonical content matches WAL source across current inventory, interfaces, addresses, volumes and Flyway (CI-only)."
                 # G-08 integrity/atomicity negative tests: never treat a
                 # corrupt or incomplete dump as a successful disaster restore.
                 # Everything stays in this CI runner's private temporary dir.
@@ -1531,6 +1567,38 @@ PY
                     exit 1
                 }
                 echo "PASS: pg_restore rejects corrupt header and truncated custom dump; atomic failed restore leaves no inventory schema, verified restore stays intact (CI-only)."
+                # A count-only, snapshot-4-field-only check must NOT pass
+                # a modified restore. Mutate a safe synthetic JSONB field in
+                # the DISPOSABLE RESTORE COPY after all positive assertions.
+                # The original PG18, original Rust outbox and mTLS remain
+                # untouched and continue their existing acceptance afterwards.
+                changed_restore_rows="$(docker exec "$RESTORE_CID" psql -U lanveriq -d lanveriq -XAt \
+                    -v ON_ERROR_STOP=1 -c "
+                    UPDATE device_inventory_current
+                    SET capabilities_json = capabilities_json ||
+                        '{\"lanveriq_synthetic_restore_tamper_probe\":true}'::jsonb
+                    WHERE device_id = '$DEVICE_ID'
+                    RETURNING 1")"
+                [[ "$changed_restore_rows" == 1 ]] || {
+                    echo "FAIL: synthetic one-row restore-copy tamper did not execute" >&2
+                    exit 1
+                }
+                [[ "$(pg18_full_restore_fingerprint "$RESTORE_CID")" != "$original_full_fingerprint" ]] || {
+                    echo "FAIL: full-row restore integrity missed equal-count capabilities tamper" >&2
+                    exit 1
+                }
+                [[ "$(docker exec "$RESTORE_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_withheld_commit" ]] || {
+                    echo "FAIL: test modified canonical snapshot tuple instead of only child/detail payload" >&2
+                    exit 1
+                }
+                [[ "$(pg18_full_restore_fingerprint "$DB_CID")" == "$original_full_fingerprint" ]] || {
+                    echo "FAIL: synthetic restored-copy tamper changed original WAL database" >&2
+                    exit 1
+                }
+                echo "PASS: full-row restore verification rejects equal-count, unchanged-snapshot-tuple JSONB tamper; source unaffected (CI-only)."
                 docker rm -f "$RESTORE_CID" >/dev/null
                 RESTORE_CID=""
                 echo "PASS: custom pg_dump from WAL recovered PG18 -> fresh no-network PG18 restore has identical inventory, child counts and Flyway history; CI-only, not independent DR."
