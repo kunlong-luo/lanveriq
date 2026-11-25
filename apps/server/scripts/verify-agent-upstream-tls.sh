@@ -1428,8 +1428,8 @@ invalid_header.write_bytes(b"NOTPG" + data[5:])
 truncated.write_bytes(data[:len(data) // 2])
 for path in (invalid_header, truncated):
     path.chmod(0o600)
-    if path.stat().st_size >= len(data):
-        raise SystemExit("FAIL: corrupt archive fixture not distinct")
+    if path.read_bytes() == data:
+        raise SystemExit("FAIL: corrupt archive fixture identical to original")
 PY
                 [[ "$(sha256sum "$backup_archive" | awk '{print $1}')" == "$backup_sha256" ]] || {
                     echo "FAIL: valid CI backup changed during recovery checks" >&2
