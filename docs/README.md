@@ -35,9 +35,9 @@
 
 [断网后的 Rust SQLite 清单恢复 → mTLS ACK → PG18 当前 revision → Next.js 手动刷新 L2](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)（**功能 SHA `db570181`：[Linux L2 #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)；仅隔离 L2，正式发布仍 OFF**）。上一个 OS/CPU/RAM 首次入库 L2 已单独 [PASS](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)，不要混淆两次功能 SHA。
 
-## 当前 G-05 原生 APT 差异索引观察
+## 当前 G-05 原生 APT 索引与包版本验收
 
-[L2B-29 真实 signed InRelease / 不同 Packages 观察及三次失败记录](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) · [原生 OCI #45559034203 11/11 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203)。旧 `InRelease` 被接受，但不同旧 Packages 未下载、新版包描述保留；**非正式防回退高水位/Pop!_OS L3**。
+[L2B-29 旧签名索引与缓存保留 11/11](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) · [L2B-30 两个真实 `.deb` 版本与原生降级/恢复 13/13](development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md)（[OCI #45561370502 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)）。默认无人值守降级拒绝，但隔离显式覆盖确实降级，**不是正式发行可信高水位或实机 L3**。
 
 ## 去重与防断链
 

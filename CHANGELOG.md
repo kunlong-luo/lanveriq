@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-25 — L2B-30 两版真实 Debian 包的原生 APT 降级 L2
+
+- [功能修复 SHA `a7899ed1`](https://github.com/kunlong-luo/lanveriq/commit/a7899ed167ccc22b675bdffc07a3f396c456c7f7) · [真实 Ubuntu24 OCI #45561370502 13/13 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)：从已严格审计的 Rust Agent `dev1` 候选构造控制版本为 `dev0` 的第二份真实 Debian 包（**ELF 与 systemd 单元相同**），临时签名 `Signed-By` APT 在 OCI 中验证无人值守降级拒绝、明确覆盖后实际降级/升级和操作员私有配置/state 保留，无服务启动/开机启用。
+- [首次 CI #45560934991 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45560934991) 因 `apt-cache policy | grep -q` 在 `pipefail` 下退出 141，未进入降级交易；修正为消耗完整管道后复验成功。完整范围/限制参见 [L2B-30 专项报告](docs/development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md)。**无真正不同源码/ELF、发行信任根、独立高水位或客户安装授权，G-05 OPEN**。
+
 ## 2026-11-25 — L2B-29 原生 APT 旧签名 Release / 不同 Packages 行为 L2
 
 - [功能 SHA `ef995461`](https://github.com/kunlong-luo/lanveriq/commit/ef9954610622c4ff8a09e1548a1418bdf5c10ce0)、[原生 Ubuntu24 无网络 OCI #45559034203 11/11 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203)：复用真实 Rust Agent `.deb` 与一次性签名 APT；确认旧有效签名 InRelease 被接受，而**内容不同的旧 Packages 未被重新下载，APT 继续显示较新元数据**；新增拒绝优先负测在未来旧内容被采用时 FAIL。

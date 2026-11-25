@@ -27,14 +27,14 @@
 | --- | --- | --- |
 | **L2B-23** | [2af1cf34 / #45376989866 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) | 临时签名源下真实 Agent APT 安装/同版重装/卸载与 8 个拒绝；无正式发布身份。[报告](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md) |
 | **L2B-25** | [91c4669d / #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) | networkless OCI root-side D-Bus 实际发送者 UID/PID/Polkit 拒绝 + nonce；**没有安装事务**。[报告](../development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md) |
-| **L2B-27/29** | [旧签名 Release 日期 #45395513243 10/10](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243) · [不同旧 Packages #45559034203 11/11](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) | 真实 APT 允许旧签名 InRelease，但未再下载**内容不同的旧 Packages**、保持新索引。仅此 OCI 行为回归，**非软件包降级或独立可信高水位**。[L2B-29 及 3 次失败记录](../development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) |
+| **L2B-29/30** | [旧索引 11/11](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) · [两版 `.deb` 13/13](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) | 旧有效签名 InRelease 被接受，较新 Packages 保留；无人值守包降级拒绝，但隔离显式覆盖确实改为 dev0 后恢复 dev1；**同 ELF，非独立高水位或获批发行**。[L2B-30](../development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md) |
 | **L2B-26** | [f062f144 / #45385719766 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | 本机恶意 Polkit .rules 确实覆盖为 YES，root ReviewLab 仍 **NOT_APPROVED**，D-Bus 名称冒充与重放拒绝。[报告](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
 
 早期 [L2B-22](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)、[L2B-24](../development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)、NXT/D4/FIDO/WORM 以及所有 CI **FAIL→修复**链保留在原 dated reports、[GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions) 和 [历史验收账本](release-readiness-2026-11-13.md)；不能当成今天的生产许可。
 
 ## 下一项退出顺序
 
-1. **G-05/L2B-30（计划，未通过）**：L2B-29 在 OCI 已确认旧有效签名 InRelease 被接受、不同旧 Packages 保持新版；不代表存在跨机器/重装的独立高水位。下一步由独立发行/安全主体审批发行根与可信时间/高水位，再在离线 OCI 使用**真实不同包版本和旧索引**验证拒绝、重装/断网/恢复；未经批准不交付真实安装 root broker/GUI Agent 包。
+1. **G-05 下一项（待审批）**：L2B-30 已通过两版真实 Debian 包的原生降级/恢复 L2，但默认拒绝可以在隔离实验里被显式覆盖。须由**独立发行/安全主体**批准正式 signer、可信时钟、外部持久单调高水位/固定来源；然后验证**不同真实 ELF**、旧签名源、冷缓存/重装/断网及中断交易。不发布用户安装包或可执行 root broker。
 2. **G-05/G-09 L3**：具名设备/操作者书面许可，真实 Pop!_OS 24.04 COSMIC / Polkit 对话框/升级回滚/卸载和合法独立无托盘 Agent 生命周期。
 3. **G-01～04/G-07～08/G-06**：官方可信源、独立 WORM、CA/MFA、法务/SRE 与真实业务全链签收；G-10 另定首发范围。只有真实责任人、对应**功能 SHA+CI+L3 证据**、拒绝负测和回滚均齐全才可改变状态。
 

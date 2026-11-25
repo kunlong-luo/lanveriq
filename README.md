@@ -68,7 +68,7 @@ The next isolated business-loop milestone is [durable Linux inventory recovery a
 
 ## Latest signed APT index acceptance investigation
 
-The [L2B-29 native APT report](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) distinguishes an older valid signed `InRelease` being accepted from APT **actually adopting different older `Packages` metadata**. Native [11/11 OCI L2 #45559034203 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) verified the old signed Release was accepted **without downloading or adopting the different older Packages**. Keep G-05 OPEN: no trusted independent high-water, actual version downgrade proof or installation authority.
+The [L2B-29 native APT report](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) distinguishes an older valid signed `InRelease` being accepted from APT **actually adopting different older `Packages` metadata**. Native [L2B-29 11/11](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) observed old signed Release acceptance without older Packages adoption. [L2B-30 13/13](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) exercised **two real Debian package versions**: unattended downgrade refused, explicit override downgraded/recovered **inside disposable OCI only**; the Rust ELF was byte-identical. [Detailed evidence](docs/development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md). **No independently trusted high-water, publisher or installation authority.**
 
 ## Release boundary and next work
 

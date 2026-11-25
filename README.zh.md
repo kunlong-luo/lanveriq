@@ -68,7 +68,7 @@ pnpm dev
 
 ## G-05 原生 APT 回放行为的下一项实测
 
-[L2B-29 专项报告](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 正在区分：旧有效签名 `InRelease` 被 APT 接受，与内容不同的旧 `Packages` **真的进入 APT 可见元数据**，是两种不同结论。[原生 OCI #45559034203（11/11 SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) 证明旧有效签名 InRelease 被接受，但不同旧 Packages **未重新下载，新版包描述继续保留**。该行为是固定环境的回归证据，**不是正式高水位防回退或实际 Agent 包版本降级**。**G-05 OPEN，生产安装 OFF。**
+[L2B-29 专项报告](docs/development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 正在区分：旧有效签名 `InRelease` 被 APT 接受，与内容不同的旧 `Packages` **真的进入 APT 可见元数据**，是两种不同结论。[L2B-29 OCI 11/11](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) 验证旧签名 Release 接受但未采用不同旧 Packages；[L2B-30 OCI 13/13](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) 已用**两个真实 `.deb` 版本**证明：无人值守降级拒绝，但隔离显式覆盖后确实降级、恢复，操作员状态保留（同一 ELF，并非两个源码版本）。[专项报告](docs/development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md)。**正式发行根与独立高水位仍缺失，G-05 OPEN。**
 
 ## 安全与下一步
 

@@ -1,6 +1,6 @@
 # DESKTOP-L2B-30 — 两个真实 Debian 包版本的原生 APT 降级边界（隔离 OCI）
 
-**ACTIVE L2 EXPERIMENT · 2026-11-25 · 首轮功能 SHA [`30723a8f`](https://github.com/kunlong-luo/lanveriq/commit/30723a8f4baff26bfd724dfab1bd0b9ab4e2ffe6) / [OCI #45560934991 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45560934991)；修复 SHA [`a7899ed1`](https://github.com/kunlong-luo/lanveriq/commit/a7899ed167ccc22b675bdffc07a3f396c456c7f7) / [OCI #45561370502 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)。** 不可提前声称 13/13 PASS · G-05 OPEN · v0.1 NOT RELEASE READY。**
+**ACTIVE L2 EXPERIMENT · 2026-11-25 · 首轮功能 SHA [`30723a8f`](https://github.com/kunlong-luo/lanveriq/commit/30723a8f4baff26bfd724dfab1bd0b9ab4e2ffe6) / [OCI #45560934991 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45560934991)；修复 SHA [`a7899ed1`](https://github.com/kunlong-luo/lanveriq/commit/a7899ed167ccc22b675bdffc07a3f396c456c7f7) / [OCI #45561370502 13/13 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)。** 13/13 真实原生 APT OCI L2 PASS；G-05 OPEN · v0.1 NOT RELEASE READY。**
 
 ## 目标：从签名索引观测推进到真实 dpkg 安装版本
 
@@ -19,11 +19,11 @@
 ## 真实失败记录（不得归因成安全拒绝）
 
 - [#45560934991 FAIL / 功能 SHA `30723a8f`](https://github.com/kunlong-luo/lanveriq/actions/runs/45560934991)：真实 Rust Agent 编译、`.deb` 审计、3 个源级负测和旧 11 个原生 OCI 场景全部通过；第 12 项在 `apt-get update` 后以退出码 141 中止，尚未触发降级交易。该退出码来自 `apt-cache policy | grep -q` 与 `set -o pipefail` 的提前关闭管道风险；**不是 APT 成功拒绝降级的证据**。
-- [`a7899ed1` / #45561370502](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)：将两处 `grep -q` 替换为消耗全部输出的过滤以消除 SIGPIPE 假失败；真实两版本降级仍须以本次 OCI 证据为准。
+- [`a7899ed1` / #45561370502 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)：消除 SIGPIPE 假失败后，**13/13 原生 OCI 全部 PASS**；实际 `apt-get`/dpkg 证明：无覆盖参数时 `-y` 降级被拒绝、已安装版本仍 dev1；仅隔离实验使用显式覆盖后，实际安装版本变为 dev0，再升级 dev1。两个真实包的 ELF/systemd 字节相同，配置/state 不丢，未启用 Agent。只读 Tauri 与 Polkit all-no 继续 PASS。
 
 ## 验收等级及未解决阻塞
 
-- **L1：** 新用例与源级检查。**L2：** 必须以经修复的 [#45561370502](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) 实际完成情况来记录 13/13 或失败具体阶段；主机没有安装，所有实验工件与临时钥匙销毁。
+- **L1：** 源码语法与三项索引/版本约束测试均 PASS。**L2：** 经修复 [#45561370502](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) **13/13 SUCCESS**，原生 `.deb`审计、临时 signed-APT、真实 OCI 安装/降级/升级/卸载及 no-autostart 通过。runner 主机无安装，实验私钥销毁。**L3 仍 NOT RUN**。
 - **不能从本项推导：** 独立历史 Agent ELF、真实外部软件源、正式发行签名/HSM、独立管理域可信时间及高水位、防重装/断网回退、已授权安装 broker、Pop!_OS24 COSMIC 真实硬件 L3。特别是包 Version 变化**不代表代码版本不同**。
 - **后续真实退出：** 由具名发行/安全主体批准 signer、固定 Signed-By 密钥与更新链、可信单调高水位和时钟，再以不同**源代码/ELF**及旧签名索引、冷缓存、断网/重装/取消/升级失败做真实隔离负测，随后再申请 Polkit 授权 broker 和真实 L3。此时任何生产安装/联网/采集/自动恢复/远控/CA 依然 OFF。
 

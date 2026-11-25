@@ -9,6 +9,8 @@
 3. **独立高水位/可信时间：** 不能只依赖 `apt-secure` 的有效签名和 `Valid-Until`；[L2B-27 原生 APT 10/10](../development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md) 实测接受**同 signer、同 Packages、仍有效但日期更旧的签名 Release**。必须由独立可信主体审批准入序列和持久版本高水位，并对真实旧仓库索引/旧软件包、回退、断网、错时钟、重装、版本降级做负测。
 **原生 APT 新观察（L2B-29）：** [不同 Packages 的旧有效签名源观察](../development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 在功能 SHA `ef995461` 的 [OCI #45559034203 11/11 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203)：旧签名 `InRelease` 仍被接受，但 APT **未下载不同旧 Packages、保留新版包元数据**。三次失败/诊断原始记录保留。**不是**生产高水位防回退保证，更非 Agent 实际版本降级。
 
+**L2B-30 真实包版本 L2：** [13/13 原生 OCI #45561370502 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)，使用[两份真实 `.deb`（同一审计 ELF，控制版本 dev1/dev0）](../development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md)：APT 无人值守降级被拒，但只在隔离环境中显式覆盖后，真实 dpkg 已安装版本成功降为 dev0、再恢复 dev1，操作员状态保留。这说明**系统 APT 的降级提示不能替代独立单调高水位**；绝不可把 OCI 例外参数移入用户安装流程。
+
 4. **最小权限 GUI 安装：** Tauri 只能请求固定动作，不持有 root shell/可自选 URI/任意安装路径；必须经原生 D-Bus 实际发送者身份、真正 logind 活跃会话和 Polkit 每操作一次授权、root-side 固定工件/事务证据核验。安装/升级/卸载、服务启动、boot enable、联网、采集须分别审批和审计。当前只有 [root-side ReviewLab 拒绝与恶意 OS YES 纵深负测](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**没有能执行安装的获批 broker**。
 5. **具名 Linux L3：** 先在 Ubuntu24 disposable L2 验证安全交易及拒绝/取消，再经用户/设备所有人真实书面许可，在 Pop!_OS24 COSMIC/Wayland 实机验证 GUI、背景服务可发现性、停止/卸载、升级/回滚、隐私告知、权限/性能。实机通过前不可分发。
 6. **生产信任/合规：** 官方 FIDO、真人管理员 WebAuthn MFA、CA/KMS、独立管理域 WORM、PG18/备份恢复、法律/许可证、SRE/应急/运营签收及正式 Agent→Spring/PG18→Next.js 全链，全部必须独立满足。[G-01～G-10](../planning/release-gap-register.md) 仍 **OPEN**。
