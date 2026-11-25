@@ -32,6 +32,10 @@
 
 **发行预览边界：** `v0.1.0-dev.1` 仅完成了[源码预览候选 L1](operations/source-preview-v0.1.0-dev.1.md)，**NOT PUBLISHED**，无正式安装包；不能将源码预览的自动负测计为 G-05 已通过。
 
+## 正在验证的 G-06 增量（不能计为通过）
+
+[断网恢复后的实际 mTLS 延迟重复/旧版本/同版本冲突 → PG18 不变性](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md) 已提交功能 SHA [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942)。[Linux Batch A #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) **PENDING**；要求两项 L2 jobs 实际 SUCCESS 后才能计为通过。原有 `db570181` 的 PASS 不代表新增断言 PASS；不改变任何发布 Gate。
+
 ## 下一项退出目标（不等于批准上线）
 
 **G-05 下一项：** [L2B-33 20/20 原生 L2](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) 已验证冷缓存双签名同序列回放由 RO CI 批准摘要拒绝；**仍无独立管理域正式发行/见证根、可信时间或不可回退高水位**。下一步须具名发行/安全主体独立批准密钥、持久版本/摘要及恢复规则，再实测合法离线、重装、升级/恢复；Polkit root broker 和 Pop!_OS COSMIC 实机 L3 另行授权。生产安装/联网/采集/远控 OFF。

@@ -66,6 +66,8 @@ pnpm dev
 
 正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项已按功能 SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c) 通过[真实隔离 Linux L2 #45554279736（两个 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)。** 这不代表正式 Agent 可安装、具备后台自动恢复或生产采集授权。
 
+**当前 G-06 增量（L2 PENDING）：** [断网恢复后延迟重送、迟到旧版本、同版本冲突与 PG18 不变性](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942) · [Linux #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) **PENDING**。只加强合成业务链测试，不是正式端点功能或发布许可。
+
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 
 [L2B-33 原生 Ubuntu OCI #45569177575 — 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) 保留前 17 项真实 APT 验收，新增冷缓存下的**旧有效签名 Release + 不同旧 Packages + 同 sequence=2 的真签名旧 witness** 联合回放。原生 APT 确实采用旧 Packages，但另行只读挂载的 CI 批准 witness 摘要拒绝这组材料；批准的材料通过，锚点缺失默认拒绝。包含早期失败记录的 [L2B-33 专项报告](docs/development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md)。**仍非正式独立管理域高水位、发行签名根或可用安装器，G-05 OPEN。**

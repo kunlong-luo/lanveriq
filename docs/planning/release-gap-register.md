@@ -19,6 +19,8 @@
 | **G-09 真实 UX/Pop!_OS L3** | Tauri 只读 GUI、元数据 COSMIC 预检和 CI Chromium | 获设备所有人许可的 Pop!_OS 24.04 COSMIC/Wayland 实机 GUI、键盘/无障碍、权限提示、取消/卸载、后台无托盘仍可发现 | UX/设备所有人 | **OPEN** |
 | **G-10 Windows/RustDesk 范围** | Windows CI、RustDesk 合成协议 RD-2 默认拒绝 | 独立许可证/用户许可/L3，或书面批准 v0.1 OUT OF SCOPE | 产品/法务 | **OPEN / OUT OF SCOPE 待决定** |
 
+**G-06 本轮新增但未验收：** [恢复后 revision 2 重复、revision 1 迟到和 revision 2 同版本冲突的真实 mTLS→PG18 负测](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md) 已在功能 SHA `9ba85399` 提交；[Linux L2 #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) **PENDING**，不能从先前 PASS 推断已通过。即使完成仍不满足 G-06 真实设备/生产身份与授权退出条件。
+
 **预览发布 ≠ 正式 Agent 发行：** `v0.1.0-dev.1` [源码预览候选](../operations/source-preview-v0.1.0-dev.1.md) 的 [L1 #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) 只证明本地合约拒绝虚假批准和安装包附件，**未创建 Release/tag，不能视为 G-05/G-07 或任何 Gate 签收。**
 
 ## 最近实测 ≠ Gate 放行

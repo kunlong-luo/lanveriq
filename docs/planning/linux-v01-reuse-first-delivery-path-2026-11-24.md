@@ -23,6 +23,8 @@
 
 **源码预览候选（2026-11-25）**：[v0.1.0-dev.1](../operations/source-preview-v0.1.0-dev.1.md) 源码发布前负测 [#45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790)，只验证文档/配置中的源码限定、无二进制附件和 G 门禁不被错误标绿；**没有创建 tag/Release、没有部署或批准任何正式 Agent 安装能力**。它不能替代后续 G-05 高水位/发行签名/Polkit/实机事务测试。
 
+**G-06 本轮补强（L2 PENDING，非生产）：** [2026-11-25 恢复后延迟请求幂等测试](../development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)，功能 SHA `9ba85399`、[Linux Batch A #45571463449](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) 待完成；验证 revision 2 同请求重复、旧 revision 1 迟到、revision 2 冲突在真正 mTLS/PG18 路径不破坏当前数据库记录。现有 G-05 独立发行与 L3 仍是正式发布阻塞；此项不能代替外部批准。
+
 ## 下一阶段与退出顺序
 
 1. **P0 · G-05 外部发行/见证托管与不可回退高水位（待批准）：** [L2B-33 20/20](../development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) 仅证明单一 CI 管理域中分离 RO 摘要可拒绝同序列真签名旧 witness + 旧 Packages 的联合回放；**同一管理员可重置锚点**。须独立签收真实发行 signer、可信时间、不可回退版本/摘要、撤销及恢复权限，再验证真实断网/重装/升级及 Polkit 可执行 broker 和 COSMIC 实机 L3。
