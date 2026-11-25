@@ -219,6 +219,97 @@ case "$LANVERIQ_L2B23_CASE" in
     fi
     echo 'PASS: native APT accepted older valid signed InRelease but retained newer DIFFERENT Packages; no independent persistent high-water'
     ;;
+  signed-witness-valid-old-release-refused|signed-witness-old-seal-and-forged-signatures-refused)
+    # L2B-32 CI-only: gpgv verifies a different signer from APT. This fixture
+    # pins sequence=2 and the exact InRelease hash but is NOT external custody.
+    work=/tmp/lanveriq-witness-l2
+    mkdir -p "$work"
+    cp -R /mnt/lanveriq-lab/repo "$work/repo"
+    sed "s#file:/mnt/lanveriq-lab/repo#file:$work/repo#" \
+      /mnt/lanveriq-lab/lab.sources > "$work/lab.sources"
+    opts[0]=-oDir::Etc::sourcelist="$work/lab.sources"
+    verifier=/mnt/lanveriq-lab/verify-witness.sh
+    accepted=/mnt/lanveriq-lab/witness/approved.manifest
+    approved_sig=/mnt/lanveriq-lab/witness/approved.sig
+    target="$work/repo/dists/lab/InRelease"
+    apt-get "${opts[@]}" update > "$work/fresh.log" 2>&1 || {
+      cat "$work/fresh.log" >&2
+      echo 'NOT_APPROVED: native APT did not accept original signed source' >&2
+      exit 131
+    }
+    grep -F 'InRelease' "$work/fresh.log" > /dev/null
+    bash "$verifier" "$accepted" "$approved_sig" "$target" > /dev/null || {
+      echo 'NOT_APPROVED: independent signer rejected original signed APT source' >&2
+      exit 132
+    }
+    echo 'STAGE: native apt-secure and different witness signer accepted fresh signed Release'
+    if [ "$LANVERIQ_L2B23_CASE" = signed-witness-valid-old-release-refused ]; then
+      old_release=/mnt/lanveriq-lab/stale-signed/InRelease
+      test "$(sha256sum "$target" | cut -d' ' -f1)" != "$(sha256sum "$old_release" | cut -d' ' -f1)"
+      new_epoch="$(date -ud "$(sed -n 's/^Date: //p' /mnt/lanveriq-lab/repo/dists/lab/Release)" +%s)"
+      old_epoch="$(date -ud "$(sed -n 's/^Date: //p' /mnt/lanveriq-lab/stale-signed/Release)" +%s)"
+      test "$old_epoch" -lt "$new_epoch"
+      cp "$old_release" "$target"
+      apt-get "${opts[@]}" update > "$work/stale.log" 2>&1 || {
+        cat "$work/stale.log" >&2
+        echo 'NOT_APPROVED: native APT valid signed old Release behavior changed' >&2
+        exit 133
+      }
+      grep -F 'InRelease' "$work/stale.log" > /dev/null
+      if refusal="$(bash "$verifier" "$accepted" "$approved_sig" "$target" 2>&1)"; then
+        echo 'FAIL: witness accepted an older valid signed APT Release' >&2
+        exit 134
+      fi
+      if [[ "$refusal" != *'NOT_APPROVED: valid APT signature, but independent witness Release digest mismatch'* ]]; then
+        printf '%s\n' "$refusal" >&2
+        echo 'NOT_APPROVED: signed old Release rejected for wrong reason' >&2
+        exit 135
+      fi
+      echo 'STAGE: native APT accepted older valid signed InRelease, witness SHA256 separately refused'
+    else
+      old_manifest=/mnt/lanveriq-lab/witness/old.manifest
+      old_sig=/mnt/lanveriq-lab/witness/old.sig
+      old_release=/mnt/lanveriq-lab/stale-signed/InRelease
+      gpgv --keyring /mnt/lanveriq-lab/keyrings/witness.gpg \
+        "$old_sig" "$old_manifest" > /dev/null 2>&1 || {
+        echo 'NOT_APPROVED: valid historical witness signature failed native gpgv' >&2
+        exit 136
+      }
+      if refusal="$(bash "$verifier" "$old_manifest" "$old_sig" "$old_release" 2>&1)"; then
+        echo 'FAIL: correctly signed older witness sequence was accepted' >&2
+        exit 137
+      fi
+      if [[ "$refusal" != *'NOT_APPROVED: signed witness sequence below pinned synthetic high-water'* ]]; then
+        echo 'NOT_APPROVED: signed older witness rejected for wrong reason' >&2
+        exit 138
+      fi
+      if refusal="$(bash "$verifier" "$accepted" /mnt/lanveriq-lab/witness/forged-publisher.sig "$target" 2>&1)"; then
+        echo 'FAIL: APT publisher key impersonated independent witness' >&2
+        exit 139
+      fi
+      if [[ "$refusal" != *'NOT_APPROVED: independent witness GPG signature invalid'* ]]; then
+        echo 'NOT_APPROVED: publisher-forged witness rejected for wrong reason' >&2
+        exit 140
+      fi
+      if refusal="$(bash "$verifier" /mnt/lanveriq-lab/witness/tampered.manifest "$approved_sig" "$target" 2>&1)"; then
+        echo 'FAIL: tampered witness verified' >&2
+        exit 141
+      fi
+      if [[ "$refusal" != *'NOT_APPROVED: independent witness GPG signature invalid'* ]]; then
+        echo 'NOT_APPROVED: tampered witness rejected for wrong reason' >&2
+        exit 142
+      fi
+      echo 'STAGE: correctly signed older sequence, publisher forgery and modified witness all DENIED'
+    fi
+    test ! -e /usr/bin/lanveriq-agent
+    test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
+    test ! -d /run/systemd/system
+    if dpkg-query -W lanveriq-agent-offline-preview > /dev/null 2>&1; then
+      echo 'FAIL: witness test installed the Agent' >&2
+      exit 143
+    fi
+    echo 'PASS: separate CI gpgv witness rejects APT valid replay and bad seals; no independent custody or release approval'
+    ;;
   signed-valid-old-release-acceptance)
     # L2B-27: prove actual apt-secure will accept a correctly signed Release
     # with an EARLIER Date while Valid-Until remains future. No installation.
