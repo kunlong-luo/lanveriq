@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   signed-agent-apt-oci:
-    name: Real APT Agent lifecycle, 8 refusals, signed Release and differing Packages replay
+    name: Real APT Agent lifecycle, 8 refusals, signed old Release and different Packages retention
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -80,4 +80,4 @@ jobs:
             "$LANVERIQ_L2B23_TEMP/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb"
           python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
-          echo 'PASS: 11 OCI APT scenarios including changed old signed Packages accepted; not an approved installer or independent rollback defense'
+          echo 'PASS: 11 OCI APT scenarios: older signed Release accepted but changed older Packages retained; no independent high-water or approved installer'

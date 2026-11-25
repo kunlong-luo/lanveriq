@@ -23,7 +23,7 @@ NAME = f"{PACKAGE}_{VERSION}_amd64.deb"
 CASES = ("signed-install-reinstall-remove", "wrong-key", "wrong-signer",
          "unsigned", "index-tamper", "expired", "future", "deb-tamper",
          "package-confusion", "signed-valid-old-release-acceptance",
-         "signed-valid-old-index-acceptance")
+         "signed-old-different-packages-retained")
 MOUNT = "/mnt/lanveriq-lab"
 CURRENT_DESCRIPTION = b"Description: audited idle Agent, disposable signing test ONLY"
 PRIOR_DESCRIPTION = b"Description: audited idle Agent, historical signed index ONLY"
@@ -123,7 +123,7 @@ def prepare_case(directory, deb, case, homes, public_keys):
     run(("gpg", "--batch", "--yes", "--homedir", str(homes[signer]),
          "--clearsign", "--output", str(signed), str(release)))
     if case in ("signed-valid-old-release-acceptance",
-                "signed-valid-old-index-acceptance"):
+                "signed-old-different-packages-retained"):
         # A second *validly signed* Release is one day OLDER than the first,
         # but still within Valid-Until. Sign it with the SAME disposable key.
         # This tests native apt-secure's rollback limitation; no APT install.
@@ -131,16 +131,16 @@ def prepare_case(directory, deb, case, homes, public_keys):
         stale.mkdir()
         old_release = stale / "Release"
         older_payload = (previous_packages_index(payload)
-                         if case == "signed-valid-old-index-acceptance"
+                         if case == "signed-old-different-packages-retained"
                          else payload)
-        if case == "signed-valid-old-index-acceptance":
+        if case == "signed-old-different-packages-retained":
             (stale / "Packages").write_bytes(older_payload)
         old_release.write_text(
             "".join(
                 f"Date: {rfc822_date(-1)}\n" if row.startswith("Date: ") else
                 (f" {hashlib.sha256(older_payload).hexdigest()} "
                  f"{len(older_payload)} main/binary-amd64/Packages\n")
-                if case == "signed-valid-old-index-acceptance"
+                if case == "signed-old-different-packages-retained"
                 and row.endswith(" main/binary-amd64/Packages\n")
                 else row
                 for row in release.read_text(encoding="utf-8").splitlines(keepends=True)

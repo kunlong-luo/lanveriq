@@ -50,7 +50,7 @@ case "$LANVERIQ_L2B23_CASE" in
     test ! -d /run/systemd/system
     echo 'PASS: real signed-index APT installed/reinstalled/removed audited Rust Agent only in disposable OCI; no start/network'
     ;;
-  signed-valid-old-index-acceptance)
+  signed-old-different-packages-retained)
     # L2B-29: both indexes are signed by the SAME throwaway publisher,
     # but their Packages bytes/description and signed Release hashes differ.
     # Prove the real system APT loaded the older package *index*, not merely
@@ -110,21 +110,21 @@ case "$LANVERIQ_L2B23_CASE" in
     # Diagnose that distinction rather than treating update exit 0 as proof
     # of the old index being adopted by APT's native package cache.
     if grep -Eq '^Get:[0-9]+ .*Packages' "$work/old-apt.log"; then
-      echo 'STAGE: second native APT update downloaded Packages'
-    else
-      echo 'STAGE: second native APT update did not download Packages'
+      echo 'NOT_APPROVED: real APT unexpectedly fetched older different Packages' >&2
+      exit 111
     fi
+    echo 'STAGE: second native APT update did not download older Packages'
     apt_metadata="$(apt-cache "${opts[@]}" show lanveriq-agent-offline-preview)" || {
       echo 'NOT_APPROVED: native apt-cache could not read any package metadata' >&2
       exit 109
     }
     if printf '%s\n' "$apt_metadata" |
          grep -Fxq 'Description: audited idle Agent, historical signed index ONLY'; then
-      echo 'STAGE: native apt-cache used DIFFERENT older signed Packages'
+      echo 'NOT_APPROVED: older different Packages was adopted; rollback-risk review required' >&2
+      exit 112
     elif printf '%s\n' "$apt_metadata" |
          grep -Fxq 'Description: audited idle Agent, disposable signing test ONLY'; then
-      echo 'NOT_APPROVED: old signed InRelease accepted, but native apt-cache retained fresh Packages' >&2
-      exit 108
+      echo 'STAGE: native APT retained fresh Packages after old signed InRelease'
     else
       echo 'NOT_APPROVED: native apt-cache has unexpected/missing package description' >&2
       exit 110
@@ -136,7 +136,7 @@ case "$LANVERIQ_L2B23_CASE" in
       echo 'FAIL: replay index test accidentally installed an Agent package' >&2
       exit 103
     fi
-    echo 'PASS: actual APT replaced fresh validly signed Packages with older DIFFERENT signed Packages; no package downgrade, no independent high-water'
+    echo 'PASS: native APT accepted older valid signed InRelease but retained newer DIFFERENT Packages; no independent persistent high-water'
     ;;
   signed-valid-old-release-acceptance)
     # L2B-27: prove actual apt-secure will accept a correctly signed Release
