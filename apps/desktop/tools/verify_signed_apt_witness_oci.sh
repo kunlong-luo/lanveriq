@@ -18,15 +18,15 @@ signature="$2"
 apt_release="$3"
 witness_key=/mnt/lanveriq-lab/keyrings/witness.gpg
 case "$manifest" in
-  /mnt/lanveriq-lab/witness/approved.manifest|/mnt/lanveriq-lab/witness/old.manifest|/mnt/lanveriq-lab/witness/tampered.manifest) ;;
+  /mnt/lanveriq-lab/witness/approved.manifest|/mnt/lanveriq-lab/witness/old.manifest|/mnt/lanveriq-lab/witness/tampered.manifest|/mnt/lanveriq-lab/witness/replayed-sequence2.manifest) ;;
   *) echo 'NOT_APPROVED: unapproved witness manifest path' >&2; exit 32 ;;
 esac
 case "$signature" in
-  /mnt/lanveriq-lab/witness/approved.sig|/mnt/lanveriq-lab/witness/old.sig|/mnt/lanveriq-lab/witness/forged-publisher.sig) ;;
+  /mnt/lanveriq-lab/witness/approved.sig|/mnt/lanveriq-lab/witness/old.sig|/mnt/lanveriq-lab/witness/forged-publisher.sig|/mnt/lanveriq-lab/witness/replayed-sequence2.sig) ;;
   *) echo 'NOT_APPROVED: unapproved witness signature path' >&2; exit 33 ;;
 esac
 case "$apt_release" in
-  /tmp/lanveriq-witness-l2/repo/dists/lab/InRelease|/mnt/lanveriq-lab/stale-signed/InRelease) ;;
+  /tmp/lanveriq-witness-l2/repo/dists/lab/InRelease|/tmp/lanveriq-witness-cold-anchor/repo/dists/lab/InRelease|/mnt/lanveriq-lab/stale-signed/InRelease) ;;
   *) echo 'NOT_APPROVED: unapproved OCI APT Release path' >&2; exit 34 ;;
 esac
 for f in "$witness_key" "$manifest" "$signature" "$apt_release"; do
@@ -62,4 +62,28 @@ if [ "$actual" != "$expected" ]; then
   echo 'NOT_APPROVED: valid APT signature, but independent witness Release digest mismatch' >&2
   exit 40
 fi
-echo 'PASS: disposable independent-signer witness sequence and actual APT InRelease SHA256 match; NOT a production high-water'
+# L2B-33: the approved witness HASH must be pinned separately from both
+# the publisher's APT source and the replayable witness/key files.
+# The CI-only anchor is generated outside the APT repository and mounted RO.
+# It is NOT a remote/independently administered monotonic authority.
+case "${LANVERIQ_L2B23_CASE:-}" in
+  signed-witness-cold-cache-*)
+    anchor=/mnt/lanveriq-anchor/approved-witness.sha256
+    if [ ! -f "$anchor" ] || [ -L "$anchor" ]; then
+      echo 'NOT_APPROVED: independent read-only witness anchor missing' >&2
+      exit 41
+    fi
+    mapfile -t anchor_rows < "$anchor"
+    if [ "${#anchor_rows[@]}" -ne 1 ] ||
+       [[ ! "${anchor_rows[0]}" =~ ^[0-9a-f]{64}$ ]]; then
+      echo 'NOT_APPROVED: independently mounted witness anchor malformed' >&2
+      exit 42
+    fi
+    actual_witness="$(sha256sum "$manifest" | cut -d' ' -f1)"
+    if [ "$actual_witness" != "${anchor_rows[0]}" ]; then
+      echo 'NOT_APPROVED: separately mounted approved witness digest mismatch' >&2
+      exit 43
+    fi
+    ;;
+esac
+echo 'PASS: disposable separate-signer witness matches signed APT Release and optional separate RO CI anchor; NOT production high-water'
