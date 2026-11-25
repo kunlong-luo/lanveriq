@@ -10,6 +10,21 @@
 - **恢复时：** 使用隔离新实例/新库和 `pg_restore --exit-on-error --single-transaction`，拒绝已有业务库原地覆盖，失败要审计和销毁临时恢复环境；核对清单及迁移版本后，才由独立审核人决定是否可用于后续非生产检查。
 - **灾备无法闭环的事实：** 尚无获批准的独立备份管理域、加密与密钥封存、可信时间与抗回滚高水位、生产定时备份/告警、跨机保管、真实演练记录、可测量 RPO/RTO、批准的恢复主体、Pop!_OS L3；G-02/G-08 OPEN。不能把同一个 CI 管理员创建的 SHA-256 自证完整性视为安全托管。
 
+## G-08 本地 PG18 归档证据工具（2026-11-25 · L1 待验）
+
+[源码](../../apps/server/scripts/pg_backup_evidence.py) · [12 项拒绝测试](../../apps/server/scripts/test_pg_backup_evidence.py) · 功能 [`06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b) · [Server unit #45588705792 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。
+
+此 Python 标准库工具**不进行数据库备份或恢复**，仅对明确授权的隔离测试中已有的 `pg_dump --format=custom` 归档建立同 OS 用户域的本地 SHA-256 证据，并在恢复前核对格式头 `PGDMP`、文件字节数、摘要、所有权、只限所有者的访问权限、非软链接及非多重硬链接。JSON 证据严格限定字段及值；默认不可覆盖现有证据；始终标注 `production_restore_authorized=false`、`independent_custody_verified=false`。用法仅针对一次性合成备份文件：
+
+```bash
+umask 077
+# 在批准的离线合成测试目录事先生成 /private/lab.dump
+python3 apps/server/scripts/pg_backup_evidence.py create /private/lab.dump /private/lab.evidence.json
+python3 apps/server/scripts/pg_backup_evidence.py verify /private/lab.dump /private/lab.evidence.json
+```
+
+如果同一管理员同时改写归档和证据，依然可以生成一致 SHA-256：**这不是签名、高水位、独立 WORM、可信时间、生产灾备或可恢复性证明**。尚未将此工具串入真实 [PG18 WAL→备份→新库恢复](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) L2（**NOT RUN**）；后续需独立保管与审批，G-08 OPEN。
+
 ## Scope
 Back up PostgreSQL database, application configuration and policy versions, internal CA/required certificates and secrets through a protected separate channel, media manifests and video segments according to retention. Agent SQLite outbox is endpoint-local; it is **not** the central audit authority until accepted by server.
 

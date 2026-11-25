@@ -17,6 +17,10 @@
 - [功能 SHA `9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942) · [Linux #45571463449 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449) · [server unit #45571463462 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463462)：真实 Caddy mTLS 重送 revision 2 同包、旧 revision 1 迟到和同 revision 2 冲突，要求 PG18 snapshot/revision/received_at/digest 全部不变；[专项报告](docs/development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)。
 - [后续 docs SHA `0a31ab73`](https://github.com/kunlong-luo/lanveriq/commit/0a31ab7318be0a39071bfc7e24b5c4528dec3868) 的 [文档 CI #45571620903 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45571620903)、[Next.js fast #45571621032 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45571621032)：LIVE 页超过既定精简阈值；收敛文字到专项报告并重新验证，不改变阈值。v0.1 **NOT RELEASE READY**。
 
+## 2026-11-25 — G-08 本地备份证据 CLI（L1 待验）
+
+- [功能 `06897384`](https://github.com/kunlong-luo/lanveriq/commit/06897384adff08fe63d4fe875045890857960a6b)：Python 标准库 `create/verify`，12 项损坏/软链接/篡改拒绝负测；[Server L1 #45588705792 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45588705792)。[备份与恢复边界](docs/operations/backup.md)；尚未进入原生 PG18 L2 或外部 WORM 保管。
+
 ## 2026-11-25 — G-08 PG18 恢复 L2 PASS 与损坏归档负测 PENDING
 
 - [功能 `b64a14ad`](https://github.com/kunlong-luo/lanveriq/commit/b64a14ad2c0eeeeb2f5db135c0f6f19dbab77d6f)：[全新无网络 PG18 恢复](docs/development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) [#45586283694 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694)。初版 `abdebe66` 的工作流因后续修复而取消；非生产 DR。
