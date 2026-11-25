@@ -1060,6 +1060,7 @@ SQL
         export LANVERIQ_SYNTHETIC_FIRST_HEARTBEAT_FILE="$TMP/first-heartbeat.json"
         if [[ "$INVENTORY_CHAIN_MODE" == 1 ]]; then
             export LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE="$TMP/synthetic-inventory-request.json"
+            export LANVERIQ_SYNTHETIC_INVENTORY_RECOVERED_BODY_FILE="$TMP/synthetic-inventory-recovered.json"
         fi
         "$RUST_AGENT_HTTP" accepted "$DEVICE_ID" || {
             # The real failing Rust path must stay FAIL. A private CI-only
@@ -1223,6 +1224,50 @@ PY
                 }
                 start_caddy "$CADDY_REFERENCE"
                 assert_bridge_up
+                # The same pending revision 2 must now traverse the REST path
+                # after a REAL outage, before any credential is expired or
+                # revoked. No automatic sender, retry loop or production Agent.
+                "$RUST_AGENT_HTTP" recovered "$DEVICE_ID" || {
+                    echo "FAIL: restored mTLS did not deliver exact retained inventory" >&2
+                    exit 1
+                }
+                [[ -s "$TMP/synthetic-inventory-recovered.json" ]] || {
+                    echo "FAIL: no private Rust recovery wire fixture" >&2
+                    exit 1
+                }
+                recovered_snapshot="$(python3 - "$TMP/synthetic-inventory-recovered.json" <<'PY'
+import json,sys,uuid
+from pathlib import Path
+doc=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert doc["schema_version"]==1
+assert doc["device_id"]=="00000000-0000-7000-8000-000000000001"
+assert doc["inventory_revision"]==2
+assert doc["interfaces"]==[] and doc["volumes"]==[]
+print(uuid.UUID(doc["snapshot_id"]))
+PY
+)"
+                [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT count(*) FROM device_inventory_current
+                    WHERE device_id='$DEVICE_ID' AND inventory_revision=2
+                      AND snapshot_id='$recovered_snapshot'
+                      AND os_family='linux'
+                      AND os_name IS NOT NULL AND cpu_model IS NOT NULL
+                      AND memory_total_bytes>0 AND received_at IS NOT NULL")" == 1 ]] || {
+                    echo "FAIL: restored Rust revision 2 not committed as PG18 current inventory" >&2
+                    exit 1
+                }
+                inventory_recovered="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")"
+                [[ -n "$inventory_recovered" && "$inventory_recovered" != "$inventory_before" ]] || {
+                    echo "FAIL: recovered inventory did not advance PG18 current row" >&2
+                    exit 1
+                }
+                # All later expiration/revocation probes must compare to the
+                # NEW committed revision 2; revision 3 stays pending in SQLite.
+                inventory_before="$inventory_recovered"
+                echo "PASS: post-outage real Rust revision 2 -> mTLS ACK -> PG18 current; pending revision 3 remains for credential refusal."
             fi
             echo "PASS: real Rust inventory SQLite -> double-mTLS Spring -> PG18 current, strict ACK, duplicate no-change, revision conflict 409 and unregistered-leaf denial."
         fi
@@ -1573,6 +1618,7 @@ PY
                     LANVERIQ_SYNTHETIC_INVENTORY_CHAIN="$INVENTORY_CHAIN_MODE" \
                     LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE="$LINUX_SAMPLE_MODE" \
                     LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE="${LANVERIQ_SYNTHETIC_INVENTORY_BODY_FILE:-}" \
+                    LANVERIQ_SYNTHETIC_INVENTORY_RECOVERED_BODY_FILE="${LANVERIQ_SYNTHETIC_INVENTORY_RECOVERED_BODY_FILE:-}" \
                     LANVERIQ_SYNTHETIC_BROWSER_PROBE="$BROWSER_MODE" \
                     LANVERIQ_SYNTHETIC_NEXTJS_PROBE="$NEXTJS_MODE" \
                     LANVERIQ_SYNTHETIC_AUTH_UI_PROBE="$AUTH_UI_MODE" \
@@ -1604,7 +1650,7 @@ if [[ "$BUSINESS_MODE" == 1 ]]; then
             echo "PASS: same source device was rendered in real Next.js/Chromium with Spring group-scoped session."
             if [[ "$INVENTORY_CHAIN_MODE" == 1 ]]; then
                 if [[ "$LINUX_SAMPLE_MODE" == 1 ]]; then
-                    echo "PASS: real disposable Linux OS/CPU/RAM sample independently corroborated, persisted via Rust/PG18 and rendered in authorized Next.js Chromium."
+                    echo "PASS: real disposable Linux OS/CPU/RAM, disconnected revision 2, restored exact mTLS ACK/PG18 current and authorized Next.js Chromium refresh."
                 else
                     echo "PASS: synthetic Rust inventory snapshot persisted in PG18 and appeared in authorized Next.js Chromium device row."
                 fi
