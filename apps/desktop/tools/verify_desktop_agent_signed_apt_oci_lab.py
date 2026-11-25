@@ -24,6 +24,11 @@ NAME = f"{PACKAGE}_{VERSION}_amd64.deb"
 PRIOR_VERSION = "0.1.0~dev0"
 PRIOR_NAME = f"{PACKAGE}_{PRIOR_VERSION}_amd64.deb"
 PINNED_HISTORICAL_AGENT_SHA = "cd031894048dfcdc479aeaddd72e6254abde7303"
+ANCHOR_CASES = (
+    "signed-witness-cold-cache-approved-anchor-accepted",
+    "signed-witness-cold-cache-double-replay-refused",
+    "signed-witness-cold-cache-missing-anchor-refused",
+)
 WITNESS_CASES = (
     "signed-witness-valid-old-release-refused",
     "signed-witness-old-seal-and-forged-signatures-refused",
@@ -38,7 +43,7 @@ CASES = ("signed-install-reinstall-remove", "wrong-key", "wrong-signer",
          "unsigned", "index-tamper", "expired", "future", "deb-tamper",
          "package-confusion", "signed-valid-old-release-acceptance",
          "signed-old-different-packages-retained", *VERSION_CASES,
-         *SOURCE_DISTINCT_CASES, *WITNESS_CASES)
+         *SOURCE_DISTINCT_CASES, *WITNESS_CASES, *ANCHOR_CASES)
 MOUNT = "/mnt/lanveriq-lab"
 CURRENT_DESCRIPTION = b"Description: audited idle Agent, disposable signing test ONLY"
 PRIOR_DESCRIPTION = b"Description: audited idle Agent, historical signed index ONLY"
@@ -203,12 +208,12 @@ def rfc822_date(days=0):
 
 
 def prepare_case(directory, deb, case, homes, public_keys, historical=None,
-                 distinct_historical=None, elf_digests=None):
+                 distinct_historical=None, elf_digests=None, anchor_dir=None):
     keys = directory / "keyrings"
     keys.mkdir()
     for role in ("publisher", "attacker"):
         shutil.copyfile(public_keys / (role + ".gpg"), keys / (role + ".gpg"))
-    if case in WITNESS_CASES:
+    if case in (*WITNESS_CASES, *ANCHOR_CASES):
         check((public_keys / "publisher.gpg").read_bytes() !=
               (public_keys / "witness.gpg").read_bytes(),
               "witness signer must differ from APT publisher")
@@ -286,7 +291,8 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
     run(("gpg", "--batch", "--yes", "--homedir", str(homes[signer]),
          "--clearsign", "--output", str(signed), str(release)))
     if case in ("signed-valid-old-release-acceptance",
-                "signed-old-different-packages-retained", *WITNESS_CASES):
+                "signed-old-different-packages-retained", *WITNESS_CASES,
+                *ANCHOR_CASES):
         # A second *validly signed* Release is one day OLDER than the first,
         # but still within Valid-Until. Sign it with the SAME disposable key.
         # This tests native apt-secure's rollback limitation; no APT install.
@@ -294,16 +300,19 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
         stale.mkdir()
         old_release = stale / "Release"
         older_payload = (previous_packages_index(payload)
-                         if case == "signed-old-different-packages-retained"
+                         if case in ("signed-old-different-packages-retained",
+                                     "signed-witness-cold-cache-double-replay-refused")
                          else payload)
-        if case == "signed-old-different-packages-retained":
+        if case in ("signed-old-different-packages-retained",
+                    "signed-witness-cold-cache-double-replay-refused"):
             (stale / "Packages").write_bytes(older_payload)
         old_release.write_text(
             "".join(
                 f"Date: {rfc822_date(-1)}\n" if row.startswith("Date: ") else
                 (f" {hashlib.sha256(older_payload).hexdigest()} "
                  f"{len(older_payload)} main/binary-amd64/Packages\n")
-                if case == "signed-old-different-packages-retained"
+                if case in ("signed-old-different-packages-retained",
+                            "signed-witness-cold-cache-double-replay-refused")
                 and row.endswith(" main/binary-amd64/Packages\n")
                 else row
                 for row in release.read_text(encoding="utf-8").splitlines(keepends=True)
@@ -311,7 +320,7 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
         )
         run(("gpg", "--batch", "--yes", "--homedir", str(homes["publisher"]),
              "--clearsign", "--output", str(stale / "InRelease"), str(old_release)))
-    if case in WITNESS_CASES:
+    if case in (*WITNESS_CASES, *ANCHOR_CASES):
         check((stale / "InRelease").is_file(),
               "genuine old signed APT Release witness input missing")
         shutil.copyfile(WITNESS_SCRIPT, directory / "verify-witness.sh")
@@ -331,6 +340,22 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
                                    witness / "forged-publisher.sig")
         (witness / "tampered.manifest").write_bytes(
             approved.read_bytes().replace(b"sequence=2", b"sequence=8"))
+        if case in ANCHOR_CASES:
+            check(anchor_dir is not None and not anchor_dir.exists(),
+                  "anchor must be in an independent fresh host directory")
+            anchor_dir.mkdir(mode=0o700)
+            (anchor_dir / "approved-witness.sha256").write_text(
+                hashlib.sha256(approved.read_bytes()).hexdigest() + "\n",
+                encoding="ascii")
+            # This is a *second* fully valid witness at the SAME sequence 2,
+            # for the old separately publisher-signed Release. Sequence alone
+            # therefore cannot distinguish the whole jointly replayed pair.
+            replay = witness / "replayed-sequence2.manifest"
+            replay.write_bytes(
+                witness_manifest(2, (stale / "InRelease").read_bytes()))
+            detached_witness_signature(
+                homes["witness"], replay,
+                witness / "replayed-sequence2.sig")
     if case == "unsigned":
         signed.unlink()
     if case == "index-tamper":
@@ -348,18 +373,25 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
     )
 
 
-def execute_case(case, directory):
+def execute_case(case, directory, anchor_dir=None):
     check(case in CASES, "invalid lab operation")
     # All APT/dpkg modifications are *inside* the container image overlay.
     # Only signed repo/known public key bytes are exposed via readonly bind.
-    cmd = ("docker", "run", "--rm", "--interactive",
+    cmd = ["docker", "run", "--rm", "--interactive",
            "--network", "none", "--cap-drop", "ALL",
            "--security-opt", "no-new-privileges",
            "--pids-limit", "96", "--memory", "512m", "--cpus", "1",
-           "--mount", f"type=bind,src={directory},dst={MOUNT},readonly",
-           "--env", f"LANVERIQ_L2B23_CASE={case}",
-           "--env", f"LANVERIQ_SYNTHETIC_WITNESS_L2={int(case in WITNESS_CASES)}",
-           "--entrypoint", "/bin/bash", IMAGE, "-seuo", "pipefail")
+           "--mount", f"type=bind,src={directory},dst={MOUNT},readonly"]
+    if case in ANCHOR_CASES and case != "signed-witness-cold-cache-missing-anchor-refused":
+        check(anchor_dir is not None and anchor_dir.is_dir(),
+              "separate approved witness anchor directory missing")
+        check(anchor_dir.parent != directory.parent and
+              not anchor_dir.is_relative_to(directory),
+              "witness anchor must not live inside signed APT repository")
+        cmd += ["--mount", f"type=bind,src={anchor_dir},dst=/mnt/lanveriq-anchor,readonly"]
+    cmd += ["--env", f"LANVERIQ_L2B23_CASE={case}",
+            "--env", f"LANVERIQ_SYNTHETIC_WITNESS_L2={int(case in (*WITNESS_CASES, *ANCHOR_CASES))}",
+            "--entrypoint", "/bin/bash", IMAGE, "-seuo", "pipefail"]
     result = subprocess.run(cmd, input=INNER.read_bytes(),
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             timeout=120, check=False)
@@ -404,9 +436,14 @@ def main():
     run(("docker", "pull", IMAGE), timeout=240)
     with tempfile.TemporaryDirectory(prefix="lanveriq-l2b23-secret-signers-") as home:
         with tempfile.TemporaryDirectory(prefix="lanveriq-l2b23-public-repos-") as root:
+            with tempfile.TemporaryDirectory(prefix="lanveriq-l2b33-separate-anchor-") as anchor_base:
+                return run_cases(pathlib.Path(home), pathlib.Path(root),
+                                 pathlib.Path(anchor_base), archive, historical_elf,
+                                 elf_digests)
+
+
+def run_cases(signing, base, anchor_base, archive, historical_elf, elf_digests):
             homes = {}
-            signing = pathlib.Path(home)
-            base = pathlib.Path(root)
             pubs = base / "public-keyrings"
             pubs.mkdir()
             for role in ("publisher", "attacker", "witness"):
@@ -420,9 +457,10 @@ def main():
             for case in CASES:
                 directory = base / case
                 directory.mkdir(mode=0o755)
+                anchor_dir = anchor_base / case if case in ANCHOR_CASES else None
                 prepare_case(directory, archive, case, homes, pubs, historical,
-                             distinct_historical, elf_digests)
-                execute_case(case, directory)
+                             distinct_historical, elf_digests, anchor_dir)
+                execute_case(case, directory, anchor_dir)
     print(f"PASS: {len(CASES)} real APT Agent package L2 OCI cases; "
           "all private keys destroyed, never host-installed or release-approved")
 
