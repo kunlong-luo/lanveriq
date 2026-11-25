@@ -23,7 +23,7 @@
 | **dev.1 源码预览 L1（未发布）** | [`a1473c9e` / #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) | 仅源码合约与安全拒绝测试；无 tag/Release、正式签名或可安装包；全部 Gate OPEN。[候选说明](operations/source-preview-v0.1.0-dev.1.md) |
 | **Linux 清单断网→恢复→精确 ACK→PG18→Next.js（隔离 L2）** | [`db570181` / Linux #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) · [Agent unit #45554279741 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279741) | 真实 Caddy 断网保留 Rust SQLite revision 2、恢复 mTLS 后同一原始请求取得精确 ACK 并提交 PG18 latest=2；revision 3 在过期/吊销凭据下仍待发；真实 Chromium 经授权手动刷新，仅证明 Ubuntu runner 合成链。[报告](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md) |
 | **L2B-28 发行证据可信边界（仅离线 L1）** | [`03420e61` / #45400903033 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) | v2 严格负测拒绝伪造独立 APT 高水位、可信时钟和正式签名者，并保留旧签名 Release 被 APT 接受的事实；**没有真实高水位、安装事务或新原生重放拒绝**。[报告](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) |
-| **APT 源/版本 L2B-29/30** | [L2B-29 11/11](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) · [L2B-30 13/13](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) | 旧签名 Release 接受但不同旧 Packages 保留；两版真实 `.deb`：默认无人值守降级拒绝，**OCI 显式覆盖后确实降级**；ELF 相同。无独立高水位/正式 signer。[报告](development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md) |
+| **APT 不同 ELF L2B-31** | [473f90d9 / #45563578245 15/15](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245) | 两个不同历史 Git 源的 Rust ELF；无人值守降级拒绝，OCI 实验显式回退后实际安装旧 ELF，再恢复新 ELF。权限负测已核实拒绝原因；无发行根/高水位。[报告](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) |
 | **Agent 实包 → 真签名源 → APT** | [`2af1cf34` / #45376989866 L2 9/9 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) | 临时 Ed25519 Signed-By 仓库，Ubuntu24 networkless OCI 内真实 install/reinstall/remove 和 8 项拒绝；没有正式发行者身份或实机安装。[详情](development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md) |
 | **原生 Polkit + root-side D-Bus 身份** | [`91c4669d` / #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) | 真实 D-Bus 发送者 UID/PID/内核启动时间，8 次 Polkit 拒绝与 nonce 负测；只有 **ReviewLab**，永远不执行安装。[详情](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md) |
 | **本机恶意规则使 Polkit 真正 YES** | [`f062f1443fbe1c6144f56b2e2a339b289ac70ee1` / #45385719766 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | OCI 内假定本机规则覆盖后，root-side 审查仍 **NOT_APPROVED**、D-Bus 名称冒充与重放拒绝；**不是**可用安装器。[详情](development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
@@ -34,7 +34,7 @@
 
 ## 下一项退出目标（不等于批准上线）
 
-**G-05 下一项：** [L2B-30 原生 13/13](development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md) 已验证不同包版本的默认拒绝及隔离显式降级；**没有独立签名发行根、持久高水位或不同 Agent ELF**。优先批准独立发行身份、固定 Signed-By、可信时间/单调版本托管，再隔离实测不同源码/ELF、旧包/旧签名索引、冷缓存、断网重装/中断回滚；可执行 Polkit broker 和 Pop!_OS24 COSMIC L3 需另行授权。生产安装、联网/采集/远控/自动恢复仍 OFF。
+**G-05 下一项：** [L2B-31 15/15 PASS](development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) 已证明不同历史源码编译 ELF 的隔离降级/恢复；**真实发行者、独立可信高水位与时间仍未获批**。下一阶段先取得外部发行根/固定 Signed-By、独立版本/摘要单调托管，实测冷缓存、重装、断网、旧签名源回放拒绝；受限 Polkit root broker 和 Pop!_OS COSMIC 实机 L3 必须独立授权。生产安装/联网/采集/远控 OFF。
 
 并行阻塞：**G-01/G-03/G-04** 官方 FIDO/MFA/CA，**G-02** 外部独立管理 WORM，**G-06** 生产合法业务全链，**G-07/G-08** 法务许可与 SRE，**G-09** UI/Pop!_OS L3，**G-10** Windows/RustDesk 范围书面决定。以 [唯一发布门禁](planning/release-gap-register.md) 为准。
 

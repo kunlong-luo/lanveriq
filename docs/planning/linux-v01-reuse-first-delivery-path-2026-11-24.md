@@ -14,7 +14,7 @@
 | 现成组件 | 实际证据 | 下一步怎么复用 |
 | --- | --- | --- |
 | **Rust Agent .deb + 系统 APT** | [L2B-23 真实 Signed-By install/reinstall/remove 9/9](https://github.com/kunlong-luo/lanveriq/actions/runs/45376989866) | 正式 signer/source 独立审批后复用 native APT，禁止直接信任临时 CI 密钥。[报告](../development/desktop-tauri-l2b23-real-agent-signed-apt-oci-2026-11-24.md) |
-| **Signed-APT / 不同包版本** | [L2B-29 11/11](https://github.com/kunlong-luo/lanveriq/actions/runs/45559034203) · [L2B-30 13/13](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) | APT 接受旧签名 InRelease 但保留新 Packages；两版真正 `.deb` 默认无人值守降级拒绝，**OCI 显式覆盖可降级**，ELF 内容相同。无独立高水位。[L2B-30](../development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md) |
+| **Signed-APT / 不同 Git 源 ELF** | [同 ELF 13/13](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) · [不同 ELF 15/15](https://github.com/kunlong-luo/lanveriq/actions/runs/45563578245) | 两次真正编译 ELF 的 SHA256 不同；原生 APT 默认拒绝降级，但隔离显式覆盖可切换实际安装 ELF，恢复后配置/state 保留；**无正式高水位**。[报告](../development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) |
 | **OS Polkit + D-Bus 真实身份** | [L2B-25 root-side sender 核验 + 拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)、[L2B-26 OS 规则变 YES 仍拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | ReviewLab 只有隔离 OCI 内审查能力、无事务；未来固定操作 broker 需经过安全审核。[报告](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
 | **Tauri GUI-only/只读预检** | [桌面集成 #45368842676 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) | 保留身份/兼容性/用户解释状态，不以组件按钮或勾选授权 root |
 | **Linux→Spring/PG18→Next.js** | [只读 OS/CPU/RAM Linux 真 runner L2 #45365942781 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781) | 合法设备注册、实际 CA/MFA/网络/隐私授权全部通过前不能切换生产 |
@@ -25,7 +25,7 @@
 
 ## 下一阶段与退出顺序
 
-1. **P0 · G-05 下一项独立发行根与高水位（未批准）：** [L2B-30 实际 13/13](../development/desktop-tauri-l2b30-native-apt-two-agent-versions-oci-2026-11-25.md) 已把验证从索引推进到**两版真实包交易**：默认拒绝，但 CI 中显式覆盖仍可回退，且不是不同 ELF。下一阶段须独立批准 signer、固定 Signed-By、公钥撤销/托管、可信时间与单调高水位，再验证不同源码二进制、旧索引、冷缓存、断网/重装/恢复，禁止把 OCI 实验凭据当生产发行权。
+1. **P0 · G-05 独立发行根和持久高水位（未批准）：** [L2B-31 真实不同 ELF 15/15](../development/desktop-tauri-l2b31-pinned-historical-rust-elf-apt-oci-2026-11-25.md) 已通过，不能代替外部签名者、可信时间或单调版本/摘要。优先独立批准固定 Signed-By、签名根/轮换、高水位托管，然后验证冷缓存、断网、重装与旧签名仓库回放拒绝；Polkit 可执行 broker、COSMIC L3 仍须单独审批。
 2. **P0 · 可执行 broker（须独立审批）：** 设计 root-side system D-Bus 的实际请求者 OS peercred + 活跃 logind 会话 + Polkit **每操作一次**批准；服务端绑定**固定可信包来源**，防链接/任意路径/脚本/argv/额外 systemd 服务授权、锁、取消、崩溃重试、真正跨版本升级/回滚。GUI 不获得 shell/root，安装与服务启用仍分开；完成 Ubuntu24 隔离 L2 后才可申请实机。
 3. **P0 · Pop!_OS/COSMIC L3：** 取得设备所有人及法务书面许可和经批准的发行物，在具名真实 24.04 COSMIC Wayland 测试设备验证 GUI 安装/升级/卸载、键盘/辅助功能/缩放、明确授权、后台无托盘但可发现、配置/state 留存、取消/回滚及性能。**当前 NOT RUN**。
 4. **P0 · 生产信任/合规门禁：** G-01 官方 FIDO、G-02 外部 WORM、G-03 真人管理员 WebAuthn MFA、G-04 CA/KMS、G-06 正式合法业务链、G-07 数据/许可证、G-08 SRE 签收全部独立完成，才可考虑生产联网/采集；G-10 RustDesk/Windows 另行裁定。
