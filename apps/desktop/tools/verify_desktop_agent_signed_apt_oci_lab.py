@@ -343,7 +343,9 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None,
         if case in ANCHOR_CASES:
             check(anchor_dir is not None and not anchor_dir.exists(),
                   "anchor must be in an independent fresh host directory")
-            anchor_dir.mkdir(mode=0o700)
+            # OCI root has all capabilities dropped: the public digest directory
+            # needs execute/read permission while the Docker bind stays read-only.
+            anchor_dir.mkdir(mode=0o755)
             (anchor_dir / "approved-witness.sha256").write_text(
                 hashlib.sha256(approved.read_bytes()).hexdigest() + "\n",
                 encoding="ascii")
