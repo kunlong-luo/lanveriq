@@ -1,6 +1,6 @@
 # Lanveriq Linux v0.1 — 复用优先的实施路线
 
-**ACTIVE PLAN · 2026-11-24 · 只在 `main` 开发 · v0.1 NOT RELEASE READY。** 唯一事实与 Gate 分别以 [CURRENT_STATUS](../CURRENT_STATUS.md)、[release-gap register](release-gap-register.md) 为准。本文只描述**下一步如何实施、如何退出验收**；各阶段原始记录保留在[带日期的技术报告](../README.md)、[历史 CI 账本](release-readiness-2026-11-13.md) 和 Git 提交，不再把每次测试日志复制到路线图。
+**ACTIVE PLAN · 2026-11-25 · 只在 `main` 开发 · v0.1 NOT RELEASE READY。** 唯一事实与 Gate 分别以 [CURRENT_STATUS](../CURRENT_STATUS.md)、[release-gap register](release-gap-register.md) 为准。本文只描述**下一步如何实施、如何退出验收**；各阶段原始记录保留在[带日期的技术报告](../README.md)、[历史 CI 账本](release-readiness-2026-11-13.md) 和 Git 提交，不再把每次测试日志复制到路线图。
 
 ## 技术与产品决策保持稳定
 
@@ -18,6 +18,8 @@
 | **OS Polkit + D-Bus 真实身份** | [L2B-25 root-side sender 核验 + 拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)、[L2B-26 OS 规则变 YES 仍拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | ReviewLab 只有隔离 OCI 内审查能力、无事务；未来固定操作 broker 需经过安全审核。[报告](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md) |
 | **Tauri GUI-only/只读预检** | [桌面集成 #45368842676 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) | 保留身份/兼容性/用户解释状态，不以组件按钮或勾选授权 root |
 | **Linux→Spring/PG18→Next.js** | [只读 OS/CPU/RAM Linux 真 runner L2 #45365942781 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781) | 合法设备注册、实际 CA/MFA/网络/隐私授权全部通过前不能切换生产 |
+
+**2026-11-25 合成业务连续性增量：** [真实 Linux runner 的 Caddy 断网 → SQLite 待发 revision 2 → 恢复同源 mTLS 精确 ACK → PG18 current revision 2 → Chromium/Next.js 手动刷新](../development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md) 已在功能 SHA `db570181` 的 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两个 L2 jobs 成功；revision 3 的过期/撤销拒绝也在同一运行通过。**这是 CI runner 上的显式测试，不是产品后台自动恢复。** 下一项仍需独立发行信任/高水位/受限安装权限和 Pop!_OS 实机 L3。
 
 ## 下一阶段与退出顺序
 

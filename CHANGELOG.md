@@ -1,8 +1,14 @@
 # Lanveriq Changelog · 里程碑索引
 
-**HISTORICAL SUMMARY · 2026-11-24 · v0.1 NOT RELEASE READY。** 本页只记录可复核的重大能力与文档治理**里程碑**，不再复制每次 CI 的整段执行日志。唯一最新事实以 [CURRENT_STATUS](docs/CURRENT_STATUS.md)、唯一发行 Gate 以 [release-gap register](docs/planning/release-gap-register.md) 为准。
+**HISTORICAL SUMMARY · 2026-11-25 · v0.1 NOT RELEASE READY。** 本页只记录可复核的重大能力与文档治理**里程碑**，不再复制每次 CI 的整段执行日志。唯一最新事实以 [CURRENT_STATUS](docs/CURRENT_STATUS.md)、唯一发行 Gate 以 [release-gap register](docs/planning/release-gap-register.md) 为准。
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
+
+## 2026-11-25 — Linux 全链清单断网后人工恢复实际 L2 PASS
+
+- [功能 SHA `db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c)：CI-only Rust 从断网保留的 SQLite revision 2 重发，真实 Caddy/TLS1.3→Spring/JPA→PG18 当前版本 2、精确 ACK；新 pending revision 3 在凭据过期/吊销后仍保持。授权 Chromium/Next.js 的手动刷新真实 HTTP 取回当前 PG18 项。
+- 同 SHA 的 [Linux Batch A #45554279736（两 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)、[Agent #45554279741 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279741)，[专项原始验收文档](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。最初 Rustfmt [#45554071256 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45554071256) 保留。
+- **无正式 Agent 复原任务、无真实设备/员工采集、无正式 CA/MFA、Polkit broker、外部 WORM 或 Pop!_OS 实机。G-01～G-10 均 OPEN。**
 
 ## 2026-11-24 — 规划文件真实裁剪与目录权威再收敛
 

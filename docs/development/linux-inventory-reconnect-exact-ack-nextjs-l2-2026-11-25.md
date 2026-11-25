@@ -1,13 +1,13 @@
 # Linux 清单断网恢复 → 精确 ACK → PG18 → Next.js 手动刷新 L2
 
-**验收状态：PENDING CI（2026-11-25，非 PASS）· Linux Ubuntu 24.04 disposable runner only · v0.1 NOT RELEASE READY。**
+**验收状态：PASS（2026-11-25，真实 Ubuntu 24.04 disposable runner L2；两个 jobs SUCCESS）· v0.1 NOT RELEASE READY。**
 
 ## 任务与真实源码范围
 
 这轮只填补现有[真实 Linux OS/CPU/RAM 全链 L2](../testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md)的**断网后恢复成功路径**。原链已经证明 Rust/SQLite 将 revision 2 保留、过期/撤销身份拒绝，却还没有证明恢复 Caddy 之后 **revision 2 原始 outbox** 可以成功重新入库、精确 ACK、浏览器再读取。
 
 - **功能源码 SHA：** [`db570181d603a7f069a85a23c009658e9a8bed4c`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c)。Rust 的早期实现 [`e46722a8`](https://github.com/kunlong-luo/lanveriq/commit/e46722a81446e33d768a8d2e54b3454ee9ae015f) 因 rustfmt 失败 [Agent CI #45554071256 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45554071256)；已经按原生检查差异修正到功能 SHA，**失败记录保留**。
-- **待验收运行：** [Linux Batch A #45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)（真实 Rust/PG18/Chromium L2，初始 PENDING）；[Agent 单元/格式 #45554279741](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279741)（初始 PENDING）。后续必须按运行的实际 conclusion 更新，不能按提交成功推断 PASS。
+- **本轮真实运行：** [Linux Batch A #45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) **overall SUCCESS，实际 PG18 事务 job 和 Rust→Caddy/mTLS→Spring→PG18→Chromium job 均 SUCCESS**；[Agent 单元/格式/Clippy #45554279741](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279741) **SUCCESS**。以上均取自相同功能源码 `db570181`；文档提交不改变功能 SHA。
 
 ## 代码实现与可复验门禁
 
@@ -21,6 +21,10 @@
 | 6. 真后台读刷新 | [Chromium/Playwright L2](../../apps/server/scripts/verify-synthetic-rust-chain-browser.py) 不跳过 CA/TLS；先核对同一 source revision 2 的 DB 快照和白名单字段，经原 Spring 当前管理员组角色读，再按真实页面**「手动刷新」**并等待真实 HTTP 响应 | React DOM 只显示一个 authorized device，跨组 404、登出清空 DOM 和 API 401；刷新不是自动轮询 |
 
 **强制隔离边界：** `GITHUB_ACTIONS=true`、`RUNNER_OS=Linux`、`LANVERIQ_SYNTHETIC_INVENTORY_CHAIN=1`、`LANVERIQ_SYNTHETIC_LINUX_READONLY_SAMPLE=1`；固定合成 UUID、仅本地 Docker PG18/Caddy、`/tmp` 私有请求和 NSS 临时信任根。正式 Agent 不接入此示例、后台采样或可恢复的定时器；Next.js 页面仅由 CI 在 build 前临时安装，工作树不出现正式身份/采集路由。
+
+## 同一真实 L2 运行输出与范围
+
+[Linux Batch A #45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 的原生 job 日志含独立、连续的固定 PASS：断开 HTTPS 保留 exact SQLite revision 2、恢复 Caddy 后旧 revision 2 收到真实 Spring ACK、SQLite 重启后 revision 2 已结清但 revision 3 待发、PG18 revision 2/current/snapshot ID 与 Rust 私有请求吻合、凭据过期与吊销都拒绝发送 revision 3 并保持 PG18 不变；Chromium 真实 HTTPS 登录后 Spring 当前组授权查询、Next.js DOM 和操作者手动刷新均 PASS，跨组 404、登出 401。没有跳过 TLS、没有伪造 API、没有设备真实数据、没有正常产品入口改动。
 
 ## 不能推导的权限
 

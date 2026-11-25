@@ -1,6 +1,6 @@
 # Lanveriq v0.1 发布门禁（唯一 LIVE-GAP）
 
-**LIVE-GAP · 2026-11-24 · main · v0.1 NOT RELEASE READY。** 所有责任方是**尚待指定并独立签字的角色**，不是已经取得的发布批准。Gate 不能通过开发评分、CI 合成测试或界面勾选自动关闭。
+**LIVE-GAP · 2026-11-25 · main · v0.1 NOT RELEASE READY。** 所有责任方是**尚待指定并独立签字的角色**，不是已经取得的发布批准。Gate 不能通过开发评分、CI 合成测试或界面勾选自动关闭。
 
 [当前真实能力](../CURRENT_STATUS.md) · [工程路线](linux-v01-reuse-first-delivery-path-2026-11-24.md) · [验收等级](../testing/strategy.md) · [历史完整报告](release-readiness-2026-11-13.md)
 
@@ -13,7 +13,7 @@
 | **G-03 管理员 WebAuthn 双审** | 未可信凭据候选与反例 | 不同真人管理员的合法 RP/Origin/硬件 MFA、撤销/审计与拒绝自审 | 身份安全 | **OPEN** |
 | **G-04 生产设备 CA** | 隔离 CSR/PKIX/TLS1.3 mTLS | 正式 CA/HSM/KMS、根托管、身份、签发/撤销/轮换和恢复 | PKI/安全 | **OPEN** |
 | **G-05 签名 Agent 与 GUI 安装** | [真实 Agent + 临时 signed-APT OCI 安装/拒绝 + 旧签名 Release 日期回放 10/10](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243)；[root D-Bus ReviewLab 拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806)；[原生恶意 Polkit YES 仍拒绝](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | **独立批准的发行身份/固定 Signed-By 根、独立可信时间及防回退高水位与包**（[L2B-28 源级证据负测 #45400903033 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45400903033) 仅固定拒绝越权声明、[专项报告](../development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md)；没有可信高水位），真实管理员每次 Polkit 授权、可审最小权限 root 事务 broker、升级/取消/恢复/卸载，Agent 默认 idle；**Pop!_OS COSMIC 实机验收** | 发行/安全/产品 | **OPEN** |
-| **G-06 正式业务端到端** | [一次性 Linux runner OS/CPU/RAM→Rust/TLS→JPA/PG18→Next.js/Chromium](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781) | 合法真实设备、生产 CA/MFA、真实用户登录/RBAC 与隐私/网络/业务全链授权 | 全栈/安全 | **OPEN** |
+| **G-06 正式业务端到端** | [首次同源 Linux runner 只读库存全链 #45365942781](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781)；[2026-11-25 断网保留→恢复精确 ACK→PG18 revision 2→授权 Next.js 手动刷新 #45554279736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)（[L2 报告](../development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)） | 合法真实设备、生产 CA/MFA、真实用户登录/RBAC 与隐私/网络/业务全链授权 | 全栈/安全 | **OPEN** |
 | **G-07 法务/隐私/许可证** | 隐私设计和第三方素材审查 | 终端与员工明确告知/授权、数据保留删除、RustDesk AGPL/Pro 和发行依赖书面批准 | 法务/隐私 | **OPEN** |
 | **G-08 生产 SRE/灾备** | 隔离 PG18/Caddy/备份验证 | 独立密钥、运维、真实升级回滚、监控、灾备恢复、应急签收 | SRE/安全 | **OPEN** |
 | **G-09 真实 UX/Pop!_OS L3** | Tauri 只读 GUI、元数据 COSMIC 预检和 CI Chromium | 获设备所有人许可的 Pop!_OS 24.04 COSMIC/Wayland 实机 GUI、键盘/无障碍、权限提示、取消/卸载、后台无托盘仍可发现 | UX/设备所有人 | **OPEN** |
