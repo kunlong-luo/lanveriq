@@ -1,6 +1,6 @@
 # DESKTOP-L2B-30 — 两个真实 Debian 包版本的原生 APT 降级边界（隔离 OCI）
 
-**ACTIVE L2 EXPERIMENT · 2026-11-25 · 功能 SHA [`30723a8f4baff26bfd724dfab1bd0b9ab4e2ffe6`](https://github.com/kunlong-luo/lanveriq/commit/30723a8f4baff26bfd724dfab1bd0b9ab4e2ffe6) · [原生 APT OCI #45560934991](https://github.com/kunlong-luo/lanveriq/actions/runs/45560934991) · **PENDING，未声称通过** · G-05 OPEN · v0.1 NOT RELEASE READY。**
+**ACTIVE L2 EXPERIMENT · 2026-11-25 · 首轮功能 SHA [`30723a8f`](https://github.com/kunlong-luo/lanveriq/commit/30723a8f4baff26bfd724dfab1bd0b9ab4e2ffe6) / [OCI #45560934991 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45560934991)；修复 SHA [`a7899ed1`](https://github.com/kunlong-luo/lanveriq/commit/a7899ed167ccc22b675bdffc07a3f396c456c7f7) / [OCI #45561370502 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)。** 不可提前声称 13/13 PASS · G-05 OPEN · v0.1 NOT RELEASE READY。**
 
 ## 目标：从签名索引观测推进到真实 dpkg 安装版本
 
@@ -16,9 +16,14 @@
    - **显式例外反证：** 仅 OCI 测试内显式覆盖降级拒绝，要求原生 APT 确实把已安装版本变为 dev0，再升级回 dev1；核查私有操作员配置/状态不丢，未启动、未 enable，最后原生卸载仍保留操作员数据。这证明**APT 的无人值守默认拒绝不是独立、不可回退的发行高水位**；该命令/能力不可进入用户安装器或被解释成生产回滚授权。
 5. 现有 [11 项原生正负例](desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 继续运行，目标总计 **13 项**。CI 守卫要求非 root runner、显式 `GITHUB_ACTIONS`/实验环境标记、`bash -n`、原生 deb 归档审计和只读 Tauri/Polkit DENY-ALL。
 
+## 真实失败记录（不得归因成安全拒绝）
+
+- [#45560934991 FAIL / 功能 SHA `30723a8f`](https://github.com/kunlong-luo/lanveriq/actions/runs/45560934991)：真实 Rust Agent 编译、`.deb` 审计、3 个源级负测和旧 11 个原生 OCI 场景全部通过；第 12 项在 `apt-get update` 后以退出码 141 中止，尚未触发降级交易。该退出码来自 `apt-cache policy | grep -q` 与 `set -o pipefail` 的提前关闭管道风险；**不是 APT 成功拒绝降级的证据**。
+- [`a7899ed1` / #45561370502](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502)：将两处 `grep -q` 替换为消耗全部输出的过滤以消除 SIGPIPE 假失败；真实两版本降级仍须以本次 OCI 证据为准。
+
 ## 验收等级及未解决阻塞
 
-- **L1：** 新用例与源级检查。**L2：** 只有真实 [#45560934991](https://github.com/kunlong-luo/lanveriq/actions/runs/45560934991) 完成后，才能记录 13/13 或失败具体阶段；主机没有安装，所有实验工件与临时钥匙销毁。
+- **L1：** 新用例与源级检查。**L2：** 必须以经修复的 [#45561370502](https://github.com/kunlong-luo/lanveriq/actions/runs/45561370502) 实际完成情况来记录 13/13 或失败具体阶段；主机没有安装，所有实验工件与临时钥匙销毁。
 - **不能从本项推导：** 独立历史 Agent ELF、真实外部软件源、正式发行签名/HSM、独立管理域可信时间及高水位、防重装/断网回退、已授权安装 broker、Pop!_OS24 COSMIC 真实硬件 L3。特别是包 Version 变化**不代表代码版本不同**。
 - **后续真实退出：** 由具名发行/安全主体批准 signer、固定 Signed-By 密钥与更新链、可信单调高水位和时钟，再以不同**源代码/ELF**及旧签名索引、冷缓存、断网/重装/取消/升级失败做真实隔离负测，随后再申请 Polkit 授权 broker 和真实 L3。此时任何生产安装/联网/采集/自动恢复/远控/CA 依然 OFF。
 
