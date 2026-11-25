@@ -34,7 +34,7 @@
 
 ## 下一项退出目标（不等于批准上线）
 
-**L2B-28 / G-05：** v2 离线证据拒绝负测已通过，但只能阻止伪造发布批准，**不是独立签名 APT 防回退器**；L2B-27 已在真实 OCI **证明仍有效的签名旧 Release 日期会被 APT 接受**；必须优先解决**独立批准的可信发行根、单调防回放高水位与签名工件、固定可信 APT 软件源、真实可审 root-side 最小权限事务、逐次操作者授权、可取消/恢复/回滚**。目前仅能在 disposable OCI 内继续证明安全负例；无实际授权就**不**把 ReviewLab/恶意 .rules/临时钥匙移到桌面或用户主机，也不允许 GUI 动态 root shell、systemd 自动启用、生产数据采集。Pop!_OS 24.04 COSMIC 实机 L3 须另取得设备所有人书面许可。
+**G-05 / L2B-30（下一项拟实施）：** [L2B-29 原生 APT 11/11 SUCCESS](development/desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 已确认旧有效签名 InRelease 可被接受，但不同旧 Packages 未下载、较新索引保留；**没有独立可信高水位，更不是已完成实际 Agent 版本降级验收**。优先取得独立发行身份/固定 Signed-By 根、可信时间和不可回退序列的托管审批，随后隔离验证真实旧包版本/索引/断网/重装/错时钟与拒绝；受限 root-side Polkit 每次授权事务和 Pop!_OS24 COSMIC 实机 L3 须单独批准。未授权前不发布安装包、不使用临时钥匙/ReviewLab 执行安装、不启用自动联网/采集/恢复/远控。
 
 并行阻塞：**G-01/G-03/G-04** 官方 FIDO/MFA/CA，**G-02** 外部独立管理 WORM，**G-06** 生产合法业务全链，**G-07/G-08** 法务许可与 SRE，**G-09** UI/Pop!_OS L3，**G-10** Windows/RustDesk 范围书面决定。以 [唯一发布门禁](planning/release-gap-register.md) 为准。
 
