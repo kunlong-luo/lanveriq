@@ -1,6 +1,6 @@
 # DESKTOP-L2B-32 — 两种实验签名身份：原生 APT 可接受旧 Release，但独立见证前置拒绝
 
-**功能源码 SHA：** [`10f970662682a450739b6d63cf3f457707859384`](https://github.com/kunlong-luo/lanveriq/commit/10f970662682a450739b6d63cf3f457707859384)。**原生 CI [#45566159779](https://github.com/kunlong-luo/lanveriq/actions/runs/45566159779)：PENDING；不得提前声称 17/17。G-05 OPEN · v0.1 NOT RELEASE READY。**
+**实验功能 SHA：** [`10f970662682a450739b6d63cf3f457707859384`](https://github.com/kunlong-luo/lanveriq/commit/10f970662682a450739b6d63cf3f457707859384)。[首轮 OCI #45566159779 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45566159779)；**修正 SHA [`55de6e714bde3bb8a3c2f5a0050b413ff38f70c9`](https://github.com/kunlong-luo/lanveriq/commit/55de6e714bde3bb8a3c2f5a0050b413ff38f70c9) · [原生 CI #45566961126 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)；不得提前声称 17/17。G-05 OPEN · v0.1 NOT RELEASE READY。**
 
 ## 从 L2B-31 再推进一个具体的发行安全边界
 
@@ -19,6 +19,11 @@
 - [L1 单元/安全负测](../../apps/desktop/tools/test_signed_apt_index_replay.py) 约束所见证的摘要绑定、序列、旧日期和总场景数；[CI workflow](../../.github/workflows/desktop-agent-signed-apt-oci-l2.yml) 同时要求非 CI 与缺少实验授权均因真实环境门禁被拒绝，继续从固定 Git 历史源码重新编译不同 ELF 并完成原有 15 个真实 APT 用例。
 
 **隔离环境：** `ubuntu@sha256:562111b...`、`docker --network none --cap-drop ALL --security-opt no-new-privileges`、签名私钥只保留在一次性 GitHub runner 临时目录、不挂载进入 OCI、仓库/公钥/见证签名只读；Agent 不安装到宿主机，也不调用正式 root broker 或 Polkit 授权。
+
+## 保留真实失败和修复记录
+
+- **[#45566159779 FAIL / 功能 SHA `10f97066`](https://github.com/kunlong-luo/lanveriq/actions/runs/45566159779)：** 真实当前 Rust Agent 构建、`.deb` 归档审计、固定旧源码第二次 Rust 编译均成功，但随后五项源级测试中的 witness 清单格式测试正确发现了**字面量反斜线-n（`\\n`），而不是实际 LF 换行**。因此从未进入新增的原生 gpgv/APT 见证实验，**不是见证拒绝通过**。
+- **[修正 SHA `55de6e71` / #45566961126](https://github.com/kunlong-luo/lanveriq/actions/runs/45566961126)：** 改由 `bytes([10]).join(...)` 构造严格三行清单，并将轻量 L1 单元/负测放到两次昂贵 Rust 编译之前；原生 OCI 结果尚须实测。保留首轮失败和原始日志，不覆盖它。
 
 ## 必须分开记录的三个层次
 
