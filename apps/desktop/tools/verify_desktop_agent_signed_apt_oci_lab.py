@@ -22,12 +22,18 @@ VERSION = "0.1.0~dev1"
 NAME = f"{PACKAGE}_{VERSION}_amd64.deb"
 PRIOR_VERSION = "0.1.0~dev0"
 PRIOR_NAME = f"{PACKAGE}_{PRIOR_VERSION}_amd64.deb"
+PINNED_HISTORICAL_AGENT_SHA = "cd031894048dfcdc479aeaddd72e6254abde7303"
+SOURCE_DISTINCT_CASES = (
+    "signed-distinct-elf-unattended-downgrade-refused",
+    "signed-distinct-elf-explicit-oci-downgrade",
+)
 VERSION_CASES = ("signed-two-versions-unattended-downgrade-refused",
                  "signed-two-versions-explicit-oci-downgrade")
 CASES = ("signed-install-reinstall-remove", "wrong-key", "wrong-signer",
          "unsigned", "index-tamper", "expired", "future", "deb-tamper",
          "package-confusion", "signed-valid-old-release-acceptance",
-         "signed-old-different-packages-retained", *VERSION_CASES)
+         "signed-old-different-packages-retained", *VERSION_CASES,
+         *SOURCE_DISTINCT_CASES)
 MOUNT = "/mnt/lanveriq-lab"
 CURRENT_DESCRIPTION = b"Description: audited idle Agent, disposable signing test ONLY"
 PRIOR_DESCRIPTION = b"Description: audited idle Agent, historical signed index ONLY"
@@ -63,11 +69,50 @@ def run(args, *, stdout=None, timeout=60):
 
 
 
-def create_prior_version_archive(audited_current, prior_dest):
-    """CI-only control-Version repack of an audited real Agent, same ELF bytes.
+def require_distinct_elf_bytes(current: bytes, historical: bytes):
+    """Refuse a synthetic 'different source' claim with the same Rust ELF."""
+    check(current.startswith(bytes.fromhex("7f454c46")) and
+          historical.startswith(bytes.fromhex("7f454c46")),
+          "both binary artifacts must be actual ELF objects")
+    current_hash = hashlib.sha256(current).hexdigest()
+    historical_hash = hashlib.sha256(historical).hexdigest()
+    check(current_hash != historical_hash,
+          "identical ELF cannot prove different compiled Agent source")
+    return current_hash, historical_hash
 
-    This is not an independently built historic Agent or approved publisher
-    release. All real package transactions happen later INSIDE disposable OCI.
+
+def verify_historical_agent_checkout(path):
+    """Pin exact prior Git source and Cargo-built ELF, not a local arbitrary file."""
+    workspace = os.getenv("GITHUB_WORKSPACE")
+    check(workspace is not None and pathlib.Path(workspace).is_absolute(),
+          "historical source must run under GitHub CI workspace")
+    historical_root = pathlib.Path(workspace) / "l2b31-historical"
+    expected = historical_root / "apps/agent/target/release/lanveriq-agent"
+    check(path == expected and not path.is_symlink() and path.is_file()
+          and path.stat().st_size < 100 * 1024 * 1024,
+          "historical ELF must be the exact pinned Cargo build output")
+    check((historical_root / ".git").is_dir(),
+          "historical checkout must be a Git repository")
+    revision = run(("git", "-C", str(historical_root), "rev-parse", "HEAD")
+                  ).stdout.decode("utf-8").strip()
+    check(revision == PINNED_HISTORICAL_AGENT_SHA,
+          "historical Git source revision mismatch")
+    older_source = historical_root / "apps/agent/src/inventory_platform.rs"
+    newer_source = ROOT / "apps/agent/src/inventory_platform.rs"
+    check(older_source.is_file() and newer_source.is_file() and
+          older_source.read_bytes() != newer_source.read_bytes(),
+          "different historical Agent source required")
+    check(path.read_bytes()[:4] == bytes.fromhex("7f454c46"),
+          "historical Cargo binary is not ELF")
+    return path
+
+
+def create_prior_version_archive(audited_current, prior_dest, replacement_elf=None):
+    """CI-only .deb dev0 repack; optional pinned historic ELF, never signed release.
+
+    The preexisting dev0 version remains a same-ELF control-version baseline.
+    A separate dev0 build uses a pinned older source's ACTUAL DIFFERENT ELF.
+    All installations remain solely inside networkless disposable OCI.
     """
     check(prior_dest.name == PRIOR_NAME and not prior_dest.exists(),
           "only one exact historical CI archive may be constructed")
@@ -84,6 +129,14 @@ def create_prior_version_archive(audited_current, prior_dest):
         check((stage / path_elf).is_file() and (stage / path_unit).is_file(),
               "expected audited payload missing")
         expected_elf = hashlib.sha256((stage / path_elf).read_bytes()).hexdigest()
+        if replacement_elf is not None:
+            check(replacement_elf.is_file() and not replacement_elf.is_symlink(),
+                  "historical replacement must be a regular Cargo ELF")
+            require_distinct_elf_bytes((stage / path_elf).read_bytes(),
+                                       replacement_elf.read_bytes())
+            shutil.copyfile(replacement_elf, stage / path_elf)
+            os.chmod(stage / path_elf, 0o755)
+            expected_elf = hashlib.sha256((stage / path_elf).read_bytes()).hexdigest()
         expected_unit = hashlib.sha256((stage / path_unit).read_bytes()).hexdigest()
         control.write_text(original.replace(f"Version: {VERSION}\n",
                                             f"Version: {PRIOR_VERSION}\n"),
@@ -123,7 +176,8 @@ def rfc822_date(days=0):
             datetime.timedelta(days=days)).strftime("%a, %d %b %Y %H:%M:%S +0000")
 
 
-def prepare_case(directory, deb, case, homes, public_keys, historical=None):
+def prepare_case(directory, deb, case, homes, public_keys, historical=None,
+                 distinct_historical=None, elf_digests=None):
     keys = directory / "keyrings"
     keys.mkdir()
     for role in ("publisher", "attacker"):
@@ -146,13 +200,23 @@ def prepare_case(directory, deb, case, homes, public_keys, historical=None):
         " NOT APPROVED for release or real endpoint installation.\n\n",
         encoding="utf-8",
     )
-    if case in VERSION_CASES:
-        check(historical is not None and historical.name == PRIOR_NAME and
-              historical.is_file() and not historical.is_symlink(),
+    if case in (*VERSION_CASES, *SOURCE_DISTINCT_CASES):
+        prior = (distinct_historical if case in SOURCE_DISTINCT_CASES
+                 else historical)
+        check(prior is not None and prior.name == PRIOR_NAME and
+              prior.is_file() and not prior.is_symlink(),
               "real historic-version .deb required for version downgrade lab")
         old_target = pool / PRIOR_NAME
-        shutil.copyfile(historical, old_target)
+        shutil.copyfile(prior, old_target)
         old_bytes = old_target.read_bytes()
+        if case in SOURCE_DISTINCT_CASES:
+            check(elf_digests is not None and len(elf_digests) == 2
+                  and elf_digests[0] != elf_digests[1],
+                  "two distinct ELF hashes required for source history proof")
+            (directory / "latest-elf.sha256").write_text(
+                elf_digests[0] + "\n", encoding="ascii")
+            (directory / "historical-elf.sha256").write_text(
+                elf_digests[1] + "\n", encoding="ascii")
         old_rel = "pool/main/l/lanveriq-agent-offline-preview/" + PRIOR_NAME
         with index.open("a", encoding="utf-8") as stream:
             stream.write(
@@ -258,7 +322,8 @@ def execute_case(case, directory):
 
 
 def main():
-    check(len(sys.argv) == 2, "usage: signed-apt-ci AUDITED_AGENT_DEB")
+    check(len(sys.argv) == 3,
+          "usage: signed-apt-ci AUDITED_AGENT_DEB PINNED_HISTORICAL_ELF")
     check(os.getenv("GITHUB_ACTIONS") == "true"
           and os.getenv("LANVERIQ_SIGNED_AGENT_APT_L2") == "1"
           and os.getenv("RUNNER_OS") == "Linux"
@@ -273,6 +338,15 @@ def main():
     check(archive.stat().st_size < 100 * 1024 * 1024,
           "unexpectedly large Agent archive")
     run((sys.executable, str(AUDIT), str(archive)))
+    historical_elf = verify_historical_agent_checkout(
+        pathlib.Path(sys.argv[2]))
+    latest_elf = ROOT / "apps/agent/target/release/lanveriq-agent"
+    check(latest_elf.is_file() and not latest_elf.is_symlink(),
+          "current audited Cargo ELF missing")
+    elf_digests = require_distinct_elf_bytes(latest_elf.read_bytes(),
+                                             historical_elf.read_bytes())
+    print("PASS: exact historical Git source and distinct ELF SHA256, "
+          "not independent approved publisher provenance", flush=True)
     run(("docker", "pull", IMAGE), timeout=240)
     with tempfile.TemporaryDirectory(prefix="lanveriq-l2b23-secret-signers-") as home:
         with tempfile.TemporaryDirectory(prefix="lanveriq-l2b23-public-repos-") as root:
@@ -285,10 +359,15 @@ def main():
                 homes[role] = signing / (role + "-gnupg")
                 private_signer(homes[role], pubs / (role + ".gpg"), role)
             historical = create_prior_version_archive(archive, base / PRIOR_NAME)
+            src_dir = base / "distinct-elf-source"
+            src_dir.mkdir()
+            distinct_historical = create_prior_version_archive(
+                archive, src_dir / PRIOR_NAME, historical_elf)
             for case in CASES:
                 directory = base / case
                 directory.mkdir(mode=0o755)
-                prepare_case(directory, archive, case, homes, pubs, historical)
+                prepare_case(directory, archive, case, homes, pubs, historical,
+                             distinct_historical, elf_digests)
                 execute_case(case, directory)
     print(f"PASS: {len(CASES)} real APT Agent package L2 OCI cases; "
           "all private keys destroyed, never host-installed or release-approved")
