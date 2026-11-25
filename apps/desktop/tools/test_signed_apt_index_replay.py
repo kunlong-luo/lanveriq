@@ -71,10 +71,21 @@ class NativeSignedIndexFixtureTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     lab.witness_manifest(gen, release)
 
+    def test_cold_cache_cases_require_separate_approved_anchor(self):
+        cases = lab.ANCHOR_CASES
+        self.assertEqual(set(cases), {
+            "signed-witness-cold-cache-approved-anchor-accepted",
+            "signed-witness-cold-cache-double-replay-refused",
+            "signed-witness-cold-cache-missing-anchor-refused",
+        })
+        self.assertEqual(len(set(lab.CASES)), len(lab.CASES))
+        self.assertIn("signed-witness-valid-old-release-refused", lab.CASES)
+
     def test_case_remains_ci_only_and_not_publisher_authority(self):
         self.assertIn("signed-old-different-packages-retained", lab.CASES)
         self.assertIn("signed-valid-old-release-acceptance", lab.CASES)
-        self.assertEqual(len(lab.CASES), 17)
+        self.assertEqual(len(lab.CASES), 20)
+        self.assertEqual(len(lab.ANCHOR_CASES), 3)
         self.assertEqual(len(lab.WITNESS_CASES), 2)
         self.assertEqual(len(lab.VERSION_CASES), 2)
         self.assertEqual(len(lab.SOURCE_DISTINCT_CASES), 2)

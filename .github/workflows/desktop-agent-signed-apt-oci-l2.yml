@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   signed-agent-apt-oci:
-    name: Native signed APT 17 OCI cases including separate CI witness and distinct ELF
+    name: Native signed APT 20 OCI cases with cold-cache double replay and RO anchor
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -121,4 +121,4 @@ jobs:
             "$GITHUB_WORKSPACE/l2b31-historical/apps/agent/target/release/lanveriq-agent"
           python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
-          echo 'PASS: 17 native OCI APT cases incl separate gpgv witness validity/sequence/refusal and pinned historic distinct Rust ELF; NO trusted high-water or release authority'
+          echo 'PASS: 20 native OCI APT cases incl cold-cache jointly replayed signed Packages/witness rejected by separately RO-mounted CI anchor; still NO independent high-water'
