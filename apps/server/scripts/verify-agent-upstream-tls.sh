@@ -1368,8 +1368,22 @@ PY
                     echo "FAIL: disposable PG18 archive omitted current inventory table" >&2
                     exit 1
                 }
+                # Docker network=none cannot be attached to a bridge later.
+                # Create a dedicated internal-only bridge BEFORE the restore container.
+                # No published port or outbound route; CI-only, destroyed on exit.
+                [[ "${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux ]] || {
+                    echo "FAIL: recovered PG18 verification bridge requires disposable Linux CI" >&2
+                    exit 1
+                }
+                recovery_net_name="lanveriq-restored-pg18-$(openssl rand -hex 8)"
+                RESTORE_NET="$(docker network create --internal --driver bridge \
+                    --label lanveriq.synthetic=postgres-recovery "$recovery_net_name")"
+                [[ -n "$RESTORE_NET" ]] || {
+                    echo "FAIL: isolated internal restored-DB network unavailable" >&2
+                    exit 1
+                }
                 restore_started_ns="$(python3 -c 'import time; print(time.monotonic_ns())')"
-                RESTORE_CID="$(docker run --detach --network none \
+                RESTORE_CID="$(docker run --detach --network "$RESTORE_NET" \
                     --env POSTGRES_DB=lanveriq \
                     --env POSTGRES_USER=lanveriq \
                     --env POSTGRES_PASSWORD_FILE=/run/secrets/synthetic-password \
@@ -1535,21 +1549,10 @@ PY
                 # Start the ACTUAL Spring Boot 4/JPA/Hibernate application
                 # against the RESTORED PG18 database, with NO web connector,
                 # NO bootstrap, NO Flyway migration, NO Agent ingress.
-                # A disposable INTERNAL bridge permits only local CI-host
-                # access. No published ports, no user/device collection.
-                [[ "${GITHUB_ACTIONS:-}" == true && "${RUNNER_OS:-}" == Linux ]] || {
-                    echo "FAIL: Spring restored-DB context only allowed in disposable Linux CI" >&2
-                    exit 1
-                }
-                recovery_net_name="lanveriq-restored-pg18-$(openssl rand -hex 8)"
-                RESTORE_NET="$(docker network create --internal --driver bridge \
-                    --label lanveriq.synthetic=postgres-recovery "$recovery_net_name")"
-                [[ -n "$RESTORE_NET" ]] || {
-                    echo "FAIL: isolated internal restored-DB network unavailable" >&2
-                    exit 1
-                }
-                docker network connect "$RESTORE_NET" "$RESTORE_CID" || {
-                    echo "FAIL: cannot attach restored PG18 to isolated verification bridge" >&2
+                # Same restored database has been on its CI-only internal bridge
+                # since container creation. No published ports, no user/device collection.
+                [[ -n "$RESTORE_NET" && -n "$RESTORE_CID" ]] || {
+                    echo "FAIL: isolated restored-DB bridge or container missing" >&2
                     exit 1
                 }
                 restored_pg_ip="$(docker inspect --format \
@@ -1668,7 +1671,7 @@ PY
                     exit 1
                 }
 
-                # Use a THIRD, empty database within the same networkless
+                # Use a THIRD, empty database within the same internal-only
                 # disposable PG18 OCI for a real, intentionally incomplete
                 # archive restore. pg_restore must reject it with a nonzero
                 # exit, and --single-transaction must leave no partial schema.
@@ -1741,7 +1744,7 @@ PY
                 echo "PASS: full-row restore verification rejects equal-count, unchanged-snapshot-tuple JSONB tamper; source unaffected (CI-only)."
                 docker rm -f "$RESTORE_CID" >/dev/null
                 RESTORE_CID=""
-                echo "PASS: custom pg_dump from WAL recovered PG18 -> fresh no-network PG18 restore has identical inventory, child counts and Flyway history; CI-only, not independent DR."
+                echo "PASS: custom pg_dump from WAL recovered PG18 -> fresh internal-only PG18 restore has identical inventory, child counts and Flyway history; CI-only, not independent DR."
 
                 # Rust never saw that first HTTP ACK. The original verified
                 # revision 2 must still be pending in SQLite after reopen.
