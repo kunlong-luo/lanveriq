@@ -1,6 +1,6 @@
 # DESKTOP-L2B-33 — 冷缓存双回放：旧 APT Packages + 有效旧 witness 同时回放、分离只读锚点拒绝
 
-**ACTIVE / PENDING L2（2026-11-25）**。实现及首次失败：[`cd8b3d85`](https://github.com/kunlong-luo/lanveriq/commit/cd8b3d85ed3e5cf7a7b98c4b6dc27947f1d744fe)、[CI #45568690884 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568690884)；修复驱动缩进：[`8621510f`](https://github.com/kunlong-luo/lanveriq/commit/8621510f3b1b6bd345624d3b3a62e6fdae11582f)、[原生 OCI CI #45568837764 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45568837764)。**尚未通过本项原生 OCI，不可提前声称 20/20。** G-05 OPEN、v0.1 NOT RELEASE READY。
+**L2 20/20 SUCCESS（2026-11-25）。** 修正后功能 SHA [c177f281](https://github.com/kunlong-luo/lanveriq/commit/c177f28112c8cdfc4ab681e8314a7e8f3833d3ca) · [真实原生 OCI #45569177575 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)。早期 [#45568609482 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568609482)、[#45568690884 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568690884) 为编译前 Python 缩进错误；[#45568837764 CANCELLED](https://github.com/kunlong-luo/lanveriq/actions/runs/45568837764) 为只读锚点目录权限修正后自动取消。**G-05 OPEN · v0.1 NOT RELEASE READY。**
 
 ## 目的与现有差距
 
@@ -14,7 +14,7 @@
 2. **两个旧签名共同回放，冷缓存拒绝**：把仍在 `Valid-Until` 范围内的 **旧 `InRelease` + 内容不同、签名索引摘要匹配的旧 `Packages`** 一起提供给空 APT 列表，必须证明原生 APT **确实采用旧 Packages 描述**，不能沿用 [L2B-29](desktop-tauri-l2b29-native-apt-different-valid-signed-index-2026-11-25.md) 的热缓存现象。旧 `InRelease` 是一次性 publisher 真签名；旧 witness 也是不同 CI witness 真签名且**仍为 sequence=2**，其内容哈希与旧 Release 正确匹配。原生 `gpgv`、序列与 Release 摘要三者独立自检通过之后，单独挂载的批准 witness SHA256 必须因不同而拒绝。
 3. **独立锚点缺失时拒绝**：其他 APT/见证数据正确，但容器**不挂载**批准锚点，需明确因锚点缺失拒绝；不得用参数错误、APT 失败或缺失公钥冒充证明。
 
-三项全部继续检查 **没有在宿主机或 OCI 内安装 Agent、没有 service start/enable、没有调用 Polkit root broker、没有生产网络**。完整原生测试目标 **20/20**。固定 Ubuntu24 OCI digest、`--network none --cap-drop ALL --security-opt no-new-privileges`，一次性 GPG 私钥只存在 runner 临时目录、所有 repo/witness 和单独批准锚点只读挂载。仅用成熟 **APT、gpgv、GnuPG、sha256sum、Docker**，没有新产品签名协议、发行 SDK 或实际用户安装器。
+三项已在 [#45569177575](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) **真实原生 OCI 全部通过**，确认这三项中**没有在宿主机或 OCI 内安装 Agent、没有 service start/enable、没有调用 Polkit root broker、没有生产网络**。前 17 项仍包含隔离容器内的真实 install/upgrade/remove，累计 **20/20 PASS**。固定 Ubuntu24 OCI digest、`--network none --cap-drop ALL --security-opt no-new-privileges`，一次性 GPG 私钥只存在 runner 临时目录、所有 repo/witness 和单独批准锚点只读挂载。仅用成熟 **APT、gpgv、GnuPG、sha256sum、Docker**，没有新产品签名协议、发行 SDK 或实际用户安装器。
 
 ## 失败历史与代码入口
 
@@ -22,7 +22,8 @@
 - 试验仓库、不同签名见证、独立 host 临时锚点：[Python 夹具驱动](../../apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py)；
 - 冷缓存的原生 APT 实验与安装前拒绝：[OCI 内 Bash](../../apps/desktop/tools/agent-signed-apt-oci-inner.sh)；
 - [5+ 定向负测](../../apps/desktop/tools/test_signed_apt_index_replay.py) 与 [真实 OCI workflow](../../.github/workflows/desktop-agent-signed-apt-oci-l2.yml)。
-- [#45568609482 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568609482) 和 [#45568690884 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568690884)：`run_cases` 代码挪入单独函数时缩进不一致，`python3 -m py_compile` **在 Rust 编译前拒绝**。这是测试驱动源代码错误，不是独立锚点的实际安全证据。修复提交 `8621510f` 仍需等待真实原生 CI。不得抹去或改写 FAIL。
+- [#45568609482 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568609482) 与 [#45568690884 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45568690884)：拆出 `run_cases` 函数时缩进错误，`python3 -m py_compile` 在两次 Rust 编译前**真实拒绝**。修复 [8621510f](https://github.com/kunlong-luo/lanveriq/commit/8621510f3b1b6bd345624d3b3a62e6fdae11582f) 后，又针对移除全部 capabilities 的 OCI 修复只读公开摘要目录可读性，前一次运行 [#45568837764](https://github.com/kunlong-luo/lanveriq/actions/runs/45568837764) 被并发策略取消。失败和取消记录均保留。
+- **[c177f281 / #45569177575 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575)：** 6 项快速源级负测、两次不同 Git 源 Rust 编译、前 17 项 APT/签名/ELF 和新增 3 项冷缓存见证全部通过。首次真正证实：**空缓存 APT 采用了不同旧 Packages**，旧 Release 与**相同序列 2 的旧 witness** 均是真签名、其摘要匹配，而另行 RO 挂载的已批准 witness SHA256 明确拒绝它；批准材料通过、锚点缺失拒绝。依然是单一 CI 管理域实验，不是可信外部高水位。
 
 ## 下一项真实发行退出条件
 
