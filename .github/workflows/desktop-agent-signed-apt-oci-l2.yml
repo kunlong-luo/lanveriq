@@ -16,6 +16,7 @@ on:
       - 'apps/agent/tools/linux/verify-offline-agent-deb.py'
       - 'apps/agent/tools/linux/verify-systemd-popos24.py'
       - 'apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py'
+      - 'apps/desktop/tools/test_signed_apt_index_replay.py'
       - 'apps/desktop/tools/agent-signed-apt-oci-inner.sh'
       - '.github/workflows/desktop-agent-signed-apt-oci-l2.yml'
   workflow_dispatch:
@@ -29,7 +30,7 @@ concurrency:
 
 jobs:
   signed-agent-apt-oci:
-    name: Real APT Agent package lifecycle, 13 signed source and native version cases
+    name: Real signed APT Agent 15 cases incl pinned historical source/different ELF
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -38,6 +39,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Checkout historical Agent source at exact reviewed commit, without credentials
+        uses: actions/checkout@v7
+        with:
+          ref: cd031894048dfcdc479aeaddd72e6254abde7303
+          path: l2b31-historical
+          persist-credentials: false
+          sparse-checkout: |
+            apps/agent
       - name: Negative guard - never run on host without CI and consent
         shell: bash
         run: |
@@ -66,6 +75,25 @@ jobs:
           echo "LANVERIQ_L2B23_TEMP=$tmp" >> "$GITHUB_ENV"
           bash tools/linux/build-offline-agent-deb.sh target/release/lanveriq-agent "$tmp"
           python3 tools/linux/verify-offline-agent-deb.py "$tmp/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb"
+      - name: Compile pinned historical Agent source to a genuinely different Rust ELF
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git -C l2b31-historical rev-parse HEAD)" = cd031894048dfcdc479aeaddd72e6254abde7303
+          if cmp -s apps/agent/src/inventory_platform.rs l2b31-historical/apps/agent/src/inventory_platform.rs; then
+            echo 'NOT_APPROVED: historical and current Rust inventory sources are identical' >&2
+            exit 1
+          fi
+          cargo +1.100.0 build --release --locked -p lanveriq-agent \
+            --manifest-path l2b31-historical/apps/agent/Cargo.toml
+          history_elf=l2b31-historical/apps/agent/target/release/lanveriq-agent
+          latest_elf=apps/agent/target/release/lanveriq-agent
+          test -x "$history_elf" && test -x "$latest_elf"
+          if cmp -s "$history_elf" "$latest_elf"; then
+            echo 'NOT_APPROVED: pinned historical and current Cargo ELFs identical' >&2
+            exit 1
+          fi
+          echo 'PASS: pinned original Git source builds different Rust ELF; CI-only, no signing authority'
       - name: Local package-index revision fixture negative checks
         run: |
           set -Eeuo pipefail
@@ -77,7 +105,8 @@ jobs:
           # The CI runner is never the APT/dpkg target; script uses docker --network none,
           # --cap-drop ALL, no-new-privileges, a read-only local signed repo and a pinned OCI.
           python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py \
-            "$LANVERIQ_L2B23_TEMP/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb"
+            "$LANVERIQ_L2B23_TEMP/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb" \
+            "$GITHUB_WORKSPACE/l2b31-historical/apps/agent/target/release/lanveriq-agent"
           python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
-          echo 'PASS: 13 actual OCI APT cases: 2 real Debian versions, unattended downgrade refusal and explicit lab downgrade; no trusted highwater or approved signer'
+          echo 'PASS: 15 native OCI APT cases including 2 byte-distinct Git-source Rust ELFs, unattended refusal and explicit downgrade; NOT RELEASE READY'

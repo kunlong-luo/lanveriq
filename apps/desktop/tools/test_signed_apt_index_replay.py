@@ -44,11 +44,24 @@ class NativeSignedIndexFixtureTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     lab.previous_packages_index(candidate)
 
+    def test_distinct_source_elf_requires_both_elf_magic_and_different_hashes(self):
+        first = bytes.fromhex("7f454c46") + b"new-rust-compiled-source"
+        other = bytes.fromhex("7f454c46") + b"historic-rust-compiled-source"
+        hashes = lab.require_distinct_elf_bytes(first, other)
+        self.assertNotEqual(hashes[0], hashes[1])
+        for a, b in ((first, first), (first, b"invalid-non-elf"),
+                     (b"non-elf", other)):
+            with self.subTest(a=a[:10], b=b[:10]):
+                with self.assertRaises(ValueError):
+                    lab.require_distinct_elf_bytes(a, b)
+
     def test_case_remains_ci_only_and_not_publisher_authority(self):
         self.assertIn("signed-old-different-packages-retained", lab.CASES)
         self.assertIn("signed-valid-old-release-acceptance", lab.CASES)
-        self.assertEqual(len(lab.CASES), 13)
+        self.assertEqual(len(lab.CASES), 15)
         self.assertEqual(len(lab.VERSION_CASES), 2)
+        self.assertEqual(len(lab.SOURCE_DISTINCT_CASES), 2)
+        self.assertRegex(lab.PINNED_HISTORICAL_AGENT_SHA, r"^[0-9a-f]{40}$")
         self.assertIn("dev0", lab.PRIOR_NAME)
         self.assertIn("dev1", lab.NAME)
         self.assertIn("ubuntu@sha256:", lab.IMAGE)

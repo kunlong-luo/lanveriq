@@ -50,11 +50,15 @@ case "$LANVERIQ_L2B23_CASE" in
     test ! -d /run/systemd/system
     echo 'PASS: real signed-index APT installed/reinstalled/removed audited Rust Agent only in disposable OCI; no start/network'
     ;;
-  signed-two-versions-unattended-downgrade-refused|signed-two-versions-explicit-oci-downgrade)
-    # L2B-30: two genuine Debian packages with different dpkg versions and
-    # byte-identical audited idle Rust ELF/systemd payload, signed by one
-    # ephemeral repository identity. Not an independent old Agent binary.
-    # ALL changes remain in the networkless disposable OCI overlay.
+  signed-two-versions-unattended-downgrade-refused|signed-two-versions-explicit-oci-downgrade|signed-distinct-elf-unattended-downgrade-refused|signed-distinct-elf-explicit-oci-downgrade)
+    # L2B-30 and L2B-31: two actual native dpkg versions signed by the
+    # same throwaway signer. The L2B-31 pair contains truly different ELF
+    # bytes from pinned distinct Git source revisions. All package changes
+    # occur strictly inside the disposable networkless OCI overlay.
+    source_distinct=false
+    case "$LANVERIQ_L2B23_CASE" in
+      signed-distinct-elf-*) source_distinct=true ;;
+    esac
     apt-get "${opts[@]}" update
     apt-cache "${opts[@]}" policy lanveriq-agent-offline-preview |
       grep -F '0.1.0~dev0' > /dev/null
@@ -64,13 +68,23 @@ case "$LANVERIQ_L2B23_CASE" in
     test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
     test -x /usr/bin/lanveriq-agent
     /usr/bin/lanveriq-agent --help | grep -F 'Usage:' > /dev/null
+    if [ "$source_distinct" = true ]; then
+      latest_hash="$(cat /mnt/lanveriq-lab/latest-elf.sha256)"
+      historical_hash="$(cat /mnt/lanveriq-lab/historical-elf.sha256)"
+      test "${#latest_hash}" = 64
+      test "${#historical_hash}" = 64
+      test "$latest_hash" != "$historical_hash"
+      test "$(sha256sum /usr/bin/lanveriq-agent | cut -d' ' -f1)" = "$latest_hash"
+      echo 'STAGE: L2B-31 new Cargo ELF verified by installed-file SHA256'
+    fi
     test ! -e /etc/systemd/system/multi-user.target.wants/lanveriq-agent.service
     test ! -d /run/systemd/system
     install -d -m 0700 /etc/lanveriq-agent /var/lib/private/lanveriq-agent
     printf '%s\n' 'synthetic-l2b30-operator-config' > /etc/lanveriq-agent/agent.toml
     printf '%s\n' 'synthetic-l2b30-private-state' > /var/lib/private/lanveriq-agent/state
     chmod 0600 /etc/lanveriq-agent/agent.toml /var/lib/private/lanveriq-agent/state
-    if [ "$LANVERIQ_L2B23_CASE" = signed-two-versions-unattended-downgrade-refused ]; then
+    if [ "$LANVERIQ_L2B23_CASE" = signed-two-versions-unattended-downgrade-refused ] ||
+       [ "$LANVERIQ_L2B23_CASE" = signed-distinct-elf-unattended-downgrade-refused ]; then
       if apt-get "${opts[@]}" --no-install-recommends -y install \
           lanveriq-agent-offline-preview=0.1.0~dev0 > /tmp/l2b30-refusal.log 2>&1; then
         echo 'FAIL: unattended APT downgraded without explicit override' >&2
@@ -82,6 +96,9 @@ case "$LANVERIQ_L2B23_CASE" in
         exit 122
       }
       test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
+      if [ "$source_distinct" = true ]; then
+        test "$(sha256sum /usr/bin/lanveriq-agent | cut -d' ' -f1)" = "$latest_hash"
+      fi
       echo 'STAGE: native unattended APT refused validly signed older dpkg version'
     else
       # Deliberate OCI attack/exception demonstration, never product workflow.
@@ -89,9 +106,18 @@ case "$LANVERIQ_L2B23_CASE" in
       apt-get "${opts[@]}" --no-install-recommends -y --allow-downgrades install \
         lanveriq-agent-offline-preview=0.1.0~dev0
       test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev0'
+      if [ "$source_distinct" = true ]; then
+        test "$(sha256sum /usr/bin/lanveriq-agent | cut -d' ' -f1)" = "$historical_hash"
+        /usr/bin/lanveriq-agent --help | grep -F 'Usage:' > /dev/null
+        echo 'STAGE: L2B-31 actually installed DIFFERENT old Cargo ELF inside OCI'
+      fi
       echo 'STAGE: actual dpkg installed-version DOWNGRADE inside OCI only'
       apt-get "${opts[@]}" --no-install-recommends -y install lanveriq-agent-offline-preview=0.1.0~dev1
       test "$(dpkg-query -W -f='${Version}' lanveriq-agent-offline-preview)" = '0.1.0~dev1'
+      if [ "$source_distinct" = true ]; then
+        test "$(sha256sum /usr/bin/lanveriq-agent | cut -d' ' -f1)" = "$latest_hash"
+        echo 'STAGE: L2B-31 restored new Cargo ELF after actual APT upgrade'
+      fi
     fi
     test "$(cat /etc/lanveriq-agent/agent.toml)" = synthetic-l2b30-operator-config
     test "$(cat /var/lib/private/lanveriq-agent/state)" = synthetic-l2b30-private-state
