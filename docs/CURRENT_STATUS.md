@@ -43,9 +43,7 @@
 
 ## 下一项退出目标（不等于批准上线）
 
-**G-05 下一项：** [L2B-33 20/20 原生 L2](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) 已验证冷缓存双签名同序列回放由 RO CI 批准摘要拒绝；**仍无独立管理域正式发行/见证根、可信时间或不可回退高水位**。下一步须具名发行/安全主体独立批准密钥、持久版本/摘要及恢复规则，再实测合法离线、重装、升级/恢复；Polkit root broker 和 Pop!_OS COSMIC 实机 L3 另行授权。生产安装/联网/采集/远控 OFF。
-
-并行阻塞：**G-01/G-03/G-04** 官方 FIDO/MFA/CA，**G-02** 外部独立管理 WORM，**G-06** 生产合法业务全链，**G-07/G-08** 法务许可与 SRE，**G-09** UI/Pop!_OS L3，**G-10** Windows/RustDesk 范围书面决定。以 [唯一发布门禁](planning/release-gap-register.md) 为准。
+**G-05：** [L2B-33 原生 20/20](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) 仅证明 CI 内分离摘要拒绝回放。独立签名根/不可回退高水位、Polkit 事务 broker 和获许可的 COSMIC L3 均未完成。G-01～G-10 的其他阻塞与签收条件统一见 [发布门禁](planning/release-gap-register.md)。生产安装/联网/采集/远控 OFF。
 
 ## 证据、历史及维护
 

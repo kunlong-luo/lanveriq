@@ -23,7 +23,7 @@
 
 **G-06/G-08 补充证据：** [ACK 未送达 Rust、PG18 已提交的原请求重送](../development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6 / [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)；[PG18 SIGKILL/WAL 恢复后重送](../development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009 / [Linux #45583968475](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475) **两 jobs SUCCESS**。没有真实跨机备份、法务许可、真实设备 CA/MFA、L3 或 RPO/RTO，两个 Gate 均 OPEN。
 
-**G-08 后续测试未完成：** [PG18 WAL 恢复后逻辑备份→独立新容器 `pg_restore`→设备及 Flyway 记录一致性](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 功能 `b64a14ad`、[Linux #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**；不应将早期 WAL PASS 推断成备份恢复 PASS，更不表示跨域保管/RPO/RTO 或生产批准。**G-08 OPEN。**
+**G-08 新实例恢复待验收：** [PG18 逻辑备份→全新实例](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md)，功能 `b64a14ad`、[Linux #45586283694](https://github.com/kunlong-luo/lanveriq/actions/runs/45586283694) **PENDING**；不代表跨域保管/RPO/RTO。**G-08 OPEN。**
 
 **预览发布 ≠ 正式 Agent 发行：** `v0.1.0-dev.1` [源码预览候选](../operations/source-preview-v0.1.0-dev.1.md) 的 [L1 #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) 只证明本地合约拒绝虚假批准和安装包附件，**未创建 Release/tag，不能视为 G-05/G-07 或任何 Gate 签收。**
 
