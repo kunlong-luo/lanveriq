@@ -1341,8 +1341,13 @@ PY
                 # Neither DB nor archive leaves this disposable runner.
                 backup_archive="$TMP/synthetic-pg18-recovery.dump"
                 umask 077
+                # Monotonic, CI-only measurements of actual pg_dump and a
+                # fresh restored database including an independent restart.
+                # Do NOT present these timings as production RPO/RTO.
+                backup_started_ns="$(python3 -c 'import time; print(time.monotonic_ns())')"
                 docker exec "$DB_CID" pg_dump -U lanveriq -d lanveriq \
                     --format=custom --no-owner --no-acl > "$backup_archive"
+                backup_finished_ns="$(python3 -c 'import time; print(time.monotonic_ns())')"
                 [[ -s "$backup_archive" && ! -L "$backup_archive" ]] || {
                     echo "FAIL: disposable PG18 custom-format backup empty/linked" >&2
                     exit 1
@@ -1359,6 +1364,7 @@ PY
                     echo "FAIL: disposable PG18 archive omitted current inventory table" >&2
                     exit 1
                 }
+                restore_started_ns="$(python3 -c 'import time; print(time.monotonic_ns())')"
                 RESTORE_CID="$(docker run --detach --network none \
                     --env POSTGRES_DB=lanveriq \
                     --env POSTGRES_USER=lanveriq \
@@ -1449,6 +1455,78 @@ PY
                     exit 1
                 }
                 echo "PASS: full-row canonical content matches WAL source across current inventory, interfaces, addresses, volumes and Flyway (CI-only)."
+                # A first successful pg_restore is not enough to prove that
+                # the recovered instance survives a clean independent reboot.
+                # The source PG18 and running Spring connection remain intact.
+                docker restart --time 3 "$RESTORE_CID" > /dev/null || {
+                    echo "FAIL: isolated restored PG18 could not restart" >&2
+                    exit 1
+                }
+                restored_reboot_ready=0
+                for _ in $(seq 1 60); do
+                    if docker exec "$RESTORE_CID" pg_isready -U lanveriq -d lanveriq >/dev/null 2>&1; then
+                        restored_reboot_ready=1
+                        break
+                    fi
+                    sleep 1
+                done
+                [[ "$restored_reboot_ready" == 1 ]] || {
+                    echo "FAIL: restored PG18 did not become queryable after restart" >&2
+                    exit 1
+                }
+                [[ "$(pg18_full_restore_fingerprint "$RESTORE_CID")" == "$original_full_fingerprint" ]] || {
+                    echo "FAIL: restored PG18 restart changed inventory or Flyway content" >&2
+                    exit 1
+                }
+                restore_verified_ns="$(python3 -c 'import time; print(time.monotonic_ns())')"
+                # Keep a local-only machine-readable drill summary. Only
+                # monotonic wall intervals and environment flags are recorded
+                # (no employee identifiers, database rows or secrets).
+                python3 - "$TMP/pg18-recovery-drill-metrics.json" \
+                    "$backup_started_ns" "$backup_finished_ns" \
+                    "$restore_started_ns" "$restore_verified_ns" <<'PY'
+import datetime
+import json
+import os
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+backup_start, backup_end, restore_start, restore_end = (
+    int(value) for value in sys.argv[2:]
+)
+if not (0 < backup_start < backup_end < restore_start < restore_end):
+    raise SystemExit("FAIL: synthetic PG18 drill monotonic timing order invalid")
+if os.environ.get("GITHUB_ACTIONS") != "true":
+    raise SystemExit("FAIL: PG18 synthetic drill metrics restricted to CI")
+record = {
+    "schema": "lanveriq.pg18.synthetic-recovery-drill.v1",
+    "scope": "DISPOSABLE_CI_SAME_ADMIN",
+    "source_commit": os.environ.get("GITHUB_SHA", ""),
+    "recorded_at_untrusted_utc": datetime.datetime.now(
+        datetime.timezone.utc
+    ).isoformat(),
+    "pg_dump_seconds": round((backup_end - backup_start) / 1e9, 3),
+    "fresh_restore_restart_verify_seconds": round(
+        (restore_end - restore_start) / 1e9, 3
+    ),
+    "cold_restarted_pg18_queryable": True,
+    "full_inventory_and_flyway_match": True,
+    "production_rpo_measured": False,
+    "production_rto_measured": False,
+    "external_custody_verified": False,
+    "production_restore_authorized": False,
+}
+if len(record["source_commit"]) != 40:
+    raise SystemExit("FAIL: no exact CI source commit in synthetic drill record")
+path.write_text(json.dumps(record, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+path.chmod(0o600)
+print("PASS: isolated PG18 recovery/restart drill measured; "
+      f"dump={record['pg_dump_seconds']}s, "
+      f"fresh-restore/restart/verify={record['fresh_restore_restart_verify_seconds']}s; "
+      "NOT production RPO/RTO or independent DR.")
+PY
+                echo "PASS: independently restarted recovered PG18 remains queryable with unchanged full inventory and Flyway content (CI-only)."
                 # G-08 integrity/atomicity negative tests: never treat a
                 # corrupt or incomplete dump as a successful disaster restore.
                 # Everything stays in this CI runner's private temporary dir.
