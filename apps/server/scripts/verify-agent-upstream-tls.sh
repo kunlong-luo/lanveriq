@@ -1224,15 +1224,8 @@ PY
                 }
                 start_caddy "$CADDY_REFERENCE"
                 assert_bridge_up
-                # The same pending revision 2 must now traverse the REST path
-                # after a REAL outage, before any credential is expired or
-                # revoked. No automatic sender, retry loop or production Agent.
-                "$RUST_AGENT_HTTP" recovered "$DEVICE_ID" || {
-                    echo "FAIL: restored mTLS did not deliver exact retained inventory" >&2
-                    exit 1
-                }
                 [[ -s "$TMP/synthetic-inventory-recovered.json" ]] || {
-                    echo "FAIL: no private Rust recovery wire fixture" >&2
+                    echo "FAIL: offline Rust did not export private exact pending JSON" >&2
                     exit 1
                 }
                 recovered_snapshot="$(python3 - "$TMP/synthetic-inventory-recovered.json" <<'PY'
@@ -1246,6 +1239,60 @@ assert doc["interfaces"]==[] and doc["volumes"]==[]
 print(uuid.UUID(doc["snapshot_id"]))
 PY
 )"
+                # Synthetic UNKNOWN-ACK window: the harness delivers the
+                # ORIGINAL SQLite wire bytes to real Spring via mTLS, but
+                # deliberately does NOT deliver the resulting ACK to Rust.
+                # This is an ACK-withheld simulation, NOT proof of a TCP
+                # connection being severed after the database commit.
+                withheld_ack_code="$(curl --silent --show-error --noproxy '*' --http2 \
+                    --tlsv1.3 --tls-max 1.3 --max-time 12 \
+                    --cacert "$ROOT_CA" --resolve agent.lanveriq.internal:443:127.0.0.1 \
+                    --cert "$TMP/pki/agent.crt" --key "$TMP/pki/agent.key" \
+                    -H 'Content-Type: application/json' \
+                    --data-binary @"$TMP/synthetic-inventory-recovered.json" \
+                    -D "$TMP/withheld-ack-headers" -o "$TMP/withheld-ack.json" \
+                    -w '%{http_code}' \
+                    "https://agent.lanveriq.internal/api/v1/devices/$DEVICE_ID/inventory")"
+                [[ "$withheld_ack_code" == 200 ]] &&
+                    grep -iq '^cache-control:.*no-store' "$TMP/withheld-ack-headers" || {
+                    echo "FAIL: first server commit in ACK-withheld test failed mTLS/HTTP" >&2
+                    exit 1
+                }
+                python3 - "$TMP/withheld-ack.json" "$DEVICE_ID" "$recovered_snapshot" <<'PY'
+import json,sys
+from pathlib import Path
+receipt=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert receipt.get("schema_version")==1
+assert receipt.get("device_id")==sys.argv[2]
+assert receipt.get("snapshot_id")==sys.argv[3]
+assert receipt.get("inventory_revision")==2
+assert receipt.get("outcome")=="applied"
+PY
+                inventory_withheld_commit="$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")"
+                [[ -n "$inventory_withheld_commit" && "$inventory_withheld_commit" != "$inventory_before" ]] || {
+                    echo "FAIL: ACK-withheld mTLS request did not commit a new PG18 revision" >&2
+                    exit 1
+                }
+                # Rust never saw that first HTTP ACK. The original verified
+                # revision 2 must still be pending in SQLite after reopen.
+                # Real Rust Reqwest sends the same bytes, receives the
+                # backend's idempotent duplicate receipt, then CAS-clears
+                # only its exact local snapshot. No automatic retry.
+                "$RUST_AGENT_HTTP" recovered "$DEVICE_ID" || {
+                    echo "FAIL: original Rust SQLite pending was not reconciled by mTLS duplicate ACK" >&2
+                    exit 1
+                }
+                [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
+                    SELECT concat_ws('|', snapshot_id::text, inventory_revision::text,
+                        received_at::text, content_digest)
+                    FROM device_inventory_current WHERE device_id='$DEVICE_ID'")" == "$inventory_withheld_commit" ]] || {
+                    echo "FAIL: Rust duplicate after withheld ACK rewrote durable PG18 state" >&2
+                    exit 1
+                }
+                echo "PASS: synthetic ACK withheld from Rust after actual mTLS PG18 commit; original SQLite replay reconciled duplicate without mutation."
                 [[ "$(docker exec "$DB_CID" psql -U lanveriq -d lanveriq -XAtqc "
                     SELECT count(*) FROM device_inventory_current
                     WHERE device_id='$DEVICE_ID' AND inventory_revision=2

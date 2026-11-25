@@ -602,12 +602,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         store.close().await;
         let reopened = OutboxStore::open(&path).await?;
-        if reopened.verified_pending_inventory(device).await? != Some(pending) {
+        if reopened.verified_pending_inventory(device).await? != Some(pending.clone()) {
             return Err("offline pending was lost after process restart".into());
         }
+        // CI-only ACK-withheld simulation: the harness separately submits
+        // these exact persisted bytes after Caddy returns, while Rust remains
+        // unaware of that server commit. No product sender or retry is added.
+        let parent = pki.parent().ok_or("missing disposable recovery parent")?;
+        let fixture_path = PathBuf::from(env::var(
+            "LANVERIQ_SYNTHETIC_INVENTORY_RECOVERED_BODY_FILE",
+        )?);
+        if !fixture_path.starts_with(parent)
+            || fixture_path.file_name().and_then(|v| v.to_str())
+                != Some("synthetic-inventory-recovered.json")
+        {
+            return Err("offline recovery fixture escaped private disposable directory".into());
+        }
+        fs::write(&fixture_path, pending.body_json.as_bytes())?;
         reopened.close().await;
         println!(
-            "PASS: actual Reqwest disconnected HTTPS inventory attempt retains exact SQLite pending revision across restart."
+            "PASS: actual Reqwest disconnected HTTPS inventory attempt retains exact SQLite pending revision across restart; CI-only original wire bytes exported for ACK-withheld test."
         );
     } else {
         let denied = Heartbeat::synthetic(device, "2026-11-12T09:03:00Z".into());
