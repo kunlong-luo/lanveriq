@@ -72,7 +72,7 @@ pnpm dev
 
 **G-08 备份/灾备：** [三 job 跨 runner 原生 PG18 恢复 L2 #45742025955 PASS](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)；[独立实体机 SRE 演练执行卡](docs/operations/g08-physical-dr-operator-card-2026-11-26.md)与[严格拒绝 L1 #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846)已备。**真实跨物理主机、独立 WORM/KMS、高水位、法务/SRE 签收 NOT RUN；不能上线。**
 
-**G-05/G-09 原生桌面修复：** [176 包 APT 双 runner #45746180961 两 job PASS](docs/development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md)，[Tauri/Rust 原生 #45745776008 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008)，[未签名 GUI-only `.deb` #45745775902 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902)。均为隔离 Ubuntu CI；**无正式签名 Agent、Polkit 安装器、COSMIC 实机或上线许可。评分 71/100、Gate 0/10；NO-GO。**
+**G-05/G-09 功能进展：** [Tauri 图形化 AgentConfig v1 空闲配置草稿](docs/development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（5 种周期、不需手写 TOML、无提权）；[React L1 #45748162585 UI job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)，同 SHA 原生/GUI CI 待最终结果。此前 [Tauri #45746181071](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only .deb #45746180976](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) PASS；**无正式 Agent 安装、Polkit broker、COSMIC L3。评分 71/100，Gate 0/10，NO-GO。**
 
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 
