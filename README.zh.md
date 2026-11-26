@@ -6,7 +6,7 @@ Lanveriq 是面向**明确告知并合法授权**的办公终端的 Linux-first�
 
 > **v0.1 NOT RELEASE READY。** 尚无可供普通用户分发的一键签名 Agent 安装器，也没有获批准的 root Polkit 安装事务、Pop!_OS 实机 L3、正式 CA/MFA、独立 WORM 与法务/SRE 签收。生产联网、自动采集、自动恢复、远控、证书签发保持 **OFF**；合成 CI PASS 不是生产授权。
 
-[唯一当前事实与 CI](docs/CURRENT_STATUS.md) · [唯一发布 Gate G-01～G-10](docs/planning/release-gap-register.md) · [Linux 当前交付路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [目录去重审计](docs/governance/repository-layout-audit-2026-11-24.md)
+[唯一当前事实与 CI](docs/CURRENT_STATUS.md) · [评分 71/100，发布 Gate 0/10](docs/planning/project-scorecard.md) · [唯一发布 Gate G-01～G-10](docs/planning/release-gap-register.md) · [Linux 当前交付路线](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [目录去重审计](docs/governance/repository-layout-audit-2026-11-24.md)
 
 ## 目录保留/删除决策（以实际代码为准）
 
@@ -70,7 +70,7 @@ pnpm dev
 
 **新增 G-06 L2 PASS：** [PG18 已提交但 Rust 未见 ACK 的原始 SQLite 请求重送](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6、[Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)。**本阶段新增 L2 PASS：** [PG18 真正 SIGKILL/WAL 恢复后 Rust 重送](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。这是合成 Linux runner，不是可发布安装器、真实 TCP 丢包或生产灾备。
 
-**G-08 隔离备份：** [原生恢复→重启/计时 #45615090308 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)；[真实 Spring Boot/JPA 无 Web 连接恢复库](docs/development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)，修复 `45683e64` / [#45618414247 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。[新增跨 runner PG18 原生恢复 L2 #45742025955 PASS](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)，仍是同一 GitHub 管理域；非独立保管、生产灾备或 SRE 签收。
+**G-08 备份/灾备：** [三 job 跨 runner 原生 PG18 恢复 L2 #45742025955 PASS](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)；[独立实体机 SRE 演练执行卡](docs/operations/g08-physical-dr-operator-card-2026-11-26.md)与[严格拒绝 L1 #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846)已备。**真实跨物理主机、独立 WORM/KMS、高水位、法务/SRE 签收 NOT RUN；不能上线。**
 
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 
