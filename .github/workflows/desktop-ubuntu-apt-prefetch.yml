@@ -188,6 +188,22 @@ jobs:
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
             libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev > "$plan"
           test -s "$plan"
+          printf 'RECEIVER authenticated APT planned install count: %s\\n' "$(grep -c '^Inst ' "$plan" || true)"
+          printf 'RECEIVER authenticated APT plan SHA256: %s\\n' "$(sha256sum "$plan" | cut -d ' ' -f 1)"
+          # Not a pass criterion; this reports differences between Ubuntu
+          # runner base images without exposing local machine identities.
+          python3 - "$plan" /var/tmp/lanveriq-desktop-apt-archives <<'PY'
+          import pathlib, sys
+          sys.path.insert(0, 'apps/desktop/tools')
+          from verify_desktop_apt_archive_cache import parse_install_plan, parse_archive_name
+          planned = parse_install_plan(pathlib.Path(sys.argv[1]).read_text())
+          cached = dict(parse_archive_name(p.name)[:2] for p in pathlib.Path(sys.argv[2]).glob('*.deb'))
+          missing = sorted(name for name, version in planned.items() if cached.get(name) != version)
+          extra = sorted(set(cached) - set(planned))
+          print('RECEIVER required package/version absent from producer cache:', len(missing))
+          print('RECEIVER producer-cache entries not in current install plan:', len(extra))
+          print('RECEIVER missing selected APT package names:', ','.join(missing) if missing else 'none')
+          PY
       - name: Verify independent runner cache bytes AND signed-index package SHA256
         shell: bash
         env:
