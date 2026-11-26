@@ -1,6 +1,6 @@
 # Lanveriq v0.1 发行、升级与回滚操作门禁
 
-**ACTIVE RUNBOOK · 2026-11-25 · `main` · v0.1 NOT RELEASE READY · NO CUSTOMER INSTALLATION AUTHORIZED。** 这里是**候选发行与验收流程**，不是已发布安装说明。**2026-11-21 现行发布边界：** 唯一 Web 前端 `apps/web` 为 Next.js，官方 Pages 是断开业务的演示；Rust Agent/桌面 Tauri/Java 后端均没有获批的生产发行与部署路径。最新 CI/功能 SHA 请查 [CURRENT_STATUS.md](../CURRENT_STATUS.md)，Gate 以[唯一发布缺口登记](../planning/release-gap-register.md)为准，不在本文件复制全部旧日志。
+**ACTIVE RUNBOOK · 2026-11-26 · `main` · v0.1 NOT RELEASE READY · NO CUSTOMER INSTALLATION AUTHORIZED。** 这里是**候选发行与验收流程**，不是已发布安装说明。**2026-11-21 现行发布边界：** 唯一 Web 前端 `apps/web` 为 Next.js，官方 Pages 是断开业务的演示；Rust Agent/桌面 Tauri/Java 后端均没有获批的生产发行与部署路径。最新 CI/功能 SHA 请查 [CURRENT_STATUS.md](../CURRENT_STATUS.md)，Gate 以[唯一发布缺口登记](../planning/release-gap-register.md)为准，不在本文件复制全部旧日志。
 
 ## 发布状态和权限顺序
 
@@ -20,6 +20,13 @@
 4. **最小权限 GUI 安装：** Tauri 只能请求固定动作，不持有 root shell/可自选 URI/任意安装路径；必须经原生 D-Bus 实际发送者身份、真正 logind 活跃会话和 Polkit 每操作一次授权、root-side 固定工件/事务证据核验。安装/升级/卸载、服务启动、boot enable、联网、采集须分别审批和审计。当前只有 [root-side ReviewLab 拒绝与恶意 OS YES 纵深负测](../development/desktop-tauri-l2b26-malicious-polkit-rule-override-real-os-2026-11-24.md)，**没有能执行安装的获批 broker**。
 5. **具名 Linux L3：** 先在 Ubuntu24 disposable L2 验证安全交易及拒绝/取消，再经用户/设备所有人真实书面许可，在 Pop!_OS24 COSMIC/Wayland 实机验证 GUI、背景服务可发现性、停止/卸载、升级/回滚、隐私告知、权限/性能。实机通过前不可分发。
 6. **生产信任/合规：** 官方 FIDO、真人管理员 WebAuthn MFA、CA/KMS、独立管理域 WORM、PG18/备份恢复、法律/许可证、SRE/应急/运营签收及正式 Agent→Spring/PG18→Next.js 全链，全部必须独立满足。[G-01～G-10](../planning/release-gap-register.md) 仍 **OPEN**。
+
+## G-05 CI 原生 APT 依赖缓存轮换（Ubuntu 构建环境，不是产品发行）
+
+- [Tauri/GUI-only `.deb` 原生 APT 轮换专项](../development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md) 记录旧 **175** 包 cache 因新版 Ubuntu24 runner 软件源/预装状态漂移而被严格拒绝。由[已有 Ubuntu 签名索引预取工作流](../../.github/workflows/desktop-ubuntu-apt-prefetch.yml) 使用发行版 apt-get 验签后 **download-only**，要求第二个独立 GitHub runner 逐包原生索引核验/原计划闭包/哈希/版本/大小/架构全部 PASS，才能审查 cache key/count/manifest。
+- 2026-11-26 有效独立证据仅 [#45745618560 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745618560)，对应该次 Ubuntu24 runner **176** 个原生依赖。两个**非发行用途**消费者 [Tauri 预览](../../.github/workflows/desktop-tauri-preview.yml)与 [GUI-only 候选审计](../../.github/workflows/desktop-deb-candidate.yml) 均已在提交 [`a6db3afd`](https://github.com/kunlong-luo/lanveriq/commit/a6db3afdfdcf75c9ef9690ace18a1240f1a03064) 更新审核 key/数量/哈希；自己的运行器仍须重新刷新签名索引且仅可 `--no-download` 安装编译头文件。
+- **运行器镜像变更不能自动视为可信**：不同 GitHub runner 镜像/预装库导致 apt `Inst` 数量不同是实际风险；接受上一步的源归档不能代替当前 builder 的独立闭包检验。签名源不可用、依赖数量/版本/哈希不同、缺少归档均 **FAIL**；不得使用 `--allow-unauthenticated`、松散 cache 前缀恢复、跳过检查或把实验 `.deb` 发布。更长期的确定性 runner 基础环境需要单独审核并验证。
+- 即使 native Rust、Tauri `.deb` 归档审计完全通过，**也不代表 Agent 安装包或正式发布**：Tauri 正式 `bundle.active` 仍关闭，CI 单次无签名 GUI-only 构建未获发行身份/Polkit broker/Pop!_OS COSMIC L3。G-05/G-09 OPEN。
 
 ## 源码开发预览候选：不是用户安装版本
 
