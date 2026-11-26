@@ -1,6 +1,6 @@
 # G-05/G-09 — Tauri 图形化生成真实 AgentConfig v1 离线空闲配置
 
-**2026-11-26 · 功能 `a70c4243` · 仅开发预览 · React/安装拒绝 L1 PASS，原生 Tauri/仅 GUI `.deb` CI 以最终结果为准。v0.1 NOT RELEASE READY。**
+**2026-11-26 · 功能 `a70c4243` · 仅开发预览 · React/安装拒绝及 Tauri 原生两 job PASS，GUI-only `.deb` CI 以最终结果为准。v0.1 NOT RELEASE READY。**
 
 ## 用户目标与实现
 
@@ -14,7 +14,7 @@
 ## 精确 CI 和外部缺口
 
 - 功能 SHA：[`a70c4243e7a9b6ade62465e65924735718e76dce`](https://github.com/kunlong-luo/lanveriq/commit/a70c4243e7a9b6ade62465e65924735718e76dce)。
-- [桌面 Tauri CI #45748162585](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)：**React L1 job SUCCESS**（新配置 Vitest/严格 TypeScript/Vite 构建以及只读原生权限拒绝合约）；**Rust/Tauri 原生 job PENDING**（不得将排队或仍运行视为 SUCCESS）。
+- [桌面 Tauri CI #45748162585](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)：**两个 jobs 全部 SUCCESS**：React L1 包含新配置 Vitest、严格 TypeScript/Vite 构建和只读安全边界；原生 Tauri/Rust compile/test 与 Clippy 在同功能 SHA 实际通过。
 - [安装意图与 Polkit 默认拒绝 #45748162734](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162734)：**SUCCESS**，实际未放开安装授权。
 - [未安装的 GUI-only `.deb` #45748162574](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162574)：**PENDING**，即使通过也只证明隔离的 GUI-only 候选完整性，仍不含正式 Agent。
 - 上轮 [更正后的原生 APT 两 runner #45746180961](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 均已在各自 `c411d3ea` SHA **SUCCESS**；**不能替代本轮功能 SHA 的原生验收**。
