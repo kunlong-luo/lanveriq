@@ -37,7 +37,7 @@
 
 ## 下一项退出顺序（[71/100 工程评分、0/10 发布门禁](project-scorecard.md) · NO-GO）
 
-1. **G-05/G-09 下一项**：[Tauri 本机脱敏诊断 UI](../development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) 已实现，只读 L1、非安装；独立发行签名/可信时间/不可回退高水位、受审 Polkit broker、真实升级/卸载、Pop!_OS COSMIC L3 **NOT RUN**。不发布 Agent 安装包。
+1. **G-05/G-09**：[脱敏诊断 React L1 PASS、原生 Tauri APT 闭包漂移 FAIL](../development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)；仍缺受审签名源/独立高水位、真实受限 Polkit broker、升级/卸载和 COSMIC L3。**NOT RUN/OPEN**。
 2. **G-05/G-09 L3**：具名设备/操作者书面许可，真实 Pop!_OS 24.04 COSMIC / Polkit 对话框/升级回滚/卸载和合法独立无托盘 Agent 生命周期。
 3. **G-01～04/G-07～08/G-06**：官方可信源、独立 WORM、CA/MFA、法务/SRE 与真实业务全链签收；G-10 另定首发范围。只有真实责任人、对应**功能 SHA+CI+L3 证据**、拒绝负测和回滚均齐全才可改变状态。
 
