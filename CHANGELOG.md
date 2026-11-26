@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-26 — G-05/G-09 GUI 生成实际 AgentConfig v1 空闲草稿（非安装）
+
+- 功能 [`a70c4243`](https://github.com/kunlong-luo/lanveriq/commit/a70c4243e7a9b6ade62465e65924735718e76dce)：Tauri 安装向导可选择五档周期并生成与 Rust AgentConfig v1 相同字段的只读 TOML 草稿。仅 GUI 内存，不写系统配置，不添加原生 IPC、联网、采集、安装或服务控制。新增 Vitest/真实配置示例一致性、参数拒绝和安全源码审计，[专项报告](docs/development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)。
+- [本次 React L1 #45748162585 UI job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)，原生及 GUI-only `.deb` 同功能 SHA 工作流按最终结果单独验收。此前 `c411d3ea` 的原生 Tauri 和 GUI-only CI 成功不代替本次验证。**工程评分 71/100，Gate 0/10，NO-GO。**
+
 ## 2026-11-26 — G-05/G-09 原生 Tauri/.deb 审计恢复（非用户发行）
 
 - 旧 175 包缓存相对 GitHub Ubuntu24 runner 实际 172/176 包差异而严格拒绝。经[原生双 runner 签名索引 176 包 #45745618560 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745618560) 刷新两个消费者的固定 key/count/归档 SHA（[`a6db3afd`](https://github.com/kunlong-luo/lanveriq/commit/a6db3afdfdcf75c9ef9690ace18a1240f1a03064)）；[Tauri/Rust #45745776008 两 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008)，[仅 GUI `.deb` 审计 #45745775902 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902)。
