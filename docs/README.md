@@ -53,6 +53,6 @@
 
 `docs-governance` 递归检查全部 `docs/**/*.md` 本地相对链接并拒绝重新引入过期目录。它不验证外部网址、标题锚、正式签名、真实用户许可或 Pop!_OS 实机。
 
-**G-05/G-09：** [Tauri 本机脱敏诊断](development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)：[React L1 #45744173020 UI job PASS / 原生 Tauri FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)，签名 Ubuntu APT 闭包数漂移，当前仍不可安装。[工程 71/100、发布 Gate 0/10](planning/project-scorecard.md)。
+**G-05/G-09：** [Ubuntu APT 闭包修复](development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md)：[176 个包两 runner PASS #45746180961](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)；[Tauri 原生 #45745776008 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008)；[仅 GUI `.deb` #45745775902 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902)。非正式 Agent 安装器，G-05/G-09 OPEN。[评分 71/100、0/10 Gate](planning/project-scorecard.md)。
 
 **发行边界：无可正式分发的 Agent 安装包；G-01～G-10 OPEN；生产联网、采集、远控、自动恢复和 CA 签发 OFF；v0.1 NOT RELEASE READY。**

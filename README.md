@@ -72,7 +72,7 @@ The next isolated business-loop milestone is [durable Linux inventory recovery a
 
 **G-08 backup/DR:** [Native PostgreSQL18 cross-runner restore L2, all 3 jobs PASS #45742025955](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md). [Approval-only physical-host SRE operator card](docs/operations/g08-physical-dr-operator-card-2026-11-26.md) and [L1 default-deny CI #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846) are ready; **real independent hardware, custody/WORM/KMS, and SRE/legal signoff NOT RUN; NO-GO.**
 
-**G-05/G-09 local diagnostics:** [Privacy-redacted Tauri UI](docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) at functional `dfaf97b5`: [React L1 SUCCESS, native Tauri FAIL #45744173020](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020); [GUI-only .deb #45744172969 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45744172969) due to audited Ubuntu APT closure drift. **Engineering 71/100, release gates 0/10; NO-GO.**
+**G-05/G-09 native build recovered:** [176-archive APT authenticated two-runner #45746180961 PASS](docs/development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md), [real Tauri/Rust #45745776008 both jobs PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008), [unsigned GUI-only `.deb` archive audit #45745775902 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902). These are disposable Ubuntu CI builds, **not a signed Agent installer, Polkit authorization or physical Pop!_OS L3. Engineering 71/100; gates 0/10; NO-GO.**
 
 ## Native APT: cold-cache signed repository and witness double-replay (L2B-33)
 

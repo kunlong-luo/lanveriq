@@ -18,6 +18,10 @@
 - [Tauri Preview CI #45744173020](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)：**React/L1 job SUCCESS**（包含前端单测、严格安全拒绝测试、TypeScript 类型检查和 Vite 构建），但 **Native Tauri/Rust job FAIL**：签名 Ubuntu 24.04 APT 索引刷新后，当前依赖求解闭包数量不同于已审的 175 包缓存，原生日志明确 `FAIL: APT closure package count differs`；因此尚未运行本功能 SHA 的原生 Rust compile/test。原始失败必须保留，不放宽校验或假称原生通过。
 - [桌面 GUI-only .deb 候选 CI #45744172969 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45744172969) 在同样的 `APT closure package count differs` 前置条件阻断。必须另行审核当前仓库索引、真实包版本与完整依赖闭包，重新生成固定且有来源验证的缓存证据，再在相同代码 SHA 上完成原生 Tauri/Rust 构建；**不能改大接受数量/跳过 apt 身份检查来伪造 PASS**。这不是新的可分发包。
 
+## 后续原生构建回归已复验（不追溯改写本 SHA 的失败）
+
+[后续 APT 缓存与原生构建专项报告](desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md)：原生修复 `a6db3afd` 的 [Tauri 两 job #45745776008 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008) 与[GUI-only `.deb` #45745775902 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902)；`c411d3ea` 的[签名 APT 双 runner #45746180961 两 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)。早期 `dfaf97b5` 原生 FAIL 仍是历史事实。非正式 Agent 安装器、无 L3/发行批准。
+
 ## 未通过的上线门禁
 
 **没有经正式签名、可供普通用户安装的 Agent 包；没有独立已批准的 Signed-By 发行根及可信时间/抗回滚高水位、最小权限真实 Polkit broker、实际用户安装/取消/卸载或 Pop!_OS 24.04 COSMIC 物理机 L3。** 其他官方 FIDO、管理员 MFA、生产设备 CA、外部 WORM、法务与 SRE 签收同样 OPEN。新诊断界面降低排障阻力，不改变正式发行就绪度或授权状态。[当前评分](../planning/project-scorecard.md)维持**工程 71/100，发布 Gate 0/10 已关闭，生产 NO-GO**。

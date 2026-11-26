@@ -4,6 +4,12 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-26 — G-05/G-09 原生 Tauri/.deb 审计恢复（非用户发行）
+
+- 旧 175 包缓存相对 GitHub Ubuntu24 runner 实际 172/176 包差异而严格拒绝。经[原生双 runner 签名索引 176 包 #45745618560 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745618560) 刷新两个消费者的固定 key/count/归档 SHA（[`a6db3afd`](https://github.com/kunlong-luo/lanveriq/commit/a6db3afdfdcf75c9ef9690ace18a1240f1a03064)）；[Tauri/Rust #45745776008 两 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008)，[仅 GUI `.deb` 审计 #45745775902 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902)。
+- 针对接收 runner 已安装不同原生库，新增[签名缓存全量核验＋当前 `Inst` 集合必须完整覆盖](docs/development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md)；[功能 `c411d3ea` 原生 APT 双 runner #45746180961 两 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961) 与源级负测 PASS。新增逻辑拒绝缺少当前依赖、错版本、未签名或缓存篡改；多余且已安装的包仍逐个校验。[首次源 176/目标 172 的严格旧逻辑 FAIL #45745775904](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775904) 留证。
+- **工程仍 71/100；Gate 0/10 OPEN；无签名 Agent/用户安装权限/实机验收；v0.1 NOT RELEASE READY。**
+
 ## 2026-11-26 — G-05/G-09 Tauri 本机脱敏诊断（React L1 PASS，原生 APT 证据 FAIL）
 
 - 功能 [`dfaf97b5`](https://github.com/kunlong-luo/lanveriq/commit/dfaf97b537ac2e8a7a3b302eb4281918a630ada8) 将只读主机和 COSMIC 预检结果整理成桌面可手动选择复制的**脱敏安装阻断报告**：不回显用户/系统路径、凭据、APT 地址、主机名或任意错误字符串；过期状态失效；所有安装/启动/联网/采集/远控门禁仍 OFF。详情见[日期验收](docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)。
