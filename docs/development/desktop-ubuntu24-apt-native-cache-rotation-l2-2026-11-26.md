@@ -1,6 +1,6 @@
 # G-05/G-09 — Ubuntu 24.04 原生 Tauri / GUI-only .deb APT 缓存闭包变更与双 runner 验收
 
-**2026-11-26 · `main` · 签名 APT 双 runner 预取与独立复核 L2 PASS；原生 Tauri 和 GUI-only .deb 待同功能 SHA 的 CI 结果。** 本报告是 **CI 构建先决条件** 的验收，**不等于** Pop!_OS 24.04 COSMIC 物理 L3、Agent 安装许可或产品发行。
+**2026-11-26 · `main` · 签名 APT 双 runner L2 PASS，Tauri 原生 CI PASS；GUI-only .deb/新 subset CI 继续按原始 run 判定。** 本报告是 **CI 构建先决条件** 的验收，**不等于** Pop!_OS 24.04 COSMIC 物理 L3、Agent 安装许可或产品发行。
 
 ## 现象（原始失败不删除）
 
@@ -23,8 +23,15 @@
 - GitHub cache key: `lanveriq-ubuntu24-tauri-apt-v2-7ea38b271819e80608ebc8faedf2e9846799ae777dd881fe0ccd616caf671ca6`
 - **注意：** 此 cache 只是独立 CI 的**不可信提速层**，不是正式软件发行签名根、独立物理保管人、合法防回滚高水位或可分发包的验收。Ubuntu runner image/source 或安装基础集变动导致本机 APT 计划不匹配时应 **FAIL / 重新两 runner 审核**，不得放宽预期包数、关闭索引验签或使用未经批准的回退 cache。
 
+## 不同 runner 已安装依赖不一致的边界修复
+
+- [旧 #45745478152 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45745478152) 的源 runner 只有 172 个待安装包；[批准 #45745618560 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745618560) 的源/目标都需要 176；紧接着 [#45745775904 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775904) 的源 runner 需要 **176**、独立目标仅需 **172**，其缓存中多出的 **4** 个已由目标宿主机满足，**所需包/版本不缺失**。原先将“两个不同 runner 待安装包数必须相同”当成不变条件，会误拒绝受审的真实缓存。
+- [验证器](../../apps/desktop/tools/verify_desktop_apt_archive_cache.py) 在提交 [`61cedcd3`](https://github.com/kunlong-luo/lanveriq/commit/61cedcd382eebec5ed98c2b74a4f2f84e013c75c) 新增 **显式开启** 的 `--allow-signed-superset`，默认严格模式**仍保持不变**。无论当前 runner 需要多少安装包，仍逐个核查缓存内全部 **176** 件的索引签名链间接信任、确切名字/版本/架构、SHA-256、文件大小及独立生产者 manifest；`Inst` 计划的每一条必需依赖**必须存在且版本一致**。只有“不需要再安装、但仍逐包签名验证”的归档允许额外存在。
+- [离线负测](../../apps/desktop/tools/test_verify_desktop_apt_archive_cache.py) 明确覆盖**缺少必需包、必需版本变更、额外包的哈希篡改、当前计划超过缓存、默认严格模式不允许额外包**。[验证器单元 CI #45746132753 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746132753)（功能 `e9b85a5d`）。
+- 三条[预取](../../.github/workflows/desktop-ubuntu-apt-prefetch.yml)、[原生 Tauri](../../.github/workflows/desktop-tauri-preview.yml)、[GUI-only `.deb`](../../.github/workflows/desktop-deb-candidate.yml) 工作流已由功能 [`c411d3ea`](https://github.com/kunlong-luo/lanveriq/commit/c411d3ead8f7b79c9951fbf31a0a9f1712b72e0d) 显式调用该模式。**若生产者缺少任何目标必需的版本、签名索引不可验证或来源清单不同，仍 FAIL**；不会下载未经审核的替代包。此模式仅适用于一次性 Ubuntu CI GUI 编译依赖，不是 Agent/安装器的发行高水位。
+
 ## 本轮状态与下一项出口
 
-[Tauri Preview #45745776008](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008) 与 [GUI-only `.deb` #45745775902](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902) 使用精确功能 `a6db3afd` 已触发；**若尚未完成，本报告不能将它们计为 PASS**。两者通过也只代表 Ubuntu runner 的原生 GUI 构建与未安装包审计；实体 COSMIC、Polkit/正式发行根、安装与服务授权、真实 Agent 包、CA/MFA/WORM/法务/SRE 均 NOT RUN / OPEN。
+[Tauri Preview #45745776008 两 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008) 已在 `a6db3afd` 完成 React、原生 Rust 编译/测试与严格 Clippy；[GUI-only `.deb` #45745775902](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902) 和 [新 subset 验证工作流 #45746180961](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961) **须等待各自实际终态，不能提前标 PASS**。两者通过也只代表 Ubuntu runner 的原生 GUI 构建与未安装包审计；实体 COSMIC、Polkit/正式发行根、安装与服务授权、真实 Agent 包、CA/MFA/WORM/法务/SRE 均 NOT RUN / OPEN。
 
 [当前评分](../planning/project-scorecard.md)暂仍 **工程 71/100、正式 Gate 0/10 已关闭**。**v0.1 NOT RELEASE READY；生产联网、采集、自动恢复、远控、CA 签发与未授权安装 OFF。**
