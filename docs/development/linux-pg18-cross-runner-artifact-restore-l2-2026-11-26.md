@@ -1,14 +1,26 @@
 # G-08 — PG18 合成备份跨 GitHub 运行器交接与新实例恢复（L2）
 
-**2026-11-26 · PENDING · main · v0.1 NOT RELEASE READY。** 本报告记录下一项功能的实际证据，不复制历史 CI 时间线；不能替代 [独立 WORM 与跨实体机器验收](../operations/backup.md)。
+**2026-11-26 · L2 PASS · main · v0.1 NOT RELEASE READY。** 本报告记录下一项功能的实际证据，不复制历史 CI 时间线；不能替代 [独立 WORM 与跨实体机器验收](../operations/backup.md)。
 
 ## 验收基线与新增内容
 
 - 前置功能 [`45683e64`](https://github.com/kunlong-luo/lanveriq/commit/45683e64e88e6f23a50eaa98ce2c4423f32a22ef) 在 [Linux #45618414247 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247) 已验证同一 runner 中 PG18 恢复、冷重启、真实 Spring/JPA no-web 启动和完整内容不变。首轮 Docker 网络失败仍记录在[前置报告](linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md)。
-- 本阶段功能 SHA [`b31f45ef`](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f)；[Linux Batch A #45742025955 **PENDING**](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955)。**只有精确功能 SHA 的源任务、PG18 事务任务、独立接收任务均 SUCCESS 且原生日志实际出现接收端 PASS，才能把 L2 改成 PASS。**
+- 本阶段功能 SHA [`b31f45ef`](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f)；[Linux Batch A #45742025955 **三个 job SUCCESS**](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955)。**只有精确功能 SHA 的源任务、PG18 事务任务、独立接收任务均 SUCCESS 且原生日志实际出现接收端 PASS，才能把 L2 改成 PASS。**
 - 源任务沿用真实 Rust SQLite → TLS1.3 双 mTLS → Spring/JPA → PG18 WAL/SIGKILL → 原生 `pg_dump -Fc` → 本 runner `pg_restore` → 无 Web Spring/JPA。源库验收之后，显式 GitHub CI-only 开关将**仅合成**备份、同域证据 JSON、源码 SHA、run ID、源 runner hostname、完整库存与 Flyway 指纹交给 Actions artifact（保留 1 日）；没有真实员工数据、私有 CA 或生产数据授权。
 - 接收任务是**另一个 GitHub 托管 Ubuntu runner 任务**，通过 `actions/download-artifact` 取得该 run 的备份，并调用 [专用接收脚本](../../apps/server/scripts/verify-pg18-cross-runner-recovery.sh)，在全新、无网络、无端口发布的 PostgreSQL 18.7 OCI 中使用 `pg_restore --exit-on-error --single-transaction`。严格匹配来源 SHA/run、不同 runner hostname、文件集合、同域 JSON/字节完整性；使用[共享的完整行 SQL](../../apps/server/scripts/pg18-inventory-canonical-fingerprint.sql) 比对 current/interfaces/addresses/volumes/Flyway，并要求实际库存及迁移历史非空。再重启数据库并再次对比；失败时不切流、销毁临时实例。
 - 本增量没有新增同类型加密单测或云厂商 SDK；复用原生 PostgreSQL、Docker 与 Actions artifact。源脚本 [`verify-agent-upstream-tls.sh`](../../apps/server/scripts/verify-agent-upstream-tls.sh) 的默认运行不导出归档；所有新交接仅在明确 CI 开关下启用。
+
+## 原生 CI 实测结果
+
+**功能 SHA `b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f` · Linux Run #45742025955：SUCCESS，三个 job SUCCESS。** 源 runner 的 PG18 八组集成事务、Rust/mTLS→Spring/JPA→PG18→Next.js 浏览器链及 artifact 上传均成功。接收 runner 通过官方 download-artifact@v8 下载**同一 run 的合成备份**，实际执行了原生 `pg_restore`、完整库存/Flyway 指纹比对与 PostgreSQL 18.7 重启复查。接收任务日志明确输出：
+
+```text
+PASS: local PG18 backup evidence verify (same-admin synthetic only; G-08 OPEN)
+PASS: PG18.7 restored and restarted on a DIFFERENT disposable GitHub runner; full inventory/Flyway content matches; no host ports.
+NOT PROVEN: physical host custody, separate admin/KMS/WORM, SRE signoff, production RPO/RTO or failover. G-02/G-08 OPEN.
+```
+
+这是一条**已验证的 CI L2 跨运行器传输与原生恢复**，并非人工填写的签收结果。仅 CI 保管、未使用独立批准根/介质，不能把该 PASS 转为 G-02/G-08 生产通过。
 
 ## 不能由这次 CI 证明的事情
 
