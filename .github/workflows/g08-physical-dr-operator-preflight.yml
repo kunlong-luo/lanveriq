@@ -49,5 +49,17 @@ jobs:
             LANVERIQ_G08_SACRIFICIAL_LAB_CONSENT=YES bash "$script" \
             --lab-only "$tmp/synthetic.dump" \
             "$(printf 'a%.0s' {1..64})" "$(printf 'b%.0s' {1..64})" "$(hostname)"
-          echo "PASS: shell syntax and three real default-deny/no-CI/same-host refusals."
+          # Remote daemon override must be rejected even with explicit lab consent.
+          set +e
+          env -u GITHUB_ACTIONS -u CI \
+            LANVERIQ_G08_SACRIFICIAL_LAB_CONSENT=YES \
+            DOCKER_HOST=tcp://127.0.0.1:2375 \
+            bash "$script" --lab-only "$tmp/synthetic.dump" \
+            "$(printf 'a%.0s' {1..64})" "$(printf 'b%.0s' {1..64})" another-host \
+            > "$tmp/remote-denied.log" 2>&1
+          remote_rc=$?
+          set -e
+          test "$remote_rc" -eq 2
+          grep -Fq 'remote Docker target overrides forbidden' "$tmp/remote-denied.log"
+          echo "PASS: shell syntax, unauthorized/CI/same-host/remote-Docker mandatory denial."
           echo "NOT RUN: operator-approved physical restore, independent WORM or SRE signoff."
