@@ -11,6 +11,7 @@ import {
 } from "./safety";
 import { parseLocalPreflight, poposSummary, type PoposDisplay } from "./preflight";
 import { InstallReviewPanel } from "./InstallReviewPanel";
+import { OfflineDiagnosticsPanel } from "./OfflineDiagnosticsPanel";
 
 type Section = "setup" | "status" | "safety";
 type InspectionState = "idle" | "reading" | "loaded" | "error" | "web-preview";
@@ -64,6 +65,8 @@ export function DesktopApp() {
   });
 
   const inspect = useCallback(async () => {
+    // Rechecking the OS invalidates older compatibility metadata.
+    setPopos({ status: "idle", code: "", data: null });
     if (!isTauri()) {
       setHost(null);
       setInspection("web-preview");
@@ -282,7 +285,7 @@ export function DesktopApp() {
                 <div className="mt-6 grid gap-3 md:grid-cols-3">
                   <Feature icon={<LockKeyhole size={19} />} label="安装" value="未授权，不可操作" />
                   <Feature icon={<ShieldOff size={19} />} label="开机自启" value="需要另行审批" />
-                  <Feature icon={<TerminalSquare size={19} />} label="日志" value="仅规划脱敏诊断" />
+                  <Feature icon={<TerminalSquare size={19} />} label="日志" value="可选中复制 · 本地脱敏" />
                 </div>
               </>
             )}
@@ -307,6 +310,7 @@ export function DesktopApp() {
                   </div>
                   <div className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"><CircleHelp size={19} className="mt-0.5 shrink-0 text-slate-500" /><p className="text-xs leading-6 text-slate-600">如需查看真实安装、安全属性和卸载入口，应等待正式签名安装器和授权桥接完成。当前仅有只读检测能力，所有数据与标识均来自本机直接读取或明确显示为“未核验”。</p></div>
                 </div>
+                <OfflineDiagnosticsPanel host={host} inspection={inspection} popos={popos} />
               </>
             )}
             <footer className="mt-9 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-6 text-xs text-slate-400"><span>Lanveriq Desktop · 只读离线预览</span><span>v0.1 NOT RELEASE READY</span></footer>
