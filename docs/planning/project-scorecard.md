@@ -20,6 +20,8 @@
 
 新增[物理 DR 授权后手动操作脚本](../../apps/server/scripts/pg18-physical-dr-lab.sh)、[独立实体机 SRE 执行卡](../operations/g08-physical-dr-operator-card-2026-11-26.md)和[L1 拒绝 CI #45743526852](https://github.com/kunlong-luo/lanveriq/actions/runs/45743526852)，**仅准备与默认拒绝，不增加评分、不视为真实 L3**；正式实机尚 NOT RUN。完整测试结果只按该项原始 CI 结论记录。
 
+**2026-11-26 G-05/G-09 桌面诊断：** [React 脱敏排障报告](../development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) 在功能 `dfaf97b5` 的 [UI L1 #45744173020 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)，但原生 Tauri 与 GUI-only `.deb` 在[受审 APT 闭包数漂移 #45744172969](https://github.com/kunlong-luo/lanveriq/actions/runs/45744172969) 处 **FAIL**，没有正式安装能力。**本次不加分：工程维持 71/100，Gate 0/10。**
+
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
 | Gate 集合 | 阻断条件 |
