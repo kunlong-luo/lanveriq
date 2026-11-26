@@ -39,9 +39,6 @@ const LEGACY: Record<HostSnapshot["legacyBinaryState"], string> = {
   not_detected: "not_detected_not_proven",
   unverified: "unverified",
 };
-function listed<T extends string>(mapping: Record<T, string>, value: T): string {
-  return Object.hasOwn(mapping, value) ? mapping[value] : "unverified";
-}
 function hostValue<K extends keyof HostSnapshot>(
   loaded: boolean, host: HostSnapshot | null,
   key: K, options: Record<string, string>,
