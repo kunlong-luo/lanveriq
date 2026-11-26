@@ -108,7 +108,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
     }
 
-    let config_path = args.config.ok_or("idle service requires --config <absolute TOML path>")?;
+    let config_path = args
+        .config
+        .ok_or("idle service requires --config <absolute TOML path>")?;
     #[cfg(windows)]
     if args.service {
         // Only SCM can successfully start the service dispatcher.
@@ -157,8 +159,7 @@ async fn send_once(
     let ca = read_pem_file(ca_pem, false)?;
     let identity = read_pem_file(identity_pem, true)?;
     // The adapter rejects any other origin, plaintext, redirects and proxies.
-    let transport =
-        AgentTlsTransport::new("https://agent.lanveriq.internal", &ca, &identity)?;
+    let transport = AgentTlsTransport::new("https://agent.lanveriq.internal", &ca, &identity)?;
     let store = OutboxStore::open(state_file).await?;
     let result = transport.send_next_inventory(&store, device_id).await?;
     let still_pending = store.verified_pending_inventory(device_id).await?.is_some();
@@ -166,9 +167,9 @@ async fn send_once(
 
     match result {
         None => println!("no verified pending snapshot; nothing sent"),
-        Some(DeliveryDisposition::Accepted) => println!(
-            "exact server ACK accepted; remaining_pending={still_pending}"
-        ),
+        Some(DeliveryDisposition::Accepted) => {
+            println!("exact server ACK accepted; remaining_pending={still_pending}")
+        }
         Some(other) => {
             return Err(format!(
                 "upload was not acknowledged ({other:?}); local pending snapshot retained"
@@ -239,18 +240,22 @@ mod tests {
     #[test]
     fn cli_requires_explicit_one_shot_arguments_and_keeps_idle_entrypoint() {
         Args::command().debug_assert();
-        assert!(Args::try_parse_from(["agent", "--config", "/etc/lanveriq-agent/agent.toml"]).is_ok());
-        assert!(Args::try_parse_from([
-            "agent",
-            "once",
-            "--state-file",
-            "/tmp/inventory.sqlite",
-            "--device-id",
-            "018f9fad-5c71-7db1-b89e-b71f8d620f44",
-            "--observed-at",
-            "2026-11-26T08:00:00Z",
-        ])
-        .is_ok());
+        assert!(
+            Args::try_parse_from(["agent", "--config", "/etc/lanveriq-agent/agent.toml"]).is_ok()
+        );
+        assert!(
+            Args::try_parse_from([
+                "agent",
+                "once",
+                "--state-file",
+                "/tmp/inventory.sqlite",
+                "--device-id",
+                "018f9fad-5c71-7db1-b89e-b71f8d620f44",
+                "--observed-at",
+                "2026-11-26T08:00:00Z",
+            ])
+            .is_ok()
+        );
         assert!(Args::try_parse_from(["agent", "once"]).is_err());
         assert!(Args::try_parse_from(["agent", "send"]).is_err());
     }
@@ -265,7 +270,11 @@ mod tests {
             .unwrap();
         assert!(matches!(stage, InventoryStage::Staged(_)));
         let store = OutboxStore::open(&state).await.unwrap();
-        let pending = store.verified_pending_inventory(device).await.unwrap().unwrap();
+        let pending = store
+            .verified_pending_inventory(device)
+            .await
+            .unwrap()
+            .unwrap();
         let body: serde_json::Value = serde_json::from_str(&pending.body_json).unwrap();
         assert_eq!(body["device_id"], device.to_string());
         assert_eq!(body["os"]["family"], "linux");
@@ -278,10 +287,24 @@ mod tests {
         let stage_again = stage_once(&state, device, "2026-11-26T08:01:00Z")
             .await
             .unwrap();
-        assert!(matches!(stage_again, InventoryStage::AlreadyPending(_) | InventoryStage::Staged(_)));
+        assert!(matches!(
+            stage_again,
+            InventoryStage::AlreadyPending(_) | InventoryStage::Staged(_)
+        ));
         let store = OutboxStore::open(&state).await.unwrap();
-        assert!(store.verified_pending_inventory(device).await.unwrap().is_some());
-        assert!(store.verified_pending_inventory(Uuid::now_v7()).await.is_err());
+        assert!(
+            store
+                .verified_pending_inventory(device)
+                .await
+                .unwrap()
+                .is_some()
+        );
+        assert!(
+            store
+                .verified_pending_inventory(Uuid::now_v7())
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -292,16 +315,24 @@ mod tests {
         stage_once(&state, device, "2026-11-26T08:00:00Z")
             .await
             .unwrap();
-        assert!(send_once(
-            &state,
-            device,
-            &tmp.path().join("missing-ca.pem"),
-            &tmp.path().join("missing-identity.pem"),
-        )
-        .await
-        .is_err());
+        assert!(
+            send_once(
+                &state,
+                device,
+                &tmp.path().join("missing-ca.pem"),
+                &tmp.path().join("missing-identity.pem"),
+            )
+            .await
+            .is_err()
+        );
         let store = OutboxStore::open(&state).await.unwrap();
-        assert!(store.verified_pending_inventory(device).await.unwrap().is_some());
+        assert!(
+            store
+                .verified_pending_inventory(device)
+                .await
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[test]
