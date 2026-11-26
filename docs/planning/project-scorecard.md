@@ -20,7 +20,7 @@
 
 新增[物理 DR 授权后手动操作脚本](../../apps/server/scripts/pg18-physical-dr-lab.sh)、[独立实体机 SRE 执行卡](../operations/g08-physical-dr-operator-card-2026-11-26.md)和[L1 拒绝 CI #45743526852](https://github.com/kunlong-luo/lanveriq/actions/runs/45743526852)，**仅准备与默认拒绝，不增加评分、不视为真实 L3**；正式实机尚 NOT RUN。完整测试结果只按该项原始 CI 结论记录。
 
-**2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[React L1 #45748162585 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)，同 SHA 原生仍待终态）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
+**2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
 
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
