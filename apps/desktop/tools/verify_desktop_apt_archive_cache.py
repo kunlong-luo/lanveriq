@@ -99,7 +99,8 @@ def apt_records(package, version):
     return records
 
 
-def manifest_and_verify(directory, expected_count, expected_manifest, lookup=apt_records, expected_plan=None):
+def manifest_and_verify(directory, expected_count, expected_manifest, lookup=apt_records,
+                        expected_plan=None, allow_signed_superset=False):
     """Return verified package count and manifest; reject any mismatch."""
     root = pathlib.Path(directory)
     reject(not root.is_dir() or root.is_symlink(), "archive directory missing or symlink")
@@ -109,7 +110,11 @@ def manifest_and_verify(directory, expected_count, expected_manifest, lookup=apt
     reject(not SHA.fullmatch(expected_manifest), "invalid expected archive manifest")
     if expected_plan is not None:
         reject(not isinstance(expected_plan, dict), "missing expected APT closure")
-        reject(len(expected_plan) != expected_count, "APT closure package count differs")
+        reject(not expected_plan, "APT closure must not be empty")
+        if allow_signed_superset:
+            reject(len(expected_plan) > expected_count, "APT closure exceeds signed cache size")
+        else:
+            reject(len(expected_plan) != expected_count, "APT closure package count differs")
     seen = set()
     selected = set()
     rows = []
@@ -119,10 +124,20 @@ def manifest_and_verify(directory, expected_count, expected_manifest, lookup=apt
         reject(info.st_size <= 0 or info.st_size > MAX_ARCHIVE_BYTES, "archive size outside allowed range")
         package, version, architecture = parse_archive_name(path.name)
         if expected_plan is not None:
-            reject(
-                expected_plan.get(package) != version,
-                f"archive not in current APT simulated closure: {package}",
-            )
+            # A different hosted-runner base image may ALREADY contain a few
+            # dependency packages, so its APT Inst plan is a strict subset of
+            # the independently verified producer cache. Never accept missing
+            # required packages, changed required versions, or unsigned extras.
+            if package in expected_plan:
+                reject(
+                    expected_plan[package] != version,
+                    f"archive not in current APT simulated closure: {package}",
+                )
+            else:
+                reject(
+                    not allow_signed_superset,
+                    f"archive not in current APT simulated closure: {package}",
+                )
             selected.add(package)
         reject((package, architecture) in seen, "multiple versions of package in cache")
         seen.add((package, architecture))
@@ -146,7 +161,8 @@ def manifest_and_verify(directory, expected_count, expected_manifest, lookup=apt
         rows.append(f"{actual}  {path}\n".encode("utf-8"))
     if expected_plan is not None:
         reject(
-            selected != set(expected_plan),
+            not set(expected_plan).issubset(selected)
+            if allow_signed_superset else selected != set(expected_plan),
             "cached archives omit current APT simulated package closure",
         )
     computed = hashlib.sha256(b"".join(rows)).hexdigest()
@@ -160,16 +176,26 @@ def main():
     parser.add_argument("--expected-count", type=int, required=True)
     parser.add_argument("--expected-manifest", required=True)
     parser.add_argument("--expected-plan-file", type=pathlib.Path, required=True)
+    parser.add_argument(
+        "--allow-signed-superset", action="store_true",
+        help="Permit cached archives already installed on this Ubuntu runner; "
+             "require every archive to match the current signed APT index and "
+             "every selected install package/version to be present",
+    )
     args = parser.parse_args()
     plan = parse_install_plan(
         args.expected_plan_file.read_text(encoding="utf-8")
     )
     count, digest = manifest_and_verify(
         args.archive_dir, args.expected_count, args.expected_manifest,
-        expected_plan=plan,
+        expected_plan=plan, allow_signed_superset=args.allow_signed_superset,
     )
     print(f"PASS: {count} archives match signed-index version, architecture, SHA256 and size")
-    print(f"PASS: exact APT simulated installation closure contains {len(plan)} packages")
+    if args.allow_signed_superset:
+        print(f"PASS: {len(plan)} required APT package/version pairs covered by signed archive cache; "
+              f"{count - len(plan)} separately signed cached packages not selected for install")
+    else:
+        print(f"PASS: exact APT simulated installation closure contains {len(plan)} packages")
     print(f"PASS: independent runner SHA256 manifest {digest}")
     print("BOUNDARY: no packages installed; not trusted Builder, native L2, or release approval")
 
