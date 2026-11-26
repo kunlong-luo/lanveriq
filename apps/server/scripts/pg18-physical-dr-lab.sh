@@ -19,6 +19,14 @@ if [[ $# -ne 5 || "$1" != "--lab-only" ||
     exit 2
 fi
 
+# Docker socket access is host-root equivalent. Never allow a client environment
+# or stored remote context to redirect this lab command to someone else's host.
+if [[ -n "${DOCKER_HOST:-}" || -n "${DOCKER_CONTEXT:-}" ||
+      -n "${DOCKER_TLS_VERIFY:-}" || -n "${DOCKER_CERT_PATH:-}" ]]; then
+    echo "BLOCKED: remote Docker target overrides forbidden in the sacrificial lab; G-08 OPEN." >&2
+    exit 2
+fi
+
 archive="$2"
 expected_archive="$3"
 expected_rows="$4"
@@ -49,6 +57,14 @@ if ! command -v docker >/dev/null 2>&1 ||
    ! docker info >/dev/null 2>&1 ||
    ! docker image inspect postgres:18.7 >/dev/null 2>&1; then
     echo "BLOCKED: preapproved local PostgreSQL 18.7 image and Docker are required (no implicit pull); G-08 OPEN." >&2
+    exit 2
+fi
+local_context="$(docker context show)"
+local_socket="$(docker context inspect default --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)"
+if [[ "$local_context" != default ||
+      ( "$local_socket" != unix:///var/run/docker.sock &&
+        "$local_socket" != "unix:///run/user/$EUID/docker.sock" ) ]]; then
+    echo "BLOCKED: only a reviewed LOCAL Unix Docker socket/default context is permitted; G-08 OPEN." >&2
     exit 2
 fi
 
