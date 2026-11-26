@@ -23,7 +23,7 @@
 
 **G-06/G-08 补充证据：** [ACK 未送达 Rust、PG18 已提交的原请求重送](../development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 功能 f83aeab6 / [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)；[PG18 SIGKILL/WAL 恢复后重送](../development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009 / [Linux #45583968475](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475) **两 jobs SUCCESS**。没有真实跨机备份、法务许可、真实设备 CA/MFA、L3 或 RPO/RTO，两个 Gate 均 OPEN。
 
-**G-08：** [单 runner Spring/JPA 恢复 L2 #45618414247 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)；[跨 runner 原生 PG18 恢复 #45742025955 PASS](../development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)。同 GitHub 管理域非独立保管；跨实体主机、KMS/WORM 与 SRE 签收 **NOT RUN；OPEN**。
+**G-08：** [PG18 跨 runner L2 #45742025955 PASS](../development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)；[实体机 DR 执行卡](../operations/g08-physical-dr-operator-card-2026-11-26.md)已备（工具 L1）。真实物理机、独立 WORM/KMS/高水位、SRE/RPO/RTO **NOT RUN；OPEN**。
 
 **预览发布 ≠ 正式 Agent 发行：** `v0.1.0-dev.1` [源码预览候选](../operations/source-preview-v0.1.0-dev.1.md) 的 [L1 #45557337790 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45557337790) 只证明本地合约拒绝虚假批准和安装包附件，**未创建 Release/tag，不能视为 G-05/G-07 或任何 Gate 签收。**
 
@@ -35,7 +35,7 @@
 
 早期 [L2B-22](../development/desktop-tauri-l2b22-polkit-inert-action-review-2026-11-24.md)、[L2B-24](../development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)、NXT/D4/FIDO/WORM 以及所有 CI **FAIL→修复**链保留在原 dated reports、[GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions) 和 [历史验收账本](release-readiness-2026-11-13.md)；不能当成今天的生产许可。
 
-## 下一项退出顺序
+## 下一项退出顺序（[71/100 工程评分、0/10 发布门禁](project-scorecard.md) · NO-GO）
 
 1. **G-05 下一项（待独立审批）**：L2B-33 [原生 20/20](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) 只证明同 CI 中分离 RO 摘要能够拒绝空缓存双回放。需具名独立发行/安全主体批准正式签名根、撤销、可信时间、持久不可回退高水位与恢复权，再实测真实离线/重装/合法回滚。不发布 Agent 安装包或执行 root broker。
 2. **G-05/G-09 L3**：具名设备/操作者书面许可，真实 Pop!_OS 24.04 COSMIC / Polkit 对话框/升级回滚/卸载和合法独立无托盘 Agent 生命周期。
