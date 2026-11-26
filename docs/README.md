@@ -1,6 +1,6 @@
 # Lanveriq 文档导航 / Documentation home
 
-**ACTIVE INDEX · 2026-11-25 · v0.1 NOT RELEASE READY。** [中文项目首页](../README.zh.md) · [English README](../README.md)。只在这里寻找当前文件入口；历史报告中的「下一步」「未实现」应按其日期理解。
+**ACTIVE INDEX · 2026-11-26 · v0.1 NOT RELEASE READY。** [中文项目首页](../README.zh.md) · [English README](../README.md)。只在这里寻找当前文件入口；历史报告中的「下一步」「未实现」应按其日期理解。
 
 > **2026-11-21 current Web baseline:** `apps/web` 是唯一 Next.js 16 Console；[NXT-24 旧 Vite→Next.js 迁移](development/nextjs-path-rename-nxt24-2026-11-21.md) 是历史验收。Tauri 内部使用 Vite 只构建桌面窗口，不存在 `apps/web-next`。
 
@@ -41,7 +41,7 @@
 
 **新阶段 L2 PASS：** [PG18 真实 SIGKILL/WAL 恢复后同请求重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)；功能 3e5b7009、[Linux #45583968475 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475)。生产灾备与实际设备仍未验收。
 
-**G-08：** [恢复库重启/计时 #45615090308 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)；[真实 Spring JPA 验证恢复库](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) [#45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)（Docker none→bridge）；修复 `45683e64` [#45618414247 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。[跨 runner PG18 恢复 L2 #45742025955 PASS](development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)；[备份 runbook](operations/backup.md)；G-02/G-08 OPEN。
+**G-08：** [双 runner PG18 原生恢复 L2 #45742025955 PASS](development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)；[真实实体机 SRE 演练执行卡](operations/g08-physical-dr-operator-card-2026-11-26.md)与[保管/恢复操作边界](operations/backup.md)；外部物理恢复 **NOT RUN**，G-02/G-08 OPEN。[工程评分 71/100，发布 Gate 0/10](planning/project-scorecard.md)。
 
 ## G-05 原生 APT：不同 ELF、分离签名与冷缓存双回放
 
