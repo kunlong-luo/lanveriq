@@ -1,0 +1,53 @@
+name: G-08 physical DR operator script L1 fail-closed (NO L3)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/g08-physical-dr-operator-preflight.yml'
+      - 'apps/server/scripts/pg18-physical-dr-lab.sh'
+      - 'apps/server/scripts/pg18-inventory-canonical-fingerprint.sql'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  no-live-operation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify only shell grammar and mandatory authorization rejection
+        shell: bash
+        run: |
+          set -euo pipefail
+          script=apps/server/scripts/pg18-physical-dr-lab.sh
+          bash -n "$script"
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          printf 'PGDMPnot-a-real-dump' > "$tmp/synthetic.dump"
+          chmod 600 "$tmp/synthetic.dump"
+          verify_denial() {
+            set +e
+            "$@" > "$tmp/denied.log" 2>&1
+            rc=$?
+            set -e
+            if [[ "$rc" != 2 ]] || ! grep -Fq 'BLOCKED:' "$tmp/denied.log"; then
+              echo "FAIL: physical DR lab script did not refuse unauthorized execution"
+              exit 1
+            fi
+          }
+          # No authorization: fail before touching archive/Docker.
+          verify_denial bash "$script" --lab-only "$tmp/synthetic.dump" \
+            "$(printf 'a%.0s' {1..64})" "$(printf 'b%.0s' {1..64})" another-host
+          # Even a declared approval cannot turn CI into real L3.
+          verify_denial env LANVERIQ_G08_SACRIFICIAL_LAB_CONSENT=YES \
+            GITHUB_ACTIONS=true bash "$script" --lab-only "$tmp/synthetic.dump" \
+            "$(printf 'a%.0s' {1..64})" "$(printf 'b%.0s' {1..64})" another-host
+          # CI=false but the *same physical label* is still denied before Docker.
+          verify_denial env -u GITHUB_ACTIONS -u CI \
+            LANVERIQ_G08_SACRIFICIAL_LAB_CONSENT=YES bash "$script" \
+            --lab-only "$tmp/synthetic.dump" \
+            "$(printf 'a%.0s' {1..64})" "$(printf 'b%.0s' {1..64})" "$(hostname)"
+          echo "PASS: shell syntax and three real default-deny/no-CI/same-host refusals."
+          echo "NOT RUN: operator-approved physical restore, independent WORM or SRE signoff."
