@@ -7,7 +7,7 @@
 ## 已实现的界面和真实边界
 
 - 四步中文安装准备、系统兼容性**只读**检测、查看本机候选 Agent/systemd 状态、发行签名/受限 Polkit/物理机 L3 缺口审查。
-- 当前只有 `inspect_host` 与 `inspect_popos_preflight` 两个 Tauri 只读 IPC。安装、升级、卸载、服务启动、开机自启、生产联网、采集和远控均不可达。
+- 当前只有 `inspect_host` 与 `inspect_popos_preflight` 两个 Tauri 只读 IPC。安全页新增[本机脱敏诊断与安装阻断报告](../../docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)，仅白名单状态、可手动选中复制，浏览器预览明确标记未连接本机，不传输、不保存、不添加权限；重新检测自动清除旧 COSMIC 结果。安装、升级、卸载、服务启动、开机自启、生产联网、采集和远控均不可达。
 - 四条隐私/权限说明的勾选仅是瞬时**阅读记录**，不是管理员授权、签名包或真正 Polkit grant。
 - [L2B-21 GUI 审核 CI #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) 双 job SUCCESS（独立审核测试 10/10、前端 29/29、原生 Rust 6/6）；[GUI-only unsigned .deb 隔离归档 #45368638490](https://github.com/kunlong-luo/lanveriq/actions/runs/45368638490) SUCCESS，但**该包未安装、发布或包含 Agent**，签名仅临时 LAB、不是正式根。详情 [验收报告](../../docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md)。
 
@@ -25,7 +25,7 @@
 
 | 目录 | 用途 |
 | --- | --- |
-| `src/` | React 只读向导、安装前条件审查/声明和纯逻辑单元测试 |
+| `src/` | React 只读向导、安装前条件审查、本机脱敏诊断与纯逻辑单元测试 |
 | `src-tauri/` | Tauri2 Rust 只读主机核验、最小 IPC/capabilities、**禁用**正式 bundle 的配置 |
 | `tools/` | Debian/ABI/APT 隔离实装、**polkitd/D-Bus 容器内真实 root-side ReviewLab 与 Unix peer 检验**、非提权 Rust gate 和攻击负测；**不是可部署安装 broker** |
 | `polkit/` | **未安装的**三动作默认拒绝 XML 策略审查与说明；没有部署到系统、没有 helper 或授权规则 |
