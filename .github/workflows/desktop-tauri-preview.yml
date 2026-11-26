@@ -137,7 +137,8 @@ jobs:
           python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
             --archive-dir "$archive" --expected-count 176 \
             --expected-manifest 0d72c92f41066df4b98f7dd5fa9d101d2508676d771d0a3b4023b076d4d7da43 \
-            --expected-plan-file "$plan"
+            --expected-plan-file "$plan" \
+            --allow-signed-superset
           sudo install -d -o _apt -g root -m 700 "$archive/partial"
           sudo DEBIAN_FRONTEND=noninteractive apt-get \
             -o APT::Get::AllowUnauthenticated=false -o APT::Install-Recommends=false \

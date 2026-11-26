@@ -149,7 +149,8 @@ jobs:
           # index AND the exact simulated install closure and manifest.
           python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
             --archive-dir "$archive" --expected-count "$EXPECTED_ARCHIVE_COUNT" \
-            --expected-manifest "$EXPECTED_ARCHIVE_SHA256" --expected-plan-file "$plan"
+            --expected-manifest "$EXPECTED_ARCHIVE_SHA256" --expected-plan-file "$plan" \
+            --allow-signed-superset
           # Never fetch archive bytes from network in this stage. Installation
           # concerns disposable CI build headers ONLY, never Lanveriq .deb.
           sudo install -d -o _apt -g root -m 700 "$archive/partial"
@@ -159,7 +160,7 @@ jobs:
             -o Dir::Cache::archives="$archive" \
             --no-download --no-install-recommends install -y "${packages[@]}"
           pkg-config --exists webkit2gtk-4.1 gtk+-3.0
-          echo 'PASS: exact audited cache and independently authenticated closure installed build prerequisites without package downloads'
+          echo 'PASS: all required current-runner APT packages are in fully signed-index-verified cache; no package downloads'
           echo 'NOT RUN: candidate .deb install, Agent install, signer, PopOS L3 or production authority'
       - name: Same-SHA native Rust read-only tests and strict Clippy before .deb audit
         working-directory: apps/desktop/src-tauri

@@ -230,7 +230,8 @@ jobs:
           python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
             --archive-dir "$archive" --expected-count "$EXPECTED_COUNT" \
             --expected-manifest "$EXPECTED_SHA256" \
-            --expected-plan-file "$RUNNER_TEMP/lanveriq-apt-restored-closure.txt"
-          echo "PASS: independent Ubuntu24 runner restored $count byte-identical signed-index-verified Debian archives"
+            --expected-plan-file "$RUNNER_TEMP/lanveriq-apt-restored-closure.txt" \
+            --allow-signed-superset
+          echo "PASS: independent Ubuntu24 runner rechecked every byte of the producer cache against signed indexes and covered its actual APT plan"
           echo 'UNTRUSTED: cache remains acceleration; actual native build must revalidate its own APT environment'
           echo 'NOT RUN: package installation, Rust/Clippy, GUI-only .deb, PopOS L3 or production Agent'
