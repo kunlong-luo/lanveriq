@@ -72,6 +72,8 @@ pnpm dev
 
 **G-08 备份/灾备：** [三 job 跨 runner 原生 PG18 恢复 L2 #45742025955 PASS](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)；[独立实体机 SRE 演练执行卡](docs/operations/g08-physical-dr-operator-card-2026-11-26.md)与[严格拒绝 L1 #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846)已备。**真实跨物理主机、独立 WORM/KMS、高水位、法务/SRE 签收 NOT RUN；不能上线。**
 
+**G-05/G-09 桌面诊断增量：** [本机脱敏诊断 UI](docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) 功能 `dfaf97b5`：[React L1 #45744173020 UI job PASS、原生 Tauri job FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)；[GUI-only .deb #45744172969 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45744172969)，均因受审 APT 依赖闭包漂移。**评分仍 71/100、Gate 0/10；不能上线。**
+
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 
 [L2B-33 原生 Ubuntu OCI #45569177575 — 20/20 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) 保留前 17 项真实 APT 验收，新增冷缓存下的**旧有效签名 Release + 不同旧 Packages + 同 sequence=2 的真签名旧 witness** 联合回放。原生 APT 确实采用旧 Packages，但另行只读挂载的 CI 批准 witness 摘要拒绝这组材料；批准的材料通过，锚点缺失默认拒绝。包含早期失败记录的 [L2B-33 专项报告](docs/development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md)。**仍非正式独立管理域高水位、发行签名根或可用安装器，G-05 OPEN。**
