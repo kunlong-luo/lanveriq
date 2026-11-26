@@ -1,6 +1,6 @@
 # G-05/G-09 — Ubuntu 24.04 原生 Tauri / GUI-only .deb APT 缓存闭包变更与双 runner 验收
 
-**2026-11-26 · `main` · 签名 APT 双 runner L2 PASS，Tauri 原生 CI PASS；GUI-only .deb/新 subset CI 继续按原始 run 判定。** 本报告是 **CI 构建先决条件** 的验收，**不等于** Pop!_OS 24.04 COSMIC 物理 L3、Agent 安装许可或产品发行。
+**2026-11-26 · `main` · 签名 APT 双 runner L2 PASS，真实 Tauri 原生 CI PASS，未签名 GUI-only .deb 归档 CI PASS；不是 Agent 发行。** 本报告是 **CI 构建先决条件** 的验收，**不等于** Pop!_OS 24.04 COSMIC 物理 L3、Agent 安装许可或产品发行。
 
 ## 现象（原始失败不删除）
 
@@ -32,6 +32,6 @@
 
 ## 本轮状态与下一项出口
 
-[Tauri Preview #45745776008 两 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008) 已在 `a6db3afd` 完成 React、原生 Rust 编译/测试与严格 Clippy；[GUI-only `.deb` #45745775902](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902) 和 [新 subset 验证工作流 #45746180961](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961) **须等待各自实际终态，不能提前标 PASS**。两者通过也只代表 Ubuntu runner 的原生 GUI 构建与未安装包审计；实体 COSMIC、Polkit/正式发行根、安装与服务授权、真实 Agent 包、CA/MFA/WORM/法务/SRE 均 NOT RUN / OPEN。
+[Tauri Preview #45745776008 两 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008) 在 `a6db3afd` 完成 React、原生 Rust 编译/测试与 Clippy；[GUI-only `.deb` #45745775902 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902) 在同一功能 SHA 实际构建未签名 UI-only 归档并经过包/ELF/依赖/只读 OCI 审计，**不安装、不发布、不包含 Agent**；[新的 signed-superset 双 runner #45746180961 两 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961) 对应 `c411d3ea`。新的 [Tauri #45746181071](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071) 与 [GUI-only `.deb` #45746180976](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 需以其**各自最终结果**验收，不能由先前 SHA 的 PASS 替代。
 
 [当前评分](../planning/project-scorecard.md)暂仍 **工程 71/100、正式 Gate 0/10 已关闭**。**v0.1 NOT RELEASE READY；生产联网、采集、自动恢复、远控、CA 签发与未授权安装 OFF。**
