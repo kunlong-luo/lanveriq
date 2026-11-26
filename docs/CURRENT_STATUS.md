@@ -1,6 +1,6 @@
 # Lanveriq 当前状态 / Current status
 
-**LIVE-FACT · 2026-11-25 · `main` · v0.1 NOT RELEASE READY。** 本页只保留**目前有效的项目事实与下一步决策**；每次 CI 的详细失败、修复、确切命令留在[有日期的验收报告](README.md)和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)，不在此反复追加整段历史。
+**LIVE-FACT · 2026-11-26 · `main` · v0.1 NOT RELEASE READY。** 本页只保留**目前有效的项目事实与下一步决策**；每次 CI 的详细失败、修复、确切命令留在[有日期的验收报告](README.md)和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)，不在此反复追加整段历史。
 
 > **未获批准的生产能力全部关闭：** 生产联网、设备/员工采集、自动恢复、远控、官方 FIDO 来源提升信任和 CA 证书签发均为 **OFF**。目前无正式签名的一键 Agent 安装包、有效的用户端 root 安装 broker、获许可 Pop!_OS 24.04 COSMIC 实机 L3、管理员 WebAuthn MFA、生产 CA、独立外部 WORM/可信时间与法务/SRE 签收。**G-01–G-10 OPEN。**
 
@@ -39,7 +39,7 @@
 
 ## G-08 最新备份 L2
 
-**G-08：** [新库重启/合成秒数 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)（dump 0.125s、恢复重启复查 4.052s）；[真实 Spring/JPA 接入恢复库](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)（Docker none→bridge 冲突）；修复 `45683e64` / [#45618414247 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)。**G-02/G-08 OPEN；非生产灾备。**
+**G-08：** [单 runner PG18 恢复并启动 Spring/JPA #45618414247 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)（[首轮 FAIL 留证](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md)）；[新增跨 GitHub runner 原生备份恢复](development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md) 功能 `b31f45ef` / [#45742025955 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955)。**同 GitHub 管理域非独立保管；真实跨物理机、KMS/WORM、SRE 签收 NOT RUN；G-02/G-08 OPEN。**
 
 ## 下一项退出目标（不等于批准上线）
 
