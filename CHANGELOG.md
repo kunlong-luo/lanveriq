@@ -1,8 +1,12 @@
 # Lanveriq Changelog · 里程碑索引
 
-**HISTORICAL SUMMARY · 2026-11-25 · v0.1 NOT RELEASE READY。** 本页只记录可复核的重大能力与文档治理**里程碑**，不再复制每次 CI 的整段执行日志。唯一最新事实以 [CURRENT_STATUS](docs/CURRENT_STATUS.md)、唯一发行 Gate 以 [release-gap register](docs/planning/release-gap-register.md) 为准。
+**HISTORICAL SUMMARY · 2026-11-26 · v0.1 NOT RELEASE READY。** 本页只记录可复核的重大能力与文档治理**里程碑**，不再复制每次 CI 的整段执行日志。唯一最新事实以 [CURRENT_STATUS](docs/CURRENT_STATUS.md)、唯一发行 Gate 以 [release-gap register](docs/planning/release-gap-register.md) 为准。
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
+
+## 2026-11-26 — G-08 跨 GitHub runner 合成 PG18 备份交接与原生恢复（L2 PENDING）
+
+- 功能 [`b31f45ef`](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f) 将前置 Rust/mTLS/PG18 原生合成备份通过**仅 1 日保留**的 Actions artifact 交给另一 Ubuntu runner；恢复到没有任何端口发布的 PostgreSQL18.7 容器，进行完整库存子行/Flyway 比对及独立重启检查。[Linux #45742025955 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) · [专项报告](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)。这仍是**同一 GitHub 管理域**，不是获批准的物理跨机保管或生产 SRE/灾备签收，G-02/G-08 OPEN。
 
 ## 2026-11-25 — G-06 PostgreSQL18 实际 SIGKILL/WAL 恢复增量（首轮失败后修复 L2 PASS）
 
