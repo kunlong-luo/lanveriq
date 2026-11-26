@@ -31,6 +31,8 @@ python3 apps/server/scripts/pg_backup_evidence.py verify /private/lab.dump /priv
 
 ## 下一阶段 G-02/G-08：独立保管、真实跨机器恢复、SRE 签收（NOT RUN）
 
+**2026-11-26 执行准备：** [获批非生产物理恢复机的 SRE 执行卡](g08-physical-dr-operator-card-2026-11-26.md)和[仅手动执行的隔离 PG18.7 恢复脚本](../../apps/server/scripts/pg18-physical-dr-lab.sh)已提交；[精确功能 SHA `9052844f` 的 L1 拒绝 CI #45743205846 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846)。只验 shell/未授权/CI/同主机声明拒绝，**没有在真实独立机器执行恢复**；无保管人证据、RPO/RTO 或 SRE 签名，以下五阶段仍全 NOT RUN。
+
 **严格前置：** [恢复库 Spring/JPA 实测](../development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) 的修复功能 SHA 两个 job 必须先 L2 PASS。当前修复 L2 PASS（首轮 FAIL 证据保留），仅满足进入下一阶段的技术前置。以下任务为**待审批的实际验收清单**，不可用加密单测、同一 runner 或签字模板代替实证。
 
 | 阶段 | 验收对象与负向证据 | 独立责任方 | 当前 |
