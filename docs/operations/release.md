@@ -25,7 +25,7 @@
 
 - [Tauri/GUI-only `.deb` 原生 APT 轮换专项](../development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md) 记录旧 **175** 包 cache 因新版 Ubuntu24 runner 软件源/预装状态漂移而被严格拒绝。由[已有 Ubuntu 签名索引预取工作流](../../.github/workflows/desktop-ubuntu-apt-prefetch.yml) 使用发行版 apt-get 验签后 **download-only**，要求第二个独立 GitHub runner 逐包原生索引核验/原计划闭包/哈希/版本/大小/架构全部 PASS，才能审查 cache key/count/manifest。
 - 2026-11-26 有效独立证据仅 [#45745618560 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745618560)，对应该次 Ubuntu24 runner **176** 个原生依赖。两个**非发行用途**消费者 [Tauri 预览](../../.github/workflows/desktop-tauri-preview.yml)与 [GUI-only 候选审计](../../.github/workflows/desktop-deb-candidate.yml) 均已在提交 [`a6db3afd`](https://github.com/kunlong-luo/lanveriq/commit/a6db3afdfdcf75c9ef9690ace18a1240f1a03064) 更新审核 key/数量/哈希；自己的运行器仍须重新刷新签名索引且仅可 `--no-download` 安装编译头文件。
-- **运行器镜像变更不能自动视为可信**：不同 GitHub runner 镜像/预装库导致 apt `Inst` 数量不同是实际风险；接受上一步的源归档不能代替当前 builder 的独立闭包检验。签名源不可用、依赖数量/版本/哈希不同、缺少归档均 **FAIL**；不得使用 `--allow-unauthenticated`、松散 cache 前缀恢复、跳过检查或把实验 `.deb` 发布。更长期的确定性 runner 基础环境需要单独审核并验证。
+- **运行器镜像变更不能自动视为可信**：不同 GitHub runner 镜像/预装库导致 apt `Inst` 数量不同是实际风险；接受上一步的源归档不能代替当前 builder 的独立闭包检验。签名源不可用、当前需要的依赖缺包/版本不同、固定缓存本身的数量/哈希改变均 **FAIL**。仅当宿主机**已安装**部分依赖使真实 `Inst` 计划成为已审缓存的子集，才允许 [`--allow-signed-superset`](../../apps/desktop/tools/verify_desktop_apt_archive_cache.py)；额外归档仍必须全部经当前签名索引 SHA256/大小/版本验明且不能被安装计划选择；不得使用 `--allow-unauthenticated`、松散 cache 前缀恢复、跳过检查或把实验 `.deb` 发布。更长期的确定性 runner 基础环境需要单独审核并验证。
 - 即使 native Rust、Tauri `.deb` 归档审计完全通过，**也不代表 Agent 安装包或正式发布**：Tauri 正式 `bundle.active` 仍关闭，CI 单次无签名 GUI-only 构建未获发行身份/Polkit broker/Pop!_OS COSMIC L3。G-05/G-09 OPEN。
 
 ## 源码开发预览候选：不是用户安装版本
