@@ -1342,7 +1342,7 @@ PY
                 # pg_dump exit=0 alone. Restore a private custom-format dump
                 # into a SECOND fresh PG18.7 OCI database with no published
                 # ports and verify the committed snapshot and Flyway schema.
-                # Neither DB nor archive leaves this disposable runner.
+                # Only opted-in disposable CI can transfer this synthetic archive.
                 backup_archive="$TMP/synthetic-pg18-recovery.dump"
                 umask 077
                 # Monotonic, CI-only measurements of actual pg_dump and a
@@ -1441,29 +1441,13 @@ PY
                 # canonical device snapshot 4-tuple. Use PostgreSQL's JSONB
                 # serialization to normalize each table in deterministic PK
                 # order; sha256sum is local CI transport comparison only.
-                # No pgcrypto, cloud SDK, extra service or saved data export.
+                # No pgcrypto/cloud SDK; optional short-lived CI synthetic artifact only.
                 pg18_full_restore_fingerprint() {
                     local database_container="$1"
-                    docker exec "$database_container" psql -U lanveriq -d lanveriq \
-                        -XAt -v ON_ERROR_STOP=1 -c "
-                        SELECT jsonb_build_object(
-                          'inventory_current', COALESCE(
-                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.device_id)
-                             FROM device_inventory_current r), '[]'::jsonb),
-                          'inventory_interfaces', COALESCE(
-                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.device_id, r.interface_key)
-                             FROM device_inventory_interfaces r), '[]'::jsonb),
-                          'inventory_addresses', COALESCE(
-                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.device_id, r.interface_key, r.ip, r.prefix_length)
-                             FROM device_inventory_addresses r), '[]'::jsonb),
-                          'inventory_volumes', COALESCE(
-                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.device_id, r.volume_key)
-                             FROM device_inventory_volumes r), '[]'::jsonb),
-                          'flyway_history', COALESCE(
-                            (SELECT jsonb_agg(to_jsonb(r) ORDER BY r.installed_rank)
-                             FROM flyway_schema_history r), '[]'::jsonb)
-                        )::text
-                        " | sha256sum | awk '{print $1}'
+                    docker exec -i "$database_container" psql -U lanveriq -d lanveriq \
+                        -XAt -v ON_ERROR_STOP=1 \
+                        < "$ROOT/apps/server/scripts/pg18-inventory-canonical-fingerprint.sql" \
+                        | sha256sum | awk '{print $1}'
                 }
                 original_full_fingerprint="$(pg18_full_restore_fingerprint "$DB_CID")"
                 restored_full_fingerprint="$(pg18_full_restore_fingerprint "$RESTORE_CID")"
@@ -1589,6 +1573,31 @@ PY
                 docker network rm "$RESTORE_NET" >/dev/null
                 RESTORE_NET=""
                 echo "PASS: actual non-web Spring Boot/Hibernate started on recovered PG18 after independent restart; full rows unchanged, no exposed DB port (CI-only)."
+                # Optional actual cross-runner handoff: CI-only synthetic
+                # database bytes leave the FIRST runner for a second ephemeral VM,
+                # but remain in the SAME GitHub administrator's control plane.
+                if [[ -v LANVERIQ_SYNTHETIC_CROSS_RUNNER_HANDOFF &&
+                      "$LANVERIQ_SYNTHETIC_CROSS_RUNNER_HANDOFF" == 1 ]]; then
+                    [[ "$GITHUB_ACTIONS" == true && "$RUNNER_OS" == Linux &&
+                       -n "$GITHUB_SHA" && -n "$GITHUB_RUN_ID" && -d "$RUNNER_TEMP" ]] || {
+                        echo "FAIL: cross-runner backup requires disposable GitHub Linux CI" >&2
+                        exit 1
+                    }
+                    handoff_dir="$RUNNER_TEMP/lanveriq-g08-handoff"
+                    [[ ! -e "$handoff_dir" && ! -L "$handoff_dir" ]] || {
+                        echo "FAIL: refusing to overwrite earlier CI handoff" >&2
+                        exit 1
+                    }
+                    install -d -m 700 "$handoff_dir"
+                    install -m 600 "$backup_archive" "$handoff_dir/synthetic-pg18-recovery.dump"
+                    install -m 600 "$backup_evidence" "$handoff_dir/synthetic-pg18-recovery.evidence.json"
+                    printf '%s\n' "$original_full_fingerprint" > "$handoff_dir/source-fingerprint.sha256"
+                    printf '%s\n' "$GITHUB_SHA" > "$handoff_dir/source-commit.txt"
+                    printf '%s\n' "$GITHUB_RUN_ID" > "$handoff_dir/source-run.txt"
+                    hostname > "$handoff_dir/source-host.txt"
+                    chmod 600 "$handoff_dir"/*
+                    echo "PASS: disposable PG18 archive staged for second CI runner; same GitHub admin, NOT independent custody."
+                fi
                 # G-08 integrity/atomicity negative tests: never treat a
                 # corrupt or incomplete dump as a successful disaster restore.
                 # Everything stays in this CI runner's private temporary dir.
