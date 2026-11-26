@@ -43,7 +43,7 @@
 
 ## 下一项退出目标（不等于批准上线）
 
-**G-05/G-09：** [Tauri 脱敏本机诊断与安装阻断报告](development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) 功能 `dfaf97b5`，[React L1 PASS、Tauri 原生 job FAIL（受审 APT 闭包数漂移）#45744173020](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)。仅有只读诊断与选择复制；没有正式签名包、真实 Polkit broker/独立高水位或 Pop!_OS COSMIC L3。[评分 71/100、Gate 0/10 关闭](planning/project-scorecard.md)。生产安装/联网/采集/远控 OFF。
+**G-05/G-09：** [Tauri 只读诊断及 Rust/Clippy #45745776008 双 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008)（功能 `a6db3afd`）；[176 包原生 APT 双 runner #45746180961 两 job PASS](development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md)（`c411d3ea`）；GUI-only `.deb` [#45745775902](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902) 归档尾部验收待最终结果。无正式 Agent 签名、可用 Polkit broker/独立高水位、COSMIC L3。**评分 71/100、0/10 Gate，生产 OFF。**
 
 ## 证据、历史及维护
 
