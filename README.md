@@ -6,7 +6,7 @@ Lanveriq is a Linux-first, self-hosted endpoint inventory, health-state and audi
 
 > **v0.1 NOT RELEASE READY.** No approved signed one-click Agent installer, privileged Polkit transaction broker, physical Pop!_OS L3, production CA/MFA, independent WORM or legal/SRE sign-off exists. Production networking, automatic collection/recovery, remote control and certificate issuance remain **OFF**. Synthetic CI PASS is not production authorization.
 
-[Single current status](docs/CURRENT_STATUS.md) · [Release gates G-01–G-10](docs/planning/release-gap-register.md) · [Active Linux delivery plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [Keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md)
+[Single current status](docs/CURRENT_STATUS.md) · [Engineering score 71/100; release gates 0/10](docs/planning/project-scorecard.md) · [Release gates G-01–G-10](docs/planning/release-gap-register.md) · [Active Linux delivery plan](docs/planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) · [Keep/delete audit](docs/governance/repository-layout-audit-2026-11-24.md)
 
 ## Source directories — what stays
 
@@ -70,7 +70,7 @@ The next isolated business-loop milestone is [durable Linux inventory recovery a
 
 **G-06 isolated L2 PASS:** [Original SQLite replay after PostgreSQL commit with ACK withheld from Rust](docs/development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md), functional SHA f83aeab6, [Linux #45581861955 both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955). **New L2 PASS:** [Real PostgreSQL18 SIGKILL/WAL restart before exact Rust outbox replay](docs/development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md), functional SHA 3e5b7009, [Linux #45583968475 both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475). Neither validates true on-wire ACK loss or production disaster recovery.
 
-**G-08 PG18 recovery:** [fresh restore, restart and measured CI drill #45615090308 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308). [Real Spring Boot/Hibernate against the recovered DB, non-web and internal-only](docs/development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` [#45616194271 FAILED](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271); internal-bridge fix `45683e64` [#45618414247 both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247). [New cross-runner PG18 native restore L2 #45742025955 PASS](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md), still under the same GitHub admin. No independent custody, physical DR or SRE signoff.
+**G-08 backup/DR:** [Native PostgreSQL18 cross-runner restore L2, all 3 jobs PASS #45742025955](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md). [Approval-only physical-host SRE operator card](docs/operations/g08-physical-dr-operator-card-2026-11-26.md) and [L1 default-deny CI #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846) are ready; **real independent hardware, custody/WORM/KMS, and SRE/legal signoff NOT RUN; NO-GO.**
 
 ## Native APT: cold-cache signed repository and witness double-replay (L2B-33)
 
