@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-26 — G-05/G-09 Tauri 本机脱敏诊断（React L1 PASS，原生 APT 证据 FAIL）
+
+- 功能 [`dfaf97b5`](https://github.com/kunlong-luo/lanveriq/commit/dfaf97b537ac2e8a7a3b302eb4281918a630ada8) 将只读主机和 COSMIC 预检结果整理成桌面可手动选择复制的**脱敏安装阻断报告**：不回显用户/系统路径、凭据、APT 地址、主机名或任意错误字符串；过期状态失效；所有安装/启动/联网/采集/远控门禁仍 OFF。详情见[日期验收](docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)。
+- [Desktop Tauri #45744173020](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)：**React UI job SUCCESS**（单测、TypeScript 和静态构建），原生 Tauri job **FAIL**；[GUI-only .deb #45744172969 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45744172969)。原生任务在新的签名 Ubuntu24 APT 索引与旧 175 包审核缓存的闭包数量不一致时被严格阻断，尚未执行 native compile；必须重新审核/锁定依赖，不能简单放宽。**工程评分维持 71/100，正式发布 Gate 0/10，NO-GO。**
+
 ## 2026-11-26 — G-08 独立实体机恢复执行准备与上线复评（L1 PASS；L3 NOT RUN）
 
 - [恢复机非 root/明确授权的原生 PG18.7 隔离恢复脚本](apps/server/scripts/pg18-physical-dr-lab.sh) 及 [SRE 实体机执行卡](docs/operations/g08-physical-dr-operator-card-2026-11-26.md) 已备。源脚本初版 `1eef4a87`、远程 Docker daemon 防误用加固 `524df043`，功能/门禁 workflow SHA [`6d3bb03a`](https://github.com/kunlong-luo/lanveriq/commit/6d3bb03a8b55a6a3d1d3b8dfb94a8bde56c902a5)，[原生 L1 #45743526852 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743526852) 仅证明语法、未授权、CI 冒充、同名源机和远程 Docker 拒绝。**未实际执行跨物理机恢复，无独立 WORM/KMS/SRE 签收。**
