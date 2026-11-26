@@ -9,6 +9,7 @@
 - 四步中文安装准备、系统兼容性**只读**检测、查看本机候选 Agent/systemd 状态、发行签名/受限 Polkit/物理机 L3 缺口审查。
 - 当前只有 `inspect_host` 与 `inspect_popos_preflight` 两个 Tauri 只读 IPC。安全页新增[本机脱敏诊断与安装阻断报告](../../docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)，仅白名单状态、可手动选中复制，浏览器预览明确标记未连接本机，不传输、不保存、不添加权限；重新检测自动清除旧 COSMIC 结果。安装、升级、卸载、服务启动、开机自启、生产联网、采集和远控均不可达。
 - 四条隐私/权限说明的勾选仅是瞬时**阅读记录**，不是管理员授权、签名包或真正 Polkit grant。
+- **2026-11-26 桌面诊断实际结果：** [脱敏报告专项](../../docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) · 功能 `dfaf97b5` 的 [React 测试/类型检查/构建 #45744173020 UI job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)，但同 run 的 **Tauri 原生 job FAIL**、[GUI-only .deb #45744172969 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45744172969)，原因是 Ubuntu 签名 APT 索引相对 175 包受审缓存的依赖闭包数量漂移。原生编译未执行；不放宽验收、也不宣称 L3。
 - [L2B-21 GUI 审核 CI #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) 双 job SUCCESS（独立审核测试 10/10、前端 29/29、原生 Rust 6/6）；[GUI-only unsigned .deb 隔离归档 #45368638490](https://github.com/kunlong-luo/lanveriq/actions/runs/45368638490) SUCCESS，但**该包未安装、发布或包含 Agent**，签名仅临时 LAB、不是正式根。详情 [验收报告](../../docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md)。
 
 ## 系统级验收（仅 Ubuntu24 disposable OCI，不是发行安装器）
