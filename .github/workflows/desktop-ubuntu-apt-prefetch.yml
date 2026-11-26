@@ -9,6 +9,11 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/desktop-ubuntu-apt-prefetch.yml'
+      # Consumers must not silently reuse the last native ABI cache when their
+      # audited prerequisite set changes; regenerate an authenticated exact
+      # closure and have a second runner verify it before editing pins.
+      - '.github/workflows/desktop-tauri-preview.yml'
+      - '.github/workflows/desktop-deb-candidate.yml'
       - 'apps/desktop/tools/verify_desktop_apt_archive_cache.py'
       - 'apps/desktop/tools/test_verify_desktop_apt_archive_cache.py'
   workflow_dispatch:
