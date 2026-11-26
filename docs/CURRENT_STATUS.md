@@ -43,7 +43,7 @@
 
 ## 下一项退出目标（不等于批准上线）
 
-**G-05：** [L2B-33 原生 20/20](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) 仅证明 CI 内分离摘要拒绝回放。独立签名根/不可回退高水位、Polkit 事务 broker 和获许可的 COSMIC L3 均未完成。G-01～G-10 的其他阻塞与签收条件统一见 [发布门禁](planning/release-gap-register.md)。生产安装/联网/采集/远控 OFF。
+**G-05/G-09：** [Tauri 脱敏本机诊断与安装阻断报告](development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) 功能 `dfaf97b5`，[React L1 #45744173020 PASS，原生 Tauri job PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)。仅有只读诊断与选择复制；没有正式签名包、真实 Polkit broker/独立高水位或 Pop!_OS COSMIC L3。[评分 71/100、Gate 0/10 关闭](planning/project-scorecard.md)。生产安装/联网/采集/远控 OFF。
 
 ## 证据、历史及维护
 
