@@ -14,6 +14,8 @@ on:
       - '.github/workflows/linux-batch-a-caddy-pg18-acceptance.yml'
       - 'apps/server/scripts/verify-agent-upstream-tls.sh'
       - 'apps/server/scripts/pg_backup_evidence.py'
+      - 'apps/server/scripts/pg18-inventory-canonical-fingerprint.sql'
+      - 'apps/server/scripts/verify-pg18-cross-runner-recovery.sh'
       - 'apps/server/scripts/test_pg_backup_evidence.py'
       - 'apps/server/scripts/verify-synthetic-console-session.sh'
       - 'apps/server/scripts/verify-synthetic-rust-chain-browser.py'
@@ -165,6 +167,7 @@ jobs:
           LANVERIQ_SYNTHETIC_MULTI_ADMIN_PROBE: '0'
           LANVERIQ_BROWSER_PYTHON: ${{ runner.temp }}/lanveriq-playwright/bin/python
           NEXT_TELEMETRY_DISABLED: '1'
+          LANVERIQ_SYNTHETIC_CROSS_RUNNER_HANDOFF: '1'
         # Real Rust commit and real browser read within ONE disposable DB.
         run: |
           set -euo pipefail
@@ -207,6 +210,39 @@ jobs:
             echo "- PASS: cross-group 404, logout clears DOM, post-logout API 401"
             echo "- NOT PROVEN: product login, Pop!_OS installed service or signed release"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload only the disposable G-08 synthetic PG18 fixture
+        uses: actions/upload-artifact@v7
+        with:
+          name: lanveriq-g08-synthetic-pg18-handoff
+          path: ${{ runner.temp }}/lanveriq-g08-handoff/*
+          if-no-files-found: error
+          retention-days: 1
+
+  linux-g08-cross-runner-recovery:
+    name: Restore native PG18.7 on second disposable CI runner (same GitHub admin)
+    needs: linux-caddy-spring-tls13
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Download source-runner synthetic backup to second runner
+        uses: actions/download-artifact@v8
+        with:
+          name: lanveriq-g08-synthetic-pg18-handoff
+          path: ${{ runner.temp }}/lanveriq-g08-received
+      - name: Restore actual PG18.7 without any published database port
+        env:
+          LANVERIQ_SYNTHETIC_CROSS_RUNNER_RECOVERY: '1'
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTIONS" = true
+          test "$RUNNER_OS" = Linux
+          bash -n apps/server/scripts/verify-pg18-cross-runner-recovery.sh
+          bash apps/server/scripts/verify-pg18-cross-runner-recovery.sh \
+            "$RUNNER_TEMP/lanveriq-g08-received"
 
   linux-postgres18-transactions:
     name: PG18 synthetic registration, activation, heartbeat and Console security transactions
