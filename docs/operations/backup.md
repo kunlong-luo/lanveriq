@@ -2,7 +2,7 @@
 
 ## 2026-11-25 现行 G-08 设备清单备份验证与恢复流程（隔离合成，非生产 runbook）
 
-**范围：** 先证明真实数据库事务可在原始 PG18 SIGKILL/WAL 之后提交，再用原生 `pg_dump -Fc` 导出，`pg_restore --list` 核对库存模式，然后恢复到全新、未发布端口、无网络的 PG18.7 OCI 数据库，比较 `device_inventory_current` 的 snapshot UUID、revision、received_at、digest 及 interfaces/volumes/Flyway 行数。仅使用真实 Rust SQLite→mTLS→Spring→PG18→Next.js 的 GitHub disposable synthetic fixtures；**不面向员工设备执行**。
+**范围：** 先证明真实数据库事务可在原始 PG18 SIGKILL/WAL 之后提交，再用原生 `pg_dump -Fc` 导出，`pg_restore --list` 核对库存模式，然后恢复到全新、无端口映射的内部隔离 PG18.7 OCI 数据库，比较 `device_inventory_current` 的 snapshot UUID、revision、received_at、digest 及 interfaces/volumes/Flyway 行数。仅使用真实 Rust SQLite→mTLS→Spring→PG18→Next.js 的 GitHub disposable synthetic fixtures；**不面向员工设备执行**。
 
 - **已通过：** [真实 PG18 全新实例恢复，功能 `b64a14ad` / Linux #45586283694 两 jobs SUCCESS](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md)；此流程不是 PostgreSQL WAL/PITR 的替代，也没有验证附件/系统配置/CA/KMS 的恢复。
 - **损坏拒绝 L2 PASS：** [格式头损坏、截断归档及 `--single-transaction` 失败原子性](../development/linux-pg18-corrupt-backup-atomic-reject-l2-2026-11-25.md)，功能 `3687edd7` / [Linux #45588502849 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45588502849)。失败与修复均留在专项报告。
@@ -24,6 +24,10 @@ python3 apps/server/scripts/pg_backup_evidence.py verify /private/lab.dump /priv
 ```
 
 如果同一管理员同时改写归档和证据，依然可以生成一致 SHA-256：**这不是签名、高水位、独立 WORM、可信时间、生产灾备或可恢复性证明**。现已在 [真实 Linux PG18 WAL→备份→新库恢复验收](../development/linux-pg18-wal-backup-fresh-restore-l2-2026-11-25.md) 中接入 `create/verify`，要求正常归档通过、格式损坏及截断档与冒充生产授权的 JSON 被拒绝，且原有真实 Rust/mTLS/Next.js 链不断。功能 [`94f21974`](https://github.com/kunlong-luo/lanveriq/commit/94f219747d767761f31de036470eb630ec535b89)，[Linux #45589325627 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45589325627)。原生执行日志已验证归档证据 create/verify、损坏档和伪造生产授权拒绝及完整 Rust/mTLS/PG18 恢复；**同一 CI 管理域**不是外部保管。[全库存/子表/Flyway 完整内容比对及等数量篡改拒绝](../development/linux-pg18-full-row-restore-tamper-l2-2026-11-25.md) `8e52d9ab` / [Linux #45612605286 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45612605286)。本轮 [恢复库独立重启](../development/linux-pg18-restored-restart-measured-drill-l2-2026-11-25.md) `e6a7ae12` / [#45615090308 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45615090308)，单次合成 dump 0.125s、恢复重启复查 4.052s。下一步 [真实 Spring Boot/Hibernate 无 Web 连接恢复库](../development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md) `dcde55e1` / [#45616194271 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45616194271)（Docker none 后续不能挂 bridge）；修复 `45683e64` / [#45618414247 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)；这只是同 runner 内部私网连通性，不是自动恢复/生产切流或真实 RPO/RTO。G-08 OPEN。
+
+## 2026-11-26 跨 GitHub 运行器 PG18 恢复增量（L2 PENDING）
+
+[专项报告](../development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md) · 功能 [`b31f45ef`](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f) · [Linux #45742025955 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955)：已有的真实 Rust/mTLS/Spring/PG18 合成备份经同一 GitHub Actions 管理域的短期 artifact 交到**第二个独立 runner 任务**，使用另一 PG18.7 容器原生恢复、重启及全行/Flyway 比对。**绝不等于独立备份管理员、跨实体物理主机托管、独立密钥/WORM、可信高水位或 SRE RPO/RTO 实测**。成功以精确功能 SHA 的三 job SUCCESS 和接收端原生日志为准，CI 没跑完仍为 PENDING；备份与证据仅合成、artifact 最短保留 1 日，不得导入真实个人数据。
 
 ## 下一阶段 G-02/G-08：独立保管、真实跨机器恢复、SRE 签收（NOT RUN）
 
