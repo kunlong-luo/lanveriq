@@ -11,6 +11,7 @@
 | 什么已经实现、哪次真实 CI 通过？ | [CURRENT_STATUS.md](CURRENT_STATUS.md)（LIVE-FACT） |
 | 能上线了吗、哪些 G-01～G-10 还缺外部批准？ | [release-gap register](planning/release-gap-register.md)（LIVE-GAP） |
 | 下一阶段优先实施什么？ | [Linux 首发实施路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)（ACTIVE PLAN） |
+| 如何一个任务一个会话完成本机 MVP？ | [本机 MVP 任务与交接清单](planning/local-mvp-tasks.md)（LOCAL TASK LEDGER，不替代发布 Gate） |
 | 架构/技术/协议依据？ | [ADR](architecture/adrs/README.md)、[设备通信协议](architecture/device-communication-stack.md)、[技术栈](development/technology.md) |
 | 工程规约、DoD 与项目评分？ | [AGENTS](../AGENTS.md)、[工程手册](governance/engineering-playbook.md)、[DoD](planning/definition-of-done.md)、[评分](planning/project-scorecard.md) |
 
@@ -22,7 +23,7 @@
 | `security/` | [身份](security/identity-and-access.md)、[FIDO 边界](security/fido-trust-boundaries.md) | 已建成正式 CA/FIDO/WORM |
 | `development/` | [工程版本](development/technology.md)、[现行 UI 设计系统](development/frontend-design-system.md)、[L2B-28](development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md) | 每份日期报告都代表当前进度 |
 | `testing/` | [L1/L2/L3 规则](testing/strategy.md)、[Linux/COSMIC 安装验收](testing/linux-desktop-installer-acceptance.md) | Ubuntu/合成 CI 等于真机 L3 |
-| `planning/` | [唯一 Gate](planning/release-gap-register.md)、[唯一 Linux 路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)、[原始验收账本](planning/release-readiness-2026-11-13.md) | 旧 roadmap、backlog、批次旧稿仍是现行计划 |
+| `planning/` | [唯一 Gate](planning/release-gap-register.md)、[唯一 Linux 路线](planning/linux-v01-reuse-first-delivery-path-2026-11-24.md)、[本机 MVP 单任务清单](planning/local-mvp-tasks.md)、[原始验收账本](planning/release-readiness-2026-11-13.md) | 旧 roadmap、backlog、批次旧稿仍是现行计划 |
 | `governance/`、`archive/` | [生命周期](governance/document-lifecycle.md)、[目录审计](governance/repository-layout-audit-2026-11-24.md)、[固定 Git SHA 归档](governance/archive/README.md) | 归档内容需要复制回工作树 |
 | `operations/`、`product/` | [开发环境](operations/installation.md)、[发行规则](operations/release.md)、[Linux GUI 用户旅程](product/linux-desktop-installer-v01.md) | 用户端已可安装 |
 | `diagrams/`、`visuals/` | [Mermaid 图](diagrams/README.md)、[SVG 图](visuals/README.md) | 产品运行截图 |

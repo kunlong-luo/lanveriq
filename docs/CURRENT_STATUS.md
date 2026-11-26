@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | [`apps/web`](../apps/web/README.md) | **唯一 Web Console**：Next.js 16.4.5、React 19、Tailwind 4、Base UI | [Pages](https://kunlong-luo.github.io/lanveriq/) 是断开业务的演示；真实接口只在临时 CI L2 联调 |
 | [`apps/server`](../apps/server/README.md) | Java 25、Spring Boot 4.2.0、Gradle、JPA/Hibernate、Flyway、PostgreSQL 18.7 | mTLS/PG18 合成事务；真实 CA、用户登录/管理员 MFA 仍锁定 |
-| [`apps/agent`](../apps/agent/README.md) | Rust 1.100、Tokio、SQLx SQLite、reqwest/rustls mTLS | Rust Agent、durable ACK/outbox、有限 Linux OS/CPU/RAM 隔离 CI；禁止生产自动采集 |
+| [`apps/agent`](../apps/agent/README.md) | Rust 1.100、SQLx SQLite、rustls mTLS | 手动 once/send 已合 main；用户提供 Pop!_OS once/SQLite 日志，send 实机 NOT RUN；生产默认 OFF |
 | [`apps/desktop`](../apps/desktop/README.md) | Tauri 2 + React；Vite **只构建桌面窗体** | 只读兼容性/安装资格；**无实际 GUI 安装/服务启动/联网** |
 | [`deploy`](../deploy/caddy/Caddyfile.reference) | Caddy mTLS、LAN/WAN 负测、RustDesk 隔离候选 | 无公网生产路由、远控 RD-2 保持 OFF |
 

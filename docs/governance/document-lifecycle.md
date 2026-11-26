@@ -6,7 +6,8 @@
 | --- | --- | --- |
 | LIVE-FACT | [CURRENT_STATUS](../CURRENT_STATUS.md) | 当前功能、确切 SHA/CI、真实测试范围；不能复制每个旧日志 |
 | LIVE-GAP | [release-gap register](../planning/release-gap-register.md) | G-01～G-10 未完成项目及真实退出条件 |
-| ACTIVE PLAN | [Linux 交付路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) | 当前单一实施顺序，不再引用旧 roadmap/backlog 为权威 |
+| ACTIVE PLAN | [Linux 交付路线](../planning/linux-v01-reuse-first-delivery-path-2026-11-24.md) | 当前产品实施顺序，不再引用旧 roadmap/backlog 为权威 |
+| LOCAL TASK LEDGER | [本机 MVP 单任务交接](../planning/local-mvp-tasks.md) | 一次只做一个本机开发任务：前提、可改范围、验收、状态与交接；不替代 LIVE-FACT、ACTIVE PLAN、LIVE-GAP 或安全许可 |
 | NORMATIVE | [AGENTS](../../AGENTS.md)、[工程手册](engineering-playbook.md)、[DoD](../planning/definition-of-done.md) | 版本、权限、安全与开发规则 |
 | ADR/SPEC | [ADR](../architecture/adrs/README.md)、architecture/security/development | 决策、接口与信任边界；历史 ADR 要标记被替代 |
 | HISTORICAL | [固定 Git SHA 归档](archive/README.md)、各日期报告与原始 CI | 只作追溯；保留独立真实失败、攻击与合成测试证据 |
