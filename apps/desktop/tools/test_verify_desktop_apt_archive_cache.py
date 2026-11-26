@@ -78,6 +78,51 @@ class UbuntuAPTArchiveCacheTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "proposes removal"):
             subject.parse_install_plan("Inst alpha (1.2 Ubuntu [amd64])\nRemv beta [1:2.0]\n")
 
+    def test_audited_superset_allows_only_current_runner_install_plan_subset(self):
+        # Both archives remain independently signed-index verified, even if
+        # beta is already installed and therefore omitted from Inst lines.
+        plan = {"alpha": "1.2"}
+        self.assertEqual(
+            subject.manifest_and_verify(
+                self.root, 2, self.fingerprint(), self.lookup, plan,
+                allow_signed_superset=True,
+            ),
+            (2, self.fingerprint()),
+        )
+        with self.assertRaisesRegex(ValueError, "APT closure package count differs"):
+            subject.manifest_and_verify(
+                self.root, 2, self.fingerprint(), self.lookup, plan,
+            )
+
+    def test_signed_superset_still_rejects_tampered_extra_archive(self):
+        # An unused archive never escapes SHA256/size/arch attestation.
+        self.metadata[("beta", "1:2.0")][0]["SHA256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "signed-index SHA256"):
+            subject.manifest_and_verify(
+                self.root, 2, self.fingerprint(), self.lookup,
+                {"alpha": "1.2"}, allow_signed_superset=True,
+            )
+
+    def test_signed_superset_rejects_missing_required_or_changed_version(self):
+        for plan, reason in [
+            ({"alpha": "1.2", "gamma": "3.0"}, "omit current APT"),
+            ({"alpha": "999"}, "not in current APT"),
+        ]:
+            with self.subTest(plan=plan):
+                with self.assertRaisesRegex(ValueError, reason):
+                    subject.manifest_and_verify(
+                        self.root, 2, self.fingerprint(), self.lookup,
+                        plan, allow_signed_superset=True,
+                    )
+
+    def test_signed_superset_rejects_more_required_packages_than_cached(self):
+        with self.assertRaisesRegex(ValueError, "APT closure exceeds signed cache"):
+            subject.manifest_and_verify(
+                self.root, 2, self.fingerprint(), self.lookup,
+                {"alpha": "1.2", "beta": "1:2.0", "gamma": "1.0"},
+                allow_signed_superset=True,
+            )
+
     def test_rejects_unexpected_cached_package_outside_plan(self):
         plan = {"alpha": "1.2", "other": "1:2.0"}
         with self.assertRaisesRegex(ValueError, "not in current APT simulated closure"):
