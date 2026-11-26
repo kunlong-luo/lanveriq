@@ -108,11 +108,11 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /var/tmp/lanveriq-desktop-apt-archives/*.deb
-          # Two-runner signed-index, exact-closure acceptance: #45321096944.
+          # Updated two-runner signed-index, exact-closure acceptance: #45745618560 (functional SHA d0f93b6c).
           # No restore-keys, no prefix fallback and no unreviewed archive source.
-          key: lanveriq-ubuntu24-tauri-apt-v2-d3781616035a7dca93d8cc962be5b96c2430dd26cf28deee45aa287121da8f9e
+          key: lanveriq-ubuntu24-tauri-apt-v2-7ea38b271819e80608ebc8faedf2e9846799ae777dd881fe0ccd616caf671ca6
           fail-on-cache-miss: true
-      - name: Revalidate 175 cached Ubuntu native packages and install CI prerequisites without downloading
+      - name: Revalidate 176 independently accepted cached Ubuntu native packages and install CI prerequisites without downloading
         shell: bash
         timeout-minutes: 15
         env:
@@ -135,8 +135,8 @@ jobs:
           plan="$RUNNER_TEMP/desktop-preview-apt-plan.txt"
           apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
           python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
-            --archive-dir "$archive" --expected-count 175 \
-            --expected-manifest 5ac2afaff76e962e6c5131c34645248cb8024d4e8581d2790d71f622e988bc35 \
+            --archive-dir "$archive" --expected-count 176 \
+            --expected-manifest 0d72c92f41066df4b98f7dd5fa9d101d2508676d771d0a3b4023b076d4d7da43 \
             --expected-plan-file "$plan"
           sudo install -d -o _apt -g root -m 700 "$archive/partial"
           sudo DEBIAN_FRONTEND=noninteractive apt-get \

@@ -113,18 +113,18 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           # Deliberately pinned to complete two-runner signed-index verification
-          # #45321096944; no fallback or restore-keys. Cache rotation requires
+          # #45745618560 (SHA d0f93b6c); no fallback/restore-keys. Rotation requires
           # a reviewed main commit and fresh independent L2B-14 acceptance.
           path: /var/tmp/lanveriq-desktop-apt-archives/*.deb
-          key: lanveriq-ubuntu24-tauri-apt-v2-d3781616035a7dca93d8cc962be5b96c2430dd26cf28deee45aa287121da8f9e
+          key: lanveriq-ubuntu24-tauri-apt-v2-7ea38b271819e80608ebc8faedf2e9846799ae777dd881fe0ccd616caf671ca6
           fail-on-cache-miss: true
       - name: Independently authenticate EVERY cached native dependency and install offline in disposable runner
         timeout-minutes: 15
         shell: bash
         env:
           CACHE_HIT: ${{ steps.native_apt_cache.outputs.cache-hit }}
-          EXPECTED_ARCHIVE_COUNT: '175'
-          EXPECTED_ARCHIVE_SHA256: 5ac2afaff76e962e6c5131c34645248cb8024d4e8581d2790d71f622e988bc35
+          EXPECTED_ARCHIVE_COUNT: '176'
+          EXPECTED_ARCHIVE_SHA256: 0d72c92f41066df4b98f7dd5fa9d101d2508676d771d0a3b4023b076d4d7da43
         run: |
           set -Eeuo pipefail
           test "$CACHE_HIT" = true || { echo 'FAIL: exact audited APT cache missing' >&2; exit 1; }
