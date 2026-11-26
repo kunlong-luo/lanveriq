@@ -1,6 +1,6 @@
 # G-05/G-09 — Tauri 本机脱敏诊断与安装阻断报告（非安装功能）
 
-**2026-11-26 · Web/React L1 PASS，Tauri 原生 L1 PENDING · `main` · v0.1 NOT RELEASE READY。**
+**2026-11-26 · Web/React L1 PASS，Tauri 原生构建 FAIL（APT 闭包漂移） · `main` · v0.1 NOT RELEASE READY。**
 
 ## 目的与实际交付
 
@@ -15,8 +15,8 @@
 ## 功能 SHA 与验收
 
 - 功能完成提交：[`dfaf97b5`](https://github.com/kunlong-luo/lanveriq/commit/dfaf97b537ac2e8a7a3b302eb4281918a630ada8)；新增 [报告内容负测](../../apps/desktop/src/offline-diagnostics.test.ts) 和 [渲染测试](../../apps/desktop/src/OfflineDiagnosticsPanel.test.tsx)；测试覆盖恶意路径/口令、伪造可安装字段、浏览器空状态、未检查/陈旧状态和禁用 UI 操作。
-- [Tauri Preview CI #45744173020](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)：**React/L1 job SUCCESS**，Native Tauri/Rust job **PENDING**（以实际 GitHub 结果为准，不得提前标两 job PASS）。
-- [桌面 GUI-only .deb 候选 CI](https://github.com/kunlong-luo/lanveriq/actions/workflows/desktop-deb-candidate.yml) 仍属于未安装的 CI 合成候选；与本次界面报告无安装授权关系。
+- [Tauri Preview CI #45744173020](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020)：**React/L1 job SUCCESS**（包含前端单测、严格安全拒绝测试、TypeScript 类型检查和 Vite 构建），但 **Native Tauri/Rust job FAIL**：签名 Ubuntu 24.04 APT 索引刷新后，当前依赖求解闭包数量不同于已审的 175 包缓存，原生日志明确 `FAIL: APT closure package count differs`；因此尚未运行本功能 SHA 的原生 Rust compile/test。原始失败必须保留，不放宽校验或假称原生通过。
+- [桌面 GUI-only .deb 候选 CI #45744172969 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45744172969) 在同样的 `APT closure package count differs` 前置条件阻断。必须另行审核当前仓库索引、真实包版本与完整依赖闭包，重新生成固定且有来源验证的缓存证据，再在相同代码 SHA 上完成原生 Tauri/Rust 构建；**不能改大接受数量/跳过 apt 身份检查来伪造 PASS**。这不是新的可分发包。
 
 ## 未通过的上线门禁
 
