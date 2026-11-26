@@ -6,7 +6,7 @@
 
 ## 已实现的界面和真实边界
 
-- 四步中文安装准备、系统兼容性**只读**检测、查看本机候选 Agent/systemd 状态、发行签名/受限 Polkit/物理机 L3 缺口审查。
+- 四步中文安装准备，新增[AgentConfig v1 的离线图形化空闲配置预览](../../docs/development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)：选择 15/30/60/120/300 秒并生成只读 TOML，不写入 `/etc`、不持有机密；已有系统兼容性、候选 Agent/systemd 状态及发行/Polkit/L3 缺口审查保持。
 - 当前只有 `inspect_host` 与 `inspect_popos_preflight` 两个 Tauri 只读 IPC。安全页新增[本机脱敏诊断与安装阻断报告](../../docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)，仅白名单状态、可手动选中复制，浏览器预览明确标记未连接本机，不传输、不保存、不添加权限；重新检测自动清除旧 COSMIC 结果。安装、升级、卸载、服务启动、开机自启、生产联网、采集和远控均不可达。
 - 四条隐私/权限说明的勾选仅是瞬时**阅读记录**，不是管理员授权、签名包或真正 Polkit grant。
 - **2026-11-26 原生 CI 恢复：** [本机脱敏诊断报告](../../docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) 的旧[React PASS/Native FAIL #45744173020](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020) 原始证据保留。现已[重新审核 176 包签名索引/二 runner #45746180961 PASS](../../docs/development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md)，[Tauri 原生 Rust/Clippy #45745776008 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008)，[未签名 GUI-only `.deb` #45745775902 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902)。**仍不能安装真实 Agent、Polkit broker 不存在、COSMIC L3 未验。**
@@ -26,7 +26,7 @@
 
 | 目录 | 用途 |
 | --- | --- |
-| `src/` | React 只读向导、安装前条件审查、本机脱敏诊断与纯逻辑单元测试 |
+| `src/` | React 只读向导、AgentConfig v1 配置草稿、安装条件审查、本机脱敏诊断与单元测试 |
 | `src-tauri/` | Tauri2 Rust 只读主机核验、最小 IPC/capabilities、**禁用**正式 bundle 的配置 |
 | `tools/` | Debian/ABI/APT 隔离实装、**polkitd/D-Bus 容器内真实 root-side ReviewLab 与 Unix peer 检验**、非提权 Rust gate 和攻击负测；**不是可部署安装 broker** |
 | `polkit/` | **未安装的**三动作默认拒绝 XML 策略审查与说明；没有部署到系统、没有 helper 或授权规则 |
