@@ -39,6 +39,8 @@ def validate(root=DESKTOP):
     safety = (root / "src/safety.ts").read_text(encoding="utf-8")
     review = (root / "src/install-review.ts").read_text(encoding="utf-8")
     review_ui = (root / "src/InstallReviewPanel.tsx").read_text(encoding="utf-8")
+    idle_ui = (root / "src/IdleConfigPanel.tsx").read_text(encoding="utf-8")
+    idle_config = (root / "src/idle-config.ts").read_text(encoding="utf-8")
 
     # New GUI workflow is review-only. The process API and release locks
     # remain exactly as before: no third native IPC, installer plugin or
@@ -48,6 +50,25 @@ def validate(root=DESKTOP):
         and "<InstallReviewPanel host={host} popos={popos} />" in react_code,
         "install review must be mounted in the locked wizard",
     )
+    require(
+        'import { IdleConfigPanel } from "./IdleConfigPanel"' in react_code
+        and "<IdleConfigPanel />" in react_code
+        and "buildOfflineIdleConfig(interval)" in idle_ui
+        and "readOnly" in idle_ui
+        and "schema_version = 1" in idle_config
+        and "[runtime]" in idle_config
+        and "cycle_seconds" in idle_config,
+        "offline idle config preview must be mounted and remain read-only",
+    )
+    for forbidden in ("invoke<", "invoke(", "fetch(", "new WebSocket(",
+                      "window.location", "tauri_plugin_", "pkexec",
+                      "exec(", "systemctl ", "install_agent(", "runInstaller(",
+                      "localStorage", "sessionStorage", "writeFile"):
+        require(
+            forbidden not in idle_ui and forbidden not in idle_config,
+            "offline idle config must not call a device, store, installer or network",
+        )
+
     for field in ("installAllowed", "updateAllowed", "removeAllowed",
                   "startAllowed", "bootEnabled", "collectionAllowed",
                   "networkAllowed", "privilegedBrokerAvailable"):

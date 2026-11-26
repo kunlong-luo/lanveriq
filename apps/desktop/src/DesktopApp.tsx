@@ -11,6 +11,7 @@ import {
 } from "./safety";
 import { parseLocalPreflight, poposSummary, type PoposDisplay } from "./preflight";
 import { InstallReviewPanel } from "./InstallReviewPanel";
+import { IdleConfigPanel } from "./IdleConfigPanel";
 import { OfflineDiagnosticsPanel } from "./OfflineDiagnosticsPanel";
 
 type Section = "setup" | "status" | "safety";
@@ -186,7 +187,7 @@ export function DesktopApp() {
                     <div>
                       <p className="max-w-2xl text-sm leading-8 text-slate-600">Lanveriq Agent 未来将通过独立的 systemd 系统服务在后台运行。配置窗口关闭后不需要常驻托盘程序，但始终保留清晰的服务查看、停止和卸载入口。</p>
                       <div className="mt-7 grid gap-3 md:grid-cols-3">
-                        <Feature icon={<Laptop2 size={19} />} label="图形化配置" value="不再手写 TOML" />
+                        <Feature icon={<Laptop2 size={19} />} label="图形化配置" value="生成离线 TOML 草稿" />
                         <Feature icon={<ShieldCheck size={19} />} label="明确授权" value="安装与启动分别确认" />
                         <Feature icon={<Unplug size={19} />} label="默认离线" value="不采集、不上传、不远控" />
                       </div>
@@ -254,6 +255,7 @@ export function DesktopApp() {
                   )}
                   {stage === 3 && (
                     <div>
+                      <IdleConfigPanel />
                       <InstallReviewPanel host={host} popos={popos} />
                       <ActionButton disabled={!RELEASE_GATE.installEnabled}><PackageCheck size={17} /> 安装 Agent（尚未开放）</ActionButton>
                       <p className="mt-4 text-xs leading-6 text-slate-500">不会调用 dpkg、apt、systemctl、sudo、polkit，也不会下载或安装软件。未来安装必须由发行者签名、独立受限 broker 和管理员逐次授权共同通过。</p>
