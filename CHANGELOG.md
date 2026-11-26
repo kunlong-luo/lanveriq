@@ -4,6 +4,11 @@
 
 > **原始完整历史不丢失：** 2026-11-24 整理前约 86 KB 的逐次 CI、修复 SHA、历史设计与失败记录，可在 [固定 Git SHA 的旧版 CHANGELOG 全文](https://github.com/kunlong-luo/lanveriq/blob/80a743739b32333881b926c0f63e953299ad1ba7/CHANGELOG.md) 找回；每项真正功能的完整环境/命令/限制/失败原因仍在各 `docs/development/`、`docs/testing/`、`docs/security/` 日期报告和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)。删除的是工作树里**重复的历史时间线**，不是源代码或 Git 历史证据。
 
+## 2026-11-26 — G-08 独立实体机恢复执行准备与上线复评（L1 PASS；L3 NOT RUN）
+
+- [恢复机非 root/明确授权的原生 PG18.7 隔离恢复脚本](apps/server/scripts/pg18-physical-dr-lab.sh) 及 [SRE 实体机执行卡](docs/operations/g08-physical-dr-operator-card-2026-11-26.md) 已备。源脚本初版 `1eef4a87`、远程 Docker daemon 防误用加固 `524df043`，功能/门禁 workflow SHA [`6d3bb03a`](https://github.com/kunlong-luo/lanveriq/commit/6d3bb03a8b55a6a3d1d3b8dfb94a8bde56c902a5)，[原生 L1 #45743526852 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743526852) 仅证明语法、未授权、CI 冒充、同名源机和远程 Docker 拒绝。**未实际执行跨物理机恢复，无独立 WORM/KMS/SRE 签收。**
+- [最新工程评分 71/100、发布 Gate 0/10 关闭](docs/planning/project-scorecard.md)（旧版 70/100，增加 1 分是上轮三 job L2 跨 runner 真恢复，而非此 L1 准备）。**生产 NO-GO、G-01–G-10 OPEN；v0.1 NOT RELEASE READY。**
+
 ## 2026-11-26 — G-08 跨 GitHub runner 合成 PG18 备份交接与原生恢复（L2 PASS）
 
 - 功能 [`b31f45ef`](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f) 将前置 Rust/mTLS/PG18 原生合成备份通过**仅 1 日保留**的 Actions artifact 交给另一 Ubuntu runner；恢复到没有任何端口发布的 PostgreSQL18.7 容器，进行完整库存子行/Flyway 比对及独立重启检查。[Linux #45742025955 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) · [专项报告](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)。这仍是**同一 GitHub 管理域**，不是获批准的物理跨机保管或生产 SRE/灾备签收，G-02/G-08 OPEN。
