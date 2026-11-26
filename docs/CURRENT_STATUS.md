@@ -43,7 +43,7 @@
 
 ## 下一项退出目标（不等于批准上线）
 
-**G-05/G-09：** [Tauri 可视化 AgentConfig v1 空闲草稿](development/desktop-tauri-agent-idle-config-ui-2026-11-26.md) 功能 `a70c4243`；[React L1 #45748162585 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)，原生/GUI .deb 同 SHA CI **PENDING**。此前 [Tauri #45746181071](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071) 与 [GUI-only .deb #45746180976](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) PASS。草稿仅本机只读生成；无正式签名 Agent/Polkit broker/COSMIC L3。**71/100，Gate 0/10，NO-GO**。
+**G-05/G-09：** [Tauri 可视化 AgentConfig v1 空闲草稿](development/desktop-tauri-agent-idle-config-ui-2026-11-26.md) 功能 `a70c4243`；[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)，GUI-only .deb 同 SHA CI **PENDING**。此前 [Tauri #45746181071](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071) 与 [GUI-only .deb #45746180976](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) PASS。草稿仅本机只读生成；无正式签名 Agent/Polkit broker/COSMIC L3。**71/100，Gate 0/10，NO-GO**。
 
 ## 证据、历史及维护
 
