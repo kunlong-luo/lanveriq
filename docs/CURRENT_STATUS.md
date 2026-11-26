@@ -39,7 +39,7 @@
 
 ## G-08 最新备份 L2
 
-**G-08：** [单 runner PG18 恢复并启动 Spring/JPA #45618414247 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)（[首轮 FAIL 留证](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md)）；[新增跨 GitHub runner 原生备份恢复](development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md) 功能 `b31f45ef` / [#45742025955 PENDING](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955)。**同 GitHub 管理域非独立保管；真实跨物理机、KMS/WORM、SRE 签收 NOT RUN；G-02/G-08 OPEN。**
+**G-08：** [单 runner PG18 恢复并启动 Spring/JPA #45618414247 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)（[首轮 FAIL 留证](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md)）；[新增跨 GitHub runner 原生备份恢复](development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md) 功能 `b31f45ef` / [#45742025955 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955)。**同 GitHub 管理域非独立保管；真实跨物理机、KMS/WORM、SRE 签收 NOT RUN；G-02/G-08 OPEN。**
 
 ## 下一项退出目标（不等于批准上线）
 
