@@ -29,17 +29,17 @@
 
 **发行预览边界：** `v0.1.0-dev.1` 仅完成了[源码预览候选 L1](operations/source-preview-v0.1.0-dev.1.md)，**NOT PUBLISHED**，无正式安装包；不能将源码预览的自动负测计为 G-05 已通过。
 
-## G-06 新验收：恢复后乱序、冲突仍保持 PG18 原值
+## G-06 断网/ACK/WAL 业务链（隔离 L2）
 
-[专项报告](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)：功能 SHA [`9ba85399`](https://github.com/kunlong-luo/lanveriq/commit/9ba853991245765eaf313d3b99d9707c01373942)、[真实 Linux Batch A #45571463449（两 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463449)、[Server unit #45571463462 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45571463462)。新增恢复后重复、旧版本迟到、同版本冲突的 mTLS/PG18 负测；**仍只适用于隔离 CI，G-06 OPEN**。
-
-## 最新 G-06 L2 验收与故障注入
-
-[ACK 未交付 Rust、PG18 已提交、原始 SQLite 请求经真实 mTLS 重送](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md) 已在功能 SHA f83aeab6 的 [Linux #45581861955 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861955)、[Agent #45581861744 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861744)、[Server #45581861736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45581861736) 验收。这是合成未交付 ACK，不是 TCP 真正断线。新增 [PG18 SIGKILL/WAL 恢复→Rust 重送](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md) 功能 3e5b7009，[Linux L2 #45583968475](https://github.com/kunlong-luo/lanveriq/actions/runs/45583968475) **两 jobs SUCCESS**（首轮端口重映射 #45583252985 FAIL 保留在专题报告）；不能把前一项 PASS 冒充本项验收。G-06/G-08 继续 OPEN。
+[恢复后迟到/重复/同版冲突 #45571463449 两 jobs PASS](development/linux-inventory-post-reconnect-idempotency-l2-2026-11-25.md)（功能 `9ba85399`）；[PG18 已提交但 Rust 未收 ACK→原始请求重送 #45581861955 PASS](development/linux-inventory-ack-withheld-replay-l2-2026-11-25.md)（`f83aeab6`，非真实 TCP 断线）；[真实 PG18 SIGKILL/WAL 恢复后 Rust 重送 #45583968475 两 jobs PASS](development/linux-inventory-pg18-crash-wal-replay-l2-2026-11-25.md)（`3e5b7009`，首轮 #45583252985 端口问题 FAIL 保留原报告）。**真实生产身份与业务授权未完成，G-06 OPEN。**
 
 ## G-08 最新备份 L2
 
 **G-08：** [单 runner PG18 恢复并启动 Spring/JPA #45618414247 L2 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45618414247)（[首轮 FAIL 留证](development/linux-pg18-restored-spring-jpa-context-l2-2026-11-25.md)）；[新增跨 GitHub runner 原生备份恢复](development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md) 功能 `b31f45ef` / [#45742025955 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955)。**同 GitHub 管理域非独立保管；真实跨物理机、KMS/WORM、SRE 签收 NOT RUN；G-02/G-08 OPEN。**
+
+## G-02/G-08 当前外部实体机恢复准备（不等于 L3）
+
+[非 root、手动获批、非生产 PG18 隔离恢复工具](../apps/server/scripts/pg18-physical-dr-lab.sh) · [G-08 L1 #45743205846 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846)（只有未授权/CI/同名源机拒绝）；[SRE 实体机器执行卡](operations/g08-physical-dr-operator-card-2026-11-26.md) 已备。**真实不同物理机恢复、外部 WORM/KMS、RPO/RTO、独立签收均 NOT RUN。** [工程评分 71/100、Gate 0/10 关闭](planning/project-scorecard.md)，**不能上线**。
 
 ## 下一项退出目标（不等于批准上线）
 
