@@ -43,7 +43,7 @@
 
 ## 下一项退出目标（不等于批准上线）
 
-**G-05/G-09：** [Tauri 只读诊断及 Rust/Clippy #45745776008 双 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008)（功能 `a6db3afd`）；[176 包原生 APT 双 runner #45746180961 两 job PASS](development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md)（`c411d3ea`）；[GUI-only `.deb` #45745775902 归档审计 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902)（仅无签名 GUI、不含 Agent）。无正式 Agent 签名、可用 Polkit broker/独立高水位、COSMIC L3。**评分 71/100、0/10 Gate，生产 OFF。**
+**G-05/G-09：** [Tauri 可视化 AgentConfig v1 空闲草稿](development/desktop-tauri-agent-idle-config-ui-2026-11-26.md) 功能 `a70c4243`；[React L1 #45748162585 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)，原生/GUI .deb 同 SHA CI **PENDING**。此前 [Tauri #45746181071](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071) 与 [GUI-only .deb #45746180976](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) PASS。草稿仅本机只读生成；无正式签名 Agent/Polkit broker/COSMIC L3。**71/100，Gate 0/10，NO-GO**。
 
 ## 证据、历史及维护
 
