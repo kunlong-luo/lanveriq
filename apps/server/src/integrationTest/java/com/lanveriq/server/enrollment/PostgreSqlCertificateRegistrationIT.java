@@ -7,7 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.lanveriq.server.security.AdminPrincipal;
 import jakarta.persistence.EntityManager;
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.cert.X509Certificate;
+import java.time.Clock;
+import java.util.Date;
+import java.util.List;
 import java.io.StringWriter;
 import java.security.KeyPairGenerator;
 import java.security.spec.ECGenParameterSpec;
@@ -18,6 +25,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
@@ -26,7 +42,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
@@ -34,9 +53,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Opt-in synthetic PostgreSQL-only registration transaction tests. The leaf
- * metadata is a fixture; the real PKIX validation lives in the unit suite.
- * No certificate authority, admin HTTP login or Agent ingress is created.
+ * Opt-in synthetic PostgreSQL-only registration transaction tests. The scoped
+ * token/CSR lifecycle test uses real ephemeral PKIX leaf validation; other
+ * transaction fault tests use fixture metadata. No deployed CA, real admin
+ * login or Agent ingress is created.
  */
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
@@ -132,10 +152,17 @@ class PostgreSqlCertificateRegistrationIT {
                 .setParameter("id", deviceId).getSingleResult()).longValue();
     }
 
-    private static String syntheticP256Csr() throws Exception {
+    private static KeyPair syntheticP256Keys() throws Exception {
         var generator = KeyPairGenerator.getInstance("EC");
         generator.initialize(new ECGenParameterSpec("secp256r1"));
-        var keys = generator.generateKeyPair();
+        return generator.generateKeyPair();
+    }
+
+    private static String syntheticP256Csr() throws Exception {
+        return syntheticP256Csr(syntheticP256Keys());
+    }
+
+    private static String syntheticP256Csr(KeyPair keys) throws Exception {
         var request = new JcaPKCS10CertificationRequestBuilder(
                 new X500Name("CN=untrusted-synthetic-subject"), keys.getPublic())
                 .build(new JcaContentSignerBuilder("SHA256withECDSA").build(keys.getPrivate()));
@@ -144,6 +171,61 @@ class PostgreSqlCertificateRegistrationIT {
             writer.writeObject(request);
         }
         return output.toString();
+    }
+
+    // Ephemeral certificates are generated only inside this Testcontainers
+    // integration test. No host PKI, external database, or deployed issuer.
+    private record SyntheticIssuer(X500Name name, KeyPair keys, X509Certificate root) {}
+
+    private static X509Certificate signSynthetic(JcaX509v3CertificateBuilder builder,
+                                                 KeyPair keys) throws Exception {
+        return new JcaX509CertificateConverter().getCertificate(builder.build(
+                new JcaContentSignerBuilder("SHA256withECDSA").build(keys.getPrivate())));
+    }
+
+    private static SyntheticIssuer syntheticIssuer() throws Exception {
+        var keys = syntheticP256Keys();
+        var name = new X500Name("CN=Disposable registration test CA");
+        var now = Instant.now();
+        var root = new JcaX509v3CertificateBuilder(name, BigInteger.ONE,
+                Date.from(now.minusSeconds(3600)), Date.from(now.plusSeconds(7 * 86400)),
+                name, keys.getPublic());
+        root.addExtension(Extension.basicConstraints, true, new BasicConstraints(true));
+        root.addExtension(Extension.keyUsage, true,
+                new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign));
+        return new SyntheticIssuer(name, keys, signSynthetic(root, keys));
+    }
+
+    private static String syntheticSignedLeaf(SyntheticIssuer issuer, UUID device,
+                                              KeyPair keys) throws Exception {
+        var now = Instant.now();
+        var leaf = new JcaX509v3CertificateBuilder(issuer.name(),
+                new BigInteger(UUID.randomUUID().toString().replace("-", ""), 16)
+                        .add(BigInteger.ONE),
+                Date.from(now.minusSeconds(60)), Date.from(now.plusSeconds(3600)),
+                new X500Name("CN=Disposable registration test leaf"), keys.getPublic());
+        leaf.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+        leaf.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature));
+        leaf.addExtension(Extension.extendedKeyUsage, false,
+                new ExtendedKeyUsage(KeyPurposeId.id_kp_clientAuth));
+        leaf.addExtension(Extension.subjectAlternativeName, false,
+                new GeneralNames(new GeneralName(GeneralName.uniformResourceIdentifier,
+                        "urn:uuid:" + device)));
+        var output = new StringWriter();
+        try (var writer = new JcaPEMWriter(output)) {
+            writer.writeObject(signSynthetic(leaf, issuer.keys()));
+        }
+        return output.toString();
+    }
+
+    // Only the test principal is simulated; registration's database scope,
+    // persisted CSR, PKIX checks, review write and audit are all real.
+    private void authenticateSyntheticAdmin(UUID actor) {
+        AdminPrincipal principal = Mockito.mock(AdminPrincipal.class);
+        Mockito.when(principal.isEnabled()).thenReturn(true);
+        Mockito.when(principal.userId()).thenReturn(actor);
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(principal, null, List.of()));
     }
 
     @Test
@@ -156,7 +238,8 @@ class PostgreSqlCertificateRegistrationIT {
                 SELECT token_sha256 FROM enrollment_tokens WHERE id=:id
                 """).setParameter("id", token.id()).getSingleResult();
         assertArrayEquals(new EnrollmentTokenCodec().verifierFor(token.plaintext()), storedVerifier);
-        String csr = syntheticP256Csr();
+        KeyPair agentKeys = syntheticP256Keys();
+        String csr = syntheticP256Csr(agentKeys);
         String spki = new CertificateSigningRequestValidator()
                 .validate(csr).spkiSha256Digest();
 
@@ -185,16 +268,57 @@ class PostgreSqlCertificateRegistrationIT {
                 transaction().executeWithoutResult(ignored ->
                         registration.lockPendingForScopedAdmin(UUID.randomUUID(), pending.deviceId())));
 
-        // PKIX/profile validation is covered separately; this fixture tests
-        // the reviewed registration transaction and audit boundary.
-        var signed = new ClientCertificateProfileValidator.VerifiedLeaf(
-                UUID.randomUUID().toString().replace("-", "").repeat(2),
-                "a".repeat(64), UUID.randomUUID().toString(), spki,
-                Instant.now().minusSeconds(3600), Instant.now().plusSeconds(48 * 3600));
-        transaction().executeWithoutResult(ignored -> {
-            registration.lockPendingForScopedAdmin(adminId, pending.deviceId());
-            registration.registerReviewed(adminId, pending.deviceId(), signed);
-        });
+        var issuer = syntheticIssuer();
+        var validator = new ClientCertificateProfileValidator(issuer.root(), Clock.systemUTC());
+        var registrar = new ReviewedDeviceCertificateRegistrationService(registration, validator);
+        String validLeaf = syntheticSignedLeaf(issuer, pending.deviceId(), agentKeys);
+        String wrongDevice = syntheticSignedLeaf(issuer, UUID.randomUUID(), agentKeys);
+        String wrongKey = syntheticSignedLeaf(issuer, pending.deviceId(), syntheticP256Keys());
+        String wrongCa = syntheticSignedLeaf(syntheticIssuer(), pending.deviceId(), agentKeys);
+        try {
+            SecurityContextHolder.clearContext();
+            assertThrows(AccessDeniedException.class, () ->
+                    transaction().executeWithoutResult(ignored ->
+                            registrar.register(pending.deviceId(), validLeaf)));
+            authenticateSyntheticAdmin(UUID.randomUUID());
+            assertThrows(AccessDeniedException.class, () ->
+                    transaction().executeWithoutResult(ignored ->
+                            registrar.register(pending.deviceId(), validLeaf)));
+            authenticateSyntheticAdmin(adminId);
+            for (String invalid : List.of(wrongDevice, wrongKey, wrongCa)) {
+                assertThrows(IllegalArgumentException.class, () ->
+                        transaction().executeWithoutResult(ignored ->
+                                registrar.register(pending.deviceId(), invalid)));
+                assertEquals(0L, ((Number) manager.createNativeQuery("""
+                        SELECT COUNT(*) FROM device_credentials WHERE device_id=:id
+                        """).setParameter("id", pending.deviceId()).getSingleResult()).longValue());
+                assertNull(manager.createNativeQuery("""
+                        SELECT reviewed_by FROM device_enrollment_csrs WHERE device_id=:id
+                        """).setParameter("id", pending.deviceId()).getSingleResult());
+                assertEquals(0L, ((Number) manager.createNativeQuery("""
+                        SELECT COUNT(*) FROM admin_access_log WHERE resource_id=:id
+                          AND action='device_certificate.register'
+                        """).setParameter("id", pending.deviceId()).getSingleResult()).longValue());
+            }
+            var registered = transaction().execute(ignored ->
+                    registrar.register(pending.deviceId(), validLeaf));
+            assertNotNull(registered);
+            assertEquals(pending.deviceId(), registered.deviceId());
+            assertEquals(validator.validate(validLeaf, pending.deviceId(), spki).fingerprint(),
+                    registered.fingerprint());
+            assertEquals(registered.fingerprint(), manager.createNativeQuery("""
+                    SELECT trim(client_cert_sha256_fingerprint) FROM device_credentials
+                    WHERE device_id=:id
+                    """).setParameter("id", pending.deviceId()).getSingleResult());
+            assertThrows(AccessDeniedException.class, () ->
+                    transaction().executeWithoutResult(ignored ->
+                            registrar.register(pending.deviceId(), validLeaf)));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertEquals("pending_certificate", manager.createNativeQuery("""
+                SELECT enrollment_state FROM devices WHERE id=:id
+                """).setParameter("id", pending.deviceId()).getSingleResult());
         assertEquals(adminId, manager.createNativeQuery("""
                 SELECT reviewed_by FROM device_enrollment_csrs WHERE device_id=:id
                 """).setParameter("id", pending.deviceId()).getSingleResult());
