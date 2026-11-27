@@ -52,6 +52,8 @@
 
 - **本机预检工具**：[preflight-local-device-identity.sh](../../apps/server/scripts/preflight-local-device-identity.sh)（功能提交 [`95f0e628`](https://github.com/kunlong-luo/lanveriq/commit/95f0e6287ee25f3b632fc22aeee63e7105178d25)）。从仓库根手动执行 `bash apps/server/scripts/preflight-local-device-identity.sh`；只读取受限目录的测试叶证书、独立 CA、公钥匹配、IPv4 主机名及专用 PG18 库绑定，固定只读事务，不创建可信记录。隔离助手环境按 Git blob SHA `c0bd039c48244e872f4dea9fbae78b755e60e7b1` 校验同一脚本，`bash -n`、额外参数/非交互/CI+PTY 拒绝均 PASS；真实本机执行与 CI NOT RUN/未确认。它不等于服务器完整 PKIX/CSR 审核，不能解除注册阻塞。已复核现有 `PendingEnrollmentService`（服务端分配设备 UUID）、`ReviewedDeviceCertificateRegistrationService`（认证管理员、组范围、CSR/SPKI/PKIX 与审计）、`DeviceActivationService`；暂无可安全复用的本机注册入口。不得伪造管理员、直接置 active 或改写旧 SQLite 身份。下一步需独立可丢弃测试库中的明确测试身份初始化与真实 pending→activation 验收。
 
+- **2026-11-27 后续验收**：维护者实际执行 `bash apps/server/scripts/preflight-local-device-identity.sh`，只读 PG 事务完成，expected_database_role/postgres18 均 true，device_registered=false，matching_credentials/active_current_credentials 均 0。预检数据库分支 PASS；普通 DNS 输出未提供，不作 PASS。新增 [真实签名叶注册事务集成用例](../../apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlCertificateRegistrationIT.java)：[`bcf093cc`](https://github.com/kunlong-luo/lanveriq/commit/bcf093cc709997279d0ed3a399be4c8f2e42975e) 将既有 token→CSR→review 流程中的伪造叶元数据替换为独立临时 P-256 CA/真实叶/PKIX validator，复用注册 service 和真实 JPA transaction；负例覆盖未认证、无组权限、错 UUID/公钥/CA 及重复注册，预期失败不写凭据/审核/审计。管理员 principal 仅为测试 mock，不是真实登录。[`9984ef2f`](https://github.com/kunlong-luo/lanveriq/commit/9984ef2f25d611172de448045bfa4dcb60a84142) 将该用例加入 JUnit 必选证据，[`8dfdaa41`](https://github.com/kunlong-luo/lanveriq/commit/8dfdaa41030c4a6e214fdec5205ea5347b905a0d) 增加 PG18 workflow path。新代码仅测试域；Java 编译、Testcontainers、CI 实际结果均未确认，不宣称 PASS。未创建本机初始化工具或可信凭据，未启用激活或上传。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -78,13 +80,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 3636118c](https://github.com/kunlong-luo/lanveriq/commit/3636118cace495e8efc1470b114de78420fc2806)（仅目录文档），本机报告功能基线 `8a3f7484`；前次交接见[固定账本](https://github.com/kunlong-luo/lanveriq/blob/3636118cace495e8efc1470b114de78420fc2806/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。增加只读本机身份预检工具；原用户本机双跳与拒绝证据保留。注册入口仍缺失，未创建凭据，无本机直连。 |
-| 已验证（源码） | 现有 TLS1.3 双跳、默认 OFF 和 CI-only 边界；真实注册服务要求认证管理员、组范围与待审 CSR，服务端分配 UUID。新增预检 [`95f0e628`](https://github.com/kunlong-luo/lanveriq/commit/95f0e6287ee25f3b632fc22aeee63e7105178d25)，不写库。 |
+| 基线 | [main 6913deb5](https://github.com/kunlong-luo/lanveriq/commit/6913deb5f7ec0d8fb25c694fdf6dd798a22e8d97)；本机既有功能基线 `8a3f7484`；[前次固定账本](https://github.com/kunlong-luo/lanveriq/blob/6913deb5f7ec0d8fb25c694fdf6dd798a22e8d97/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**。维护者只读预检数据库分支 PASS，设备/凭据仍无；已提交真实签名叶的隔离 PG18 注册事务测试及 CI 证据门禁，实际执行未确认。未实现本机初始化写入工具或激活。 |
+| 已验证（源码） | `JpaPendingEnrollmentRepository` 分配服务端 UUID；现有 registrar 要求认证管理员、实时组范围、CSR/SPKI、PKIX 与审计；本机既有 UUID 不能直接当成授权。测试源码 `bcf093cc`、证据 gate `9984ef2f`、workflow `8dfdaa41` 均已提交；未改生产 service/配置。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | 保留任务卡中原始双跳、负例与 DB 0 条证据；新增脚本同 blob 的隔离环境语法及三启动拒绝 PASS（非 CI、非本机），实际证书/PG 分支 NOT RUN；普通 DNS、受信业务身份、错设备/伪造头、实际 Rust 请求仍未验证。文档治理命令 NOT RUN，CI 未确认。 |
+| 用户本机证据 / 未验证 | 本机预检 PG role/version true、无设备/凭据，COMMIT；先前双跳 health/拒绝证据保留。新集成测试编译/执行 NOT RUN（助手无本机 JDK/PG 执行通道），GitHub combined status 返回空，CI 未确认；文档治理命令 NOT RUN。普通 DNS、业务有效身份、激活、伪造/错设备拒绝及真实 Rust 网络仍未验证。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：先运行本机只读预检；实现并测试独立可丢弃测试库的明确测试身份初始化，复用注册校验和 pending→mTLS 激活，解决已有 SQLite UUID 绑定，严禁直接写 active、伪造审核或将 CI fixture 灌入共享库。完成有效身份、未注册/伪造/错设备拒绝后才能关闭；不进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：核实新注册集成测试实际 CI；实现受控本机初始化入口，先解决服务端分配 UUID 与既有 SQLite UUID 的冲突（保留旧数据；若选新身份仅另建测试 outbox，须明确记录；不可把旧数据改绑）。只允许隔离测试库、真实授权和现有注册/激活服务；验证有效身份、未注册、伪造、错设备拒绝。禁止进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
