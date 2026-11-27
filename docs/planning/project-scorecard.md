@@ -28,6 +28,8 @@
 
 **2026-11-27 MVP-05（不加分）：** [既有隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 原日志复核 PASS；功能 SHA 至基线 `a59fdd48` 仅文档变更。维护者本机 PG18 只读库存核对 PASS（同设备/快照/revision=1 精确匹配 1 行，OS/CPU/RAM 字段存在，COMMIT），MVP-05 DONE；无新增自动验收、代码变更或独立 L3。工程评分仍 **71/100**，Gate 0/10。见[任务账本](local-mvp-tasks.md)。
 
+**2026-11-27 MVP-06（不加分 / BLOCKED）：** [既有 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS，原日志复核同源认证、组隔离、跨组 404、登出 401、CSRF/Cookie 与 Next origin 拒绝；至基线 `ea1470d3` 仅文档变更，非新 CI。真实管理员测试授权、本机同源 HTTPS 与正负例未验，正常 Next 登录仍断开；未修改产品代码或放宽开关。**71/100 不变，Gate 0/10**；仍仅 MVP-06，见[任务账本](local-mvp-tasks.md)。
+
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
 | Gate 集合 | 阻断条件 |
