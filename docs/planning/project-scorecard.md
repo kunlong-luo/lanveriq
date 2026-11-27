@@ -26,7 +26,7 @@
 
 **2026-11-27 MVP-04（不加分）：** 既有 Agent [L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428) 与隔离 [L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 原日志复核 PASS；维护者本机双跳 mTLS/epoch、HTTP200/精确 ACK、新 pending 0、旧 pending 1、revision 1 PASS；维护者确认临时开关/诊断恢复与重启重载成功，MVP-04 DONE；MVP-05 TODO / NOT RUN。新增本机证据非独立 L3 或新增自动验收，无功能代码变更，工程评分仍 **71/100**，Gate 0/10。见[本机任务账本](local-mvp-tasks.md)。
 
-**2026-11-27 MVP-05（不加分）：** [既有隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 原日志复核 PASS；功能 SHA 至基线 `a59fdd48` 仅文档变更。实际开发库只读库存核对 NOT RUN（无本机执行通道），MVP-05 BLOCKED；无新增自动验收、代码变更或独立 L3。工程评分仍 **71/100**，Gate 0/10。见[任务账本](local-mvp-tasks.md)。
+**2026-11-27 MVP-05（不加分）：** [既有隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 原日志复核 PASS；功能 SHA 至基线 `a59fdd48` 仅文档变更。维护者本机 PG18 只读库存核对 PASS（同设备/快照/revision=1 精确匹配 1 行，OS/CPU/RAM 字段存在，COMMIT），MVP-05 DONE；无新增自动验收、代码变更或独立 L3。工程评分仍 **71/100**，Gate 0/10。见[任务账本](local-mvp-tasks.md)。
 
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
