@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-MVP-01～06 DONE（限定本机 MVP），本机跨组无目标 NOT RUN、历史隔离 L2 PASS。**MVP-07 BLOCKED**：现有授权 GET 不返回 os_version；[前端部分源码 a2c47fc5](https://github.com/kunlong-luo/lanveriq/commit/a2c47fc558058344f9451072d8b9af49ed3ed032) [L1 #45969306651 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306651)，隔离 L2/本机浏览器未核实，正式登录仍禁用。评分 71/100。[任务账本](planning/local-mvp-tasks.md)。
+MVP-01～06 DONE（限定本机 MVP）。**MVP-07 BLOCKED**：[71ee69d1](https://github.com/kunlong-luo/lanveriq/commit/71ee69d1af1ec51e23b12db2a8262b968d0ea6d1) 补齐既有授权 GET 的 os_version，源码待新 CI/本机浏览器验收；无新接口或权限。旧功能 L1/L2 PASS 不替代新 SHA，正式登录仍禁用。评分 71/100。[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 

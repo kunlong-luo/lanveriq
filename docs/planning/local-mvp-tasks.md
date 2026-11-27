@@ -20,9 +20,9 @@
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **DONE**：2026-11-27 本机 HTTP200/精确 ACK、新 pending 0、旧 pending 1、两库 revision 1 PASS；维护者确认临时配置恢复 |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **DONE**：2026-11-27 维护者本机只读 PG18 同设备/快照/revision=1 精确匹配 1 行、OS/CPU/RAM 非空，COMMIT PASS |
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **DONE（限定本机 MVP）**：真实浏览器认证/同设备读取/登出、入口拒绝、收尾 PASS；未改后端的隔离 L2 跨组 PASS，本机跨组无目标 NOT RUN；修复后 Next L1 PASS |
-| **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **BLOCKED**：前端部分源码已提交；现有 API 缺 os_version，本机 NOT RUN，功能 L1 PASS、隔离 L2 待核实 |
+| **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **BLOCKED**：os_version 最小投影源码已补齐；新 CI 与本机浏览器待验 |
 
-**MVP-01～06 DONE；MVP-07 BLOCKED。** 仅继续 MVP-07，既有 REST 缺系统版本；不扩大后端范围，不进入其他任务。
+**MVP-01～06 DONE；MVP-07 BLOCKED。** 仅继续 MVP-07，既有 REST 系统版本最小源码修复已提交，等待真实 CI 与本机验收；不进入其他任务。
 
 ## 可执行任务卡
 
@@ -138,22 +138,26 @@
 
 ### MVP-07 · 浏览器看到这台设备
 
-- **允许**：只在 `apps/web` 的设备列表/详情完成真实数据映射，不扩展首页、监控面板或远控。
+- **允许**：只在 `apps/web` 的设备列表/详情完成真实数据映射；2026-11-27 维护者在最小补字段建议后要求继续，按该范围仅补既有组授权 GET 的 PG18 `os_version` 投影和对应契约/测试。不新增接口、数据库迁移、权限、首页、监控面板或远控。
 - **验收**：浏览器设备页显示与 MVP-05 **相同设备**的 Pop!_OS 24.04、CPU 型号及内存；刷新仍真实，断网/停止后端/无权限时明确显示拒绝或断开状态；必须有用户本机浏览器验收证据。
 - **完成不代表上线**：这只证明单台授权个人开发机上的**手动演示**；发布 Gate 全部仍 OPEN。
 
 - **2026-11-27 MVP-07 部分实现 / BLOCKED**：基线 [f24e8893](https://github.com/kunlong-luo/lanveriq/commit/f24e889329986a563a25f2cfbf98bf40a562c9b0)，[Next fast #45968827202 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968827202)、[文档 #45968827258 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968827258)、[RD-2 #45968827283 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968827283) 为基线证据。实际 [JPA 读取](../../apps/server/src/main/java/com/lanveriq/server/devices/JpaDeviceDirectoryRepository.java)、[REST DTO](../../apps/server/src/main/java/com/lanveriq/server/devices/DeviceDirectoryRestResponse.java) 返回 os_name/cpu_model/memory_total_bytes，不读取或返回 os_version；不能证明 Pop!_OS 24.04 的版本映射。遵守仅 apps/web 的任务边界，不改 Spring/数据库/权限/接口、不拼接硬编码版本、不绕过授权。功能 [a2c47fc5](https://github.com/kunlong-luo/lanveriq/commit/a2c47fc558058344f9451072d8b9af49ed3ed032) 只改 [临时本机验收启动器](../../apps/web/scripts/run-local-console-probe.sh)、[既有投影](../../apps/web/src/lib/console-device-projection.ts) 及其 [单测](../../apps/web/src/lib/console-device-projection.test.ts)：同源 session/list/detail、唯一设备 UUID 及 OS/CPU/内存一致性、非空文本和正安全整数内存校验；临时页面列表和详情仅显示通过投影的实际字段（内存字节精确值，系统版本明确未提供），手动刷新先清空，登出、断网、切后台和失败不显示旧数据；不使用存储、演示数据、监控或生产登录。普通设备页依旧未接入真实服务。新增投影正负测试已提交；[Next fast #45969306651](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306651) SUCCESS，job 140405528047 原日志核对：投影 8 tests、全部 18 files/95 tests PASS，route/auth 隔离、typecheck/build、真实普通 preview HTTP smoke 全 PASS；[RD-2 #45969306648 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306648)，[Chromium preview #45969306657](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306657)、[Linux isolated #45969306806](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306806) 查询时 IN_PROGRESS；[Pages #45969306653 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306653)。文档提交 [9674c4da](https://github.com/kunlong-luo/lanveriq/commit/9674c4da549d8b4e6518922d150706e57a35ffa4) [文档 #45969422083 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969422083)。普通预览/L2 不执行显式 non-CI 本机生成页，不能代替其构建/浏览器。助手无用户 Pop!_OS 本机通道，本机登录/列表详情对照/手动刷新/断网/停止后端/无权限/收尾均 NOT RUN；未变更本机配置、未重采/重发/写库。下一步仅 MVP-07：先取得最小后端补字段的明确范围批准（仅既有组授权 GET 投影、现有 PG os_version，契约及负测），或提供已批准的同等可信读取证据；再完成真实浏览器及精确 SHA CI；无批准则维持 BLOCKED。评分 71/100 不变，全部 Gate OPEN。
 
+- **2026-11-27 MVP-07 最小字段修复（仍 BLOCKED）**：基线 [ad4578cd](https://github.com/kunlong-luo/lanveriq/commit/ad4578cda44e8874c6e1545c84678853505c9b99) 文档及 Next fast/RD-2/源码预览均 SUCCESS。上一功能 a2c47fc5 的 [Chromium #45969306657](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306657) 与 [隔离 Linux #45969306806](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306806) 已核实 SUCCESS（旧 SHA，不代替本轮）。维护者在仅增 os_version 的建议后要求继续，按最窄范围执行。新功能 [71ee69d1](https://github.com/kunlong-luo/lanveriq/commit/71ee69d1af1ec51e23b12db2a8262b968d0ea6d1) 从 V8 已有可空列读取 os_version，加到现有 JPA/REST DeviceHealthSummary 白名单及列表/详情；不修改数据库迁移、认证、RBAC、安全默认开关。前端复用原投影、设备列表组件和本机 probe，唯一设备的非空 OS/版本/CPU/正整数内存必须完全一致才显示；缺字段、不同版本、非法类型、拒绝或离线清除数据，不硬编码系统版本。Java DTO/JPA 单测、PG18 同组 list/detail 和空库存、OpenAPI 白名单负例、TS 投影负例、Rust→PG18→Spring→Chromium 精确版本比对已添加。普通生产登录/设备页仍隔离。
+- **CI（精确功能 SHA）**：[Next fast #45969894927](https://github.com/kunlong-luo/lanveriq/actions/runs/45969894927) 查询时 IN_PROGRESS（组件测试、route/auth guard PASS，构建待核实）；[Server unit #45969893786](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893786) IN_PROGRESS（Python OpenAPI 白名单单测 PASS，Java 待核实）；[integration compile #45969893793](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893793)、[Linux PG18 L2 #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)、[Chromium #45969893894](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893894) IN_PROGRESS；[Pages #45969893760](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893760) QUEUED；[RD-2 #45969893763 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893763)。独立 milestone OpenAPI/Orval 全链 NOT RUN；普通预览 CI 不构建或执行 non-CI 本机生成页。
+- **本机验收操作（NOT RUN）**：先检查工作区修改，不强制覆盖；main 执行 `git pull --ff-only origin main`、`git rev-parse HEAD`、`git merge-base --is-ancestor 71ee69d1 HEAD`。保留既有测试 CA/loopback 8443 上游 mTLS 及独立 PG18，只重启本项目 Spring（IDEA），临时设置 LANVERIQ_CONSOLE_AUTH_ENABLED=true、LANVERIQ_CONSOLE_ORIGIN=https://console.lanveriq.internal、LANVERIQ_DEVICE_DIRECTORY_ENABLED=true、LANVERIQ_DEVICE_DIRECTORY_HTTP_ENABLED=true；其他业务开关 OFF。按 MVP-06 已验证的 Caddy 临时入口配置，仅 auth csrf/session/login/logout 和 devices GET，重新生成每次独立 edge proof，禁止复用旧 proof；从 repo 根执行 `bash apps/web/scripts/run-local-console-probe.sh --accept-local-owner-test`（缓存缺失才经许可加 --allow-online-install）。打开规范 HTTPS /local-console-probe，实际输入测试账号和 MVP-05 同设备 UUID（不外发）；核对列表和详情 OS/版本/CPU/RAM 原值与 PG18，手动刷新；通过浏览器离线测试和停止本项目 Spring 后手动刷新，确认旧数据清空；恢复服务后明确登出/登录，再测正常刷新及登出拒绝。实际无权限/跨组目标不存在则本机 NOT RUN，不能伪造或写库制造。直接 3100 无 proof/伪造 proof 404；收尾 Ctrl-C、删除临时 Caddy route/proof、恢复三开关 false，重启 Spring、重载 Caddy、确认 loopback、无 3100、probe/session/devices/csrf 503；只回传脱敏 PASS/FAIL、功能 SHA 与无秘密的必要日志。助手没有本机连接，以上均 NOT RUN，当前不改本机、共享 PG、Agent 或证书；评分 71/100，Gate 0/10，仍 BLOCKED。
+
 ## 最新一次交接（每个会话只覆盖本区，勿累积报告）
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main f24e8893](https://github.com/kunlong-luo/lanveriq/commit/f24e889329986a563a25f2cfbf98bf40a562c9b0)；部分功能 [a2c47fc5](https://github.com/kunlong-luo/lanveriq/commit/a2c47fc558058344f9451072d8b9af49ed3ed032)。 |
-| 本轮 | **MVP-07 BLOCKED**；MVP-01～06 DONE。仅 apps/web 三文件部分实现及本机任务状态更新，正式设备页与后端未开放。 |
-| CI | 基线 Next fast #45968827202 SUCCESS；新功能 [Next fast #45969306651](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306651) SUCCESS（95 tests、typecheck/build/HTTP smoke PASS）；[RD-2 #45969306648 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306648)；[隔离 Linux #45969306806](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306806)、[Chromium #45969306657](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306657) 查询时 IN_PROGRESS；[Pages #45969306653 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969306653)、[文档 #45969422083 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969422083)。 |
-| 本机 | 当前 REST 无 os_version；本机生成页构建、浏览器真实读/刷新/断网/停止后端/拒绝/收尾 NOT RUN（无本机通道）；不等于独立 L3。 |
-| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；Gate 0/10，G-01～G-10 OPEN，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **仍为 MVP-07**。需维护者明确批准仅补齐既有授权只读投影 os_version 或提供同等可信读取证据；复用原同源启动器，仅验证同一 MVP-05 设备的真实 OS/版本/CPU/内存、刷新、断开、无权限、收尾；复核精确功能 SHA CI，不进入其他任务。 |
+| 基线 | [ad4578cd](https://github.com/kunlong-luo/lanveriq/commit/ad4578cda44e8874c6e1545c84678853505c9b99)；最小字段功能 [71ee69d1](https://github.com/kunlong-luo/lanveriq/commit/71ee69d1af1ec51e23b12db2a8262b968d0ea6d1)。 |
+| 本轮 | **MVP-07 BLOCKED**；MVP-01～06 DONE。现有 PG18→JPA→REST→Next.js 的 os_version 源码补齐；无新路由、迁移、角色或生产开关。 |
+| CI | [Next fast #45969894927](https://github.com/kunlong-luo/lanveriq/actions/runs/45969894927)、[Server #45969893786](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893786)、[compile #45969893793](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893793)、[Linux L2 #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)、[Chromium #45969893894](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893894) IN_PROGRESS；[RD-2 #45969893763 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893763)。 |
+| 本机 | 新功能启动、同设备列表/详情、刷新、断网/停止 Spring、拒绝、收尾 NOT RUN。按上方操作验收；仅用户本机终端/浏览器证据，不等于独立 L3。 |
+| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；G-01～G-10 OPEN，Gate 0/10；v0.1 NOT RELEASE READY / NO-GO。 |
+| **下次唯一任务** | **仍为 MVP-07**：核实新功能 CI 和真实本机浏览器与收尾证据，成功才 DONE；失败修复同任务，不进入其他任务。 |
 | 约束 | main only；不改默认 OFF、不扩组权、不重采/重发、不写库、不改共享 PG/证书/监控/远控；不提交秘密。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
