@@ -1,0 +1,171 @@
+//! Operator-requested, bounded local queries. No command or path supplied by UI.
+use crate::host_identity::{HostIdentity, inspect_host_identity};
+
+const UNKNOWN: &str = "unverified";
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeMetadata {
+    attempted: bool,
+    package: &'static str,
+    service: &'static str,
+    unit: &'static str,
+    dropins: &'static str,
+    reload: &'static str,
+    legacy: &'static str,
+}
+impl Default for RuntimeMetadata {
+    fn default() -> Self {
+        Self { attempted: false, package: UNKNOWN, service: UNKNOWN,
+            unit: UNKNOWN, dropins: UNKNOWN, reload: UNKNOWN, legacy: UNKNOWN }
+    }
+}
+impl RuntimeMetadata {
+    pub fn attempted(self) -> bool { self.attempted }
+    pub fn package_clean(self) -> bool { self.package == "not_installed" }
+    pub fn service_clean(self) -> bool {
+        self.service == "inactive" && self.unit == "disabled" &&
+            self.dropins == "none_reported" && self.reload == "not_required" &&
+            self.legacy == "not_detected"
+    }
+    pub fn rows(self) -> [(&'static str, &'static str); 6] {
+        [("agent_package", self.package), ("systemd_service", self.service),
+         ("systemd_unit", self.unit), ("systemd_dropins", self.dropins),
+         ("systemd_reload", self.reload), ("legacy_binary", self.legacy)]
+    }
+    pub fn diagnostic_rows(self) -> [(&'static str, &'static str); 6] {
+        let mut rows = self.rows();
+        rows[0].1 = match self.package { "preview_candidate" => "unapproved_preview_candidate",
+            "unrecognized_version" => "unknown_version", other => other };
+        rows[1].1 = if self.service == "active" { "running_unapproved" } else { self.service };
+        rows[2].1 = if self.unit == "enabled" { "enabled_unapproved" } else { self.unit };
+        rows[3].1 = if self.dropins == "none_reported" { "none_reported_not_verified" } else { self.dropins };
+        rows[5].1 = if self.legacy == "not_detected" { "not_detected_not_proven" } else { self.legacy };
+        rows
+    }
+}
+
+// Adapt old Tauri allowlists, but reject malformed package/duplicate property output.
+fn package(raw: &str) -> &'static str {
+    let Some((status, version)) = raw.trim_end_matches('\n').split_once('|') else { return UNKNOWN };
+    if version.len() > 180 || !version.bytes().all(|b| b.is_ascii_alphanumeric() || b".+~:-".contains(&b)) { return UNKNOWN; }
+    match status {
+        "install ok installed" if !version.is_empty() => {
+            if version == "0.1.0~dev1" { "preview_candidate" } else { "unrecognized_version" }
+        }
+        "deinstall ok config-files" if !version.is_empty() => "not_installed",
+        "unknown ok not-installed" | "purge ok not-installed" if version.is_empty() => "not_installed",
+        _ => UNKNOWN,
+    }
+}
+fn unit(raw: &str) -> [&'static str; 4] {
+    let mut properties = [None; 4];
+    for line in raw.lines() {
+        let Some((key, value)) = line.split_once('=') else { return [UNKNOWN; 4] };
+        let index = match key {
+            "ActiveState" => 0, "UnitFileState" => 1, "DropInPaths" => 2, "NeedDaemonReload" => 3,
+            _ => return [UNKNOWN; 4],
+        };
+        if properties[index].replace(value).is_some() { return [UNKNOWN; 4]; }
+    }
+    [
+        match properties[0] { Some("active") => "active", Some("inactive") => "inactive", Some("failed") => "failed", _ => UNKNOWN },
+        match properties[1] { Some("enabled") => "enabled", Some("disabled") => "disabled", Some("masked") => "masked", _ => UNKNOWN },
+        match properties[2] { Some("") => "none_reported", Some(_) => "present_unreviewed", _ => UNKNOWN },
+        match properties[3] { Some("yes") => "reload_required", Some("no") => "not_required", _ => UNKNOWN },
+    ]
+}
+
+#[cfg(target_os = "linux")]
+enum Query { Package, Unit }
+
+#[cfg(target_os = "linux")]
+fn query(which: Query) -> Option<String> {
+    use std::io::Read;
+    use std::process::{Command, Stdio};
+    // Coreutils timeout handles TERM/KILL escalation. No shell or caller arguments.
+    let args: &[&str] = match which {
+        Query::Package => &["/usr/bin/dpkg-query", "-W", "-f",
+            concat!("$", "{Status}", "|", "$", "{Version}"), "lanveriq-agent-offline-preview"],
+        Query::Unit => &["/usr/bin/systemctl", "--system", "--no-pager", "--no-ask-password", "--all", "show",
+            "--property=ActiveState", "--property=UnitFileState", "--property=DropInPaths",
+            "--property=NeedDaemonReload", "--", "lanveriq-agent.service"],
+    };
+    let mut child = Command::new("/usr/bin/timeout")
+        .args(["--kill-after=1s", "3s"]).args(args)
+        .env_clear().env("LANG", "C").env("PATH", "/usr/bin:/bin")
+        .current_dir("/").stdin(Stdio::null()).stderr(Stdio::null()).stdout(Stdio::piped())
+        .spawn().ok()?;
+    let mut bytes = Vec::new();
+    let read = child.stdout.take().map(|out| out.take(4097).read_to_end(&mut bytes));
+    // Always reap the timeout process, even if reading fails or exceeds the cap.
+    let status = child.wait().ok()?;
+    if !status.success() || !matches!(read, Some(Ok(_))) || bytes.len() > 4096 { return None; }
+    String::from_utf8(bytes).ok()
+}
+
+#[cfg(target_os = "linux")]
+fn legacy() -> &'static str {
+    match std::fs::symlink_metadata("/usr/local/bin/lanveriq-agent") {
+        Ok(_) => "present_unreviewed",
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => "not_detected",
+        Err(_) => UNKNOWN,
+    }
+}
+
+/// Fresh identity is checked on every request; root/failed identity skips all queries.
+pub fn inspect_runtime() -> (HostIdentity, RuntimeMetadata) {
+    let identity = inspect_host_identity();
+    let mut result = RuntimeMetadata::default();
+    #[cfg(target_os = "linux")]
+    if matches!(identity, HostIdentity::PopOs24Amd64 | HostIdentity::Other) {
+        result.attempted = true;
+        result.package = query(Query::Package).as_deref().map(package).unwrap_or(UNKNOWN);
+        let [service, unit_state, dropins, reload] = query(Query::Unit).as_deref().map(unit).unwrap_or([UNKNOWN; 4]);
+        result.service = service;
+        result.unit = unit_state;
+        result.dropins = dropins;
+        result.reload = reload;
+        result.legacy = legacy();
+    }
+    (identity, result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn package_allowlist_rejects_ambiguous_state() {
+        assert_eq!(package("install ok installed|0.1.0~dev1"), "preview_candidate");
+        assert_eq!(package("install ok installed|9.9"), "unrecognized_version");
+        assert_eq!(package("deinstall ok config-files|0.1.0~dev1"), "not_installed");
+        for raw in ["", "install reinstreq half-installed|1", "install ok installed|", "garbage|1",
+            "install ok installed|1\ninstall ok installed|2", "install ok installed|1|2"] {
+            assert_eq!(package(raw), UNKNOWN);
+        }
+    }
+    #[test]
+    fn unit_metadata_never_exposes_dropin_paths_and_rejects_duplicates() {
+        assert_eq!(unit("ActiveState=inactive\nUnitFileState=disabled\nDropInPaths=\nNeedDaemonReload=no\n"),
+            ["inactive", "disabled", "none_reported", "not_required"]);
+        assert_eq!(unit("ActiveState=active\nUnitFileState=enabled\nDropInPaths=/home/private/a.conf\nNeedDaemonReload=yes"),
+            ["active", "enabled", "present_unreviewed", "reload_required"]);
+        assert_eq!(unit("ActiveState=inactive\nActiveState=active"), [UNKNOWN; 4]);
+        assert_eq!(unit(""), [UNKNOWN; 4]);
+    }
+    #[test]
+    fn default_metadata_cannot_support_clean_review() {
+        let m = RuntimeMetadata::default();
+        assert!(!m.attempted() && !m.package_clean() && !m.service_clean());
+        assert!(m.rows().iter().all(|(_, v)| *v == UNKNOWN));
+    }
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[ignore = "Explicit disposable non-root Ubuntu smoke"]
+    fn live_ubuntu_runtime_readonly() {
+        let (identity, metadata) = inspect_runtime();
+        assert_eq!(identity, HostIdentity::Other);
+        assert!(metadata.attempted());
+        // This runner need not have a running systemd or an installed Agent.
+        assert!(!metadata.package_clean() || metadata.rows()[0].1 == "not_installed");
+        assert_eq!(metadata.rows().len(), 6);
+    }
+}

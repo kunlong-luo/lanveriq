@@ -9,11 +9,13 @@ use gpui_kit::base::{SelectableText, StyledExt};
 use gpui_kit::*;
 use lanveriq_desktop_gpui_candidate::{IdleInterval, LOCKED_ACTIONS, Page, Workspace};
 
-use lanveriq_desktop_gpui_candidate::review::{review_gates, Notice, diagnostic};
-use lanveriq_desktop_gpui_candidate::host_identity::inspect_host_identity;
+use lanveriq_desktop_gpui_candidate::review::{runtime_review_gates, Notice, runtime_diagnostic};
+use lanveriq_desktop_gpui_candidate::host_identity::HostIdentity;
+use lanveriq_desktop_gpui_candidate::runtime_metadata::inspect_runtime;
 
 struct Desktop {
     workspace: Workspace,
+    inspecting: bool,
 }
 
 impl Render for Desktop {
@@ -43,17 +45,34 @@ impl Render for Desktop {
             .rounded(cx.theme().radius).border_1().border_color(cx.theme().border)
             .child(div().text_xl().font_bold().child(Label::new(page.label())))
             .child(Label::new(page.description()))
-            .child(Label::new("离线候选 · 仅系统身份可核验 · 不可安装"));
-        if matches!(page, Page::Overview | Page::Setup | Page::Diagnostics) {
+            .child(Label::new("离线候选 · 本机只读元数据 · 不可安装"));
+        if matches!(page, Page::Overview | Page::Setup | Page::Service | Page::Diagnostics) {
+            let rows = self.workspace.runtime_metadata().rows().into_iter().fold(
+                div().flex().flex_col().gap_1(), |group, (key, value)| {
+                    group.child(Label::new(format!("{key}: {value}")).id(key))
+                });
             content = content
-                .child(Label::new("本机系统身份（仅元数据）"))
+                .child(Label::new("本机只读状态（仅元数据）"))
                 .child(Label::new(self.workspace.host_identity().label()))
-                .child(Button::new("inspect-host-identity").label("手动检测系统与架构（只读）")
+                .child(Button::new("inspect-host-identity").label("手动检测系统、Agent 与服务（只读）")
+                    .disabled(self.inspecting)
                     .on_click(cx.listener(|this, _, _, cx| {
-                        this.workspace.replace_host_identity(inspect_host_identity());
+                        if this.inspecting { return; }
+                        this.inspecting = true;
+                        this.workspace.replace_host_identity(HostIdentity::NotChecked);
                         cx.notify();
+                        cx.spawn(async move |this, cx| {
+                            let (identity, metadata) = cx.background_spawn(async { inspect_runtime() }).await;
+                            this.update(cx, |this, cx| {
+                                this.workspace.replace_runtime_metadata(identity, metadata);
+                                this.inspecting = false;
+                                cx.notify();
+                            }).ok();
+                        }).detach();
                     })))
-                .child(Label::new("Agent 包、systemd、COSMIC 兼容性仍未核验。"));
+                .child(Label::new(if self.inspecting { "正在读取，旧结果已清空。" } else { "未核验项不代表未安装或已停止。" }))
+                .child(rows)
+                .child(Label::new("COSMIC 兼容性仍未核验。"));
         }
         if page == Page::Configuration {
             let current = self.workspace.idle_interval();
@@ -81,7 +100,7 @@ impl Render for Desktop {
             );
         }
         if page == Page::Setup {
-            let gates = review_gates(self.workspace.host_identity()).iter().fold(div().flex().flex_col().gap_3(), |group, gate| {
+            let gates = runtime_review_gates(self.workspace.host_identity(), self.workspace.runtime_metadata()).iter().fold(div().flex().flex_col().gap_3(), |group, gate| {
                 group.child(div().id(gate.id).flex().flex_col().gap_1().p_3()
                     .rounded(cx.theme().radius).border_1().border_color(cx.theme().border)
                     .child(Label::new(gate.title))
@@ -111,10 +130,10 @@ impl Render for Desktop {
         }
         if page == Page::Diagnostics {
             content = content
-                .child(Label::new("本机脱敏诊断 · 仅系统身份元数据"))
+                .child(Label::new("本机脱敏诊断 · 部分只读元数据"))
                 .child(Label::new("只读文本，未签名，非安装授权；不保存、不联网、不上传。"))
                 .child(div().p_3().border_1().border_color(cx.theme().border)
-                    .child(SelectableText::new("offline-diagnostic", diagnostic(self.workspace.host_identity()))))
+                    .child(SelectableText::new("offline-diagnostic", runtime_diagnostic(self.workspace.host_identity(), self.workspace.runtime_metadata()))))
                 .child(Label::new("向第三方分享前请自行确认内容。"));
         }
         div()
@@ -139,7 +158,7 @@ fn main() {
                 ..Default::default()
             };
             gpui_kit::open_window(options, cx, |_, cx| {
-                cx.new(|_| Desktop { workspace: Workspace::default() })
+                cx.new(|_| Desktop { workspace: Workspace::default(), inspecting: false })
             })
             .expect("Failed to open offline candidate window");
         });

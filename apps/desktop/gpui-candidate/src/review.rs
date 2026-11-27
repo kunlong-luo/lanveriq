@@ -1,3 +1,4 @@
+use crate::runtime_metadata::RuntimeMetadata;
 use crate::host_identity::HostIdentity;
 // Offline-only projections. No host evidence is acquired by this module.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -63,6 +64,28 @@ pub fn diagnostic(identity: HostIdentity) -> String {
     OFFLINE_DIAGNOSTIC
         .replace("inspection_source=not_verified", &format!("inspection_source={}", identity.diagnostic_source()))
         .replace("os_target=unverified", &format!("os_target={}", identity.diagnostic_target()))
+}
+
+pub fn runtime_review_gates(identity: HostIdentity, metadata: RuntimeMetadata) -> [ReviewGate; 7] {
+    let mut gates = review_gates(identity);
+    if metadata.attempted() {
+        gates[1].status = if metadata.package_clean() { GateStatus::MetadataOnly } else { GateStatus::Blocked };
+        gates[2].status = if metadata.service_clean() { GateStatus::MetadataOnly } else { GateStatus::Blocked };
+        if metadata.package_clean() { gates[1].detail = "仅报告未安装状态，不是安装许可。"; }
+        if metadata.service_clean() { gates[2].detail = "仅报告未启用、未运行及无已知覆盖，不是授权。"; }
+    }
+    gates
+}
+
+pub fn runtime_diagnostic(identity: HostIdentity, metadata: RuntimeMetadata) -> String {
+    let mut report = diagnostic(identity);
+    if metadata.attempted() {
+        report = report.replace("inspection_source=native_readonly_identity_only", "inspection_source=native_readonly_partial");
+        for (key, value) in metadata.diagnostic_rows() {
+            report = report.replace(&format!("{key}=unverified\n"), &format!("{key}={value}\n"));
+        }
+    }
+    report
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -34,14 +34,24 @@ jobs:
           assert not pathlib.Path("build.rs").exists()
           for path in pathlib.Path("src").rglob("*.rs"):
               data = path.read_text()
-              for token in ("std::process", "std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "std::env", "include_bytes!", "include_str!", "OpenOptions", "File::create", "std::io::Write"):
+              for token in ("std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "std::env", "include_bytes!", "include_str!", "OpenOptions", "File::create", "std::io::Write"):
                   assert token not in data, (path, token)
               if path == pathlib.Path("src/host_identity.rs"):
                   assert data.count("std::fs") == 1 and "std::fs::File::open(path)" in data
                   assert '"/proc/self/status"' in data and '"/etc/os-release"' in data
                   assert "file.take(16_385)" in data and "ordinary_user" in data
+              elif path == pathlib.Path("src/runtime_metadata.rs"):
+                  assert data.count("std::process") == 1 and data.count("Command::new") == 1
+                  assert 'Command::new("/usr/bin/timeout")' in data
+                  assert '"/usr/bin/dpkg-query"' in data and '"/usr/bin/systemctl"' in data
+                  assert '"--kill-after=1s", "3s"' in data and "out.take(4097)" in data
+                  assert ".env_clear()" in data and ".stderr(Stdio::null())" in data
+                  assert data.count("std::fs") == 1 and 'std::fs::symlink_metadata("/usr/local/bin/lanveriq-agent")' in data
+                  assert not any(t in data for t in ('"/bin/sh"', '"/bin/bash"', '"sudo"', '"start"', '"stop"', '"enable"', '"install"', '"daemon-reload"'))
               else:
                   assert "std::fs" not in data, path
+              if path != pathlib.Path("src/runtime_metadata.rs"):
+                  assert "std::process" not in data and "Command::new" not in data, path
           assert ".disabled(true)" in pathlib.Path("src/main.rs").read_text()
           PY
       - name: Require committed candidate lock and exact digest (not product approval)
@@ -95,6 +105,7 @@ jobs:
           cargo +1.100.0 test --locked --lib
           test "$(id -u)" -ne 0
           cargo +1.100.0 test --locked --lib host_identity::tests::live_ubuntu_identity_only -- --ignored --exact
+          cargo +1.100.0 test --locked --lib runtime_metadata::tests::live_ubuntu_runtime_readonly -- --ignored --exact
           cargo +1.100.0 build --locked --message-format=json-render-diagnostics > candidate-build.jsonl
           python3 - <<'PY'
           import json, pathlib, subprocess

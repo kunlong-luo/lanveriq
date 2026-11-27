@@ -1,3 +1,5 @@
+pub mod runtime_metadata;
+use runtime_metadata::RuntimeMetadata;
 pub mod host_identity;
 use host_identity::HostIdentity;
 pub mod review;
@@ -51,11 +53,11 @@ impl Page {
 
     pub const fn description(self) -> &'static str {
         match self {
-            Self::Overview => "本机系统身份可手动只读检测；Agent、服务器和注册状态未核验。",
+            Self::Overview => "本机系统与 Agent 状态可手动只读检测；服务器与注册状态未核验。",
             Self::Setup => "安装需要独立发行身份、受限权限代理和逐次授权。当前不可安装。",
             Self::Configuration => "仅生成非机密的 Agent 空闲周期草稿；不读取或保存真实服务器配置。",
             Self::Enrollment => "未接入设备注册、证书或私钥操作。",
-            Self::Service => "未读取 systemd 状态，未启动或停止任何服务。",
+            Self::Service => "仅手动查询 systemd 元数据，不启动或停止任何服务。",
             Self::Diagnostics => "不读取日志、采集资产、发送诊断或改变系统权限。",
             Self::About => "Lanveriq · GPUI 原生候选 · 非发行版本",
         }
@@ -121,11 +123,12 @@ pub struct Workspace {
     idle_interval: IdleInterval,
     notices: NoticeReview,
     host_identity: HostIdentity,
+    runtime_metadata: RuntimeMetadata,
 }
 
 impl Default for Workspace {
     fn default() -> Self {
-        Self { page: Page::Overview, idle_interval: IdleInterval::default(), notices: NoticeReview::default(), host_identity: HostIdentity::default() }
+        Self { page: Page::Overview, idle_interval: IdleInterval::default(), notices: NoticeReview::default(), host_identity: HostIdentity::default(), runtime_metadata: RuntimeMetadata::default() }
     }
 }
 
@@ -152,7 +155,17 @@ impl Workspace {
 
     pub fn replace_host_identity(&mut self, identity: HostIdentity) {
         self.host_identity = identity;
+        self.runtime_metadata = RuntimeMetadata::default();
         self.notices = NoticeReview::default();
+    }
+
+    pub fn runtime_metadata(&self) -> RuntimeMetadata { self.runtime_metadata }
+
+    pub fn replace_runtime_metadata(&mut self, identity: HostIdentity, metadata: RuntimeMetadata) {
+        self.replace_host_identity(identity);
+        if matches!(identity, HostIdentity::PopOs24Amd64 | HostIdentity::Other) {
+            self.runtime_metadata = metadata;
+        }
     }
 
     pub fn notices(&self) -> NoticeReview {
