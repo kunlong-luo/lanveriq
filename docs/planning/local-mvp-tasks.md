@@ -17,12 +17,12 @@
 | **MVP-01** | 共享 PG18 + Spring 启动、Flyway、独立启停 | 本机 Docker/Java/端口可核实 | **DONE**：2026-11-27 用户本机 V1～V30、loopback:18081 Health UP、IDEA 独立停止/重启 PASS（限定本机开发） |
 | **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：2026-11-27 复核；保留既有用户本机 PASS 与 Agent L1 PASS，本轮重跑 NOT RUN |
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **DONE**：2026-11-27 本机注册、激活、epoch、错设备及无证书拒绝 PASS；功能 f6e83c89 隔离 L2 三 jobs SUCCESS |
-| **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **BLOCKED**：2026-11-27 本机 HTTP200/精确 ACK/new pending 0/old pending 1 PASS；临时开关及诊断日志恢复未确认 |
+| **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **DONE**：2026-11-27 本机 HTTP200/精确 ACK、新 pending 0、旧 pending 1、两库 revision 1 PASS；维护者确认临时配置恢复 |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **TODO / NOT RUN** |
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **TODO / NOT RUN** |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**当前唯一任务 MVP-04（BLOCKED，仅待收尾）**：本机 send/精确 ACK 已 PASS，旧、新 revision 均 1；关闭临时库存接收及诊断，核实后结项。不得提前进入 MVP-05。
+**MVP-04 DONE，本会话停止。下一会话唯一任务 MVP-05（TODO / NOT RUN）**：只读核实 PostgreSQL 中同一设备、快照、版本；不得重采或重发。
 
 ## 可执行任务卡
 
@@ -98,11 +98,11 @@
 - **禁止**：不实现自动重试/自动采集，不直接删 SQLite 待发记录，不放宽 TLS。
 
 - **2026-11-27 源码及历史 CI 复核（非重跑）**：基线 [`6c3b9f5d`](https://github.com/kunlong-luo/lanveriq/commit/6c3b9f5d0b559b5bb98082e492ccf5b87167c7eb)。现有 [CLI](../../apps/agent/src/main.rs) 固定 origin、受限 PEM、单次 send；[transport](../../apps/agent/src/transport.rs) 在 HTTP200/schema/device/snapshot/revision 一致且非 stale_ignored 时才 Accepted；[store](../../apps/agent/src/store.rs) 校验设备、摘要和语义状态，精确 CAS 删除对应 pending，保留 latest revision。无需新代码。Agent [L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428)（`bed0152b`，job 139855945215）原日志确认 125 tests PASS，覆盖错误/不完整 ACK、stale_ignored、错设备、迟到 ACK、错误 TLS 保留 pending；compare 至基线 61 commits，无 apps/agent 变更。[L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366)（`f6e83c89`，三个 job success，job 140349819059 原日志 Source SHA 一致）确认断网重启保留 pending、真实 mTLS/PG18 精确 ACK、重复/迟到/同版冲突、过期/吊销证书拒绝；compare 至基线仅三个文档提交。L2 使用合成身份及 disposable runner，不能代替本机真实 CLI。未触发新功能 CI、未修改产品代码。
-- **本机验收 BLOCKED / NOT RUN**：当前无本机执行通道，尚未确认普通 DNS 指向 loopback:443、旧 SQLite 的 owner 与已注册测试叶 URI SAN 一致，未核对当前有效 epoch 与叶指纹，也未执行一次 send。保留所有旧 SQLite 与密钥；不新建/改绑 outbox、不手工 DELETE、不开启 inventory。解除阻塞时先只读 `getent ahosts agent.lanveriq.internal`、`sqlite3 -readonly "$STATE_FILE"` 查询 inventory_latest_state 的 owner/snapshot/revision 和 inventory_pending 的同一快照；核对同一叶的 credential-epoch、有效期和指纹。若不同 UUID，停止并取得明确新 outbox 授权；如一致，且本机 Caddy/8443 仅 loopback，临时仅在隔离 test + acceptance 实例启用 `LANVERIQ_AGENT_INVENTORY_HTTP_ENABLED=true`，其他未授权开关 OFF。执行任务卡已有 `cargo run --locked -- send` 一次；必须出现 `exact server ACK accepted; remaining_pending=false`，且只读查询 pending 0、latest 原 snapshot/revision 保持，测试后恢复 inventory OFF。错误/无 pending/非精确 ACK 均不得标 DONE。不要披露本机 UUID、密钥、凭据或原始私有日志。PG 查询留给 MVP-05。
+- **本机初始验收 BLOCKED / NOT RUN（历史记录）**：当时无本机执行通道，尚未确认普通 DNS 指向 loopback:443、旧 SQLite 的 owner 与已注册测试叶 URI SAN 一致，未核对当前有效 epoch 与叶指纹，也未执行一次 send。保留所有旧 SQLite 与密钥；不新建/改绑 outbox、不手工 DELETE、不开启 inventory。解除阻塞时先只读 `getent ahosts agent.lanveriq.internal`、`sqlite3 -readonly "$STATE_FILE"` 查询 inventory_latest_state 的 owner/snapshot/revision 和 inventory_pending 的同一快照；核对同一叶的 credential-epoch、有效期和指纹。若不同 UUID，停止并取得明确新 outbox 授权；如一致，且本机 Caddy/8443 仅 loopback，临时仅在隔离 test + acceptance 实例启用 `LANVERIQ_AGENT_INVENTORY_HTTP_ENABLED=true`，其他未授权开关 OFF。执行任务卡已有 `cargo run --locked -- send` 一次；必须出现 `exact server ACK accepted; remaining_pending=false`，且只读查询 pending 0、latest 原 snapshot/revision 保持，测试后恢复 inventory OFF。错误/无 pending/非精确 ACK 均不得标 DONE。不要披露本机 UUID、密钥、凭据或原始私有日志。PG 查询留给 MVP-05。
  
 - **2026-11-27 本机 DNS、迁移及身份预检（维护者终端证据）**：`getent ahosts agent.lanveriq.internal` 初次无解析，修复 /etc/hosts 后仅 127.0.0.1。旧目录迁至 XDG agent，fuser 未发现占用，SQLite integrity_check PASS，旧 revision 1/pending 1 保留；旧 ID 文件与数据库一致，但与已注册叶 SAN 不一致。维护者明确批准独立设备 outbox，`cargo run --locked -- once` 只采 OS/CPU/RAM，新 revision 1/pending 1，旧 snapshot/revision/digest 比较不变。新叶 PKIX、私钥 SPKI、SQLite owner、普通 DNS 均 PASS。
 - **本机失败及修复（保留失败证据）**：首次 curl epoch TLS 证书链 FAIL，Caddy 实际使用 tls internal、非已批准 edge CA；本地 edge 叶/CA 验证 PASS，安装受限叶和 key 后 Caddyfile 首次语法验证及 reload FAIL，修正语法后 validate PASS，Admin API disabled 故常规 IPv4/IPv6 reload 均拒绝。Caddy 2.11.9 PID1 使用 SIGUSR1（`docker kill --signal=USR1 spark-caddy`）实际平滑重载 PASS，保持 admin off 与 loopback/双跳 mTLS，Health UP。epoch 响应 UUID/指纹精确比对 PASS。首次 Rust send Quarantine，新旧 pending 都 1；Caddy matcher 缺 inventory、默认 404；补路由并重载后仍有 Quarantine，实际早期 HTTP 状态未记录、最终恢复的具体因果未证实。另本机 YAML 多余冒号导致启动 FAIL，修正后 8443 loopback LISTEN。临时开启本机 inventory、DEBUG 与仅 Agent 站点 Caddy access log 后最终发送成功；不声称日志配置本身修复业务。未改生产默认、未写产品源码。
-- **本机核心验收 PASS（维护者终端证据，非助手直连或独立 L3）**：复用现有 `cargo run --quiet --locked -- send` 单次显式操作，不重新采集；Caddy 日志 HTTP200，Rust 输出 exact server ACK accepted; remaining_pending=false，随后 `sqlite3 -readonly -bail` 查询新 latest revision=1、pending=0，旧 latest revision=1、pending=1。证明 Agent 接受精确设备/snapshot/revision ACK，旧版本未被清队列；发送后 latest snapshot UUID/旧 digest 未额外逐字重比，不在 Git 保存具名 UUID、凭据、私有路径或原始日志。此次未直接查 PG 行（MVP-05）。本机运行源码精确 SHA 未提供；已有远端 Agent L1/隔离 L2 功能 SHA 见上文，不冒充本机 SHA。**唯一剩余阻塞**：恢复 IDEA 环境变量与 JVM inventory override 为 false/删除 override，移除临时 DEBUG/Agent access log 并确认重启/重载；此项未报告，不标 DONE、不再发送。
+- **本机核心验收 PASS（维护者终端证据，非助手直连或独立 L3）**：复用现有 `cargo run --quiet --locked -- send` 单次显式操作，不重新采集；Caddy 日志 HTTP200，Rust 输出 exact server ACK accepted; remaining_pending=false，随后 `sqlite3 -readonly -bail` 查询新 latest revision=1、pending=0，旧 latest revision=1、pending=1。证明 Agent 接受精确设备/snapshot/revision ACK，旧版本未被清队列；发送后 latest snapshot UUID/旧 digest 未额外逐字重比，不在 Git 保存具名 UUID、凭据、私有路径或原始日志。此次未直接查 PG 行（MVP-05）。本机运行源码精确 SHA 未提供；已有远端 Agent L1/隔离 L2 功能 SHA 见上文，不冒充本机 SHA。**最终收尾 PASS（维护者确认）**：2026-11-27 库存环境变量恢复 false、移除临时 JVM 和 DEBUG 参数、Spring Boot 重启、移除 Caddy 临时访问日志并重载成功。未另行取得重启及重载日志。MVP-04 DONE，不再发送。
  
 ### MVP-05 · PostgreSQL 真正入库
 
@@ -125,12 +125,12 @@
 | 字段 | 当前内容 |
 | --- | --- |
 | 基线 | [main 66fbcc5b](https://github.com/kunlong-luo/lanveriq/commit/66fbcc5bb1ce203770f304587311cdc79cb4ff7b)；本轮无产品代码变更，本机运行源码 SHA 未提供。 |
-| 本轮 | **MVP-04 BLOCKED（核心验收 PASS，仅待安全收尾）**：本机 DNS、独立新 outbox、双跳 mTLS、epoch 精确核对、HTTP200/精确 ACK、新 pending 0、旧 pending 1、两库 revision 1。 |
+| 本轮 | **MVP-04 DONE（核心验收及维护者确认的安全收尾 PASS）**：本机 DNS、独立新 outbox、双跳 mTLS、epoch 精确核对、HTTP200/精确 ACK、新 pending 0、旧 pending 1、两库 revision 1。 |
 | 已验证（历史 CI L1） | [Agent #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428) 功能 `bed0152b`，原日志 125 tests PASS；错设备/错或迟到 ACK/stale_ignored/TLS 失败保留 pending。非本轮重跑。 |
 | 已验证（历史 CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs success；原日志确认断网保留、恢复精确 ACK、重复/冲突及证书拒绝。非本轮重跑。 |
-| 本机失败与未验证 | 初次 DNS、Caddy CA/配置、reload、Quarantine、YAML 启动 FAIL 均留证；最终 HTTP200/ACK PASS，早期 Quarantine 全部根因未证实。关闭临时开关/日志及重启重载未确认；未执行真实 PG 行核对或完整 L3。 |
+| 本机失败与未验证 | 初次 DNS、Caddy CA/配置、reload、Quarantine、YAML 启动 FAIL 均留证；最终 HTTP200/ACK PASS，早期 Quarantine 全部根因未证实。维护者确认临时配置恢复和重启重载成功，未另取日志；未执行真实 PG 行核对或完整 L3。结项文档 CI 待核实。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**：新增维护者本机证据，非新增自动测试或独立 L3。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **仍为 MVP-04**：仅确认临时 inventory 与 DEBUG、Caddy access log 恢复及重启/重载，更新 DONE 后停止。不得再次采集/发送，不进入 MVP-05。 |
+| **下次唯一任务** | **MVP-05 TODO / NOT RUN**：另开会话，先读协作规则、当前状态与本账本；按任务卡仅只读核实 PG18 同一设备、快照及版本，不重采、不重发、不修改共享数据库。 |
 | 约束 | 单一 main；保留旧 SQLite、证书、共享 PG/IoT；无生产联网/采集/自动恢复/远控/CA 签发授权。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
