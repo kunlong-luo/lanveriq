@@ -19,10 +19,10 @@
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **DONE**：2026-11-27 本机注册、激活、epoch、错设备及无证书拒绝 PASS；功能 f6e83c89 隔离 L2 三 jobs SUCCESS |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **DONE**：2026-11-27 本机 HTTP200/精确 ACK、新 pending 0、旧 pending 1、两库 revision 1 PASS；维护者确认临时配置恢复 |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **DONE**：2026-11-27 维护者本机只读 PG18 同设备/快照/revision=1 精确匹配 1 行、OS/CPU/RAM 非空，COMMIT PASS |
-| **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **BLOCKED**：本机认证只读 API PASS；组外设备=0，跨组本机 NOT RUN；独立 Next.js 验收启动器源码已提交，构建及浏览器待验 |
+| **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **BLOCKED（收尾待确认）**：本机认证 API、Next.js 浏览器登录/同一设备读取/登出、直接/伪造 proof 404 PASS；组外设备=0，跨组本机 NOT RUN；新 CI 未核实 |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**MVP-01～05 DONE；MVP-06 BLOCKED（部分本机验收 PASS）。** 仍只处理 MVP-06：真实跨组拒绝及 Next.js 同源接入待验，不进入 MVP-07。
+**MVP-01～05 DONE；MVP-06 功能本机 PASS，结项 BLOCKED（收尾及证据限制）。** 仍只处理 MVP-06：恢复临时配置，保留跨组本机 NOT RUN 与新 CI 未核实记录，不进入 MVP-07。
 
 ## 可执行任务卡
 
@@ -128,6 +128,8 @@
 
 - **2026-11-27 本机启动失败及修复**：维护者实际遇到工作区 `next-env.d.ts` 自动变更触发 guard 拒绝；恢复后 `ERR_PNPM_NO_OFFLINE_TARBALL`（锁文件供应链检查 PASS，缓存缺 @base-ui/react@1.9.0）；pnpm 12.20.0 拒绝 `fetch --offline=false` 参数；随后自动生成文件再次触发拒绝。修复 [cb14bb2c](https://github.com/kunlong-luo/lanveriq/commit/cb14bb2cba43676ec3ca3171ba069a18d05b4f85)：固定 HEAD SHA，验证启动器本身与已提交版本一致，允许并保留其他本地修改（验收仅归档已提交源码）；默认离线，显式 `--allow-online-install` 才使用 `pnpm install --frozen-lockfile`，不关闭供应链检查、不更新依赖版本。修复后实际安装/构建/浏览器及 CI 未验证，仍 BLOCKED，71/100。
 
+- **2026-11-27 本机 Next.js 浏览器验收 PASS（维护者提供证据）**：修复启动器后成功生成私有 edge.caddy，Next.js 16.4.5 loopback 3100 Ready；依据启动器 set -e 顺序，依赖安装/route guard/proof 断言/typecheck/build 已越过，但完整日志及实际 checkout SHA 未回传，不能将推断当独立核验。next start 报 output: standalone 启动方式警告，未阻塞本次验收，待单独修正且不得把后续未测试源码当本次通过版本。维护者浏览器返回“PASS：真实会话、唯一设备列表及同一设备详情读取”与“PASS：登出后会话及设备读取均被拒绝”；直接 3100 请求无 proof/伪造 proof 两次 HTTP 404。现有 CI-only 路由未启用，无库存写入或监控功能新增。真实组外设备=0，本机跨组 NOT RUN，历史隔离 L2 跨组 PASS 单列；新功能 push CI 未核实（PR-filter 查询无 runs，不能推出没有 push CI）。尚待停止临时 Next、撤销 Caddy 临时代理及 proof、关闭 Spring Console auth/directory/http 与其他业务开关、重启重载并复查无 3100 监听、Console 503/默认拒绝。**MVP-06 功能本机 PASS，结项 BLOCKED（收尾未确认及跨组/新 CI 证据限制），不进入 MVP-07。**
+
 ### MVP-07 · 浏览器看到这台设备
 
 - **允许**：只在 `apps/web` 的设备列表/详情完成真实数据映射，不扩展首页、监控面板或远控。
@@ -139,11 +141,11 @@
 | 字段 | 当前内容 |
 | --- | --- |
 | 基线 | [main b33254bc](https://github.com/kunlong-luo/lanveriq/commit/b33254bc362d0ba898238c500cf8a4992ad90db5)；维护者 checkout 确认，新增启动器及守卫功能 SHA [0e0d03e1](https://github.com/kunlong-luo/lanveriq/commit/0e0d03e1a929d4931c21c22346603ab2503e73c5)，未验收。 |
-| 本轮 | **MVP-06 BLOCKED（部分本机 PASS）**；MVP-01～05 DONE，MVP-07 TODO。 |
+| 本轮 | **MVP-06 功能本机 PASS，结项 BLOCKED**（收尾待确认）；MVP-01～05 DONE，MVP-07 TODO。 |
 | 已验证（历史 CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS；原有合成跨组拒绝与 Next.js 同源 PASS，非新 CI。 |
-| 本机验收与限制 | 维护者提供真实 Console TLS、管理员组授权、curl 基础六项、Python HTTPS 真实登录/设备同一身份/安全 Cookie/CSRF/Origin/登出 PASS；未知 UUID 404 不等于真实跨组；本机组外设备=0，跨组 NOT RUN；Next.js 旧基线路由检查 PASS，新启动器构建/浏览器 NOT RUN，非独立 L3。临时 Console 仍处于验收配置，最终收尾 NOT RUN。 |
+| 本机验收与限制 | 维护者提供真实 Console TLS、管理员组授权、curl 基础六项、Python HTTPS 真实登录/设备同一身份/安全 Cookie/CSRF/Origin/登出 PASS；未知 UUID 404 不等于真实跨组；本机组外设备=0，跨组 NOT RUN；修复后 Next.js Ready（前序构建步骤按脚本顺序推断完成，完整日志/SHA 未回传），浏览器登录/同 UUID 读取/登出 PASS，无 proof/伪造 proof 404/404；standalone 启动警告，非独立 L3，新 push CI 未核实。临时配置恢复 NOT RUN。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；Gate 0/10，G-01～G-10 OPEN，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **仍为 MVP-06**：运行修复后启动器（缓存不足时显式 `--allow-online-install`），验收直接 origin 404、规范 HTTPS 同源真实登录/同 UUID 列表详情/登出；仅在批准隔离数据中做真实跨组，不改真实组；最终关闭临时配置，不进入 MVP-07。 |
+| **下次唯一任务** | **仍为 MVP-06**：停止临时 Next、恢复 Caddy Console 503 并移除临时 proof、恢复 Spring 默认关闭，复查监听/HTTP；核对新功能 CI，记录跨组本机无目标与历史 L2 边界后作结项判断，不进入 MVP-07。 |
 | 约束 | 单一 main；不改旧 SQLite/证书/共享 PG/IoT 业务，不重采、不重发、不写库存、不扩大组权、不改生产默认、不绕过 synthetic CI 守卫，不提交秘密。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
