@@ -13,6 +13,8 @@
 !.env.example
 **/secrets/
 **/credentials/
+# Explicit local Spring developer secrets (never tracked)
+/apps/server/config/application-local.yml
 
 # Editor / OS
 .idea/
