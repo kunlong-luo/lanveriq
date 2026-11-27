@@ -53,7 +53,7 @@ final class AgentIngressAssertionPolicy {
     VerifiedDeviceCertificate resolve(HttpServletRequest request, UUID pathDeviceId,
                                       String endpointSuffix) {
         if (endpointSuffix == null || !ROUTE_SUFFIXES.contains(endpointSuffix)) {
-            throw denied();
+            throw denied("endpoint");
         }
         return resolveExact(request, pathDeviceId, endpointSuffix, "POST");
     }
@@ -65,7 +65,7 @@ final class AgentIngressAssertionPolicy {
     VerifiedDeviceCertificate resolveHeartbeatLookup(
             HttpServletRequest request, UUID pathDeviceId, UUID requestId) {
         if (requestId == null || requestId.equals(new UUID(0, 0))) {
-            throw denied();
+            throw denied("lookup_id");
         }
         return resolveExact(request, pathDeviceId,
                 "heartbeats/requests/" + requestId, "GET");
@@ -77,7 +77,7 @@ final class AgentIngressAssertionPolicy {
             HttpServletRequest request, UUID deviceId) {
         if (request == null || request.getContentLengthLong() > 0
                 || request.getHeader("Transfer-Encoding") != null) {
-            throw denied();
+            throw denied("epoch_body");
         }
         return resolveExact(request, deviceId, "heartbeats/credential-epoch", "GET");
     }
@@ -86,15 +86,22 @@ final class AgentIngressAssertionPolicy {
             HttpServletRequest request, UUID pathDeviceId,
             String endpointSuffix, String expectedMethod) {
         if (request == null || pathDeviceId == null
-                || pathDeviceId.equals(new UUID(0, 0))
-                || !expectedMethod.equals(request.getMethod())
-                || !request.isSecure()
-                || !"https".equals(request.getScheme())
-                || !"127.0.0.1".equals(request.getRemoteAddr())
-                || !("/api/v1/devices/" + pathDeviceId + "/" + endpointSuffix)
+                || pathDeviceId.equals(new UUID(0, 0))) {
+            throw denied("request_identity");
+        }
+        if (!expectedMethod.equals(request.getMethod())) {
+            throw denied("method");
+        }
+        if (!request.isSecure() || !"https".equals(request.getScheme())) {
+            throw denied("secure_scheme");
+        }
+        if (!"127.0.0.1".equals(request.getRemoteAddr())) {
+            throw denied("remote_address");
+        }
+        if (!("/api/v1/devices/" + pathDeviceId + "/" + endpointSuffix)
                         .equals(request.getRequestURI())
                 || request.getQueryString() != null) {
-            throw denied();
+            throw denied("route");
         }
 
         // Tomcat's HTTP/2 connector receives :authority, not necessarily
@@ -107,10 +114,10 @@ final class AgentIngressAssertionPolicy {
         if ("HTTP/2.0".equals(request.getProtocol())) {
             if (!expectedHost.equals(request.getServerName())
                     || (ordinaryHost != null && !expectedHost.equals(ordinaryHost))) {
-                throw denied();
+                throw denied("http2_authority");
             }
         } else if (!expectedHost.equals(ordinaryHost)) {
-            throw denied();
+            throw denied("host");
         }
 
         requirePinnedUpstreamClientCertificate(request);
@@ -119,29 +126,29 @@ final class AgentIngressAssertionPolicy {
         // case-insensitive; their spelling must not create a second identity.
         var names = request.getHeaderNames();
         if (names == null) {
-            throw denied();
+            throw denied("header_names");
         }
         for (String name : Collections.list(names)) {
             if (name == null) {
-                throw denied();
+                throw denied("header_name");
             }
             String lower = name.toLowerCase(Locale.ROOT);
             String canonical = lower.replace('_', '-');
             if (canonical.startsWith("x-lanveriq-verified-client-")
                     && !lower.equals(FINGERPRINT_HEADER.toLowerCase(Locale.ROOT))) {
-                throw denied();
+                throw denied("assertion_alias");
             }
             if (canonical.equals("x-forwarded-client-cert")
                     || canonical.equals("ssl-client-cert")
                     || canonical.equals("x-lanveriq-verified-ingress")) {
-                throw denied();
+                throw denied("forbidden_header");
             }
         }
 
         String fingerprint = singleHeader(request, FINGERPRINT_HEADER);
         if (fingerprint == null || !fingerprint.matches("[0-9a-f]{64}")
                 || EMPTY_SHA256.equals(fingerprint)) {
-            throw denied();
+            throw denied("fingerprint");
         }
         return new VerifiedDeviceCertificate(pathDeviceId, fingerprint);
     }
@@ -153,19 +160,19 @@ final class AgentIngressAssertionPolicy {
         Object presented = request.getAttribute("jakarta.servlet.request.X509Certificate");
         if (!(presented instanceof X509Certificate[] chain)
                 || chain.length == 0 || chain.length > 3 || chain[0] == null) {
-            throw denied();
+            throw denied("upstream_certificate_missing");
         }
         try {
             chain[0].checkValidity();
             byte[] actualDigest = MessageDigest.getInstance("SHA-256")
                     .digest(chain[0].getEncoded());
             if (!MessageDigest.isEqual(actualDigest, trustedProxyDerSha256)) {
-                throw denied();
+                throw denied("upstream_pin");
             }
         } catch (CertificateEncodingException | CertificateExpiredException
                  | CertificateNotYetValidException
                  | java.security.NoSuchAlgorithmException error) {
-            throw denied();
+            throw denied("upstream_certificate_invalid");
         }
     }
 
@@ -177,12 +184,13 @@ final class AgentIngressAssertionPolicy {
         String value = headers.nextElement();
         if (value == null || headers.hasMoreElements() || value.indexOf(',') >= 0
                 || value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
-            throw denied();
+            throw denied("header_ambiguous");
         }
         return value;
     }
 
-    private static SecurityException denied() {
+    private static SecurityException denied(String reason) {
+        AgentRequestDiagnostics.event("ingress_denied_" + reason);
         return new SecurityException("Untrusted Agent ingress assertion");
     }
 }

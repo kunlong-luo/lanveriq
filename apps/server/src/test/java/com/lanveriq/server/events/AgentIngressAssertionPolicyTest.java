@@ -125,6 +125,37 @@ class AgentIngressAssertionPolicyTest {
     }
 
     @Test
+    void optInDiagnosticReportsFixedReasonWithoutChangingDenial() {
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
+                "com.lanveriq.server.diagnostics.activation");
+        var original = logger.getLevel();
+        var appender = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            logger.setLevel(ch.qos.logback.classic.Level.DEBUG);
+            var bad = request();
+            bad.setRemoteAddr("192.0.2.123");
+            var error = assertThrows(SecurityException.class,
+                    () -> policy.resolve(bad, deviceId, "activate"));
+            assertEquals("Untrusted Agent ingress assertion", error.getMessage());
+            assertEquals(java.util.List.of("LANVERIQ_AGENT_DIAGNOSTIC ingress_denied_remote_address"),
+                    appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage).toList());
+            appender.list.clear();
+            var missing = request();
+            missing.removeHeader(AgentIngressAssertionPolicy.FINGERPRINT_HEADER);
+            assertThrows(SecurityException.class,
+                    () -> policy.resolve(missing, deviceId, "activate"));
+            assertEquals(java.util.List.of("LANVERIQ_AGENT_DIAGNOSTIC ingress_denied_fingerprint"),
+                    appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage).toList());
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(original);
+            appender.stop();
+        }
+    }
+
+    @Test
     void missingTlsPeerCertificateIsDenied() {
         assertDenied(request -> request.removeAttribute(
                 "jakarta.servlet.request.X509Certificate"));

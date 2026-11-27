@@ -33,6 +33,7 @@ class AgentActivationHttpSecurityConfiguration {
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE + 3)
     SecurityFilterChain scopedActivationIngress(HttpSecurity http) throws Exception {
+        AgentRequestDiagnostics.event("activation_security_chain_configured");
         return http
                 .securityMatcher("/api/v1/devices/*/activate")
                 .authorizeHttpRequests(requests -> requests

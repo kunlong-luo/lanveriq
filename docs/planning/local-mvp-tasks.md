@@ -83,6 +83,8 @@
 
 - **2026-11-27 activation 403 定位进展（维护者本机只读证据）**：同一设备唯一行 pending_certificate/pending，叶 DER 指纹匹配、设备/凭据未撤销、证书有效、CSR review/期限/SPKI 条件全部 true；读取 Caddy 容器内配置文件显示 activate/epoch matcher、清除入站断言、反代 8443、注入 fingerprint、固定 Host，与参考配置相关行一致。仅证明数据库查询时条件和磁盘配置，不证明实际请求头、上游 pin、运行中 profile/flags 或 HTTP 版本。下一步核对 Caddy 上游客户端叶与 Spring configtree pin 一致、Caddy host 网络及 JVM 实际参数；必要时加仅固定拒绝原因的本机诊断，不输出凭据、不伪造上游、不放宽校验。保持 pending 与原 SQLite。
 
+- **2026-11-27 本机上游诊断**：维护者提供 Caddy proxy 叶 DER SHA256 与 Spring configtree 值一致、容器 host 网络、127.0.0.1:8443 监听（IPv4 mapped 显示）。仍非实际 servlet 请求证据。新增 opt-in DEBUG 固定原因码 `com.lanveriq.server.diagnostics.activation`，覆盖 activation chain 装配、controller 到达、入口条件和 repository 拒绝；不打印请求值、证书、指纹、UUID 或密码，不改变对外 403/400、SQL、TLS 或安全开关。添加诊断单测，CI 待验；IDEA 仅显式添加 `-Dlogging.level.com.lanveriq.server.diagnostics.activation=DEBUG`，重启后用同一叶重试 activate，收集固定码；定位后关闭 DEBUG。前一提交 `372a4609` docs #45951754208、RD-2 #45951754196 SUCCESS。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -110,12 +112,12 @@
 | 字段 | 当前内容 |
 | --- | --- |
 | 基线 | [main 89b6b773](https://github.com/kunlong-luo/lanveriq/commit/89b6b7739e37357b4a7757f766574c67a01a3bef)；MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。activate 403；DB 所有激活条件 true，Caddy 文件静态检查正常，定位运行入口。 |
-| 已验证（源码） | test profile 07ebb357 L1 Server #45949082428、PG 编译 #45949082591、docs #45949082512 PASS；225ef841 Server #45949317790/RD-2 #45949317829 PASS。 |
+| 本轮 | **MVP-03 BLOCKED**。DB 全 true、上游 pin/host/监听 PASS；新增默认关闭 DEBUG 原因码，待实际请求定位。 |
+| 已验证（源码） | 原 test profile 07ebb357 与 225ef841 Server CI PASS；本轮新增固定原因码及单测，CI 待核实。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
 | 用户本机证据 / 未验证 | 既有 PG18.7/迁移30/0/8443 HTTPS/管理员与组/prepare/CA/register PASS；新叶 Health UP，pending epoch 403（预期），activate 403 FAIL，active epoch/错设备未执行；非 L3。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：核实 Caddy upstream 证书 pin/网络、JVM 实际参数及入口拒绝原因；修复后复验 activation/epoch，inventory OFF，保留旧 SQLite。 |
+| **下次唯一任务** | **MVP-03**：核实诊断 CI，IDEA 开启专用 DEBUG，重试同一证书 activate，按固定原因修复后复验 epoch；inventory OFF、原 SQLite 不变。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**

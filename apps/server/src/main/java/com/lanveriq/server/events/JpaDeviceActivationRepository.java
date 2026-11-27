@@ -24,7 +24,7 @@ class JpaDeviceActivationRepository implements DeviceActivationRepository {
     public void activate(VerifiedDeviceCertificate verifiedPeer, UUID deviceId) {
         Objects.requireNonNull(verifiedPeer);
         if (!verifiedPeer.deviceId().equals(deviceId)) {
-            throw denied();
+            throw denied("identity");
         }
 
         // First acquire the device lock in its own SQL statement. Under
@@ -38,7 +38,7 @@ class JpaDeviceActivationRepository implements DeviceActivationRepository {
                 .setParameter("device_id", deviceId)
                 .getResultList();
         if (deviceLock.size() != 1) {
-            throw denied();
+            throw denied("device_lock");
         }
 
         // Also lock the exact credential against concurrent revocation.
@@ -67,7 +67,7 @@ class JpaDeviceActivationRepository implements DeviceActivationRepository {
                 .setParameter("fingerprint", verifiedPeer.sha256Fingerprint())
                 .getResultList();
         if (bound.size() != 1) {
-            throw denied();
+            throw denied("credential_binding");
         }
         Object[] state = (Object[]) bound.getFirst();
         if ("active".equals(state[0]) && "active".equals(state[1])) {
@@ -75,7 +75,7 @@ class JpaDeviceActivationRepository implements DeviceActivationRepository {
             return;
         }
         if (!"pending_certificate".equals(state[0]) || !"pending".equals(state[1])) {
-            throw denied();
+            throw denied("state");
         }
 
         // Conditional updates are both inside the same service transaction.
@@ -94,7 +94,7 @@ class JpaDeviceActivationRepository implements DeviceActivationRepository {
                 .setParameter("fingerprint", verifiedPeer.sha256Fingerprint())
                 .executeUpdate();
         if (activated != 1) {
-            throw denied();
+            throw denied("credential_update");
         }
         int enrolled = entityManager.createNativeQuery("""
                 UPDATE devices
@@ -106,11 +106,12 @@ class JpaDeviceActivationRepository implements DeviceActivationRepository {
                 .setParameter("device_id", deviceId)
                 .executeUpdate();
         if (enrolled != 1) {
-            throw denied();
+            throw denied("device_update");
         }
     }
 
-    private static DeviceActivationRejection denied() {
+    private static DeviceActivationRejection denied(String reason) {
+        AgentRequestDiagnostics.event("activation_repository_denied_" + reason);
         return new DeviceActivationRejection(DeviceActivationRejection.Reason.DENIED);
     }
 }

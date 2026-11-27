@@ -47,7 +47,9 @@ final class AgentActivationRestController {
     ResponseEntity<DeviceActivationReceipt> accept(
             HttpServletRequest request, @PathVariable UUID deviceId,
             @RequestBody DeviceActivationRequest body) {
+        AgentRequestDiagnostics.event("activation_controller_entered");
         VerifiedDeviceCertificate peer = ingress.resolve(request, deviceId, "activate");
+        AgentRequestDiagnostics.event("activation_ingress_accepted");
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(activation.activate(peer, deviceId, body));
     }
@@ -60,6 +62,7 @@ final class AgentActivationRestController {
 
     @ExceptionHandler(DeviceActivationRejection.class)
     ResponseEntity<Void> deniedActivation(DeviceActivationRejection error) {
+        AgentRequestDiagnostics.event("activation_rejected_" + error.reason().name());
         HttpStatus status = error.reason() == DeviceActivationRejection.Reason.INVALID_REQUEST
                 ? HttpStatus.BAD_REQUEST : HttpStatus.FORBIDDEN;
         // No distinction between non-existent, foreign, expired or revoked
