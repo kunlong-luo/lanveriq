@@ -55,9 +55,35 @@
 - **2026-11-27 后续验收**：维护者实际执行 `bash apps/server/scripts/preflight-local-device-identity.sh`，只读 PG 事务完成，expected_database_role/postgres18 均 true，device_registered=false，matching_credentials/active_current_credentials 均 0。预检数据库分支 PASS；普通 DNS 输出未提供，不作 PASS。新增 [真实签名叶注册事务集成用例](../../apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlCertificateRegistrationIT.java)：[`bcf093cc`](https://github.com/kunlong-luo/lanveriq/commit/bcf093cc709997279d0ed3a399be4c8f2e42975e) 将既有 token→CSR→review 流程中的伪造叶元数据替换为独立临时 P-256 CA/真实叶/PKIX validator，复用注册 service 和真实 JPA transaction；负例覆盖未认证、无组权限、错 UUID/公钥/CA 及重复注册，预期失败不写凭据/审核/审计。管理员 principal 仅为测试 mock，不是真实登录。[`9984ef2f`](https://github.com/kunlong-luo/lanveriq/commit/9984ef2f25d611172de448045bfa4dcb60a84142) 将该用例加入 JUnit 必选证据，[`8dfdaa41`](https://github.com/kunlong-luo/lanveriq/commit/8dfdaa41030c4a6e214fdec5205ea5347b905a0d) 增加 PG18 workflow path。新代码仅测试域；Java 编译、Testcontainers、CI 实际结果均未确认，不宣称 PASS。未创建本机初始化工具或可信凭据，未启用激活或上传。
 
 - **注册 CI 实证**：功能 `8dfdaa41` 的 [PG18 #45945519700](https://github.com/kunlong-luo/lanveriq/actions/runs/45945519700) success；读取 job `140329219731` 原始日志，checkout 与 Tested Git commit 一致，JUnit gate 确认全部 11 个 Testcontainers 类、至少 151 个通过且无失败/错误/跳过，包含真实签名叶注册 lifecycle 必选用例。[Server unit #45945510994](https://github.com/kunlong-luo/lanveriq/actions/runs/45945510994)（`9984ef2f`）success；早期 PG18 #45945510998 cancelled。此前文档 CI [#45945562073](https://github.com/kunlong-luo/lanveriq/actions/runs/45945562073) / Next [#45945561985](https://github.com/kunlong-luo/lanveriq/actions/runs/45945561985) FAIL（LIVE 页超过 8000 bytes）；修复 `65368d80` 后 [docs #45945973418](https://github.com/kunlong-luo/lanveriq/actions/runs/45945973418) 和 [Next #45945973470](https://github.com/kunlong-luo/lanveriq/actions/runs/45945973470) 均 success，不等于新功能验收。
-- **本机初始化入口（新源码，待验收）**：[LocalDeviceEnrollmentConfiguration.java](../../apps/server/src/main/java/com/lanveriq/server/enrollment/LocalDeviceEnrollmentConfiguration.java)（`936d43f9`、`47e65e67`）及 [initialize-local-device.sh](../../apps/server/scripts/initialize-local-device.sh)（`3bf61e08`）：默认不装配；仅明确 opt-in 的非 Web 手动 CLI。早期配置门禁要求固定 loopback PostgreSQL 18 专用库与角色 `lanveriq_local_test`、禁止 Flyway/SQL init、JPA validate、生产/其他 HTTP 开关 OFF、非 CI；运行时查询核对实际库/角色权限。复用真实管理员密码验证与登录审计、scope/token/CSR/pending 事务、独立 CA 的 PKIX 注册；prepare 输出服务端新 UUID，register 只写 pending；无签发、无激活、无 send。配置负例测试 `b9e995f7` 已编写；[PG18 integration source compilation #45946065732](https://github.com/kunlong-luo/lanveriq/actions/runs/45946065732)（`47e65e67`）success，job 140331014671 的编译步骤成功（仅 L1，不启动 PG）。[Server unit #45946124081](https://github.com/kunlong-luo/lanveriq/actions/runs/45946124081)（`3bf61e08`）查询时 pending；实际本机初始化 NOT RUN。
+- **本机初始化入口（新源码，待验收）**：[LocalDeviceEnrollmentConfiguration.java](../../apps/server/src/main/java/com/lanveriq/server/enrollment/LocalDeviceEnrollmentConfiguration.java)（`936d43f9`、`47e65e67`）及 [initialize-local-device.sh](../../apps/server/scripts/initialize-local-device.sh)（`3bf61e08`）：默认不装配；仅明确 opt-in 的非 Web 手动 CLI。早期配置门禁要求固定 loopback PostgreSQL 18 专用库与角色 `lanveriq_local_test`、禁止 Flyway/SQL init、JPA validate、生产/其他 HTTP 开关 OFF、非 CI；运行时查询核对实际库/角色权限。复用真实管理员密码验证与登录审计、scope/token/CSR/pending 事务、独立 CA 的 PKIX 注册；prepare 输出服务端新 UUID，register 只写 pending；无签发、无激活、无 send。配置负例测试 `b9e995f7` 已编写；[PG18 integration source compilation #45946065732](https://github.com/kunlong-luo/lanveriq/actions/runs/45946065732)（`47e65e67`）success，job 140331014671 的编译步骤成功（仅 L1，不启动 PG）。[Server unit #45946124081](https://github.com/kunlong-luo/lanveriq/actions/runs/45946124081)（`3bf61e08`）已 success；job `140331146107` 原始日志确认 checkout SHA、Gradle test 和 bootJar BUILD SUCCESSFUL。真实 CLI 交互/本机初始化仍 NOT RUN。
 - **本机执行顺序（新入口 CI PASS 后才执行）**：① 在原 Spark PG18 上由维护者单独批准创建同名 `lanveriq_local_test` 独立库/非超级用户 owner（不启动第二个长期容器，不更改原 `lanveriq` 或 `iot_farm`，禁止 CI fixture SQL）。复用现有手动 provisioning 的 SCRAM/NOLOGIN→密码→LOGIN 步骤，原有对象存在则停下核实。② 使用现有 Flyway 和离线 FirstAdminBootstrapRunner 在测试库首次创建真实测试管理员和组 `local-test-devices`，仅本机终端密码输入；关闭 bootstrap。③ 从仓库根构建 reviewed main 的 bootJar，然后手动 `bash apps/server/scripts/initialize-local-device.sh prepare`，提供新测试公用 P-256 CSR，确认自有测试设备通知；记录服务端 UUID（本机、不进 Git）。④ 由独立短期测试 CA 的授权保管者按实际 UUID 离线签发 clientAuth-only 叶，复核 CSR/SPKI 与 CA；`bash apps/server/scripts/initialize-local-device.sh register`，输入同一设备 UUID、公共叶与公共 CA 路径及管理员密码。⑤ 仅在同一测试库的独立 IDEA mTLS 验收实例执行既有 activation POST 和 credential-epoch GET；验证 pending/active、实际指纹、错设备/未注册/伪造头拒绝，随后关闭不必要开关；此步尚未执行，不能假设已有 activation 验收。
 - **UUID 处理决定**：不更改服务端 UUID 分配规则、不把原已签发证书或 SQLite 待发快照改绑新身份；上面的受控初始化会产生新测试 UUID，后续须经维护者明确同意才可创建对应的新测试 outbox，旧 outbox 只保留不覆盖、不发送。原固定 `lanveriq` 的预检仅用于原数据库核对，不能误作新测试库成功证据。没有真实测试管理员登录、授权 CA 或隔离库时保持 BLOCKED。
+
+- **2026-11-27 本轮：专用测试库初始化工具**：[setup-local-enrollment-postgres.sh](../../apps/server/scripts/setup-local-enrollment-postgres.sh)，功能 [`599ba8cd`](https://github.com/kunlong-luo/lanveriq/commit/599ba8cd68322c7fcbc10660d7751f7102ee84d4)。固定复用既有 spark-postgres，要求 PG18/SCRAM、仅 loopback TCP 5432、授权 root、固定库及同名 NOLOGIN 低权限角色、手动确认、撤销 PUBLIC 权限、隐藏交互式密码并检查 SCRAM 后启用 LOGIN；已有任一对象直接停止，不自动修复/删除/重置，不改原 lanveriq 或 IoT 库，不启停容器。助手隔离环境重建并校验精确 Git blob `73abf344fd368f8b44428f6c614f1c90e8dd8350`：bash -n、额外参数、非交互、CI+PTY 拒绝均 PASS；真实 Docker/PG DDL 未执行。[`43ebc64c`](https://github.com/kunlong-luo/lanveriq/commit/43ebc64c430b47d9aea7596e2fdd6179dcc8b6c2) 将两个手动 enrollment 脚本纳入既有 Server CI 语法检查，不在 CI 执行写库。前轮 docs [#45946220851](https://github.com/kunlong-luo/lanveriq/actions/runs/45946220851)（`6f156a97`）PASS。
+- **下一项本机实际操作**：维护者自行在仓库根 `git pull --ff-only origin main`（保留未提交配置），随后 `bash apps/server/scripts/setup-local-enrollment-postgres.sh`，核对 dedicated_test_database=true；若已有对象或端口/角色检查不满足，立即停下，不自动重置。成功后才在独立库中使用既有 Flyway 和 FirstAdminBootstrapRunner：从 apps/server 构建 bootJar，使用下面独立 Bash 子 shell（不复用 IDEA mTLS profile，不开启任何 HTTP 功能）。需自行保存新库与管理员密码，不提供给助手。
+
+  ```bash
+  cd apps/server
+  ./gradlew bootJar
+  (
+    read -rsp 'Test database password: ' LANVERIQ_DB_PASSWORD
+    printf '\n'
+    export LANVERIQ_DB_PASSWORD
+    java -jar build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar \
+      --spring.main.web-application-type=none \
+      --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/lanveriq_local_test \
+      --spring.datasource.username=lanveriq_local_test \
+      --spring.datasource.hikari.jdbc-url=jdbc:postgresql://127.0.0.1:5432/lanveriq_local_test \
+      --spring.datasource.hikari.username=lanveriq_local_test \
+      --spring.flyway.enabled=true \
+      --spring.sql.init.mode=never \
+      --lanveriq.bootstrap.enabled=true \
+      --lanveriq.bootstrap.login=local-test-admin \
+      --lanveriq.bootstrap.group=local-test-devices
+  )
+  ```
+
+  只在无额外 Spring 配置覆盖的可信终端使用；不从现有 IDEA 运行配置继承参数。管理员密码在 Java 本机控制台隐藏输入两次；预期 Initial administrator created；真实执行 NOT RUN。完成后退出离线进程，不再开启 bootstrap，随后按上文 prepare/register。独立库是测试范围而非第二个长期容器。若选新 UUID，后续 MVP-04～07 必须沿用同一测试身份、独立 outbox 和同一测试库，不把原 lanveriq 查询误计为新设备入库；尚未获新 outbox 的明确批准。
 
 ### MVP-04 · 一次 `send` 和精确 ACK
 
@@ -85,13 +111,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 9b68d2a7](https://github.com/kunlong-luo/lanveriq/commit/9b68d2a7c9afb31df6afbc2056b7ab6ad74f79aa)；原本机功能基线 `8a3f7484`；[前次账本](https://github.com/kunlong-luo/lanveriq/blob/9b68d2a7c9afb31df6afbc2056b7ab6ad74f79aa/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。真实签名注册 PG18 CI PASS；修复上一轮文档大小 FAIL 并确认重跑 PASS；新 offline prepare/register 入口及 launcher 已提交，Java 实现 `47e65e67` L1 编译通过，新配置单测与实机注册未确认。 |
-| 已验证（源码） | 本机入口 `936d43f9`/`47e65e67`、配置负例 `b9e995f7`、launcher `3bf61e08`，默认 OFF，隔离固定库、真实管理员与 CSR/PKIX，服务端新 UUID；无直接 active/CA 签发/上传。源码核对非测试 PASS。 |
+| 基线 | [main 6f156a97](https://github.com/kunlong-luo/lanveriq/commit/6f156a974a7e8b05e49d7b1158a2ba8fffc9ff8e)；原本机功能基线 `8a3f7484`；[前次账本](https://github.com/kunlong-luo/lanveriq/blob/6f156a974a7e8b05e49d7b1158a2ba8fffc9ff8e/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**。上轮离线注册入口 L1 Java test/bootJar PASS；新增固定测试库 provisioning 和 Server CI 语法检查。真实库创建/管理员 bootstrap/注册与激活 NOT RUN。 |
+| 已验证（源码） | 新 helper `599ba8cd` 精确 blob Bash 语法/3 启动拒绝 PASS（助手隔离环境，非真实 Docker/PG）；CI workflow `43ebc64c` 新增两脚本语法检查。既有 Java 注册实现保持不变。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | 原双跳 health/负例与只读 PG 0 条保留。PG18 #45945519700（8dfdaa41）原始日志确认通过；文档修复 #45945973418/#45945973470 PASS。新入口 L1 编译 #45946065732（47e65e67）PASS；Server unit #45946124081（3bf61e08）查询时 in_progress；无本机执行通道，专用测试库、真实管理员、CSR/CA、注册、activation、业务身份正负例、普通 DNS/真实 Rust 均 NOT RUN。 |
+| 用户本机证据 / 未验证 | 原双跳/负例与 PG 0 条保留。上轮 PG18 #45945519700（8dfdaa41）PASS；Server unit #45946124081（3bf61e08）test/bootJar PASS；docs #45946220851（6f156a97）PASS。新脚本真实 DDL、管理员、CSR/CA、注册、activation、业务身份正负例、普通 DNS/真实 Rust NOT RUN；新功能 CI 未确认。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：先核实新入口同 SHA Java CI，再按任务卡准备独立测试库、真实本地管理员、CSR 与授权离线测试 CA，完成 prepare/register 和真实 mTLS activation/epoch 正负例；新 UUID 与原 outbox 独立，旧数据不改绑。未达成继续 BLOCKED，不进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：维护者运行测试库初始化 helper，确认专用库/角色，再离线 Flyway/管理员 bootstrap；随后真实 prepare/register 与 mTLS activation/epoch 正负例。新 UUID 与旧 outbox 隔离，不修改/删除旧数据；不进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
