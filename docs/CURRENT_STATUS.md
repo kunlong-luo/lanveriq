@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-2026-11-27 **用户本机证据**：MVP-01 在共享 PostgreSQL 18.7 专用 `lanveriq` 库完成 V8→V30 增量迁移，30/30 成功、库存表存在；Spring Boot 4.2.0 经 IDEA 在 `127.0.0.1:18081` 启停、重启 Health UP，原有 PG/IoT 容器保持运行。基线 `19b5f56a`（本机配置有未提交修改）；不是新功能 CI 或正式 L3。MVP-02 保持既有 DONE；**下一项仅 MVP-03 隔离测试 mTLS 身份预检**，send 仍 NOT RUN。详见[本机任务账本](planning/local-mvp-tasks.md)。工程评分 71/100，发布 Gate 全 OPEN。
+2026-11-27 **用户本机证据**：MVP-01 在共享 PostgreSQL 18.7 专用 `lanveriq` 库完成 V8→V30 增量迁移，30/30 成功、库存表存在；Spring Boot 4.2.0 经 IDEA 在 `127.0.0.1:18081` 启停、重启 Health UP，原有 PG/IoT 容器保持运行。基线 `19b5f56a`（本机配置有未提交修改）；不是新功能 CI 或正式 L3。MVP-02 保持既有 DONE。MVP-03 已有用户本机证据（功能基线 `8a3f7484`）：Caddy host 模式显式 loopback:443、IDEA Spring loopback:8443、独立 TLS1.3 双跳 Health UP，入口无证书/错误 CA/TLS1.2 拒绝及后端三负例通过；只读预检确认 PostgreSQL 18 专用库/角色正确，但目标设备不存在、匹配及 active 凭据均 0。**MVP-03 BLOCKED：受控注册、业务身份及激活尚未验收**，send 仍 NOT RUN。详见[本机任务账本](planning/local-mvp-tasks.md)。工程评分 71/100，发布 Gate 全 OPEN。
 
 ## 最近确实通过的关键验收
 
