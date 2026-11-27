@@ -2,7 +2,7 @@
 This bounded MVP-08 candidate is **not** the shipping desktop client or an installer.
 It uses the upstream GPUI Kit 0.11.0 facade and its matched GPUI snapshot (0.3.14).
 No direct Agent, database, process, file, network, certificate, privilege or installation interface is implemented.
-The seven destinations only demonstrate native navigation and disabled actions, not migrated business functionality.
+The seven destinations provide native navigation. Configuration now previews the existing AgentConfig v1 idle interval choices (15/30/60/120/300 seconds, default 30), in memory only; leaving the page resets the selection. This is the first offline feature migration, not full parity. No host inspection or install review is migrated yet.
 Existing Tauri code remains the rollback implementation until the acceptance in the local task ledger is complete.
 
 The original Cargo.lock from the successful native build (d7185887) and its SHA-256 are committed together. Both CI jobs require the tracked lock, reject digest drift and never regenerate it. This is a nonrelease candidate resolution, not product license/security approval. Do not update the lock or digest merely to make CI green. The Linux normal/build graph and direct ELF dependency evidence are archived separately; neither proves a real window or all runtime dependencies. Do not distribute this candidate.
