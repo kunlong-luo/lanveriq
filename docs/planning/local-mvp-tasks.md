@@ -22,7 +22,17 @@
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **DONE（限定本机 MVP）**：真实浏览器认证/同设备读取/登出、入口拒绝、收尾 PASS；未改后端的隔离 L2 跨组 PASS，本机跨组无目标 NOT RUN；修复后 Next L1 PASS |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **DONE（限定本机 MVP）**：os_version 修复；本机真实列表/详情、刷新、断网、停止/恢复后端、登出及安全收尾 PASS；功能 SHA 七项 CI SUCCESS |
 
-**MVP-01～07 全部 DONE（限定本机开发 MVP，7/7）。** 最小真实授权设备链已完成；临时入口已关闭，非生产 L3 或发布批准。账本无剩余 TODO；本轮停止，不自动新增 MVP-08 或进入其他任务。
+| **MVP-08** | Tauri 工作区、导航、离线状态及设计 token | MVP-07 | **BLOCKED**：源码已提交，CI/本机窗口验收待核实 |
+| **MVP-09** | 服务器配置草稿及显式连接检测 | MVP-08 | **TODO** |
+| **MVP-10** | 可视化设备注册及凭据准备 | MVP-09 | **TODO** |
+| **MVP-11** | 签名 Agent/受限 Polkit 安装及 systemd 生命周期 | MVP-10、独立 G-05 前提 | **TODO** |
+| **MVP-12** | 客户端诊断、安装包与本机窗口验收 | MVP-11 | **TODO** |
+| **MVP-13** | Web 正式形态的授权本机登录与设备页面 | MVP-12、MVP-07 | **TODO** |
+| **MVP-14** | Web 设备详情、分组、搜索与筛选 | MVP-13 | **TODO** |
+| **MVP-15** | Web 授权心跳与真实在线状态 | MVP-14、另行接收批准 | **TODO** |
+| **MVP-16** | 完整本机用户流程及发布差距复核 | MVP-15 | **TODO** |
+
+**MVP-01～07 DONE（第一阶段 7/7）。** 2026-11-27 维护者批准客户端 UI 优先，新增 MVP-08～16 为后续任务清单；当前仅 MVP-08。TODO 不批准网络/安装/注册/生产权限，前置 Gate 未通过须 BLOCKED。
 
 ## 可执行任务卡
 
@@ -152,16 +162,55 @@
 - **真实本机维护者提供的浏览器/操作证据（非助手独立见证）**：启动器先前报告 committed archive 93aba33d（含 71ee69d1），残留工作目录拒绝后重启成功，最终成功启动 SHA 未单独回传。最初 Caddy 证书路径占位符导致 validate FAIL；补正后 SIGUSR1 因 127.0.0.1:80 冲突 FAIL（磁盘/容器配置 SHA 一致），恢复禁用自动重定向后继续；浏览器 CSRF GET 403，排查本机 JVM 三 Console 开关 false 覆盖环境 true，按本机临时 true 与 Console 上游 HTTP/1.1 配置重启；最终通过但不将代理/HTTP2 视为独立确认的故障因果。无绕过 TLS/CSRF/RBAC。维护者回传实际页面 PASS：真实会话、唯一同一设备列表/详情 OS 名称与版本/CPU/内存一致，Pop!_OS 24.04、非空真实 CPU、精确 RAM 与 MVP-05 对照通过（不保存个人设备 ID 或原始硬件记录）；在线状态未知。五项功能回报 PASS：手动刷新、浏览器 offline 清除库存、停止 Spring 后无法读取旧库存、恢复 Spring 后登出/重新登录恢复、登出后会话/设备读取均拒绝。切后台可能触发页面锁定；未独立区分其与后端停止的每一事件时序。本机跨组目标未构造/NOT RUN（隔离 L2 跨组 PASS）；本轮独立无 proof/伪造 proof 的直接 3100 HTTP 原始输出未回传（MVP-06 已有本机负测，当前源码 proof 正负断言保留）。未新开业务路由、迁移、权限或写库。
 - **本机安全收尾（维护者回报六项 PASS）**：IDEA 临时三开关恢复并重启；Caddy 禁用配置重载成功；Next.js 停止且临时目录清理；临时 Edge 凭据删除；/local-console-probe、/api/v1/auth/session、/api/v1/devices、/api/v1/auth/csrf 均 503；共享 PostgreSQL 和 Caddy 正常运行。未独立连接主机核查最终有效 JVM 参数或全部共享站点，未获得独立 L3。所有本机 MVP 任务 DONE；正式设备页仍断开，生产默认 OFF。评分按现有刻度维持 71/100，Gate 0/10；不把单机开发通过视为获批安装/正式发行。无需重跑 Agent/写库，不进入下一任务。
 
+### MVP-08 · Tauri 客户端工作区与导航
+
+- **允许**：仅 `apps/desktop/src` 的 React/Tailwind/Lucide 组件、样式及单测；保留现有 Tauri、安装向导、只读 IPC、预检、配置草稿和诊断。不新增依赖、IPC、联网、安装包权限、root broker、证书操作或 Agent 启停。
+- **验收**：七个可键盘进入且有可访问名称的导航项（概览/安装向导/服务器与配置/设备注册/Agent 服务/安全与诊断/关于），唯一当前项；浏览器预览无真实主机证据时显示未知；原有读取失败不保留旧主机；连接/保存/注册/导入按钮原生禁用；向导和诊断仍可达；窄窗可滚动、无裁切；CI React/TypeScript/构建、原生安全守卫与实际 Tauri 构建；维护者 Pop!_OS 原生窗口可视、键盘及尺寸验收（不安装 Agent、不启动生产）。
+- **2026-11-27 源码**：[7f579b74](https://github.com/kunlong-luo/lanveriq/commit/7f579b7427f3ce2839def62a4b5bb82880665b0d)：新增 DesktopWorkspace/单测，修改 DesktopApp 与 styles.css，默认概览复用既有 host 投影（不显示伪造 OS/CPU/RAM/在线值）、独立页面、七项导航、明确禁用尚未授权操作、窄屏布局及焦点样式，共四文件；原有两只读 IPC 和安装门禁保留。配置草稿仍只读且页面切换不保存草稿。无新依赖或服务开关。
+- **证据**：基线 8c461150 的 [Next #45975622711](https://github.com/kunlong-luo/lanveriq/actions/runs/45975622711)、[docs #45975623000](https://github.com/kunlong-luo/lanveriq/actions/runs/45975623000)、[RD-2 #45975622718](https://github.com/kunlong-luo/lanveriq/actions/runs/45975622718)、[源码预览 #45975622680](https://github.com/kunlong-luo/lanveriq/actions/runs/45975622680) SUCCESS（非新功能）。新功能 [Tauri #45976020407](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020407)、[GUI-only #45976020338](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020338) 首次查询 QUEUED；维护者本机浏览器/原生窗口均 NOT RUN，未独立视觉验证，仍 BLOCKED。
+
+### MVP-09 · 服务器配置与连接检测（TODO）
+
+- 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
+
+### MVP-10 · 设备注册与凭据准备（TODO）
+
+- 复用已有 Rust CSR、测试证书与 Spring 授权注册流程；仅经独立许可的单机测试 CA/管理员。只读/离线准备、明确授权每次操作；不持有明文私钥、不签发生产证书、不重注册 MVP-05 设备。验收身份匹配、重复/过期/错误证书拒绝和取消不写入。
+
+### MVP-11 · 安装授权与 systemd 生命周期（TODO）
+
+- 必须先具备独立批准的签名源/高水位与最小 Polkit broker，复用成熟 APT/systemd；不部署实验 ReviewLab 或允许任意命令。安装、启动、自启、停止、卸载分别明确授权，拒绝/取消/篡改/回放必须 fail closed，未满足前置即 BLOCKED。仅允许授权测试环境。
+
+### MVP-12 · 客户端诊断与安装验收（TODO）
+
+- 复用脱敏诊断、签名包和独立服务；原生 COSMIC 窗口、键盘/缩放、安装/升级/停止/卸载及保留数据选项、拒绝/取消、恢复。无静默安装、自动启动或驻留托盘。无真实批准不能把隔离 CI 当作正式发行。
+
+### MVP-13 · Web 授权本机登录与设备页面（TODO）
+
+- 复用 MVP-07 已验的同源 Spring session/CSRF/RBAC、Next.js 真实数据投影；仍仅本机受控验收，正式生产路由不得打开。验收匿名拒绝、登录/登出、跨组拒绝、失联清除、入口收尾。
+
+### MVP-14 · Web 设备详情与搜索筛选（TODO）
+
+- 复用已有组范围查询、分页和白名单，禁止跨组、敏感字段、假库存与伪造状态；验收分页、空/错/拒绝态、键盘/窄屏。
+
+### MVP-15 · Web 心跳与在线证据（TODO）
+
+- 另行批准单机测试心跳接收；复用 Rust 心跳/PG18 时间证据及既有 Spring 聚合；禁止根据库存/注册状态推断在线。验收首次/过期/掉线/恢复/撤销/跨组与清理；不启后台采集或生产远控。
+
+### MVP-16 · 完整用户操作流程与发布差距复核（TODO）
+
+- 仅在前置验收齐全后，由维护者走完整受授权安装→配置→注册→查看→停止/卸载；复核 G-01～10、真实独立 L3 和组织签收，不自动批准发布，不创建发行件或开启生产。
+
 ## 最新一次交接（每个会话只覆盖本区，勿累积报告）
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 93aba33d](https://github.com/kunlong-luo/lanveriq/commit/93aba33d9b5a0576b8b233bfedcbf706e2345fc1)；功能 [71ee69d1](https://github.com/kunlong-luo/lanveriq/commit/71ee69d1af1ec51e23b12db2a8262b968d0ea6d1)。 |
-| 本轮 | **MVP-07 DONE；MVP-01～07 全部 DONE（7/7）**，仅授权个人开发机的手动真实库存演示；本轮只更新文档。 |
-| CI | 精确功能 SHA 七项 SUCCESS：[Next #45969894927](https://github.com/kunlong-luo/lanveriq/actions/runs/45969894927)、[Server #45969893786](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893786)、[compile #45969893793](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893793)、[Linux L2 三 jobs #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)、[Chromium #45969893894](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893894)、[RD-2 #45969893763](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893763)、[Pages #45969893760](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893760)；基线 [docs #45970088999](https://github.com/kunlong-luo/lanveriq/actions/runs/45970088999) SUCCESS。 |
-| 本机 | 维护者提供页面 PASS、五项功能 PASS、六项安全收尾 PASS；本机跨组 NOT RUN，隔离 L2 PASS；非独立 L3。 |
-| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；本机 MVP 7/7，G-01～G-10 OPEN，Gate 0/10；v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | 本机账本无未完成任务；停止。若维护者另行授权新任务，先重新读取 AGENTS、CURRENT_STATUS 和发布门禁；既有路线 G-05/G-09 的签名 Agent/Polkit/COSMIC 退出目标供下一会话选定一个范围，不自动进入、不创建 MVP-08。 |
-| 约束 | main only；默认 OFF、无扩大生产或权限、不重采/重发、不写库、不改共享 PG/证书；不提交秘密。 |
+| 基线 | [8c461150](https://github.com/kunlong-luo/lanveriq/commit/8c46115040225f5ab251fdbe72be3edc3af8475c)；功能 [7f579b74](https://github.com/kunlong-luo/lanveriq/commit/7f579b7427f3ce2839def62a4b5bb82880665b0d)。 |
+| 本轮 | MVP-01～07 DONE；新增后续任务索引；仅实现 **MVP-08 BLOCKED**（等待 CI 与本机窗口证据）。MVP-09～16 TODO。 |
+| CI | [Tauri #45976020407](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020407)、[GUI-only #45976020338](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020338) 首次 QUEUED。 |
+| 本机 | NOT RUN；先看离线浏览器预览，再仅在已有原生开发依赖可用时运行 Tauri dev，验证七入口/窄窗/键盘/禁用态，关闭窗口后无新 Agent 服务。 |
+| 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
+| **下次唯一任务** | 仍为 MVP-08，核实精确 SHA CI 与本机窗口验收；完成才 DONE，不进入 MVP-09。 |
+| 约束 | main only；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent；无秘密。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**

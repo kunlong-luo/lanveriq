@@ -1,6 +1,8 @@
 # Lanveriq Desktop — Pop!_OS 24.04 installer and local manager (v0.1)
 
-**PRODUCT DESIGN BASELINE · 2026-11-23 · planned / NOT IMPLEMENTED · real device deployment NOT APPROVED**
+**PRODUCT DESIGN BASELINE · 2026-11-27 · offline source preview / real device deployment NOT APPROVED**
+
+**MVP-08（源码待验）：** 客户端优先，七入口工作区（概览、安装向导、服务器与配置、设备注册、Agent 服务、安全与诊断、关于），复用原只读检查、草稿、安装审核与诊断；无真实连接、凭据导入、注册、安装、启停。未核验显示未知，敏感动作禁用，紧凑窗保留可见导航。现有 [任务账本](../planning/local-mvp-tasks.md) 管理 MVP-08～16、前置条件、CI/本机退出验收。
 
 > **2026-11-23 源码进度（L1 构建已通过，安装功能仍不存在）：** 已在 apps/desktop 新增 React/Tauri 2 预览向导和只读本机检查，但图形化真实安装、签名包、polkit broker、更新/卸载仍没有实现。不要把源码预览等同可下载的桌面客户端；详见 [首个功能阶段](../development/desktop-tauri-first-source-2026-11-23.md)。
 
@@ -8,7 +10,7 @@
 
 Ordinary users receive a **single verified desktop installation experience** with no requirement to install Rust, Node, Cargo or Gradle, edit TOML, execute manual shell commands, or understand systemd. Installation and configuration happen through a user-facing Tauri 2 desktop application; the compiled Rust Agent runs separately as a **systemd system service** when and only when authorized. Closing Tauri leaves an already authorized Agent service running. There is **no permanent GUI, Dock/taskbar icon, tray icon or desktop-session background process** after the installer closes; the app remains discoverable in the applications menu or an administrative system-management entry and can be reopened deliberately. No secret/silent installation, concealed system process or anti-uninstall behavior.
 
-Current state: Tauri desktop application, verified installer bundle, privileged service-install bridge and production signing do **NOT** exist in this repository. The existing unsigned, nonactivating offline Agent .deb is **not** a product installer and must not be distributed or installed as a released application.
+Current state: a Tauri desktop **noninstalling preview** exists; a verified installer bundle, privileged service-install bridge and production signing do **NOT** exist in this repository. The existing unsigned, nonactivating offline Agent .deb is **not** a product installer and must not be distributed or installed as a released application.
 
 ## Deliverable boundaries
 

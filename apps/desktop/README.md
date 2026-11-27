@@ -6,6 +6,8 @@
 
 ## 已实现的界面和真实边界
 
+- **MVP-08 工作区源码（待验）：** 概览、安装向导、服务器与配置、设备注册、Agent 服务、安全与诊断、关于。仅本机只读证据与导航，连接/保存/注册/导入均禁用；保留原两 IPC、空闲配置草稿、安装门禁和诊断。查看[任务账本](../../docs/planning/local-mvp-tasks.md)获取实际 CI 和本机退出条件。
+
 - 四步中文安装准备，新增[AgentConfig v1 的离线图形化空闲配置预览](../../docs/development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)：选择 15/30/60/120/300 秒并生成只读 TOML，不写入 `/etc`、不持有机密；已有系统兼容性、候选 Agent/systemd 状态及发行/Polkit/L3 缺口审查保持。
 - 当前只有 `inspect_host` 与 `inspect_popos_preflight` 两个 Tauri 只读 IPC。安全页新增[本机脱敏诊断与安装阻断报告](../../docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)，仅白名单状态、可手动选中复制，浏览器预览明确标记未连接本机，不传输、不保存、不添加权限；重新检测自动清除旧 COSMIC 结果。安装、升级、卸载、服务启动、开机自启、生产联网、采集和远控均不可达。
 - 四条隐私/权限说明的勾选仅是瞬时**阅读记录**，不是管理员授权、签名包或真正 Polkit grant。
