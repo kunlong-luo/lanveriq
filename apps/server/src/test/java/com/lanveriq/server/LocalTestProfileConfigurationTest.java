@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.core.io.ClassPathResource;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.mock.env.MockEnvironment;
@@ -14,8 +18,23 @@ class LocalTestProfileConfigurationTest {
                 .withProperty("server.address", "127.0.0.1")
                 .withProperty("spring.datasource.url", "jdbc:postgresql://127.0.0.1:5432/lanveriq")
                 .withProperty("spring.datasource.username", "lanveriq");
-        env.setActiveProfiles("local-test");
+        env.setActiveProfiles("test");
         return env;
+    }
+
+    @Test
+    void bundledTestProfileContainsOnlyOptInFixtureDefaults() throws Exception {
+        var resource = new ClassPathResource("application-test.yml");
+        var env = new MockEnvironment();
+        for (var source : new YamlPropertySourceLoader().load("bundled-test", resource)) {
+            env.getPropertySources().addLast(source);
+        }
+        assertEquals("local-test-admin", env.getProperty("lanveriq.bootstrap.login"));
+        assertEquals("local-test-devices", env.getProperty("lanveriq.bootstrap.group"));
+        assertFalse(env.getProperty("lanveriq.bootstrap.enabled", Boolean.class, true));
+        assertEquals("lanveriq", env.getProperty("spring.datasource.password"));
+        assertEquals("Lanveriq-Test-Admin-2026!", env.getProperty("lanveriq.test-credentials.admin.password"));
+        assertFalse(new ClassPathResource("application-local-test.yml").exists());
     }
 
     @Test
@@ -30,7 +49,7 @@ class LocalTestProfileConfigurationTest {
     void onlyDedicatedLocalTargetsAllowed() {
         assertDoesNotThrow(() -> LocalTestProfileConfiguration.requireLocalTarget(valid()));
         var tls = valid();
-        tls.setActiveProfiles("local-test", "agent-upstream-mtls-acceptance");
+        tls.setActiveProfiles("test", "agent-upstream-mtls-acceptance");
         assertDoesNotThrow(() -> LocalTestProfileConfiguration.requireLocalTarget(tls));
         for (var entry : Map.of(
                 "server.address", "0.0.0.0",
@@ -46,7 +65,7 @@ class LocalTestProfileConfigurationTest {
                     () -> LocalTestProfileConfiguration.requireLocalTarget(env), entry.getKey());
         }
         var prod = valid();
-        prod.setActiveProfiles("local-test", "prod");
+        prod.setActiveProfiles("test", "prod");
         assertThrows(IllegalStateException.class,
                 () -> LocalTestProfileConfiguration.requireLocalTarget(prod));
     }

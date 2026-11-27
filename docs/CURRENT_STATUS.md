@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-2026-11-27 **用户本机证据**：MVP-01/02 DONE；PG18.7、Flyway V1–V30、IDEA、SQLite pending 已验收。MVP-03 双跳 mTLS Health UP、拒绝 PASS；设备/凭据 0，**BLOCKED**。隔离注册 [PG18 #45945519700](https://github.com/kunlong-luo/lanveriq/actions/runs/45945519700) PASS；旧独立测试库创建 PASS、后续连接 28P01 FAIL。维护者批准统一原开发库 `lanveriq`，旧库保留；新 CLI 待 CI，管理员/注册激活 NOT RUN，send OFF。[任务账本](planning/local-mvp-tasks.md)。
+2026-11-27 **用户本机证据**：MVP-01/02 DONE；PG18.7、Flyway V1–V30、IDEA、SQLite pending 已验收。MVP-03 双跳 mTLS Health UP、拒绝 PASS；设备/凭据 0，**BLOCKED**。隔离注册 [PG18 #45945519700](https://github.com/kunlong-luo/lanveriq/actions/runs/45945519700) PASS；旧独立测试库创建 PASS、后续连接 28P01 FAIL。维护者批准统一原开发库 `lanveriq`，旧库保留；单库 CLI L1 PASS；测试 profile 统一 `test` 待 CI，管理员/注册激活 NOT RUN，send OFF。[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 

@@ -18,14 +18,14 @@ ACTION="$1"
 read -rp 'Type PERSONAL DEVELOPMENT to confirm the existing lanveriq database is for local tests only: ' confirmation
 [[ "$confirmation" == 'PERSONAL DEVELOPMENT' ]] || fail 'Cancelled.'
 
-# The explicit local-test profile supplies the public disposable fixture.
+# The explicit test profile supplies the public disposable fixture.
 # Do not inherit stale database password overrides from the IDE or shell.
 unset LANVERIQ_DB_PASSWORD SPRING_DATASOURCE_PASSWORD SPRING_DATASOURCE_HIKARI_PASSWORD
 cd "$SERVER"
 
 opts=(
     --spring.main.web-application-type=none
-    --spring.profiles.active=local-test
+    --spring.profiles.active=test
     --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/lanveriq
     --spring.datasource.username=lanveriq
     --spring.datasource.hikari.jdbc-url=jdbc:postgresql://127.0.0.1:5432/lanveriq
