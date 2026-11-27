@@ -1,3 +1,4 @@
+pub mod graphics;
 pub mod runtime_metadata;
 use runtime_metadata::RuntimeMetadata;
 pub mod host_identity;

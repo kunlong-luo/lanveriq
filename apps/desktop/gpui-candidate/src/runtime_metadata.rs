@@ -1,5 +1,6 @@
 //! Operator-requested, bounded local queries. No command or path supplied by UI.
 use crate::host_identity::{HostIdentity, inspect_host_identity};
+use crate::graphics::{GraphicsMetadata, DIRECT_PACKAGES, COSMIC_PACKAGES, installed_set, session_claim};
 
 const UNKNOWN: &str = "unverified";
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -11,14 +12,16 @@ pub struct RuntimeMetadata {
     dropins: &'static str,
     reload: &'static str,
     legacy: &'static str,
+    graphics: GraphicsMetadata,
 }
 impl Default for RuntimeMetadata {
     fn default() -> Self {
         Self { attempted: false, package: UNKNOWN, service: UNKNOWN,
-            unit: UNKNOWN, dropins: UNKNOWN, reload: UNKNOWN, legacy: UNKNOWN }
+            unit: UNKNOWN, dropins: UNKNOWN, reload: UNKNOWN, legacy: UNKNOWN, graphics: GraphicsMetadata::default() }
     }
 }
 impl RuntimeMetadata {
+    pub fn graphics(self) -> GraphicsMetadata { self.graphics }
     pub fn attempted(self) -> bool { self.attempted }
     pub fn package_clean(self) -> bool { self.package == "not_installed" }
     pub fn service_clean(self) -> bool {
@@ -75,14 +78,19 @@ fn unit(raw: &str) -> [&'static str; 4] {
 }
 
 #[cfg(target_os = "linux")]
-enum Query { Package, Unit }
+enum Query { Package, Unit, DirectLibraries, CosmicComponents }
 
 #[cfg(target_os = "linux")]
 fn query(which: Query) -> Option<String> {
     use std::io::Read;
     use std::process::{Command, Stdio};
     // Coreutils timeout handles TERM/KILL escalation. No shell or caller arguments.
+    const PACKAGE_FORMAT: &str = concat!("$", "{Package}", "|", "$", "{Architecture}", "|", "$", "{Status}", "\\n");
     let args: &[&str] = match which {
+        Query::DirectLibraries => &["/usr/bin/dpkg-query", "-W", "-f", PACKAGE_FORMAT,
+            "libc6:amd64", "libgcc-s1:amd64", "libxcb1:amd64", "libxkbcommon0:amd64", "libxkbcommon-x11-0:amd64"],
+        Query::CosmicComponents => &["/usr/bin/dpkg-query", "-W", "-f", PACKAGE_FORMAT,
+            "cosmic-session", "cosmic-comp", "xdg-desktop-portal-cosmic"],
         Query::Package => &["/usr/bin/dpkg-query", "-W", "-f",
             concat!("$", "{Status}", "|", "$", "{Version}"), "lanveriq-agent-offline-preview"],
         Query::Unit => &["/usr/bin/systemctl", "--system", "--no-pager", "--no-ask-password", "--all", "show",
@@ -125,6 +133,15 @@ pub fn inspect_runtime() -> (HostIdentity, RuntimeMetadata) {
         result.dropins = dropins;
         result.reload = reload;
         result.legacy = legacy();
+        let direct = query(Query::DirectLibraries).is_some_and(|raw| installed_set(&raw, &DIRECT_PACKAGES, false));
+        let (session, cosmic) = if identity == HostIdentity::PopOs24Amd64 {
+            let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+            let kind = std::env::var("XDG_SESSION_TYPE").unwrap_or_default();
+            let display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
+            (session_claim(&desktop, &kind, &display),
+             query(Query::CosmicComponents).is_some_and(|raw| installed_set(&raw, &COSMIC_PACKAGES, true)))
+        } else { (false, false) };
+        result.graphics = GraphicsMetadata::from_observations(identity, session, direct, cosmic);
     }
     (identity, result)
 }
@@ -163,7 +180,7 @@ mod tests {
         use crate::Workspace;
         let clean = RuntimeMetadata { attempted: true, package: "not_installed",
             service: "inactive", unit: "disabled", dropins: "none_reported",
-            reload: "not_required", legacy: "not_detected" };
+            reload: "not_required", legacy: "not_detected", graphics: GraphicsMetadata::default() };
         let gates = runtime_review_gates(HostIdentity::PopOs24Amd64, clean);
         assert_eq!(gates[1].status, GateStatus::MetadataOnly);
         assert_eq!(gates[2].status, GateStatus::MetadataOnly);
@@ -184,6 +201,24 @@ mod tests {
         assert!(workspace.runtime_metadata().rows().iter().all(|(_, value)| *value == UNKNOWN));
     }
 
+    #[test]
+    fn graphics_projection_is_advisory_and_cleared_on_failure() {
+        use crate::review::{GateStatus, runtime_review_gates, runtime_diagnostic};
+        use crate::Workspace;
+        let graphics = GraphicsMetadata::from_observations(HostIdentity::PopOs24Amd64, true, true, true);
+        let m = RuntimeMetadata { attempted: true, graphics, ..RuntimeMetadata::default() };
+        let gates = runtime_review_gates(HostIdentity::PopOs24Amd64, m);
+        assert_eq!(gates[3].status, GateStatus::MetadataOnly);
+        assert!(gates[4..].iter().all(|g| g.status == GateStatus::NotApproved));
+        let report = runtime_diagnostic(HostIdentity::PopOs24Amd64, m);
+        assert!(report.contains("cosmic_preflight=metadata_checked_not_l3"));
+        assert!(report.contains("install_authorized=false"));
+        let mut workspace = Workspace::default();
+        workspace.replace_runtime_metadata(HostIdentity::PopOs24Amd64, m);
+        workspace.replace_host_identity(HostIdentity::NotChecked);
+        assert!(!workspace.runtime_metadata().graphics().attempted());
+    }
+
     #[cfg(target_os = "linux")]
     #[test]
     #[ignore = "Explicit disposable non-root Ubuntu smoke"]
@@ -195,5 +230,8 @@ mod tests {
         assert!(matches!(metadata.rows()[0].1, "unverified" | "not_installed" | "preview_candidate" | "unrecognized_version"));
         assert!(matches!(metadata.rows()[1].1, "unverified" | "active" | "inactive" | "failed"));
         assert_eq!(metadata.rows()[5].1, legacy());
+        assert!(metadata.graphics().attempted());
+        assert!(!metadata.graphics().metadata_complete());
+        assert_eq!(metadata.graphics().rows()[1].1, "软件包元数据齐全");
     }
 }

@@ -34,7 +34,7 @@ jobs:
           assert not pathlib.Path("build.rs").exists()
           for path in pathlib.Path("src").rglob("*.rs"):
               data = path.read_text()
-              for token in ("std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "std::env", "include_bytes!", "include_str!", "OpenOptions", "File::create", "std::io::Write"):
+              for token in ("std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "include_bytes!", "include_str!", "OpenOptions", "File::create", "std::io::Write"):
                   assert token not in data, (path, token)
               if path == pathlib.Path("src/host_identity.rs"):
                   assert data.count("std::fs") == 1 and "std::fs::File::open(path)" in data
@@ -51,7 +51,11 @@ jobs:
               else:
                   assert "std::fs" not in data, path
               if path != pathlib.Path("src/runtime_metadata.rs"):
-                  assert "std::process" not in data and "Command::new" not in data, path
+                  assert "std::process" not in data and "Command::new" not in data and "std::env" not in data, path
+              else:
+                  assert data.count("std::env") == 3
+                  for name in ("XDG_CURRENT_DESKTOP", "XDG_SESSION_TYPE", "WAYLAND_DISPLAY"):
+                      assert f'std::env::var("{name}")' in data
           assert ".disabled(true)" in pathlib.Path("src/main.rs").read_text()
           PY
       - name: Require committed candidate lock and exact digest (not product approval)
@@ -108,16 +112,20 @@ jobs:
           cargo +1.100.0 test --locked --lib runtime_metadata::tests::live_ubuntu_runtime_readonly -- --ignored --exact
           cargo +1.100.0 build --locked --message-format=json-render-diagnostics > candidate-build.jsonl
           python3 - <<'PY'
-          import json, pathlib, subprocess
+          import json, pathlib, subprocess, re
           messages = [json.loads(line) for line in pathlib.Path("candidate-build.jsonl").read_text().splitlines()]
           binaries = [m["executable"] for m in messages if m.get("reason") == "compiler-artifact" and m.get("executable") and m.get("target", {}).get("name") == "lanveriq-desktop-gpui-candidate" and "bin" in m["target"]["kind"]]
           assert len(binaries) == 1, binaries
           binary = pathlib.Path(binaries[0])
           assert binary.is_file()
+          dynamic = subprocess.check_output(["readelf", "-d", str(binary)], text=True)
+          needed = set(re.findall(r"\(NEEDED\).*\[([^\]]+)\]", dynamic))
+          expected = {"libxcb.so.1", "libxkbcommon.so.0", "libxkbcommon-x11.so.0", "libgcc_s.so.1", "libm.so.6", "libc.so.6", "ld-linux-x86-64.so.2"}
+          assert needed == expected, (needed, expected)
           with open("candidate-linux-elf.txt", "w") as f:
               f.write(f"ELF bytes (debug profile, not package size): {binary.stat().st_size}\n")
               f.flush()
-              subprocess.run(["readelf", "-d", str(binary)], stdout=f, check=True)
+              f.write(dynamic)
           PY
           sha256sum --check --strict Cargo.lock.sha256
       - name: Archive Linux graph and direct ELF dependency evidence (no binaries)

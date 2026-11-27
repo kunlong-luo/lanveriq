@@ -72,7 +72,12 @@ impl Render for Desktop {
                     })))
                 .child(Label::new(if self.inspecting { "正在读取，旧结果已清空。" } else { "未核验项不代表未安装或已停止。" }))
                 .child(rows)
-                .child(Label::new("COSMIC 兼容性仍未核验。"));
+                .child(Label::new("GPUI 图形环境预检（仅元数据）"))
+                .child(self.workspace.runtime_metadata().graphics().rows().into_iter().enumerate().fold(
+                    div().flex().flex_col().gap_1(), |group, (i, (key, value))| {
+                        group.child(Label::new(format!("{key}: {value}")).id(format!("graphics-{i}")))
+                    }))
+                .child(Label::new("未验证 GPU、实际 ABI、显示连接或窗口启动。"));
         }
         if page == Page::Configuration {
             let current = self.workspace.idle_interval();

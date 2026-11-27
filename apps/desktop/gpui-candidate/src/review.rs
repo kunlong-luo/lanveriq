@@ -74,6 +74,15 @@ pub fn runtime_review_gates(identity: HostIdentity, metadata: RuntimeMetadata) -
         if metadata.package_clean() { gates[1].detail = "仅报告未安装状态，不是安装许可。"; }
         if metadata.service_clean() { gates[2].detail = "仅报告未启用、未运行及无已知覆盖，不是授权。"; }
     }
+    let graphics = metadata.graphics();
+    if graphics.attempted() {
+        gates[3].status = if identity == HostIdentity::PopOs24Amd64 && graphics.metadata_complete() {
+            GateStatus::MetadataOnly
+        } else { GateStatus::Blocked };
+        if gates[3].status == GateStatus::MetadataOnly {
+            gates[3].detail = "仅有会话声明和软件包元数据；GPU、实际 ABI、窗口及 L3 仍未验证。";
+        }
+    }
     gates
 }
 
@@ -84,6 +93,10 @@ pub fn runtime_diagnostic(identity: HostIdentity, metadata: RuntimeMetadata) -> 
         for (key, value) in metadata.diagnostic_rows() {
             report = report.replace(&format!("{key}=unverified\n"), &format!("{key}={value}\n"));
         }
+    }
+    if metadata.graphics().attempted() {
+        report = report.replace("cosmic_preflight=not_verified",
+            &format!("cosmic_preflight={}", metadata.graphics().diagnostic()));
     }
     report
 }
