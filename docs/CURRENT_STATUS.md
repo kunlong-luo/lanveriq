@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-2026-11-27 **用户本机证据**：MVP-01/02 DONE；PG18.7、Flyway V1–V30、IDEA、SQLite pending 已验收。MVP-03 8443 HTTPS 启动、Caddy 双跳 Health UP，users/groups 各 1；真实管理员认证、CSR prepare PASS；测试 CA SPKI 匹配、签发及 pending 注册 PASS；Health UP、pending epoch 403 PASS、activation 403 FAIL；待定位/epoch，**BLOCKED**。隔离注册 [PG18 #45945519700](https://github.com/kunlong-luo/lanveriq/actions/runs/45945519700) PASS；统一原库 `lanveriq`，旧库保留。test profile 与公开测试凭据 [Server #45949317790](https://github.com/kunlong-luo/lanveriq/actions/runs/45949317790) PASS；send OFF。[任务账本](planning/local-mvp-tasks.md)。
+2026-11-27 **用户本机证据**：MVP-01/02 DONE；PG18.7、Flyway V1–V30、IDEA、SQLite pending 已验收。MVP-03 8443 HTTPS 启动、Caddy 双跳 Health UP，users/groups 各 1；真实管理员认证、CSR prepare PASS；测试 CA SPKI 匹配、签发及 pending 注册 PASS；Health UP、pending epoch 403 PASS、activation 403 FAIL；DB 激活条件全 true，待入口定位/epoch，**BLOCKED**。隔离注册 [PG18 #45945519700](https://github.com/kunlong-luo/lanveriq/actions/runs/45945519700) PASS；统一原库 `lanveriq`，旧库保留。test profile 与公开测试凭据 [Server #45949317790](https://github.com/kunlong-luo/lanveriq/actions/runs/45949317790) PASS；send OFF。[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 
