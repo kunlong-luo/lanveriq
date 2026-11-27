@@ -16,13 +16,13 @@
 | --- | --- | --- | --- |
 | **MVP-01** | 共享 PG18 + Spring 启动、Flyway、独立启停 | 本机 Docker/Java/端口可核实 | **DONE**：2026-11-27 用户本机 V1～V30、loopback:18081 Health UP、IDEA 独立停止/重启 PASS（限定本机开发） |
 | **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：2026-11-27 复核；保留既有用户本机 PASS 与 Agent L1 PASS，本轮重跑 NOT RUN |
-| **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **BLOCKED**：2026-11-27 历史隔离 L2 日志复核 PASS；指定本机测试身份及实测 NOT RUN |
+| **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **BLOCKED**：2026-11-27 用户本机双跳 mTLS Health UP、入口 4 项及后端 3 项正负例 PASS；设备未注册、凭据 0 条 |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **TODO / NOT RUN** |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **TODO / NOT RUN** |
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **TODO / NOT RUN** |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**下一项仍为 MVP-03（BLOCKED）**：MVP-01 与 MVP-02 已完成限定本机目标。需本机授权、隔离测试身份及真实双跳验证；不得跳过 mTLS，保留已有 SQLite 待发数据。
+**下一项仍为 MVP-03（BLOCKED）**：MVP-01 与 MVP-02 已完成限定本机目标。双跳 mTLS 已有用户本机证据；仍需受控测试身份注册、实时业务凭据核验及业务负例。不得跳过 mTLS，保留已有 SQLite 待发数据。
 
 ## 可执行任务卡
 
@@ -48,7 +48,7 @@
 
 - **2026-11-27 复核**：当前 `main` 基线 [`3fd73554`](https://github.com/kunlong-luo/lanveriq/commit/3fd7355454d6197c0f30b17a7eff5006bb630bca)。[Rust transport](../../apps/agent/src/transport.rs) 固定 HTTPS origin、TLS1.3、禁代理/重定向；[Caddy 参考](../../deploy/caddy/Caddyfile.reference) 要求受信客户端证书、移除不可信身份头；[Tomcat 验收 profile](../../apps/server/src/main/resources/application-agent-upstream-mtls-acceptance.yml) 仅 loopback:8443、TLS1.3、client-auth need；默认 `application.yml` Agent 开关仍 false。参考配置非本机实际生效配置。
 - **真实历史 CI 复核**：功能 [`b31f45ef`](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f)，[Linux L2 #45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success；直接读取 job `139649120029` 原始日志（Source SHA 一致），有效双跳 TLS1.3 health、默认业务 403、无证书、错误 CA、TLS1.2、伪造头无上游证书、错设备、未注册/过期/吊销拒绝及合成凭据 epoch 与 PG18 一致均 PASS。另复核 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) job `139002587446`，源码 `db570181d603a7f069a85a23c009658e9a8bed4c`，相同边界 PASS。compare `b31f45ef` → 基线显示 92 commits、Agent `main.rs` 有改动，不能宣称当前 HEAD 全量功能 CI PASS；本轮重跑 NOT RUN。
-- **本机 BLOCKED**：未连接 Pop!_OS 本机，未核实指定设备的授权测试 UUID/凭据、实际 DNS/CA 信任、Caddy/Tomcat 配置、DB 注册绑定或任何正负例。无本机执行与配置变更；不得以 18081 明文 health 替代双 mTLS，不能复用 CI 临时私钥或伪设 CI 环境绕过脚本限制。无 send、无 SQLite 修改；下一次仅完成本机 MVP-03。
+- **2026-11-27 本机证据（维护者终端，非助手本机直连）**：本机源码基线 `8a3f7484`，Gradle `bootJar` BUILD SUCCESSFUL（不是单元测试）。Spark Caddy 2.11.9 复用独立客户端 CA 和上游 CA，入口有效证书 502（当时无上游）、无证书/错误 CA/TLS1.2 均 TLS 拒绝。IDEA 网桥地址启动被既有 `AgentIngressAssertionConfiguration` 拒绝（预期安全保护）；恢复 loopback:8443 后启动，Caddy 改 host 模式并显式 bind loopback:443，`caddy adapt` / `ss` / `docker inspect` 确认监听与模式。`curl --resolve` 双跳 Health UP；PG18.7 JPA 初始化成功。直接访问 Spring 无证书、Agent 证书、无证书伪造头三例均 HTTP 000 + TLS alert。只读 PG 查询：设备不存在、匹配证书指纹 0 条。共享库无身份写入；未核实普通 DNS、实际 Rust Agent 网络、业务层有效/伪造/错设备凭据。禁止把 CI-only fixture SQL 直接灌入共享开发库；需评审受控本机测试身份初始化路径。无 send，SQLite 不修改。
 
 ### MVP-04 · 一次 `send` 和精确 ACK
 
@@ -76,13 +76,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 3fd73554](https://github.com/kunlong-luo/lanveriq/commit/3fd7355454d6197c0f30b17a7eff5006bb630bca)；前一轮 MVP-01 用户本机原始交接保留于该固定 SHA 的[任务账本](https://github.com/kunlong-luo/lanveriq/blob/3fd7355454d6197c0f30b17a7eff5006bb630bca/docs/planning/local-mvp-tasks.md)。MVP-01/02 状态不变。 |
-| 本轮 | **MVP-03 BLOCKED**，仅现有代码与历史 CI 核实；无功能修改、无本机操作。选择复用已有双 mTLS 实现，不新增绕过安全的本机脚本或测试 CA。 |
+| 基线 | [main 3636118c](https://github.com/kunlong-luo/lanveriq/commit/3636118cace495e8efc1470b114de78420fc2806)（仅目录文档），本机报告功能基线 `8a3f7484`；前次交接见[固定账本](https://github.com/kunlong-luo/lanveriq/blob/3636118cace495e8efc1470b114de78420fc2806/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**，用户本机双跳 TLS health 和直接访问拒绝已验证；无注册记录，未完成业务身份绑定。无功能代码修改、无助手本机直连。 |
 | 已验证（源码） | 当前 transport.rs HTTPS-only/TLS1.3、Caddyfile.reference 双信任域与覆盖请求头、application-agent-upstream-mtls-acceptance.yml loopback:8443 TLS1.3 client-auth need、application.yml 默认 OFF、verify-agent-upstream-tls.sh 正负例及 CI 限制。不是本机有效配置证明。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 未验证 / 命令 | 本机 `getent hosts agent.lanveriq.internal`、隔离测试证书链/有效期及 DB 身份绑定核验、有效/无/错误证书与伪造身份请求正负例均 NOT RUN；未获得本机执行通道或指定测试身份材料证据。不得提交私钥、密码或真实设备 ID。文档治理两条 Node 命令本轮 NOT RUN；文档 CI 尚未验证。 |
-| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；仅复核旧 L2，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：在获准本机隔离环境核实专用测试身份与 DNS、Caddy/Tomcat TLS1.3 双向认证、PG18 实时设备绑定，逐项记录有效身份接受和无证书、错误证书、伪造/错设备拒绝；无证据继续 BLOCKED，禁止进入 MVP-04。 |
+| 用户本机证据 / 未验证 | `bootJar` 成功；`caddy adapt`、`docker inspect`、`ss` 确认双回环；`curl --resolve` 正向 health UP、入口无证书/错误 CA/TLS1.2 拒绝、后端直接访问三负例拒绝；PG 只读查询设备不存在、匹配凭据 0。普通 DNS、有效业务身份、伪造头经受信代理覆盖、错设备及实际 Rust 请求 NOT RUN；Node 文档治理和本轮 CI NOT RUN/未确认。 |
+| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
+| **下次唯一任务** | **MVP-03**：评审并验收受控本机测试身份初始化（不使用生产 CA/不绕过审批、不运行 CI-only fixture SQL 到共享库）；核对 DNS、业务身份绑定、有效身份与伪造/错设备拒绝；否则继续 BLOCKED。禁止进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
