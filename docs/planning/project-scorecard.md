@@ -24,6 +24,8 @@
 
 **2026-11-27 本机 MVP（不加分）：** 维护者真实测试设备注册、双跳 mTLS 激活、credential epoch、错设备及无证书拒绝 PASS；非独立 L3、未进行库存 send 或正式安装。功能 `f6e83c89` Server CI SUCCESS，隔离 L2 [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS；MVP-03 DONE。评分仍 71/100，Gate 0/10。
 
+**2026-11-27 MVP-04（不加分）：** 既有 Agent [L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428) 与隔离 [L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 原日志复核 PASS；本机身份/outbox、真实 send/ACK NOT RUN，MVP-04 BLOCKED。无新功能代码或新增验收证据，工程评分仍 **71/100**，Gate 0/10。见[本机任务账本](local-mvp-tasks.md)。
+
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
 | Gate 集合 | 阻断条件 |
