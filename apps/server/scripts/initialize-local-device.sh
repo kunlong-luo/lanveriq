@@ -18,18 +18,19 @@ ACTION="$1"
 read -rp 'Type PERSONAL DEVELOPMENT to confirm the existing lanveriq database is for local tests only: ' confirmation
 [[ "$confirmation" == 'PERSONAL DEVELOPMENT' ]] || fail 'Cancelled.'
 
-# No password as a command-line argument or saved file. The transient
-# environment is inherited only by the local Java process.
-read -rsp 'Dedicated lanveriq database password: ' LANVERIQ_DB_PASSWORD
-printf '\n'
-[[ -n "$LANVERIQ_DB_PASSWORD" ]] || fail 'Missing database password.'
-export LANVERIQ_DB_PASSWORD
-export SPRING_DATASOURCE_PASSWORD="$LANVERIQ_DB_PASSWORD"
-export SPRING_DATASOURCE_HIKARI_PASSWORD="$LANVERIQ_DB_PASSWORD"
-trap 'unset LANVERIQ_DB_PASSWORD SPRING_DATASOURCE_PASSWORD SPRING_DATASOURCE_HIKARI_PASSWORD' EXIT
+# Native Spring external config is the single local DB credential source.
+LOCAL_CONFIG="$SERVER/config/application-local.yml"
+[[ -f "$LOCAL_CONFIG" && ! -L "$LOCAL_CONFIG" && -O "$LOCAL_CONFIG" ]] ||
+    fail 'Create your own config/application-local.yml from the example first.'
+[[ "$(stat -c %a "$LOCAL_CONFIG")" == 600 ]] ||
+    fail 'Local configuration must have mode 0600.'
+# Remove duplicate DB password overrides in this child shell only.
+unset LANVERIQ_DB_PASSWORD SPRING_DATASOURCE_PASSWORD SPRING_DATASOURCE_HIKARI_PASSWORD
 
 opts=(
     --spring.main.web-application-type=none
+    --spring.profiles.active=local
+    "--spring.config.additional-location=file:$LOCAL_CONFIG"
     --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/lanveriq
     --spring.datasource.username=lanveriq
     --spring.datasource.hikari.jdbc-url=jdbc:postgresql://127.0.0.1:5432/lanveriq
