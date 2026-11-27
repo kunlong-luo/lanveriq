@@ -97,6 +97,8 @@ jobs:
           forbidden = sorted(name for name in names if name.startswith(("gpui-fast", "gpui-kit-shell", "gpui-kit-webview", "webkit", "speech-dispatcher")))
           assert not forbidden, forbidden
           PY
+      - name: Test owner review preconditions and redacted answer parser (no physical claim)
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_owner_cosmic_review.py -v
       - name: Install disposable runner upstream development prerequisites
         run: |
           sudo apt-get -o APT::Get::AllowUnauthenticated=false update
