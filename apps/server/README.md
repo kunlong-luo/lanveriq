@@ -34,17 +34,9 @@ cd apps/server
 
 Gradle 在 `apps/server` 下，不在仓库根目录。需要带数据库启动 Spring 时，必须先由 [开发环境/安装手册](../../docs/operations/installation.md) 核验独立 `lanveriq` 角色与数据库、SCRAM、隔离绑定、开关关闭和服务生命周期；不要直接把开发命令暴露到生产 LAN/WAN，也不要操作同一宿主机上其他业务的数据库/卷。
 
-### 本机测试配置（唯一数据库凭据来源）
+### 本机测试配置（显式 local-test）
 
-使用已初始化的 `lanveriq` 数据库；不再创建第二套本机库。首次在 `apps/server` 下执行：
-
-```bash
-test -e config/application-local.yml || install -m 600 config/application-local.example.yml config/application-local.yml
-chmod 600 config/application-local.yml
-nano config/application-local.yml
-```
-
-填入本机测试数据库密码。此文件已由根 .gitignore 排除，禁止提交。IDEA Working directory 为 `apps/server`，Active profiles 为 `local`，移除重复的数据库环境变量和 VM 参数。仅已获批准的双跳 mTLS 测试使用 `local,agent-upstream-mtls-acceptance`，保留原 TLS 秘密文件和验证参数，不启用任何其他能力。离线 `initialize-local-device.sh prepare|register` 明确读取同一本机文件并检查所有者及 0600，不再重复要求数据库密码；管理员仍须实际认证。
+维护者批准的公开、可丢弃测试数据库默认值已集中在 [application-local-test.yml](src/main/resources/application-local-test.yml)，仅适用于本机个人开发库，不是秘密或生产凭据。IDEA Working directory 为 `apps/server`，Active profiles 为 `local-test`，移除重复的数据库环境变量和 VM 参数。无需额外创建 YAML 或输入数据库密码；原有本机 `application-local.yml` 保留但不需要激活 `local`。仅已获批准的双跳 mTLS 测试使用 `local-test,agent-upstream-mtls-acceptance`，保留原 TLS 秘密文件和验证参数。离线 `initialize-local-device.sh prepare|register` 使用同一 profile；固定 loopback JDBC、角色及监听地址，拒绝其他库、角色和生产 profile 混用。所有业务能力默认 OFF。数据库密码如需改为独立秘密，使用环境变量/受限外部配置覆盖；禁止将任何真实秘密提交 Git，退出测试阶段必须更换公开测试凭据。
 
 管理员账号和密码是业务身份而非 Spring datasource 配置，数据库仅存 Argon2id 哈希。测试阶段如维护者明确需要在项目内记录原始测试凭据，可手动保存在 `apps/server/credentials/local-admin.txt`（已忽略，目录 0700、文件 0600），不被 Java、Web、Agent 或部署脚本读取。记录实际创建的账号及原密码，不在 Git 模板中填值，不自动重置或初始化。优先使用密码管理器；此明文副本只限个人本机临时测试，不用于生产。切换配置不会自动创建或修改数据库身份。
 
