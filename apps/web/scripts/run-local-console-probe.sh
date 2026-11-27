@@ -3,7 +3,8 @@
 # No synthetic CI gate override, repository edits, DB writes or Caddy changes.
 set -euo pipefail
 umask 077
-if [[ "${1:-}" != "--accept-local-owner-test" || "$#" != 1 ||
+if [[ "${1:-}" != "--accept-local-owner-test" || "$#" -gt 2 ||
+      ( "$#" == 2 && "${2:-}" != "--allow-online-install" ) ||
       "${GITHUB_ACTIONS:-}" == true || -n "${CI:-}" || "$EUID" == 0 ]]; then
     echo "REFUSED: explicit non-root local-owner acceptance only" >&2
     exit 1
@@ -13,9 +14,19 @@ fi
    -O "$XDG_RUNTIME_DIR" && ! -L "$XDG_RUNTIME_DIR" ]] || exit 1
 root="$(git rev-parse --show-toplevel)"
 [[ "$(git -C "$root" branch --show-current)" == main ]] || exit 1
-git -C "$root" diff --quiet HEAD -- apps/web || {
-    echo "REFUSED: tracked web source differs from HEAD" >&2; exit 1;
+# Pin the committed source once; the archive deliberately excludes every
+# local edit, staged change, generated next-env.d.ts and untracked file.
+# Do not require a clean user worktree, but do require an unmodified launcher.
+source_sha="$(git -C "$root" rev-parse --verify HEAD)"
+launcher="$root/apps/web/scripts/run-local-console-probe.sh"
+git -C "$root" show "$source_sha:apps/web/scripts/run-local-console-probe.sh" |
+    cmp -s - "$launcher" || {
+    echo "REFUSED: launcher differs from committed source" >&2; exit 1;
 }
+if ! git -C "$root" diff --quiet "$source_sha" -- apps/web; then
+    echo "NOTICE: local web modifications preserved; committed archive only"
+fi
+echo "Acceptance source: $source_sha"
 [[ -z "$(ss -H -ltn '( sport = :3100 )')" ]] || {
     echo "REFUSED: port 3100 already listening" >&2; exit 1;
 }
@@ -27,11 +38,20 @@ mkdir -m 700 "$work" || {
     echo "REFUSED: prior probe directory exists; inspect it first" >&2; exit 1;
 }
 trap 'rm -rf -- "$work"' EXIT
-git -C "$root" archive HEAD apps/web | tar -x -C "$work"
+git -C "$root" archive "$source_sha" apps/web | tar -x -C "$work"
 cd "$work/apps/web"
 unset LANVERIQ_PAGES_STATIC_EXPORT
 export NEXT_TELEMETRY_DISABLED=1
-pnpm install --offline --frozen-lockfile
+if [[ "${2:-}" == "--allow-online-install" ]]; then
+    echo "Dependency installation: explicit online permission; frozen lockfile"
+    pnpm install --frozen-lockfile
+else
+    echo "Dependency installation: offline; frozen lockfile"
+    pnpm install --offline --frozen-lockfile || {
+        echo "Offline install failed; rerun with --allow-online-install if approved" >&2
+        exit 1
+    }
+fi
 pnpm run verify:routes
 mkdir -m 700 src/app/local-console-probe
 cat > src/local-console-probe-edge.ts <<'EOF'
