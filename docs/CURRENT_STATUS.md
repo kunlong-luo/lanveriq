@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-2026-11-27 **本机证据**：MVP-01/02/03 DONE；注册、activate 200 active、epoch、错设备403、无证书TLS拒绝 PASS；原403根因未证实。[隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS。MVP-04 本机 DNS、独立 outbox、epoch、HTTP200/精确 ACK PASS；新 pending 0、旧 pending 1、两库 revision 1。MVP-04 DONE，维护者确认临时 inventory OFF、诊断移除及重启重载；MVP-05 TODO / NOT RUN，仅下一会话只读核实 PG。[任务账本](planning/local-mvp-tasks.md)。
+2026-11-27 **本机证据**：MVP-01/02/03 DONE；注册、activate 200 active、epoch、错设备403、无证书TLS拒绝 PASS；原403根因未证实。[隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS。MVP-04 本机 DNS、独立 outbox、epoch、HTTP200/精确 ACK PASS；新 pending 0、旧 pending 1、两库 revision 1。MVP-04 DONE，维护者确认临时 inventory OFF、诊断移除及重启重载；MVP-05 BLOCKED：V8 与既有 L2 已复核，真实本机 PG 查询 NOT RUN（无本机执行通道）；仅待只读核实同一设备/快照/版本及 OS/CPU/RAM，不进入 MVP-06。[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 
