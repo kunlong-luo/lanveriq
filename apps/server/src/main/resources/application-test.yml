@@ -19,7 +19,7 @@ lanveriq:
   test-credentials:
     admin:
       username: local-test-admin
-      password: '${LANVERIQ_TEST_ADMIN_PASSWORD:Lanveriq-Test-Admin-2026!}'
+      password: '${LANVERIQ_TEST_ADMIN_PASSWORD:Lvq!7mK9#qT4vR2x}'
       group: local-test-devices
   bootstrap:
     enabled: false

@@ -33,7 +33,7 @@ class LocalTestProfileConfigurationTest {
         assertEquals("local-test-devices", env.getProperty("lanveriq.bootstrap.group"));
         assertFalse(env.getProperty("lanveriq.bootstrap.enabled", Boolean.class, true));
         assertEquals("lanveriq", env.getProperty("spring.datasource.password"));
-        assertEquals("Lanveriq-Test-Admin-2026!", env.getProperty("lanveriq.test-credentials.admin.password"));
+        assertEquals("Lvq!7mK9#qT4vR2x", env.getProperty("lanveriq.test-credentials.admin.password"));
         assertFalse(new ClassPathResource("application-local-test.yml").exists());
     }
 
