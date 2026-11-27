@@ -19,10 +19,10 @@
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **DONE**：2026-11-27 本机注册、激活、epoch、错设备及无证书拒绝 PASS；功能 f6e83c89 隔离 L2 三 jobs SUCCESS |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **DONE**：2026-11-27 本机 HTTP200/精确 ACK、新 pending 0、旧 pending 1、两库 revision 1 PASS；维护者确认临时配置恢复 |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **DONE**：2026-11-27 维护者本机只读 PG18 同设备/快照/revision=1 精确匹配 1 行、OS/CPU/RAM 非空，COMMIT PASS |
-| **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **BLOCKED（CI 待确认）**：本机认证 API、浏览器登录/同设备读取/登出、直接/伪造 proof 404、收尾 PASS；组外=0，跨组本机 NOT RUN；文档门禁已修复 PASS，Next fast 重验 PENDING |
+| **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **DONE（限定本机 MVP）**：真实浏览器认证/同设备读取/登出、入口拒绝、收尾 PASS；未改后端的隔离 L2 跨组 PASS，本机跨组无目标 NOT RUN；修复后 Next L1 PASS |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**MVP-01～05 DONE；MVP-06 本机功能与收尾 PASS，结项 BLOCKED（CI 与跨组证据限制）。** 仍只处理 MVP-06，不进入 MVP-07。
+**MVP-01～06 DONE；MVP-07 TODO。** 本会话仅结项 MVP-06，不实施 MVP-07；下个会话按任务卡执行。
 
 ## 可执行任务卡
 
@@ -134,6 +134,8 @@
 
 - **2026-11-27 收尾 CI 复核**：上一轮 `fffe2862` [Next fast #45968262943 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45968262943) job 140402097984 原日志明确是 scorecard 超 5500 字节，后续 L1/构建/HTTP smoke 全 SKIPPED；同 SHA [文档 #45968262888 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45968262888)。评分精简后 `23a76752` [文档 #45968267482 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968267482)；`deeb9000` [文档 #45968272033 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968272033)、[RD-2 #45968272016 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968272016)。再次读取历史 L2 #45952013366 job 140349819059 原始运行输出：真实 Caddy/Tomcat 表单登录、会话轮换/新 CSRF/严格 Cookie、组范围设备、实际组外 404、登出后 401、Next 直接 origin/伪造 proof 拒绝 PASS；compare `f6e83c89...deeb9000` 38 commits 仅新增本机 probe 脚本、修改普通 route guard 和三份文档，Spring 授权/读取、staged 客户端、隔离 L2 测试源码未变，历史跨组证据仍适用于未改后端边界，非新 probe 的独立 L2。真实本机组外=0，不修改数据库。更新 CURRENT_STATUS `45117a39f665e742f052921520486553df5b3574`（7796 UTF-8 字节，低于 8000）触发 [Next fast #45968420734](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420734) 与 [文档 #45968420736](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420736)，查询时 IN_PROGRESS；无新业务代码。不得以 docs-only 检查代替独立 feature L2。MVP-06 本机功能与收尾 PASS，结项仍 BLOCKED 至 Next fast 实际结果核实及按验收规则确认，71/100 不变；不进入 MVP-07。
 
+- **2026-11-27 正式本机结项 DONE**：`45117a39f665e742f052921520486553df5b3574` [Next fast L1 #45968420734 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420734)，job 140402615762 原日志/步骤核实锁文件、唯一 UI、文档及链接、认证隔离、route guard、组件测试、typecheck、build、真实 preview HTTP smoke 全 PASS；[文档 #45968420736 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420736)、[源码预览 #45968420744 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420744)，基线 `c96a7221` [文档 #45968470386 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968470386)、[RD-2 #45968470373 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968470373)。compare `cb14bb2c...45117a39` 9 commits 仅三份文档，故 L1 对应同一功能源码；`f6e83c89...deeb9000` 对照仅本机 probe、普通 route guard 及文档变动，后端组授权/认证/既有 staged clients 未变。按任务卡接受维护者真实本机授权读/无会话/Origin/CSRF/登出及入口负测、收尾 PASS 与原始隔离 L2 的真实组外 404 合并作为限定 MVP 验收，不声称本机跨组已测（组外=0）、新增 probe 独立 L2、完整 L3 或正式登录已开放；运行 SHA/完整本机构建日志未回传，standalone 警告保留，Caddy 503 不独立证明所有 Spring 属性。此次仅结项文档修改，评分 71/100、Gate 0/10 不变；MVP-07 TODO，停止。
+
 ### MVP-07 · 浏览器看到这台设备
 
 - **允许**：只在 `apps/web` 的设备列表/详情完成真实数据映射，不扩展首页、监控面板或远控。
@@ -144,12 +146,12 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main b33254bc](https://github.com/kunlong-luo/lanveriq/commit/b33254bc362d0ba898238c500cf8a4992ad90db5)；维护者 checkout 确认，新增启动器及守卫功能 SHA [0e0d03e1](https://github.com/kunlong-luo/lanveriq/commit/0e0d03e1a929d4931c21c22346603ab2503e73c5)，未验收。 |
-| 本轮 | **MVP-06 本机功能及收尾 PASS，结项 BLOCKED**（Next fast 重验 PENDING；本机跨组无目标）；MVP-01～05 DONE，MVP-07 TODO。 |
-| 已验证（历史 CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS；原有合成跨组拒绝与 Next.js 同源 PASS，非新 CI。 |
-| 本机验收与限制 | 维护者提供真实 Console TLS、管理员组授权、curl 基础六项、Python HTTPS 真实登录/设备同一身份/安全 Cookie/CSRF/Origin/登出 PASS；未知 UUID 404 不等于真实跨组；本机组外设备=0，跨组 NOT RUN；修复后 Next.js Ready（前序构建步骤按脚本顺序推断完成，完整日志/SHA 未回传），浏览器登录/同 UUID 读取/登出 PASS，无 proof/伪造 proof 404/404；standalone 启动警告，非独立 L3；文档超限 FAIL 已修复，#45968272033 PASS；Next fast #45968420734 IN_PROGRESS；本机收尾 PASS：3100 停止、临时目录/令牌移除、四路 503、仅 loopback。 |
+| 基线 | [main c96a7221](https://github.com/kunlong-luo/lanveriq/commit/c96a722155f2c5e4c169d4b6e3f1ce0a10804db0)；功能启动器修复 [cb14bb2c](https://github.com/kunlong-luo/lanveriq/commit/cb14bb2cba43676ec3ca3171ba069a18d05b4f85)，L1 测试 SHA [45117a39](https://github.com/kunlong-luo/lanveriq/commit/45117a39f665e742f052921520486553df5b3574)，间隔仅文档。 |
+| 本轮 | **MVP-06 DONE（限定本机 MVP）**；MVP-01～06 DONE，MVP-07 TODO。仅更新三份文档，无产品代码变更。 |
+| 已验证 CI | [Next fast #45968420734 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420734) 全步骤 PASS；[文档 #45968470386](https://github.com/kunlong-luo/lanveriq/actions/runs/45968470386)、[RD-2 #45968470373](https://github.com/kunlong-luo/lanveriq/actions/runs/45968470373) SUCCESS。历史 [L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS，真实跨组 404 与同源认证 PASS，未修改后端/staged clients；非本次独立 L2。 |
+| 本机验收与限制 | 维护者真实 HTTPS 登录、Cookie/CSRF/Origin、组授权同设备列表详情、浏览器登出、直接/伪造 proof 404/404 PASS；收尾 3100 停止、临时目录及令牌清除、四路 503、仅 loopback PASS。本机跨组无目标 NOT RUN；完整运行 SHA/构建日志未回传、standalone 启动警告；503 仅证明外层关闭，非独立 L3。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；Gate 0/10，G-01～G-10 OPEN，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **仍为 MVP-06**：核查 [Next fast #45968420734](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420734) 实际全部步骤，通过后按现有验收规则结合未修改后端的历史跨组 L2 及本机验收作结项判断。已通过本机功能及收尾不重复执行，不恢复临时入口，不进入 MVP-07。 |
-| 约束 | 单一 main；不改旧 SQLite/证书/共享 PG/IoT 业务，不重采、不重发、不写库存、不扩大组权、不改生产默认、不绕过 synthetic CI 守卫，不提交秘密。 |
+| **下次唯一任务** | **MVP-07**：只在唯一 `apps/web` 设备列表/详情映射 MVP-05 同设备的真实 OS/CPU/RAM；显式授权本机同源验收，验证刷新、断网/停止后端/无权限状态，不扩展首页/监控/远控、不重采/重发、不改默认 OFF；验收后恢复临时配置并更新文档，停止。 |
+| 约束 | 单一 main；不改旧 SQLite/证书/共享 PG/IoT 业务，不扩大组权、不改生产默认、不绕过 synthetic CI 守卫，不提交秘密。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
