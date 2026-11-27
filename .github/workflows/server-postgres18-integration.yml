@@ -70,6 +70,7 @@ on:
       - 'apps/server/scripts/test_db_runtime_separation_profile.py'
       - 'apps/server/src/main/java/com/lanveriq/server/enrollment/FirstPinReviewLedgerService.java'
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlFirstPinDoubleReviewIT.java'
+      - 'apps/server/src/integrationTest/java/com/lanveriq/server/enrollment/PostgreSqlCertificateRegistrationIT.java'
       - 'apps/server/src/integrationTest/java/com/lanveriq/server/events/PostgreSqlDeviceActivationIT.java'
       - 'apps/server/scripts/assert-postgres18-junit.py'
       - 'apps/server/scripts/test_assert_postgres18_junit.py'
