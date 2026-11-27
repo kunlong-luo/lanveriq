@@ -2,7 +2,7 @@
 
 **PRODUCT DESIGN BASELINE · 2026-11-27 · offline source preview / real device deployment NOT APPROVED**
 
-**MVP-08（源码待验）：** 客户端优先，七入口工作区（概览、安装向导、服务器与配置、设备注册、Agent 服务、安全与诊断、关于），复用原只读检查、草稿、安装审核与诊断；无真实连接、凭据导入、注册、安装、启停。未核验显示未知，敏感动作禁用，紧凑窗保留可见导航。现有 [任务账本](../planning/local-mvp-tasks.md) 管理 MVP-08～16、前置条件、CI/本机退出验收。
+**MVP-08（前端 L1 PASS，原生 APT 审计 FAIL，本机未验）：** 客户端优先，七入口工作区（概览、安装向导、服务器与配置、设备注册、Agent 服务、安全与诊断、关于），复用原只读检查、草稿、安装审核与诊断；无真实连接、凭据导入、注册、安装、启停。未核验显示未知，敏感动作禁用，紧凑窗保留可见导航。现有 [任务账本](../planning/local-mvp-tasks.md) 管理 MVP-08～16、前置条件、CI/本机退出验收。
 
 > **2026-11-23 源码进度（L1 构建已通过，安装功能仍不存在）：** 已在 apps/desktop 新增 React/Tauri 2 预览向导和只读本机检查，但图形化真实安装、签名包、polkit broker、更新/卸载仍没有实现。不要把源码预览等同可下载的桌面客户端；详见 [首个功能阶段](../development/desktop-tauri-first-source-2026-11-23.md)。
 

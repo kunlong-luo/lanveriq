@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（首阶段 7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机真实库存、刷新/断开/登出/收尾 PASS，非独立 L3。已批准客户端优先：MVP-08～16 见[任务账本](planning/local-mvp-tasks.md)，MVP-08 新源码等待 CI/本机窗口；正式页面与生产仍关闭。71/100。
+**MVP-01～07 DONE（首阶段 7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机真实库存、刷新/断开/登出/收尾 PASS，非独立 L3。已批准客户端优先：MVP-08～16 见[任务账本](planning/local-mvp-tasks.md)，MVP-08 [前端 L1 #45976020407](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020407) 42/42 PASS、原生 APT 审计 FAIL、本机未验；正式页面与生产仍关闭。71/100。
 
 ## 最近确实通过的关键验收
 
