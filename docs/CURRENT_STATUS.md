@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（首阶段 7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机真实库存、刷新/断开/登出/收尾 PASS，非独立 L3。已批准客户端优先：MVP-08～16 见[任务账本](planning/local-mvp-tasks.md)，MVP-08 [前端 L1 #45976020407](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020407) 42/42 PASS、原生 APT 审计 FAIL、本机未验；正式页面与生产仍关闭。71/100。
+**MVP-01～07 DONE（首阶段 7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者真实库存/收尾 PASS，非独立 L3。MVP-08～16 见[账本](planning/local-mvp-tasks.md)。MVP-08 [GPUI 候选](https://github.com/kunlong-luo/lanveriq/commit/61a04b9849a5cbaf756b3b0948533c146206c35b) 源码已提交、待锁/CI/实机；[ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 冻结 Tauri 扩展，暂保留回退。此前 Tauri L1 42/42 PASS、原生 FAIL。71/100，生产关闭。
 
 ## 最近确实通过的关键验收
 

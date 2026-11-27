@@ -4,6 +4,10 @@
 
 这是本机窗口工具，不是第二个 Web 控制台（唯一后台 Web 位于 `apps/web`）。未来面向 Pop!_OS 24.04 / COSMIC 的用户目标是“一次经授权的图形安装 + 独立 systemd 后台 Agent + 可发现的停止/卸载入口”，**不是现在已经可以一键安装**。
 
+## 原生 GPUI 迁移候选（尚未切换）
+
+维护者批准优先验证 [GPUI Kit 原生 Rust 候选](gpui-candidate/README.md)，版本和退出标准见 [ADR-0014](../../docs/architecture/adrs/0014-gpui-desktop-candidate.md)。仅离线导航、无真实业务；锁、许可证、原生编译/窗口、功能等价及打包待验证。现有 Tauri 源码冻结业务扩展，验收通过才移除；不长期维护双客户端。
+
 ## 已实现的界面和真实边界
 
 - **MVP-08 工作区（前端 L1 42/42 PASS；原生 APT 审计 FAIL，本机未验）：** 概览、安装向导、服务器与配置、设备注册、Agent 服务、安全与诊断、关于。仅本机只读证据与导航，连接/保存/注册/导入均禁用；保留原两 IPC、空闲配置草稿、安装门禁和诊断。查看[任务账本](../../docs/planning/local-mvp-tasks.md)获取实际 CI 和本机退出条件。

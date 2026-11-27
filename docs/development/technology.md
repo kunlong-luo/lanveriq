@@ -31,6 +31,8 @@
 
 > **2026-11-23 技术范围澄清：** Tauri 桌面程序是仅限本地安装/配置/状态/诊断的规划产物，**不会**替换当前唯一 Next.js Web 管理控制台（apps/web）或由 Tauri 负责常驻 Agent 运行。若桌面构建使用专属打包器，不等于恢复已经废弃的 Web Vite 主项目。正式安装后 Agent 由 systemd system service 管理，授权与签名验收前不得启用。见 [桌面交付方案](../product/linux-desktop-installer-v01.md)。
 
+> **2026-11-27 当前迁移决策（不是已切换）：** [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md)：GPUI Kit =0.11.0 / 配套 GPUI-pre 0.3.14，Rust 原生 GUI 候选，旧 Tauri 仅回退。锁、依赖/许可、原生窗口、功能等价、包审计未通过前不得作为正式桌面栈。Agent/Web/Server 不变；上游 Ubuntu 通用开发依赖包含 WebKitGTK，实际依赖图须核查。
+
 ## 选型底线
 
 - **先完成业务再升级基础设施。** 当前用户批准的优先级是设备注册/证书/首次心跳→库存/离线恢复→授权前端→WSS→真实平台/备份/隐私。v0.1 不新增 MQTT broker、Kafka、gRPC 双栈、视频流或微服务。若未来量化达到需流式/高吞吐的场景，再对比成熟的 `tonic`/`prost` + Spring gRPC + Buf；协议决议见 [ADR-0009](../architecture/adrs/0009-agent-transport-selection.md)。

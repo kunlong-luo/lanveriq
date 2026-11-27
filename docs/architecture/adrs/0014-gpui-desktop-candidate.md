@@ -1,0 +1,24 @@
+# ADR-0014 — GPUI native Rust desktop migration candidate
+
+**Status: ACCEPTED FOR DEVELOPMENT (candidate only; cutover not approved) · Date: 2026-11-27 · v0.1 NOT RELEASE READY**
+
+## Context
+
+MVP-01–07 closed the owner-operated local data chain. MVP-08 Tauri frontend 42/42 passed; native jobs failed in the Ubuntu dependency audit, and the owner reported a separate GdkPixbuf startup panic. That evidence does not establish a comparative performance win or prove that Tauri's icon was the cause. The maintainer chose to evaluate a native Rust interface before expanding business workflows.
+
+## Decision
+
+- Select GPUI Kit exact 0.11.0 for an isolated nonrelease candidate, with its matched GPUI-pre 0.3.14 distribution. [Tagged release](https://github.com/longbridge/gpui-kit/releases/tag/v0.11.0) (2026-11-23, tag commit e97fe438129c5e4ccab504f2e6fafd9a4e396bba), [installation](https://gpui-kit.com/docs/installation/), [getting started](https://gpui-kit.com/docs/getting-started/). Use the Kit facade and styled components, no independently updated GPUI snapshot, GPUI Fast, optional speech, shell or WebView features. Source and code examples Apache-2.0; GPUI snapshot upstream notice also Apache-2.0 per documentation; no reuse of Zed application GPL code. Audit resolved licenses, assets, notices, SBOM and vulnerabilities before distribution.
+- Preserve the one desktop product: temporary candidate in apps/desktop/gpui-candidate, freeze Tauri business expansion. Do not delete Tauri or its safety evidence until candidate has reviewed committed lock, native build, owner window acceptance, parity with existing readonly features and isolated package audit. Candidate first resolves an unreviewed lock in CI and builds with that lock. No new package publication or installer.
+- Keep Agent independent. Shared Rust model/validated configuration may later be reused; all platform-specific service control and privilege brokers remain separately authorized. Linux Wayland and X11 first, Windows SCM/UAC and macOS launchd/OS authorization later; cross-platform framework support is not project acceptance.
+- Preserve sole Next.js Web, Java/Spring/JPA/PostgreSQL, existing Rust Agent/SQLite/mTLS and all defaults. No additional service, network, credential, package or elevation interface.
+
+## Alternatives and tradeoffs
+
+Tauri offers established tooling and React reuse but a WebView and separate frontend stack; Iced and libcosmic are valid native options, libcosmic primarily targets COSMIC; Slint has a separate DSL and distribution review. Prefer GPUI Kit's ready-made components and one Rust code path for this trial. Pre-1.0 APIs, native driver/runtime dependencies, IME, scaling, accessibility and packaging are risks. Upstream Ubuntu development list includes WebKitGTK even though GPUI renders natively. Inspect actual resolved and linked libraries; do not assert their absence or improved memory/startup/size without measurement.
+
+## Acceptance and supersession
+
+See [single task ledger](../../planning/local-mvp-tasks.md). Verify exact-source CI and reviewed committed lock, native startup/navigation, keyboard/focus/Chinese IME, COSMIC/Wayland, resize/scroll/close, denied privileged actions, parity for read-only checks, offline draft, install review and diagnostics, GUI-only noninstalling package/ABI audit and comparable resource metrics. Retain rollback in Git and remove obsolete Tauri-specific UI/build paths only after acceptance; retain framework-neutral security evidence. Partially supersedes [ADR-0013](0013-tauri-desktop-installer-idle-agent.md) GUI selection **only when cutover accepted**. All lifecycle, notice, retention, signing, Polkit and independent Agent decisions remain binding.
+
+**Approval scope:** source, disposable CI and owner-operated nonprivileged offline candidate window only. **Explicit non-authorizations:** no Agent installation/start/autostart, no production network/collection/recovery/remote control/CA or certificate issuance, no new permissions, no release, no removal of fallback before parity. G-01–10 OPEN.

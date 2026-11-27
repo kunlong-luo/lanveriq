@@ -22,7 +22,7 @@
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **DONE（限定本机 MVP）**：真实浏览器认证/同设备读取/登出、入口拒绝、收尾 PASS；未改后端的隔离 L2 跨组 PASS，本机跨组无目标 NOT RUN；修复后 Next L1 PASS |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **DONE（限定本机 MVP）**：os_version 修复；本机真实列表/详情、刷新、断网、停止/恢复后端、登出及安全收尾 PASS；功能 SHA 七项 CI SUCCESS |
 
-| **MVP-08** | Tauri 工作区、导航、离线状态及设计 token | MVP-07 | **BLOCKED**：前端 L1 PASS；原生 APT 审计 FAIL；本机窗口待验 |
+| **MVP-08** | GPUI 原生客户端替代验证、工作区与功能等价 | MVP-07 | **BLOCKED**：候选源码已提交；锁/CI/本机/打包待验 |
 | **MVP-09** | 服务器配置草稿及显式连接检测 | MVP-08 | **TODO** |
 | **MVP-10** | 可视化设备注册及凭据准备 | MVP-09 | **TODO** |
 | **MVP-11** | 签名 Agent/受限 Polkit 安装及 systemd 生命周期 | MVP-10、独立 G-05 前提 | **TODO** |
@@ -162,12 +162,15 @@
 - **真实本机维护者提供的浏览器/操作证据（非助手独立见证）**：启动器先前报告 committed archive 93aba33d（含 71ee69d1），残留工作目录拒绝后重启成功，最终成功启动 SHA 未单独回传。最初 Caddy 证书路径占位符导致 validate FAIL；补正后 SIGUSR1 因 127.0.0.1:80 冲突 FAIL（磁盘/容器配置 SHA 一致），恢复禁用自动重定向后继续；浏览器 CSRF GET 403，排查本机 JVM 三 Console 开关 false 覆盖环境 true，按本机临时 true 与 Console 上游 HTTP/1.1 配置重启；最终通过但不将代理/HTTP2 视为独立确认的故障因果。无绕过 TLS/CSRF/RBAC。维护者回传实际页面 PASS：真实会话、唯一同一设备列表/详情 OS 名称与版本/CPU/内存一致，Pop!_OS 24.04、非空真实 CPU、精确 RAM 与 MVP-05 对照通过（不保存个人设备 ID 或原始硬件记录）；在线状态未知。五项功能回报 PASS：手动刷新、浏览器 offline 清除库存、停止 Spring 后无法读取旧库存、恢复 Spring 后登出/重新登录恢复、登出后会话/设备读取均拒绝。切后台可能触发页面锁定；未独立区分其与后端停止的每一事件时序。本机跨组目标未构造/NOT RUN（隔离 L2 跨组 PASS）；本轮独立无 proof/伪造 proof 的直接 3100 HTTP 原始输出未回传（MVP-06 已有本机负测，当前源码 proof 正负断言保留）。未新开业务路由、迁移、权限或写库。
 - **本机安全收尾（维护者回报六项 PASS）**：IDEA 临时三开关恢复并重启；Caddy 禁用配置重载成功；Next.js 停止且临时目录清理；临时 Edge 凭据删除；/local-console-probe、/api/v1/auth/session、/api/v1/devices、/api/v1/auth/csrf 均 503；共享 PostgreSQL 和 Caddy 正常运行。未独立连接主机核查最终有效 JVM 参数或全部共享站点，未获得独立 L3。所有本机 MVP 任务 DONE；正式设备页仍断开，生产默认 OFF。评分按现有刻度维持 71/100，Gate 0/10；不把单机开发通过视为获批安装/正式发行。无需重跑 Agent/写库，不进入下一任务。
 
-### MVP-08 · Tauri 客户端工作区与导航
+### MVP-08 · 客户端工作区与导航（Tauri 历史尝试；现改 GPUI 候选）
 
-- **允许**：仅 `apps/desktop/src` 的 React/Tailwind/Lucide 组件、样式及单测；保留现有 Tauri、安装向导、只读 IPC、预检、配置草稿和诊断。不新增依赖、IPC、联网、安装包权限、root broker、证书操作或 Agent 启停。
+- **原 Tauri 范围（历史）**：仅 `apps/desktop/src` 的 React/Tailwind/Lucide 组件、样式及单测；保留现有 Tauri、安装向导、只读 IPC、预检、配置草稿和诊断。不新增依赖、IPC、联网、安装包权限、root broker、证书操作或 Agent 启停。
 - **验收**：七个可键盘进入且有可访问名称的导航项（概览/安装向导/服务器与配置/设备注册/Agent 服务/安全与诊断/关于），唯一当前项；浏览器预览无真实主机证据时显示未知；原有读取失败不保留旧主机；连接/保存/注册/导入按钮原生禁用；向导和诊断仍可达；窄窗可滚动、无裁切；CI React/TypeScript/构建、原生安全守卫与实际 Tauri 构建；维护者 Pop!_OS 原生窗口可视、键盘及尺寸验收（不安装 Agent、不启动生产）。
 - **2026-11-27 源码**：[7f579b74](https://github.com/kunlong-luo/lanveriq/commit/7f579b7427f3ce2839def62a4b5bb82880665b0d)：新增 DesktopWorkspace/单测，修改 DesktopApp 与 styles.css，默认概览复用既有 host 投影（不显示伪造 OS/CPU/RAM/在线值）、独立页面、七项导航、明确禁用尚未授权操作、窄屏布局及焦点样式，共四文件；原有两只读 IPC 和安装门禁保留。配置草稿仍只读且页面切换不保存草稿。无新依赖或服务开关。
 - **证据**：基线 8c461150 的 [Next #45975622711](https://github.com/kunlong-luo/lanveriq/actions/runs/45975622711)、[docs #45975623000](https://github.com/kunlong-luo/lanveriq/actions/runs/45975623000)、[RD-2 #45975622718](https://github.com/kunlong-luo/lanveriq/actions/runs/45975622718)、[源码预览 #45975622680](https://github.com/kunlong-luo/lanveriq/actions/runs/45975622680) SUCCESS（非新功能）。新功能 [Tauri #45976020407](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020407) **FAIL（原生 job）**：job 140427821363 React、安全默认拒绝守卫、9 files/42 tests（新工作区 3/3；独立安装审核 10/10）、typecheck/build 均 PASS；job 140427968643 在当前已签名 Ubuntu APT 依赖闭包审计拒绝 libtiff-dev，原生 Rust tests/Clippy NOT RUN。[GUI-only .deb #45976020339](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020339) **FAIL**：job 140427821365 同一 APT 闭包拒绝，实际原生打包/归档负测 NOT RUN。[GUI-only 离线证据合约 #45976020338](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020338)、[Polkit deny-all #45976020292](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020292)、[RD-2 #45976020285](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020285) SUCCESS。原失败日志保留；未修改 APT 安全验证或依赖、未使用缓存绕过。维护者本机浏览器/原生窗口均 NOT RUN，未独立视觉验证，仍 BLOCKED。
+
+- **2026-11-27 维护者批准改向，当前执行范围**：[ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md)。采用 GPUI Kit 固定 =0.11.0（[发布](https://github.com/longbridge/gpui-kit/releases/tag/v0.11.0)，上游 tag commit e97fe438129c5e4ccab504f2e6fafd9a4e396bba，配套 GPUI-pre 0.3.14）。主体 Apache-2.0；间接依赖/资源/发行许可待审，不直接采用 Zed 应用 GPL 代码。候选单独在 apps/desktop/gpui-candidate；不修改现有 Tauri 及其审计，不新建第二正式应用。候选 [61a04b98](https://github.com/kunlong-luo/lanveriq/commit/61a04b9849a5cbaf756b3b0948533c146206c35b) 有七导航和中文 Label/Button、状态纯模型测试、六禁用按钮（仅占位、不含旧只读能力的功能等价），无系统/Agent/网络/存储/权限调用。CI 首次显式解析临时 Cargo.lock、校验 GPUI 匹配快照和 registry 来源、归档许可证清单，然后同锁测试/编译；没有已审核提交的产品锁，不宣称依赖已锁全图。上游通用 Ubuntu 依赖仍含 WebKitGTK，原生渲染不代表没有此链接/编译依赖。此前用户本机报告缺 dbus-1 开发库，后续运行 gdk-pixbuf 像素缓冲 panic；图标猜测未证实，Tauri 实机未通过。旧 APT FAIL 保留。
+- **新退出验收**：GPUI 解析、锁审查并提交、许可证/SBOM/漏洞审查；实际 Linux 原生编译/测试、窗口启动、七导航键盘/焦点/禁用态、中文输入/缩放、Wayland/COSMIC/窄窗滚动、正常退出；迁移既有只读检查/配置草稿/安装审核/脱敏诊断并保持所有拒绝边界；签名 Ubuntu 构建依赖与非安装 GUI-only .deb 归档审计，核对链接依赖、尺寸/内存/启动实测；Windows/macOS 编译与各平台授权单列，不宣称已通过。全项完成后再将候选迁至唯一 apps/desktop，保留 Git 回退并清理旧 Tauri 专用 UI/CI（安全通用实验保留）。本轮仅候选源码，未执行本机/打包，BLOCKED；不进入 MVP-09。
 
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
@@ -205,12 +208,12 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [8c461150](https://github.com/kunlong-luo/lanveriq/commit/8c46115040225f5ab251fdbe72be3edc3af8475c)；功能 [7f579b74](https://github.com/kunlong-luo/lanveriq/commit/7f579b7427f3ce2839def62a4b5bb82880665b0d)。 |
-| 本轮 | MVP-01～07 DONE；新增后续任务索引；仅实现 **MVP-08 BLOCKED**（前端 L1 PASS，原生 APT 审计 FAIL，本机窗口待验）。MVP-09～16 TODO。 |
-| CI | [Tauri #45976020407](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020407) React job PASS（42/42），原生 FAIL；[.deb #45976020339](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020339) FAIL（同 libtiff-dev APT 闭包审计）；[离线证据 #45976020338](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020338)、[Polkit #45976020292](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020292)、[RD-2 #45976020285](https://github.com/kunlong-luo/lanveriq/actions/runs/45976020285) PASS。 |
-| 本机 | NOT RUN；先看离线浏览器预览，再仅在已有原生开发依赖可用时运行 Tauri dev，验证七入口/窄窗/键盘/禁用态，关闭窗口后无新 Agent 服务。 |
+| 基线 | [3cb5f828](https://github.com/kunlong-luo/lanveriq/commit/3cb5f828da563ee3db55da2d6e754d953fe06f60)；候选功能 [61a04b98](https://github.com/kunlong-luo/lanveriq/commit/61a04b9849a5cbaf756b3b0948533c146206c35b)。 |
+| 本轮 | MVP-08 **BLOCKED**；维护者批准 GPUI 优先验证，ADR-0014；七导航离线源码候选、未迁移旧只读业务。MVP-01～07 DONE，09～16 TODO。 |
+| CI | 旧 Tauri 42/42 PASS、原生 APT FAIL 保留；GPUI 新工作流首次查询未产生 run，待核实。 |
+| 本机 | Tauri 启动曾 panic；GPUI NOT RUN。依赖图、产品锁、完整许可证、安全审核、实机窗口、GUI-only 包及功能等价待验。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | 仍为 MVP-08；先按已审核双 runner 签名 APT 依赖闭包流程重新核实原生依赖，保留失败，不降级审计，再执行同 SHA 原生构建/测试和本机窗口验收；完成才 DONE，不进入 MVP-09。 |
-| 约束 | main only；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent；无秘密。 |
+| **下次唯一任务** | MVP-08：核实候选精确 SHA CI/解析锁及依赖许可证，先通过实际原生构建和窗口，再迁移既有只读功能、审计包与决定切换；不进入 MVP-09。 |
+| 约束 | main only；旧 Tauri 回退保留且冻结扩展，不弱化安全审计；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
