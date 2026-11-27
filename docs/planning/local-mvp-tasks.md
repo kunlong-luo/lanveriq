@@ -14,7 +14,7 @@
 
 | ID | 单次会话应完成的目标 | 依赖 | 状态 |
 | --- | --- | --- | --- |
-| **MVP-01** | 共享 PG18 + Spring 启动、Flyway、启动/停止脚本 | 本机 Docker/Java/端口可核实 | **BLOCKED**：2026-11-27 复核 `a98f8497`；无本机执行通道，预检及验收 NOT RUN |
+| **MVP-01** | 共享 PG18 + Spring 启动、Flyway、启动/停止脚本 | 本机 Docker/Java/端口可核实 | **BLOCKED**：2026-11-27 复核 `14e3409f`；PG18 合成 L2 历史 PASS，本机预检及验收 NOT RUN |
 | **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：2026-11-27 复核；保留既有用户本机 PASS 与 Agent L1 PASS，本轮重跑 NOT RUN |
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **TODO / NOT RUN** |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **TODO / NOT RUN** |
@@ -72,11 +72,12 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | `main` [14f8f39e66427ee2a96297fdf051e4724624ef95](https://github.com/kunlong-luo/lanveriq/commit/14f8f39e66427ee2a96297fdf051e4724624ef95)；既有功能 SHA [bed0152b](https://github.com/kunlong-luo/lanveriq/commit/bed0152bff52bfdee1d31a6e621f5d83d66b4c49) 至基线仅文档变化；本轮仅账本交接，无新功能 SHA。 |
-| 本轮 | **MVP-02 DONE（2026-11-27 复核，非新增实现）**：读取必读文档、检查 Agent `main.rs`/`inventory_platform.rs`/`store.rs` 与 Cargo manifest/lock，核对功能 SHA、GitHub compare 和实际 CI 日志；手动 once 只走最小 OS/CPU/RAM 采集、SQLx SQLite 事务去重，不调用传输或后台调度。已有实现满足任务卡，不重复开发。 |
-| 已验证 | **静态复核 PASS**（GitHub compare 与五个 blob 一致）；历史 [Agent L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428) job `139855945215` 实际 checkout 功能 SHA `bed0152b`，125 passed / 0 failed / 0 ignored，Rustfmt、Clippy 与锁文件 SUCCESS；保留 2026-11-26 **用户本机证据 PASS**：SQLite pending/latest revision=1、729 bytes、next revision=2，重复 once `already pending ... revision=1; not sent`。 |
-| 仍未验 | 本轮新功能 CI、`cargo test --locked` 重跑及 Pop!_OS 本机 `once`/`sqlite3` 重跑均 **NOT RUN**（无本机执行通道，既有功能未改）；文档治理 `node apps/web/scripts/verify-documentation-baseline.mjs`、`node --test apps/web/scripts/test_verify_documentation_baseline.mjs` NOT RUN。send/mTLS、Spring/PG、Web、完整 Pop!_OS L3 NOT RUN；本轮未操作本机数据库或待发快照。 |
-| **下次唯一任务** | **MVP-01** 仍 BLOCKED：获得授权本机执行环境后按任务卡做 Docker/PG18/Java/8080/wrapper 只读预检、审核专用角色/数据库及 Spring 专用启停脚本（此前远端根目录和 `apps/server/` 的 start.sh/stop.sh 查询 404，不代表本机缺失），验证 health UP、Flyway success、inventory 表存在及验收后 Spring 保持运行。MVP-03 等待 MVP-01 完成，本轮不进入。 |
-| 约束 | 单一 main、每轮一个 ID；生产联网/采集/自动恢复/远控/证书签发 OFF，G-01～G-10 OPEN；不改其他数据库、容器、卷或已有 SQLite 待发记录。 |
+| 基线 | `main` [14e3409f](https://github.com/kunlong-luo/lanveriq/commit/14e3409f6bf375f0fef436d22643e8aa70c813b2)；compare 自 `a98f8497` 起两提交仅改本账本。本轮无功能改动，仅账本交接。 |
+| 本轮 | **MVP-01 BLOCKED**：已读取 AGENTS、CURRENT_STATUS、账本、工程规范、ADR 索引、DoD、发布门禁与评分。静态核对 `setup-local-postgres.sh`、`provision-lanveriq-database.sql`、`application.yml`、`build.gradle`、Gradle wrapper、Flyway V8。专用 PG18 角色/库、SCRAM 交互授权、Flyway validate、JPA validate、Java25/Boot4.2.0/Gradle9.9.2 与默认 loopback:8080 配置存在；Agent/Console 等敏感路由默认 OFF。根目录及 apps/server 的 start.sh/stop.sh 远端查询均 404，不代表本机不存在。未获本机执行通道，不在未核实本机端口/进程/凭据前新增或执行启停脚本。安装 runbook 的 18081 与任务卡 8080 不一致，本轮以任务卡及默认配置的 8080 为准，不改全局配置。 |
+| 已验证 | **源码静态 PASS**；历史 [隔离 L2 #45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs SUCCESS，job 139649119723 日志实际 checkout [b31f45ef](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f)，BUILD SUCCESSFUL、11 Testcontainers classes、至少 151 passing、无 failed/errored/skipped；compare 至当前基线 apps/server 唯一变化为新增独立 DR lab 脚本。旧 CI 非本轮重跑，不证明共享本机 PG 或 Spring 已启动。 |
+| 仍未验 | **NOT RUN（无本机执行通道）**：docker --version、docker inspect/port spark-postgres、PG server_version、java -version、ss 8080、wrapper 本机存在性、专用角色登录、Spring 启停、health UP、Flyway 全 success、inventory 表非 NULL、验收后 Spring 持续运行。未操作数据库、容器、卷、SQLite 或本机进程。文档治理两条 Node 命令本轮本机 NOT RUN；本次文档提交的 CI 结论未验证，不计 PASS。 |
+| 评分/上线 | [工程评分](project-scorecard.md) 71/100 不变，未产生新增能力或真实验收证据；G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。CURRENT_STATUS、评分文件及 Gate 无实质事实变化，不重复改写。 |
+| **下次唯一任务** | **MVP-01**：取得授权本机执行环境，按任务卡预检并审核现有专用角色/库、仅管 Spring 的启停脚本，再验收 health UP、Flyway success、库存表存在、停止不影响共享 PG、最终 Spring 保持运行。MVP-02 保持既有 DONE；MVP-03 依赖 MVP-01，本轮不进入。 |
+| 约束 | 单一 main、每轮一个 ID；生产联网/采集/自动恢复/远控/证书签发 OFF；不改其他数据库、容器、卷或已有 SQLite 待发记录。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
