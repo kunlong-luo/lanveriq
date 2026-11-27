@@ -20,6 +20,31 @@ For copyable development and synthetic-only commands, begin with the [Chinese RE
 
 **JDBC/IDE-compatible SQL bootstrap:** `apps/server/scripts/provision-lanveriq-database.sql` contains only PostgreSQL SQL, no `psql` directives. Open it against the **`postgres`** maintenance database as the authorized administrator, set **Auto-commit** and **Stop on error**, and execute statements in sequence. **Do not** wrap `CREATE DATABASE` in a transaction. If using psql, pass `-v ON_ERROR_STOP=1` on the invocation rather than adding a backslash directive to the SQL file. Passwords are not in source: configure via a GUI credential editor or the interactive psql `\password` command, then separately enable LOGIN. Existence checks are deliberate; inspect partial states rather than rerunning.
 
+## 本机目录与命名规范（2026-11-27，维护者确认）
+
+下表是维护者的 Pop!_OS 开发环境目录映射，使用 `$HOME` 表示当前用户主目录，不硬编码个人用户名。其他开发机按实际 checkout 位置调整；系统级目录是长期命名约定，不代表已批准生产安装。
+
+| 用途 | 目录或文件 | 状态 |
+| --- | --- | --- |
+| Lanveriq 仓库根目录 | `$HOME/Projects/github/lanveriq/` | 本机已确认 |
+| Spring Boot / Gradle | `$HOME/Projects/github/lanveriq/apps/server/` | 源码目录 |
+| Rust Agent | `$HOME/Projects/github/lanveriq/apps/agent/` | 源码目录 |
+| Next.js Web | `$HOME/Projects/github/lanveriq/apps/web/` | 源码目录 |
+| 共享 Spark 基础设施 | `$HOME/Projects/IOT/spark-iot-farm/spark-iot-infra/` | 外部项目，不属于本仓库 |
+| 统一代理配置 | 上述基础设施的 `docker/0-proxy/` | `docker-compose.yml`、`Caddyfile`、`nginx.conf`、`.env`、`.env.example` |
+| 统一启停脚本 | 上述基础设施的 `scripts/` | `spark-compose.sh`、`deploy-all.sh`、`deploy-app.sh` |
+| Caddy 外部 TLS 配置 | `/etc/spark/caddy/tls/` | 项目分目录、只挂载所需运行材料 |
+| Caddy 公共根证书 | `/etc/spark/caddy/caddy-root-ca.crt` | 本机开发公共 CA，非正式信任根 |
+| Spring TLS | `/etc/lanveriq/server/tls/` | 已创建本机测试 PKCS12；运行用户读取授权仍需验证 |
+| Agent TLS | `/etc/lanveriq/agent/tls/` | 本机测试身份材料；负例证书不得用于正式安装 |
+| Spring 开发 JAR | `$HOME/.local/share/lanveriq/server/lanveriq-server.jar` | 计划的非 root 开发构建输出，尚未验证 |
+| Agent 系统服务持久化 | `/var/lib/lanveriq/` | 长期目标；已有 SQLite pending 不迁移、不覆盖，直到单独验证 |
+
+- 构建从 Lanveriq 根目录进入 `apps/server` 使用 Gradle；代理配置检查在 Spark 的 `docker/0-proxy` 执行；共享代理启停在 Spark 的 `scripts` 执行。Lanveriq 自身的启停不得停止共享代理、PostgreSQL 或其他 Spark 服务。
+- 通用 Caddy 使用 `spark-caddy` 容器，复用既有 `spark-iot-net` 与代理 Compose 分组；本机 HTTPS 仅发布回环 TCP 443，不通过 Cloudflare Tunnel 暴露 Agent。Caddy 自动证书和配置数据由 `caddy-data` / `caddy-config` Docker 卷持久化；不得通过删除卷重置信任根。
+- 使用官方组件名称、kebab-case 目录/容器名称及 UPPER_SNAKE_CASE 环境变量。长期目录不含 MVP 编号、版本号、临时阶段名。外部证书目录通过 `CADDY_TLS_DIR` 指向系统级 TLS 目录。秘密及个人路径不得写入 Git、CI 或日志；私钥/密码文件应为 owner-only，运行用户权限按最小授权配置，不以 root 启动 Java。
+- Caddy 内部 CA 只用于本机 HTTPS 服务端；Agent 客户端和 Caddy 至 Spring 上游客户端信任域保持独立。共享 Bridge 网络不是独立安全域；实际后端连接、证书绑定及负例仍须按 [MVP-03 任务卡](../planning/local-mvp-tasks.md) 验收。不得把本目录约定当成生产配置或发行许可。
+
 ## Recommended manual PostgreSQL setup on the Linux development machine
 
 From the repository root, use `bash apps/server/scripts/setup-local-postgres.sh` rather than executing `CREATE DATABASE` through a JDBC SQL editor. The helper is manually invoked, requires an interactive terminal, a running existing `spark-postgres`, authorized `root` superuser access and PostgreSQL 18 SCRAM settings. It checks for pre-existing or interrupted `lanveriq` objects, requires exact confirmations, delegates separate statements to the container's `psql`, and uses hidden interactive password prompts. It never creates a new container, changes `iot_farm`, enables monitoring, or runs as part of Spring Boot/Flyway/CI. No password is stored in source control. The standalone bootstrap SQL remains reviewable at [`apps/server/scripts/provision-lanveriq-database.sql`](../../apps/server/scripts/provision-lanveriq-database.sql).
