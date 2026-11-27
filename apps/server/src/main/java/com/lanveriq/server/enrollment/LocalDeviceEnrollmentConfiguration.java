@@ -33,7 +33,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Explicit local development enrollment, not a production enrollment route.
  * No private key input, issuer, fabricated administrator or active-state write.
- * Uses a separately provisioned local test DB, existing real admin credentials
+ * Uses the owner's dedicated lanveriq development DB, real admin credentials
  * and the same scoped token, CSR and pending-certificate transactions.
  */
 @Configuration(proxyBeanMethods = false)
@@ -41,7 +41,7 @@ import org.springframework.transaction.support.TransactionTemplate;
         havingValue = "true")
 class LocalDeviceEnrollmentConfiguration {
 
-    static final String TEST_DB = "lanveriq_local_test";
+    static final String TEST_DB = "lanveriq";
     static final String TEST_URL = "jdbc:postgresql://127.0.0.1:5432/" + TEST_DB;
     static final String TEST_GROUP = "local-test-devices";
 
@@ -56,7 +56,8 @@ class LocalDeviceEnrollmentConfiguration {
 
     static void requireLocalConfiguration(Environment env) {
         String action = env.getProperty("lanveriq.local-enrollment.action", "");
-        if (!List.of("prepare", "register").contains(action)
+        if (!env.getProperty("lanveriq.local-enrollment.personal-development", Boolean.class, false)
+                || !List.of("prepare", "register").contains(action)
                 || !"none".equals(env.getProperty("spring.main.web-application-type"))
                 || !TEST_URL.equals(env.getProperty("spring.datasource.url"))
                 || !TEST_DB.equals(env.getProperty("spring.datasource.username"))
@@ -69,7 +70,7 @@ class LocalDeviceEnrollmentConfiguration {
                 || !env.getProperty("spring.jpa.properties.hibernate.hbm2ddl.auto", "").isBlank()
                 || env.getProperty("lanveriq.client-cert-registration.enabled", Boolean.class, false)
                     != "register".equals(action)) {
-            throw new IllegalStateException("Local enrollment requires dedicated offline test configuration");
+            throw new IllegalStateException("Local enrollment requires explicit personal development and dedicated offline configuration");
         }
         for (String flag : List.of("lanveriq.bootstrap.enabled",
                 "lanveriq.console.auth.enabled", "lanveriq.agent.ingress.assertions-enabled",
@@ -150,18 +151,20 @@ class LocalDeviceEnrollmentConfiguration {
 
     private static void requireTestDatabase(EntityManager manager) {
         Object safe = manager.createNativeQuery("""
-                SELECT current_database()='lanveriq_local_test'
-                  AND current_user='lanveriq_local_test'
+                SELECT current_database()='lanveriq'
+                  AND current_user='lanveriq'
                   AND session_user=current_user AND current_schema()='public'
                   AND current_setting('server_version_num')::integer BETWEEN 180000 AND 189999
                   AND EXISTS (SELECT 1 FROM pg_roles r WHERE r.rolname=current_user
                     AND NOT r.rolsuper AND NOT r.rolcreatedb AND NOT r.rolcreaterole
                     AND NOT r.rolreplication AND NOT r.rolbypassrls)
                   AND EXISTS (SELECT 1 FROM pg_database d WHERE d.datname=current_database()
-                    AND pg_get_userbyid(d.datdba)=current_user)
+                    AND pg_get_userbyid(d.datdba)=current_user
+                    AND d.datacl IS NOT NULL
+                    AND NOT EXISTS (SELECT 1 FROM aclexplode(d.datacl) WHERE grantee=0))
                 """).getSingleResult();
         if (!Boolean.TRUE.equals(safe)) {
-            throw new IllegalStateException("Actual database or role is not the dedicated local test database");
+            throw new IllegalStateException("Actual database or role is not the dedicated lanveriq development database");
         }
     }
 
