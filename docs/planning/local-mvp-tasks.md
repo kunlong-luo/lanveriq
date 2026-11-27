@@ -14,7 +14,7 @@
 
 | ID | 单次会话应完成的目标 | 依赖 | 状态 |
 | --- | --- | --- | --- |
-| **MVP-01** | 共享 PG18 + Spring 启动、Flyway、启动/停止脚本 | 本机 Docker/Java/端口可核实 | **BLOCKED**：2026-11-27 复核 `2264c08f`；PG18 合成 L2 历史 PASS，本机预检及验收 NOT RUN |
+| **MVP-01** | 共享 PG18 + Spring 启动、Flyway、独立启停 | 本机 Docker/Java/端口可核实 | **DONE**：2026-11-27 用户本机 V1～V30、loopback:18081 Health UP、IDEA 独立停止/重启 PASS（限定本机开发） |
 | **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：2026-11-27 复核；保留既有用户本机 PASS 与 Agent L1 PASS，本轮重跑 NOT RUN |
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **TODO / NOT RUN** |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **TODO / NOT RUN** |
@@ -22,16 +22,16 @@
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **TODO / NOT RUN** |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**下一项默认 MVP-01**，不是重复做 MVP-02；MVP-01 若无法本机执行应维持 BLOCKED，不用云端 CI 冒充实际启动。保留已有 SQLite 待发数据。
+**下一项默认 MVP-03**：MVP-01 与 MVP-02 已完成限定本机目标。先核实授权测试身份，不得跳过 mTLS；保留已有 SQLite 待发数据。
 
 ## 可执行任务卡
 
 ### MVP-01 · PG18 + Spring 在本机运行
 
-- **只读预检**：`docker --version`、`docker inspect -f '{{.State.Running}}' spark-postgres`、`docker port spark-postgres 5432`、`docker exec spark-postgres psql -XAt -U root -d postgres -c 'SHOW server_version;'`、`java -version`、`ss -ltn '( sport = :8080 )'`、`test -f apps/server/gradlew`。缺依赖先报告、征得批准，不擅自安装。
-- **允许**：按 [installation.md](../operations/installation.md) 先审核后手动调用 [setup-local-postgres.sh](../../apps/server/scripts/setup-local-postgres.sh)，仅在现有 `spark-postgres` 建独立 `lanveriq` 数据库/非超级用户；Spring 只监听 `127.0.0.1:8080`。密码仓库外 mode `0600`，不出现在 CLI 参数、日志或 Git；必要时仅生成管理本项目 Java 进程的 `start.sh`/`stop.sh`。
-- **禁止**：不创建第二个长期 PG、不动 `iot_farm`/其他容器与卷、不开放 LAN/WAN、不启用 Agent 接口/采集/远控；`stop.sh` 不停共享 PG。
-- **完成证据**：`curl -fsS http://127.0.0.1:8080/actuator/health` 响应状态 `UP`，`flyway_schema_history` 全部 `success`，`SELECT to_regclass('public.device_inventory_current');` 非 NULL；启动/停止脚本仅管 Spring，验收后 Spring 保持运行。缺任何一项不能标 DONE。
+- **只读预检**：`docker --version`、`docker inspect -f '{{.State.Running}}' spark-postgres`、`docker port spark-postgres 5432`、`docker exec spark-postgres psql -XAt -U root -d postgres -c 'SHOW server_version;'`、`java -version`、`ss -ltn '( sport = :18081 )'`、`test -f apps/server/gradlew`。缺依赖先报告、征得批准，不擅自安装。
+- **允许**：按 [installation.md](../operations/installation.md) 先审核后手动调用 [setup-local-postgres.sh](../../apps/server/scripts/setup-local-postgres.sh)，仅在现有 `spark-postgres` 建独立 `lanveriq` 数据库/非超级用户；本机 Spring 只监听 `127.0.0.1:18081`（维护者已确认；8080 为其他项目占用，18080 亦冲突）。通过本地 IDE 环境变量 `LANVERIQ_HTTP_BIND=127.0.0.1`、`LANVERIQ_HTTP_PORT=18081` 配置，不改变仓库默认端口。密码仓库外 mode `0600`，不出现在 CLI 参数、日志或 Git。复用 IDEA 独立启停，或仅管理本项目 Java 进程的 `start.sh`/`stop.sh`；本机 MVP 不强制新增脚本。
+- **禁止**：不创建第二个长期 PG、不动 `iot_farm`/其他容器与卷、不开放 LAN/WAN、不启用 Agent 接口/采集/远控；任何启停方式都不得停止共享 PG 或其他服务。
+- **完成证据**：`curl -fsS http://127.0.0.1:18081/actuator/health` 响应状态 `UP`，`flyway_schema_history` 与当前源码全部版本一致且全部 `success`，`SELECT to_regclass('public.device_inventory_current');` 非 NULL；独立停止后 18081 无监听、共享 PG/IoT 容器仍运行，重新启动 Health UP，验收后 Spring 保持运行。缺任何一项不能标 DONE。
 
 ### MVP-02 · `once` 本机采集（已完成限定目标）
 
@@ -72,12 +72,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | `main` [2264c08f](https://github.com/kunlong-luo/lanveriq/commit/2264c08ff6e37ca852b8e13ebed7e545986125d7)；compare 自 `14e3409f` 起 1 个提交仅修改本账本。本轮无功能改动，仅账本交接。 |
-| 本轮 | **MVP-01 BLOCKED**：读取 AGENTS、CURRENT_STATUS、账本、工程手册、文档生命周期、DoD、发布门禁、工程规范、ADR 索引、评分及安装 runbook；重新静态核对 `setup-local-postgres.sh`、`provision-lanveriq-database.sql`、`application.yml`、`build.gradle`、Gradle wrapper、Flyway V8。已有专用 PG18 角色/库、SCRAM 交互授权、Flyway validate、JPA validate、Java25/Boot4.2.0/Gradle9.9.2、默认 loopback:8080，Agent/Console 敏感路由默认 OFF。根目录及 apps/server 的 start.sh/stop.sh 四个远端路径均 404；不代表本机不存在。未连接本机，不在未核实端口/进程/凭据前新增或执行启停脚本。runbook 的 18081 与任务卡 8080 不一致，按任务卡及源码 8080；standards.md 仍含旧 Boot/Gradle 版本，本轮按源码，不扩大范围改写。 |
-| 已验证 | **源码静态 PASS**；历史 [隔离 L2 #45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 重新查询三 jobs 均 SUCCESS（139649119723、139649120029、139650596212）；PG18 job 139649119723 原始日志实际 checkout [b31f45ef](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f)，BUILD SUCCESSFUL。compare 至当前基线 apps/server 唯一变化为独立 DR lab 脚本；历史 CI 复核非本轮重跑，不证明共享本机 PG 或 Spring 已启动。 |
-| 仍未验 | **NOT RUN（无本机执行通道）**：docker --version、docker inspect/port spark-postgres、PG server_version、java -version、ss 8080、wrapper 本机存在性、专用角色登录、Spring 启停、health UP、Flyway 全 success、inventory 表非 NULL、停止不影响共享 PG、验收后 Spring 持续运行。未操作数据库、容器、卷、SQLite 或本机进程。文档治理两条 Node 命令本轮本机 NOT RUN；本次文档提交的 CI 未验证，不计 PASS。 |
-| 评分/上线 | [工程评分](project-scorecard.md) 71/100 不变；无新增能力或真实验收证据；G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。CURRENT_STATUS、评分文件及 Gate 无实质事实变化，不重复改写。 |
-| **下次唯一任务** | **MVP-01**：取得授权本机执行环境，按任务卡预检并审核现有专用角色/库、仅管 Spring 的启停脚本，再验收 health UP、Flyway success、库存表存在、停止不影响共享 PG、最终 Spring 保持运行。MVP-02 保持既有 DONE；MVP-03 依赖 MVP-01，本轮不进入。 |
-| 约束 | 单一 main、每轮一个 ID；生产联网/采集/自动恢复/远控/证书签发 OFF；不改其他数据库、容器、卷或已有 SQLite 待发记录。 |
+| 基线 | `main` [19b5f56a](https://github.com/kunlong-luo/lanveriq/commit/19b5f56a30bc33c018f2ea7b3047494d6df5d090)；用户报告同一 HEAD，本机 application.yml 有未提交配置修改，非纯净 SHA 实机复现。仓库功能源码未改；本次只同步文档。 |
+| 本轮 | **MVP-01 DONE（限定本机开发）**：维护者明确确认使用 18081；8080 属于 spark-iot-core，之前 8080 Health UP 不计 Lanveriq 证据；首轮 Lanveriq 在 18080 绑定失败（exit 1），但 Flyway 已增量提交 22 条至 V30，随后 18081 成功启动。复用实际使用的 IDEA 独立启停作为等效验收方式，不增加 Shell 脚本（本机开发取舍，非生产安装；维护者提供启停证据，未单独明确确认取消脚本）。 |
+| 已验证（用户提供的本机终端及 IDEA 日志） | `docker --version` 29.10.1；`docker inspect -f '{{.State.Running}}' spark-postgres` true；`docker port spark-postgres 5432` loopback；`SHOW server_version` 18.7；`java -version` Temurin 25.0.4；Gradle wrapper 存在可执行；专用角色登录 current_user/current_database 均 lanveriq。Boot 4.2.0、Hibernate 7.4.15.Final、JPA 初始化，Flyway validate 30、V8→V30 增量成功。psql 查询 `flyway_schema_history` 30 / failed 0 / all_success t；`to_regclass('public.device_inventory_current')` 非 NULL。 |
+| 已验证（独立启停） | IDEA 启动日志 Tomcat 18081、Started LanveriqServerApplication；`ss -ltn '( sport = :18081 )'` IPv4 映射 loopback；`curl -fsS http://127.0.0.1:18081/actuator/health` UP。停止后 `ss -H -ltn '( sport = :18081 )'` 无输出（按用户返回的两行 true 判读），`docker inspect -f '{{.State.Running}}' spark-postgres spark-iot-core` 均 true；重新启动后 health UP。最后保留运行；非助手独立远程执行。 |
+| CI / 尚未验证 | 历史 [PG18 隔离 L2 #45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 功能 [b31f45ef](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f) 三 jobs SUCCESS；本轮未重跑功能 CI、未独立核验本机有效安全配置、备份完成及密码文件权限无返回证据，Shell 启停脚本 NOT RUN（不再为本机硬性要求），不视为完整 L3。文档治理本轮本机 NOT RUN；新文档 CI 未验证。 |
+| 评分/上线 | [工程评分](project-scorecard.md) 71/100 不变：本机开发启动非新增 L1/L2 自动验收或签名发行/完整 L3。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
+| **下次唯一任务** | **MVP-03**：先核实用户授权、隔离测试身份与 Caddy/Tomcat mTLS 配置，使用本机 18081 开发端口时不得以明文代替 Agent mTLS；证明有效测试身份可接受、无证书/错误证书/伪造身份拒绝。不得直接发送 MVP-02 的待发数据或进入 MVP-04。 |
+| 约束 | 单一 main、每轮一个 ID；生产联网/采集/自动恢复/远控/证书签发 OFF；不提交本地 application.yml、密码或原始私有日志；不改其他数据库、容器、卷或已有 SQLite 待发记录。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
