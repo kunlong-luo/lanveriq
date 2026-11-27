@@ -71,6 +71,8 @@
 
 - **2026-11-27 最新本机证据及 CI**：维护者提供 Spring 启动日志（PG18.7、lanveriq/public、JPA、127.0.0.1:8443 HTTPS），18081 HTTP 不监听；经 Caddy mTLS Health 返回 UP，SQL users/device_groups 各 1。只证明现有记录，不证明管理员密码/组授权已实际验证；不重复 bootstrap。功能 `07ebb357` Server [#45949082428](https://github.com/kunlong-luo/lanveriq/actions/runs/45949082428)、PG 编译 [#45949082591](https://github.com/kunlong-luo/lanveriq/actions/runs/45949082591)、docs [#45949082512](https://github.com/kunlong-luo/lanveriq/actions/runs/45949082512) SUCCESS；公开 fixture 更新 `225ef841` Server [#45949317790](https://github.com/kunlong-luo/lanveriq/actions/runs/45949317790)、RD-2 [#45949317829](https://github.com/kunlong-luo/lanveriq/actions/runs/45949317829) SUCCESS。下一步新建仓库外受限目录生成 P-256 CSR，经 prepare 真实管理员认证及新 UUID；确认独立测试 CA 可签发后再 register，禁止覆写既有证书/SQLite 或提前 send。
 
+- **2026-11-27 本机 prepare PASS（维护者终端证据）**：真实管理员密码认证、组范围 token/CSR 校验与事务创建 pending device 成功，CLI 输出 CSR SHA256 和服务端 UUIDv7，随后正常 shutdown。不记录具体本机 UUID、密钥路径或凭据。既有管理员/组不再初始化，不重复 prepare；使用同一 CSR 和新 UUID，经已核实的独立本机测试 CA 离线签发 clientAuth 叶，准确 URI SAN，随后 register、activation/epoch。CA 私钥是否可用尚未核实；不修改共享 Caddy 信任、不覆写旧证书或 SQLite、不签发生产证书、不提前 send。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -97,13 +99,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 225ef841](https://github.com/kunlong-luo/lanveriq/commit/225ef8414a491d3eeb2a84d62bf6fd0855f7b79b)；MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。用户本机 HTTPS 启动、双跳 Health UP、管理员/设备组各 1；不重复初始化。 |
+| 基线 | [main 9f2b8b1e](https://github.com/kunlong-luo/lanveriq/commit/9f2b8b1ea28d97d38ec43640177ac1d52f6e4e7b)；MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**。维护者实际 prepare 成功，待独立测试 CA 签发、注册及激活。 |
 | 已验证（源码） | test profile 07ebb357 L1 Server #45949082428、PG 编译 #45949082591、docs #45949082512 PASS；225ef841 Server #45949317790/RD-2 #45949317829 PASS。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | PG18.7、迁移30/0（此前），8443 HTTPS、双跳 Health UP、users/groups 各 1（本轮）。管理员实际认证、CSR/CA、注册、激活 NOT RUN；不作 L3。 |
+| 用户本机证据 / 未验证 | PG18.7、迁移30/0、8443 HTTPS、双跳 Health UP、users/groups 各 1；本轮真实管理员认证及 CSR prepare PASS（新 pending UUIDv7）。测试 CA、register、activation/epoch NOT RUN；非 L3。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：新 P-256 CSR → prepare 真实管理员认证及新 UUID → 确认独立测试 CA → register → mTLS activation/epoch。保留原证书和 SQLite，不进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：确认既有独立测试 Agent CA 签发条件，使用已准备 CSR/UUID 签发、register、mTLS activation/epoch；不重复 prepare，保留旧证书/SQLite，不进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
