@@ -26,7 +26,10 @@ for (const forbidden of ['src/app/api', 'src/proxy.ts', 'src/middleware.ts',
   'src/app/synthetic-auth-probe', 'src/app/synthetic-multi-admin-probe',
   'src/app/synthetic-console-candidate', 'src/app/synthetic-console-route',
   // NXT-17: CI fixture is generated only after ordinary source passed this gate.
-  'src/app/synthetic-directory-probe']) {
+  'src/app/synthetic-directory-probe',
+  // Local MVP-06 is generated only inside a disposable owner-approved copy.
+  'src/app/local-console-probe', 'src/local-console-probe.tsx',
+  'src/local-console-probe-edge.ts']) {
   if (existsSync(join(process.cwd(), forbidden))) {
     throw new Error('NXT-01 cannot enable a business/API proxy: ' + forbidden);
   }
