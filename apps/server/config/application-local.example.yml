@@ -1,0 +1,17 @@
+# Copy to application-local.yml (gitignored, mode 0600).
+# Only for an explicitly authorized personal development environment.
+# Use profile local, with this file under apps/server/config/.
+server:
+  address: 127.0.0.1
+  port: 18081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/lanveriq
+    username: lanveriq
+    password: '' # Fill locally; never commit a password.
+    hikari:
+      password: ${spring.datasource.password}
+
+# Do not place administrator passwords, CA private keys or feature enablement here.
+# Administrator credentials are stored as hashes in PostgreSQL, not read from YAML.
