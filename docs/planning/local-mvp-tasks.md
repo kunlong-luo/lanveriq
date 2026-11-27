@@ -63,6 +63,8 @@
 
 - **2026-11-27 用户本机新证据**：原 `lanveriq` 专用库经密码 TCP 连接成功；只读事务确认 current_user/current_database 均 lanveriq，Flyway 30 条、失败 0，users/devices/device_groups 均 0，COMMIT。单库连接及首次初始化前置条件 PASS（用户提供的终端结果，非助手实机）；不再创建库、不重复迁移。下一项仅离线首次管理员与组初始化，使用既有服务，固定 JDBC/角色、Flyway OFF、JPA validate；密码仅本机隐藏输入，不记录。实际 bootstrap、注册、激活 NOT RUN。
 
+- **2026-11-27 维护者批准本机测试凭据集中管理（本轮）**：根 .gitignore 新增 `/apps/server/config/application-local.yml`（`6547037b`），[无秘密配置模板](../../apps/server/config/application-local.example.yml)（`8b77070b`），离线 launcher（`fb3cfd2c`）改为显式读取同一本机 YAML、检查归属及 0600，移除子 shell 中重复 DB 密码环境覆盖，固定数据库/角色/安全门禁不变。IDEA 使用 `local` profile（获批 mTLS 另加既有 acceptance profile）；详细操作见 [Server README](../../apps/server/README.md)（`8b2f4377`）。管理员测试原密码如确需本机记录，单独存忽略的 `apps/server/credentials/local-admin.txt`，0700/0600，不被应用读取；不在 Git 中保存密码，数据库仍只存哈希，不自动创建/重置。此前用户称未改变首次初始化账号、只设置密码，但未提供实际 bootstrap 成功日志，不能确认管理员已创建。新配置本机文件未创建，CI 待确认；不改生产配置、不动旧库/SQLite。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -89,13 +91,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 718e5e19](https://github.com/kunlong-luo/lanveriq/commit/718e5e1983027538b3b2a1335cf028a55c4e681a)；[前次账本](https://github.com/kunlong-luo/lanveriq/blob/718e5e1983027538b3b2a1335cf028a55c4e681a/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。单库 CI L1 PASS；用户本机原库认证、30/0 迁移与三张业务表零记录 PASS；具备首次管理员初始化条件。未改功能代码。 |
-| 已验证（源码） | 固定 JDBC/实际库与角色、显式本机确认、PUBLIC ACL、Spring 原生密码环境变量；功能 81fa9a06/27c1c44a/c305cc07 已提交，未执行新测试或本机注册。 |
+| 基线 | [main 53bcc0cb](https://github.com/kunlong-luo/lanveriq/commit/53bcc0cbe2f49d399517a3359689d01cb23bc7de)；MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**。按维护者要求集中本机测试配置；忽略真实文件、模板无密码、launcher 复用 native Spring 配置。管理员原密码不注入应用。 |
+| 已验证（源码） | 配置模板 8b77070b、忽略规则 6547037b、launcher fb3cfd2c、README 8b2f4377 已提交；新 CI/本机加载待核实。原单库 Java L1 PASS 不变。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
 | 用户本机证据 / 未验证 | 原双跳/负例保留；原库 lanveriq 认证 PASS，迁移30/0、users/devices/groups 0/0/0。Server #45947582907（c305cc07）success，docs #45947623007/Next #45947623010（718e5e19）success。真实 bootstrap、CSR/CA、注册、激活与业务正负例 NOT RUN。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：在已验证原库中离线首次管理员 bootstrap（组 local-test-devices），再 prepare/register 与 mTLS activation/epoch。旧库和 SQLite 保留，不进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：本机创建受限配置并检查 IDEA / CLI 同一 DB；只读核实管理员与组，零用户才 bootstrap；继而 prepare/register、mTLS activation/epoch。保留旧库和 SQLite，不进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
