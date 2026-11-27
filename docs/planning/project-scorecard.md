@@ -1,6 +1,6 @@
 # Lanveriq 工程成熟度自评（非发布许可）
 
-**ACTIVE · 2026-11-26 · `main` · 工程 71/100 · 发布 Gate 0/10 已关闭 · v0.1 NOT RELEASE READY。** 维护者自定义刻度，不是行业基准、独立审计、安全认证或上市批准。只由[唯一 G-01～G-10 发布门禁](release-gap-register.md)决定正式发行。
+**ACTIVE · 2026-11-27 · `main` · 工程 71/100 · 发布 Gate 0/10 已关闭 · v0.1 NOT RELEASE READY。** 维护者自定义刻度，不是行业基准、独立审计、安全认证或上市批准。只由[唯一 G-01～G-10 发布门禁](release-gap-register.md)决定正式发行。
 
 ## 当前评分（100 分）
 
@@ -22,7 +22,7 @@
 
 **2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
 
-**2026-11-27 本机 MVP（不加分）：** MVP-01～06 DONE；本机真实认证、同设备读取、登出、入口拒绝及收尾 PASS，[Next L1 #45968420734](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420734) SUCCESS。本机跨组无目标 NOT RUN，未改后端历史隔离 L2 PASS；非独立 L3、非发行批准。**71/100，Gate 0/10**。MVP-07 BLOCKED：os_version 最小授权投影源码已补齐，新 Next L1/Java 集成编译 PASS，PG18 L2 与本机待验，不加分。[任务账本](local-mvp-tasks.md) · [历史评分](https://github.com/kunlong-luo/lanveriq/blob/e1b4c791cd44c6163ed139d2ead0876b8b3a49cb/docs/planning/project-scorecard.md)。
+**2026-11-27 本机 MVP（7/7 DONE，不加分）：** MVP-01～07 全部完成；[功能 71ee69d1](https://github.com/kunlong-luo/lanveriq/commit/71ee69d1af1ec51e23b12db2a8262b968d0ea6d1) 的 [Next L1 #45969894927](https://github.com/kunlong-luo/lanveriq/actions/runs/45969894927) 与 [Linux L2 三 jobs #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816) SUCCESS。维护者报告真实同设备 OS/版本/CPU/内存、刷新、断网、后端启停、登出及安全收尾 PASS；本机跨组 NOT RUN、隔离 L2 PASS。单机手动演示不是独立 L3 或正式安装发行；既有自动验收已 19/20，不重复加分。**71/100，Gate 0/10。** [任务账本](local-mvp-tasks.md) · [历史评分](https://github.com/kunlong-luo/lanveriq/blob/e1b4c791cd44c6163ed139d2ead0876b8b3a49cb/docs/planning/project-scorecard.md)。
 
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
