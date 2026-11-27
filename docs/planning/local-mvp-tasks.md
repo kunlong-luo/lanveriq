@@ -1,6 +1,6 @@
 # Lanveriq 本机 MVP：一任务一会话执行与交接
 
-**LOCAL TASK LEDGER · 2026-11-26 · main · v0.1 NOT RELEASE READY。** 只针对设备所有人明确授权的 **Pop!_OS 24.04 个人开发机**，完成 `once → SQLite → 手动 send/mTLS → Spring/PostgreSQL 18 → Next.js` 的最小可见链路。它不是生产 Agent 安装、员工采集批准或发布 Gate。产品实施路线见 [Linux 计划](linux-v01-reuse-first-delivery-path-2026-11-24.md)，生产阻塞见 [G-01～G-10](release-gap-register.md)，唯一当前功能事实见 [CURRENT_STATUS](../CURRENT_STATUS.md)。
+**LOCAL TASK LEDGER · 2026-11-27 · main · v0.1 NOT RELEASE READY。** 只针对设备所有人明确授权的 **Pop!_OS 24.04 个人开发机**，完成 `once → SQLite → 手动 send/mTLS → Spring/PostgreSQL 18 → Next.js` 的最小可见链路。它不是生产 Agent 安装、员工采集批准或发布 Gate。产品实施路线见 [Linux 计划](linux-v01-reuse-first-delivery-path-2026-11-24.md)，生产阻塞见 [G-01～G-10](release-gap-register.md)，唯一当前功能事实见 [CURRENT_STATUS](../CURRENT_STATUS.md)。
 
 ## 新会话固定协议
 
@@ -14,7 +14,7 @@
 
 | ID | 单次会话应完成的目标 | 依赖 | 状态 |
 | --- | --- | --- | --- |
-| **MVP-01** | 共享 PG18 + Spring 启动、Flyway、启动/停止脚本 | 本机 Docker/Java/端口可核实 | **BLOCKED**：2026-11-26 仅远端源码审查；本机预检及验收 NOT RUN |
+| **MVP-01** | 共享 PG18 + Spring 启动、Flyway、启动/停止脚本 | 本机 Docker/Java/端口可核实 | **BLOCKED**：2026-11-27 再核对远端源码；无本机执行通道，预检及验收 NOT RUN |
 | **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：仅手动本地采集 |
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **TODO / NOT RUN** |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **TODO / NOT RUN** |
@@ -71,11 +71,11 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | `main` [f9027923c8a7aff1020f7f27b63d13951e465239](https://github.com/kunlong-luo/lanveriq/commit/f9027923c8a7aff1020f7f27b63d13951e465239)；本轮仅任务账本提交，无新功能 SHA |
-| 本轮 | **MVP-01 BLOCKED（2026-11-26）**：读取三份必读文档，远端审查 `setup-local-postgres.sh`、`installation.md`、`application.yml`；确认既有共享 PG 初始化、Flyway、Hibernate validate 与 loopback:8080 配置。根目录与 `apps/server` 下未发现 `start.sh`/`stop.sh`。安装文档仍写 18081，按本任务卡与当前源码采用 8080，未修改配置。 |
-| 已验证 | 仅远端源码静态核对；未执行 CI（无功能改动，无本轮 CI URL）。原 MVP-02 用户证据及 [Agent L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428) 保留，不作为 MVP-01 验收。 |
-| 仍未验 | 无用户 Pop!_OS 本机执行权限；任务卡全部只读命令 NOT RUN（Docker、容器 running/port、PG 版本、Java、8080 监听、Gradle wrapper）；数据库初始化、Spring 启动、`curl -fsS http://127.0.0.1:8080/actuator/health`、Flyway 全部 success、`SELECT to_regclass('public.device_inventory_current');`、Spring 专用启动/停止及验收后保持运行均 NOT RUN。未创建容器、未修改数据库、未启动或停止进程。 |
-| **下次唯一任务** | **MVP-01**：取得授权本机执行环境后从任务卡只读预检开始；按现有初始化脚本及实际端口验证，必要时实现仅管理 Spring 的启动/停止脚本；完成全部验收后方可 DONE。此次停止，不进入 MVP-02/03。 |
-| 约束 | 单一 main、每轮只完成一个 ID；生产联网/采集/自动恢复/远控/证书签发 OFF，G-01～G-10 OPEN；不修改共享 PG/其他数据库或已存在 SQLite 待发记录。 |
+| 基线 | `main` [a6454ed0056b8f099eead088b9e0a9c6658a8b95](https://github.com/kunlong-luo/lanveriq/commit/a6454ed0056b8f099eead088b9e0a9c6658a8b95)；本轮仅任务账本更新，无新功能 SHA |
+| 本轮 | **MVP-01 BLOCKED（2026-11-27）**：读取三份必读文档，复核 `setup-local-postgres.sh`、`installation.md`、`application.yml`。现有脚本要求人工授权、PG18、独立角色/数据库、SCRAM；Spring 默认 loopback:8080、Flyway validate-on-migrate、Hibernate validate、Agent HTTP OFF。旧安装说明仍写 18081，以任务卡及当前源码的 8080 为准。未获得本机执行通道，不在预检前推测性修改启动/停止脚本或配置。 |
+| 已验证 | 仅 GitHub main 源码静态核对；本轮无功能改动、CI NOT RUN、无本轮 CI URL。保留 MVP-02 用户证据及 [Agent L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428)，不计为 MVP-01 验收。 |
+| 仍未验 | 全部本机预检 NOT RUN：Docker 版本、spark-postgres running/port、实际 PG 版本、Java 版本、8080 监听、Gradle wrapper 本机存在性；初始化专用数据库/角色、Spring 启动、`curl -fsS http://127.0.0.1:8080/actuator/health` UP、Flyway 全部 success、`SELECT to_regclass('public.device_inventory_current');` 非 NULL、仅管理 Spring 的启停脚本和验收后保持运行均 NOT RUN。未操作本机进程、容器或数据库，无本机日志。 |
+| **下次唯一任务** | **MVP-01**：在获得授权的 Pop!_OS 本机执行环境后先运行任务卡只读预检，再审核初始化、必要的 Spring 专用启停脚本及全部验收；缺任一证据继续 BLOCKED。此次停止，不进入 MVP-02/03。 |
+| 约束 | 单一 main、每轮一个 ID；生产联网/采集/自动恢复/远控/证书签发 OFF，G-01～G-10 OPEN；不改其他数据库、容器、卷或已有 SQLite 待发记录。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
