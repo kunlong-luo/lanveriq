@@ -1,8 +1,11 @@
-//! Offline-only projections. No host evidence is acquired by this module.
+use crate::host_identity::HostIdentity;
+// Offline-only projections. No host evidence is acquired by this module.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GateStatus {
     NotChecked,
     NotApproved,
+    MetadataOnly,
+    Blocked,
 }
 
 impl GateStatus {
@@ -10,6 +13,8 @@ impl GateStatus {
         match self {
             Self::NotChecked => "尚未核验",
             Self::NotApproved => "独立审批未完成",
+            Self::MetadataOnly => "仅有元数据",
+            Self::Blocked => "安全阻断",
         }
     }
 }
@@ -38,6 +43,27 @@ pub const GATES: [ReviewGate; 7] = [
     ReviewGate { id: "real-host-l3", title: "Pop!_OS COSMIC 实机与法务批准", status: GateStatus::NotApproved,
         detail: "无正式的设备所有人同意、实机 L3 与法务/运维签署。" },
 ];
+
+pub fn review_gates(identity: HostIdentity) -> [ReviewGate; 7] {
+    let mut gates = GATES;
+    match identity {
+        HostIdentity::NotChecked => {},
+        HostIdentity::PopOs24Amd64 => {
+            gates[0].status = GateStatus::MetadataOnly;
+            gates[0].detail = "仅核对 Pop!_OS 24.04 / x86_64 系统标识，非实机安全批准。";
+        }
+        HostIdentity::Blocked | HostIdentity::Other => {
+            gates[0].status = GateStatus::Blocked;
+        }
+    }
+    gates
+}
+
+pub fn diagnostic(identity: HostIdentity) -> String {
+    OFFLINE_DIAGNOSTIC
+        .replace("inspection_source=not_verified", &format!("inspection_source={}", identity.diagnostic_source()))
+        .replace("os_target=unverified", &format!("os_target={}", identity.diagnostic_target()))
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Notice {
@@ -165,6 +191,27 @@ mod tests {
         }
         for forbidden in ["=true", "native_readonly", "metadata_checked_not_l3", "/home/", "https://", "-----BEGIN"] {
             assert!(!OFFLINE_DIAGNOSTIC.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn identity_only_never_updates_package_service_cosmic_or_authority() {
+        for identity in [HostIdentity::NotChecked, HostIdentity::Blocked, HostIdentity::PopOs24Amd64, HostIdentity::Other] {
+            let gates = review_gates(identity);
+            assert_eq!(gates[0].status, match identity {
+                HostIdentity::NotChecked => GateStatus::NotChecked,
+                HostIdentity::PopOs24Amd64 => GateStatus::MetadataOnly,
+                _ => GateStatus::Blocked,
+            });
+            assert!(gates[1..4].iter().all(|g| g.status == GateStatus::NotChecked));
+            assert!(gates[4..].iter().all(|g| g.status == GateStatus::NotApproved));
+            let report = diagnostic(identity);
+            assert!(report.contains("agent_package=unverified"));
+            assert!(report.contains("systemd_service=unverified"));
+            assert!(report.contains("cosmic_preflight=not_verified"));
+            assert!(report.contains("install_authorized=false"));
+            assert!(report.contains("agent_start_authorized=false"));
+            assert!(!report.contains("private-host"));
         }
     }
 }

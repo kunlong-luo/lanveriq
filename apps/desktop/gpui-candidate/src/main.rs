@@ -9,7 +9,8 @@ use gpui_kit::base::{SelectableText, StyledExt};
 use gpui_kit::*;
 use lanveriq_desktop_gpui_candidate::{IdleInterval, LOCKED_ACTIONS, Page, Workspace};
 
-use lanveriq_desktop_gpui_candidate::review::{GATES, Notice, OFFLINE_DIAGNOSTIC};
+use lanveriq_desktop_gpui_candidate::review::{review_gates, Notice, diagnostic};
+use lanveriq_desktop_gpui_candidate::host_identity::inspect_host_identity;
 
 struct Desktop {
     workspace: Workspace,
@@ -42,7 +43,18 @@ impl Render for Desktop {
             .rounded(cx.theme().radius).border_1().border_color(cx.theme().border)
             .child(div().text_xl().font_bold().child(Label::new(page.label())))
             .child(Label::new(page.description()))
-            .child(Label::new("离线候选 · 无真实主机证据 · 不可安装"));
+            .child(Label::new("离线候选 · 仅系统身份可核验 · 不可安装"));
+        if matches!(page, Page::Overview | Page::Setup | Page::Diagnostics) {
+            content = content
+                .child(Label::new("本机系统身份（仅元数据）"))
+                .child(Label::new(self.workspace.host_identity().label()))
+                .child(Button::new("inspect-host-identity").label("手动检测系统与架构（只读）")
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.workspace.replace_host_identity(inspect_host_identity());
+                        cx.notify();
+                    })))
+                .child(Label::new("Agent 包、systemd、COSMIC 兼容性仍未核验。"));
+        }
         if page == Page::Configuration {
             let current = self.workspace.idle_interval();
             let choices = IdleInterval::ALL.into_iter().fold(
@@ -69,7 +81,7 @@ impl Render for Desktop {
             );
         }
         if page == Page::Setup {
-            let gates = GATES.iter().fold(div().flex().flex_col().gap_3(), |group, gate| {
+            let gates = review_gates(self.workspace.host_identity()).iter().fold(div().flex().flex_col().gap_3(), |group, gate| {
                 group.child(div().id(gate.id).flex().flex_col().gap_1().p_3()
                     .rounded(cx.theme().radius).border_1().border_color(cx.theme().border)
                     .child(Label::new(gate.title))
@@ -99,10 +111,10 @@ impl Render for Desktop {
         }
         if page == Page::Diagnostics {
             content = content
-                .child(Label::new("本机脱敏诊断 · 当前无主机证据"))
+                .child(Label::new("本机脱敏诊断 · 仅系统身份元数据"))
                 .child(Label::new("只读文本，未签名，非安装授权；不保存、不联网、不上传。"))
                 .child(div().p_3().border_1().border_color(cx.theme().border)
-                    .child(SelectableText::new("offline-diagnostic", OFFLINE_DIAGNOSTIC)))
+                    .child(SelectableText::new("offline-diagnostic", diagnostic(self.workspace.host_identity()))))
                 .child(Label::new("向第三方分享前请自行确认内容。"));
         }
         div()

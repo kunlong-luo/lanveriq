@@ -1,3 +1,5 @@
+pub mod host_identity;
+use host_identity::HostIdentity;
 pub mod review;
 use review::{Notice, NoticeReview};
 
@@ -49,7 +51,7 @@ impl Page {
 
     pub const fn description(self) -> &'static str {
         match self {
-            Self::Overview => "本机系统、Agent、服务器连接和注册状态均未核验。",
+            Self::Overview => "本机系统身份可手动只读检测；Agent、服务器和注册状态未核验。",
             Self::Setup => "安装需要独立发行身份、受限权限代理和逐次授权。当前不可安装。",
             Self::Configuration => "仅生成非机密的 Agent 空闲周期草稿；不读取或保存真实服务器配置。",
             Self::Enrollment => "未接入设备注册、证书或私钥操作。",
@@ -118,11 +120,12 @@ pub struct Workspace {
     page: Page,
     idle_interval: IdleInterval,
     notices: NoticeReview,
+    host_identity: HostIdentity,
 }
 
 impl Default for Workspace {
     fn default() -> Self {
-        Self { page: Page::Overview, idle_interval: IdleInterval::default(), notices: NoticeReview::default() }
+        Self { page: Page::Overview, idle_interval: IdleInterval::default(), notices: NoticeReview::default(), host_identity: HostIdentity::default() }
     }
 }
 
@@ -141,6 +144,15 @@ impl Workspace {
 
     pub fn idle_interval(&self) -> IdleInterval {
         self.idle_interval
+    }
+
+    pub fn host_identity(&self) -> HostIdentity {
+        self.host_identity
+    }
+
+    pub fn replace_host_identity(&mut self, identity: HostIdentity) {
+        self.host_identity = identity;
+        self.notices = NoticeReview::default();
     }
 
     pub fn notices(&self) -> NoticeReview {
@@ -231,5 +243,16 @@ mod tests {
         workspace.navigate(Page::Setup);
         assert!(Notice::ALL.into_iter().all(|notice| !workspace.notices().checked(notice)));
         assert_eq!(LOCKED_ACTIONS.len(), 10);
+    }
+
+    #[test]
+    fn replacing_identity_clears_review_and_old_metadata() {
+        let mut w = Workspace::default();
+        w.replace_host_identity(HostIdentity::PopOs24Amd64);
+        w.navigate(Page::Setup);
+        w.set_notice(Notice::PackageSource, true);
+        w.replace_host_identity(HostIdentity::Blocked);
+        assert_eq!(w.host_identity(), HostIdentity::Blocked);
+        assert!(!w.notices().checked(Notice::PackageSource));
     }
 }

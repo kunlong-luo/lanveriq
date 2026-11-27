@@ -32,10 +32,16 @@ jobs:
           assert d["version"] == "=0.11.0" and d["default-features"] is False
           assert set(d["features"]) == {"component", "assets", "x11"}
           assert not pathlib.Path("build.rs").exists()
-          for path in pathlib.Path("src").glob("*.rs"):
+          for path in pathlib.Path("src").rglob("*.rs"):
               data = path.read_text()
-              for token in ("std::process", "std::fs", "std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "std::env", "include_bytes!", "include_str!"):
+              for token in ("std::process", "std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "std::env", "include_bytes!", "include_str!", "OpenOptions", "File::create", "std::io::Write"):
                   assert token not in data, (path, token)
+              if path.name == "host_identity.rs":
+                  assert data.count("std::fs::") == 1 and "std::fs::File::open(path)" in data
+                  assert '"/proc/self/status"' in data and '"/etc/os-release"' in data
+                  assert "file.take(16_385)" in data and "ordinary_user" in data
+              else:
+                  assert "std::fs" not in data, path
           assert ".disabled(true)" in pathlib.Path("src/main.rs").read_text()
           PY
       - name: Require committed candidate lock and exact digest (not product approval)
@@ -87,6 +93,8 @@ jobs:
       - name: Test offline model and build candidate (no GUI execution or install)
         run: |
           cargo +1.100.0 test --locked --lib
+          test "$(id -u)" -ne 0
+          cargo +1.100.0 test --locked --lib host_identity::tests::live_ubuntu_identity_only -- --ignored --exact
           cargo +1.100.0 build --locked --message-format=json-render-diagnostics > candidate-build.jsonl
           python3 - <<'PY'
           import json, pathlib, subprocess
