@@ -20,6 +20,17 @@ For copyable development and synthetic-only commands, begin with the [Chinese RE
 
 **JDBC/IDE-compatible SQL bootstrap:** `apps/server/scripts/provision-lanveriq-database.sql` contains only PostgreSQL SQL, no `psql` directives. Open it against the **`postgres`** maintenance database as the authorized administrator, set **Auto-commit** and **Stop on error**, and execute statements in sequence. **Do not** wrap `CREATE DATABASE` in a transaction. If using psql, pass `-v ON_ERROR_STOP=1` on the invocation rather than adding a backslash directive to the SQL file. Passwords are not in source: configure via a GUI credential editor or the interactive psql `\password` command, then separately enable LOGIN. Existence checks are deliberate; inspect partial states rather than rerunning.
 
+## Linux 用户目录约定
+
+| XDG 根（未设置时的默认值） | Lanveriq 用途 |
+| --- | --- |
+| `$XDG_CONFIG_HOME`（`$HOME/.config`） | `lanveriq/` 用户配置 |
+| `$XDG_DATA_HOME`（`$HOME/.local/share`） | `lanveriq/pki/` 本机测试 CA、`enrollment/` 注册材料、`agent/` 持久化 SQLite |
+| `$XDG_STATE_HOME`（`$HOME/.local/state`） | `lanveriq/` 日志和运行状态 |
+| `$XDG_CACHE_HOME`（`$HOME/.cache`） | `lanveriq/` 可清理缓存 |
+
+只接受绝对 XDG 根；按职责命名，不再新建阶段编号目录或 `~/lanveriq-dev`。测试 PKI 目录 0700、私钥 0600，系统运行配置仍沿用现有 `/etc/lanveriq`、`/var/lib/lanveriq` 和代理部署路径。已有 `pki` 内部结构保留，勿擅自重排。迁移前检查引用、停止 SQLite 写入者、保留 WAL/SHM 或使用 SQLite 一致性备份、验证内容和权限后才退役旧路径；禁止直接覆盖或删除待发送数据。此为路径规范，不代表历史脚本、安装器或实机数据均已迁移。
+
 ## 本机目录与命名规范（2026-11-27，维护者确认）
 
 下表是维护者的 Pop!_OS 开发环境目录映射，使用 `$HOME` 表示当前用户主目录，不硬编码个人用户名。其他开发机按实际 checkout 位置调整；系统级目录是长期命名约定，不代表已批准生产安装。

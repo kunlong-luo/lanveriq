@@ -73,6 +73,8 @@
 
 - **2026-11-27 本机 prepare PASS（维护者终端证据）**：真实管理员密码认证、组范围 token/CSR 校验与事务创建 pending device 成功，CLI 输出 CSR SHA256 和服务端 UUIDv7，随后正常 shutdown。不记录具体本机 UUID、密钥路径或凭据。既有管理员/组不再初始化，不重复 prepare；使用同一 CSR 和新 UUID，经已核实的独立本机测试 CA 离线签发 clientAuth 叶，准确 URI SAN，随后 register、activation/epoch。CA 私钥是否可用尚未核实；不修改共享 Caddy 信任、不覆写旧证书或 SQLite、不签发生产证书、不提前 send。
 
+- **维护者确认采用 XDG 用户目录（2026-11-27）**：用户报告已改好目录；既有测试 Agent CA 证书有效期 2026-11-27 至 2026-12-04，搜索找到候选私钥，迁移后实际文件路径、权限及 SPKI 匹配仍需核实。统一用户数据根 `$XDG_DATA_HOME/lanveriq`（默认 `$HOME/.local/share/lanveriq`），按职责使用 pki/enrollment/agent，不再新建任务编号目录。AGENTS 和安装手册同步；不声称所有代码或 SQLite 已迁移。既有系统 Caddy 及 /etc 路径不改；同一 CSR/UUID 继续使用，签发/注册/激活待验。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -100,12 +102,12 @@
 | 字段 | 当前内容 |
 | --- | --- |
 | 基线 | [main 9f2b8b1e](https://github.com/kunlong-luo/lanveriq/commit/9f2b8b1ea28d97d38ec43640177ac1d52f6e4e7b)；MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。维护者实际 prepare 成功，待独立测试 CA 签发、注册及激活。 |
+| 本轮 | **MVP-03 BLOCKED**。prepare 成功；维护者报告目录已改，候选测试 CA 私钥已找到，待核实迁移后路径和 SPKI。 |
 | 已验证（源码） | test profile 07ebb357 L1 Server #45949082428、PG 编译 #45949082591、docs #45949082512 PASS；225ef841 Server #45949317790/RD-2 #45949317829 PASS。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
 | 用户本机证据 / 未验证 | PG18.7、迁移30/0、8443 HTTPS、双跳 Health UP、users/groups 各 1；本轮真实管理员认证及 CSR prepare PASS（新 pending UUIDv7）。测试 CA、register、activation/epoch NOT RUN；非 L3。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：确认既有独立测试 Agent CA 签发条件，使用已准备 CSR/UUID 签发、register、mTLS activation/epoch；不重复 prepare，保留旧证书/SQLite，不进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：核实 XDG pki 中既有独立测试 CA 与 Caddy 信任证书 SPKI 一致，再签发已准备 CSR/UUID、register、activation/epoch。保留旧证书/SQLite，不进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
