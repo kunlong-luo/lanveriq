@@ -13,6 +13,8 @@ use lanveriq_desktop_gpui_candidate::review::{runtime_review_gates, Notice, runt
 use lanveriq_desktop_gpui_candidate::host_identity::HostIdentity;
 use lanveriq_desktop_gpui_candidate::runtime_metadata::inspect_runtime;
 
+actions!(lanveriq_desktop, [Quit]);
+
 struct Desktop {
     workspace: Workspace,
     inspecting: bool,
@@ -158,11 +160,14 @@ fn main() {
         .with_assets(gpui_kit::assets::Assets)
         .run(|cx| {
             gpui_kit::init(cx);
+            cx.bind_keys([KeyBinding::new("ctrl-q", Quit, None)]);
+            cx.on_action(|_: &Quit, cx: &mut App| cx.quit());
             let options = WindowOptions {
                 window_bounds: Some(WindowBounds::centered(None, size(px(900.), px(620.)), cx)),
                 ..Default::default()
             };
-            gpui_kit::open_window(options, cx, |_, cx| {
+            gpui_kit::open_window(options, cx, |window, cx| {
+                window.set_window_title("Lanveriq Desktop - Offline Candidate");
                 cx.new(|_| Desktop { workspace: Workspace::default(), inspecting: false })
             })
             .expect("Failed to open offline candidate window");
