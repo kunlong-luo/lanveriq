@@ -15,7 +15,7 @@
 | ID | 单次会话应完成的目标 | 依赖 | 状态 |
 | --- | --- | --- | --- |
 | **MVP-01** | 共享 PG18 + Spring 启动、Flyway、启动/停止脚本 | 本机 Docker/Java/端口可核实 | **BLOCKED**：2026-11-27 复核 `a98f8497`；无本机执行通道，预检及验收 NOT RUN |
-| **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：仅手动本地采集 |
+| **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：2026-11-27 复核；保留既有用户本机 PASS 与 Agent L1 PASS，本轮重跑 NOT RUN |
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **TODO / NOT RUN** |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **TODO / NOT RUN** |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **TODO / NOT RUN** |
@@ -37,6 +37,7 @@
 
 - **允许/禁止**：`apps/agent/src/main.rs` 手动 `once` 调用既有 `collect_minimal_linux_inventory()` 与 `OutboxStore::stage_inventory_snapshot()`；只读 OS/CPU/RAM，网卡/磁盘/用户/进程/桌面活动不采集，不发送、不启后台定时器。
 - **本次证据**：2026-11-26 **用户提供**的 Pop!_OS 24.04 `sqlite3` 日志：`inventory_pending` 包含 revision 1、729 字节已持久快照；`inventory_latest_state` revision 1，下一 revision 2；再执行 `once` 返回 `already pending ... revision=1; not sent`。已合并 [main bed0152b](https://github.com/kunlong-luo/lanveriq/commit/bed0152bff52bfdee1d31a6e621f5d83d66b4c49)，[同功能 SHA Agent L1 #45804471428 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428)。
+- **2026-11-27 复核**：GitHub compare 确认功能 SHA `bed0152b` 到基线 `14f8f39e` 的 4 个提交仅改文档；`main.rs`、`inventory_platform.rs`、`store.rs`、`Cargo.toml`、`Cargo.lock` blob SHA 一致。直接读取 #45804471428 的 agent-unit job `139855945215` 日志，checkout 确切功能 SHA、125 tests passed / 0 failed / 0 ignored，Rustfmt、Clippy、锁文件检查均 SUCCESS；其中手动 once 持久化/重启、最小字段、相同语义不推进 revision 的测试实际通过。此为历史 CI 复核，非本轮重跑。无本机执行通道，未改 Agent 或既有 SQLite。保持 DONE。
 - **边界**：`once` 本机手动采集/SQLite 去重 **PASS（用户证据）**；`send`、mTLS、Spring/PG、Web、完整 Pop!_OS L3 **NOT RUN**。不能据此宣布 MVP-03～07 完成。
 
 ### MVP-03 · 仅测试的本机 mTLS 身份预检
@@ -71,11 +72,11 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | `main` [a98f8497f18e1db0b656ff54fbaf0b9a6a594bac](https://github.com/kunlong-luo/lanveriq/commit/a98f8497f18e1db0b656ff54fbaf0b9a6a594bac)；前次为 MVP-01 阻塞交接提交，本轮仅更新本账本，无新功能 SHA |
-| 本轮 | **MVP-01 BLOCKED（2026-11-27）**：读取三份必读文档，复核 `setup-local-postgres.sh`、`provision-lanveriq-database.sql`、`installation.md`、`application.yml` 和远端 `apps/server/gradlew`。初始化仍要求手动授权、PG18、独立非超级用户与 SCRAM；Spring 默认 loopback:8080、Flyway validate-on-migrate、Hibernate validate、Agent HTTP OFF。安装说明旧端口 18081 与任务卡不一致，以当前源码和任务卡 8080 为准。远端根目录及 `apps/server/` 下的 `start.sh`、`stop.sh` 均未找到（GitHub 404）；不代表本机文件不存在。未获得本机执行通道，不在预检前推测性修改启停脚本或配置。 |
-| 已验证 | **远端源码静态核对 PASS（非功能验收）**；GitHub 读取以上文件成功，启停脚本四个路径查询返回 404。本轮功能 CI NOT RUN，无本轮功能 CI URL；文档治理命令 `node apps/web/scripts/verify-documentation-baseline.mjs`、`node --test apps/web/scripts/test_verify_documentation_baseline.mjs` NOT RUN。保留 MVP-02 用户证据及 [Agent L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428)，不计为 MVP-01 验收。 |
-| 仍未验 | 全部本机预检 NOT RUN：Docker 版本、spark-postgres running/port、实际 PG 版本、Java 版本、8080 监听、Gradle wrapper 本机存在性；初始化专用数据库/角色、Spring 启动、`curl -fsS http://127.0.0.1:8080/actuator/health` UP、Flyway 全部 success、`SELECT to_regclass('public.device_inventory_current');` 非 NULL、仅管理 Spring 的启停脚本和验收后保持运行均 NOT RUN。未操作本机进程、容器或数据库，无本机日志。 |
-| **下次唯一任务** | **MVP-01**：在获得授权的 Pop!_OS 本机执行环境后先运行任务卡只读预检，再审核初始化、必要的 Spring 专用启停脚本及全部验收；缺任一证据继续 BLOCKED。此次停止，不进入 MVP-02/03。 |
+| 基线 | `main` [14f8f39e66427ee2a96297fdf051e4724624ef95](https://github.com/kunlong-luo/lanveriq/commit/14f8f39e66427ee2a96297fdf051e4724624ef95)；既有功能 SHA [bed0152b](https://github.com/kunlong-luo/lanveriq/commit/bed0152bff52bfdee1d31a6e621f5d83d66b4c49) 至基线仅文档变化；本轮仅账本交接，无新功能 SHA。 |
+| 本轮 | **MVP-02 DONE（2026-11-27 复核，非新增实现）**：读取必读文档、检查 Agent `main.rs`/`inventory_platform.rs`/`store.rs` 与 Cargo manifest/lock，核对功能 SHA、GitHub compare 和实际 CI 日志；手动 once 只走最小 OS/CPU/RAM 采集、SQLx SQLite 事务去重，不调用传输或后台调度。已有实现满足任务卡，不重复开发。 |
+| 已验证 | **静态复核 PASS**（GitHub compare 与五个 blob 一致）；历史 [Agent L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428) job `139855945215` 实际 checkout 功能 SHA `bed0152b`，125 passed / 0 failed / 0 ignored，Rustfmt、Clippy 与锁文件 SUCCESS；保留 2026-11-26 **用户本机证据 PASS**：SQLite pending/latest revision=1、729 bytes、next revision=2，重复 once `already pending ... revision=1; not sent`。 |
+| 仍未验 | 本轮新功能 CI、`cargo test --locked` 重跑及 Pop!_OS 本机 `once`/`sqlite3` 重跑均 **NOT RUN**（无本机执行通道，既有功能未改）；文档治理 `node apps/web/scripts/verify-documentation-baseline.mjs`、`node --test apps/web/scripts/test_verify_documentation_baseline.mjs` NOT RUN。send/mTLS、Spring/PG、Web、完整 Pop!_OS L3 NOT RUN；本轮未操作本机数据库或待发快照。 |
+| **下次唯一任务** | **MVP-01** 仍 BLOCKED：获得授权本机执行环境后按任务卡做 Docker/PG18/Java/8080/wrapper 只读预检、审核专用角色/数据库及 Spring 专用启停脚本（此前远端根目录和 `apps/server/` 的 start.sh/stop.sh 查询 404，不代表本机缺失），验证 health UP、Flyway success、inventory 表存在及验收后 Spring 保持运行。MVP-03 等待 MVP-01 完成，本轮不进入。 |
 | 约束 | 单一 main、每轮一个 ID；生产联网/采集/自动恢复/远控/证书签发 OFF，G-01～G-10 OPEN；不改其他数据库、容器、卷或已有 SQLite 待发记录。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
