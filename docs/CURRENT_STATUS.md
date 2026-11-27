@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-MVP-01～05 DONE；MVP-06 本机真实 HTTPS/Next.js 登录、组授权同设备读取、登出、直接与伪造 proof 404、临时入口关闭 PASS（维护者证据）。组外=0，跨组本机 NOT RUN；既有隔离 L2 PASS。功能 `cb14bb2c` 新 push CI 文档超限 FAIL，精简后待验；结项 BLOCKED。正式登录仍禁用，不进入 MVP-07。[任务账本及验收详情](planning/local-mvp-tasks.md)。
+MVP-01～05 DONE；MVP-06 本机真实 HTTPS/Next.js 登录、组授权同设备读取、登出、直接与伪造 proof 404、临时入口关闭 PASS（维护者证据）。组外=0，跨组本机 NOT RUN；既有隔离 L2 PASS。文档超限已修复，[#45968272033](https://github.com/kunlong-luo/lanveriq/actions/runs/45968272033) PASS；Next 快检待重验，结项 BLOCKED。正式登录仍禁用，不进入 MVP-07。[任务账本及验收详情](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 
