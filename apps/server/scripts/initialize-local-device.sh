@@ -18,19 +18,14 @@ ACTION="$1"
 read -rp 'Type PERSONAL DEVELOPMENT to confirm the existing lanveriq database is for local tests only: ' confirmation
 [[ "$confirmation" == 'PERSONAL DEVELOPMENT' ]] || fail 'Cancelled.'
 
-# Native Spring external config is the single local DB credential source.
-LOCAL_CONFIG="$SERVER/config/application-local.yml"
-[[ -f "$LOCAL_CONFIG" && ! -L "$LOCAL_CONFIG" && -O "$LOCAL_CONFIG" ]] ||
-    fail 'Create your own config/application-local.yml from the example first.'
-[[ "$(stat -c %a "$LOCAL_CONFIG")" == 600 ]] ||
-    fail 'Local configuration must have mode 0600.'
-# Remove duplicate DB password overrides in this child shell only.
+# The explicit local-test profile supplies the public disposable fixture.
+# Do not inherit stale database password overrides from the IDE or shell.
 unset LANVERIQ_DB_PASSWORD SPRING_DATASOURCE_PASSWORD SPRING_DATASOURCE_HIKARI_PASSWORD
+cd "$SERVER"
 
 opts=(
     --spring.main.web-application-type=none
-    --spring.profiles.active=local
-    "--spring.config.additional-location=file:$LOCAL_CONFIG"
+    --spring.profiles.active=local-test
     --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/lanveriq
     --spring.datasource.username=lanveriq
     --spring.datasource.hikari.jdbc-url=jdbc:postgresql://127.0.0.1:5432/lanveriq
