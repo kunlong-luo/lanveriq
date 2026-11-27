@@ -19,10 +19,10 @@
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **DONE**：2026-11-27 本机注册、激活、epoch、错设备及无证书拒绝 PASS；功能 f6e83c89 隔离 L2 三 jobs SUCCESS |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **DONE**：2026-11-27 本机 HTTP200/精确 ACK、新 pending 0、旧 pending 1、两库 revision 1 PASS；维护者确认临时配置恢复 |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **DONE**：2026-11-27 维护者本机只读 PG18 同设备/快照/revision=1 精确匹配 1 行、OS/CPU/RAM 非空，COMMIT PASS |
-| **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **BLOCKED / 本机 NOT RUN**：既有合成 L2 PASS；真实测试管理员与组授权、本机同源接入未核实 |
+| **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **BLOCKED**：本机 Console HTTPS、管理员授权及认证只读 API PASS；本机真实跨组拒绝及 Next.js 接入 NOT RUN |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**MVP-01～05 DONE；MVP-06 BLOCKED / 本机 NOT RUN，本会话停止。** 下次仍只处理 MVP-06：先核实真实测试管理员授权及组范围，设计并验收仅 loopback 的独立同源只读入口；不进入 MVP-07。
+**MVP-01～05 DONE；MVP-06 BLOCKED（部分本机验收 PASS）。** 仍只处理 MVP-06：真实跨组拒绝及 Next.js 同源接入待验，不进入 MVP-07。
 
 ## 可执行任务卡
 
@@ -120,7 +120,9 @@
 - **验收**：已授权会话正确读取真实 API；无会话、错误组/Origin/CSRF 拒绝。不能把断开 Pages 演示或无认证直接读 PG 当成成功。
 
 - **2026-11-27 源码/历史 L2 复核（非重跑）**：基线 [ea1470d3](https://github.com/kunlong-luo/lanveriq/commit/ea1470d38550b6ee4c419c3a6a9b95938b37ad6a)，MVP-01～05 DONE。核对 [登录页](../../apps/web/src/components/login-preview.tsx)、[同源认证](../../apps/web/src/lib/staged-console-auth.ts)、[只读客户端](../../apps/web/src/lib/staged-console-read.ts)、[临时路由安装器](../../apps/web/scripts/install-synthetic-auth-fixture.mjs)、[Spring 默认配置](../../apps/server/src/main/resources/application.yml)、[Caddy reference](../../deploy/caddy/Caddyfile.reference) 及 [API contract](../architecture/api-contract.md)。正式 `/login` 输入禁用，CI fixture 拒绝非显式隔离 CI，reference Console 503，Console auth/directory/directory-http 均默认 false。既有 [L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c897cfaa9b54b07eebbf6f1092d315fd52d` 三 jobs success；job 140349819059 原日志核实真实 HTTPS login、session fixation/新 CSRF/strict Cookie、组范围读取、跨组 404、登出后 401、伪造 Cookie/edge proof 与直接 Next origin 拒绝；[测试脚本](../../apps/server/scripts/verify-synthetic-console-session.sh) 另含 missing CSRF/wrong Origin 403 断言，成功链路执行该脚本。compare 到基线 18 commits 仅三份文档改变，无功能变化。本轮新 CI 未执行。
-- **BLOCKED / 本机 NOT RUN**：未连接维护者本机，真实管理员账号有效性、该设备的授权组关系及独立 loopback HTTPS Console ingress 未确认；现有 `/login` 不可处理真实凭据。不能将 CI-only 路由安装器、合成用户、直接 PG 查询、Pages 或伪造 Cookie 用作本机认证，不改默认开关、不扩展现有后端路由、不写产品源码。先由维护者在本机授权测试专用管理员、核实已入库同一设备归属与当前组授权（不回传账号、UUID、密码或 Cookie），核对 `git rev-parse HEAD`、`ss -ltn '( sport = :443 or sport = :3100 or sport = :18081 or sport = :8443 )'`、`getent ahosts console.lanveriq.internal`；不得将未核实配置当成功。随后仅在获准的本机独立 HTTPS 同源范围复用现有 Spring Security 与 staged client，验证正常 session 200、组内 list/detail 200 且同一已入库设备可见、无会话/登出 401、组外 detail 404、错 Origin 与登录/登出缺 CSRF 403，确认无外部监听、无扩大组权、无缓存敏感数据；必要的本机专用入口另行明确设计及测试，不绕过 CI 守卫。MVP-06 仍 BLOCKED；不做 MVP-07 数据映射，不启动 Agent，不重发或改写库存。
+- **历史 BLOCKED / 当时本机 NOT RUN**：未连接维护者本机，真实管理员账号有效性、该设备的授权组关系及独立 loopback HTTPS Console ingress 未确认；现有 `/login` 不可处理真实凭据。不能将 CI-only 路由安装器、合成用户、直接 PG 查询、Pages 或伪造 Cookie 用作本机认证，不改默认开关、不扩展现有后端路由、不写产品源码。先由维护者在本机授权测试专用管理员、核实已入库同一设备归属与当前组授权（不回传账号、UUID、密码或 Cookie），核对 `git rev-parse HEAD`、`ss -ltn '( sport = :443 or sport = :3100 or sport = :18081 or sport = :8443 )'`、`getent ahosts console.lanveriq.internal`；不得将未核实配置当成功。随后仅在获准的本机独立 HTTPS 同源范围复用现有 Spring Security 与 staged client，验证正常 session 200、组内 list/detail 200 且同一已入库设备可见、无会话/登出 401、组外 detail 404、错 Origin 与登录/登出缺 CSRF 403，确认无外部监听、无扩大组权、无缓存敏感数据；必要的本机专用入口另行明确设计及测试，不绕过 CI 守卫。MVP-06 仍 BLOCKED；不做 MVP-07 数据映射，不启动 Agent，不重发或改写库存。
+
+- **2026-11-27 本机阶段验收 PASS（维护者终端证据，非助手直连/独立 L3）**：原 Console DNS 无解析、配置缺站点/握手失败；维护者追加 loopback DNS、复用既有测试 Edge CA 的独立短期 Console 叶并以 SIGUSR1 重载，curl 显式 CA 校验取得预期 503。Spring 8443/Caddy 443 仅 loopback 监听；维护者只读 PG18 查得一个启用 owner_security_admin、一个授权组、一条可读库存。临时本机 Console auth/directory/directory-http 启用；Agent activation/heartbeat/epoch/inventory、监控及远控保持关闭（配置指导，未独立核对有效值）。Caddy 仅代理 auth csrf/session/login/logout 与设备 GET，经现有上游 mTLS 和固定 Host。维护者 curl 六项预期状态 401/401/200/403/403/404 全 PASS。Python urllib/cookiejar 初版 /dev/tty r+ 失败，改用 getpass 后维护者实际运行：登录 204、Cookie Secure/HttpOnly/host-only/SameSite Strict/path 校验、session ID 轮换、session 200/principal 匹配、新 CSRF、设备 list/detail 200、唯一可见设备且与输入的 MVP-05 UUID 匹配、no-store、未知 UUID 404、已认证错 Origin 403、无 CSRF logout 403 且会话保持、正常 logout 204、登出后 session/list 401 均 PASS。脚本不写入库存，不输出凭据；未核对本机运行 SHA、未证明实际组外设备拒绝，未比较 API 库存原值或浏览器映射。真实跨组与 Next.js 同源入口尚 NOT RUN，不能用未知 UUID 或 CI 替代；普通 Next.js 仍为禁用登录预览，既有 staged workspace 还依赖本轮未开启的 overview，不直接挂载或绕过 synthetic CI guard。继续仅 MVP-06，先只读检查是否存在组外设备，再设计独立显式本机验收入口并做浏览器正负测，验收后恢复临时开关。无产品源码改动、不进入 MVP-07。
 
 ### MVP-07 · 浏览器看到这台设备
 
@@ -132,12 +134,12 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main ea1470d3](https://github.com/kunlong-luo/lanveriq/commit/ea1470d38550b6ee4c419c3a6a9b95938b37ad6a)；本轮仅文档复核/交接，无功能代码修改。 |
-| 本轮 | **MVP-06 BLOCKED / 本机 NOT RUN**；MVP-01～05 DONE 保持，MVP-07 TODO。 |
-| 已验证（历史 CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS；job 140349819059 原日志证实同源真实 HTTPS session/组范围读取、跨组 404、登出 401、CSRF/Cookie、Next origin 隔离；脚本含 Origin/缺 CSRF 403 断言。至基线仅文档变化；非新 CI。 |
-| 本机验收与限制 | NOT RUN：真实测试管理员授权、组关系、Console 同源 HTTPS 未核实；默认登录为断开预览，CI fixture 禁止直接迁用于真实账号。不声称本机 API、浏览器或独立 L3 PASS。结项文档 CI 尚未确认。 |
+| 基线 | [main c2e8498a](https://github.com/kunlong-luo/lanveriq/commit/c2e8498a95b5e174282ea625fcef876d522c613b)；本轮仅文档记录，本机运行源码 SHA 未核实。 |
+| 本轮 | **MVP-06 BLOCKED（部分本机 PASS）**；MVP-01～05 DONE，MVP-07 TODO。 |
+| 已验证（历史 CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS；原有合成跨组拒绝与 Next.js 同源 PASS，非新 CI。 |
+| 本机验收与限制 | 维护者提供真实 Console TLS、管理员组授权、curl 基础六项、Python HTTPS 真实登录/设备同一身份/安全 Cookie/CSRF/Origin/登出 PASS；未知 UUID 404 不等于真实跨组；本机 Next.js 未接入、组外设备未核实、非独立 L3。临时 Console 仍处于验收配置，最终收尾 NOT RUN。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；Gate 0/10，G-01～G-10 OPEN，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **仍是 MVP-06**：先核实专用测试管理员与该设备授权组，核实本机监听/HTTPS；按任务卡补齐专用同源认证只读入口及真实正负例证据，成功前不进入 MVP-07。 |
-| 约束 | 单一 main；旧 SQLite/证书/共享 PG/IoT 不动；不重采、不重发、不写库存、不改默认开关、不暴露生产路由或提交秘密。 |
+| **下次唯一任务** | **仍为 MVP-06**：只读确认组外设备，设计独立默认拒绝的本机 Next.js 同源验收入口并测试真实会话/授权读/拒绝，最终关闭临时配置，不进入 MVP-07。 |
+| 约束 | 单一 main；不改旧 SQLite/证书/共享 PG/IoT 业务，不重采、不重发、不写库存、不扩大组权、不改生产默认、不绕过 synthetic CI 守卫，不提交秘密。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
