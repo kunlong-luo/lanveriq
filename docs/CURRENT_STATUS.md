@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机 PASS，非独立 L3。MVP-08 **BLOCKED**：GPUI [原生构建 #45985841332](https://github.com/kunlong-luo/lanveriq/actions/runs/45985841332) PASS（模型 2/2）；[任务账本](planning/local-mvp-tasks.md)保存全部 CI 与下一步。按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri 回退；候选摘要/依赖图 PASS，RustSec 待验；完整锁、实机、等价与包未完成。
+**MVP-01～07 DONE（7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机 PASS，非独立 L3。MVP-08 **BLOCKED**：GPUI [原生构建 #45985841332](https://github.com/kunlong-luo/lanveriq/actions/runs/45985841332) PASS（模型 2/2）；[任务账本](planning/local-mvp-tasks.md)保存全部 CI 与下一步。按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri 回退；锁已提交，RustSec 0 漏洞/9 维护警告；实机、等价与包未完成。
 
 ## 最近确实通过的关键验收
 
