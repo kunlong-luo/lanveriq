@@ -1,6 +1,6 @@
 # Lanveriq 当前状态 / Current status
 
-**LIVE-FACT · 2026-11-26 · `main` · v0.1 NOT RELEASE READY。** 本页只保留**目前有效的项目事实与下一步决策**；每次 CI 的详细失败、修复、确切命令留在[有日期的验收报告](README.md)和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)，不在此反复追加整段历史。
+**LIVE-FACT · 2026-11-27 · `main` · v0.1 NOT RELEASE READY。** 本页只保留**目前有效的项目事实与下一步决策**；每次 CI 的详细失败、修复、确切命令留在[有日期的验收报告](README.md)和 [GitHub Actions](https://github.com/kunlong-luo/lanveriq/actions)，不在此反复追加整段历史。
 
 > **未获批准的生产能力全部关闭：** 生产联网、设备/员工采集、自动恢复、远控、官方 FIDO 来源提升信任和 CA 证书签发均为 **OFF**。目前无正式签名的一键 Agent 安装包、有效的用户端 root 安装 broker、获许可 Pop!_OS 24.04 COSMIC 实机 L3、管理员 WebAuthn MFA、生产 CA、独立外部 WORM/可信时间与法务/SRE 签收。**G-01–G-10 OPEN。**
 
@@ -15,6 +15,10 @@
 | [`deploy`](../deploy/caddy/Caddyfile.reference) | Caddy mTLS、LAN/WAN 负测、RustDesk 隔离候选 | 无公网生产路由、远控 RD-2 保持 OFF |
 
 不存在 `apps/web-next`、第二套 Vite Web 或 Maven 后端。目录责任和裁剪依据以 [README 结构地图](../README.zh.md)、[目录治理审计](governance/repository-layout-audit-2026-11-24.md) 为准。
+
+## 本机 MVP（个人开发环境，非生产 L3）
+
+2026-11-27 **用户本机证据**：MVP-01 在共享 PostgreSQL 18.7 专用 `lanveriq` 库完成 V8→V30 增量迁移，30/30 成功、库存表存在；Spring Boot 4.2.0 经 IDEA 在 `127.0.0.1:18081` 启停、重启 Health UP，原有 PG/IoT 容器保持运行。基线 `19b5f56a`（本机配置有未提交修改）；不是新功能 CI 或正式 L3。MVP-02 保持既有 DONE；**下一项仅 MVP-03 隔离测试 mTLS 身份预检**，send 仍 NOT RUN。详见[本机任务账本](planning/local-mvp-tasks.md)。工程评分 71/100，发布 Gate 全 OPEN。
 
 ## 最近确实通过的关键验收
 
