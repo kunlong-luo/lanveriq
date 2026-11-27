@@ -38,16 +38,24 @@ jobs:
                   assert token not in data, (path, token)
           assert ".disabled(true)" in pathlib.Path("src/main.rs").read_text()
           PY
-      - name: Resolve candidate lock and record package metadata (not product lock approval)
+      - name: Resolve candidate lock and require exact reviewed candidate digest (not product approval)
         run: |
-          cargo +1.100.0 generate-lockfile
+          if [ ! -f Cargo.lock ]; then
+            cargo +1.100.0 generate-lockfile
+          fi
+          sha256sum --check --strict Cargo.lock.sha256
           cargo +1.100.0 metadata --locked --format-version 1 > candidate-metadata.json
           python3 - <<'PY'
           import json
           pkgs = json.load(open("candidate-metadata.json"))["packages"]
           for name, version in (("gpui-kit", "0.11.0"), ("gpui-pre", "0.3.14"), ("gpui-pre-platform", "0.3.14")):
               assert [p["version"] for p in pkgs if p["name"] == name] == [version], name
-          assert all(p["source"] is None or p["source"].startswith("registry+") for p in pkgs)
+          assert all(p["source"] == "registry+https://github.com/rust-lang/crates.io-index" or (p["source"] is None and p["name"] == "lanveriq-desktop-gpui-candidate") for p in pkgs)
+          import pathlib, re, tomllib
+          locked = tomllib.loads(pathlib.Path("Cargo.lock").read_text())["package"]
+          assert len(locked) == 813
+          assert len([p for p in locked if "source" not in p]) == 1
+          assert all(p.get("source") == "registry+https://github.com/rust-lang/crates.io-index" and re.fullmatch(r"[0-9a-f]{64}", p.get("checksum", "")) for p in locked if "source" in p)
           with open("candidate-licenses.tsv", "w") as f:
               for p in sorted(pkgs, key=lambda p: (p["name"], p["version"])):
                   f.write("\t".join((p["name"], p["version"], p["license"] or "UNREVIEWED")) + "\n")
@@ -60,6 +68,17 @@ jobs:
             apps/desktop/gpui-candidate/Cargo.lock
             apps/desktop/gpui-candidate/candidate-licenses.tsv
           retention-days: 7
+      - name: Record actual Linux normal and build dependency and feature graph
+        run: |
+          cargo +1.100.0 tree --locked --target x86_64-unknown-linux-gnu -e normal,build --prefix none --format '{p}' > candidate-linux-packages.txt
+          cargo +1.100.0 tree --locked --target x86_64-unknown-linux-gnu -e features > candidate-linux-features.txt
+          python3 - <<'PY'
+          import pathlib
+          names = {line.split()[0] for line in pathlib.Path("candidate-linux-packages.txt").read_text().splitlines() if line.strip()}
+          assert {"gpui-kit", "gpui-pre", "gpui-pre-linux", "gpui-pre-platform"} <= names
+          forbidden = sorted(name for name in names if name.startswith(("gpui-fast", "gpui-kit-shell", "gpui-kit-webview", "webkit", "speech-dispatcher")))
+          assert not forbidden, forbidden
+          PY
       - name: Install disposable runner upstream development prerequisites
         run: |
           sudo apt-get -o APT::Get::AllowUnauthenticated=false update
@@ -70,4 +89,27 @@ jobs:
       - name: Test offline model and build candidate (no GUI execution or install)
         run: |
           cargo +1.100.0 test --locked --lib
-          cargo +1.100.0 build --locked
+          cargo +1.100.0 build --locked --message-format=json-render-diagnostics > candidate-build.jsonl
+          python3 - <<'PY'
+          import json, pathlib, subprocess
+          messages = [json.loads(line) for line in pathlib.Path("candidate-build.jsonl").read_text().splitlines()]
+          binaries = [m["executable"] for m in messages if m.get("reason") == "compiler-artifact" and m.get("executable") and m.get("target", {}).get("name") == "lanveriq-desktop-gpui-candidate" and "bin" in m["target"]["kind"]]
+          assert len(binaries) == 1, binaries
+          binary = pathlib.Path(binaries[0])
+          assert binary.is_file()
+          with open("candidate-linux-elf.txt", "w") as f:
+              f.write(f"ELF bytes (debug profile, not package size): {binary.stat().st_size}\n")
+              f.flush()
+              subprocess.run(["readelf", "-d", str(binary)], stdout=f, check=True)
+          PY
+          sha256sum --check --strict Cargo.lock.sha256
+      - name: Archive Linux graph and direct ELF dependency evidence (no binaries)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-candidate-linux-evidence
+          path: |
+            apps/desktop/gpui-candidate/candidate-linux-packages.txt
+            apps/desktop/gpui-candidate/candidate-linux-features.txt
+            apps/desktop/gpui-candidate/candidate-linux-elf.txt
+          if-no-files-found: error
+          retention-days: 7
