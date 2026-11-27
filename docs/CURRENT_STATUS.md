@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-2026-11-27 **用户本机证据**：MVP-01 在共享 PostgreSQL 18.7 专用 `lanveriq` 库完成 V8→V30 增量迁移，30/30 成功、库存表存在；Spring Boot 4.2.0 经 IDEA 在 `127.0.0.1:18081` 启停、重启 Health UP，原有 PG/IoT 容器保持运行。基线 `19b5f56a`（本机配置有未提交修改）；不是新功能 CI 或正式 L3。MVP-02 保持既有 DONE。MVP-03 已有用户本机证据（功能基线 `8a3f7484`）：Caddy host 模式显式 loopback:443、IDEA Spring loopback:8443、独立 TLS1.3 双跳 Health UP，入口无证书/错误 CA/TLS1.2 拒绝及后端三负例通过；只读预检确认 PostgreSQL 18 专用库/角色正确，但目标设备不存在、匹配及 active 凭据均 0。**MVP-03 BLOCKED：受控注册、业务身份及激活尚未验收**，send 仍 NOT RUN。详见[本机任务账本](planning/local-mvp-tasks.md)。工程评分 71/100，发布 Gate 全 OPEN。
+2026-11-27 **用户本机证据**：MVP-01/02 DONE；PG18.7、Flyway V1–V30、IDEA、SQLite pending 已验收。MVP-03 双跳 TLS1.3 Health UP、入口/后端拒绝 PASS；目标设备不存在、匹配及 active 凭据 0，**BLOCKED**。隔离 PG18 注册 CI [#45945519700](https://github.com/kunlong-luo/lanveriq/actions/runs/45945519700)（`8dfdaa41`）PASS，非本机注册。仅继续 MVP-03，send NOT RUN；[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 
@@ -28,8 +28,6 @@
 | **Linux 清单断网→恢复→精确 ACK→PG18→Next.js（隔离 L2）** | [`db570181` / Linux #45554279736 两 jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) · [Agent unit #45554279741 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279741) | 真实 Caddy 断网保留 Rust SQLite revision 2、恢复 mTLS 后同一原始请求取得精确 ACK 并提交 PG18 latest=2；revision 3 在过期/吊销凭据下仍待发；真实 Chromium 经授权手动刷新，仅证明 Ubuntu runner 合成链。[报告](development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md) |
 | **APT 冷缓存双回放 L2B-33** | [c177f281 / #45569177575 20/20](https://github.com/kunlong-luo/lanveriq/actions/runs/45569177575) | 旧有效双签名被分离 RO CI 锚点拒绝；**非外部高水位**。[报告](development/desktop-tauri-l2b33-cold-cache-double-replay-anchored-oci-2026-11-25.md) |
 | **原生 Polkit + root-side D-Bus 身份** | [`91c4669d` / #45382618806 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) | 真实 D-Bus 发送者 UID/PID/内核启动时间，8 次 Polkit 拒绝与 nonce 负测；只有 **ReviewLab**，永远不执行安装。[详情](development/desktop-tauri-l2b25-real-dbus-peer-review-oci-2026-11-24.md) |
-| **只读 Linux → TLS/PG18 → Next.js** | [`e6b56c88` / #45365942781 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45365942781) | 一次性 Ubuntu24 runner 的 OS/CPU/RAM、Rust SQLite/TLS1.3 mTLS、Spring JPA PG18 和真实 Chromium 合成链；不是员工终端。[详情](testing/linux-readonly-os-cpu-ram-to-nextjs-l2-2026-11-24.md) |
-| **GUI 只读安全审查** | [`a42094bb` / #45368842676 SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) | Tauri 原生编译/React 门禁/只读负测；没有安装按钮或产品 root helper。[详情](development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md) |
 
 **发行预览边界：** `v0.1.0-dev.1` 仅完成了[源码预览候选 L1](operations/source-preview-v0.1.0-dev.1.md)，**NOT PUBLISHED**，无正式安装包；不能将源码预览的自动负测计为 G-05 已通过。
 
