@@ -32,6 +32,8 @@
 
 **2026-11-27 MVP-06 本机阶段验收（不加分）：** 维护者终端证据：独立 Console TLS、管理员组授权、基础 HTTP 六项、真实登录、安全 Cookie/会话轮换、设备 list/detail 与输入的已入库 UUID 一致、Origin/CSRF 拒绝及登出后 401 PASS；真实跨组与 Next.js 本机接入 NOT RUN。仍 BLOCKED，非新增自动 CI 或独立 L3；**71/100，Gate 0/10**。见[任务账本](local-mvp-tasks.md)。
 
+**2026-11-27 MVP-06 Next.js 预检（不加分）：** 本机旧基线 `b33254bc` route guard PASS；PG18 组外设备=0，实际本机跨组 NOT RUN。新增独立本机验收启动器与普通构建隔离守卫 `0e0d03e1`，新源码构建、浏览器与 CI 未确认，不增加评分或关闭 Gate。**71/100，Gate 0/10**。
+
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
 | Gate 集合 | 阻断条件 |
