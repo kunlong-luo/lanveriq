@@ -69,6 +69,8 @@
 
 - **本轮维护者决策：唯一测试 profile 名为 `test`**。原 `local-test` 已替换，删除旧 YAML；[application-test.yml](../../apps/server/src/main/resources/application-test.yml) 集中公开可丢弃数据库与管理员测试 fixture（用户名 local-test-admin、组 local-test-devices；管理员初始密码为新公开示例，不声称与现有数据库密码相同）。bootstrap.login/group 引用该配置，bootstrap.enabled=false，密码字段仅供操作者查看及手动输入，不作为登录后门或重置密码。同步 Java guard/负测、launcher 和 README；固定 loopback、拒绝其他 DB/角色及生产 profile，允许既有 mTLS acceptance。原真实密码未知，不提交；本机既有账号与 Argon2id 哈希不变。新 CI 与本机验收待核实。
 
+- **2026-11-27 最新本机证据及 CI**：维护者提供 Spring 启动日志（PG18.7、lanveriq/public、JPA、127.0.0.1:8443 HTTPS），18081 HTTP 不监听；经 Caddy mTLS Health 返回 UP，SQL users/device_groups 各 1。只证明现有记录，不证明管理员密码/组授权已实际验证；不重复 bootstrap。功能 `07ebb357` Server [#45949082428](https://github.com/kunlong-luo/lanveriq/actions/runs/45949082428)、PG 编译 [#45949082591](https://github.com/kunlong-luo/lanveriq/actions/runs/45949082591)、docs [#45949082512](https://github.com/kunlong-luo/lanveriq/actions/runs/45949082512) SUCCESS；公开 fixture 更新 `225ef841` Server [#45949317790](https://github.com/kunlong-luo/lanveriq/actions/runs/45949317790)、RD-2 [#45949317829](https://github.com/kunlong-luo/lanveriq/actions/runs/45949317829) SUCCESS。下一步新建仓库外受限目录生成 P-256 CSR，经 prepare 真实管理员认证及新 UUID；确认独立测试 CA 可签发后再 register，禁止覆写既有证书/SQLite 或提前 send。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -95,13 +97,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main a3a4f808](https://github.com/kunlong-luo/lanveriq/commit/a3a4f808deedbfa5159666288ffd57691b49bade)；MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。改名 test，统一公开管理员/数据库 fixture，默认不初始化；同步安全 guard、测试、launcher、README。 |
-| 已验证（源码） | 旧 local-test L1 #45948791811（6641e85a）及 docs #45948807334 PASS；新 test profile、guard、负例与文档已提交，新 CI 待核实。 |
+| 基线 | [main 225ef841](https://github.com/kunlong-luo/lanveriq/commit/225ef8414a491d3eeb2a84d62bf6fd0855f7b79b)；MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**。用户本机 HTTPS 启动、双跳 Health UP、管理员/设备组各 1；不重复初始化。 |
+| 已验证（源码） | test profile 07ebb357 L1 Server #45949082428、PG 编译 #45949082591、docs #45949082512 PASS；225ef841 Server #45949317790/RD-2 #45949317829 PASS。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | 原双跳/负例保留；原库 lanveriq 认证 PASS，迁移30/0、users/devices/groups 0/0/0。Server #45947582907（c305cc07）success，docs #45947623007/Next #45947623010（718e5e19）success。真实 bootstrap、CSR/CA、注册、激活与业务正负例 NOT RUN。 |
+| 用户本机证据 / 未验证 | PG18.7、迁移30/0（此前），8443 HTTPS、双跳 Health UP、users/groups 各 1（本轮）。管理员实际认证、CSR/CA、注册、激活 NOT RUN；不作 L3。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：核实新 CI，IDEA 激活 test，核对现有管理员及组，继而 prepare/register、mTLS activation/epoch。无需新库或手工 YAML；保留旧 SQLite，不进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：新 P-256 CSR → prepare 真实管理员认证及新 UUID → 确认独立测试 CA → register → mTLS activation/epoch。保留原证书和 SQLite，不进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
