@@ -20,6 +20,8 @@ Tauri offers established tooling and React reuse but a WebView and separate fron
 
 ## Acceptance and supersession
 
+A disposable Ubuntu X11 smoke may run the exact compiled candidate as a non-root process under private Xvfb/Openbox and D-Bus, with software-rendering prerequisites, temporary home/runtime, bounded subprocesses and cleanup. Assert mapped native window, nonuniform synthetic window pixels, resize and Ctrl+Q clean exit. This is not physical COSMIC/Wayland, GPU, IME, complete interaction/accessibility, package or release acceptance. No Agent installation or service mutation; do not archive candidate binaries or real desktop screenshots.
+
 See [single task ledger](../../planning/local-mvp-tasks.md). Verify exact-source CI and reviewed committed lock, native startup/navigation, keyboard/focus/Chinese IME, COSMIC/Wayland, resize/scroll/close, denied privileged actions, parity for read-only checks, offline draft, install review and diagnostics, GUI-only noninstalling package/ABI audit and comparable resource metrics. Retain rollback in Git and remove obsolete Tauri-specific UI/build paths only after acceptance; retain framework-neutral security evidence. Partially supersedes [ADR-0013](0013-tauri-desktop-installer-idle-agent.md) GUI selection **only when cutover accepted**. All lifecycle, notice, retention, signing, Polkit and independent Agent decisions remain binding.
 
 **Approval scope:** source, disposable CI and owner-operated nonprivileged offline candidate window only. **Explicit non-authorizations:** no Agent installation/start/autostart, no production network/collection/recovery/remote control/CA or certificate issuance, no new permissions, no release, no removal of fallback before parity. G-01–10 OPEN.
