@@ -172,6 +172,8 @@
 - **2026-11-27 维护者批准改向，当前执行范围**：[ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md)。采用 GPUI Kit 固定 =0.11.0（[发布](https://github.com/longbridge/gpui-kit/releases/tag/v0.11.0)，上游 tag commit e97fe438129c5e4ccab504f2e6fafd9a4e396bba，配套 GPUI-pre 0.3.14）。主体 Apache-2.0；间接依赖/资源/发行许可待审，不直接采用 Zed 应用 GPL 代码。候选单独在 apps/desktop/gpui-candidate；不修改现有 Tauri 及其审计，不新建第二正式应用。候选 [61a04b98](https://github.com/kunlong-luo/lanveriq/commit/61a04b9849a5cbaf756b3b0948533c146206c35b) 有七导航和中文 Label/Button、状态纯模型测试、六禁用按钮（仅占位、不含旧只读能力的功能等价），无系统/Agent/网络/存储/权限调用。CI 首次显式解析临时 Cargo.lock、校验 GPUI 匹配快照和 registry 来源、归档许可证清单，然后同锁测试/编译；没有已审核提交的产品锁，不宣称依赖已锁全图。上游通用 Ubuntu 依赖仍含 WebKitGTK，原生渲染不代表没有此链接/编译依赖。此前用户本机报告缺 dbus-1 开发库，后续运行 gdk-pixbuf 像素缓冲 panic；图标猜测未证实，Tauri 实机未通过。旧 APT FAIL 保留。
 - **新退出验收**：GPUI 解析、锁审查并提交、许可证/SBOM/漏洞审查；实际 Linux 原生编译/测试、窗口启动、七导航键盘/焦点/禁用态、中文输入/缩放、Wayland/COSMIC/窄窗滚动、正常退出；迁移既有只读检查/配置草稿/安装审核/脱敏诊断并保持所有拒绝边界；签名 Ubuntu 构建依赖与非安装 GUI-only .deb 归档审计，核对链接依赖、尺寸/内存/启动实测；Windows/macOS 编译与各平台授权单列，不宣称已通过。全项完成后再将候选迁至唯一 apps/desktop，保留 Git 回退并清理旧 Tauri 专用 UI/CI（安全通用实验保留）。本轮仅候选源码，未执行本机/打包，BLOCKED；不进入 MVP-09。
 
+- **2026-11-27 构建修复与锁初审**：[首轮 #45982655002](https://github.com/kunlong-luo/lanveriq/actions/runs/45982655002) 功能 `61a04b98` job 140450231617：依赖解析/精确 GPUI 版本/Ubuntu APT 安装 PASS；`cargo +1.100.0 test --locked --lib` 2/2 PASS；`cargo +1.100.0 build --locked` FAIL（E0599，`font_bold` 的 StyledExt 未导入；另有未使用 ButtonVariants）。[修复 a400c80e](https://github.com/kunlong-luo/lanveriq/commit/a400c80e36d152caa9b3412f014b469bcce071ea) 只补齐上游扩展 trait 和清理导入；[GPUI #45985275471](https://github.com/kunlong-luo/lanveriq/actions/runs/45985275471) job 140459173835 PENDING（解析/归档已 PASS，原生测试/构建未完成）；[RD-2 #45985275307](https://github.com/kunlong-luo/lanveriq/actions/runs/45985275307) SUCCESS。两个实际解析归档 ID 15189409306/15190882255 已下载并核对 ZIP 官方 SHA-256，内部 Cargo.lock 与许可证 TSV 逐字节相同。Cargo.lock SHA-256 `0f77a9e9df9f3ff03612f22f4777de7d7ebf2cd65b69fc79d18a2ed05e37dad9`；813 条（812 crates.io registry 且均有 checksum，1 本地候选）。许可证 metadata 初审：3 MPL-2.0（cbindgen/dwrote/option-ext），r-efi 两版本可选 MIT/Apache/LGPL，self_cell 可选 Apache/GPL；唯一 UNREVIEWED 为本地候选。锁含 gpui-fast 及平台依赖候选条目，不能仅凭 lock 断言已激活或链接；需核对实际 Linux feature graph。完整 SBOM、资源许可、RustSec/漏洞审查、已提交产品锁 NOT RUN/未完成；归档只保留七天，不能当永久锁。当前连接无直接 Git 网络访问，不能将 215053 字节归档锁直接提交；不得为此提高 CI 写权限或宣称锁已批准。旧 Tauri 冻结保留，实机、功能等价、打包 NOT RUN。仍 BLOCKED，71/100，Gate 0/10。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
@@ -208,12 +210,12 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [3cb5f828](https://github.com/kunlong-luo/lanveriq/commit/3cb5f828da563ee3db55da2d6e754d953fe06f60)；候选功能 [61a04b98](https://github.com/kunlong-luo/lanveriq/commit/61a04b9849a5cbaf756b3b0948533c146206c35b)。 |
-| 本轮 | MVP-08 **BLOCKED**；维护者批准 GPUI 优先验证，ADR-0014；七导航离线源码候选、未迁移旧只读业务。MVP-01～07 DONE，09～16 TODO。 |
-| CI | 旧 Tauri 42/42 PASS、原生 APT FAIL 保留；[GPUI #45982655002](https://github.com/kunlong-luo/lanveriq/actions/runs/45982655002) job 140450231617：Rust 安装、源码门禁、依赖解析/精确 GPUI 快照校验、临时 lock/许可证归档、Ubuntu 开发依赖安装 PASS；测试及实际编译 IN_PROGRESS（未验收）；[RD-2 #45982654790](https://github.com/kunlong-luo/lanveriq/actions/runs/45982654790) SUCCESS。基线文档 [#45976224619](https://github.com/kunlong-luo/lanveriq/actions/runs/45976224619) SUCCESS。 |
-| 本机 | Tauri 启动曾 panic；GPUI NOT RUN。依赖图、产品锁、完整许可证、安全审核、实机窗口、GUI-only 包及功能等价待验。 |
+| 基线 | [6a9604b0](https://github.com/kunlong-luo/lanveriq/commit/6a9604b0a1063cfe2d3af358f7d9d6317cc84fd0)；功能修复 [a400c80e](https://github.com/kunlong-luo/lanveriq/commit/a400c80e36d152caa9b3412f014b469bcce071ea)。 |
+| 本轮 | MVP-08 **BLOCKED**；读取现行 ADR/规则，修复原生编译 E0599，初审两份一致的候选锁与许可证 metadata。MVP-01～07 DONE，09～16 TODO。 |
+| CI | 原 [#45982655002](https://github.com/kunlong-luo/lanveriq/actions/runs/45982655002) 2/2 单测 PASS、原生编译 FAIL；修复 [#45985275471](https://github.com/kunlong-luo/lanveriq/actions/runs/45985275471) PENDING（解析/归档 PASS，编译未完成）；[RD-2 #45985275307](https://github.com/kunlong-luo/lanveriq/actions/runs/45985275307) PASS。 |
+| 本机/锁 | GPUI 实机 NOT RUN；两归档 lock SHA-256 一致，812 registry + 1 本地。产品锁未提交，完整许可证/资源/SBOM/漏洞及 feature graph 未验；只读功能等价、GUI-only 包、实测指标 NOT RUN。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | MVP-08：核实候选精确 SHA CI/解析锁及依赖许可证，先通过实际原生构建和窗口，再迁移既有只读功能、审计包与决定切换；不进入 MVP-09。 |
-| 约束 | main only；旧 Tauri 回退保留且冻结扩展，不弱化安全审计；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
+| **下次唯一任务** | MVP-08：核实修复 SHA 原生 CI，取得并提交实际候选锁、用锁复验并做 feature graph/许可/资源/SBOM/漏洞审查，再推进窗口与既有只读能力等价、包审计；不进入 MVP-09。 |
+| 约束 | main only；旧 Tauri 回退保留且冻结扩展，不弱化安全审计，不提高 CI 写权限；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**

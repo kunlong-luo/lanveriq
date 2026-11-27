@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（首阶段 7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者真实库存/收尾 PASS，非独立 L3。MVP-08～16 见[账本](planning/local-mvp-tasks.md)。MVP-08 [GPUI 候选](https://github.com/kunlong-luo/lanveriq/commit/61a04b9849a5cbaf756b3b0948533c146206c35b) 源码已提交、待锁/CI/实机；[ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 冻结 Tauri 扩展，暂保留回退。此前 Tauri L1 42/42 PASS、原生 FAIL。71/100，生产关闭。
+**MVP-01～07 DONE（首阶段 7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者真实库存/收尾 PASS，非独立 L3。MVP-08～16 见[账本](planning/local-mvp-tasks.md)。MVP-08 **BLOCKED**：[GPUI 初轮 #45982655002](https://github.com/kunlong-luo/lanveriq/actions/runs/45982655002) 2/2 模型单测 PASS、原生编译 FAIL；[修复 a400c80e](https://github.com/kunlong-luo/lanveriq/commit/a400c80e36d152caa9b3412f014b469bcce071ea) / [#45985275471](https://github.com/kunlong-luo/lanveriq/actions/runs/45985275471) PENDING。两份归档候选锁逐字节相同（812 registry + 1 本地）；产品锁、完整安全/许可证、实机、功能等价和包审计未完成。[ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 冻结 Tauri 扩展，暂保留回退。此前 Tauri L1 42/42 PASS、原生 FAIL。71/100，生产关闭。
 
 ## 最近确实通过的关键验收
 
