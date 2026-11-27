@@ -60,7 +60,7 @@
 - **UUID 处理决定**：不更改服务端 UUID 分配规则、不把原已签发证书或 SQLite 待发快照改绑新身份；上面的受控初始化会产生新测试 UUID，后续须经维护者明确同意才可创建对应的新测试 outbox，旧 outbox 只保留不覆盖、不发送。原固定 `lanveriq` 的预检仅用于原数据库核对，不能误作新测试库成功证据。没有真实测试管理员登录、授权 CA 或隔离库时保持 BLOCKED。
 
 - **2026-11-27 本轮：专用测试库初始化工具**：[setup-local-enrollment-postgres.sh](../../apps/server/scripts/setup-local-enrollment-postgres.sh)，功能 [`599ba8cd`](https://github.com/kunlong-luo/lanveriq/commit/599ba8cd68322c7fcbc10660d7751f7102ee84d4)。固定复用既有 spark-postgres，要求 PG18/SCRAM、仅 loopback TCP 5432、授权 root、固定库及同名 NOLOGIN 低权限角色、手动确认、撤销 PUBLIC 权限、隐藏交互式密码并检查 SCRAM 后启用 LOGIN；已有任一对象直接停止，不自动修复/删除/重置，不改原 lanveriq 或 IoT 库，不启停容器。助手隔离环境重建并校验精确 Git blob `73abf344fd368f8b44428f6c614f1c90e8dd8350`：bash -n、额外参数、非交互、CI+PTY 拒绝均 PASS；真实 Docker/PG DDL 未执行。[`43ebc64c`](https://github.com/kunlong-luo/lanveriq/commit/43ebc64c430b47d9aea7596e2fdd6179dcc8b6c2) 将两个手动 enrollment 脚本纳入既有 Server CI 语法检查，不在 CI 执行写库。前轮 docs [#45946220851](https://github.com/kunlong-luo/lanveriq/actions/runs/45946220851)（`6f156a97`）PASS。
-- **下一项本机实际操作**：维护者自行在仓库根 `git pull --ff-only origin main`（保留未提交配置），随后 `bash apps/server/scripts/setup-local-enrollment-postgres.sh`，核对 dedicated_test_database=true；若已有对象或端口/角色检查不满足，立即停下，不自动重置。成功后才在独立库中使用既有 Flyway 和 FirstAdminBootstrapRunner：从 apps/server 构建 bootJar，使用下面独立 Bash 子 shell（不复用 IDEA mTLS profile，不开启任何 HTTP 功能）。需自行保存新库与管理员密码，不提供给助手。
+- **本机实际操作（专用库已 PASS，保留原命令供复核）**：维护者自行在仓库根 `git pull --ff-only origin main`（保留未提交配置），随后 `bash apps/server/scripts/setup-local-enrollment-postgres.sh`，核对 dedicated_test_database=true；若已有对象或端口/角色检查不满足，立即停下，不自动重置。成功后才在独立库中使用既有 Flyway 和 FirstAdminBootstrapRunner：从 apps/server 构建 bootJar，使用下面独立 Bash 子 shell（不复用 IDEA mTLS profile，不开启任何 HTTP 功能）。需自行保存新库与管理员密码，不提供给助手。
 
   ```bash
   cd apps/server
@@ -84,6 +84,8 @@
   ```
 
   只在无额外 Spring 配置覆盖的可信终端使用；不从现有 IDEA 运行配置继承参数。管理员密码在 Java 本机控制台隐藏输入两次；预期 Initial administrator created；真实执行 NOT RUN。完成后退出离线进程，不再开启 bootstrap，随后按上文 prepare/register。独立库是测试范围而非第二个长期容器。若选新 UUID，后续 MVP-04～07 必须沿用同一测试身份、独立 outbox 和同一测试库，不把原 lanveriq 查询误计为新设备入库；尚未获新 outbox 的明确批准。
+
+- **2026-11-27 用户本机执行证据**：`git pull --ff-only origin main` 从 `47e65e67` fast-forward 到 `f44321c8`；手动 `bash apps/server/scripts/setup-local-enrollment-postgres.sh` 确认固定测试库名称，输出 CREATE ROLE / CREATE DATABASE / REVOKE / ALTER ROLE，最终密码认证查询 `dedicated_test_database=t`。专用库 provisioning PASS（用户终端，非助手本机直连），不重复运行初始化脚本；Flyway、管理员及设备注册/激活 NOT RUN。自动 CI [Server #45946440665](https://github.com/kunlong-luo/lanveriq/actions/runs/45946440665)（`43ebc64c`）success，job 140332187251 脚本语法检查、Gradle test、bootJar 均成功；[docs #45946480897](https://github.com/kunlong-luo/lanveriq/actions/runs/45946480897) / [Next #45946480917](https://github.com/kunlong-luo/lanveriq/actions/runs/45946480917)（`f44321c8`）success。
 
 ### MVP-04 · 一次 `send` 和精确 ACK
 
@@ -111,13 +113,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 6f156a97](https://github.com/kunlong-luo/lanveriq/commit/6f156a974a7e8b05e49d7b1158a2ba8fffc9ff8e)；原本机功能基线 `8a3f7484`；[前次账本](https://github.com/kunlong-luo/lanveriq/blob/6f156a974a7e8b05e49d7b1158a2ba8fffc9ff8e/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。上轮离线注册入口 L1 Java test/bootJar PASS；新增固定测试库 provisioning 和 Server CI 语法检查。真实库创建/管理员 bootstrap/注册与激活 NOT RUN。 |
+| 基线 | [main f44321c8](https://github.com/kunlong-luo/lanveriq/commit/f44321c833f120df777f2516f51bdadc7c7d3913)，用户本机 fast-forward 同 SHA；[前次账本](https://github.com/kunlong-luo/lanveriq/blob/f44321c833f120df777f2516f51bdadc7c7d3913/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**。用户本机专用测试库 provisioning PASS；前轮脚本 CI 与文档 CI 成功，未修改功能代码。Flyway、真实管理员、注册/激活仍 NOT RUN。 |
 | 已验证（源码） | 新 helper `599ba8cd` 精确 blob Bash 语法/3 启动拒绝 PASS（助手隔离环境，非真实 Docker/PG）；CI workflow `43ebc64c` 新增两脚本语法检查。既有 Java 注册实现保持不变。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | 原双跳/负例与 PG 0 条保留。上轮 PG18 #45945519700（8dfdaa41）PASS；Server unit #45946124081（3bf61e08）test/bootJar PASS；docs #45946220851（6f156a97）PASS。新脚本真实 DDL、管理员、CSR/CA、注册、activation、业务身份正负例、普通 DNS/真实 Rust NOT RUN；新功能 CI 未确认。 |
+| 用户本机证据 / 未验证 | 原双跳/负例与 PG 0 条保留；新专用测试库创建及密码认证 `dedicated_test_database=t` PASS。Server #45946440665（43ebc64c）语法/test/bootJar PASS；docs #45946480897/Next #45946480917（f44321c8）PASS。新库 Flyway、管理员、CSR/CA、注册、activation、业务身份正负例、普通 DNS/真实 Rust NOT RUN。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：维护者运行测试库初始化 helper，确认专用库/角色，再离线 Flyway/管理员 bootstrap；随后真实 prepare/register 与 mTLS activation/epoch 正负例。新 UUID 与旧 outbox 隔离，不修改/删除旧数据；不进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：在已创建专用库执行离线 Flyway/FirstAdminBootstrapRunner，核对迁移与真实管理员组授权；随后 prepare/register 和 mTLS activation/epoch 正负例。无需重跑 provisioning，不修改旧 SQLite，不进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
