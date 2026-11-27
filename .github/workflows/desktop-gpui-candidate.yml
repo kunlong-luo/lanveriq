@@ -1,0 +1,73 @@
+name: Desktop GPUI candidate dependency resolution and compile (nonrelease)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/gpui-candidate/**'
+      - '.github/workflows/desktop-gpui-candidate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/desktop/gpui-candidate
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust
+        run: rustup toolchain install 1.100.0 --profile minimal
+      - name: Verify candidate has no product or privileged interfaces
+        run: |
+          python3 - <<'PY'
+          import pathlib, tomllib
+          p = tomllib.loads(pathlib.Path("Cargo.toml").read_text())
+          assert p["package"]["publish"] is False
+          assert set(p["dependencies"]) == {"gpui-kit"}
+          d = p["dependencies"]["gpui-kit"]
+          assert d["version"] == "=0.11.0" and d["default-features"] is False
+          assert set(d["features"]) == {"component", "assets", "x11"}
+          assert not pathlib.Path("build.rs").exists()
+          for path in pathlib.Path("src").glob("*.rs"):
+              data = path.read_text()
+              for token in ("std::process", "std::fs", "std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "std::env", "include_bytes!", "include_str!"):
+                  assert token not in data, (path, token)
+          assert ".disabled(true)" in pathlib.Path("src/main.rs").read_text()
+          PY
+      - name: Resolve candidate lock and record package metadata (not product lock approval)
+        run: |
+          cargo +1.100.0 generate-lockfile
+          cargo +1.100.0 metadata --locked --format-version 1 > candidate-metadata.json
+          python3 - <<'PY'
+          import json
+          pkgs = json.load(open("candidate-metadata.json"))["packages"]
+          for name, version in (("gpui-kit", "0.11.0"), ("gpui-pre", "0.3.14"), ("gpui-pre-platform", "0.3.14")):
+              assert [p["version"] for p in pkgs if p["name"] == name] == [version], name
+          assert all(p["source"] is None or p["source"].startswith("registry+") for p in pkgs)
+          with open("candidate-licenses.tsv", "w") as f:
+              for p in sorted(pkgs, key=lambda p: (p["name"], p["version"])):
+                  f.write("\t".join((p["name"], p["version"], p["license"] or "UNREVIEWED")) + "\n")
+          PY
+      - name: Archive lock and license inventory for review (no binaries)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-candidate-resolution
+          path: |
+            apps/desktop/gpui-candidate/Cargo.lock
+            apps/desktop/gpui-candidate/candidate-licenses.tsv
+          retention-days: 7
+      - name: Install disposable runner upstream development prerequisites
+        run: |
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false update
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y --no-install-recommends \
+            gcc g++ clang cmake pkg-config libfontconfig-dev libwayland-dev \
+            libwebkit2gtk-4.1-dev libxkbcommon-x11-dev libx11-xcb-dev libdbus-1-dev \
+            libssl-dev libzstd-dev libasound2-dev vulkan-validationlayers libvulkan1
+      - name: Test offline model and build candidate (no GUI execution or install)
+        run: |
+          cargo +1.100.0 test --locked --lib
+          cargo +1.100.0 build --locked
