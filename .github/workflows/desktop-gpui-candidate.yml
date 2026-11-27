@@ -151,7 +151,21 @@ jobs:
         run: |
           set -o pipefail
           timeout --kill-after=5s 100s xvfb-run -a -s "-screen 0 1280x800x24 -nolisten tcp" \
-            dbus-run-session -- python3 tools/window_smoke.py | tee candidate-window-smoke.txt
+            dbus-run-session -- /usr/bin/python3 tools/window_smoke.py | tee candidate-window-smoke.txt
+      - name: Inspect observed X11 libraries and installed APT dependency graph (no install)
+        run: |
+          /usr/bin/python3 -m unittest discover -s tools -p test_runtime_evidence.py -v
+          /usr/bin/python3 tools/runtime_evidence.py
+      - name: Archive bounded runtime evidence (metadata only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-candidate-runtime-evidence
+          path: |
+            apps/desktop/gpui-candidate/candidate-mapped-libraries.json
+            apps/desktop/gpui-candidate/candidate-runtime-evidence.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Archive synthetic window smoke result
         if: always()
         uses: actions/upload-artifact@v4

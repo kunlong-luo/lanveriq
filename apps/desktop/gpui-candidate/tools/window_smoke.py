@@ -3,10 +3,13 @@
 No Agent, install, network endpoint, real user data or product evidence.
 """
 import os
+import json
 import pathlib
 import subprocess
 import tempfile
 import time
+
+from runtime_evidence import capture_child, SNAPSHOT
 
 TITLE = "^Lanveriq Desktop - Offline Candidate$"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -90,10 +93,14 @@ def main():
                 wait_for(colors)
                 assert app.poll() is None
                 print("PASS: native window resized and nonuniform pixels observed", flush=True)
+                snapshot = capture_child(app, BINARY)
                 command(["/usr/bin/xdotool", "windowactivate", "--sync", wid], env)
                 command(["/usr/bin/xdotool", "key", "--clearmodifiers", "ctrl+q"], env)
                 assert app.wait(timeout=10) == 0, "candidate did not exit cleanly"
                 print("PASS: Ctrl+Q native action exited with code 0", flush=True)
+                with SNAPSHOT.open("x", encoding="utf-8") as out:
+                    json.dump(snapshot, out, indent=2, sort_keys=True)
+                print("PASS: bounded synthetic child library snapshot recorded", flush=True)
             except BaseException:
                 stop(app)
                 log.seek(0, os.SEEK_END)
