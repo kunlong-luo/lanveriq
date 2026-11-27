@@ -128,6 +128,20 @@ jobs:
               f.write(dynamic)
           PY
           sha256sum --check --strict Cargo.lock.sha256
+      - name: Audit temporary GUI-only Debian archive (never install or upload)
+        run: |
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y --no-install-recommends dpkg-dev python3-apt desktop-file-utils
+          /usr/bin/python3 -m unittest discover -s tools -p test_package_audit.py -v
+          set -o pipefail
+          /usr/bin/python3 tools/package_audit.py | tee candidate-package-audit.txt
+      - name: Archive GUI-only package audit text (no deb or binary)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-candidate-package-audit
+          path: apps/desktop/gpui-candidate/candidate-package-audit.txt
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Install disposable X11 software-rendered window test tools
         run: |
           sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y --no-install-recommends \
@@ -147,6 +161,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Archive Linux graph and direct ELF dependency evidence (no binaries)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gpui-candidate-linux-evidence
