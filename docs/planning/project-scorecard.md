@@ -22,7 +22,7 @@
 
 **2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
 
-**2026-11-27 本机 MVP（7/7 DONE，不加分）：** [Linux L2 三 jobs #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816) SUCCESS；维护者本机真实设备读取与收尾 PASS，非独立 L3。自动验收仍 19/20。MVP-08 GPUI [离线审核/诊断 #45992569565](https://github.com/kunlong-luo/lanveriq/actions/runs/45992569565) 双 job PASS；系统身份只读源码待 CI；实机/安装未完成。**71/100，Gate 0/10；MVP-08 BLOCKED，09～16 TODO。** 详细证据见[任务账本](local-mvp-tasks.md)；[此前评分与证据](https://github.com/kunlong-luo/lanveriq/blob/682b8db7ff6336275d9ae5dd24c1b5e5538e9e65/docs/planning/project-scorecard.md)。
+**2026-11-27 本机 MVP（7/7 DONE，不加分）：** [Linux L2 三 jobs #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816) SUCCESS；维护者本机真实设备读取与收尾 PASS，非独立 L3。自动验收仍 19/20。MVP-08 GPUI [系统身份 #45999226747](https://github.com/kunlong-luo/lanveriq/actions/runs/45999226747) 双 job PASS；包/systemd 只读源码待 CI；实机/安装未完成。**71/100，Gate 0/10；MVP-08 BLOCKED，09～16 TODO。** 详细证据见[任务账本](local-mvp-tasks.md)；[此前评分与证据](https://github.com/kunlong-luo/lanveriq/blob/682b8db7ff6336275d9ae5dd24c1b5e5538e9e65/docs/planning/project-scorecard.md)。
 
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
