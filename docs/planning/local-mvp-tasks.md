@@ -17,12 +17,12 @@
 | **MVP-01** | 共享 PG18 + Spring 启动、Flyway、独立启停 | 本机 Docker/Java/端口可核实 | **DONE**：2026-11-27 用户本机 V1～V30、loopback:18081 Health UP、IDEA 独立停止/重启 PASS（限定本机开发） |
 | **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：2026-11-27 复核；保留既有用户本机 PASS 与 Agent L1 PASS，本轮重跑 NOT RUN |
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **DONE**：2026-11-27 本机注册、激活、epoch、错设备及无证书拒绝 PASS；功能 f6e83c89 隔离 L2 三 jobs SUCCESS |
-| **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **TODO / NOT RUN** |
+| **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **BLOCKED**：2026-11-27 既有 L1/L2 复核 PASS；本机 DNS、旧 outbox 与新注册身份绑定、真实 send NOT RUN |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **TODO / NOT RUN** |
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **TODO / NOT RUN** |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**下一项为 MVP-04（TODO）**：MVP-01～03 已完成限定本机目标。另开会话先核对旧 SQLite 身份绑定，禁止改绑或删除旧 pending；如需新 outbox，须明确批准。
+**当前唯一任务 MVP-04（BLOCKED）**：MVP-01～03 DONE。先核对本机普通 DNS、证书及旧 SQLite 身份；不同 UUID 时保留原 outbox，明确批准独立新 outbox 后方可继续。不得进入 MVP-05。
 
 ## 可执行任务卡
 
@@ -97,6 +97,9 @@
 - **验收**：服务端成功提交该设备的版本并返回精确一致的 `device_id`、`snapshot_id`、`inventory_revision`；只有 `Accepted` 后 `inventory_pending` 才移除对应快照，历史语义版本保持。网络故障、证书错误、错误/延迟 ACK、`stale_ignored` 不得错误清队列；若代码改变安全行为需实际跑定向负测并记录 SHA/Run。
 - **禁止**：不实现自动重试/自动采集，不直接删 SQLite 待发记录，不放宽 TLS。
 
+- **2026-11-27 源码及历史 CI 复核（非重跑）**：基线 [`6c3b9f5d`](https://github.com/kunlong-luo/lanveriq/commit/6c3b9f5d0b559b5bb98082e492ccf5b87167c7eb)。现有 [CLI](../../apps/agent/src/main.rs) 固定 origin、受限 PEM、单次 send；[transport](../../apps/agent/src/transport.rs) 在 HTTP200/schema/device/snapshot/revision 一致且非 stale_ignored 时才 Accepted；[store](../../apps/agent/src/store.rs) 校验设备、摘要和语义状态，精确 CAS 删除对应 pending，保留 latest revision。无需新代码。Agent [L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428)（`bed0152b`，job 139855945215）原日志确认 125 tests PASS，覆盖错误/不完整 ACK、stale_ignored、错设备、迟到 ACK、错误 TLS 保留 pending；compare 至基线 61 commits，无 apps/agent 变更。[L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366)（`f6e83c89`，三个 job success，job 140349819059 原日志 Source SHA 一致）确认断网重启保留 pending、真实 mTLS/PG18 精确 ACK、重复/迟到/同版冲突、过期/吊销证书拒绝；compare 至基线仅三个文档提交。L2 使用合成身份及 disposable runner，不能代替本机真实 CLI。未触发新功能 CI、未修改产品代码。
+- **本机验收 BLOCKED / NOT RUN**：当前无本机执行通道，尚未确认普通 DNS 指向 loopback:443、旧 SQLite 的 owner 与已注册测试叶 URI SAN 一致，未核对当前有效 epoch 与叶指纹，也未执行一次 send。保留所有旧 SQLite 与密钥；不新建/改绑 outbox、不手工 DELETE、不开启 inventory。解除阻塞时先只读 `getent ahosts agent.lanveriq.internal`、`sqlite3 -readonly "$STATE_FILE"` 查询 inventory_latest_state 的 owner/snapshot/revision 和 inventory_pending 的同一快照；核对同一叶的 credential-epoch、有效期和指纹。若不同 UUID，停止并取得明确新 outbox 授权；如一致，且本机 Caddy/8443 仅 loopback，临时仅在隔离 test + acceptance 实例启用 `LANVERIQ_AGENT_INVENTORY_HTTP_ENABLED=true`，其他未授权开关 OFF。执行任务卡已有 `cargo run --locked -- send` 一次；必须出现 `exact server ACK accepted; remaining_pending=false`，且只读查询 pending 0、latest 原 snapshot/revision 保持，测试后恢复 inventory OFF。错误/无 pending/非精确 ACK 均不得标 DONE。不要披露本机 UUID、密钥、凭据或原始私有日志。PG 查询留给 MVP-05。
+ 
 ### MVP-05 · PostgreSQL 真正入库
 
 - **只读范围**：以 `lanveriq` 专用角色核对 `public.device_inventory_current`，按 [Flyway V8 列定义](../../apps/server/src/main/resources/db/migration/V8__device_inventory_current.sql) 检查相同设备 `snapshot_id`、`inventory_revision`、`os_name`、`os_version`、`cpu_model`、`memory_total_bytes`。
@@ -117,13 +120,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 2e02cd29](https://github.com/kunlong-luo/lanveriq/commit/2e02cd29aaff4158d4b5b4a1ca1ee8d69ecea14b)；功能 f6e83c89；MVP-01/02 不变。 |
-| 本轮 | **MVP-03 DONE**。本机 activation/epoch、错设备403、无证书拒绝 PASS；隔离 L2 三 jobs SUCCESS；原403根因未证实。 |
-| 已验证（源码） | f6e83c89 Server #45952013447、PG 编译 #45952013329、docs #45952013308、RD-2 #45952013487 SUCCESS；[隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS。 |
-| 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | PG18.7/迁移30/0/8443 HTTPS/管理员与组/prepare/CA/register PASS；新叶 Health UP、pending epoch 403、activate HTTP200 active、epoch 返回、错设备403、无证书 TLS 拒绝 PASS；普通 DNS、Rust send、完整 L3 未验。 |
-| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-04（TODO）**：另开会话，核对本机普通 DNS、注册身份与旧 SQLite 绑定；如不同 UUID，保留旧 pending，明确批准新 outbox 再进行一次 send/精确 ACK。 |
-| 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
+| 基线 | [main 6c3b9f5d](https://github.com/kunlong-luo/lanveriq/commit/6c3b9f5d0b559b5bb98082e492ccf5b87167c7eb)；MVP-01/02/03 DONE；本轮无功能代码变更。 |
+| 本轮 | **MVP-04 BLOCKED**：现有 CLI/transport/store 与历史 L1/L2 核实 PASS；本机普通 DNS、旧 outbox 绑定、新叶 epoch/指纹、实际 send 未执行。 |
+| 已验证（源码/CI L1） | [Agent #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428) `bed0152b` job 139855945215 原日志 125 tests PASS；错设备、错/迟到 ACK、stale_ignored、错误 TLS 不清队列；compare 至基线 apps/agent 无改动。 |
+| 已验证（CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs success；job 140349819059 原日志核实断网保留、恢复精确 ACK、重复、冲突、过期/吊销拒绝。至基线仅文档变化，历史复核，非本轮重跑。 |
+| 用户本机证据 / 未验证 | 继承 MVP-03 账本已记录的注册/激活/epoch 与拒绝证据；旧 pending 与新设备身份是否匹配 NOT RUN；本轮无本机日志、无 send、无 SQLite 修改，inventory 仍保持 OFF 要求。 |
+| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；本轮仅复核既有证据，未增加新的自动或本机验收。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
+| **下次唯一任务** | **仍为 MVP-04（BLOCKED）**：本机只读预检；不一致先批准独立新 outbox；一致才手动发送并检查精确 ACK、pending 0、原 latest 保持；关闭测试 inventory 后记录本机证据。未 DONE 不进入 MVP-05。 |
+| 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、旧 SQLite 或既有证书，不提交秘密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
