@@ -22,19 +22,7 @@
 
 **2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
 
-**2026-11-27 本机 MVP（不加分）：** 维护者真实测试设备注册、双跳 mTLS 激活、credential epoch、错设备及无证书拒绝 PASS；非独立 L3、未进行库存 send 或正式安装。功能 `f6e83c89` Server CI SUCCESS，隔离 L2 [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS；MVP-03 DONE。评分仍 71/100，Gate 0/10。
-
-**2026-11-27 MVP-04（不加分）：** 既有 Agent [L1 #45804471428](https://github.com/kunlong-luo/lanveriq/actions/runs/45804471428) 与隔离 [L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 原日志复核 PASS；维护者本机双跳 mTLS/epoch、HTTP200/精确 ACK、新 pending 0、旧 pending 1、revision 1 PASS；维护者确认临时开关/诊断恢复与重启重载成功，MVP-04 DONE；MVP-05 TODO / NOT RUN。新增本机证据非独立 L3 或新增自动验收，无功能代码变更，工程评分仍 **71/100**，Gate 0/10。见[本机任务账本](local-mvp-tasks.md)。
-
-**2026-11-27 MVP-05（不加分）：** [既有隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 原日志复核 PASS；功能 SHA 至基线 `a59fdd48` 仅文档变更。维护者本机 PG18 只读库存核对 PASS（同设备/快照/revision=1 精确匹配 1 行，OS/CPU/RAM 字段存在，COMMIT），MVP-05 DONE；无新增自动验收、代码变更或独立 L3。工程评分仍 **71/100**，Gate 0/10。见[任务账本](local-mvp-tasks.md)。
-
-**2026-11-27 MVP-06（不加分 / BLOCKED）：** [既有 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS，原日志复核同源认证、组隔离、跨组 404、登出 401、CSRF/Cookie 与 Next origin 拒绝；至基线 `ea1470d3` 仅文档变更，非新 CI。真实管理员测试授权、本机同源 HTTPS 与正负例未验，正常 Next 登录仍断开；未修改产品代码或放宽开关。**71/100 不变，Gate 0/10**；仍仅 MVP-06，见[任务账本](local-mvp-tasks.md)。
-
-**2026-11-27 MVP-06 本机阶段验收（不加分）：** 维护者终端证据：独立 Console TLS、管理员组授权、基础 HTTP 六项、真实登录、安全 Cookie/会话轮换、设备 list/detail 与输入的已入库 UUID 一致、Origin/CSRF 拒绝及登出后 401 PASS；真实跨组与 Next.js 本机接入 NOT RUN。仍 BLOCKED，非新增自动 CI 或独立 L3；**71/100，Gate 0/10**。见[任务账本](local-mvp-tasks.md)。
-
-**2026-11-27 MVP-06 Next.js 预检（不加分）：** 本机旧基线 `b33254bc` route guard PASS；PG18 组外设备=0，实际本机跨组 NOT RUN。新增独立本机验收启动器与普通构建隔离守卫 `0e0d03e1`，新源码构建、浏览器与 CI 未确认，不增加评分或关闭 Gate。**71/100，Gate 0/10**。
-
-**2026-11-27 MVP-06 本机浏览器正负向验收（暂不加分）：** 修复 `cb14bb2c` 后维护者确认 Next.js Ready、真实会话与唯一同设备列表详情读取 PASS、登出后拒绝 PASS、直接/伪造 proof 404/404。完整构建日志/SHA、新 push CI 未核实；本机跨组无目标 NOT RUN，临时配置恢复未确认。结项 BLOCKED，**71/100，Gate 0/10**；不得视为发行批准。
+**2026-11-27 本机 MVP（不加分）：** MVP-01～05 DONE，MVP-06 本机真实认证、同源读取、登出与入口拒绝、收尾 PASS；本机跨组无目标 NOT RUN、功能 push CI 文档超限 FAIL，精简后待验。非独立 L3，结项 BLOCKED，**71/100，Gate 0/10**。[任务账本](local-mvp-tasks.md) · [历史评分及完整证据](https://github.com/kunlong-luo/lanveriq/blob/e1b4c791cd44c6163ed139d2ead0876b8b3a49cb/docs/planning/project-scorecard.md)。
 
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
