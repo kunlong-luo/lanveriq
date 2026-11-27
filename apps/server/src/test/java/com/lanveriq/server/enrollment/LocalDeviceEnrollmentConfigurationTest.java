@@ -13,6 +13,7 @@ class LocalDeviceEnrollmentConfigurationTest {
     private static MockEnvironment valid(String action) {
         return new MockEnvironment()
                 .withProperty("lanveriq.local-enrollment.action", action)
+                .withProperty("lanveriq.local-enrollment.personal-development", "true")
                 .withProperty("spring.main.web-application-type", "none")
                 .withProperty("spring.datasource.url", LocalDeviceEnrollmentConfiguration.TEST_URL)
                 .withProperty("spring.datasource.username", LocalDeviceEnrollmentConfiguration.TEST_DB)
@@ -40,8 +41,9 @@ class LocalDeviceEnrollmentConfigurationTest {
         for (var entry : Map.ofEntries(
                 Map.entry("lanveriq.local-enrollment.action", "activate"),
                 Map.entry("spring.main.web-application-type", "servlet"),
-                Map.entry("spring.datasource.url", "jdbc:postgresql://127.0.0.1:5432/lanveriq"),
-                Map.entry("spring.datasource.username", "lanveriq"),
+                Map.entry("spring.datasource.url", "jdbc:postgresql://127.0.0.1:5432/lanveriq_local_test"),
+                Map.entry("lanveriq.local-enrollment.personal-development", "false"),
+                Map.entry("spring.datasource.username", "lanveriq_local_test"),
                 Map.entry("spring.datasource.hikari.jdbc-url", "jdbc:postgresql://127.0.0.1:5432/iot_farm"),
                 Map.entry("spring.datasource.hikari.username", "root"),
                 Map.entry("spring.datasource.jndi-name", "external"),
