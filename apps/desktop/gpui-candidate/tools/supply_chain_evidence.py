@@ -73,6 +73,37 @@ def material(package, root):
     return {"license_material": [record(p, root) for p in sorted(candidates)],
             "gpui_resource_inventory": [record(p, root) for p in sorted(assets)]}
 
+def missing_review(package, root):
+    # Nested notices may belong to vendored/example code, not the whole crate.
+    # Keep them as candidates; never substitute them for missing package terms.
+    nested = []
+    visited = 0
+    for path in root.rglob("*"):
+        visited += 1
+        require(visited <= 100000, "nested source review bound")
+        if (path.parent != root and path.is_file() and license_name(path.name)
+                and path.suffix.lower() not in {".rs", ".json", ".toml", ".html", ".js", ".py"}):
+            nested.append(record(path, root))
+            require(len(nested) <= 256, "nested license candidate bound")
+    vcs = root / ".cargo_vcs_info.json"
+    origin = None
+    if vcs.is_file():
+        require(not vcs.is_symlink() and vcs.stat().st_size <= 8192, "unsafe VCS metadata")
+        data = json.loads(vcs.read_text())
+        commit = data.get("git", {}).get("sha1")
+        subdir = data.get("path_in_vcs", "")
+        if (isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit)
+                and isinstance(subdir, str) and len(subdir) <= 512
+                and not pathlib.PurePosixPath(subdir).is_absolute()
+                and ".." not in pathlib.PurePosixPath(subdir).parts):
+            origin = {"git_sha1_claim": commit, "path_in_vcs_claim": subdir,
+                      "vcs_metadata_sha256": sha(vcs),
+                      "dirty_claim": data.get("git", {}).get("dirty")}
+    return {"repository_claim": package.get("repository"), "cargo_vcs_claim": origin,
+            "nested_license_candidates": nested,
+            "explicit_license_file_claim": package.get("license_file"),
+            "review": "PACKAGE_MATERIAL_MISSING_UPSTREAM_REVIEW_OPEN"}
+
 def components(bom):
     result = set()
     def visit(component):
@@ -89,6 +120,8 @@ def components(bom):
 def main():
     metadata = json.loads((ROOT / "candidate-metadata.json").read_text())
     linux = graph_pairs((ROOT / "candidate-linux-packages.txt").read_text())
+    normal = graph_pairs((ROOT / "candidate-linux-normal-packages.txt").read_text())
+    require(normal <= linux, "normal graph outside normal/build graph")
     lock = tomllib.loads((ROOT / "Cargo.lock").read_text())["package"]
     locked = {(p["name"], p["version"]): p for p in lock}
     packages = {(p["name"], p["version"]): p for p in metadata["packages"]}
@@ -127,6 +160,14 @@ def main():
                                else "MISSING_MATERIAL_REVIEW_OPEN"})
     missing = sum(row["review"] == "MISSING_MATERIAL_REVIEW_OPEN" for row in rows)
     missing_bom = sorted(linux - pairs)
+    gaps = []
+    for row in rows:
+        key = (row["name"], row["version"])
+        row["graph_scope"] = "NORMAL_PATH" if key in normal else "BUILD_PATH_ONLY"
+        if row["review"] == "MISSING_MATERIAL_REVIEW_OPEN":
+            p = packages[key]
+            gaps.append({"name": key[0], "version": key[1], "declared_license": row["declared_license"],
+                         "graph_scope": row["graph_scope"], **missing_review(p, registry_root(p, source_root))})
     report = {"schema": "lanveriq.gpui.untrusted-supply-chain-v1",
               "source_sha": os.environ["GITHUB_SHA"], "lock_sha256": sha(ROOT / "Cargo.lock"),
               "sbom_sha256": sha(bomfile), "sbom_tool": "cargo-cyclonedx 0.5.10",
@@ -134,6 +175,7 @@ def main():
               "linux_pairs_missing_from_sbom": missing_bom,
               "sbom_pairs_outside_linux_graph": sorted(pairs - linux),
               "missing_license_material_count": missing, "packages": rows,
+              "normal_path_pair_count": len(normal), "license_gap_review": gaps,
               "scope": "CARGO_RESOLVED_LINUX_NORMAL_BUILD_NOT_FINAL_BINARY_SBOM",
               "resource_scope": "GPUI_REGISTRY_FILE_CANDIDATES_NOT_EMBEDDED_ASSET_PROOF",
               "license_review": "OPEN_NOT_APPROVED", "release_approved": False,
@@ -146,6 +188,12 @@ def main():
     print("Linux graph pairs not in SBOM:", len(missing_bom))
     print("Missing registry license materials:", missing)
     print("Hashed license/resource candidates:", total)
+    print("Normal path pairs:", len(normal))
+    for gap in gaps:
+        print("OPEN license material:", gap["name"], gap["version"], gap["graph_scope"],
+              "nested candidates:", len(gap["nested_license_candidates"]),
+              "VCS claim:", bool(gap["cargo_vcs_claim"]))
+    print("SBOM extra pairs (including target subcomponents):", len(pairs - linux))
     print("PASS: evidence generated; discrepancies, embedded assets, license/release remain OPEN")
 
 if __name__ == "__main__":

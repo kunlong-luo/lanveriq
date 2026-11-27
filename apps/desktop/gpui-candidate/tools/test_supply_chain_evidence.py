@@ -1,7 +1,7 @@
 import pathlib
 import tempfile
 import unittest
-from supply_chain_evidence import graph_pairs, license_name, record, components
+from supply_chain_evidence import graph_pairs, license_name, record, components, missing_review
 
 class SupplyChainEvidence(unittest.TestCase):
     def test_graph_pairs_exact_versions_and_dedup(self):
@@ -29,3 +29,18 @@ class SupplyChainEvidence(unittest.TestCase):
         bom = {"metadata":{"component":{"name":"app","version":"1","components":[{"name":"a","version":"2"}]}},
                "components":[{"name":"b","version":"3"}]}
         self.assertEqual(components(bom), {("app","1"),("a","2"),("b","3")})
+
+    def test_nested_license_and_vcs_are_claims_not_approval(self):
+        import json
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp).resolve()
+            (root / "vendor").mkdir()
+            (root / "vendor" / "LICENSE").write_text("fixture")
+            (root / "vendor" / "license.rs").write_text("not legal material")
+            (root / ".cargo_vcs_info.json").write_text(json.dumps({"git":{"sha1":"a"*40},"path_in_vcs":"crates/example"}))
+            review = missing_review({"repository":"https://example.invalid/repo"}, root)
+            self.assertEqual(len(review["nested_license_candidates"]), 1)
+            self.assertEqual(review["cargo_vcs_claim"]["git_sha1_claim"], "a"*40)
+            self.assertEqual(review["review"], "PACKAGE_MATERIAL_MISSING_UPSTREAM_REVIEW_OPEN")
+            (root / ".cargo_vcs_info.json").write_text(json.dumps({"git":{"sha1":"a"*40},"path_in_vcs":"../bad"}))
+            self.assertIsNone(missing_review({}, root)["cargo_vcs_claim"])
