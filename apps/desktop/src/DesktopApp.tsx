@@ -13,8 +13,7 @@ import { parseLocalPreflight, poposSummary, type PoposDisplay } from "./prefligh
 import { InstallReviewPanel } from "./InstallReviewPanel";
 import { IdleConfigPanel } from "./IdleConfigPanel";
 import { OfflineDiagnosticsPanel } from "./OfflineDiagnosticsPanel";
-
-type Section = "setup" | "status" | "safety";
+import { DesktopNavigation, DesktopOverview, PlannedSection, sectionLabels, type Section } from "./DesktopWorkspace";
 type InspectionState = "idle" | "reading" | "loaded" | "error" | "web-preview";
 
 const stages = [
@@ -23,12 +22,6 @@ const stages = [
   { title: "授权说明", subtitle: "了解安装权限与隐私" },
   { title: "安装准备", subtitle: "预览受控安装步骤" },
 ] as const;
-
-const sectionLabels: Record<Section, string> = {
-  setup: "安装向导",
-  status: "本机 Agent",
-  safety: "安全与诊断",
-};
 
 function FrameTitle({ eyebrow, title, description }: {
   eyebrow: string; title: string; description: string;
@@ -56,7 +49,7 @@ function ActionButton({ onClick, disabled, children, secondary = false }: {
 }
 
 export function DesktopApp() {
-  const [section, setSection] = useState<Section>("setup");
+  const [section, setSection] = useState<Section>("overview");
   const [stage, setStage] = useState(0);
   const [noticeRead, setNoticeRead] = useState(false);
   const [host, setHost] = useState<HostSnapshot | null>(null);
@@ -73,6 +66,7 @@ export function DesktopApp() {
       setInspection("web-preview");
       return;
     }
+    setHost(null);
     setInspection("reading");
     try {
       const snapshot = await invoke<HostSnapshot>("inspect_host");
@@ -119,22 +113,7 @@ export function DesktopApp() {
             <div className="mt-0.5 text-[10px] font-medium tracking-widest text-slate-400 uppercase">desktop preview</div>
           </div>
         </div>
-        <div className="px-3 text-[10px] font-semibold tracking-[.16em] text-slate-400 uppercase">设备管理</div>
-        <nav aria-label="桌面应用导航" className="mt-3 flex flex-col gap-1">
-          {([
-            ["setup", MonitorCog],
-            ["status", Laptop2],
-            ["safety", ShieldCheck],
-          ] as const).map(([name, Icon]) => (
-            <button type="button" key={name} aria-current={section === name ? "page" : undefined}
-              className={"nav-item " + (section === name ? "nav-item-active" : "")}
-              onClick={() => setSection(name)}>
-              <Icon size={18} strokeWidth={1.8} />
-              <span>{sectionLabels[name]}</span>
-              {section === name && <ChevronRight className="ml-auto" size={15} />}
-            </button>
-          ))}
-        </nav>
+        <DesktopNavigation section={section} onNavigate={setSection} />
         <div className="mt-auto px-2 pb-3">
           <div className="rounded-2xl border border-slate-200 bg-white/85 p-4">
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-800"><ShieldOff size={15} /> 安全锁定</div>
@@ -153,13 +132,17 @@ export function DesktopApp() {
           <StatePill>离线预览 · 不可安装</StatePill>
         </header>
 
-        <div className="content-scroll">
+        <div className="content-scroll" key={section}>
           <div className="mx-auto w-full max-w-[990px] px-8 py-10 lg:px-12 lg:py-12">
+            {section === "overview" && <DesktopOverview host={inspection === "loaded" ? host : null} inspection={inspection} onNavigate={setSection} onInspect={() => { void inspect(); }} />}
+            {section === "config" && <><FrameTitle eyebrow="configuration" title="服务器与配置" description="仅预览现有 Agent 空闲配置。服务器地址校验与连接检测属于后续任务，本页不发送请求或写入文件。" /><PlannedSection kind="config" /><IdleConfigPanel /></>}
+            {section === "enrollment" && <><FrameTitle eyebrow="device identity" title="设备注册" description="注册与证书管理尚未授权。本页仅说明后续流程，不读取密钥、不提交 CSR、不签发证书。" /><PlannedSection kind="enrollment" /></>}
+            {section === "about" && <><FrameTitle eyebrow="about" title="关于 Lanveriq" description="本机配置与诊断窗口，与独立 Rust Agent 及 Web 管理后台职责分离。" /><PlannedSection kind="about" /></>}
             {section === "setup" && (
               <>
                 <FrameTitle eyebrow="installation experience" title="让设备管理更简单"
                   description="无需自行编译 Rust、输入复杂命令或手动编辑配置。我们正在构建受审核的图形化安装体验；当前版本仅提供离线预览与只读检测。" />
-                <div className="mb-7 grid grid-cols-4 gap-3" aria-label="安装步骤">
+                <div className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="安装步骤">
                   {stages.map((item, i) => (
                     <div key={item.title} className={"stage-card " + (i === stage ? "stage-active" : "")}>
                       <div className="mb-3 flex items-center justify-between">
