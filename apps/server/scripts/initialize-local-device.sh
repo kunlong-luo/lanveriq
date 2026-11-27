@@ -15,24 +15,31 @@ SERVER="$(cd "$(dirname "$0")/.." && pwd)"
 JAR="$SERVER/build/libs/lanveriq-server-0.1.0-SNAPSHOT.jar"
 [[ -f "$JAR" ]] || fail 'Build the reviewed main source first: cd apps/server && ./gradlew bootJar'
 ACTION="$1"
+read -rp 'Type PERSONAL DEVELOPMENT to confirm the existing lanveriq database is for local tests only: ' confirmation
+[[ "$confirmation" == 'PERSONAL DEVELOPMENT' ]] || fail 'Cancelled.'
 
 # No password as a command-line argument or saved file. The transient
 # environment is inherited only by the local Java process.
-read -rsp 'Dedicated lanveriq_local_test database password: ' LANVERIQ_DB_PASSWORD
+read -rsp 'Dedicated lanveriq database password: ' LANVERIQ_DB_PASSWORD
 printf '\n'
 [[ -n "$LANVERIQ_DB_PASSWORD" ]] || fail 'Missing database password.'
 export LANVERIQ_DB_PASSWORD
-trap 'unset LANVERIQ_DB_PASSWORD' EXIT
+export SPRING_DATASOURCE_PASSWORD="$LANVERIQ_DB_PASSWORD"
+export SPRING_DATASOURCE_HIKARI_PASSWORD="$LANVERIQ_DB_PASSWORD"
+trap 'unset LANVERIQ_DB_PASSWORD SPRING_DATASOURCE_PASSWORD SPRING_DATASOURCE_HIKARI_PASSWORD' EXIT
 
 opts=(
     --spring.main.web-application-type=none
-    --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/lanveriq_local_test
-    --spring.datasource.username=lanveriq_local_test
+    --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/lanveriq
+    --spring.datasource.username=lanveriq
+    --spring.datasource.hikari.jdbc-url=jdbc:postgresql://127.0.0.1:5432/lanveriq
+    --spring.datasource.hikari.username=lanveriq
     --spring.flyway.enabled=false
     --spring.sql.init.mode=never
     --spring.jpa.hibernate.ddl-auto=validate
     --lanveriq.bootstrap.enabled=false
     --lanveriq.local-enrollment.enabled=true
+    --lanveriq.local-enrollment.personal-development=true
     "--lanveriq.local-enrollment.action=$ACTION"
 )
 if [[ "$ACTION" == register ]]; then
