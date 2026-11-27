@@ -123,3 +123,22 @@ export function projectConsoleList(
       return { kind: 'unavailable' };
   }
 }
+
+/** Single-owner local MVP-07 only. Never retain raw detail or show a
+ * list/detail pair that disagrees on the authorized device or inventory.
+ * The current Spring DTO does not expose os_version: do not infer it. */
+export function projectLocalInventory(
+  page: DirectoryState, response: StagedConsoleResponse, expectedId: string,
+): DirectoryRow | null {
+  if (!isCanonicalUuid(expectedId) || page.kind !== 'ready' || page.hasMore ||
+      page.rows.length !== 1 || response.kind !== 'ok') return null;
+  const listed = page.rows[0];
+  const detail = parseRow(response.data);
+  if (!detail || listed.id !== expectedId || detail.id !== expectedId ||
+      listed.label !== detail.label || listed.group !== detail.group ||
+      !boundedText(detail.os) || !boundedText(detail.cpu) ||
+      typeof detail.memoryBytes !== 'number' || detail.memoryBytes <= 0 ||
+      listed.os !== detail.os || listed.cpu !== detail.cpu ||
+      listed.memoryBytes !== detail.memoryBytes) return null;
+  return detail;
+}

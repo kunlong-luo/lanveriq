@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { projectConsoleList, validateScopedDirectoryPage } from './console-device-projection';
+import { projectConsoleList, projectLocalInventory, validateScopedDirectoryPage } from './console-device-projection';
 
 const one = '00000000-0000-7000-8000-000000000001';
 const two = '00000000-0000-7000-8000-000000000002';
@@ -108,5 +108,32 @@ describe('NXT-03 authorized REST response -> Next.js display state', () => {
     }
     expect(projectConsoleList({kind:'not_found'})).toEqual({kind:'unavailable'});
     expect(projectConsoleList({kind:'ok',data:{items:[]}})).toEqual({kind:'unavailable'});
+  });
+});
+
+describe('MVP-07 same authorized device and inventory', () => {
+  const raw = { ...device(), os_name: 'Synthetic Linux', cpu_model: 'Synthetic CPU',
+    memory_total_bytes: 8_000_000_000 };
+  const listed = validateScopedDirectoryPage(page([raw]));
+  it('only exposes the matching allowlisted fields, never invents OS version', () => {
+    const projected = projectLocalInventory(listed, {kind:'ok', data:raw}, one);
+    expect(projected).toMatchObject({id:one, os:'Synthetic Linux',
+      cpu:'Synthetic CPU', memoryBytes:8_000_000_000});
+    expect(JSON.stringify(projected)).not.toMatch(/SECRET-MAC|SECRET-IP|SECRET-USER|os_version/);
+  });
+  it('rejects missing, malformed, mismatched, unauthorized and incomplete data', () => {
+    for (const data of [null, {...raw, device_id:two}, {...raw, os_name:null},
+      {...raw, cpu_model:''}, {...raw, memory_total_bytes:0},
+      {...raw, memory_total_bytes:9_000_000_000}, {...raw, os_name:'Other'},
+      {...raw, group_name:'Other group'}]) {
+      expect(projectLocalInventory(listed, {kind:'ok', data}, one)).toBeNull();
+    }
+    for (const kind of ['signed_out','forbidden','throttled','unavailable','not_found'] as const) {
+      expect(projectLocalInventory(listed, {kind}, one)).toBeNull();
+    }
+    expect(projectLocalInventory({kind:'unavailable'}, {kind:'ok',data:raw}, one)).toBeNull();
+    expect(projectLocalInventory(validateScopedDirectoryPage(page([raw],one),{limit:1}),
+      {kind:'ok',data:raw},one)).toBeNull();
+    expect(projectLocalInventory(listed,{kind:'ok',data:raw},two)).toBeNull();
   });
 });

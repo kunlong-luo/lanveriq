@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Explicit single-owner local MVP-06 acceptance, not a deployable route.
+# Explicit single-owner local MVP-06/07 acceptance, not a deployable route.
 # No synthetic CI gate override, repository edits, DB writes or Caddy changes.
 set -euo pipefail
 umask 077
@@ -100,18 +100,22 @@ cat > src/local-console-probe.tsx <<'EOF'
 import { useEffect, useRef, useState } from 'react';
 import { createStagedNextConsoleAuth } from './lib/staged-console-auth';
 import { createStagedConsoleReader, type BrowserFetch } from './lib/staged-console-read';
+import { projectLocalInventory } from './lib/console-device-projection';
+import { type DirectoryRow } from './components/device-directory';
 import { isCanonicalUuid } from './lib/uuid';
 
 const ORIGIN = 'https://console.lanveriq.internal';
-type Phase = 'idle' | 'working' | 'verified' | 'denied' | 'locked' | 'signed-out';
+type Phase = 'idle' | 'working' | 'verified' | 'denied' | 'unavailable' | 'locked' | 'signed-out';
 export function LocalConsoleProbe() {
   const username = useRef<HTMLInputElement>(null);
   const password = useRef<HTMLInputElement>(null);
   const device = useRef<HTMLInputElement>(null);
+  const identity = useRef<{login: string; deviceId: string} | null>(null);
   const generation = useRef(0);
   const busy = useRef(false);
   const [allowed, setAllowed] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
+  const [inventory, setInventory] = useState<DirectoryRow | null>(null);
 
   function clearFields() {
     for (const field of [username, password, device]) {
@@ -120,18 +124,25 @@ export function LocalConsoleProbe() {
   }
   useEffect(() => {
     setAllowed(window.location.origin === ORIGIN);
-    const lock = () => {
+    const clear = (next: 'locked' | 'unavailable') => {
       generation.current++;
+      identity.current = null;
       clearFields();
-      setPhase('locked');
+      setInventory(null);
+      setPhase(next);
     };
+    const lock = () => clear('locked');
+    const offline = () => clear('unavailable');
     const visibility = () => { if (document.hidden) lock(); };
     document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pagehide', lock);
+    window.addEventListener('offline', offline);
     return () => {
       document.removeEventListener('visibilitychange', visibility);
       window.removeEventListener('pagehide', lock);
+      window.removeEventListener('offline', offline);
       generation.current++;
+      identity.current = null;
       clearFields();
     };
   }, []);
@@ -139,9 +150,30 @@ export function LocalConsoleProbe() {
     const actual = window.location.origin;
     const fetcher: BrowserFetch = (input, init) => window.fetch(input, init);
     return {
-      auth: createStagedNextConsoleAuth(ORIGIN, actual, fetcher, async () => {}),
+      auth: createStagedNextConsoleAuth(ORIGIN, actual, fetcher, async () => setInventory(null)),
       reader: createStagedConsoleReader(ORIGIN, actual, fetcher),
     };
+  }
+  async function readInventory(expected: string, current: number) {
+    const { reader } = clients();
+    const page = await reader.list();
+    if (generation.current !== current) return;
+    if (page.kind !== 'ready') {
+      setPhase(page.kind === 'unavailable' ? 'unavailable' : 'denied');
+      return;
+    }
+    if (page.hasMore || page.rows.length !== 1 || page.rows[0].id !== expected) {
+      setPhase('denied'); return;
+    }
+    const detail = await reader.detail(expected);
+    if (generation.current !== current) return;
+    const projected = projectLocalInventory(page, detail, expected);
+    if (!projected) {
+      setPhase(detail.kind === 'unavailable' || detail.kind === 'ok' ? 'unavailable' : 'denied');
+      return;
+    }
+    setInventory(projected);
+    setPhase('verified');
   }
   async function login() {
     if (!allowed || busy.current || (phase !== 'idle' && phase !== 'signed-out')) return;
@@ -149,6 +181,8 @@ export function LocalConsoleProbe() {
     const secret = password.current?.value ?? '';
     const expected = device.current?.value.trim().toLowerCase() ?? '';
     clearFields();
+    setInventory(null);
+    identity.current = null;
     if (!user || !secret || !isCanonicalUuid(expected)) {
       setPhase('denied'); return;
     }
@@ -156,22 +190,34 @@ export function LocalConsoleProbe() {
     const current = ++generation.current;
     setPhase('working');
     try {
-      const { auth, reader } = clients();
+      const { auth } = clients();
       const session = await auth.login(user, secret);
       if (generation.current !== current) return;
-      if (session.kind !== 'authenticated') { setPhase('denied'); return; }
-      const page = await reader.list();
-      if (generation.current !== current) return;
-      if (page.kind !== 'ready' || page.hasMore ||
-          page.rows.length !== 1 || page.rows[0].id.toLowerCase() !== expected) {
-        setPhase('denied'); return;
+      if (session.kind !== 'authenticated' || session.login !== user) {
+        setPhase(session.kind === 'unavailable' ? 'unavailable' : 'denied'); return;
       }
-      const detail = await reader.detail(expected);
-      if (generation.current !== current) return;
-      setPhase(detail.kind === 'ok' &&
-        (detail.data as Record<string, unknown>).device_id === expected ? 'verified' : 'denied');
+      identity.current = {login:user, deviceId:expected};
+      await readInventory(expected, current);
     } catch {
-      if (generation.current === current) setPhase('denied');
+      if (generation.current === current) setPhase('unavailable');
+    } finally { busy.current = false; }
+  }
+  async function refresh() {
+    const expected = identity.current;
+    if (!allowed || busy.current || phase !== 'verified' || !expected) return;
+    busy.current = true;
+    const current = ++generation.current;
+    setInventory(null);
+    setPhase('working');
+    try {
+      const session = await clients().auth.session();
+      if (generation.current !== current) return;
+      if (session.kind !== 'authenticated' || session.login !== expected.login) {
+        setPhase(session.kind === 'unavailable' ? 'unavailable' : 'denied'); return;
+      }
+      await readInventory(expected.deviceId, current);
+    } catch {
+      if (generation.current === current) setPhase('unavailable');
     } finally { busy.current = false; }
   }
   async function logout() {
@@ -179,6 +225,8 @@ export function LocalConsoleProbe() {
     busy.current = true;
     const current = ++generation.current;
     clearFields();
+    identity.current = null;
+    setInventory(null);
     setPhase('working');
     try {
       const { auth, reader } = clients();
@@ -187,18 +235,19 @@ export function LocalConsoleProbe() {
       const page = await reader.list();
       if (generation.current === current) {
         setPhase(result === 'signed_out' && session.kind === 'signed_out' &&
-          page.kind === 'signed_out' ? 'signed-out' : 'denied');
+          page.kind === 'signed_out' ? 'signed-out' :
+          result === 'unavailable' || session.kind === 'unavailable' ||
+          page.kind === 'unavailable' ? 'unavailable' : 'denied');
       }
     } catch {
-      if (generation.current === current) setPhase('denied');
+      if (generation.current === current) setPhase('unavailable');
     } finally { busy.current = false; }
   }
   const canLogin = allowed && (phase === 'idle' || phase === 'signed-out');
-  // No form, field names, server action or default credential submission.
-  // Next never receives the credentials; only same-origin Spring fetches do.
-  return <main style={{maxWidth: 480, margin: '4rem auto', padding: '1rem'}}>
-    <h1>Lanveriq 本机认证验收</h1>
-    <p>仅设备所有人临时测试；不展示或保存库存内容。</p>
+  // No form, field names, server action, browser storage or automatic requests.
+  return <main style={{maxWidth: 960, margin: '4rem auto', padding: '1rem'}}>
+    <h1>Lanveriq 本机设备库存验收</h1>
+    <p>仅设备所有人临时只读测试；现有 API 未提供系统版本，不代表完整验收通过。</p>
     <label htmlFor="probe-user">测试管理员</label>
     <input id="probe-user" ref={username} disabled={!canLogin} maxLength={255}
       autoComplete="off" type="text" />
@@ -208,18 +257,39 @@ export function LocalConsoleProbe() {
     <label htmlFor="probe-device">已入库设备 UUID</label>
     <input id="probe-device" ref={device} disabled={!canLogin} maxLength={36}
       autoComplete="off" type="text" />
-    <button type="button" disabled={!canLogin} onClick={login}>登录并验证只读 API</button>
+    <button type="button" disabled={!canLogin} onClick={login}>登录并读取设备</button>
+    <button type="button" disabled={!allowed || phase !== 'verified'} onClick={refresh}>
+      手动刷新
+    </button>
     <button type="button" disabled={!allowed || phase === 'working'} onClick={logout}>
       登出并验证拒绝
     </button>
     <p role="status" id="local-probe-state" data-state={phase}>
       {!allowed ? '拒绝：仅允许规范 HTTPS Console 来源' :
-        phase === 'verified' ? 'PASS：真实会话、唯一设备列表及同一设备详情读取' :
+        phase === 'verified' ? '已核对真实会话、唯一设备列表及同一设备详情；系统版本尚缺' :
         phase === 'signed-out' ? 'PASS：登出后会话及设备读取均被拒绝' :
-        phase === 'locked' ? '页面已锁定，请先登出' :
-        phase === 'denied' ? '拒绝或未完成；请先登出再重试' :
-        phase === 'working' ? '正在验证' : '待操作'}
+        phase === 'locked' ? '页面已锁定，库存已清除，请先登出' :
+        phase === 'denied' ? '拒绝：会话、权限或设备身份未通过，库存已清除' :
+        phase === 'unavailable' ? '设备服务暂不可用或库存不一致，库存已清除；请恢复服务后登出再试' :
+        phase === 'working' ? '正在重新验证，旧库存已清除' : '待操作'}
     </p>
+    {allowed && phase === 'verified' && inventory && <>
+      <section aria-label="设备列表" data-testid="local-inventory-list">
+        <h2>设备列表（唯一授权设备）</h2>
+        <table><thead><tr><th scope="col">设备</th><th scope="col">操作系统</th>
+          <th scope="col">CPU</th><th scope="col">内存（字节）</th></tr></thead>
+          <tbody><tr><th scope="row">{inventory.label}</th><td>{inventory.os}</td>
+            <td>{inventory.cpu}</td><td>{inventory.memoryBytes}</td></tr></tbody></table>
+      </section>
+      <section aria-label="同一设备详情" data-testid="local-inventory-detail">
+        <h2>同一设备详情</h2>
+        <dl><dt>操作系统</dt><dd>{inventory.os}</dd>
+          <dt>系统版本</dt><dd>当前 API 未提供</dd>
+          <dt>CPU 型号</dt><dd>{inventory.cpu}</dd>
+          <dt>内存</dt><dd>{inventory.memoryBytes} 字节</dd>
+          <dt>连接状态</dt><dd>待确认（不推断在线）</dd></dl>
+      </section>
+    </>}
   </main>;
 }
 EOF
