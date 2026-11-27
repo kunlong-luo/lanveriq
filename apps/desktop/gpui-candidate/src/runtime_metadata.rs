@@ -157,6 +157,33 @@ mod tests {
         assert!(!m.attempted() && !m.package_clean() && !m.service_clean());
         assert!(m.rows().iter().all(|(_, v)| *v == UNKNOWN));
     }
+    #[test]
+    fn runtime_projection_never_grants_installation_and_clears_stale_metadata() {
+        use crate::review::{GateStatus, runtime_diagnostic, runtime_review_gates};
+        use crate::Workspace;
+        let clean = RuntimeMetadata { attempted: true, package: "not_installed",
+            service: "inactive", unit: "disabled", dropins: "none_reported",
+            reload: "not_required", legacy: "not_detected" };
+        let gates = runtime_review_gates(HostIdentity::PopOs24Amd64, clean);
+        assert_eq!(gates[1].status, GateStatus::MetadataOnly);
+        assert_eq!(gates[2].status, GateStatus::MetadataOnly);
+        assert_eq!(gates[3].status, GateStatus::NotChecked);
+        assert!(gates[4..].iter().all(|g| g.status == GateStatus::NotApproved));
+        let dirty = RuntimeMetadata { service: "active", unit: "enabled", dropins: "present_unreviewed", ..clean };
+        assert_eq!(runtime_review_gates(HostIdentity::PopOs24Amd64, dirty)[2].status, GateStatus::Blocked);
+        let report = runtime_diagnostic(HostIdentity::PopOs24Amd64, dirty);
+        for line in ["systemd_service=running_unapproved", "systemd_unit=enabled_unapproved",
+            "systemd_dropins=present_unreviewed", "install_authorized=false",
+            "agent_start_authorized=false", "cosmic_preflight=not_verified"] {
+            assert!(report.lines().any(|actual| actual == line));
+        }
+        let mut workspace = Workspace::default();
+        workspace.replace_runtime_metadata(HostIdentity::PopOs24Amd64, clean);
+        workspace.replace_runtime_metadata(HostIdentity::Blocked, dirty);
+        assert!(!workspace.runtime_metadata().attempted());
+        assert!(workspace.runtime_metadata().rows().iter().all(|(_, value)| *value == UNKNOWN));
+    }
+
     #[cfg(target_os = "linux")]
     #[test]
     #[ignore = "Explicit disposable non-root Ubuntu smoke"]
@@ -165,7 +192,8 @@ mod tests {
         assert_eq!(identity, HostIdentity::Other);
         assert!(metadata.attempted());
         // This runner need not have a running systemd or an installed Agent.
-        assert!(!metadata.package_clean() || metadata.rows()[0].1 == "not_installed");
-        assert_eq!(metadata.rows().len(), 6);
+        assert!(matches!(metadata.rows()[0].1, "unverified" | "not_installed" | "preview_candidate" | "unrecognized_version"));
+        assert!(matches!(metadata.rows()[1].1, "unverified" | "active" | "inactive" | "failed"));
+        assert_eq!(metadata.rows()[5].1, legacy());
     }
 }
