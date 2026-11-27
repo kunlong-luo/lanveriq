@@ -113,3 +113,50 @@ jobs:
             apps/desktop/gpui-candidate/candidate-linux-elf.txt
           if-no-files-found: error
           retention-days: 7
+  dependency-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/desktop/gpui-candidate
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust
+        run: rustup toolchain install 1.100.0 --profile minimal
+      - name: Require exact candidate resolution before auditing
+        run: |
+          if [ ! -f Cargo.lock ]; then
+            cargo +1.100.0 generate-lockfile
+          fi
+          sha256sum --check --strict Cargo.lock.sha256
+      - name: Install pinned RustSec auditor (CI only)
+        run: |
+          cargo +1.100.0 install --locked --version '=0.23.0' cargo-audit
+          cargo +1.100.0 audit --version
+      - name: Audit candidate lock against RustSec (no ignores)
+        run: |
+          set +e
+          cargo +1.100.0 audit --json > candidate-rustsec.json
+          audit_status=$?
+          set -e
+          printf 'cargo-audit exit status: %s\n' "$audit_status" > candidate-rustsec-provenance.txt
+          cargo +1.100.0 audit --version >> candidate-rustsec-provenance.txt
+          sha256sum Cargo.lock >> candidate-rustsec-provenance.txt
+          if [ -d "${CARGO_HOME:-$HOME/.cargo}/advisory-db" ]; then
+            git -C "${CARGO_HOME:-$HOME/.cargo}/advisory-db" rev-parse HEAD >> candidate-rustsec-provenance.txt
+          fi
+          test -s candidate-rustsec.json
+          python3 -m json.tool candidate-rustsec.json > /dev/null
+          sha256sum --check --strict Cargo.lock.sha256
+          exit "$audit_status"
+      - name: Archive audit report, including failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-candidate-rustsec
+          path: |
+            apps/desktop/gpui-candidate/candidate-rustsec.json
+            apps/desktop/gpui-candidate/candidate-rustsec-provenance.txt
+          retention-days: 7
