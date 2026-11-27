@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-MVP-01～06 DONE（限定本机 MVP）。真实同源授权读取/登出/入口拒绝/收尾 PASS；本机跨组无目标 NOT RUN，未改后端的隔离 L2 跨组 PASS。[Next L1 #45968420734](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420734) SUCCESS。正式登录仍禁用；下一会话仅 MVP-07 真实库存显示与拒绝态，本轮不实施。[任务账本](planning/local-mvp-tasks.md)。
+MVP-01～06 DONE（限定本机 MVP），本机跨组无目标 NOT RUN、历史隔离 L2 PASS。**MVP-07 BLOCKED**：现有授权 GET 不返回 os_version；[前端部分源码 a2c47fc5](https://github.com/kunlong-luo/lanveriq/commit/a2c47fc558058344f9451072d8b9af49ed3ed032) 尚待完整 CI/本机浏览器验收，正式登录仍禁用。评分 71/100。[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 

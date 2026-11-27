@@ -22,7 +22,7 @@
 
 **2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
 
-**2026-11-27 本机 MVP（不加分）：** MVP-01～06 DONE；本机真实认证、同设备读取、登出、入口拒绝及收尾 PASS，[Next L1 #45968420734](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420734) SUCCESS。本机跨组无目标 NOT RUN，未改后端历史隔离 L2 PASS；非独立 L3、非发行批准。**71/100，Gate 0/10**。MVP-07 TODO。[任务账本](local-mvp-tasks.md) · [历史评分](https://github.com/kunlong-luo/lanveriq/blob/e1b4c791cd44c6163ed139d2ead0876b8b3a49cb/docs/planning/project-scorecard.md)。
+**2026-11-27 本机 MVP（不加分）：** MVP-01～06 DONE；本机真实认证、同设备读取、登出、入口拒绝及收尾 PASS，[Next L1 #45968420734](https://github.com/kunlong-luo/lanveriq/actions/runs/45968420734) SUCCESS。本机跨组无目标 NOT RUN，未改后端历史隔离 L2 PASS；非独立 L3、非发行批准。**71/100，Gate 0/10**。MVP-07 BLOCKED：现有授权读取缺 os_version，前端部分源码已提交，完整 CI 与本机验收尚未确认；不加分。[任务账本](local-mvp-tasks.md) · [历史评分](https://github.com/kunlong-luo/lanveriq/blob/e1b4c791cd44c6163ed139d2ead0876b8b3a49cb/docs/planning/project-scorecard.md)。
 
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
