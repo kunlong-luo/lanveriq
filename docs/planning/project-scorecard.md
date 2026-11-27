@@ -22,6 +22,8 @@
 
 **2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
 
+**2026-11-27 本机 MVP（不加分）：** 维护者真实测试设备注册、双跳 mTLS 激活、credential epoch、错设备及无证书拒绝 PASS；非独立 L3、未进行库存 send 或正式安装。功能 `f6e83c89` Server CI SUCCESS，隔离 L2 #45952013366 IN_PROGRESS。评分仍 71/100，Gate 0/10。
+
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
 | Gate 集合 | 阻断条件 |

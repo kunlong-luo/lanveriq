@@ -16,13 +16,13 @@
 | --- | --- | --- | --- |
 | **MVP-01** | 共享 PG18 + Spring 启动、Flyway、独立启停 | 本机 Docker/Java/端口可核实 | **DONE**：2026-11-27 用户本机 V1～V30、loopback:18081 Health UP、IDEA 独立停止/重启 PASS（限定本机开发） |
 | **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：2026-11-27 复核；保留既有用户本机 PASS 与 Agent L1 PASS，本轮重跑 NOT RUN |
-| **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **BLOCKED**：2026-11-27 用户本机双跳 mTLS Health UP、入口 4 项及后端 3 项正负例 PASS；设备未注册、凭据 0 条 |
+| **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **BLOCKED**：2026-11-27 本机注册、激活、epoch、错设备及无证书拒绝 PASS；当前隔离 L2 未完成 |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **TODO / NOT RUN** |
 | **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **TODO / NOT RUN** |
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **TODO / NOT RUN** |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**下一项仍为 MVP-03（BLOCKED）**：MVP-01 与 MVP-02 已完成限定本机目标。双跳 mTLS 已有用户本机证据；仍需受控测试身份注册、实时业务凭据核验及业务负例。不得跳过 mTLS，保留已有 SQLite 待发数据。
+**下一项仍为 MVP-03（BLOCKED）**：本机身份验收 PASS；仅待当前隔离 L2 完整结论，结项后另开会话处理 MVP-04；保留已有 SQLite 待发数据。
 
 ## 可执行任务卡
 
@@ -87,6 +87,8 @@
 
 - **2026-11-27 本机 activation PASS（维护者终端证据）**：更新诊断源码并重试后，同一已注册设备 POST 返回 HTTP200、schema_version=1、enrollment_state=active、服务端时间和请求 UUID。此前403未复现，未取得实际拒绝原因码，不能认定根因或诊断修复了业务逻辑。当前待同一叶 credential-epoch GET HTTP200（设备、epoch、证书指纹严格匹配）及错误设备 GET 403、无客户端证书拒绝；原 SQLite 与 inventory OFF 不变。功能 `f6e83c89` [Server #45952013447](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013447)、[PG 编译 #45952013329](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013329)、[docs #45952013308](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013308)、[RD-2 #45952013487](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013487) SUCCESS；[隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) IN_PROGRESS。
 
+- **2026-11-27 本机最终身份验收 PASS（维护者终端证据）**：使用同一注册叶经 Caddy GET credential-epoch 返回 schema_version=1、同一设备 UUID、非空 epoch UUID、证书 SHA256 指纹与服务端时间；错设备 HTTP403；无客户端证书 TLS1.3 alert certificate required。先前数据库只读验证已确认该叶指纹与注册凭据匹配；本次回执指纹未另行逐字比对，普通 DNS 与本机 Rust send 未验。不保存设备 UUID/指纹/密钥路径。此前 activate 403 未复现，根因未证实；关闭临时诊断 DEBUG，保持 inventory OFF。功能 `f6e83c89` 的 [隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) IN_PROGRESS（PG18 transaction job 140349819615 SUCCESS；Rust/mTLS/Chromium job 140349819059 尚未完成）；前一 docs `5de583f6` [#45952308055](https://github.com/kunlong-luo/lanveriq/actions/runs/45952308055) SUCCESS。评分 71/100，不构成独立 L3 或发布授权。原 SQLite 与新 UUID 不得改绑，MVP-04 不执行。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -113,13 +115,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main f6e83c89](https://github.com/kunlong-luo/lanveriq/commit/f6e83c897cfaa9b54b07eebbf6f1092d315fd52d)；MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。真实 activate HTTP200 active PASS；待 epoch 正负验收，原403根因未证实。 |
-| 已验证（源码） | f6e83c89 Server #45952013447、PG 编译 #45952013329、docs #45952013308、RD-2 #45952013487 SUCCESS；隔离 L2 #45952013366 IN_PROGRESS。 |
+| 基线 | [main 5de583f6](https://github.com/kunlong-luo/lanveriq/commit/5de583f6165f40b2c69cddb7e4b9f364ff5214a0)；MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**。本机 activation/epoch、错设备403、无证书拒绝 PASS；隔离 L2 未完成，原403根因未证实。 |
+| 已验证（源码） | f6e83c89 Server #45952013447、PG 编译 #45952013329、docs #45952013308、RD-2 #45952013487 SUCCESS；隔离 L2 #45952013366 IN_PROGRESS，PG18 job 140349819615 SUCCESS。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | PG18.7/迁移30/0/8443 HTTPS/管理员与组/prepare/CA/register PASS；新叶 Health UP、pending epoch 403、activate HTTP200 active PASS；active epoch/错设备未执行；非 L3。 |
+| 用户本机证据 / 未验证 | PG18.7/迁移30/0/8443 HTTPS/管理员与组/prepare/CA/register PASS；新叶 Health UP、pending epoch 403、activate HTTP200 active、epoch 返回、错设备403、无证书 TLS 拒绝 PASS；普通 DNS、Rust send、完整 L3 未验。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：同一新叶验证 epoch 200/身份匹配、错设备403、无客户端证书拒绝；确认隔离 CI 后结项。inventory OFF、原 SQLite 不变，不进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：确认当前隔离 L2 完整结论；通过后结项并停止。下一会话 MVP-04 先核对旧 SQLite 与新身份绑定；禁止改绑或删除旧 pending。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
