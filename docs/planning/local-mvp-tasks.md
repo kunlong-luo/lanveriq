@@ -210,7 +210,7 @@
 | --- | --- |
 | 基线 | [3cb5f828](https://github.com/kunlong-luo/lanveriq/commit/3cb5f828da563ee3db55da2d6e754d953fe06f60)；候选功能 [61a04b98](https://github.com/kunlong-luo/lanveriq/commit/61a04b9849a5cbaf756b3b0948533c146206c35b)。 |
 | 本轮 | MVP-08 **BLOCKED**；维护者批准 GPUI 优先验证，ADR-0014；七导航离线源码候选、未迁移旧只读业务。MVP-01～07 DONE，09～16 TODO。 |
-| CI | 旧 Tauri 42/42 PASS、原生 APT FAIL 保留；GPUI 新工作流首次查询未产生 run，待核实。 |
+| CI | 旧 Tauri 42/42 PASS、原生 APT FAIL 保留；[GPUI #45982655002](https://github.com/kunlong-luo/lanveriq/actions/runs/45982655002) job 140450231617：Rust 安装、源码门禁、依赖解析/精确 GPUI 快照校验、临时 lock/许可证归档、Ubuntu 开发依赖安装 PASS；测试及实际编译 IN_PROGRESS（未验收）；[RD-2 #45982654790](https://github.com/kunlong-luo/lanveriq/actions/runs/45982654790) SUCCESS。基线文档 [#45976224619](https://github.com/kunlong-luo/lanveriq/actions/runs/45976224619) SUCCESS。 |
 | 本机 | Tauri 启动曾 panic；GPUI NOT RUN。依赖图、产品锁、完整许可证、安全审核、实机窗口、GUI-only 包及功能等价待验。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
 | **下次唯一任务** | MVP-08：核实候选精确 SHA CI/解析锁及依赖许可证，先通过实际原生构建和窗口，再迁移既有只读功能、审计包与决定切换；不进入 MVP-09。 |
