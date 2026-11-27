@@ -11,7 +11,7 @@ permissions:
 jobs:
   candidate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: apps/desktop/gpui-candidate
@@ -184,6 +184,32 @@ jobs:
             apps/desktop/gpui-candidate/candidate-linux-features.txt
             apps/desktop/gpui-candidate/candidate-linux-elf.txt
           if-no-files-found: error
+          retention-days: 7
+      - name: Build optimized Release profile (nonrelease evidence only)
+        run: |
+          cargo +1.100.0 build --locked --release --bin lanveriq-desktop-gpui-candidate
+          sha256sum --check --strict Cargo.lock.sha256
+          git diff --exit-code -- Cargo.toml Cargo.lock
+      - name: Audit temporary optimized GUI-only deb (never install)
+        run: |
+          set -o pipefail
+          /usr/bin/python3 -c 'import sys; sys.path.insert(0, "tools"); import package_audit; package_audit.main("release")' | tee candidate-release-package-audit.txt
+      - name: Measure same-runner debug and optimized native window baselines
+        run: |
+          /usr/bin/python3 -m unittest discover -s tools -p test_performance_baseline.py -v
+          set -o pipefail
+          timeout --kill-after=5s 240s xvfb-run -a -s "-screen 0 1280x800x24 -nolisten tcp" \
+            dbus-run-session -- /usr/bin/python3 tools/performance_baseline.py | tee candidate-performance.txt
+      - name: Archive optimized size and synthetic performance evidence (no binaries)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-candidate-performance
+          path: |
+            apps/desktop/gpui-candidate/candidate-release-package-audit.txt
+            apps/desktop/gpui-candidate/candidate-performance.txt
+            apps/desktop/gpui-candidate/candidate-performance.json
+          if-no-files-found: ignore
           retention-days: 7
   dependency-audit:
     runs-on: ubuntu-24.04

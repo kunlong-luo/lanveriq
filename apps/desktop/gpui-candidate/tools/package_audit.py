@@ -80,11 +80,12 @@ def validate_members(control, payload):
             check(entry.isdir() and entry.mode & 0o7777 == 0o755,
                   "unsafe directory type or mode")
 
-def main():
+def main(profile="debug"):
     import apt_pkg
     apt_pkg.init_system()
     check(os.getuid() != 0 and os.geteuid() != 0, "non-root CI only")
-    original = ROOT / "target/debug" / NAME
+    check(profile in ("debug", "release"), "unsupported audit profile")
+    original = ROOT / "target" / profile / NAME
     check(original.is_file() and not original.is_symlink(), "compiled GUI missing")
     original_sha = digest(original)
     with tempfile.TemporaryDirectory(prefix="lanveriq-gpui-deb-audit-") as temp:
@@ -137,8 +138,10 @@ Description: Lanveriq GPUI nonrelease static audit candidate
         check(digest(original) == original_sha, "original CI executable changed")
         print("PASS: official dpkg-shlibdeps direct version floors: " + depends)
         print("dpkg-shlibdeps diagnostic bytes:", len(warnings.encode("utf-8")))
+        if warnings:
+            print("dpkg-shlibdeps diagnostics (disposable CI):", warnings.replace(str(work), "<temporary-audit>"))
         print("PASS: GUI-only archive exact control/payload/modes/digests; no hooks or services")
-        print("original debug ELF bytes:", original.stat().st_size)
+        print("original " + profile + " ELF bytes:", original.stat().st_size)
         print("stripped audit ELF bytes:", binary.stat().st_size)
         print("temporary .deb bytes:", deb.stat().st_size)
         print("temporary .deb SHA256:", digest(deb))

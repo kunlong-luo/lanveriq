@@ -14,6 +14,8 @@ CI also observes executable mappings of its own synthetic X11 child after resize
 
 The separate CI supply-chain job pins cargo-cyclonedx 0.5.10 and generates CycloneDX 1.6 for Linux from the locked resolution, then reconciles component pairs against Cargo's normal/build graph and records hashes of actual registry license files and GPUI resource candidates. Missing license material and graph discrepancies are retained for review, never implicitly approved. Missing-package evidence also records normal-path vs build-path-only scope, nested notice candidates and registry VCS/repository claims (not verified upstream provenance); nested materials do not close package-level gaps. No new product dependency, actual asset distribution or final-binary SBOM claim.
 
+CI also builds Cargo's default optimized Release profile with the same lock, statically audits a disposable stripped GUI-only deb, and alternates three debug and three Release X11 launches on one runner. It measures spawn-to-positive-pixel-probe delay (including polling), single-process RSS/PSS after a fixed one-second delay, ELF and archive bytes, and records min/median/max. No cold-cache control, hardware GPU/COSMIC measurement, Tauri comparison, distribution or install approval. Only review metadata is archived.
+
 The upstream generic Ubuntu development prerequisites still include WebKitGTK; native rendering is not proof that all GTK libraries are absent from the resolved/link graph.
 
 See [MVP task ledger](../../../docs/planning/local-mvp-tasks.md) and [ADR-0014](../../../docs/architecture/adrs/0014-gpui-desktop-candidate.md).
