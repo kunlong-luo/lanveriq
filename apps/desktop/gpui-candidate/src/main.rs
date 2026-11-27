@@ -4,7 +4,7 @@ use gpui_kit::component::{
     button::Button,
     label::Label,
 };
-use gpui_kit::gpui_base::StyledExt;
+use gpui_kit::base::StyledExt;
 use gpui_kit::*;
 use lanveriq_desktop_gpui_candidate::{LOCKED_ACTIONS, Page, Workspace};
 
