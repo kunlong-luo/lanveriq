@@ -1,3 +1,6 @@
+pub mod review;
+use review::{Notice, NoticeReview};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Page {
     Overview,
@@ -114,11 +117,12 @@ impl IdleInterval {
 pub struct Workspace {
     page: Page,
     idle_interval: IdleInterval,
+    notices: NoticeReview,
 }
 
 impl Default for Workspace {
     fn default() -> Self {
-        Self { page: Page::Overview, idle_interval: IdleInterval::default() }
+        Self { page: Page::Overview, idle_interval: IdleInterval::default(), notices: NoticeReview::default() }
     }
 }
 
@@ -130,12 +134,23 @@ impl Workspace {
     pub fn navigate(&mut self, page: Page) {
         if self.page != page {
             self.idle_interval = IdleInterval::default();
+            self.notices = NoticeReview::default();
         }
         self.page = page;
     }
 
     pub fn idle_interval(&self) -> IdleInterval {
         self.idle_interval
+    }
+
+    pub fn notices(&self) -> NoticeReview {
+        self.notices
+    }
+
+    pub fn set_notice(&mut self, notice: Notice, checked: bool) {
+        if self.page == Page::Setup {
+            self.notices.set(notice, checked);
+        }
     }
 
     pub fn select_idle_interval(&mut self, interval: IdleInterval) {
@@ -145,8 +160,8 @@ impl Workspace {
     }
 }
 
-pub const LOCKED_ACTIONS: [&str; 7] = [
-    "安装 Agent", "保存配置", "注册设备", "连接检测", "启动服务", "开机自启", "导入凭据",
+pub const LOCKED_ACTIONS: [&str; 10] = [
+    "安装 Agent", "保存配置", "注册设备", "连接检测", "启动服务", "开机自启", "导入凭据", "升级 Agent", "卸载 Agent", "停止服务",
 ];
 
 #[cfg(test)]
@@ -169,7 +184,7 @@ mod tests {
     #[test]
     fn overview_does_not_claim_live_evidence() {
         assert!(Page::Overview.description().contains("未核验"));
-        assert_eq!(LOCKED_ACTIONS.len(), 7);
+        assert_eq!(LOCKED_ACTIONS.len(), 10);
     }
 
     #[test]
@@ -198,5 +213,23 @@ mod tests {
         workspace.navigate(Page::Diagnostics);
         workspace.navigate(Page::Configuration);
         assert_eq!(workspace.idle_interval(), IdleInterval::Seconds30);
+    }
+
+    #[test]
+    fn review_is_page_local_and_resets_without_authorizing_actions() {
+        let mut workspace = Workspace::default();
+        workspace.set_notice(Notice::PackageSource, true);
+        assert!(!workspace.notices().checked(Notice::PackageSource));
+        workspace.navigate(Page::Setup);
+        for notice in Notice::ALL {
+            workspace.set_notice(notice, true);
+        }
+        assert!(workspace.notices().all_read());
+        workspace.navigate(Page::Setup);
+        assert!(workspace.notices().all_read());
+        workspace.navigate(Page::Diagnostics);
+        workspace.navigate(Page::Setup);
+        assert!(Notice::ALL.into_iter().all(|notice| !workspace.notices().checked(notice)));
+        assert_eq!(LOCKED_ACTIONS.len(), 10);
     }
 }

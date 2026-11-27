@@ -2,11 +2,14 @@
 use gpui_kit::component::{
     ActiveTheme, Disableable, Selectable,
     button::Button,
+    checkbox::Checkbox,
     label::Label,
 };
 use gpui_kit::base::{SelectableText, StyledExt};
 use gpui_kit::*;
 use lanveriq_desktop_gpui_candidate::{IdleInterval, LOCKED_ACTIONS, Page, Workspace};
+
+use lanveriq_desktop_gpui_candidate::review::{GATES, Notice, OFFLINE_DIAGNOSTIC};
 
 struct Desktop {
     workspace: Workspace,
@@ -64,6 +67,43 @@ impl Render for Desktop {
                         .child(SelectableText::new("idle-config-preview", current.preview())))
                     .child(Label::new("仅内存预览，不写入文件，不修改服务，离开此页即重置。")),
             );
+        }
+        if page == Page::Setup {
+            let gates = GATES.iter().fold(div().flex().flex_col().gap_3(), |group, gate| {
+                group.child(div().id(gate.id).flex().flex_col().gap_1().p_3()
+                    .rounded(cx.theme().radius).border_1().border_color(cx.theme().border)
+                    .child(Label::new(gate.title))
+                    .child(Label::new(gate.status.label()))
+                    .child(Label::new(gate.detail)))
+            });
+            let review = self.workspace.notices();
+            let notices = Notice::ALL.into_iter().fold(div().flex().flex_col().gap_3(), |group, notice| {
+                group.child(Checkbox::new(notice.id())
+                    .label(notice.label())
+                    .checked(review.checked(notice))
+                    .on_change(cx.listener(move |this, checked: &bool, _, cx| {
+                        this.workspace.set_notice(notice, *checked);
+                        cx.notify();
+                    })))
+            });
+            content = content
+                .child(Label::new("安装操作已锁定 · 独立安全审核"))
+                .child(gates)
+                .child(Label::new("请分别阅读权限与安装限制（非授权）"))
+                .child(notices)
+                .child(Label::new(if review.all_read() {
+                    "全部说明已阅；发行、Polkit、L3 门禁仍未批准，无法安装或启动 Agent。"
+                } else {
+                    "阅读说明不会启动 Agent，也不会向系统索取管理员权限。"
+                }));
+        }
+        if page == Page::Diagnostics {
+            content = content
+                .child(Label::new("本机脱敏诊断 · 当前无主机证据"))
+                .child(Label::new("只读文本，未签名，非安装授权；不保存、不联网、不上传。"))
+                .child(div().p_3().border_1().border_color(cx.theme().border)
+                    .child(SelectableText::new("offline-diagnostic", OFFLINE_DIAGNOSTIC)))
+                .child(Label::new("向第三方分享前请自行确认内容。"));
         }
         div()
             .size_full()
