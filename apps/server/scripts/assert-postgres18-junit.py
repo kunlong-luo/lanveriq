@@ -100,6 +100,7 @@ REQUIRED_CASES = {
         "expiredChallengeCannotBeConsumedEvenWithSyntheticVerifier",
     },
     "PostgreSqlCertificateRegistrationIT": {
+        "scopedTokenCsrAndReviewFormOnePostgresPendingIdentityLifecycle",
         "scopedOwnerReviewsAndRegistersOnlyPendingCredentialWithAudit",
         "unscopedAdminCannotReviewOrCreateCertificate",
         "failedTransactionRevertsReviewCertificateAndAuditTogether",
