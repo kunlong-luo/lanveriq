@@ -50,6 +50,8 @@
 - **真实历史 CI 复核**：功能 [`b31f45ef`](https://github.com/kunlong-luo/lanveriq/commit/b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f)，[Linux L2 #45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success；直接读取 job `139649120029` 原始日志（Source SHA 一致），有效双跳 TLS1.3 health、默认业务 403、无证书、错误 CA、TLS1.2、伪造头无上游证书、错设备、未注册/过期/吊销拒绝及合成凭据 epoch 与 PG18 一致均 PASS。另复核 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) job `139002587446`，源码 `db570181d603a7f069a85a23c009658e9a8bed4c`，相同边界 PASS。compare `b31f45ef` → 基线显示 92 commits、Agent `main.rs` 有改动，不能宣称当前 HEAD 全量功能 CI PASS；本轮重跑 NOT RUN。
 - **2026-11-27 本机证据（维护者终端，非助手本机直连）**：本机源码基线 `8a3f7484`，Gradle `bootJar` BUILD SUCCESSFUL（不是单元测试）。Spark Caddy 2.11.9 复用独立客户端 CA 和上游 CA，入口有效证书 502（当时无上游）、无证书/错误 CA/TLS1.2 均 TLS 拒绝。IDEA 网桥地址启动被既有 `AgentIngressAssertionConfiguration` 拒绝（预期安全保护）；恢复 loopback:8443 后启动，Caddy 改 host 模式并显式 bind loopback:443，`caddy adapt` / `ss` / `docker inspect` 确认监听与模式。`curl --resolve` 双跳 Health UP；PG18.7 JPA 初始化成功。直接访问 Spring 无证书、Agent 证书、无证书伪造头三例均 HTTP 000 + TLS alert。只读 PG 查询：设备不存在、匹配证书指纹 0 条。共享库无身份写入；未核实普通 DNS、实际 Rust Agent 网络、业务层有效/伪造/错设备凭据。禁止把 CI-only fixture SQL 直接灌入共享开发库；需评审受控本机测试身份初始化路径。无 send，SQLite 不修改。
 
+- **本机预检工具**：[preflight-local-device-identity.sh](../../apps/server/scripts/preflight-local-device-identity.sh)（功能提交 [`95f0e628`](https://github.com/kunlong-luo/lanveriq/commit/95f0e6287ee25f3b632fc22aeee63e7105178d25)）。从仓库根手动执行 `bash apps/server/scripts/preflight-local-device-identity.sh`；只读取受限目录的测试叶证书、独立 CA、公钥匹配、IPv4 主机名及专用 PG18 库绑定，固定只读事务，不创建可信记录。隔离助手环境按 Git blob SHA `c0bd039c48244e872f4dea9fbae78b755e60e7b1` 校验同一脚本，`bash -n`、额外参数/非交互/CI+PTY 拒绝均 PASS；真实本机执行与 CI NOT RUN/未确认。它不等于服务器完整 PKIX/CSR 审核，不能解除注册阻塞。已复核现有 `PendingEnrollmentService`（服务端分配设备 UUID）、`ReviewedDeviceCertificateRegistrationService`（认证管理员、组范围、CSR/SPKI/PKIX 与审计）、`DeviceActivationService`；暂无可安全复用的本机注册入口。不得伪造管理员、直接置 active 或改写旧 SQLite 身份。下一步需独立可丢弃测试库中的明确测试身份初始化与真实 pending→activation 验收。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -77,12 +79,12 @@
 | 字段 | 当前内容 |
 | --- | --- |
 | 基线 | [main 3636118c](https://github.com/kunlong-luo/lanveriq/commit/3636118cace495e8efc1470b114de78420fc2806)（仅目录文档），本机报告功能基线 `8a3f7484`；前次交接见[固定账本](https://github.com/kunlong-luo/lanveriq/blob/3636118cace495e8efc1470b114de78420fc2806/docs/planning/local-mvp-tasks.md)。MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**，用户本机双跳 TLS health 和直接访问拒绝已验证；无注册记录，未完成业务身份绑定。无功能代码修改、无助手本机直连。 |
-| 已验证（源码） | 当前 transport.rs HTTPS-only/TLS1.3、Caddyfile.reference 双信任域与覆盖请求头、application-agent-upstream-mtls-acceptance.yml loopback:8443 TLS1.3 client-auth need、application.yml 默认 OFF、verify-agent-upstream-tls.sh 正负例及 CI 限制。不是本机有效配置证明。 |
+| 本轮 | **MVP-03 BLOCKED**。增加只读本机身份预检工具；原用户本机双跳与拒绝证据保留。注册入口仍缺失，未创建凭据，无本机直连。 |
+| 已验证（源码） | 现有 TLS1.3 双跳、默认 OFF 和 CI-only 边界；真实注册服务要求认证管理员、组范围与待审 CSR，服务端分配 UUID。新增预检 [`95f0e628`](https://github.com/kunlong-luo/lanveriq/commit/95f0e6287ee25f3b632fc22aeee63e7105178d25)，不写库。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | `bootJar` 成功；`caddy adapt`、`docker inspect`、`ss` 确认双回环；`curl --resolve` 正向 health UP、入口无证书/错误 CA/TLS1.2 拒绝、后端直接访问三负例拒绝；PG 只读查询设备不存在、匹配凭据 0。普通 DNS、有效业务身份、伪造头经受信代理覆盖、错设备及实际 Rust 请求 NOT RUN；Node 文档治理和本轮 CI NOT RUN/未确认。 |
+| 用户本机证据 / 未验证 | 保留任务卡中原始双跳、负例与 DB 0 条证据；新增脚本同 blob 的隔离环境语法及三启动拒绝 PASS（非 CI、非本机），实际证书/PG 分支 NOT RUN；普通 DNS、受信业务身份、错设备/伪造头、实际 Rust 请求仍未验证。文档治理命令 NOT RUN，CI 未确认。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：评审并验收受控本机测试身份初始化（不使用生产 CA/不绕过审批、不运行 CI-only fixture SQL 到共享库）；核对 DNS、业务身份绑定、有效身份与伪造/错设备拒绝；否则继续 BLOCKED。禁止进入 MVP-04。 |
+| **下次唯一任务** | **MVP-03**：先运行本机只读预检；实现并测试独立可丢弃测试库的明确测试身份初始化，复用注册校验和 pending→mTLS 激活，解决已有 SQLite UUID 绑定，严禁直接写 active、伪造审核或将 CI fixture 灌入共享库。完成有效身份、未注册/伪造/错设备拒绝后才能关闭；不进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
