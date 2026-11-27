@@ -8,8 +8,8 @@
 
 | 目录 | 现行实现 | 真正可运行的边界 |
 | --- | --- | --- |
-| [`apps/web`](../apps/web/README.md) | **唯一 Web Console**：Next.js 16.4.5、React 19、Tailwind 4、Base UI | [Pages](https://kunlong-luo.github.io/lanveriq/) 是断开业务的演示；真实接口只在临时 CI L2 联调 |
-| [`apps/server`](../apps/server/README.md) | Java 25、Spring Boot 4.2.0、Gradle、JPA/Hibernate、Flyway、PostgreSQL 18.7 | mTLS/PG18 合成事务；真实 CA、用户登录/管理员 MFA 仍锁定 |
+| [`apps/web`](../apps/web/README.md) | **唯一 Web Console**：Next.js 16.4.5、React 19、Tailwind 4、Base UI | [Pages](https://kunlong-luo.github.io/lanveriq/) 是断开业务的演示；真实接口仅临时本机授权验收或隔离 CI L2 |
+| [`apps/server`](../apps/server/README.md) | Java 25、Spring Boot 4.2.0、Gradle、JPA/Hibernate、Flyway、PostgreSQL 18.7 | mTLS/PG18 合成事务；真实 CA、正式管理员登录/MFA 仍锁定 |
 | [`apps/agent`](../apps/agent/README.md) | Rust 1.100、SQLx SQLite、rustls mTLS | 手动 once/send 已合 main；用户提供 Pop!_OS once/SQLite 日志，send 本机 HTTP200/精确 ACK PASS（维护者日志）；生产默认 OFF |
 | [`apps/desktop`](../apps/desktop/README.md) | Tauri 2 + React；Vite **只构建桌面窗体** | 只读兼容性/安装资格；**无实际 GUI 安装/服务启动/联网** |
 | [`deploy`](../deploy/caddy/Caddyfile.reference) | Caddy mTLS、LAN/WAN 负测、RustDesk 隔离候选 | 无公网生产路由、远控 RD-2 保持 OFF |
@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-2026-11-27 **本机证据**：MVP-01/02/03 DONE；注册、activate 200 active、epoch、错设备403、无证书TLS拒绝 PASS；原403根因未证实。[隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS。MVP-04 本机 DNS、独立 outbox、epoch、HTTP200/精确 ACK PASS；新 pending 0、旧 pending 1、两库 revision 1。MVP-04 DONE，维护者确认临时 inventory OFF、诊断移除及重启重载；MVP-05 DONE：维护者本机 PG18 只读事务同设备/快照/revision=1 精确匹配 1 行、Pop!_OS 24.04/CPU/RAM 字段存在、COMMIT PASS；MVP-06 BLOCKED（部分本机 PASS）：维护者本机 Console HTTPS、管理员组授权、真实 HTTPS 登录/会话/设备 list/detail 同一 UUID、Cookie/CSRF/Origin/登出拒绝 PASS；本机组外设备=0，真实跨组 NOT RUN；旧基线路由检查 PASS。新增本机独立 Next.js 验收启动器 `0e0d03e1`，实际启动因自动生成文件及离线缓存缺失失败，修复 `cb14bb2c` 保留工作区且提供显式冻结锁文件联网安装；修复后 Next.js Ready，维护者浏览器真实会话/同一设备列表详情/登出 PASS、直接与伪造 proof 404/404；完整构建日志/运行 SHA、新 push CI 未核实，standalone 启动警告未阻塞；正式登录仍禁用，临时配置恢复待确认，仍仅 MVP-06。[任务账本](planning/local-mvp-tasks.md)。
+MVP-01～05 DONE；MVP-06 本机真实 HTTPS/Next.js 登录、组授权同设备读取、登出、直接与伪造 proof 404、临时入口关闭 PASS（维护者证据）。组外=0，跨组本机 NOT RUN；既有隔离 L2 PASS。功能 `cb14bb2c` 新 push CI 文档超限 FAIL，精简后待验；结项 BLOCKED。正式登录仍禁用，不进入 MVP-07。[任务账本及验收详情](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 
