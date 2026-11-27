@@ -1,9 +1,10 @@
 //! Disposable offline GPUI compatibility candidate. No privileged or runtime interfaces.
 use gpui_kit::component::{
     ActiveTheme, Disableable, Selectable,
-    button::{Button, ButtonVariants},
+    button::Button,
     label::Label,
 };
+use gpui_kit::gpui_base::StyledExt;
 use gpui_kit::*;
 use lanveriq_desktop_gpui_candidate::{LOCKED_ACTIONS, Page, Workspace};
 
