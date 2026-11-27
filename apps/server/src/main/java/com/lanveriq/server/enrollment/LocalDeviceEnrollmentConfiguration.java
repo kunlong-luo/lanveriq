@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -47,7 +48,10 @@ class LocalDeviceEnrollmentConfiguration {
     // Runs before singleton initialization, including Flyway and DataSource.
     @Bean
     static BeanFactoryPostProcessor localEnrollmentEarlyGuard(Environment environment) {
-        return ignored -> requireLocalConfiguration(environment);
+        return ignored -> {
+            requireLocalConfiguration(environment);
+            requireManualExecution(System.getenv());
+        };
     }
 
     static void requireLocalConfiguration(Environment env) {
@@ -58,6 +62,11 @@ class LocalDeviceEnrollmentConfiguration {
                 || !TEST_DB.equals(env.getProperty("spring.datasource.username"))
                 || !Boolean.FALSE.equals(env.getProperty("spring.flyway.enabled", Boolean.class))
                 || !"validate".equals(env.getProperty("spring.jpa.hibernate.ddl-auto"))
+                || !"never".equals(env.getProperty("spring.sql.init.mode"))
+                || !TEST_URL.equals(env.getProperty("spring.datasource.hikari.jdbc-url", TEST_URL))
+                || !TEST_DB.equals(env.getProperty("spring.datasource.hikari.username", TEST_DB))
+                || !env.getProperty("spring.datasource.jndi-name", "").isBlank()
+                || !env.getProperty("spring.jpa.properties.hibernate.hbm2ddl.auto", "").isBlank()
                 || env.getProperty("lanveriq.client-cert-registration.enabled", Boolean.class, false)
                     != "register".equals(action)) {
             throw new IllegalStateException("Local enrollment requires dedicated offline test configuration");
@@ -73,7 +82,10 @@ class LocalDeviceEnrollmentConfiguration {
                 throw new IllegalStateException("Other capabilities must stay disabled during local enrollment");
             }
         }
-        if (System.getenv("CI") != null || System.getenv("GITHUB_ACTIONS") != null) {
+    }
+
+    static void requireManualExecution(Map<String, String> environment) {
+        if (environment.containsKey("CI") || environment.containsKey("GITHUB_ACTIONS")) {
             throw new IllegalStateException("Interactive local enrollment cannot run in CI");
         }
     }
@@ -86,6 +98,7 @@ class LocalDeviceEnrollmentConfiguration {
             ObjectProvider<ReviewedDeviceCertificateRegistrationService> registrar) {
         return ignored -> {
             requireLocalConfiguration(env);
+            requireManualExecution(System.getenv());
             Console console = System.console();
             if (console == null) {
                 throw new IllegalStateException("Attached local terminal required");
