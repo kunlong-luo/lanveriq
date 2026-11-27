@@ -24,6 +24,7 @@ CHECKS = (
     ("diagnostics", "诊断文字可选择，安装/启动授权为 false、生产功能 OFF"),
     ("resize_scroll", "窗口缩放和小窗口内滚动正常，无内容溢出遮挡"),
     ("keyboard", "Tab/Shift+Tab 与 Enter/Space 焦点和导航正常，禁用按钮不可触发"),
+    ("chinese_ime", "关于页使用真实中文输入法组合并确认“中文输入测试”（非粘贴）；检查候选/光标、清空、离开再进入为空；无输入法选 n"),
 )
 STATUS = {"p": "OWNER_REPORTED_PASS", "f": "OWNER_REPORTED_FAIL", "n": "NOT_TESTED"}
 
@@ -70,7 +71,7 @@ def sha(path):
 def parse_answers(answer):
     words = answer.lower().split()
     require(len(words) == len(CHECKS) and all(word in STATUS for word in words),
-            "请按顺序输入 8 个 p/f/n")
+            "请按顺序输入 9 个 p/f/n")
     return {key: STATUS[word] for (key, _), word in zip(CHECKS, words)}
 
 def wayland_env(env):
@@ -94,7 +95,7 @@ def main():
     print("以下检查仅凭所有人观察，不会自动标记 L3 PASS。")
     for i, (_, description) in enumerate(CHECKS, 1):
         print(f"{i}. {description}")
-    print("最后使用 Ctrl+Q 退出；中文 IME 组合输入尚无可编辑控件，另列 NOT_TESTED。")
+    print("最后使用 Ctrl+Q 退出；中文 IME 必须实际组合并确认，不能仅粘贴或凭中文标签判断。")
     print("开始离线编译。缺依赖时停止，不自动下载或安装。", flush=True)
     subprocess.run(["cargo", "+1.100.0", "build", "--locked", "--offline", "--release",
                     "--target-dir", str(ROOT / "target"), "--bin", NAME],
@@ -108,18 +109,18 @@ def main():
     result = subprocess.run([str(binary)], cwd=ROOT, env=wayland_env(os.environ), timeout=900)
     require(sha(binary) == binary_sha and source_identity() == head, "测试期间产物或源码发生变化")
     print("窗口退出码:", result.returncode)
-    print("按上述 8 项顺序输入 p=通过 f=失败 n=未测，例如 p p n n p p p n")
+    print("按上述 9 项顺序输入 p=通过 f=失败 n=未测，例如 p p n n p p p n n")
     answers = parse_answers(input("> "))
     method = input("是否确实使用 Ctrl+Q 退出？ y/n: ").strip().lower()
     require(method in ("y", "n"), "退出方式必须选择 y/n")
     report = {
-        "schema": "lanveriq.gpui.owner-cosmic-review-v1",
+        "schema": "lanveriq.gpui.owner-cosmic-review-v2",
         "source_sha": head, "lock_sha256": expected, "elf_sha256": binary_sha,
         "target": "Pop!_OS 24.04 x86_64", "session_claim": "COSMIC_WAYLAND",
         "wayland_socket_metadata": "CHECKED", "x11_display_removed": True,
         "exit_code": result.returncode, "ctrl_q": STATUS["p"] if result.returncode == 0 and method == "y" else "NOT_CONFIRMED",
         "checks": answers, "native_compositor_protocol_verified": False,
-        "chinese_ime_composition": "NOT_TESTED_NO_EDITABLE_CONTROL",
+        "chinese_ime_composition": answers["chinese_ime"],
         "window_manager_close": "NOT_TESTED", "hardware_gpu": "NOT_VERIFIED",
         "independent_l3": "NOT_APPROVED", "install_authorized": False, "release_approved": False,
     }

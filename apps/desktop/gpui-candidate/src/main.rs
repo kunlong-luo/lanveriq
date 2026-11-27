@@ -4,6 +4,7 @@ use gpui_kit::component::{
     button::Button,
     checkbox::Checkbox,
     label::Label,
+    input::{Input, InputState},
 };
 use gpui_kit::base::{SelectableText, StyledExt};
 use gpui_kit::*;
@@ -18,6 +19,7 @@ actions!(lanveriq_desktop, [Quit]);
 struct Desktop {
     workspace: Workspace,
     inspecting: bool,
+    ime_probe: Option<Entity<InputState>>,
 }
 
 impl Render for Desktop {
@@ -31,7 +33,16 @@ impl Render for Desktop {
                     Button::new(destination.id())
                         .label(destination.label())
                         .selected(page == destination)
-                        .on_click(cx.listener(move |this, _, _, cx| {
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            if this.workspace.page() != destination {
+                                // Drop the entire editing entity (including undo history) on leaving About.
+                                // No text is read by the product model or diagnostic projection.
+                                this.ime_probe = if destination == Page::About {
+                                    Some(cx.new(|cx| InputState::new(window, cx)
+                                        .placeholder("仅输入示例：中文输入测试")
+                                        .context_menu(false)))
+                                } else { None };
+                            }
                             this.workspace.navigate(destination);
                             cx.notify();
                         })),
@@ -143,6 +154,16 @@ impl Render for Desktop {
                     .child(SelectableText::new("offline-diagnostic", runtime_diagnostic(self.workspace.host_identity(), self.workspace.runtime_metadata()))))
                 .child(Label::new("向第三方分享前请自行确认内容。"));
         }
+        if page == Page::About {
+            if let Some(input) = self.ime_probe.as_ref() {
+                content = content.child(div().flex().flex_col().gap_2().p_3()
+                    .rounded(cx.theme().radius).border_1().border_color(cx.theme().border)
+                    .child(Label::new("中文输入法兼容性测试（仅合成文本）"))
+                    .child(Label::new("请使用本机输入法组合并确认：中文输入测试。不要输入密码、地址或个人信息。"))
+                    .child(Input::new(input).id("synthetic-ime-probe").aria_label("中文输入法合成测试").cleanable(true))
+                    .child(Label::new("仅临时编辑状态；离开本页后重新进入为空，不写配置、不记录、不上传。")));
+            }
+        }
         div()
             .size_full()
             .flex()
@@ -168,7 +189,7 @@ fn main() {
             };
             gpui_kit::open_window(options, cx, |window, cx| {
                 window.set_window_title("Lanveriq Desktop - Offline Candidate");
-                cx.new(|_| Desktop { workspace: Workspace::default(), inspecting: false })
+                cx.new(|_| Desktop { workspace: Workspace::default(), inspecting: false, ime_probe: None })
             })
             .expect("Failed to open offline candidate window");
         });

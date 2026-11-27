@@ -35,10 +35,12 @@ class OwnerReview(unittest.TestCase):
             self.assertIn(key,original)
 
     def test_owner_answers_never_implicit(self):
-        values = parse_answers("p f n p p p p n")
+        values = parse_answers("p f n p p p p n n")
         self.assertEqual(len(values),len(CHECKS))
         self.assertEqual(values["navigation"],"OWNER_REPORTED_FAIL")
         self.assertEqual(values["keyboard"],"NOT_TESTED")
-        for raw in ("", "p", "p p p p p p p yes"):
+        self.assertEqual(values["chinese_ime"],"NOT_TESTED")
+        self.assertEqual(parse_answers("p p p p p p p p p")["chinese_ime"],"OWNER_REPORTED_PASS")
+        for raw in ("", "p", "p p p p p p p p", "p p p p p p p p yes"):
             with self.assertRaises(ValueError):
                 parse_answers(raw)
