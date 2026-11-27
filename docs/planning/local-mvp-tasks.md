@@ -85,6 +85,8 @@
 
 - **2026-11-27 本机上游诊断**：维护者提供 Caddy proxy 叶 DER SHA256 与 Spring configtree 值一致、容器 host 网络、127.0.0.1:8443 监听（IPv4 mapped 显示）。仍非实际 servlet 请求证据。新增 opt-in DEBUG 固定原因码 `com.lanveriq.server.diagnostics.activation`，覆盖 activation chain 装配、controller 到达、入口条件和 repository 拒绝；不打印请求值、证书、指纹、UUID 或密码，不改变对外 403/400、SQL、TLS 或安全开关。添加诊断单测，CI 待验；IDEA 仅显式添加 `-Dlogging.level.com.lanveriq.server.diagnostics.activation=DEBUG`，重启后用同一叶重试 activate，收集固定码；定位后关闭 DEBUG。前一提交 `372a4609` docs #45951754208、RD-2 #45951754196 SUCCESS。
 
+- **2026-11-27 本机 activation PASS（维护者终端证据）**：更新诊断源码并重试后，同一已注册设备 POST 返回 HTTP200、schema_version=1、enrollment_state=active、服务端时间和请求 UUID。此前403未复现，未取得实际拒绝原因码，不能认定根因或诊断修复了业务逻辑。当前待同一叶 credential-epoch GET HTTP200（设备、epoch、证书指纹严格匹配）及错误设备 GET 403、无客户端证书拒绝；原 SQLite 与 inventory OFF 不变。功能 `f6e83c89` [Server #45952013447](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013447)、[PG 编译 #45952013329](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013329)、[docs #45952013308](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013308)、[RD-2 #45952013487](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013487) SUCCESS；[隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) IN_PROGRESS。
+
 ### MVP-04 · 一次 `send` 和精确 ACK
 
 - **允许**：只执行 `apps/agent` 的 `cargo run --locked -- send --state-file "$STATE_FILE" --device-id "$DEVICE_ID" --ca-pem "$TEST_CA" --identity-pem "$TEST_IDENTITY"`，复用现有 `AgentTlsTransport::send_next_inventory()`；同一个已授权设备 UUID、同一个持久 SQLite 快照。测试密钥仅存仓库外、受限权限。
@@ -111,13 +113,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main 89b6b773](https://github.com/kunlong-luo/lanveriq/commit/89b6b7739e37357b4a7757f766574c67a01a3bef)；MVP-01/02 不变。 |
-| 本轮 | **MVP-03 BLOCKED**。DB 全 true、上游 pin/host/监听 PASS；新增默认关闭 DEBUG 原因码，待实际请求定位。 |
-| 已验证（源码） | 原 test profile 07ebb357 与 225ef841 Server CI PASS；本轮新增固定原因码及单测，CI 待核实。 |
+| 基线 | [main f6e83c89](https://github.com/kunlong-luo/lanveriq/commit/f6e83c897cfaa9b54b07eebbf6f1092d315fd52d)；MVP-01/02 不变。 |
+| 本轮 | **MVP-03 BLOCKED**。真实 activate HTTP200 active PASS；待 epoch 正负验收，原403根因未证实。 |
+| 已验证（源码） | f6e83c89 Server #45952013447、PG 编译 #45952013329、docs #45952013308、RD-2 #45952013487 SUCCESS；隔离 L2 #45952013366 IN_PROGRESS。 |
 | 已验证（CI L2 历史原始日志） | [#45742025955](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955) 三 jobs success，job 139649120029 checkout/Source SHA b31f45efe1972b3bfedb9961bc39cbc5f7a11e4f；另 [#45554279736](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736) 两 jobs success，job 139002587446 checkout db570181d603a7f069a85a23c009658e9a8bed4c。日志实际执行有效 TLS1.3、无证书/错误 CA/TLS1.2/伪造头无上游证书/错误设备/未注册凭据拒绝；合成身份绑定 PASS。非本轮重跑，compare 显示当前 Agent main.rs 有改动。 |
-| 用户本机证据 / 未验证 | 既有 PG18.7/迁移30/0/8443 HTTPS/管理员与组/prepare/CA/register PASS；新叶 Health UP，pending epoch 403（预期），activate 403 FAIL，active epoch/错设备未执行；非 L3。 |
+| 用户本机证据 / 未验证 | PG18.7/迁移30/0/8443 HTTPS/管理员与组/prepare/CA/register PASS；新叶 Health UP、pending epoch 403、activate HTTP200 active PASS；active epoch/错设备未执行；非 L3。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；新增用户本机传输层证据，不增加自动验收或 L3 评分。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **MVP-03**：核实诊断 CI，IDEA 开启专用 DEBUG，重试同一证书 activate，按固定原因修复后复验 epoch；inventory OFF、原 SQLite 不变。 |
+| **下次唯一任务** | **MVP-03**：同一新叶验证 epoch 200/身份匹配、错设备403、无客户端证书拒绝；确认隔离 CI 后结项。inventory OFF、原 SQLite 不变，不进入 MVP-04。 |
 | 约束 | 单一 main、一次一个 ID；不动共享 PostgreSQL/IoT、已有 SQLite pending 或本机未提交配置，不提交机密；生产联网/采集/自动恢复/远控/CA 签发 OFF。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
