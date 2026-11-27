@@ -126,6 +126,8 @@
 
 - **2026-11-27 本机预检及 Next.js 验收入口源码**：维护者只读 PG18 确认设备总数=1、授权=1、组外=0；本机跨组负例无目标，NOT RUN。维护者 checkout `b33254bc`、Node 24.20.0、pnpm 12.20.0，`pnpm run verify:routes` PASS（34 entry/37 modules），仅旧基线。新增 [本机临时验收启动器](../../apps/web/scripts/run-local-console-probe.sh) `55090431`，普通构建禁止临时 route/source 守卫 `0e0d03e1a929d4931c21c22346603ab2503e73c5`。启动器要求显式非 root、本机 main、非 CI、空闲 3100；Git HEAD 临时副本、锁依赖、原路由检查后生成独立页与 Next proxy；复用 staged auth/reader，只展示同一 UUID 的 API 验收状态，不展示库存字段或监控。每次随机 edge proof、Next proxy/page 双校验；Caddy 限定临时页及静态资源并剥离 Cookie/Authorization（配置待执行），Spring 仍为认证/RBAC 权威。内置 proof 正负断言、typecheck/build、真实浏览器、直接 origin 拒绝及收尾均 NOT RUN；新功能 CI 未确认。不改生产默认、CI fixture 或正式登录，不进入 MVP-07。
 
+- **2026-11-27 本机启动失败及修复**：维护者实际遇到工作区 `next-env.d.ts` 自动变更触发 guard 拒绝；恢复后 `ERR_PNPM_NO_OFFLINE_TARBALL`（锁文件供应链检查 PASS，缓存缺 @base-ui/react@1.9.0）；pnpm 12.20.0 拒绝 `fetch --offline=false` 参数；随后自动生成文件再次触发拒绝。修复 [cb14bb2c](https://github.com/kunlong-luo/lanveriq/commit/cb14bb2cba43676ec3ca3171ba069a18d05b4f85)：固定 HEAD SHA，验证启动器本身与已提交版本一致，允许并保留其他本地修改（验收仅归档已提交源码）；默认离线，显式 `--allow-online-install` 才使用 `pnpm install --frozen-lockfile`，不关闭供应链检查、不更新依赖版本。修复后实际安装/构建/浏览器及 CI 未验证，仍 BLOCKED，71/100。
+
 ### MVP-07 · 浏览器看到这台设备
 
 - **允许**：只在 `apps/web` 的设备列表/详情完成真实数据映射，不扩展首页、监控面板或远控。
@@ -141,7 +143,7 @@
 | 已验证（历史 CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS；原有合成跨组拒绝与 Next.js 同源 PASS，非新 CI。 |
 | 本机验收与限制 | 维护者提供真实 Console TLS、管理员组授权、curl 基础六项、Python HTTPS 真实登录/设备同一身份/安全 Cookie/CSRF/Origin/登出 PASS；未知 UUID 404 不等于真实跨组；本机组外设备=0，跨组 NOT RUN；Next.js 旧基线路由检查 PASS，新启动器构建/浏览器 NOT RUN，非独立 L3。临时 Console 仍处于验收配置，最终收尾 NOT RUN。 |
 | 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**；Gate 0/10，G-01～G-10 OPEN，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **仍为 MVP-06**：运行新启动器，验收直接 origin 404、规范 HTTPS 同源真实登录/同 UUID 列表详情/登出；仅在批准隔离数据中做真实跨组，不改真实组；最终关闭临时配置，不进入 MVP-07。 |
+| **下次唯一任务** | **仍为 MVP-06**：运行修复后启动器（缓存不足时显式 `--allow-online-install`），验收直接 origin 404、规范 HTTPS 同源真实登录/同 UUID 列表详情/登出；仅在批准隔离数据中做真实跨组，不改真实组；最终关闭临时配置，不进入 MVP-07。 |
 | 约束 | 单一 main；不改旧 SQLite/证书/共享 PG/IoT 业务，不重采、不重发、不写库存、不扩大组权、不改生产默认、不绕过 synthetic CI 守卫，不提交秘密。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
