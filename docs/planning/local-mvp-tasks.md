@@ -18,11 +18,11 @@
 | **MVP-02** | 手动 `once` → OS/CPU/RAM → SQLite 去重 | 自有设备、主动操作 | **DONE**：2026-11-27 复核；保留既有用户本机 PASS 与 Agent L1 PASS，本轮重跑 NOT RUN |
 | **MVP-03** | 本地隔离 mTLS ingress 与测试设备身份预检 | MVP-01、测试授权 | **DONE**：2026-11-27 本机注册、激活、epoch、错设备及无证书拒绝 PASS；功能 f6e83c89 隔离 L2 三 jobs SUCCESS |
 | **MVP-04** | 手动 `send` → 精确 ACK → 确认本地 pending | MVP-02、MVP-03 | **DONE**：2026-11-27 本机 HTTP200/精确 ACK、新 pending 0、旧 pending 1、两库 revision 1 PASS；维护者确认临时配置恢复 |
-| **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **BLOCKED / 本机 PG 查询 NOT RUN** |
+| **MVP-05** | 用 PostgreSQL 查询核实同一设备库存 | MVP-04 | **DONE**：2026-11-27 维护者本机只读 PG18 同设备/快照/revision=1 精确匹配 1 行、OS/CPU/RAM 非空，COMMIT PASS |
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **TODO / NOT RUN** |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **TODO / NOT RUN** |
 
-**MVP-04 DONE；MVP-05 BLOCKED（本机 PG 查询 NOT RUN）**：仅待维护者只读核实 PostgreSQL 中同一设备、快照、版本；不得重采或重发，不进入 MVP-06。
+**MVP-05 DONE，本会话停止。下次唯一任务 MVP-06（TODO / NOT RUN）**：仅按任务卡核实真实管理员测试授权及同源只读 Spring API，不进入 MVP-07。
 
 ## 可执行任务卡
 
@@ -109,8 +109,10 @@
 - **只读范围**：以 `lanveriq` 专用角色核对 `public.device_inventory_current`，按 [Flyway V8 列定义](../../apps/server/src/main/resources/db/migration/V8__device_inventory_current.sql) 检查相同设备 `snapshot_id`、`inventory_revision`、`os_name`、`os_version`、`cpu_model`、`memory_total_bytes`。
 - **验收**：真实 PG18 查询确实存在与已确认 ACK **同一设备、快照和版本**的行；若不存在 FAIL/BLOCKED；不得以 CI 合成库存或本机 SQLite 代替真实 PG 查询。
 
-- **2026-11-27 本轮复核 / BLOCKED（真实本机查询 NOT RUN）**：基线 [`a59fdd48`](https://github.com/kunlong-luo/lanveriq/commit/a59fdd48e5086b1a37e23b1d0f09dfa8683481a1)。核对 V8 及 Rust `store.rs`：latest 保留 device_id/snapshot_id/inventory_revision/semantic_digest，ACK 后 pending 删除；semantic_digest 不是 PG 的 content_digest，不可直接比对。复核 [隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS，job 140349819059 原日志明确真实 Rust→双 mTLS→PG18 current、精确 ACK、重复无修改/同版冲突拒绝；compare 功能 `f6e83c89` 到基线仅 12 个文档提交，未重跑 CI。无产品代码修改、无本机访问通道；不能用合成 PG18 或 ACK 代替实际开发库行。
+- **2026-11-27 初始复核 / BLOCKED（历史：当时真实本机查询 NOT RUN）**：基线 [`a59fdd48`](https://github.com/kunlong-luo/lanveriq/commit/a59fdd48e5086b1a37e23b1d0f09dfa8683481a1)。核对 V8 及 Rust `store.rs`：latest 保留 device_id/snapshot_id/inventory_revision/semantic_digest，ACK 后 pending 删除；semantic_digest 不是 PG 的 content_digest，不可直接比对。复核 [隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS，job 140349819059 原日志明确真实 Rust→双 mTLS→PG18 current、精确 ACK、重复无修改/同版冲突拒绝；compare 功能 `f6e83c89` 到基线仅 12 个文档提交，未重跑 CI。无产品代码修改、无本机访问通道；不能用合成 PG18 或 ACK 代替实际开发库行。
 - **解除阻塞（只读）**：维护者在已发送的新 outbox 执行 `sqlite3 -readonly -bail "$STATE_FILE" "SELECT device_id,snapshot_id,inventory_revision FROM inventory_latest_state WHERE singleton=1; SELECT count(*) FROM inventory_pending;"`，确认 revision=1/pending=0。使用 `docker exec -it spark-postgres psql -X -W -h 127.0.0.1 -U lanveriq -d lanveriq`（或同命令传 psql `-v device_id=...`、`-v snapshot_id=...`、`-v revision=1`）；`BEGIN READ ONLY;` 后核对 current_database/current_user、PG18、transaction_read_only；仅按该 device_id 精确查询 current 表并比对 snapshot_id、inventory_revision、OS/CPU/RAM，`COMMIT;`。实际匹配恰好一行且字段真实才 DONE；缺行或不匹配 FAIL/BLOCKED。只回传脱敏匹配结果、字段存在性及版本，不提交 UUID、密码、硬件原始详情或本机路径；不重采、不重发，不写库，不更改服务开关。PG content_digest 仅在有原始 wire 摘要时可额外精确比较。
+
+- **2026-11-27 本机最终验收 PASS（维护者提供终端结果，非助手直连/独立 L3）**：按上述新 outbox 只读 SQLite 预检及 `psql -v device_id=... -v snapshot_id=... -v revision=1` 流程，实际 PG 输出 `BEGIN`、database_ok/role_ok/postgres18/read_only 全 true、device_rows=1、exact_rows=1、inventory_revision=1、OS 为 Pop!_OS 24.04、CPU/内存字段非空且内存为正值、`COMMIT`。新 SQLite revision=1/pending=0 已由 MVP-04 终端证据确认，本轮 psql 输出未重复附 SQLite 预检行；精确匹配查询以该新 outbox 的 latest identity 为参数。未独立复核本机硬件数值、未比较原始 wire digest、本机运行源码 SHA 未提供；这些不替代同设备/快照/版本的实际入库证据。无产品源码变更，不重采、不重发、不写入数据库，不在 Git 记录具名 UUID/路径/硬件原值。MVP-05 DONE，停止；下次仅 MVP-06。
 
 ### MVP-06 · Next.js 有身份的设备只读读取
 
@@ -127,12 +129,12 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [main a59fdd48](https://github.com/kunlong-luo/lanveriq/commit/a59fdd48e5086b1a37e23b1d0f09dfa8683481a1)；本轮无产品代码变更，本机运行源码 SHA 未提供。 |
-| 本轮 | **MVP-05 BLOCKED**：V8、Rust latest-state 及既有 L2 证据复核；真实本机 PG18 查询 NOT RUN（无本机执行通道）。MVP-01～04 DONE 保持。 |
-| 已验证（历史 CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs success，原日志 job 140349819059 证明精确 ACK 与 PG18 current、重复/冲突拒绝；到基线仅 12 个文档提交。非本轮重跑。 |
-| 本机验收 | NOT RUN：按任务卡对新 SQLite latest identity/revision=1、pending=0 与真实 PG18 同一行、OS/CPU/RAM 进行只读比对。没有真实结果，不作 PASS/FAIL 推断。结项文档 CI NOT RUN/未确认。 |
-| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**，未新增自动验收或 L3。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
-| **下次唯一任务** | **仍为 MVP-05**：完成上述只读本机查询并回传脱敏证据，通过后才可 DONE；MVP-06/07 不执行。 |
-| 约束 | 单一 main；旧 SQLite、证书、共享 PG/IoT 不动；不重采、不重发、不改服务配置，无生产授权。 |
+| 基线 | [main 873c78b1](https://github.com/kunlong-luo/lanveriq/commit/873c78b1e5093f2b7abb4803b67921183147451c)；本轮无产品代码变更，本机运行源码 SHA 未提供。 |
+| 本轮 | **MVP-05 DONE**：维护者本机 PG18 只读事务 PASS；同一设备/快照/revision=1 精确匹配 1 行，OS/CPU/RAM 字段存在，COMMIT。MVP-01～04 DONE 保持。 |
+| 已验证（历史 CI L2） | [#45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs success，原日志 job 140349819059 证明精确 ACK 与 PG18 current、重复/冲突拒绝；非本轮重跑。 |
+| 本机验收与限制 | PASS（维护者终端，非助手直连）；本轮未重附 SQLite 预检行，MVP-04 已记录新 pending=0/revision=1。未独立比对硬件原值或 wire digest、未执行独立 L3；结项文档 CI 尚未确认。 |
+| 评分/上线 | [工程评分](project-scorecard.md) **71/100 不变**，新增本机证据非新增自动验收或 L3。G-01～G-10 OPEN，0/10 关闭，v0.1 NOT RELEASE READY / NO-GO。 |
+| **下次唯一任务** | **MVP-06 TODO / NOT RUN**：另开会话按任务卡，仅核实真实管理员测试授权、同源只读 Spring API 与无会话/错组/Origin/CSRF 拒绝；不进入 MVP-07。 |
+| 约束 | 单一 main；旧 SQLite、证书、共享 PG/IoT 不动；不重采、不重发、不改生产默认开关，无生产授权。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
