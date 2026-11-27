@@ -18,6 +18,7 @@ export type DirectoryRow = Readonly<{
   id: string;
   label: string;
   os: string | null;
+  osVersion?: string | null;
   // Only the server's current group-scoped inventory projection, never
   // background platform probing or client inference.
   cpu?: string | null;
@@ -202,7 +203,7 @@ export function DeviceDirectory({
             <TableHead scope="col">最后心跳</TableHead><TableHead scope="col">队列</TableHead><TableHead scope="col">详情</TableHead></TableRow></TableHeader>
           <TableBody>{visible.map(row => <TableRow key={row.id}>
             <TableHead scope="row" className="device-row-heading">
-              <strong>{row.label}</strong><small>{row.os ?? '操作系统未上报'}</small>
+              <strong>{row.label}</strong><small>{row.os ?? '操作系统未上报'}{row.osVersion ? ` ${row.osVersion}` : ''}</small>
               {(row.cpu || row.memoryBytes !== null && row.memoryBytes !== undefined) &&
                 <small>{row.cpu ? `CPU：${row.cpu}` : 'CPU：未上报'}
                   {row.memoryBytes !== null && row.memoryBytes !== undefined

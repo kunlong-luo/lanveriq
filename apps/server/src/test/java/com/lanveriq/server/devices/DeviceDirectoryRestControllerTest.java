@@ -29,7 +29,7 @@ class DeviceDirectoryRestControllerTest {
     private DeviceDirectoryEntry summary() {
         return new DeviceDirectoryEntry(deviceId, groupId, "Synthetic Team",
                 "Synthetic Endpoint", "active", null, Instant.parse("2026-10-31T08:00:00Z"),
-                "0.1.0", 3L, 100L, "linux", "Test Linux", "Test CPU",
+                "0.1.0", 3L, 100L, "linux", "Test Linux", "24.04", "Test CPU",
                 8_000_000_000L, null);
     }
 
@@ -45,6 +45,7 @@ class DeviceDirectoryRestControllerTest {
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.items[0].device_id").value(deviceId.toString()))
                 .andExpect(jsonPath("$.items[0].group_id").value(groupId.toString()))
+                .andExpect(jsonPath("$.items[0].os_version").value("24.04"))
                 .andExpect(jsonPath("$.items[0].heartbeat_received_at")
                         .value("2026-10-31T08:00:00Z"))
                 .andExpect(jsonPath("$.items[0].queue_count").value(3))
@@ -114,6 +115,7 @@ class DeviceDirectoryRestControllerTest {
         mvc.perform(get("/api/v1/devices/{deviceId}", deviceId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.device_id").value(deviceId.toString()))
+                .andExpect(jsonPath("$.os_version").value("24.04"))
                 .andExpect(jsonPath("$.memory_total_bytes").value(8_000_000_000L))
                 .andExpect(jsonPath("$.last_seen_at").value(org.hamcrest.Matchers.nullValue()));
     }

@@ -247,7 +247,7 @@ export function LocalConsoleProbe() {
   // No form, field names, server action, browser storage or automatic requests.
   return <main style={{maxWidth: 960, margin: '4rem auto', padding: '1rem'}}>
     <h1>Lanveriq 本机设备库存验收</h1>
-    <p>仅设备所有人临时只读测试；现有 API 未提供系统版本，不代表完整验收通过。</p>
+    <p>仅设备所有人临时只读测试；仅展示当前授权的真实 API 库存。</p>
     <label htmlFor="probe-user">测试管理员</label>
     <input id="probe-user" ref={username} disabled={!canLogin} maxLength={255}
       autoComplete="off" type="text" />
@@ -266,7 +266,7 @@ export function LocalConsoleProbe() {
     </button>
     <p role="status" id="local-probe-state" data-state={phase}>
       {!allowed ? '拒绝：仅允许规范 HTTPS Console 来源' :
-        phase === 'verified' ? '已核对真实会话、唯一设备列表及同一设备详情；系统版本尚缺' :
+        phase === 'verified' ? 'PASS：真实会话、唯一设备列表及同一设备详情的 OS/版本/CPU/内存一致' :
         phase === 'signed-out' ? 'PASS：登出后会话及设备读取均被拒绝' :
         phase === 'locked' ? '页面已锁定，库存已清除，请先登出' :
         phase === 'denied' ? '拒绝：会话、权限或设备身份未通过，库存已清除' :
@@ -278,13 +278,13 @@ export function LocalConsoleProbe() {
         <h2>设备列表（唯一授权设备）</h2>
         <table><thead><tr><th scope="col">设备</th><th scope="col">操作系统</th>
           <th scope="col">CPU</th><th scope="col">内存（字节）</th></tr></thead>
-          <tbody><tr><th scope="row">{inventory.label}</th><td>{inventory.os}</td>
+          <tbody><tr><th scope="row">{inventory.label}</th><td>{inventory.os} {inventory.osVersion}</td>
             <td>{inventory.cpu}</td><td>{inventory.memoryBytes}</td></tr></tbody></table>
       </section>
       <section aria-label="同一设备详情" data-testid="local-inventory-detail">
         <h2>同一设备详情</h2>
         <dl><dt>操作系统</dt><dd>{inventory.os}</dd>
-          <dt>系统版本</dt><dd>当前 API 未提供</dd>
+          <dt>系统版本</dt><dd>{inventory.osVersion}</dd>
           <dt>CPU 型号</dt><dd>{inventory.cpu}</dd>
           <dt>内存</dt><dd>{inventory.memoryBytes} 字节</dd>
           <dt>连接状态</dt><dd>待确认（不推断在线）</dd></dl>

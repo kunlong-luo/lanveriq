@@ -28,6 +28,7 @@ public final class DeviceDirectoryRestResponse {
             @JsonProperty("queue_bytes") Long queueBytes,
             @JsonProperty("os_family") String osFamily,
             @JsonProperty("os_name") String osName,
+            @JsonProperty("os_version") String osVersion,
             @JsonProperty("cpu_model") String cpuModel,
             @JsonProperty("memory_total_bytes") Long memoryTotalBytes,
             @JsonProperty("inventory_received_at") Instant inventoryReceivedAt) {
@@ -38,7 +39,7 @@ public final class DeviceDirectoryRestResponse {
                     source.label(), source.enrollmentState(), source.lastSeenAt(),
                     source.heartbeatReceivedAt(), source.agentVersion(),
                     source.queueCount(), source.queueBytes(), source.osFamily(),
-                    source.osName(), source.cpuModel(), source.memoryTotalBytes(),
+                    source.osName(), source.osVersion(), source.cpuModel(), source.memoryTotalBytes(),
                     source.inventoryReceivedAt());
         }
     }

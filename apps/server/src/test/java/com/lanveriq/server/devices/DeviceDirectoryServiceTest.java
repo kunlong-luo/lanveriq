@@ -44,7 +44,7 @@ class DeviceDirectoryServiceTest {
     private static DeviceDirectoryEntry entry(UUID deviceId) {
         return new DeviceDirectoryEntry(deviceId, UUID.randomUUID(), "Test group",
                 "Synthetic device", "active", null, null, null, null, null,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
     }
 
     @Test

@@ -145,6 +145,9 @@ class ContractGateTest(unittest.TestCase):
         del sample["components"]["schemas"]["DeviceHealthSummary"]["properties"][
             "heartbeat_received_at"]
         self.assertTrue(validate(sample))
+        sample = fixture()
+        del sample["components"]["schemas"]["DeviceHealthSummary"]["properties"]["os_version"]
+        self.assertTrue(validate(sample))
 
     def test_missing_or_sensitive_monitoring_summary_blocks(self):
         sample = fixture()

@@ -37,7 +37,7 @@ class JpaDeviceDirectoryRepositoryTest {
         return new Object[]{
                 deviceId, groupId, "Engineering", "Synthetic laptop", "active",
                 1_800_000_000L, 1_800_000_001L, "0.1.0", 12L, 1500L,
-                "linux", "Synthetic Linux", "Synthetic CPU", 16_000_000_000L,
+                "linux", "Synthetic Linux", "24.04", "Synthetic CPU", 16_000_000_000L,
                 1_800_000_002L};
     }
 
@@ -53,6 +53,7 @@ class JpaDeviceDirectoryRepositoryTest {
         assertEquals(Instant.ofEpochSecond(1_800_000_001L), summary.heartbeatReceivedAt());
         assertEquals(Instant.ofEpochSecond(1_800_000_002L), summary.inventoryReceivedAt());
         assertEquals(12L, summary.queueCount());
+        assertEquals("24.04", summary.osVersion());
         assertEquals(16_000_000_000L, summary.memoryTotalBytes());
         var sql = ArgumentCaptor.forClass(String.class);
         verify(manager).createNativeQuery(sql.capture());
@@ -125,11 +126,13 @@ class JpaDeviceDirectoryRepositoryTest {
         row[12] = null;
         row[13] = null;
         row[14] = null;
+        row[15] = null;
         when(query.getResultList()).thenReturn(List.<Object[]>of(row));
         var result = repo.find(adminId, deviceId).orElseThrow();
         assertNull(result.heartbeatReceivedAt());
         assertNull(result.agentVersion());
         assertNull(result.queueCount());
+        assertNull(result.osVersion());
         assertNull(result.memoryTotalBytes());
         assertNull(result.inventoryReceivedAt());
         assertEquals("active", result.enrollmentState());

@@ -239,16 +239,19 @@ def main():
             if inventory_mode == "1":
                 require(inventory_source is not None, "missing_rust_inventory_source")
                 source_os = inventory_source["os"]["name"]
+                source_version = inventory_source["os"].get("version")
                 source_cpu = inventory_source["hardware"]["cpu"]["model"]
                 source_memory = inventory_source["hardware"]["memory"]["total_bytes"]
                 require(rows[0].get("os_family") == "linux" and
                         rows[0].get("os_name") == source_os and
+                        rows[0].get("os_version") == source_version and
                         rows[0].get("cpu_model") == source_cpu and
                         rows[0].get("memory_total_bytes") == source_memory and
                         bool(rows[0].get("inventory_received_at")),
                         "spring_inventory_projection_matches_rust_pg")
                 detail = snapshot["detail"]["body"]
                 require(detail.get("os_name") == source_os and
+                        detail.get("os_version") == source_version and
                         detail.get("cpu_model") == source_cpu and
                         detail.get("memory_total_bytes") == source_memory,
                         "spring_scoped_inventory_detail_consistency")
@@ -268,7 +271,7 @@ def main():
                     """n => (n / 1000000000).toLocaleString('zh-CN',
                       {maximumFractionDigits: 1}) + ' GB'""", source_memory)
                 require(len(details) == 2 and
-                        details[0] == source_os and
+                        details[0] == (source_os + (' ' + source_version if source_version else '')) and
                         source_cpu in details[1] and
                         expected_ram in details[1],
                         "rust_inventory_os_cpu_memory_visible_in_nextjs_dom")

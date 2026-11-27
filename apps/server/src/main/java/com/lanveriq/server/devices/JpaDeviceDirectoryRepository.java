@@ -27,7 +27,7 @@ class JpaDeviceDirectoryRepository implements DeviceDirectoryRepository {
                    CAST(EXTRACT(EPOCH FROM d.last_seen_at) AS BIGINT),
                    CAST(EXTRACT(EPOCH FROM h.received_at) AS BIGINT),
                    h.agent_version, h.queue_count, h.queue_bytes,
-                   i.os_family, i.os_name, i.cpu_model, i.memory_total_bytes,
+                   i.os_family, i.os_name, i.os_version, i.cpu_model, i.memory_total_bytes,
                    CAST(EXTRACT(EPOCH FROM i.received_at) AS BIGINT)
             FROM devices AS d
             JOIN device_groups AS g ON g.id=d.group_id
@@ -119,14 +119,14 @@ class JpaDeviceDirectoryRepository implements DeviceDirectoryRepository {
     }
 
     private static DeviceDirectoryEntry map(Object[] row) {
-        if (row.length != 15) {
+        if (row.length != 16) {
             throw new IllegalStateException("Unexpected device projection shape");
         }
         return new DeviceDirectoryEntry(
                 (UUID) row[0], (UUID) row[1], (String) row[2], (String) row[3],
                 (String) row[4], asInstant(row[5]), asInstant(row[6]),
                 (String) row[7], asLong(row[8]), asLong(row[9]),
-                (String) row[10], (String) row[11], (String) row[12],
-                asLong(row[13]), asInstant(row[14]));
+                (String) row[10], (String) row[11], (String) row[12], (String) row[13],
+                asLong(row[14]), asInstant(row[15]));
     }
 }

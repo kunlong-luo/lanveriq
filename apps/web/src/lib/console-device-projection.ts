@@ -37,7 +37,7 @@ function parseRow(raw: unknown): DirectoryRow | null {
       !boundedText(raw.label) || !boundedText(raw.group_name) ||
       typeof raw.enrollment_state !== 'string' ||
       !enrollments.has(raw.enrollment_state) ||
-      !optionalText(raw.os_name) || !optionalText(raw.cpu_model) ||
+      !optionalText(raw.os_name) || !optionalText(raw.os_version) || !optionalText(raw.cpu_model) ||
       (raw.memory_total_bytes !== null && raw.memory_total_bytes !== undefined &&
        (typeof raw.memory_total_bytes !== 'number' ||
         !Number.isSafeInteger(raw.memory_total_bytes) || raw.memory_total_bytes < 0)) ||
@@ -53,6 +53,7 @@ function parseRow(raw: unknown): DirectoryRow | null {
     label: raw.label,
     group: raw.group_name,
     os: raw.os_name || null,
+    osVersion: raw.os_version || null,
     cpu: typeof raw.cpu_model === 'string' ? raw.cpu_model : null,
     memoryBytes: typeof raw.memory_total_bytes === 'number' ? raw.memory_total_bytes : null,
     enrollment: raw.enrollment_state as DirectoryRow['enrollment'],
@@ -126,7 +127,7 @@ export function projectConsoleList(
 
 /** Single-owner local MVP-07 only. Never retain raw detail or show a
  * list/detail pair that disagrees on the authorized device or inventory.
- * The current Spring DTO does not expose os_version: do not infer it. */
+ * Missing or inconsistent os_version must never be inferred. */
 export function projectLocalInventory(
   page: DirectoryState, response: StagedConsoleResponse, expectedId: string,
 ): DirectoryRow | null {
@@ -136,9 +137,9 @@ export function projectLocalInventory(
   const detail = parseRow(response.data);
   if (!detail || listed.id !== expectedId || detail.id !== expectedId ||
       listed.label !== detail.label || listed.group !== detail.group ||
-      !boundedText(detail.os) || !boundedText(detail.cpu) ||
+      !boundedText(detail.os) || !boundedText(detail.osVersion) || !boundedText(detail.cpu) ||
       typeof detail.memoryBytes !== 'number' || detail.memoryBytes <= 0 ||
-      listed.os !== detail.os || listed.cpu !== detail.cpu ||
+      listed.os !== detail.os || listed.osVersion !== detail.osVersion || listed.cpu !== detail.cpu ||
       listed.memoryBytes !== detail.memoryBytes) return null;
   return detail;
 }

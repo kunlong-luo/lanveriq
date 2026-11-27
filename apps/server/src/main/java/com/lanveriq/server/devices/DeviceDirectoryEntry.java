@@ -13,6 +13,6 @@ public record DeviceDirectoryEntry(
         String enrollmentState, Instant lastSeenAt,
         Instant heartbeatReceivedAt, String agentVersion,
         Long queueCount, Long queueBytes,
-        String osFamily, String osName, String cpuModel,
+        String osFamily, String osName, String osVersion, String cpuModel,
         Long memoryTotalBytes, Instant inventoryReceivedAt) {
 }

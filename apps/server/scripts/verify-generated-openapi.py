@@ -25,7 +25,7 @@ SESSION_SECURITY_PATHS = GET_PATHS - {"/api/v1/auth/csrf"} | {"/api/v1/auth/logo
 EXPECTED_FIELDS = {
     "device_id", "group_id", "group_name", "label", "enrollment_state",
     "last_seen_at", "heartbeat_received_at", "agent_version",
-    "queue_count", "queue_bytes", "os_family", "os_name", "cpu_model",
+    "queue_count", "queue_bytes", "os_family", "os_name", "os_version", "cpu_model",
     "memory_total_bytes", "inventory_received_at",
 }
 PAGE_FIELDS = {"items", "next_cursor"}

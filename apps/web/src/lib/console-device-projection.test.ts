@@ -112,17 +112,19 @@ describe('NXT-03 authorized REST response -> Next.js display state', () => {
 });
 
 describe('MVP-07 same authorized device and inventory', () => {
-  const raw = { ...device(), os_name: 'Synthetic Linux', cpu_model: 'Synthetic CPU',
+  const raw = { ...device(), os_name: 'Synthetic Linux', os_version: '24.04', cpu_model: 'Synthetic CPU',
     memory_total_bytes: 8_000_000_000 };
   const listed = validateScopedDirectoryPage(page([raw]));
-  it('only exposes the matching allowlisted fields, never invents OS version', () => {
+  it('only exposes matching allowlisted fields including reported OS version', () => {
     const projected = projectLocalInventory(listed, {kind:'ok', data:raw}, one);
-    expect(projected).toMatchObject({id:one, os:'Synthetic Linux',
+    expect(projected).toMatchObject({id:one, os:'Synthetic Linux', osVersion:'24.04',
       cpu:'Synthetic CPU', memoryBytes:8_000_000_000});
     expect(JSON.stringify(projected)).not.toMatch(/SECRET-MAC|SECRET-IP|SECRET-USER|os_version/);
   });
   it('rejects missing, malformed, mismatched, unauthorized and incomplete data', () => {
     for (const data of [null, {...raw, device_id:two}, {...raw, os_name:null},
+      {...raw, os_version:null}, {...raw, os_version:undefined}, {...raw, os_version:''},
+      {...raw, os_version:'25.04'}, {...raw, os_version:24}, {...raw, os_version:'x'.repeat(256)},
       {...raw, cpu_model:''}, {...raw, memory_total_bytes:0},
       {...raw, memory_total_bytes:9_000_000_000}, {...raw, os_name:'Other'},
       {...raw, group_name:'Other group'}]) {

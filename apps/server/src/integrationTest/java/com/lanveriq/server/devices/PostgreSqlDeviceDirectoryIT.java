@@ -74,10 +74,10 @@ class PostgreSqlDeviceDirectoryIT {
             manager.createNativeQuery("""
                     INSERT INTO device_inventory_current(
                       device_id,schema_version,snapshot_id,inventory_revision,
-                      content_digest,observed_at,os_family,os_name,cpu_model,
+                      content_digest,observed_at,os_family,os_name,os_version,cpu_model,
                       memory_total_bytes,capabilities_json)
                     VALUES (:device,1,uuidv7(),1,:digest,clock_timestamp(),
-                      'linux','Synthetic Linux','Synthetic CPU',16000000000,
+                      'linux','Synthetic Linux','24.04','Synthetic CPU',16000000000,
                       CAST('{}' AS jsonb))
                     """).setParameter("device", first)
                     .setParameter("digest", "a".repeat(64)).executeUpdate();
@@ -165,12 +165,15 @@ class PostgreSqlDeviceDirectoryIT {
         assertEquals("Synthetic A", full.label());
         assertEquals("0.1.0", full.agentVersion());
         assertEquals(3L, full.queueCount());
+        assertEquals("24.04", full.osVersion());
+        assertEquals("24.04", received.stream().filter(e -> e.deviceId().equals(first)).findFirst().orElseThrow().osVersion());
         assertEquals(16_000_000_000L, full.memoryTotalBytes());
         assertTrue(full.heartbeatReceivedAt() != null);
         assertTrue(full.inventoryReceivedAt() != null);
         var pending = directory.find(second).orElseThrow();
         assertEquals("pending_certificate", pending.enrollmentState());
         assertNull(pending.heartbeatReceivedAt());
+        assertNull(pending.osVersion());
         assertNull(pending.memoryTotalBytes());
 
         // Neither IP/MAC nor raw credentials exist in the projection type.
