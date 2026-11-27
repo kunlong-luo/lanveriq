@@ -30,6 +30,8 @@
 
 **2026-11-27 MVP-06（不加分 / BLOCKED）：** [既有 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 功能 `f6e83c89` 三 jobs SUCCESS，原日志复核同源认证、组隔离、跨组 404、登出 401、CSRF/Cookie 与 Next origin 拒绝；至基线 `ea1470d3` 仅文档变更，非新 CI。真实管理员测试授权、本机同源 HTTPS 与正负例未验，正常 Next 登录仍断开；未修改产品代码或放宽开关。**71/100 不变，Gate 0/10**；仍仅 MVP-06，见[任务账本](local-mvp-tasks.md)。
 
+**2026-11-27 MVP-06 本机阶段验收（不加分）：** 维护者终端证据：独立 Console TLS、管理员组授权、基础 HTTP 六项、真实登录、安全 Cookie/会话轮换、设备 list/detail 与输入的已入库 UUID 一致、Origin/CSRF 拒绝及登出后 401 PASS；真实跨组与 Next.js 本机接入 NOT RUN。仍 BLOCKED，非新增自动 CI 或独立 L3；**71/100，Gate 0/10**。见[任务账本](local-mvp-tasks.md)。
+
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
 | Gate 集合 | 阻断条件 |
