@@ -36,8 +36,8 @@ jobs:
               data = path.read_text()
               for token in ("std::process", "std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "std::env", "include_bytes!", "include_str!", "OpenOptions", "File::create", "std::io::Write"):
                   assert token not in data, (path, token)
-              if path.name == "host_identity.rs":
-                  assert data.count("std::fs::") == 1 and "std::fs::File::open(path)" in data
+              if path == pathlib.Path("src/host_identity.rs"):
+                  assert data.count("std::fs") == 1 and "std::fs::File::open(path)" in data
                   assert '"/proc/self/status"' in data and '"/etc/os-release"' in data
                   assert "file.take(16_385)" in data and "ordinary_user" in data
               else:

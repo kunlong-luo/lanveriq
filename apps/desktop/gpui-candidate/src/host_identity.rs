@@ -102,7 +102,7 @@ pub fn inspect_host_identity() -> HostIdentity {
             .unwrap_or(HostIdentity::Blocked)
     }
     #[cfg(not(target_os = "linux"))]
-    { HostIdentity::Other }
+    { HostIdentity::Blocked }
 }
 
 #[cfg(test)]
