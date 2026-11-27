@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-2026-11-27 **本机证据**：MVP-01/02 DONE；MVP-03 注册、activate 200 active、epoch、错设备403、无证书TLS拒绝 PASS；原403根因未证实。本机验收 PASS，隔离 L2 未完成，MVP-03 BLOCKED；inventory OFF。[任务账本](planning/local-mvp-tasks.md)。
+2026-11-27 **本机证据**：MVP-01/02/03 DONE；注册、activate 200 active、epoch、错设备403、无证书TLS拒绝 PASS；原403根因未证实。[隔离 L2 #45952013366](https://github.com/kunlong-luo/lanveriq/actions/runs/45952013366) 三 jobs SUCCESS。下一任务 MVP-04，inventory OFF。[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 
