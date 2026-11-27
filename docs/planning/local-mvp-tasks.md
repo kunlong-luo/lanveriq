@@ -184,6 +184,8 @@
 
 - **2026-11-27 正式锁复验 PASS，首项功能迁移（空闲配置草稿）**：功能 [d0f8f597 / #45990286206](https://github.com/kunlong-luo/lanveriq/actions/runs/45990286206) candidate 140476066738、dependency-audit 140476066223 全 SUCCESS，tracked Cargo.lock + SHA 校验、Linux graph/APT、模型 2/2、原生构建、ELF 归档及 RustSec 均 PASS；[RD-2 #45990286209](https://github.com/kunlong-luo/lanveriq/actions/runs/45990286209) SUCCESS。基线 [c4eca96f](https://github.com/kunlong-luo/lanveriq/commit/c4eca96f06240c3f0dc813c6d1dc3541c92c4c69) docs [#45990385990](https://github.com/kunlong-luo/lanveriq/actions/runs/45990385990)、Next [#45990386063](https://github.com/kunlong-luo/lanveriq/actions/runs/45990386063)、RD-2 [#45990385978](https://github.com/kunlong-luo/lanveriq/actions/runs/45990385978)、预览 [#45990386008](https://github.com/kunlong-luo/lanveriq/actions/runs/45990386008) 全 SUCCESS。新 [3a4d0bc7](https://github.com/kunlong-luo/lanveriq/commit/3a4d0bc7df995bc5b0cc6bb9b176afe929d404ed) 复核旧 [idle-config](../../apps/desktop/src/idle-config.ts)、[旧面板](../../apps/desktop/src/IdleConfigPanel.tsx)、[AgentConfig](../../apps/agent/src/config.rs) 与 [配置示例](../../apps/agent/config/agent.example.toml)，只迁移五选项 15/30/60/120/300 秒、默认 30、纯内存 enum、精确两字段 TOML 草稿；采用固定上游公开 Button / SelectableText（根节点已提供 TextSelectionLayer）组件，七导航保留，侧栏可滚动，增补导入凭据禁用按钮（共七禁用项）。离开配置页重置，同页保留，非配置页选择无效；新增两模型单测，验证选项/输出/无机密和网络字段/页面生命周期，预计共四测试，尚未宣称 PASS。无新增依赖/锁变化、无文件/真实主机读取、服务、网络、Agent 安装调用；未直接调用 Agent parser，尚需真实窗口交互/选择文本验证，其他只读预检、审核、诊断仍未迁移。[新 GPUI #45991471577](https://github.com/kunlong-luo/lanveriq/actions/runs/45991471577)、[RD-2 #45991471571](https://github.com/kunlong-luo/lanveriq/actions/runs/45991471571) PENDING。完整许可/资源/SBOM、9 维护风险处置、COSMIC/Wayland、包与性能仍未验，MVP-08 BLOCKED，71/100。
 
+- **2026-11-27 空闲草稿验收及无主机证据的安装审核/脱敏诊断迁移**：[3a4d0bc7 / #45991471577](https://github.com/kunlong-luo/lanveriq/actions/runs/45991471577) candidate 140480080827 与 dependency-audit 140480081306 均 SUCCESS，模型 4/4、tracked lock、实际 Linux graph、原生构建/ELF 归档及 RustSec PASS；[RD-2 #45991471571](https://github.com/kunlong-luo/lanveriq/actions/runs/45991471571) PASS。基线 [cee82497](https://github.com/kunlong-luo/lanveriq/commit/cee824975af89d2663b67d87a1b4fab139ed21c7) docs [#45991545490](https://github.com/kunlong-luo/lanveriq/actions/runs/45991545490)、Next [#45991545625](https://github.com/kunlong-luo/lanveriq/actions/runs/45991545625)、RD-2 [#45991545493](https://github.com/kunlong-luo/lanveriq/actions/runs/45991545493)、预览 [#45991545512](https://github.com/kunlong-luo/lanveriq/actions/runs/45991545512) 全 SUCCESS。新 [1457052f](https://github.com/kunlong-luo/lanveriq/commit/1457052f35da07d3b908fd9d4d176992c7302199) 对照旧 [install-review](../../apps/desktop/src/install-review.ts)、[InstallReviewPanel](../../apps/desktop/src/InstallReviewPanel.tsx)、[offline-diagnostics](../../apps/desktop/src/offline-diagnostics.ts)，仅迁移无主机证据分支：七项门禁（4 尚未核验、3 独立审批未完成）、四项独立说明阅读确认（复用上游固定 GPUI Kit Checkbox 公开接口），同页保留、离页清空、非安装页无法修改；全阅仍非授权。诊断页采用原 v1 无证据固定字段投影、SelectableText，无真实主机/路径/凭据输入，不保存、不上传。全部操作禁用项增至十项（增加升级、卸载、停止服务）。新增四模型测试（覆盖 16 组合、门禁分组、脱敏及页面重置），累计八项待验。没有新增依赖/锁变化、文件/进程/联网/服务接口；未迁移真实 host metadata、旧动态审核及错误/成功投影，不能称完整功能等价。新 [GPUI #45992569565](https://github.com/kunlong-luo/lanveriq/actions/runs/45992569565) 与 [RD-2 #45992569558](https://github.com/kunlong-luo/lanveriq/actions/runs/45992569558) PENDING。真实 COSMIC 窗口、键盘/焦点/文本选择/IME/缩放、许可/资源/SBOM、包与性能 NOT RUN，MVP-08 BLOCKED，71/100。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
@@ -220,13 +222,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [c4eca96f](https://github.com/kunlong-luo/lanveriq/commit/c4eca96f06240c3f0dc813c6d1dc3541c92c4c69)；功能 [3a4d0bc7](https://github.com/kunlong-luo/lanveriq/commit/3a4d0bc7df995bc5b0cc6bb9b176afe929d404ed)。 |
-| 本轮 | MVP-08 **BLOCKED**；正式锁双 job PASS，首个原生离线空闲配置草稿功能已迁移源码。MVP-01～07 DONE，09～16 TODO。 |
-| CI | [正式锁 #45990286206](https://github.com/kunlong-luo/lanveriq/actions/runs/45990286206) 两 jobs PASS，基线 docs/Next/RD-2/预览 PASS；新 [GPUI #45991471577](https://github.com/kunlong-luo/lanveriq/actions/runs/45991471577) 与 [RD-2 #45991471571](https://github.com/kunlong-luo/lanveriq/actions/runs/45991471571) PENDING。 |
-| 锁/风险 | 锁已正式复验；上一份 RustSec 实报 0 漏洞/9 停止维护（8 在 Linux 图），完整许可/资源/SBOM、上游维护评估待完成。 |
-| 本机 | 配置草稿源码已迁移，实际窗口、交互、键盘/IME/缩放/窄窗与其他只读能力、GUI-only 包、性能 NOT RUN。 |
+| 基线 | [cee82497](https://github.com/kunlong-luo/lanveriq/commit/cee824975af89d2663b67d87a1b4fab139ed21c7)；功能 [1457052f](https://github.com/kunlong-luo/lanveriq/commit/1457052f35da07d3b908fd9d4d176992c7302199)。 |
+| 本轮 | MVP-08 **BLOCKED**；空闲配置草稿 CI PASS；安装审核/脱敏诊断无主机证据分支源码已迁移。MVP-01～07 DONE，09～16 TODO。 |
+| CI | [空闲草稿 #45991471577](https://github.com/kunlong-luo/lanveriq/actions/runs/45991471577) 两 jobs、模型 4/4 PASS；基线 docs/Next/RD-2/预览 PASS。新 [GPUI #45992569565](https://github.com/kunlong-luo/lanveriq/actions/runs/45992569565) 与 [RD-2 #45992569558](https://github.com/kunlong-luo/lanveriq/actions/runs/45992569558) PENDING。 |
+| 锁/风险 | 锁已正式复验；之前 RustSec 实报 0 漏洞/9 停止维护（8 在 Linux 图），完整许可/资源/SBOM、维护评估待完成。 |
+| 本机 | 无真实主机采集/检测能力；真实窗口与交互、键盘/IME/缩放/窄窗、动态主机审核/诊断、GUI-only 包、性能 NOT RUN。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | MVP-08：核实配置草稿 CI，继续原生窗口与只读安装审核/脱敏诊断及可信主机预检迁移；并完成许可/资源/SBOM、维护风险与包审计；不进入 MVP-09。 |
+| **下次唯一任务** | MVP-08：核实无主机证据审核/诊断 CI；梳理旧只读检测实现与安全边界，推进原生只读主机预检、动态审核/诊断等价及 COSMIC 窗口；完成许可/资源/SBOM、维护风险与包审计；不进入 MVP-09。 |
 | 约束 | main only；保留 Tauri 回退且冻结扩展，不提高 CI 写权限、不忽略漏洞；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
