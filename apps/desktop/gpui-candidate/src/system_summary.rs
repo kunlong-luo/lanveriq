@@ -54,6 +54,11 @@ impl SystemSummary {
         }
     }
 
+    pub fn metrics(&self) -> [(&'static str, String); 3] {
+        [("逻辑核心", number(self.logical)), ("物理内存", gib(self.total)),
+         ("可用内存", gib(self.available))]
+    }
+
     pub fn rows(&self) -> [(&'static str, String); 8] {
         let text = |v: &Option<String>| v.clone().unwrap_or_else(|| "未核验".into());
         [("操作系统", text(&self.os)), ("系统版本", text(&self.version)),
@@ -78,6 +83,7 @@ mod tests {
         assert_eq!(memory(0, 0), (None, None));
         assert_eq!(memory(100, 101), (Some(100), None));
         assert_eq!(gib(Some(1_073_741_824)), "1.00 GiB");
+        assert!(SystemSummary::default().metrics().iter().all(|(_, v)| v == "未核验"));
     }
 
     #[test]

@@ -85,7 +85,7 @@ impl SidebarItem for DestinationItem {
             .ghost()
             .accessibility_label(self.page.label())
             .selected(self.active).toggled(self.active)
-            .tab_stop(true).w_full().h(px(36.))
+            .tab_stop(true).w_full().h(px(40.))
             .on_click(move |event, window, cx| handler(event, window, cx));
         if self.collapsed {
             button.icon(page_icon(self.page)).tooltip(self.page.label())
@@ -94,7 +94,7 @@ impl SidebarItem for DestinationItem {
             // outer style. A full-width child owns actual icon/text alignment.
             button.child(div().w_full().h_full().flex().items_center().justify_start()
                 .gap_2()
-                .child(div().size(px(20.)).flex_shrink_0().flex().items_center().justify_center()
+                .child(div().size(px(18.)).flex_shrink_0().flex().items_center().justify_center()
                     .child(page_icon(self.page)))
                 .child(div().flex_1().min_w_0().flex().items_center().justify_start()
                     .child(self.page.label())))
@@ -182,7 +182,7 @@ impl Render for Desktop {
             })),
         });
         let nav = Sidebar::<DestinationItem>::new("workspace-nav")
-            .w(px(224.)).collapsible(true).collapsed(compact)
+            .w(px(200.)).collapsible(true).collapsed(compact)
             .children(destinations);
         let nav = if compact {
             nav
@@ -194,22 +194,38 @@ impl Render for Desktop {
                 .child(Label::new("离线候选").font_bold())
                 .child(hint("仅本机只读 · 非发行版", cx)))
         };
-        let mut content = div().id(page.id()).w_full().min_w_0().max_w(px(920.))
+        let mut content = div().id(page.id()).w_full().min_w_0().max_w(px(1120.))
             .flex().flex_col().gap_4()
-            .child(div().flex().flex_col().gap_2()
-                .child(Label::new(page.label()).text_size(px(26.)).font_bold())
-                .child(hint(page.description(), cx)))
-            .child(div().flex().items_center().gap_2().p_3()
-                .rounded(cx.theme().radius).bg(cx.theme().muted)
-                .child(IconName::Info)
-                .child(Label::new("离线候选 · 本机只读元数据 · 安装及联网未授权")));
-        if page == Page::Overview {
-            content = content.child(panel(cx)
-                .child(section_title("连接与设备状态"))
-                .child(Label::new("服务器：未核验"))
-                .child(Label::new("设备注册：未核验"))
-                .child(hint("当前不连接服务器；本机系统摘要仅在手动检测时读取，不上传。", cx)));
-        }
+            .child(div().flex().flex_wrap().items_center().justify_between().gap_3()
+                .child(div().flex().flex_col().gap_1()
+                    .child(Label::new(page.label()).text_size(px(24.)).font_bold())
+                    .child(hint(page.description(), cx)))
+                .when(matches!(page, Page::Overview | Page::Setup | Page::Service | Page::Diagnostics), |header| {
+                    header.child(Button::new("inspect-host-identity")
+                    .primary().icon(IconName::RefreshCw).tooltip("手动读取本机系统、Agent 与服务；不上传")
+                    .label(if self.inspecting { "正在检测…" } else { "刷新信息" })
+                    .disabled(self.inspecting)
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        if this.inspecting { return; }
+                        this.inspecting = true;
+                        this.workspace.replace_host_identity(HostIdentity::NotChecked);
+                        this.system_summary = SystemSummary::default();
+                        cx.notify();
+                        cx.spawn(async move |this, cx| {
+                            let (identity, metadata, summary) = cx.background_spawn(async {
+                                let (identity, metadata) = inspect_runtime();
+                                (identity, metadata, SystemSummary::inspect(identity))
+                            }).await;
+                            this.update(cx, |this, cx| {
+                                this.workspace.replace_runtime_metadata(identity, metadata);
+                                this.system_summary = summary;
+                                this.inspecting = false;
+                                cx.notify();
+                            }).ok();
+                        }).detach();
+                    })))
+                }))
+            .when(self.inspecting, |content| content.child(hint("正在读取本机数据，旧结果已清空。", cx)));
         if page == Page::Enrollment {
             content = content.child(panel(cx)
                 .child(section_title("设备注册尚未开放"))
@@ -252,54 +268,13 @@ impl Render for Desktop {
                 .child(hint("Rust / GPUI Kit 0.11.0 · 离线 · 非发行版", cx))
                 .child(hint("发行许可及实机兼容性仍待审核。", cx)));
         }
-        if matches!(page, Page::Overview | Page::Setup | Page::Service | Page::Diagnostics) {
-            let rows = self.workspace.runtime_metadata().rows().into_iter().fold(
-                div().flex().flex_col().gap_1(), |group, (key, value)| {
-                    group.child(div().id(key).flex().flex_wrap().items_center().justify_between().gap_3()
-                        .py_2().border_b_1().border_color(cx.theme().border)
-                        .child(Label::new(row_title(key)))
-                        .child(Label::new(state_label(value)).text_color(cx.theme().muted_foreground)))
-                });
-            content = content.child(panel(cx)
-                .child(section_title("本机只读状态"))
-                .child(Label::new(self.workspace.host_identity().label()).text_size(px(18.)).font_bold())
-                .child(div().flex().child(Button::new("inspect-host-identity")
-                    .primary().icon(IconName::RefreshCw)
-                    .label(if self.inspecting { "正在检测…" } else { "手动检测系统、Agent 与服务（只读）" })
-                    .disabled(self.inspecting)
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        if this.inspecting { return; }
-                        this.inspecting = true;
-                        this.workspace.replace_host_identity(HostIdentity::NotChecked);
-                        this.system_summary = SystemSummary::default();
-                        cx.notify();
-                        cx.spawn(async move |this, cx| {
-                            let (identity, metadata, summary) = cx.background_spawn(async {
-                                let (identity, metadata) = inspect_runtime();
-                                (identity, metadata, SystemSummary::inspect(identity))
-                            }).await;
-                            this.update(cx, |this, cx| {
-                                this.workspace.replace_runtime_metadata(identity, metadata);
-                                this.system_summary = summary;
-                                this.inspecting = false;
-                                cx.notify();
-                            }).ok();
-                        }).detach();
-                    }))))
-                .child(hint(if self.inspecting { "正在读取，旧结果已清空。" } else { "未核验项不代表未安装或已停止。" }, cx))
-                .child(rows))
-                .child(panel(cx)
-                    .child(section_title("图形环境预检"))
-                    .child(self.workspace.runtime_metadata().graphics().rows().into_iter().enumerate().fold(
-                        div().flex().flex_col().gap_2(), |group, (i, (key, value))| {
-                            group.child(div().id(format!("graphics-{i}")).flex().flex_wrap().items_center().justify_between().gap_3()
-                                .py_2().border_b_1().border_color(cx.theme().border)
-                                .child(Label::new(key))
-                                .child(Label::new(value).text_color(cx.theme().muted_foreground)))
-                        }))
-                    .child(hint("仅会话声明及软件包元数据；KDE 不要求 COSMIC 组件。未验证 GPU、实际 ABI、显示连接或窗口启动。", cx)));
-        }
         if page == Page::Overview {
+            let metrics = self.system_summary.metrics().into_iter().fold(
+                div().flex().flex_wrap().gap_3(), |group, (key, value)| {
+                    group.child(panel(cx).flex_1().min_w(px(150.))
+                        .child(hint(key, cx))
+                        .child(Label::new(value).text_size(px(20.)).font_bold()))
+                });
             let summary = self.system_summary.rows().into_iter().enumerate().fold(
                 div().flex().flex_col().gap_1(), |group, (i, (key, value))| {
                     group.child(div().id(format!("system-summary-{i}")).flex().flex_wrap()
@@ -308,10 +283,45 @@ impl Render for Desktop {
                         .child(Label::new(key))
                         .child(Label::new(value).text_color(cx.theme().muted_foreground)))
                 });
+            let service_rows = self.workspace.runtime_metadata().rows();
+            content = content.child(metrics)
+                .child(panel(cx)
+                    .child(section_title("本机系统信息"))
+                    .child(Label::new(self.workspace.host_identity().label()))
+                    .child(hint("手动检测时更新的只读快照；不保存、不上传。", cx))
+                    .child(summary))
+                .child(panel(cx)
+                    .child(section_title("运行状态"))
+                    .child(Label::new(format!("Agent 软件包：{}", state_label(service_rows[0].1))))
+                    .child(Label::new(format!("后台服务：{}", state_label(service_rows[1].1))))
+                    .child(Label::new("服务器：未核验 · 设备注册：未核验"))
+                    .child(hint("未核验不代表离线、未安装或已停止。", cx)));
+        }
+        if page == Page::Service {
+            let rows = self.workspace.runtime_metadata().rows().into_iter().fold(
+                div().flex().flex_col().gap_1(), |group, (key, value)| {
+                    group.child(div().id(key).flex().flex_wrap().items_center().justify_between().gap_3()
+                        .py_2().border_b_1().border_color(cx.theme().border)
+                        .child(Label::new(row_title(key)))
+                        .child(Label::new(state_label(value)).text_color(cx.theme().muted_foreground)))
+                });
             content = content.child(panel(cx)
-                .child(section_title("本机系统信息"))
-                .child(hint("手动检测时更新的只读快照；不保存、不上传。", cx))
-                .child(summary));
+                .child(section_title("代理服务状态"))
+                .child(hint("仅本机只读检查；未核验项不代表未安装或已停止。", cx))
+                .child(rows));
+        }
+        if matches!(page, Page::Setup | Page::Diagnostics) {
+            content = content.child(panel(cx)
+                .child(section_title("图形环境预检"))
+                .child(Label::new(self.workspace.host_identity().label()))
+                .child(self.workspace.runtime_metadata().graphics().rows().into_iter().enumerate().fold(
+                    div().flex().flex_col().gap_2(), |group, (i, (key, value))| {
+                        group.child(div().id(format!("graphics-{i}")).flex().flex_wrap().items_center().justify_between().gap_3()
+                            .py_2().border_b_1().border_color(cx.theme().border)
+                            .child(Label::new(key))
+                            .child(Label::new(value).text_color(cx.theme().muted_foreground)))
+                    }))
+                .child(hint("仅会话声明及软件包元数据；KDE 不要求 COSMIC 组件。未验证 GPU、实际 ABI、显示连接或窗口启动。", cx)));
         }
         if page == Page::Configuration {
             let current = self.workspace.idle_interval();
@@ -393,13 +403,18 @@ impl Render for Desktop {
                 .child(hint("发行、权限或业务门禁未完成；当前操作全部禁用。", cx))
                 .child(actions));
         }
-        div().size_full().flex().text_size(px(15.))
+        div().size_full().flex().text_size(px(14.))
             .bg(cx.theme().background).text_color(cx.theme().foreground)
             .child(nav)
-            .child(div().id("workspace-content").flex_1().min_w_0().h_full()
-                .overflow_y_scroll().bg(cx.theme().muted.opacity(0.3))
-                .child(div().w_full().min_w_0().flex().justify_center()
-                    .p(if compact { px(12.) } else { px(24.) }).child(content)))
+            .child(div().flex_1().min_w_0().h_full().flex().flex_col()
+                .child(div().id("workspace-content").flex_1().min_h_0().min_w_0()
+                    .overflow_y_scroll().bg(cx.theme().muted.opacity(0.3))
+                    .child(div().w_full().min_w_0().flex().justify_center()
+                        .p(if compact { px(12.) } else { px(24.) }).child(content)))
+                .child(div().flex_shrink_0().flex().flex_wrap().items_center().justify_between()
+                    .gap_2().px_3().py_2().border_t_1().border_color(cx.theme().border)
+                    .child(hint("离线候选 · 仅本机只读 · 安装及联网未授权", cx))
+                    .child(hint("v0.1.0", cx))))
     }
 }
 
@@ -411,7 +426,7 @@ fn main() {
             cx.bind_keys([KeyBinding::new("ctrl-q", Quit, None)]);
             cx.on_action(|_: &Quit, cx: &mut App| cx.quit());
             let options = WindowOptions {
-                window_bounds: Some(WindowBounds::centered(None, size(px(900.), px(620.)), cx)),
+                window_bounds: Some(WindowBounds::centered(None, size(px(1200.), px(800.)), cx)),
                 ..Default::default()
             };
             gpui_kit::open_window(options, cx, |window, cx| {

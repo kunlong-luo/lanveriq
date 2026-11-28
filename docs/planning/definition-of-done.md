@@ -13,7 +13,7 @@
 - [ ] 只在 main 可回滚提交，没有强推；交接说明做了什么、无法证明什么、下一项有何可验收退出标准。
 
 ## 额外 Gate
-UI 要满足唯一 Next.js `apps/web`、Base UI/Tailwind 设计 tokens、断开/未知/拒绝态和键盘/触控/滚动/窄屏/无障碍验收，不得伪造设备在线数。本机 MVP 的首要桌面为维护者实际 Pop!_OS 24.04 KDE/X11，其他桌面分开验收，不强制切换；本机观察不得替代发行 L3。OS 真实支持必须有 Pop!_OS24 systemd 非 root/会话/密钥/断网恢复/安装升级 L3 证据。正式发布还必须有官方 FIDO/CRL、外部 WORM/可信时间、真实 WebAuthn MFA、CA/HSM、隐私许可、备份恢复和组织正式审批；合成 CI 不能关闭。
+UI 要满足唯一 Next.js `apps/web`、Base UI/Tailwind 设计 tokens、断开/未知/拒绝态和键盘/触控/滚动/窄屏/无障碍验收，不得伪造设备在线数。原生桌面 UI 遵循[桌面设计系统](../development/desktop-design-system.md)，实际检查导航、状态、手动数据、窄窗、主题、键盘与禁用边界。本机 MVP 的首要桌面为维护者实际 Pop!_OS 24.04 KDE/X11，其他桌面分开验收，不强制切换；本机观察不得替代发行 L3。OS 真实支持必须有 Pop!_OS24 systemd 非 root/会话/密钥/断网恢复/安装升级 L3 证据。正式发布还必须有官方 FIDO/CRL、外部 WORM/可信时间、真实 WebAuthn MFA、CA/HSM、隐私许可、备份恢复和组织正式审批；合成 CI 不能关闭。
 
 ## 交付记录格式
 `task ID, feature SHA, docs SHA, modified files, actual workflow/run links, L1/L2/L3 + environment, negative tests, PASS/FAIL/PENDING/NOT RUN, remaining blockers, next exit criterion`.
