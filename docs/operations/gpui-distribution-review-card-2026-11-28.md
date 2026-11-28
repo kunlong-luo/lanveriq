@@ -2,7 +2,7 @@
 
 **REVIEW ONLY · 2026-11-28 · NOT A DISTRIBUTION NOTICE · v0.1 NOT RELEASE READY**
 
-仅为 MVP-08/G-07 准备审批材料，不替代 [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](../planning/local-mvp-tasks.md) 或[唯一发布门禁](../planning/release-gap-register.md)。本卡逐包队列已按新版 f4bd6fde 的实际归档独立复核。所有许可、安装与发布批准均未取得。
+仅为 MVP-08/G-07 准备审批材料，不替代 [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](../planning/local-mvp-tasks.md) 或[唯一发布门禁](../planning/release-gap-register.md)。本卡逐包队列已按最终 8bd35b22 的实际归档独立复核；当前结果见第9节，早期归档为历史证据。所有许可、安装与发布批准均未取得。
 
 ## 1. 已核实材料及使用顺序
 
@@ -83,7 +83,7 @@
 | 责任人 | 必须交付 | 状态 |
 | --- | --- | --- |
 | 权利人/维护者 | 专有方向已选；本地产品权属、授权范围、贡献权属、发行渠道仍须核验 | DIRECTION SELECTED / APPROVAL OPEN |
-| 法务/许可 | 522行及其他发行范围的审查结论、22缺项处理、SPDX 分支、原始文本与附加义务、资源来源及许可 | OPEN |
+| 法务/许可 | 523行及其他发行范围的审查结论、22缺项处理、SPDX 分支、原始文本与附加义务、资源来源及许可 | OPEN |
 | 工程/发行 | 同功能 SHA+lock+ELF、包摘要、精确资源检查、发行 SBOM、适用 NOTICE/版权材料与受控证据保管 | OPEN |
 | 设备所有人/UX | 首要本机 KDE/X11：真实刷新、四字对齐、IME、DPI、完整键盘/关闭及受限操作；COSMIC/Wayland 与 KDE/Wayland 独立兼容验收；独立 L3 不由合成 CI 替代 | OPEN |
 | 安全/发行 | 真实授权、签名、清洁 ABI、回退及其余 G-01–G-10 的批准 | OPEN |
@@ -147,3 +147,9 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 ### 最终优化 ELF 链接许可关联 PASS
 
 [982fd3b4 / #46131789280](https://github.com/kunlong-luo/lanveriq/actions/runs/46131789280) SUCCESS，5/5 fixtures，13 observed+9 other registry gaps，15 external rlib，22辅助文本，0关闭；[linked归档15258301989](https://github.com/kunlong-luo/lanveriq/actions/runs/46131789280/artifacts/15258301989) 52750 bytes，SHA256 7ff459f4d1da720067173c2b87f1cd0f3288bf9c6b2864be9bf99cfcf0da1f1f（日志及metadata核对，未独立解包）。最后材料工作流已绑定当前供链15258190239、linked15258301989、辅助15258131714三个固定摘要，继续核对实际registry文本，不重编或发包。新组装待验；材料完备不构成权属、EULA或正式许可批准。
+
+## 9. 最终材料与结项交接（现行）
+
+[最终材料 CI #46131903709](https://github.com/kunlong-luo/lanveriq/actions/runs/46131903709) SUCCESS，2/2 fixtures；[材料ZIP15258615500](https://github.com/kunlong-luo/lanveriq/actions/runs/46131903709/artifacts/15258615500) 637730 bytes SHA256 636e8744e14777c926c590a174113f363ba32c1ffb0b90b3e509860da43b1d87，[linked ZIP15258301989](https://github.com/kunlong-luo/lanveriq/actions/runs/46131789280/artifacts/15258301989) SHA256 7ff459f4d1da720067173c2b87f1cd0f3288bf9c6b2864be9bf99cfcf0da1f1f，均已独立下载、实际摘要验证。330 ZIP成员无重复；328/328原始文本长度及SHA256一致、964931 bytes、所有文本被引用，523/523逐包身份/声明/registry checksum/review/链接分类/辅助摘要与891 registry路径、摘要及长度一致（材料包长度查materials映射），1835资源候选。最终source 8bd35b22698a3113ec833267788a447c8f79624c；lock 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887；ELF 93f937a25d1fb88300c431a3155d432556e9facc7ffe84fde3e864c510599435；SBOM 8349a19e1be1482a761ac60fe77bc2214bcbd0e9cdcabf8562ae32c0e4260081 两包一致。500材料存在（233/227/40），22缺项（13/7/2，逐项与第2节一致），1本地许可未定；247 observed/234 not observed/42 no observation、15 external rlib。新增sysinfo0.31.4 MIT原始LICENSE已验证。0法律缺项关闭，两个批准false。
+
+**自动工程与材料准备已完成，停止重复测试。** 下一步只处理真实外部证据：维护者在KDE/X11执行第6节现有工具并提交脱敏JSON、补充真实刷新及四字/对齐结果（已有历史7项保留，未测填n）；权利主体/贡献权属确认、第三方许可材料结论与维护警告处置、受控证据保管及独立批准。当前会话无所有人JSON。归档7日留存，须由获授权责任人实际保管；不可把本轮临时下载当作长期保管。完成ADR要求后才迁移唯一桌面入口及清理Tauri；不因反复继续自动批准或扩大工作。专有方向已确定，生产/安装/发行仍未批准，MVP08 BLOCKED。
