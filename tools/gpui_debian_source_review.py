@@ -35,7 +35,7 @@ def fetch(url):
     require(0 < len(data) <= MAX_ARCHIVE, "archive size outside bound")
     return data
 
-def manifest(data, root):
+def manifest(data, root, manifests=None):
     files = {}
     seen = set()
     total = 0
@@ -60,13 +60,61 @@ def manifest(data, root):
             with archive.extractfile(member) as stream:
                 body = stream.read(member.size + 1)
             require(len(body) == member.size, "truncated archive member")
-            files["/".join(parts[1:])] = sha(body)
+            relative = "/".join(parts[1:])
+            files[relative] = sha(body)
+            if manifests is not None and relative in ("Cargo.toml", "Cargo.toml.orig"):
+                require(len(body) <= 65536, "Cargo manifest size outside bound")
+                manifests[relative] = body
     require("Cargo.toml" in files, "archive lacks Cargo.toml")
     return files
 
+def toml_differences(left, right, path=()):
+    """Report exact key paths, not values; never ignore a configuration field."""
+    if isinstance(left, dict) and isinstance(right, dict):
+        result = []
+        for key in sorted(left.keys() | right.keys()):
+            child = path + (key,)
+            if key not in left:
+                result.append({"path": list(child), "kind": "DEBIAN_ONLY"})
+            elif key not in right:
+                result.append({"path": list(child), "kind": "REGISTRY_ONLY"})
+            else:
+                result.extend(toml_differences(left[key], right[key], child))
+        return result
+    if type(left) is not type(right):
+        return [{"path": list(path), "kind": "CHANGED"}]
+    if isinstance(left, list):
+        if len(left) != len(right):
+            return [{"path": list(path), "kind": "CHANGED"}]
+        result = []
+        for index, (a, b) in enumerate(zip(left, right)):
+            result.extend(toml_differences(a, b, path + (index,)))
+        return result
+    return [] if left == right else [{"path": list(path), "kind": "CHANGED"}]
+
+def manifest_review(left, right, changed, registry_only, debian_only):
+    paths = set(changed + registry_only + debian_only)
+    if not paths:
+        return {"status": "NO_FILE_CONTENT_DIFFERENCES"}
+    if not paths <= {"Cargo.toml", "Cargo.toml.orig"}:
+        return {"status": "NON_MANIFEST_DIFFERENCES_OPEN"}
+    a = tomllib.loads(left["Cargo.toml"].decode("utf-8"))
+    b = tomllib.loads(right["Cargo.toml"].decode("utf-8"))
+    differences = toml_differences(a, b)
+    original = right.get("Cargo.toml.orig")
+    original_differences = (toml_differences(a, tomllib.loads(original.decode("utf-8")))
+                            if original is not None else None)
+    return {"status": "MANIFEST_DIFFERENCES_OPEN",
+            "registry_matches_debian_orig_bytes": original == left["Cargo.toml"],
+            "normalized_manifest_differences": differences,
+            "debian_original_manifest_differences": original_differences,
+            "non_manifest_files_identical": True}
+
 def compare(registry, debian, expected, root):
     require(sha(registry) == expected, "registry checksum disagrees with Cargo.lock")
-    left, right = manifest(registry, root), manifest(debian, root)
+    left_manifests, right_manifests = {}, {}
+    left = manifest(registry, root, left_manifests)
+    right = manifest(debian, root, right_manifests)
     changed = sorted(p for p in left.keys() & right.keys() if left[p] != right[p])
     registry_only = sorted(left.keys() - right.keys())
     debian_only = sorted(right.keys() - left.keys())
@@ -76,7 +124,10 @@ def compare(registry, debian, expected, root):
     return {"registry_sha256": sha(registry), "debian_orig_sha256": sha(debian),
             "registry_files": len(left), "debian_files": len(right),
             "changed": changed, "registry_only": registry_only, "debian_only": debian_only,
-            "comparison": status, "upstream_git_binding": "OPEN",
+            "comparison": status,
+            "manifest_review": manifest_review(left_manifests, right_manifests,
+                                               changed, registry_only, debian_only),
+            "upstream_git_binding": "OPEN",
             "license_review": "OPEN_NOT_APPROVED"}
 
 def main():
@@ -105,7 +156,8 @@ def main():
                      "debian_copyright_sha256": sha(copyright),
                      "debian_copyright_bytes": len(copyright), **result})
         print(name, version, result["comparison"], result["registry_files"], result["debian_files"])
-    report = {"schema": "lanveriq.gpui.debian-source-corroboration-v1",
+        print("Manifest review:", json.dumps(result["manifest_review"], sort_keys=True))
+    report = {"schema": "lanveriq.gpui.debian-source-corroboration-v2",
               "source_sha": os.environ["GITHUB_SHA"], "lock_sha256": sha(lock),
               "packages": rows, "debian_signature_verified": False,
               "scope": "SOURCE_ARCHIVE_CORROBORATION_NOT_UPSTREAM_GIT_OR_FINAL_SBOM",

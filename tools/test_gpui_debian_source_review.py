@@ -47,3 +47,48 @@ class SourceReview(unittest.TestCase):
             with self.subTest(extra=extra):
                 with self.assertRaises(ValueError):
                     manifest(fixture([("a-1/Cargo.toml", b"a"), extra]), "a-1")
+
+    def test_manifest_only_differences_and_preserved_original(self):
+        source = b'[package]\nname="a"\nversion="1"\nlicense="MIT"\n'
+        normalized = source + b'[dependencies]\nb="2"\n'
+        registry = fixture([("a-1/Cargo.toml", source), ("a-1/src/lib.rs", b"same")])
+        debian = fixture([("a-1/Cargo.toml", normalized), ("a-1/Cargo.toml.orig", source),
+                          ("a-1/src/lib.rs", b"same")])
+        row = compare(registry, debian, sha(registry), "a-1")
+        review = row["manifest_review"]
+        self.assertEqual(row["comparison"], "SOURCE_DIFFERENCES_OPEN")
+        self.assertTrue(review["registry_matches_debian_orig_bytes"])
+        self.assertTrue(review["non_manifest_files_identical"])
+        self.assertEqual(review["debian_original_manifest_differences"], [])
+        self.assertEqual(review["normalized_manifest_differences"],
+                         [{"path": ["dependencies"], "kind": "DEBIAN_ONLY"}])
+        self.assertEqual(row["license_review"], "OPEN_NOT_APPROVED")
+
+    def test_license_changes_and_source_changes_are_not_normalized_away(self):
+        source = b'[package]\nname="a"\nlicense="MIT"\n'
+        modified = source.replace(b"MIT", b"GPL-3.0")
+        registry = fixture([("a-1/Cargo.toml", source), ("a-1/src/lib.rs", b"same")])
+        debian = fixture([("a-1/Cargo.toml", modified), ("a-1/Cargo.toml.orig", modified),
+                          ("a-1/src/lib.rs", b"same")])
+        row = compare(registry, debian, sha(registry), "a-1")
+        review = row["manifest_review"]
+        self.assertFalse(review["registry_matches_debian_orig_bytes"])
+        self.assertEqual(review["normalized_manifest_differences"],
+                         [{"path": ["package", "license"], "kind": "CHANGED"}])
+        self.assertEqual(review["debian_original_manifest_differences"],
+                         review["normalized_manifest_differences"])
+        debian = fixture([("a-1/Cargo.toml", source), ("a-1/src/lib.rs", b"changed")])
+        self.assertEqual(compare(registry, debian, sha(registry), "a-1")["manifest_review"],
+                         {"status": "NON_MANIFEST_DIFFERENCES_OPEN"})
+
+    def test_manifest_comments_and_type_changes(self):
+        source = b'[package]\nname="a"\nflag=true\nvalues=[true]\n'
+        registry = fixture([("a-1/Cargo.toml", source)])
+        debian = fixture([("a-1/Cargo.toml", b"# repacked\n" + source)])
+        self.assertEqual(compare(registry, debian, sha(registry), "a-1")[
+            "manifest_review"]["normalized_manifest_differences"], [])
+        debian = fixture([("a-1/Cargo.toml", source.replace(b"true", b"1"))])
+        self.assertEqual(compare(registry, debian, sha(registry), "a-1")[
+            "manifest_review"]["normalized_manifest_differences"],
+            [{"path": ["package", "flag"], "kind": "CHANGED"},
+             {"path": ["package", "values", 0], "kind": "CHANGED"}])
