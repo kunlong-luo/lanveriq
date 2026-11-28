@@ -22,7 +22,7 @@
 | **MVP-06** | Next.js 接上已认证/组授权的只读 Spring API | MVP-01、MVP-05、测试管理员会话 | **DONE（限定本机 MVP）**：真实浏览器认证/同设备读取/登出、入口拒绝、收尾 PASS；未改后端的隔离 L2 跨组 PASS，本机跨组无目标 NOT RUN；修复后 Next L1 PASS |
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **DONE（限定本机 MVP）**：os_version 修复；本机真实列表/详情、刷新、断网、停止/恢复后端、登出及安全收尾 PASS；功能 SHA 七项 CI SUCCESS |
 
-| **MVP-08** | GPUI 原生客户端替代验证、工作区与功能等价 | MVP-07 | **IN PROGRESS**：自动验收、本机 12/12 已通过；正式源码迁移及迁移后 CI 待完成，发行审批独立 |
+| **MVP-08** | GPUI 原生客户端替代验证、工作区与功能等价 | MVP-07 | **DONE（限定本机 MVP）**：KDE/X11 12/12、迁移后本机启动、唯一 GPUI 源码、原生 4/4 及受影响 CI 修复通过；发行审批独立 |
 | **MVP-09** | 服务器配置草稿及显式连接检测 | MVP-08 | **TODO** |
 | **MVP-10** | 可视化设备注册及凭据准备 | MVP-09 | **TODO** |
 | **MVP-11** | 签名 Agent/受限 Polkit 安装及 systemd 生命周期 | MVP-10、独立 G-05 前提 | **TODO** |
@@ -32,7 +32,7 @@
 | **MVP-15** | Web 授权心跳与真实在线状态 | MVP-14、另行接收批准 | **TODO** |
 | **MVP-16** | 完整本机用户流程及发布差距复核 | MVP-15 | **TODO** |
 
-**MVP-01～07 DONE（第一阶段 7/7）。** 2026-11-27 维护者批准客户端 UI 优先，新增 MVP-08～16 为后续任务清单；当前仅 MVP-08。TODO 不批准网络/安装/注册/生产权限，前置 Gate 未通过须 BLOCKED。
+**MVP-01～07 DONE（第一阶段 7/7）。** 2026-11-27 维护者批准客户端 UI 优先，新增 MVP-08～16 为后续任务清单；MVP-08 已结项，下一唯一任务 MVP-09。TODO 不批准网络/安装/注册/生产权限，前置 Gate 未通过须 BLOCKED。
 
 ## 可执行任务卡
 
@@ -162,7 +162,7 @@
 - **真实本机维护者提供的浏览器/操作证据（非助手独立见证）**：启动器先前报告 committed archive 93aba33d（含 71ee69d1），残留工作目录拒绝后重启成功，最终成功启动 SHA 未单独回传。最初 Caddy 证书路径占位符导致 validate FAIL；补正后 SIGUSR1 因 127.0.0.1:80 冲突 FAIL（磁盘/容器配置 SHA 一致），恢复禁用自动重定向后继续；浏览器 CSRF GET 403，排查本机 JVM 三 Console 开关 false 覆盖环境 true，按本机临时 true 与 Console 上游 HTTP/1.1 配置重启；最终通过但不将代理/HTTP2 视为独立确认的故障因果。无绕过 TLS/CSRF/RBAC。维护者回传实际页面 PASS：真实会话、唯一同一设备列表/详情 OS 名称与版本/CPU/内存一致，Pop!_OS 24.04、非空真实 CPU、精确 RAM 与 MVP-05 对照通过（不保存个人设备 ID 或原始硬件记录）；在线状态未知。五项功能回报 PASS：手动刷新、浏览器 offline 清除库存、停止 Spring 后无法读取旧库存、恢复 Spring 后登出/重新登录恢复、登出后会话/设备读取均拒绝。切后台可能触发页面锁定；未独立区分其与后端停止的每一事件时序。本机跨组目标未构造/NOT RUN（隔离 L2 跨组 PASS）；本轮独立无 proof/伪造 proof 的直接 3100 HTTP 原始输出未回传（MVP-06 已有本机负测，当前源码 proof 正负断言保留）。未新开业务路由、迁移、权限或写库。
 - **本机安全收尾（维护者回报六项 PASS）**：IDEA 临时三开关恢复并重启；Caddy 禁用配置重载成功；Next.js 停止且临时目录清理；临时 Edge 凭据删除；/local-console-probe、/api/v1/auth/session、/api/v1/devices、/api/v1/auth/csrf 均 503；共享 PostgreSQL 和 Caddy 正常运行。未独立连接主机核查最终有效 JVM 参数或全部共享站点，未获得独立 L3。所有本机 MVP 任务 DONE；正式设备页仍断开，生产默认 OFF。评分按现有刻度维持 71/100，Gate 0/10；不把单机开发通过视为获批安装/正式发行。无需重跑 Agent/写库，不进入下一任务。
 
-### MVP-08 · 客户端工作区与导航（Tauri 历史尝试；现改 GPUI 候选）
+### MVP-08 · 客户端工作区与导航（DONE，唯一 GPUI 原生源码）
 
 - **原 Tauri 范围（历史）**：仅 `apps/desktop/src` 的 React/Tailwind/Lucide 组件、样式及单测；保留现有 Tauri、安装向导、只读 IPC、预检、配置草稿和诊断。不新增依赖、IPC、联网、安装包权限、root broker、证书操作或 Agent 启停。
 - **验收**：七个可键盘进入且有可访问名称的导航项（概览/安装向导/服务器与配置/设备注册/Agent 服务/安全与诊断/关于），唯一当前项；浏览器预览无真实主机证据时显示未知；原有读取失败不保留旧主机；连接/保存/注册/导入按钮原生禁用；向导和诊断仍可达；窄窗可滚动、无裁切；CI React/TypeScript/构建、原生安全守卫与实际 Tauri 构建；维护者 Pop!_OS 原生窗口可视、键盘及尺寸验收（不安装 Agent、不启动生产）。
@@ -412,6 +412,8 @@
 
 - **2026-11-28 迁移后用户启动确认及图标证据范围修复**：用户明确反馈新版客户端可以打开（非新签名报告、不推断新增12项或独立L3）；此前12/12保留。旧 node_modules/src-tauri 是本机未跟踪残留，不是远端活动源码；不自动清理。迁移后 `190d5615` 原始17 SUCCESS、3 FAIL、1 IN_PROGRESS（原生 #46138003740 Release构建），签名APT #46138003719 SUCCESS。`db7014b8` Debian #46138179640、示例 #46138179639、docs #46138179697、RD2 #46138179635 SUCCESS；图标 #46138179623 实际失败 source or lock mismatch：旧默认包历史 index 39db84ef、历史归档与现行选择性资产不相容，不伪造新源或锁。保留旧索引/审查器/测试及历史证据；将活动图标工作流换为当前锁、精确适配器blob、当前注册、96 canonical及12 excluded registry原字节的源级核对；不声称最终ELF不存在转换资产、许可获批或发包。原生CI继续保留精确ELF检查。新CI PENDING，71/100、7/16、Gate0/10，MVP-08 IN PROGRESS，不进入MVP-09。
 
+- **2026-11-28 正式本机结项 DONE**：迁移 SHA `190d5615` 的 [原生全量 #46138003740](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003740) completed/success、四 jobs SUCCESS；实际日志 job 140957516239 确认七导航、主题、resize、Ctrl+Q、96 canonical SVG 原字节观察/12 retained 未观察、Release ELF SHA256 `4b4c29168b5232ff5d81c2f709694347d4f2080107d62fb1bcc21eef873f4b4a`、临时 GUI-only Debian 归档、clean Ubuntu OCI 92 base/9 planned/0 removals/五直接 ABI floor/dpkg unchanged、六次 X11 和合成 Weston xdg-shell PASS；job 140960229425 实际许可证据关联 PASS，artifact 15260856321（元数据/日志核实，未独立解包）。该迁移 SHA 其余17项 CI SUCCESS、3项原失败已由 `db7014b8` 的 Debian #46138179640 / 示例 #46138179639 及 `0df20d1e` [selected icon #46138844130](https://github.com/kunlong-luo/lanveriq/actions/runs/46138844130) 成功替代；后者原历史测试2/2与新选择测试及96/12源级检查 PASS，同 SHA docs #46138844084、RD2 #46138844067 SUCCESS。compare 190d5615..0df20d1e 仅7个工具/工作流/账本文件，无 Rust 产品源码或锁变动；不把不同 SHA 的结果伪称同一运行。用户此前12/12 owner报告及迁移后新版窗口启动确认满足限定本机验收。MVP-08 DONE，8/16；工程71/100不变，Gate0/10。独立L3、COSMIC实机、物理GPU/DPI、Windows/macOS、正式权属/许可（22缺项）、签名安装、发行均未批准。下一唯一任务 MVP-09，先离线草稿；实际连接需独立批准目的地及可信CA。此次只结项，不执行MVP09。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
@@ -448,13 +450,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [db423058](https://github.com/kunlong-luo/lanveriq/commit/db42305815a1f09d2c50e4ef8d628fbce4b1aa55)；功能 [8e1e3184](https://github.com/kunlong-luo/lanveriq/commit/8e1e3184e0d1b9c6625226afe8921b51aa81fa89)，KDE 12项 owner v2。 |
-| 本轮 | MVP-08 **BLOCKED**；主题全量4/4 PASS；新版KDE 12项工具已提交；响应式/交互待验；01～07 DONE，09～16 TODO。 |
-| CI | 基线四项 PASS；主题 #46117200043 SUCCESS；[响应式全量 #46117531507](https://github.com/kunlong-luo/lanveriq/actions/runs/46117531507) IN_PROGRESS；[实际交互 #46117984528](https://github.com/kunlong-luo/lanveriq/actions/runs/46117984528) IN_PROGRESS；[KDE helper v2 #46118231757](https://github.com/kunlong-luo/lanveriq/actions/runs/46118231757) SUCCESS；[RD-2 #46118231760](https://github.com/kunlong-luo/lanveriq/actions/runs/46118231760) SUCCESS。 |
-| 锁/风险 | 522 Linux / 568 metadata/BOM 包对 +1本地 target；0遗漏，46差异范围已解释而非最终链接批准；22 registry 许可缺项、3 精确上游绑定、9 维护警告、NOTICE/资源/法务/清洁 ABI OPEN。 |
-| 本机 | 旧版 KDE七页展示/元数据/默认草稿/诊断可见，未证实全部交互、GPU、IME、准确SHA/ELF；新UI未运行，COSMIC/独立L3 NOT RUN。 |
-| 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | MVP-08：核实响应式 #46117531507、交互 #46117984528 与 KDE v2 CI，实际失败优先修复；所有人运行 KDE helper 回传12项 v2，真实COSMIC仍用原工具；平台主题事件/IME/DPI、正式许可/资源归属/清洁ABI待审，不扩大UI范围，不进入 MVP-09。 |
-| 约束 | main only；保留 Tauri 回退且冻结扩展，不提高 CI 写权限、不忽略漏洞；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
+| 基线 | 功能 [190d5615](https://github.com/kunlong-luo/lanveriq/commit/190d5615ef146d940dc2c54a910e2b07a18a0745)，修复 [0df20d1e](https://github.com/kunlong-luo/lanveriq/commit/0df20d1e7458bc9445cfa8dc802cdcdc330f261f)，唯一 apps/desktop GPUI。 |
+| 本轮 | MVP-08 DONE（限定本机）；01～08 DONE，09～16 TODO。 |
+| CI | [原生全量 #46138003740](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003740) 4/4 SUCCESS；迁移其余17项SUCCESS，3失败经后续 Debian #46138179640、示例 #46138179639、图标 #46138844130 SUCCESS 修复；docs/RD2 SUCCESS。 |
+| 锁/风险 | 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887 不变；22 registry许可缺项与正式发行审批OPEN。 |
+| 本机 | KDE/X11 12/12 owner PASS；用户确认迁移后新版启动。非独立L3，未推断COSMIC/GPU/DPI或新逐项验收。 |
+| 评分/上线 | **71/100；8/16；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。** |
+| **下次唯一任务** | MVP-09：复用 AgentConfig，先离线服务器草稿验证；显式连接测试须另行批准目的地及可信CA，不默认联网。按任务卡验收。 |
+| 约束 | main only；唯一 GPUI；保留通用安全实验与Git回退；不安装、签发、启动Agent或开放生产。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**

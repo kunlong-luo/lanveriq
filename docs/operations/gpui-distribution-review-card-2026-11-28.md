@@ -162,4 +162,4 @@ python3 apps/desktop/tools/owner_cosmic_review.py
 
 ## 11. 2026-11-28 本机迁移当前状态（覆盖前述本机待验条目）
 
-KDE/X11 所有人非签名报告 12/12 PASS（92c8d8a2）、退出码0、锁一致；通用守卫切换20/20 CI PASS。唯一 GPUI 源码入口迁移至 `apps/desktop`，旧 Tauri 专用代码/CI 移除，Git 回退与通用安全实验保留。迁移后 CI 待验，尚未 DONE；不重复要求所有人执行同一验收。第9节工程归档仍绑定历史8bd35b22及确切ELF，不伪称迁移后的ELF已经生成或许可获批。22材料缺项、权属、第三方许可、正式NOTICE/EULA、保管、签名、安装、独立L3仍OPEN；无分发授权。
+KDE/X11 所有人非签名报告 12/12 PASS（92c8d8a2）、退出码0、锁一致；通用守卫切换20/20 CI PASS。唯一 GPUI 源码入口迁移至 `apps/desktop`，旧 Tauri 专用代码/CI 移除，Git 回退与通用安全实验保留。迁移后原生4/4及受影响CI修复均PASS，本机MVP-08 DONE；不重复要求所有人执行同一验收。第9节工程归档仍绑定历史8bd35b22及确切ELF，不伪称迁移后的ELF已经生成或许可获批。22材料缺项、权属、第三方许可、正式NOTICE/EULA、保管、签名、安装、独立L3仍OPEN；无分发授权。

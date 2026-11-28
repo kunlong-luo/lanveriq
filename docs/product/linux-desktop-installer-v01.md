@@ -2,7 +2,7 @@
 
 **PRODUCT DESIGN BASELINE · 2026-11-27 · offline source preview / real device deployment NOT APPROVED**
 
-**2026-11-28 技术调整：** [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md) GPUI 原生只读功能及 KDE/X11 12/12 所有人验收已通过；源码切换至唯一 apps/desktop，迁移后 CI 待验。旧 Tauri 描述仅为历史；安装权限不变。
+**2026-11-28 技术调整：** [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md) GPUI 原生只读功能及 KDE/X11 12/12 所有人验收已通过；源码切换至唯一 apps/desktop，迁移后 CI PASS，本机 MVP-08 DONE。旧 Tauri 描述仅为历史；安装权限不变。
 
 **MVP-08 Tauri 历史尝试（前端 L1 PASS，原生 APT 审计 FAIL，本机未验）：** 客户端优先，七入口工作区（概览、安装向导、服务器与配置、设备注册、Agent 服务、安全与诊断、关于），复用原只读检查、草稿、安装审核与诊断；无真实连接、凭据导入、注册、安装、启停。未核验显示未知，敏感动作禁用，紧凑窗保留可见导航。现有 [任务账本](../planning/local-mvp-tasks.md) 管理 MVP-08～16、前置条件、CI/本机退出验收。
 

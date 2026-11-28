@@ -23,7 +23,7 @@
 | 类型生成 | Springdoc 3.2.1（同 Boot4.2 CI SUCCESS） → **Orval（后端 CI 契约候选）** → Fetch/TanStack Query、锁定 Next 依赖类型校验 | 已在合成契约检查跑通过；正式 Next.js 不挂载真实 API hooks；见 [NXT-20](frontend-backend-directory-nxt20.md) |
 | 浏览器实时通信 | Spring WebSocket + WSS 方案（同源、管理员会话、RBAC）、React Query 收到提示后 refetch | **设计已选，真实 WSS 业务链路未上线**；不用于 Agent 数据 ACK |
 | HTTPS ingress | **Caddy**、独立 console/enroll/agent 主机、专用 CA 与上游 mTLS | 合成验证曾通过，**参考 Caddyfile 禁止直接生产使用**；真实 CA 与网络隔离另审 |
-| Linux 桌面客户端（**本机 12/12 PASS，源码迁移后 CI 待验**） | apps/desktop：GPUI Kit 0.11.0 / GPUI 0.3.14 / Rust 1.100，七入口原生只读工作区 | 安装、提权、配置写入、签名分发、自启全部未实现；独立 L3 NOT RUN。见 [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md) |
+| Linux 桌面客户端（**本机 12/12 PASS，迁移后 CI PASS**） | apps/desktop：GPUI Kit 0.11.0 / GPUI 0.3.14 / Rust 1.100，七入口原生只读工作区 | 安装、提权、配置写入、签名分发、自启全部未实现；独立 L3 NOT RUN。见 [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md) |
 | Linux 图形安装与本地管理（**规划/未实现**） | **GPUI Kit 原生 Rust**，普通用户桌面进程，计划经 polkit 最小权限授权调用原生 Debian 包与 systemd 服务管理 | **纳入 v0.1 Linux 交付与 G-05/G-07/G-08/G-09 验收；不是当前已安装依赖**。普通用户不应安装 Rust/Node/Cargo。GUI 退出后 Agent 独立后台运行，无常驻任务栏/Dock/托盘图标；仍需明确告知、单独授权启动/开机自启，保留查看/卸载入口；上线前一律 OFF。见 [ADR-0013](../architecture/adrs/0013-tauri-desktop-installer-idle-agent.md) |
 | 后续会话/录制辅助（**规划/未实现**） | Tauri 会话陪伴、经 OS 同意的采集/录制、FFmpeg 等 | v0.3，另行审批与实机验收，**不是** v0.1 安装器范围 |
 
@@ -31,7 +31,7 @@
 
 > **桌面技术范围：** GPUI 仅用于本地安装准备/配置草稿/状态/诊断，不替代唯一 Next.js Web 控制台或独立 systemd Agent。授权与签名验收前不得启用。见 [桌面交付方案](../product/linux-desktop-installer-v01.md)。
 
-> **2026-11-28 当前迁移决策：** [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md) 选择 GPUI Kit 0.11.0 / GPUI-pre 0.3.14；本机 12/12、原生 CI、许可工程证据已满足本机迁移前置。已切换唯一源码入口，保留 Git 回退与通用实验；迁移后 CI 待验。正式许可、签名、安装及独立 L3 仍 OPEN。Agent/Web/Server 不变。
+> **2026-11-28 当前迁移决策：** [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md) 选择 GPUI Kit 0.11.0 / GPUI-pre 0.3.14；本机 12/12、原生 CI、许可工程证据已满足本机迁移前置。已切换唯一源码入口，保留 Git 回退与通用实验；迁移后 CI PASS，本机 MVP-08 DONE。正式许可、签名、安装及独立 L3 仍 OPEN。Agent/Web/Server 不变。
 
 ## 选型底线
 

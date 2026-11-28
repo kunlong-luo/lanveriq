@@ -2,7 +2,7 @@
 
 **Status: ACCEPTED FOR DEVELOPMENT (design only; GUI choice now under ADR-0014 candidate review) · Date: 2026-11-23 · v0.1 Linux-first · NOT APPROVED FOR REAL DEPLOYMENT**
 
-> **2026-11-28 current decision:** [ADR-0014](0014-gpui-desktop-candidate.md) supersedes only the GUI selection. The GPUI source is now the sole desktop entry, post-cutover CI pending; former Tauri implementation statements below are historical. All installer, consent, custody and independent service decisions remain binding.
+> **2026-11-28 current decision:** [ADR-0014](0014-gpui-desktop-candidate.md) supersedes only the GUI selection. The GPUI source is now the sole desktop entry, post-cutover CI passed (local MVP-08 DONE); former Tauri implementation statements below are historical. All installer, consent, custody and independent service decisions remain binding.
 
 > **2026-11-24 L2B-20 真实 APT `Signed-By` LAB：** [Ubuntu24 #45334019405](https://github.com/kunlong-luo/lanveriq/actions/runs/45334019405) **9/9 实际 apt-get update 系统验签通过**，证明隔离的合成 deb822 仓库接受正确 InRelease/Packages 并拒绝错误签名者/keyring、全局信任绕过、无签名、索引篡改、过期及未来日期。测试没有真实 `.deb` 或 apt-get install、没有向机器添加发行者根。**目标产品方案仍需独立批准的签名 APT 仓库/专用 keyring，受审受限 Polkit broker，以及合法授权 Pop!_OS COSMIC L3**。不要将 CI 临时 key 当成真实发行源，也不需要自研取代 APT 的包验证。[L2B-20 证据](../../development/desktop-tauri-l2b20-real-apt-signed-by-offline-ci-2026-11-24.md)。
 

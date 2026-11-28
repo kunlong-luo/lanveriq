@@ -74,7 +74,7 @@ The next isolated business-loop milestone is [durable Linux inventory recovery a
 
 **G-08 backup/DR:** [Native PostgreSQL18 cross-runner restore L2, all 3 jobs PASS #45742025955](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md). [Approval-only physical-host SRE operator card](docs/operations/g08-physical-dr-operator-card-2026-11-26.md) and [L1 default-deny CI #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846) are ready; **real independent hardware, custody/WORM/KMS, and SRE/legal signoff NOT RUN; NO-GO.**
 
-**G-05/G-09 user feature:** [GPUI native desktop](apps/desktop/README.md) has a read-only configuration draft, manual system summary and seven navigation pages. Owner KDE/X11 12/12 and precutover CI passed; the single source entry is migrated, post-cutover CI pending. **No signed Agent installation, approved Polkit broker or independent L3; engineering 71/100, gates 0/10, NO-GO.**
+**G-05/G-09 user feature:** [GPUI native desktop](apps/desktop/README.md) has a read-only configuration draft, manual system summary and seven navigation pages. Owner KDE/X11 12/12 and precutover CI passed; the single source entry is migrated and post-cutover CI passed (local MVP-08 DONE). **No signed Agent installation, approved Polkit broker or independent L3; engineering 71/100, gates 0/10, NO-GO.**
 
 ## Native APT: cold-cache signed repository and witness double-replay (L2B-33)
 

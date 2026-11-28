@@ -74,7 +74,7 @@ pnpm dev
 
 **G-08 备份/灾备：** [三 job 跨 runner 原生 PG18 恢复 L2 #45742025955 PASS](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)；[独立实体机 SRE 演练执行卡](docs/operations/g08-physical-dr-operator-card-2026-11-26.md)与[严格拒绝 L1 #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846)已备。**真实跨物理主机、独立 WORM/KMS、高水位、法务/SRE 签收 NOT RUN；不能上线。**
 
-**G-05/G-09 功能进展：** [GPUI 原生桌面](apps/desktop/README.md) 已提供七入口、只读配置草稿及手动系统摘要；KDE/X11 所有人 12/12 与迁移前 CI 通过，唯一源码入口已迁移，迁移后 CI 待验。**无正式 Agent 安装、Polkit broker、独立 L3。评分 71/100，Gate 0/10，NO-GO。**
+**G-05/G-09 功能进展：** [GPUI 原生桌面](apps/desktop/README.md) 已提供七入口、只读配置草稿及手动系统摘要；KDE/X11 所有人 12/12 与迁移前 CI 通过，唯一源码入口已迁移，迁移后 CI 通过（本机 MVP-08 DONE）。**无正式 Agent 安装、Polkit broker、独立 L3。评分 71/100，Gate 0/10，NO-GO。**
 
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 

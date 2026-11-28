@@ -1,6 +1,6 @@
 # ADR-0014 — GPUI native Rust desktop migration candidate
 
-**Status: ACCEPTED FOR DEVELOPMENT (local source cutover implemented; affected CI pending) · Updated: 2026-11-28 · v0.1 NOT RELEASE READY**
+**Status: ACCEPTED FOR DEVELOPMENT (local MVP-08 source cutover DONE) · Updated: 2026-11-28 · v0.1 NOT RELEASE READY**
 
 ## Context
 
@@ -83,5 +83,7 @@ Owner KDE/X11 screenshots (2026-11-28) show all seven pages, actual read-only me
 **2026-11-28 owner evidence received / migration started:** the owner supplied a non-signed KDE/X11 v2 report at 92c8d8a2 (12/12 and Ctrl+Q OWNER_REPORTED_PASS, exit 0, lock digest matched; owner local ELF d00228e0…, distinct from CI ELF). GitHub compare confirms no candidate source/lock changes since the successful 8bd35b22 native CI. The local review prerequisite is satisfied; this is not independent L3 or release authorization. See the local task ledger for exact digests and untested scopes. Begin staged source migration by extracting the existing GPUI static source guard with negative fixtures; keep Tauri rollback and existing guard until the affected generic safety workflows and final source cutover are verified. Do not claim migration complete or change permissions.
 
 **2026-11-28 source cutover (current):** the verified 12/12 owner report and 20/20 retained-workflow CI satisfied the migration baseline. The read-only inventory #46137569001 identified 29 moves, 46 retire/replace entries, 40 reference files, 49 broken-link targets and no conflicts. Migrate to the sole `apps/desktop` source, remove obsolete Tauri-specific files and five workflows, preserve the generic safety labs, update Polkit context validation and pin historical links to Git. Keep all Rust business source blobs, manifest, lock and nonrelease crate/binary name unchanged; only harness paths change. Rollback is Git at `d04d3e01`, not a parallel active desktop. Post-cutover affected CI pending, no local DONE or release approval. Earlier pending statements are historical.
+
+**2026-11-28 local DONE (current):** exact cutover 190d5615 native [#46138003740](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003740) four jobs SUCCESS; Debian/example/selected-icon path and scope corrections passed on their exact follow-up commits, no Rust product or lock changes. Owner confirmed the migrated desktop launches; prior 12/12 observation retained. Sole GPUI source accepted for local MVP. No commercial title, license, signature, installation, independent L3 or release approval. See task ledger for full evidence. Next single task MVP-09.
 
 **Approval scope:** source, disposable CI and owner-operated nonprivileged offline candidate window only. **Explicit non-authorizations:** no Agent installation/start/autostart, no production network/collection/recovery/remote control/CA or certificate issuance, no new permissions, no release, no removal of fallback before parity. G-01–10 OPEN.

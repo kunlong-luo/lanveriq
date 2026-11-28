@@ -1,6 +1,6 @@
 # Lanveriq v0.1 发行、升级与回滚操作门禁
 
-> **2026-11-28 现行桌面迁移边界：** 唯一桌面源码为 `apps/desktop` GPUI 原生 Rust；旧 Tauri CI 和相关包证据仅为历史（下方固定 Git 链接），不是当前构建或发布路径。迁移后验收仍待确认；G-01～G-10 保持 OPEN，v0.1 NOT RELEASE READY。
+> **2026-11-28 现行桌面迁移边界：** 唯一桌面源码为 `apps/desktop` GPUI 原生 Rust；旧 Tauri CI 和相关包证据仅为历史（下方固定 Git 链接），不是当前构建或发布路径。迁移后验收通过，本机 MVP-08 DONE；G-01～G-10 保持 OPEN，v0.1 NOT RELEASE READY。
 
 **ACTIVE RUNBOOK · 2026-11-26 · `main` · v0.1 NOT RELEASE READY · NO CUSTOMER INSTALLATION AUTHORIZED。** 这里是**候选发行与验收流程**，不是已发布安装说明。**2026-11-21 现行发布边界：** 唯一 Web 前端 `apps/web` 为 Next.js，官方 Pages 是断开业务的演示；Rust Agent/桌面 Tauri/Java 后端均没有获批的生产发行与部署路径。最新 CI/功能 SHA 请查 [CURRENT_STATUS.md](../CURRENT_STATUS.md)，Gate 以[唯一发布缺口登记](../planning/release-gap-register.md)为准，不在本文件复制全部旧日志。
 
