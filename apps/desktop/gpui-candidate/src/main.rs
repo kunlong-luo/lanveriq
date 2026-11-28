@@ -10,6 +10,7 @@ use gpui_kit::component::{
 };
 use gpui_kit::base::{SelectableText, StyledExt};
 use gpui_kit::*;
+use gpui_kit::prelude::FluentBuilder;
 use lanveriq_desktop_gpui_candidate::{IdleInterval, Page, ThemePreference, Workspace, compact_navigation};
 
 use lanveriq_desktop_gpui_candidate::review::{runtime_review_gates, Notice, runtime_diagnostic};
