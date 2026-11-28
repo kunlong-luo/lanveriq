@@ -1,8 +1,8 @@
 //! Disposable offline GPUI compatibility candidate. No privileged or runtime interfaces.
 use gpui_kit::component::{
-    ActiveTheme, Disableable, Selectable, Theme, ThemeMode,
+    ActiveTheme, Collapsible, Disableable, Selectable, Theme, ThemeMode,
     button::{Button, ButtonVariants},
-    sidebar::{Sidebar, SidebarMenu, SidebarMenuItem},
+    sidebar::{Sidebar, SidebarItem},
     IconName,
     checkbox::Checkbox,
     label::Label,
@@ -10,7 +10,7 @@ use gpui_kit::component::{
 };
 use gpui_kit::base::{SelectableText, StyledExt};
 use gpui_kit::*;
-use lanveriq_desktop_gpui_candidate::{IdleInterval, Page, ThemePreference, Workspace};
+use lanveriq_desktop_gpui_candidate::{IdleInterval, Page, ThemePreference, Workspace, compact_navigation};
 
 use lanveriq_desktop_gpui_candidate::review::{runtime_review_gates, Notice, runtime_diagnostic};
 use lanveriq_desktop_gpui_candidate::host_identity::HostIdentity;
@@ -50,6 +50,41 @@ impl Desktop {
             ime_probe: None,
             appearance,
             _appearance_subscription: subscription,
+        }
+    }
+}
+
+// SidebarMenuItem in the pinned component release has a click handler but
+// does not register a tab stop. Reuse native Button focus/activation instead.
+#[derive(Clone)]
+struct DestinationItem {
+    page: Page,
+    active: bool,
+    collapsed: bool,
+    handler: std::rc::Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>,
+}
+
+impl Collapsible for DestinationItem {
+    fn is_collapsed(&self) -> bool { self.collapsed }
+    fn collapsed(mut self, collapsed: bool) -> Self {
+        self.collapsed = collapsed;
+        self
+    }
+}
+
+impl SidebarItem for DestinationItem {
+    fn render(self, id: impl Into<ElementId>, _: &mut Window, _: &mut App) -> impl IntoElement {
+        let handler = self.handler;
+        let button = Button::new(id)
+            .ghost().icon(page_icon(self.page))
+            .accessibility_label(self.page.label())
+            .selected(self.active).toggled(self.active)
+            .tab_stop(true).w_full().h(px(36.))
+            .on_click(move |event, window, cx| handler(event, window, cx));
+        if self.collapsed {
+            button.tooltip(self.page.label())
+        } else {
+            button.label(self.page.label()).justify_start()
         }
     }
 }
@@ -113,35 +148,40 @@ fn row_title(key: &str) -> &'static str {
 }
 
 impl Render for Desktop {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let page = self.workspace.page();
-        let menu = Page::ALL.into_iter().fold(SidebarMenu::new(), |menu, destination| {
-            menu.child(SidebarMenuItem::new(destination.label())
-                .icon(page_icon(destination))
-                .active(page == destination)
-                .on_click(cx.listener(move |this, _, window, cx| {
-                    if this.workspace.page() != destination {
-                        // Drop the entire editing entity on leaving About.
-                        this.ime_probe = if destination == Page::About {
-                            Some(cx.new(|cx| InputState::new(window, cx)
-                                .placeholder("仅输入示例：中文输入测试")
-                                .context_menu(false)))
-                        } else { None };
-                    }
-                    this.workspace.navigate(destination);
-                    cx.notify();
-                })))
+        let compact = compact_navigation(window.viewport_size().width.as_f32());
+        let destinations = Page::ALL.into_iter().map(|destination| DestinationItem {
+            page: destination,
+            active: page == destination,
+            collapsed: compact,
+            handler: std::rc::Rc::new(cx.listener(move |this, _, window, cx| {
+                if this.workspace.page() != destination {
+                    // Drop the entire editing entity on leaving About.
+                    this.ime_probe = if destination == Page::About {
+                        Some(cx.new(|cx| InputState::new(window, cx)
+                            .placeholder("仅输入示例：中文输入测试")
+                            .context_menu(false)))
+                    } else { None };
+                }
+                this.workspace.navigate(destination);
+                cx.notify();
+            })),
         });
-        let nav = Sidebar::<SidebarMenu>::new("workspace-nav")
-            .w(px(224.)).collapsible(false)
-            .header(div().flex().flex_col().gap_1().px_3().py_3()
+        let nav = Sidebar::<DestinationItem>::new("workspace-nav")
+            .w(px(224.)).collapsible(true).collapsed(compact)
+            .children(destinations);
+        let nav = if compact {
+            nav
+        } else {
+            nav.header(div().flex().flex_col().gap_1().px_3().py_3()
                 .child(Label::new("Lanveriq").text_size(px(20.)).font_bold())
                 .child(hint("设备管理 · 本机客户端", cx)))
-            .child(menu)
             .footer(div().flex().flex_col().gap_1().p_3()
                 .child(Label::new("离线候选").font_bold())
-                .child(hint("仅本机只读 · 非发行版", cx)));
-        let mut content = div().id(page.id()).w_full().max_w(px(920.))
+                .child(hint("仅本机只读 · 非发行版", cx)))
+        };
+        let mut content = div().id(page.id()).w_full().min_w_0().max_w(px(920.))
             .flex().flex_col().gap_4()
             .child(div().flex().flex_col().gap_2()
                 .child(Label::new(page.label()).text_size(px(26.)).font_bold())
@@ -181,7 +221,7 @@ impl Render for Desktop {
                         ThemePreference::Dark => IconName::Moon,
                     })
                     .label(choice.label())
-                    .selected(appearance == choice)
+                    .selected(appearance == choice).toggled(appearance == choice)
                     .on_click(cx.listener(move |this, _, window, cx| {
                         this.appearance = choice;
                         apply_appearance(choice, window, cx);
@@ -202,7 +242,7 @@ impl Render for Desktop {
         if matches!(page, Page::Overview | Page::Setup | Page::Service | Page::Diagnostics) {
             let rows = self.workspace.runtime_metadata().rows().into_iter().fold(
                 div().flex().flex_col().gap_1(), |group, (key, value)| {
-                    group.child(div().id(key).flex().items_center().justify_between().gap_3()
+                    group.child(div().id(key).flex().flex_wrap().items_center().justify_between().gap_3()
                         .py_2().border_b_1().border_color(cx.theme().border)
                         .child(Label::new(row_title(key)))
                         .child(Label::new(state_label(value)).text_color(cx.theme().muted_foreground)))
@@ -234,7 +274,7 @@ impl Render for Desktop {
                     .child(section_title("图形环境预检"))
                     .child(self.workspace.runtime_metadata().graphics().rows().into_iter().enumerate().fold(
                         div().flex().flex_col().gap_2(), |group, (i, (key, value))| {
-                            group.child(div().id(format!("graphics-{i}")).flex().items_center().justify_between().gap_3()
+                            group.child(div().id(format!("graphics-{i}")).flex().flex_wrap().items_center().justify_between().gap_3()
                                 .py_2().border_b_1().border_color(cx.theme().border)
                                 .child(Label::new(key))
                                 .child(Label::new(value).text_color(cx.theme().muted_foreground)))
@@ -248,7 +288,7 @@ impl Render for Desktop {
                 |group, interval| group.child(
                     Button::new(interval.id())
                         .label(interval.label())
-                        .selected(current == interval)
+                        .selected(current == interval).toggled(current == interval)
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.workspace.select_idle_interval(interval);
                             cx.notify();
@@ -326,7 +366,8 @@ impl Render for Desktop {
             .child(nav)
             .child(div().id("workspace-content").flex_1().min_w_0().h_full()
                 .overflow_y_scroll().bg(cx.theme().muted.opacity(0.3))
-                .child(div().w_full().flex().justify_center().p_6().child(content)))
+                .child(div().w_full().min_w_0().flex().justify_center()
+                    .p(if compact { px(12.) } else { px(24.) }).child(content)))
     }
 }
 

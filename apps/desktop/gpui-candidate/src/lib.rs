@@ -76,6 +76,11 @@ impl Page {
     }
 }
 
+/// GPUI viewport widths are logical pixels; do not multiply by monitor scale.
+pub const fn compact_navigation(viewport_width: f32) -> bool {
+    viewport_width < 760.0
+}
+
 /// In-memory appearance preference; never changes the system theme or writes configuration.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ThemePreference {
@@ -269,6 +274,15 @@ mod tests {
     fn overview_does_not_claim_live_evidence() {
         assert!(Page::Overview.description().contains("未核验"));
         assert_eq!(LOCKED_ACTIONS.len(), 10);
+    }
+
+    #[test]
+    fn navigation_compacts_at_logical_viewport_boundary() {
+        assert!(compact_navigation(640.0));
+        assert!(compact_navigation(759.99));
+        assert!(!compact_navigation(760.0));
+        assert!(!compact_navigation(900.0));
+        assert!(!compact_navigation(1920.0));
     }
 
     #[test]
