@@ -1,0 +1,551 @@
+{
+  "schema": "lanveriq.gpui.default-icon-source-index-v1",
+  "build_source": "39db84ef39ac70414e7d3b1a1821d5ec14699f45",
+  "app_main_git_blob": "77a19b36e20b14382dab55c4a37f3079709bfcca",
+  "gpui_repository": "longbridge/gpui-kit",
+  "gpui_commit": "e97fe438129c5e4ccab504f2e6fafd9a4e396bba",
+  "lucide_repository": "lucide-icons/lucide",
+  "lucide_commit": "ba95e4c988b1e1b39cf5544e73b25a74b76816ee",
+  "package": "gpui-kit-assets",
+  "version": "0.11.0",
+  "files": {
+    "default-icons.txt": "7119c5d9856f832c0626624909d6f43a1fac34af",
+    "lucide.json": "4ee16cbe45181f70dc2a6ff6aa7ca042a3541dea",
+    "LICENSE-LUCIDE": "718bb3f0e44153809972abed31839375804bf652",
+    "build.rs": "10e38de32316e3215e10491d52b923f640273bc9",
+    "src/native_assets.rs": "fb40e3c6d3f8fcf5799df8e1aec91ecfdc03d127"
+  },
+  "lucide_license_blob": "718bb3f0e44153809972abed31839375804bf652",
+  "rows": [
+    {
+      "path": "assets/icons/a-large-small.svg",
+      "gpui_blob": "bc1ea1278628531ceeb67aa4487d782b9b95d4e5",
+      "lucide_blob": "bc1ea1278628531ceeb67aa4487d782b9b95d4e5"
+    },
+    {
+      "path": "assets/icons/arrow-down.svg",
+      "gpui_blob": "3244b63e3147e5e8b359f20458106bc74572d331",
+      "lucide_blob": "3244b63e3147e5e8b359f20458106bc74572d331"
+    },
+    {
+      "path": "assets/icons/arrow-left.svg",
+      "gpui_blob": "b40bff851c85eff44f678eb7984fc6070d7ea721",
+      "lucide_blob": "b40bff851c85eff44f678eb7984fc6070d7ea721"
+    },
+    {
+      "path": "assets/icons/arrow-right.svg",
+      "gpui_blob": "433ded3fcc5f7bd2b6a59356c6ffe8eceac6b7e3",
+      "lucide_blob": "433ded3fcc5f7bd2b6a59356c6ffe8eceac6b7e3"
+    },
+    {
+      "path": "assets/icons/arrow-up.svg",
+      "gpui_blob": "50a81cb370d77bccdab4e91c1aeff36b763cdfbf",
+      "lucide_blob": "50a81cb370d77bccdab4e91c1aeff36b763cdfbf"
+    },
+    {
+      "path": "assets/icons/asterisk.svg",
+      "gpui_blob": "dcfad708bd9301a593c6e1adfe8117e262fee90c",
+      "lucide_blob": "dcfad708bd9301a593c6e1adfe8117e262fee90c"
+    },
+    {
+      "path": "assets/icons/ban.svg",
+      "gpui_blob": "301db80403c5b09687f06e97990871592661656b",
+      "lucide_blob": "301db80403c5b09687f06e97990871592661656b"
+    },
+    {
+      "path": "assets/icons/battery-charging.svg",
+      "gpui_blob": "8eba9920c5950e690d672920080f75fa35cc4ff3",
+      "lucide_blob": "8eba9920c5950e690d672920080f75fa35cc4ff3"
+    },
+    {
+      "path": "assets/icons/battery-full.svg",
+      "gpui_blob": "ab71ee324b6c7558fac8bc77c9da267986c7164d",
+      "lucide_blob": "ab71ee324b6c7558fac8bc77c9da267986c7164d"
+    },
+    {
+      "path": "assets/icons/battery-low.svg",
+      "gpui_blob": "f9f00c21cd3bc2b2c1e42d837114af086cc87230",
+      "lucide_blob": "f9f00c21cd3bc2b2c1e42d837114af086cc87230"
+    },
+    {
+      "path": "assets/icons/battery-medium.svg",
+      "gpui_blob": "f6b0f61148ed2e993c7699fad273774b30194f19",
+      "lucide_blob": "f6b0f61148ed2e993c7699fad273774b30194f19"
+    },
+    {
+      "path": "assets/icons/battery-warning.svg",
+      "gpui_blob": "330dbed4bdc24e2d5a683891a591c0176e7857d3",
+      "lucide_blob": "330dbed4bdc24e2d5a683891a591c0176e7857d3"
+    },
+    {
+      "path": "assets/icons/battery.svg",
+      "gpui_blob": "1e87f1b9da2927635c1263ab74703ab32ab3e127",
+      "lucide_blob": "1e87f1b9da2927635c1263ab74703ab32ab3e127"
+    },
+    {
+      "path": "assets/icons/bell.svg",
+      "gpui_blob": "0345ca35bc8cead87cf05857545e24de031e7779",
+      "lucide_blob": "0345ca35bc8cead87cf05857545e24de031e7779"
+    },
+    {
+      "path": "assets/icons/book-open.svg",
+      "gpui_blob": "9e0ace59b788e2b45fc35d9fbf68c2a80bd518bc",
+      "lucide_blob": "9e0ace59b788e2b45fc35d9fbf68c2a80bd518bc"
+    },
+    {
+      "path": "assets/icons/bot.svg",
+      "gpui_blob": "1a622f9d3aae90506fabea0f428ac38233864ef0",
+      "lucide_blob": "1a622f9d3aae90506fabea0f428ac38233864ef0"
+    },
+    {
+      "path": "assets/icons/building-2.svg",
+      "gpui_blob": "4d453a23247938a4d8e1f5cd99a560fe47d27d5c",
+      "lucide_blob": "4d453a23247938a4d8e1f5cd99a560fe47d27d5c"
+    },
+    {
+      "path": "assets/icons/calendar.svg",
+      "gpui_blob": "4679497031a9540a311f6223da003ce26f638e24",
+      "lucide_blob": "4679497031a9540a311f6223da003ce26f638e24"
+    },
+    {
+      "path": "assets/icons/case-sensitive.svg",
+      "gpui_blob": "522701800907b16e847dcacc8c8ef08b0ab24607",
+      "lucide_blob": "522701800907b16e847dcacc8c8ef08b0ab24607"
+    },
+    {
+      "path": "assets/icons/chart-pie.svg",
+      "gpui_blob": "264a0b0e051e924bdf031cd53bd2cfde552a6da2",
+      "lucide_blob": "264a0b0e051e924bdf031cd53bd2cfde552a6da2"
+    },
+    {
+      "path": "assets/icons/check.svg",
+      "gpui_blob": "5abe1527434e7b251bde0661f99af96178976d8c",
+      "lucide_blob": "5abe1527434e7b251bde0661f99af96178976d8c"
+    },
+    {
+      "path": "assets/icons/chevron-down.svg",
+      "gpui_blob": "e70d30b88399a721cd5d20d0d26756608cf8c42b",
+      "lucide_blob": "e70d30b88399a721cd5d20d0d26756608cf8c42b"
+    },
+    {
+      "path": "assets/icons/chevron-left.svg",
+      "gpui_blob": "056d5abc06e44940302c8b2a1912a382ea26b36d",
+      "lucide_blob": "056d5abc06e44940302c8b2a1912a382ea26b36d"
+    },
+    {
+      "path": "assets/icons/chevron-right.svg",
+      "gpui_blob": "db62a0c20181edd6173722b2a483e0b85e30f240",
+      "lucide_blob": "db62a0c20181edd6173722b2a483e0b85e30f240"
+    },
+    {
+      "path": "assets/icons/chevron-up.svg",
+      "gpui_blob": "b011f77212616bf402f6b7686ce8476f28b0edd2",
+      "lucide_blob": "b011f77212616bf402f6b7686ce8476f28b0edd2"
+    },
+    {
+      "path": "assets/icons/chevrons-up-down.svg",
+      "gpui_blob": "bd8833d32381c10ebcf8190e733c4205cc72202c",
+      "lucide_blob": "bd8833d32381c10ebcf8190e733c4205cc72202c"
+    },
+    {
+      "path": "assets/icons/circle-alert.svg",
+      "gpui_blob": "578d25c022d9dd30b851d4ad72d9ec7640408a21",
+      "lucide_blob": "578d25c022d9dd30b851d4ad72d9ec7640408a21"
+    },
+    {
+      "path": "assets/icons/circle-check.svg",
+      "gpui_blob": "14e45c58c9ece47f2204e89d19d8463f485325a0",
+      "lucide_blob": "14e45c58c9ece47f2204e89d19d8463f485325a0"
+    },
+    {
+      "path": "assets/icons/circle-user.svg",
+      "gpui_blob": "d5f7be58d7fb668f80c4f1fa5bf02bc43d8827fb",
+      "lucide_blob": "d5f7be58d7fb668f80c4f1fa5bf02bc43d8827fb"
+    },
+    {
+      "path": "assets/icons/circle-x.svg",
+      "gpui_blob": "e210b2d10168c3b8b8ab6ac33cdb75e3cf88322d",
+      "lucide_blob": "e210b2d10168c3b8b8ab6ac33cdb75e3cf88322d"
+    },
+    {
+      "path": "assets/icons/close.svg",
+      "gpui_blob": "346ec0b455666d6f9b9248bb3be62703fbdc0ffc",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/copy.svg",
+      "gpui_blob": "f62ce99c1f34989a5f70cd15192f8adf9140f4ed",
+      "lucide_blob": "f62ce99c1f34989a5f70cd15192f8adf9140f4ed"
+    },
+    {
+      "path": "assets/icons/cpu.svg",
+      "gpui_blob": "0307c0e4ad2406f68158978dd183fd38d7b80dd4",
+      "lucide_blob": "0307c0e4ad2406f68158978dd183fd38d7b80dd4"
+    },
+    {
+      "path": "assets/icons/dash.svg",
+      "gpui_blob": "a1264e78f7be4d6f481cdf7449ef82cb4f4529c7",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/delete.svg",
+      "gpui_blob": "ead8ca6c64b7f3afa4e58af7a123bbe63acd1192",
+      "lucide_blob": "ead8ca6c64b7f3afa4e58af7a123bbe63acd1192"
+    },
+    {
+      "path": "assets/icons/ellipsis-vertical.svg",
+      "gpui_blob": "1de61600dd58dae78ff16549ce7ab62b54afba5c",
+      "lucide_blob": "1de61600dd58dae78ff16549ce7ab62b54afba5c"
+    },
+    {
+      "path": "assets/icons/ellipsis.svg",
+      "gpui_blob": "68456c39be516d1d14aee329ca3b0056ba84d3c5",
+      "lucide_blob": "68456c39be516d1d14aee329ca3b0056ba84d3c5"
+    },
+    {
+      "path": "assets/icons/external-link.svg",
+      "gpui_blob": "a73a9ba286ebaac4c7fc65bf9303a2fb9624ae76",
+      "lucide_blob": "a73a9ba286ebaac4c7fc65bf9303a2fb9624ae76"
+    },
+    {
+      "path": "assets/icons/eye-off.svg",
+      "gpui_blob": "0083aaa8722f3b9d2b24a316f9cc6125a248c14c",
+      "lucide_blob": "0083aaa8722f3b9d2b24a316f9cc6125a248c14c"
+    },
+    {
+      "path": "assets/icons/eye.svg",
+      "gpui_blob": "e5e78706b2be5dd6510cbcf20f6207486c037c34",
+      "lucide_blob": "e5e78706b2be5dd6510cbcf20f6207486c037c34"
+    },
+    {
+      "path": "assets/icons/file-text.svg",
+      "gpui_blob": "67dc5b9d1a07a1b501ba87d62563b914c059096e",
+      "lucide_blob": "67dc5b9d1a07a1b501ba87d62563b914c059096e"
+    },
+    {
+      "path": "assets/icons/file.svg",
+      "gpui_blob": "161be7a29fb7c7b808eb57722fc544231a5aa5e4",
+      "lucide_blob": "161be7a29fb7c7b808eb57722fc544231a5aa5e4"
+    },
+    {
+      "path": "assets/icons/folder-closed.svg",
+      "gpui_blob": "519f68083c0d80e2f497a1bd6a713ec26d680883",
+      "lucide_blob": "519f68083c0d80e2f497a1bd6a713ec26d680883"
+    },
+    {
+      "path": "assets/icons/folder-open.svg",
+      "gpui_blob": "b01f60fcb51848a9b3a7380d4566c4de7534745c",
+      "lucide_blob": "b01f60fcb51848a9b3a7380d4566c4de7534745c"
+    },
+    {
+      "path": "assets/icons/folder.svg",
+      "gpui_blob": "ef69b345f200f1542ad9a2dfca7d41d036910f4b",
+      "lucide_blob": "ef69b345f200f1542ad9a2dfca7d41d036910f4b"
+    },
+    {
+      "path": "assets/icons/frame.svg",
+      "gpui_blob": "d96e85ec5944e1dddc65fb13883fa42d243c8056",
+      "lucide_blob": "d96e85ec5944e1dddc65fb13883fa42d243c8056"
+    },
+    {
+      "path": "assets/icons/gallery-vertical-end.svg",
+      "gpui_blob": "6e57a27945e128b76c7625e7c24ed872422ce74b",
+      "lucide_blob": "6e57a27945e128b76c7625e7c24ed872422ce74b"
+    },
+    {
+      "path": "assets/icons/github.svg",
+      "gpui_blob": "92adec97952f5be112107a6269268011c86d85e5",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/globe.svg",
+      "gpui_blob": "53c80ee35dd294b0193642f0731010e033ba0618",
+      "lucide_blob": "53c80ee35dd294b0193642f0731010e033ba0618"
+    },
+    {
+      "path": "assets/icons/hard-drive.svg",
+      "gpui_blob": "4a99fab39de0ee52378ed314c415ea2188223768",
+      "lucide_blob": "4a99fab39de0ee52378ed314c415ea2188223768"
+    },
+    {
+      "path": "assets/icons/heart-off.svg",
+      "gpui_blob": "9eaeba17a26e02f0946aba19fb735283c75c6341",
+      "lucide_blob": "9eaeba17a26e02f0946aba19fb735283c75c6341"
+    },
+    {
+      "path": "assets/icons/heart.svg",
+      "gpui_blob": "9e0ba0601acd8d872c1e31ab21bab3bee8f96feb",
+      "lucide_blob": "9e0ba0601acd8d872c1e31ab21bab3bee8f96feb"
+    },
+    {
+      "path": "assets/icons/inbox.svg",
+      "gpui_blob": "c1f68689fc1e167f3ae130040a6e83e2ae3db998",
+      "lucide_blob": "c1f68689fc1e167f3ae130040a6e83e2ae3db998"
+    },
+    {
+      "path": "assets/icons/info.svg",
+      "gpui_blob": "2a46eac2b55a1ead226035d1efa8721f6f08bd17",
+      "lucide_blob": "2a46eac2b55a1ead226035d1efa8721f6f08bd17"
+    },
+    {
+      "path": "assets/icons/inspector.svg",
+      "gpui_blob": "c3517a42213243bcd7ff52dcd87fcc9c2730f299",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/layout-dashboard.svg",
+      "gpui_blob": "8d6065453975433d10ea8b87d38b6ce8bf360dea",
+      "lucide_blob": "8d6065453975433d10ea8b87d38b6ce8bf360dea"
+    },
+    {
+      "path": "assets/icons/loader-circle.svg",
+      "gpui_blob": "cc065ca41b26aadf640ed2bbd9828f72796a9332",
+      "lucide_blob": "cc065ca41b26aadf640ed2bbd9828f72796a9332"
+    },
+    {
+      "path": "assets/icons/loader.svg",
+      "gpui_blob": "a9b897b6f4d8f22677184e386819c46cd724d739",
+      "lucide_blob": "a9b897b6f4d8f22677184e386819c46cd724d739"
+    },
+    {
+      "path": "assets/icons/map.svg",
+      "gpui_blob": "8a8525602d77ba562b8cf57adbd3fb0403133fdb",
+      "lucide_blob": "8a8525602d77ba562b8cf57adbd3fb0403133fdb"
+    },
+    {
+      "path": "assets/icons/maximize.svg",
+      "gpui_blob": "f78ca32408d3bfa431f79f9563736d38942f1316",
+      "lucide_blob": "f78ca32408d3bfa431f79f9563736d38942f1316"
+    },
+    {
+      "path": "assets/icons/memory-stick.svg",
+      "gpui_blob": "b8ed70aa825783b1d599b03d0f0eb1126a426298",
+      "lucide_blob": "b8ed70aa825783b1d599b03d0f0eb1126a426298"
+    },
+    {
+      "path": "assets/icons/menu.svg",
+      "gpui_blob": "0ec97458f92564242574b65de900afbfd7123715",
+      "lucide_blob": "0ec97458f92564242574b65de900afbfd7123715"
+    },
+    {
+      "path": "assets/icons/mic.svg",
+      "gpui_blob": "2a1698d75fb786209ce79b44dd050b9e1e33f62a",
+      "lucide_blob": "2a1698d75fb786209ce79b44dd050b9e1e33f62a"
+    },
+    {
+      "path": "assets/icons/minimize.svg",
+      "gpui_blob": "13eb99c9be251fb830abc6259bcddc1d1d182ae2",
+      "lucide_blob": "13eb99c9be251fb830abc6259bcddc1d1d182ae2"
+    },
+    {
+      "path": "assets/icons/minus.svg",
+      "gpui_blob": "75093e27c20965c9e37fb9dcef9f939746c67578",
+      "lucide_blob": "75093e27c20965c9e37fb9dcef9f939746c67578"
+    },
+    {
+      "path": "assets/icons/moon.svg",
+      "gpui_blob": "3c4bc3110eb5f7d4caababf5da4ad51af1145a5b",
+      "lucide_blob": "3c4bc3110eb5f7d4caababf5da4ad51af1145a5b"
+    },
+    {
+      "path": "assets/icons/network.svg",
+      "gpui_blob": "e166b3535ca33f9ceee49d2215dd78374689865e",
+      "lucide_blob": "e166b3535ca33f9ceee49d2215dd78374689865e"
+    },
+    {
+      "path": "assets/icons/palette.svg",
+      "gpui_blob": "25fb773a61740a8605325a8be1b9b72813d937a2",
+      "lucide_blob": "25fb773a61740a8605325a8be1b9b72813d937a2"
+    },
+    {
+      "path": "assets/icons/panel-bottom-open.svg",
+      "gpui_blob": "0a2e584101d5a8df98959ccec9e72bb7de5730af",
+      "lucide_blob": "0a2e584101d5a8df98959ccec9e72bb7de5730af"
+    },
+    {
+      "path": "assets/icons/panel-bottom.svg",
+      "gpui_blob": "e7cca3d01bd234369227d0f3d71139a91b3bd4b6",
+      "lucide_blob": "e7cca3d01bd234369227d0f3d71139a91b3bd4b6"
+    },
+    {
+      "path": "assets/icons/panel-left-close.svg",
+      "gpui_blob": "838834d321276d5c3032151d36791ded06df74f6",
+      "lucide_blob": "838834d321276d5c3032151d36791ded06df74f6"
+    },
+    {
+      "path": "assets/icons/panel-left-open.svg",
+      "gpui_blob": "f7ad0518b2c373e59b0059245d3912d7548ad267",
+      "lucide_blob": "f7ad0518b2c373e59b0059245d3912d7548ad267"
+    },
+    {
+      "path": "assets/icons/panel-left.svg",
+      "gpui_blob": "60642c396f98cf4ed79689d86b1dc0377e190aa5",
+      "lucide_blob": "60642c396f98cf4ed79689d86b1dc0377e190aa5"
+    },
+    {
+      "path": "assets/icons/panel-right-close.svg",
+      "gpui_blob": "bcd34cbf15bf4cede3907c38a90304ae0cef0b86",
+      "lucide_blob": "bcd34cbf15bf4cede3907c38a90304ae0cef0b86"
+    },
+    {
+      "path": "assets/icons/panel-right-open.svg",
+      "gpui_blob": "613e58973fbac788d2b148cbc0fea4e7c0bcd993",
+      "lucide_blob": "613e58973fbac788d2b148cbc0fea4e7c0bcd993"
+    },
+    {
+      "path": "assets/icons/panel-right.svg",
+      "gpui_blob": "53ba1e6120eb638530de38ca5b696741dfcaa6ad",
+      "lucide_blob": "53ba1e6120eb638530de38ca5b696741dfcaa6ad"
+    },
+    {
+      "path": "assets/icons/pause.svg",
+      "gpui_blob": "ea5762fdbcccbf1f73bb2b46178bb1bafd1e373f",
+      "lucide_blob": "ea5762fdbcccbf1f73bb2b46178bb1bafd1e373f"
+    },
+    {
+      "path": "assets/icons/play.svg",
+      "gpui_blob": "199743ed2e546fdcef48f9ebbe4030e8f75c59c1",
+      "lucide_blob": "199743ed2e546fdcef48f9ebbe4030e8f75c59c1"
+    },
+    {
+      "path": "assets/icons/plus.svg",
+      "gpui_blob": "41f92bb93eb6626368d71c9884127bbcf7d3ccdf",
+      "lucide_blob": "41f92bb93eb6626368d71c9884127bbcf7d3ccdf"
+    },
+    {
+      "path": "assets/icons/redo-2.svg",
+      "gpui_blob": "72371c8d34b46f77243fa889ec464780bbd7ceb9",
+      "lucide_blob": "72371c8d34b46f77243fa889ec464780bbd7ceb9"
+    },
+    {
+      "path": "assets/icons/redo.svg",
+      "gpui_blob": "6e585d08cf388170cbc26870850618e6f799eee8",
+      "lucide_blob": "6e585d08cf388170cbc26870850618e6f799eee8"
+    },
+    {
+      "path": "assets/icons/refresh-cw.svg",
+      "gpui_blob": "c27b3a9677e35fb2353167b01553d3d4cc4e3091",
+      "lucide_blob": "c27b3a9677e35fb2353167b01553d3d4cc4e3091"
+    },
+    {
+      "path": "assets/icons/replace.svg",
+      "gpui_blob": "50909d7935e56e1ea81c5de35b50dc621068171a",
+      "lucide_blob": "50909d7935e56e1ea81c5de35b50dc621068171a"
+    },
+    {
+      "path": "assets/icons/resize-corner.svg",
+      "gpui_blob": "31065be566a0f4705f0e17637b29b57e906320b8",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/rotate-cw.svg",
+      "gpui_blob": "6795f15767d8ae1b56f669aa7a3fe2e99adae6f1",
+      "lucide_blob": "6795f15767d8ae1b56f669aa7a3fe2e99adae6f1"
+    },
+    {
+      "path": "assets/icons/search.svg",
+      "gpui_blob": "03e442a5440cff92c219fe3a3c1f2b0788d30701",
+      "lucide_blob": "03e442a5440cff92c219fe3a3c1f2b0788d30701"
+    },
+    {
+      "path": "assets/icons/settings-2.svg",
+      "gpui_blob": "0a9d29d77781e7d2f7f6db6a8fe4371ae6ff4f84",
+      "lucide_blob": "0a9d29d77781e7d2f7f6db6a8fe4371ae6ff4f84"
+    },
+    {
+      "path": "assets/icons/settings.svg",
+      "gpui_blob": "4c6263af909841a3911f41a385021778eacba736",
+      "lucide_blob": "4c6263af909841a3911f41a385021778eacba736"
+    },
+    {
+      "path": "assets/icons/sort-ascending.svg",
+      "gpui_blob": "bc17bd79fe8349827b4b97b191d89d01d5635205",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/sort-descending.svg",
+      "gpui_blob": "f41eecbebd065e9d3e81d087cb2a012fd2fd24f2",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/square-terminal.svg",
+      "gpui_blob": "1c6a0f3c19c69cacfc567d87b26dee18a2e904dc",
+      "lucide_blob": "1c6a0f3c19c69cacfc567d87b26dee18a2e904dc"
+    },
+    {
+      "path": "assets/icons/square.svg",
+      "gpui_blob": "7862733557b3a069a22721196e0bd6c5c92b9339",
+      "lucide_blob": "7862733557b3a069a22721196e0bd6c5c92b9339"
+    },
+    {
+      "path": "assets/icons/star-fill.svg",
+      "gpui_blob": "3d542a9c1b9a05bf5e96a92a9d6b4e2737cb5427",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/star-off.svg",
+      "gpui_blob": "272ba3b7c71a3840493efa71fbe157086ce393da",
+      "lucide_blob": "272ba3b7c71a3840493efa71fbe157086ce393da"
+    },
+    {
+      "path": "assets/icons/star.svg",
+      "gpui_blob": "b35bedd29fe765b729b3cd790e98574c4afde4c0",
+      "lucide_blob": "b35bedd29fe765b729b3cd790e98574c4afde4c0"
+    },
+    {
+      "path": "assets/icons/sun.svg",
+      "gpui_blob": "3ecadd68c530e3124e6378f32954c27659b79c11",
+      "lucide_blob": "3ecadd68c530e3124e6378f32954c27659b79c11"
+    },
+    {
+      "path": "assets/icons/thumbs-down.svg",
+      "gpui_blob": "870a96acc798106767d7202c8d8469b74e837256",
+      "lucide_blob": "870a96acc798106767d7202c8d8469b74e837256"
+    },
+    {
+      "path": "assets/icons/thumbs-up.svg",
+      "gpui_blob": "573950cd883ef162177694db0b6b3138254b7e74",
+      "lucide_blob": "573950cd883ef162177694db0b6b3138254b7e74"
+    },
+    {
+      "path": "assets/icons/triangle-alert.svg",
+      "gpui_blob": "3232fb062dc26463279016cd7483677de9ef9bbd",
+      "lucide_blob": "3232fb062dc26463279016cd7483677de9ef9bbd"
+    },
+    {
+      "path": "assets/icons/undo-2.svg",
+      "gpui_blob": "3e93594c0a400186e7f6e8f1d3981dc82cffe7e8",
+      "lucide_blob": "3e93594c0a400186e7f6e8f1d3981dc82cffe7e8"
+    },
+    {
+      "path": "assets/icons/undo.svg",
+      "gpui_blob": "a647749e2d9bbde66cac8637f79c9643e5ff7eb0",
+      "lucide_blob": "a647749e2d9bbde66cac8637f79c9643e5ff7eb0"
+    },
+    {
+      "path": "assets/icons/user.svg",
+      "gpui_blob": "8e61592bbf912f26d2e6583dffd9b1e8ebec0193",
+      "lucide_blob": "8e61592bbf912f26d2e6583dffd9b1e8ebec0193"
+    },
+    {
+      "path": "assets/icons/window-close.svg",
+      "gpui_blob": "62b6b0c7daea674db93d6884aee2ce07424ce56d",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/window-maximize.svg",
+      "gpui_blob": "9da4cd7e6cffb50657fbfada19203d545ce2551b",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/window-minimize.svg",
+      "gpui_blob": "708e27bef5157642945588f9a3e1dc9bb67ff1d6",
+      "lucide_blob": null
+    },
+    {
+      "path": "assets/icons/window-restore.svg",
+      "gpui_blob": "896b6b605e7393d480df3e07dd864acf4bddc859",
+      "lucide_blob": null
+    }
+  ]
+}
