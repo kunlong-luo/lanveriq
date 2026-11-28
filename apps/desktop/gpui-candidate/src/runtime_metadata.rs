@@ -82,9 +82,7 @@ enum Query { Package, Unit, DirectLibraries, CosmicComponents }
 
 #[cfg(target_os = "linux")]
 fn query(which: Query) -> Option<String> {
-    use std::io::Read;
-    use std::process::{Command, Stdio};
-    // Coreutils timeout handles TERM/KILL escalation. No shell or caller arguments.
+    // Production callers can only choose the fixed enum above; no UI-supplied arguments.
     const PACKAGE_FORMAT: &str = concat!("$", "{Package}", "|", "$", "{Architecture}", "|", "$", "{Status}", "\\n");
     let args: &[&str] = match which {
         Query::DirectLibraries => &["/usr/bin/dpkg-query", "-W", "-f", PACKAGE_FORMAT,
@@ -97,6 +95,16 @@ fn query(which: Query) -> Option<String> {
             "--property=ActiveState", "--property=UnitFileState", "--property=DropInPaths",
             "--property=NeedDaemonReload", "--", "lanveriq-agent.service"],
     };
+    bounded_query(args)
+}
+
+// Private execution boundary; production arguments originate only from Query.
+// Coreutils timeout handles TERM/KILL escalation. Test-only callers exercise it
+// with disposable fixture programs; no generic command interface is exposed.
+#[cfg(target_os = "linux")]
+fn bounded_query(args: &[&str]) -> Option<String> {
+    use std::io::Read;
+    use std::process::{Command, Stdio};
     let mut child = Command::new("/usr/bin/timeout")
         .args(["--kill-after=1s", "3s"]).args(args)
         .env_clear().env("LANG", "C").env("PATH", "/usr/bin:/bin")
@@ -217,6 +225,38 @@ mod tests {
         workspace.replace_runtime_metadata(HostIdentity::PopOs24Amd64, m);
         workspace.replace_host_identity(HostIdentity::NotChecked);
         assert!(!workspace.runtime_metadata().graphics().attempted());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[ignore = "Explicit disposable non-root Ubuntu process boundary smoke"]
+    fn live_query_boundary_rejects_failed_and_oversize_output() {
+        assert_eq!(bounded_query(&["/usr/bin/printf", "%s", "fixture"]), Some("fixture".into()));
+        assert_eq!(bounded_query(&["/usr/bin/false"]), None);
+        assert_eq!(bounded_query(&["/usr/bin/printf", "\\377"]), None);
+        let exact = "x".repeat(4096);
+        assert_eq!(bounded_query(&["/usr/bin/printf", "%s", &exact]), Some(exact.clone()));
+        let excess = "x".repeat(4097);
+        assert_eq!(bounded_query(&["/usr/bin/printf", "%s", &excess]), None);
+        assert_eq!(bounded_query(&["/usr/bin/yes", "fixture"]), None);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    #[ignore = "Explicit disposable non-root Ubuntu process boundary smoke"]
+    fn live_query_boundary_times_out_and_escalates() {
+        use std::time::{Duration, Instant};
+        let started = Instant::now();
+        assert_eq!(bounded_query(&["/usr/bin/sleep", "30"]), None);
+        assert!(started.elapsed() >= Duration::from_secs(3));
+        assert!(started.elapsed() < Duration::from_secs(10));
+        // Fixed test fixture only: ignore TERM and hold stdout open. Coreutils
+        // must escalate to KILL, and the reader/wait must return no metadata.
+        let started = Instant::now();
+        assert_eq!(bounded_query(&["/usr/bin/python3", "-I", "-c",
+            "import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); print('fixture', flush=True); time.sleep(30)"]), None);
+        assert!(started.elapsed() >= Duration::from_secs(4));
+        assert!(started.elapsed() < Duration::from_secs(12));
     }
 
     #[cfg(target_os = "linux")]
