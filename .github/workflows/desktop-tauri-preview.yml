@@ -108,11 +108,11 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /var/tmp/lanveriq-desktop-apt-archives/*.deb
-          # Updated two-runner signed-index, exact-closure acceptance: #45745618560 (functional SHA d0f93b6c).
+          # Updated two-runner signed-index, exact-closure acceptance: #46113068714 (functional SHA 61b2e9d1).
           # No restore-keys, no prefix fallback and no unreviewed archive source.
-          key: lanveriq-ubuntu24-tauri-apt-v2-7ea38b271819e80608ebc8faedf2e9846799ae777dd881fe0ccd616caf671ca6
+          key: lanveriq-ubuntu24-tauri-apt-v2-3392bf02ea332450b3feb0c7695f30c20c46ed955e58d66aa806e4b86cbc1d84
           fail-on-cache-miss: true
-      - name: Revalidate 176 independently accepted cached Ubuntu native packages and install CI prerequisites without downloading
+      - name: Revalidate 174 independently accepted cached Ubuntu native packages and install CI prerequisites without downloading
         shell: bash
         timeout-minutes: 15
         env:
@@ -127,16 +127,16 @@ jobs:
           archive=/var/tmp/lanveriq-desktop-apt-archives
           # Independently authenticate the CURRENT runner's Ubuntu APT indexes.
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
-            -o APT::Get::AllowUnauthenticated=false update
+            -o APT::Get::AllowUnauthenticated=false -o APT::Update::Error-Mode=any update
           packages=(
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
             libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
           )
           plan="$RUNNER_TEMP/desktop-preview-apt-plan.txt"
-          apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
+          LC_ALL=C apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
           python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
-            --archive-dir "$archive" --expected-count 176 \
-            --expected-manifest 0d72c92f41066df4b98f7dd5fa9d101d2508676d771d0a3b4023b076d4d7da43 \
+            --archive-dir "$archive" --expected-count 174 \
+            --expected-manifest 7dcb274e3d2d2978d8e45f412c36b508aaf4c272235d50da097c990e3fba8458 \
             --expected-plan-file "$plan" \
             --allow-signed-superset
           sudo install -d -o _apt -g root -m 700 "$archive/partial"
