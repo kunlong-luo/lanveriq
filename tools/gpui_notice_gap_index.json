@@ -1,9 +1,9 @@
 {
   "schema": "lanveriq.gpui.notice-gap-review-input-v1",
-  "lock_sha256": "0f77a9e9df9f3ff03612f22f4777de7d7ebf2cd65b69fc79d18a2ed05e37dad9",
-  "supply_chain_source": "39db84ef39ac70414e7d3b1a1821d5ec14699f45",
-  "supply_chain_artifact": 15248992549,
-  "supply_chain_zip_sha256": "9a8a78c88607ddb92e9445b57c9a31da9282d84aee2751b4e24ed526b5baff58",
+  "lock_sha256": "747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887",
+  "supply_chain_source": "8bd35b22698a3113ec833267788a447c8f79624c",
+  "supply_chain_artifact": 15258190239,
+  "supply_chain_zip_sha256": "a647b3c2d63ff54b3f1794ae6d03e84068ac0ff71d51ab3f7cae7f8b91a677b1",
   "debian_artifact": 15248392436,
   "groups": [
     {
