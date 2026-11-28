@@ -44,7 +44,7 @@ impl Page {
         match self {
             Self::Overview => "设备概览",
             Self::Setup => "安装向导",
-            Self::Configuration => "服务器设置",
+            Self::Configuration => "连接配置",
             Self::Enrollment => "设备注册",
             Self::Service => "代理服务",
             Self::Diagnostics => "安全诊断",
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn navigation_labels_are_distinct_four_han_characters() {
         let labels = Page::ALL.map(Page::label);
-        assert_eq!(labels, ["设备概览", "安装向导", "服务器设置", "设备注册", "代理服务", "安全诊断", "关于软件"]);
+        assert_eq!(labels, ["设备概览", "安装向导", "连接配置", "设备注册", "代理服务", "安全诊断", "关于软件"]);
         assert!(labels.iter().all(|label| label.chars().count() == 4 &&
             label.chars().all(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch))));
         assert_eq!(labels.into_iter().collect::<HashSet<_>>().len(), 7);
