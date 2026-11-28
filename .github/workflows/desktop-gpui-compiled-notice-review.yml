@@ -64,12 +64,7 @@ jobs:
               print(a["id"], a["digest"].split(":")[1], sep="\t")
           PY
           args=()
-          while IFS=        with:
-          name: gpui-compiled-notice-review-NOT-FOR-DISTRIBUTION
-          path: compiled-notice-review.json
-          if-no-files-found: error
-          retention-days: 7
-\t' read -r id digest; do
+          while read -r id digest; do
             gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "$id.zip"
             args+=("$id.zip" "$digest")
           done < receipts.tsv
