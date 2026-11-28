@@ -158,6 +158,22 @@ jobs:
           set -o pipefail
           timeout --kill-after=5s 100s xvfb-run -a -s "-screen 0 1280x800x24 -nolisten tcp" \
             dbus-run-session -- /usr/bin/python3 tools/window_smoke.py | tee candidate-window-smoke.txt
+      - name: Exercise actual native keyboard navigation, theme and resize (synthetic X11)
+        run: |
+          /usr/bin/python3 -m unittest discover -s tools -p test_ui_interaction_smoke.py -v
+          set -o pipefail
+          timeout --kill-after=5s 180s xvfb-run -a -s "-screen 0 1280x800x24 -nolisten tcp" \
+            dbus-run-session -- /usr/bin/python3 tools/ui_interaction_smoke.py | tee candidate-ui-interaction.txt
+      - name: Archive bounded interaction results (no pixels or binaries)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-candidate-ui-interaction
+          path: |
+            apps/desktop/gpui-candidate/candidate-ui-interaction.json
+            apps/desktop/gpui-candidate/candidate-ui-interaction.txt
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Inspect observed X11 libraries and installed APT dependency graph (no install)
         run: |
           /usr/bin/python3 -m unittest discover -s tools -p test_runtime_evidence.py -v

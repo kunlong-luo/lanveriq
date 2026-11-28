@@ -41,7 +41,7 @@ def stop(process):
             process.kill()
             process.wait(timeout=5)
 
-def main(binary=BINARY, evidence=True, measure=None):
+def main(binary=BINARY, evidence=True, measure=None, interaction=None):
     assert os.getuid() != 0 and os.geteuid() != 0
     assert binary.is_file() and not binary.is_symlink()
     with tempfile.TemporaryDirectory(prefix="lanveriq-window-smoke-") as temp:
@@ -96,6 +96,8 @@ def main(binary=BINARY, evidence=True, measure=None):
                 wait_for(colors)
                 assert app.poll() is None
                 print("PASS: native window resized and nonuniform pixels observed", flush=True)
+                if interaction is not None:
+                    interaction(app, wid, env, geometry)
                 snapshot = capture_child(app, binary) if evidence else None
                 command(["/usr/bin/xdotool", "windowactivate", "--sync", wid], env)
                 command(["/usr/bin/xdotool", "key", "--clearmodifiers", "ctrl+q"], env)
