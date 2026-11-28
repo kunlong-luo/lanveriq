@@ -80,7 +80,7 @@ python3 apps/desktop/tools/owner_kde_x11_review.py
 
 十二项工具仅在当前本地活动 KDE/X11 会话运行；已有观察不作废，不虚填未测项目。以下 COSMIC 指令仅供未来独立兼容环境使用，不要求当前维护者执行。
 
-当前所有人历史 KDE/X11 七项功能通过；不要求重复原七项 KDE 演示，不当作 COSMIC。自动端以修正后 [#46127948779](https://github.com/kunlong-luo/lanveriq/actions/runs/46127948779) 的实际 clean OCI 结果为准：audit/supply 与原生 X11 交互已通过，Release build IN_PROGRESS，clean APT NOT RUN（本次核查）。若失败只修复具体失败；若通过仍仅为五项直接 ABI 解析，不以其代替全运行时/真实系统。历史先前 Release、图标和新版材料已验，不因文档改动重复运行。
+当前所有人历史 KDE/X11 七项功能通过；不要求重复原七项 KDE 演示，不当作 COSMIC。自动端以修正后 [#46127948779](https://github.com/kunlong-luo/lanveriq/actions/runs/46127948779) 的实际 clean OCI 结果为准：四jobs全 SUCCESS，clean APT 2/2、92基础包、9计划安装/配置、0移除、dpkg状态不变、五项直接floor满足；新KDE适配源码2ab63895另行CI，勿混用旧ELF。若失败只修复具体失败；若通过仍仅为五项直接 ABI 解析，不以其代替全运行时/真实系统。历史先前 Release、图标和新版材料已验，不因文档改动重复运行。
 
 若登录管理器已经提供 COSMIC，保存工作后正常注销并选择该真实本地 Wayland 会话；未提供则记录 NOT_RUN，不安装/切换桌面软件或伪造 XDG 环境。普通用户在已信任、候选目录无本地改动的仓库根目录运行：
 
