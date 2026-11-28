@@ -1,0 +1,22 @@
+name: GPUI linker map fixture (nonrelease)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/gpui_link_map.py'
+      - 'tools/test_gpui_link_map.py'
+      - '.github/workflows/desktop-gpui-link-map-fixture.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.100.0 --profile minimal
+      - name: Test real minimal Cargo LLD map and negative cases
+        run: GPUI_LINK_REAL_TEST=1 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_link_map.py -v
