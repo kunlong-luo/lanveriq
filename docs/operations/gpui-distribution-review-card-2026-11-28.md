@@ -64,7 +64,7 @@
 | 权利人/维护者 | 本地产品许可与适用范围、贡献权属、发行渠道 | OPEN |
 | 法务/许可 | 522行及其他发行范围的审查结论、22缺项处理、SPDX 分支、原始文本与附加义务、资源来源及许可 | OPEN |
 | 工程/发行 | 同功能 SHA+lock+ELF、包摘要、精确资源检查、发行 SBOM、适用 NOTICE/版权材料与受控证据保管 | OPEN |
-| 设备所有人/UX | 实际 COSMIC/Wayland、IME、DPI、完整键盘/关闭及受限操作；独立 L3 不由合成 CI 替代 | OPEN |
+| 设备所有人/UX | 首要本机 KDE/X11：真实刷新、四字对齐、IME、DPI、完整键盘/关闭及受限操作；COSMIC/Wayland 与 KDE/Wayland 独立兼容验收；独立 L3 不由合成 CI 替代 | OPEN |
 | 安全/发行 | 真实授权、签名、清洁 ABI、回退及其余 G-01–G-10 的批准 | OPEN |
 
 完成后在真实审批记录写入责任人、日期、范围、确切发行 SHA/包摘要、证据摘要与保管位置、结论（批准/拒绝/待补证）。未获批准不得改写 OPEN，不构建发布用 NOTICE，不发包，不删除 Tauri，不开启 Agent 权限。该卡是审批入口，不是发布许可或法律意见。
@@ -106,3 +106,5 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 ## 7. 当前设计基线与历史材料边界
 
 2026-11-28：实际 KDE 适配 [#46128826401](https://github.com/kunlong-luo/lanveriq/actions/runs/46128826401)、实际本机 OS/CPU/RAM 功能 [#46129584167](https://github.com/kunlong-luo/lanveriq/actions/runs/46129584167) 四jobs全 SUCCESS；新锁 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887，后者 ELF 85bbe31034bcaab42fdbdf0870f7a4a3050932a68780e2524be1131b1e4ef1b9。Release association 实际仍22缺项；归档 [15257710474](https://github.com/kunlong-luo/lanveriq/actions/runs/46129584167/artifacts/15257710474) SHA256 940b99668609f4dc343544ec6dbf78226813e7ff7da710545d5e040dff215e03（仅日志与metadata已核）。当前设计 [26714637](https://github.com/kunlong-luo/lanveriq/commit/267146374dcb67f0e5801f8e9fc29b2d708da2dc) [#46130309195](https://github.com/kunlong-luo/lanveriq/actions/runs/46130309195) supply SUCCESS（569 SBOM pairs/46 extras/0 graph missing/22 gaps），native仍运行。第1、2节f4bd6fde独立解包材料仅作历史佐证，不能作为新锁或ELF已审批材料；最终设计功能CI完成后集中绑定新产物，法律22缺项、产品许可、正式NOTICE及独立审批不自动关闭。当前本机仅KDE/X11，不强制切换；无需重复旧七项演示，最终报告补真实刷新、对齐、未测项和精确SHA/ELF。
+
+四字菜单修正 [#46129951995](https://github.com/kunlong-luo/lanveriq/actions/runs/46129951995) 四jobs SUCCESS，确切 ELF 111db67b1d3978dbb58326fd0a010b106a17be3726c4fdbd47b8d97770a11861；22材料缺项保持OPEN。设计初版 #46130309195 原生失败 E0599，修正8bd35b22仅导入公开 trait，[#46130643220](https://github.com/kunlong-luo/lanveriq/actions/runs/46130643220) 供链已成功，最终原生验收仍待。无需为中间版重新组装材料；仅最终功能ELF绑定后交审批。未取得产品权属许可、第三方材料确认或独立签署；不以新测试替代批准。

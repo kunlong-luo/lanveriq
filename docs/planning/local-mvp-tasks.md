@@ -368,6 +368,8 @@
 
 - **2026-11-28 实际布局 CI 失败与最小修复**：[26714637 / #46130309195](https://github.com/kunlong-luo/lanveriq/actions/runs/46130309195) candidate140933768068 FAIL，库24 PASS/4 ignored，binary test 编译 E0599 两处（main.rs:203、228 的 .when 缺 FluentBuilder trait；编译器明确建议 gpui_kit::prelude::FluentBuilder），原生窗口/打包/Release及关联 NOT RUN；dependency-audit 与 supply SUCCESS。仅按编译器提示导入该公开 trait，不改布局/锁/权限/测试阈值。基线ff6d2cb4 docs #46130550197、Next #46130550261、RD2 #46130550170、preview #46130550191 全SUCCESS。新修复原生CI待验，仍BLOCKED，71/100，7/16，不进入MVP09。
 
+- **2026-11-28 四字菜单全量验收已通过；最终布局仅待修复后原生结果**：[07b190f7 / #46129951995](https://github.com/kunlong-luo/lanveriq/actions/runs/46129951995) 四jobs SUCCESS；candidate140932708241 实际库24 PASS/4 ignored（四汉字断言PASS）、bin4/4（真实非root Linux摘要PASS）、显式identity/runtime各1 PASS、七页键盘/主题/缩放、clean OCI 92/9/0/五floor/不变；Release ELF 111db67b1d3978dbb58326fd0a010b106a17be3726c4fdbd47b8d97770a11861；association140935139267仍22材料缺项。此非新布局的 ELF。当前 [8bd35b22 / #46130643220](https://github.com/kunlong-luo/lanveriq/actions/runs/46130643220) docs #46130643125、Next #46130643209、RD2 #46130643202、preview #46130643203 全SUCCESS；供链已PASS，native/audit待最终结果（核查时）。不再新增布局功能；完成自动验收后只需最终产物绑定、维护者在KDE/X11补充真实刷新/四字对齐/缺失交互的观察和产品许可权属/第三方材料审批。审批卡责任人一栏明确区分本机KDE与独立发行平台，不用COSMIC阻挡本机验收。未改变权利人/法务审批、不代签、不删除旧Tauri；71/100、7/16、MVP08 BLOCKED，不进MVP09。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
