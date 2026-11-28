@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机 PASS，非独立 L3。MVP-08 **BLOCKED**：GPUI [全量 #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) 三 jobs PASS；[任务账本](planning/local-mvp-tasks.md)保存全部 CI 与下一步。按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri 回退；22 许可缺项（材料草案 PASS，图标来源复验 PASS）；Release/ABI/合成 Wayland、LLD 关联 PASS；KDE七页截图；COSMIC未测；同机各3/3 PASS；UI/主题全量PASS；响应式/交互待验。
+**MVP-01～07 DONE（7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机 PASS，非独立 L3。MVP-08 **BLOCKED**：GPUI [全量 #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) 三 jobs PASS；[任务账本](planning/local-mvp-tasks.md)保存全部 CI 与下一步。按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri 回退；22 许可缺项（材料草案 PASS，图标来源复验 PASS）；Release/ABI/合成 Wayland、LLD 关联 PASS；KDE七页截图；COSMIC未测；同机各3/3 PASS；UI/主题全量PASS；[响应式全量 #46117531507](https://github.com/kunlong-luo/lanveriq/actions/runs/46117531507) 四 jobs PASS；维护者本机七项功能 7/7 PASS（未绑定本机 SHA/ELF，非完整12项报告）；[交互 #46117984528](https://github.com/kunlong-luo/lanveriq/actions/runs/46117984528) 第六步 FAIL，双区域探测修复候选 a31aa132 [#46118768458](https://github.com/kunlong-luo/lanveriq/actions/runs/46118768458) 待验。下一步仅核实修复 CI，再处理其余实机/发行门禁。
 
 ## 最近确实通过的关键验收
 
