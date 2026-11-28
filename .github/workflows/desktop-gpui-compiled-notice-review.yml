@@ -12,7 +12,7 @@ on:
         description: "Successful GPUI full CI run with Link Map artifact (empty: historical compiler-only review)"
         required: false
         type: string
-        default: ""
+        default: "46110133934"
 permissions:
   contents: read
   actions: read
@@ -27,7 +27,7 @@ jobs:
       - name: Test archive integrity and package association
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_compiled_notice_review.py -v
       - name: Join existing verified CI archives (no compilation)
-        if: github.event_name != 'workflow_dispatch' || inputs.release_run_id == ''
+        if: github.event_name == 'workflow_dispatch' && inputs.release_run_id == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -40,10 +40,10 @@ jobs:
             15248632946.zip 7403a2541414eb66db5514361e71b326227b5b48cddbbd2f9933b9ff93ce9e1e \
             15248859534.zip 003b3fac7425d25b5e2ca4055e94ec71ae40150cf33f8fecd39feb7a1df94619
       - name: Join successful Link Map run and existing notice material
-        if: github.event_name == 'workflow_dispatch' && inputs.release_run_id != ''
+        if: github.event_name != 'workflow_dispatch' || inputs.release_run_id != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          RELEASE_RUN_ID: ${{ github.event_name == 'push' && '46110133934' || inputs.release_run_id }}
         run: |
           set -euo pipefail
           [[ "$RELEASE_RUN_ID" =~ ^[0-9]+$ ]]
