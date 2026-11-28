@@ -1,0 +1,35 @@
+name: GPUI Debian source corroboration (nonrelease)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/gpui_debian_source_review.py'
+      - 'tools/test_gpui_debian_source_review.py'
+      - '.github/workflows/desktop-gpui-debian-source-review.yml'
+      - 'apps/desktop/gpui-candidate/Cargo.lock'
+      - 'apps/desktop/gpui-candidate/Cargo.lock.sha256'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test archive comparison and rejection
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_debian_source_review.py -v
+      - name: Compare original archives without extraction or compilation
+        run: |
+          git ls-files --error-unmatch apps/desktop/gpui-candidate/Cargo.lock
+          python3 tools/gpui_debian_source_review.py
+          git diff --exit-code -- apps/desktop/gpui-candidate/Cargo.lock
+      - name: Archive review metadata only
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-debian-source-review
+          path: gpui-debian-source-review.json
+          if-no-files-found: error
+          retention-days: 7
