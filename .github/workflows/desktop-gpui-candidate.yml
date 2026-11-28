@@ -5,6 +5,8 @@ on:
     paths:
       - 'apps/desktop/gpui-candidate/**'
       - '.github/workflows/desktop-gpui-candidate.yml'
+      - 'tools/gpui_release_license.py'
+      - 'tools/test_gpui_release_license.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -189,9 +191,21 @@ jobs:
           retention-days: 7
       - name: Build optimized Release profile (nonrelease evidence only)
         run: |
-          cargo +1.100.0 build --locked --release --bin lanveriq-desktop-gpui-candidate
+          cargo +1.100.0 build --locked --release --bin lanveriq-desktop-gpui-candidate --message-format=json-render-diagnostics > candidate-release-build.jsonl
           sha256sum --check --strict Cargo.lock.sha256
           git diff --exit-code -- Cargo.toml Cargo.lock
+      - name: Capture Release compiler artifacts (no raw messages or binary upload)
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ../../../tools -p test_gpui_release_license.py -v
+          python3 ../../../tools/gpui_release_license.py capture
+          rm candidate-release-build.jsonl
+      - name: Archive Release compiler artifact metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-release-compiler-artifacts
+          path: apps/desktop/gpui-candidate/candidate-release-artifacts.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Audit temporary optimized GUI-only deb (never install)
         run: |
           set -o pipefail
@@ -316,4 +330,29 @@ jobs:
             apps/desktop/gpui-candidate/bom.json
             apps/desktop/gpui-candidate/candidate-supply-chain.json
           if-no-files-found: ignore
+          retention-days: 7
+  release-license-association:
+    needs: [candidate, supply-chain-evidence]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: gpui-release-compiler-artifacts
+          path: release-evidence
+      - uses: actions/download-artifact@v4
+        with:
+          name: gpui-candidate-supply-chain
+          path: supply-evidence
+      - name: Associate exact-source compiler artifacts and license inventory
+        run: |
+          python3 tools/gpui_release_license.py reconcile release-evidence/candidate-release-artifacts.json supply-evidence/candidate-supply-chain.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gpui-release-license-association
+          path: candidate-release-license-association.json
+          if-no-files-found: error
           retention-days: 7
