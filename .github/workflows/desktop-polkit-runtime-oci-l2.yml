@@ -79,7 +79,6 @@ jobs:
             --entrypoint /bin/bash \
             lanveriq-polkit-runtime-ci-only:local -seuo pipefail \
             < apps/desktop/tools/test_polkit_runtime_oci.sh
-          python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_gpui_readonly.py
           echo 'PASS: native OS authorization check is L2-only and has not enabled Tauri install'
       - name: Real root-side D-Bus review verifies sender Unix credentials and refuses replay
@@ -97,7 +96,6 @@ jobs:
             --entrypoint /bin/bash \
             lanveriq-polkit-runtime-ci-only:local -seuo pipefail \
             < apps/desktop/tools/test_polkit_dbus_broker_oci.sh
-          python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_gpui_readonly.py
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
           echo 'PASS: root-side OCI D-Bus peer review did not create an installer or grant Polkit authorization'
@@ -119,7 +117,6 @@ jobs:
             --entrypoint /bin/bash \
             lanveriq-polkit-runtime-ci-only:local -seuo pipefail \
             < apps/desktop/tools/test_polkit_overriding_rules_oci.sh
-          python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_gpui_readonly.py
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
           echo 'PASS: actual OS Polkit YES cannot bypass independent release denial'

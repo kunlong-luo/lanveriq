@@ -30,7 +30,7 @@ jobs:
           set -Eeuo pipefail
           gh --version
           gh attestation verify --help >/dev/null
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
       - name: Enforce receiver-side provenance intake contract with synthetic negatives
         run: |
           set -Eeuo pipefail

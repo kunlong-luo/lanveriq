@@ -6,22 +6,16 @@ on:
   push:
     branches: [main]
     paths:
+      - 'apps/desktop/gpui-candidate/src/**'
+      - 'apps/desktop/gpui-candidate/Cargo.toml'
+      - 'apps/desktop/tools/verify_gpui_readonly.py'
+      - 'apps/desktop/tools/test_verify_gpui_readonly.py'
       - 'apps/desktop/tools/verify_desktop_agent_install_intent.py'
       - 'apps/desktop/tools/test_verify_desktop_agent_install_intent.py'
       - 'apps/desktop/tools/verify_desktop_polkit_review.py'
       - 'apps/desktop/tools/test_verify_desktop_polkit_review.py'
       - 'apps/desktop/polkit/**'
       - 'docs/planning/desktop-agent-install-intent-deny-all.json'
-      - 'apps/desktop/src/safety.ts'
-      - 'apps/desktop/src/DesktopApp.tsx'
-      - 'apps/desktop/src/InstallReviewPanel.tsx'
-      - 'apps/desktop/src/install-review.ts'
-      - 'apps/desktop/src/install-review.test.ts'
-      - 'apps/desktop/src/InstallReviewPanel.test.tsx'
-      - 'apps/desktop/tools/verify_desktop_readonly.py'
-      - 'apps/desktop/tools/test_verify_desktop_readonly.py'
-      - 'apps/desktop/src-tauri/src/**'
-      - 'apps/desktop/src-tauri/capabilities/**'
       - '.github/workflows/desktop-agent-install-intent-offline.yml'
   workflow_dispatch:
 
@@ -52,12 +46,12 @@ jobs:
           python3 -m unittest discover -s apps/desktop/tools \
             -p 'test_verify_desktop_polkit_review.py' -v
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
-      - name: Require design-only sample to DENY and original GUI to remain readonly
+      - name: Require design-only sample to DENY and native GUI to remain readonly
         run: |
           set -Eeuo pipefail
           python3 apps/desktop/tools/verify_desktop_agent_install_intent.py \
             --intent docs/planning/desktop-agent-install-intent-deny-all.json | grep -Fx \
             'DENIED: design-only Agent install intent, no publisher, signed package, polkit approval or PopOS L3'
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
           python3 apps/desktop/tools/verify_desktop_release_evidence_boundary.py
           echo 'PASS: dry design protocol has no approved install/signing/polkit/production authority'

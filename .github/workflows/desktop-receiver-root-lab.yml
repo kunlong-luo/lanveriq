@@ -40,7 +40,7 @@ jobs:
       - name: Refuse any production install or release claims
         run: |
           set -Eeuo pipefail
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
           python3 apps/desktop/tools/verify_desktop_release_evidence_boundary.py
           python3 apps/desktop/tools/verify_desktop_agent_install_intent.py \
             --intent docs/planning/desktop-agent-install-intent-deny-all.json \

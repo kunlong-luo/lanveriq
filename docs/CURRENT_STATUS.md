@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（7/16）；MVP-08 IN PROGRESS。** GPUI 原生 CI、许可工程材料及 KDE/X11 所有人验收 12/12 PASS（非独立 L3）；独立只读守卫 CI PASS。待唯一入口迁移及受影响 CI。COSMIC 未测，发行 Gate OPEN。见 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](planning/local-mvp-tasks.md)。
+**MVP-01～07 DONE（7/16）；MVP-08 IN PROGRESS。** GPUI 原生 CI、许可工程材料及 KDE/X11 所有人验收 12/12 PASS（非独立 L3）；独立只读守卫 CI PASS。迁移前六项 CI PASS；16 个保留工作流已改用 GPUI 守卫，待唯一入口迁移及受影响 CI。COSMIC 未测，发行 Gate OPEN。见 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 

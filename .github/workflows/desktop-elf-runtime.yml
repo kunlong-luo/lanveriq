@@ -31,7 +31,7 @@ jobs:
           command -v readelf && readelf --version | head -n 1
           command -v cc && cc --version | head -n 1
           command -v dpkg-deb
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
       - name: Compile synthetic ELF but NEVER execute and test readelf fail-closed assertions
         run: |
           set -Eeuo pipefail

@@ -26,6 +26,6 @@ jobs:
       - name: Enforce read-only GUI and payload byte consistency
         run: |
           set -Eeuo pipefail
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_payload_evidence.py' -v
           echo 'PASS: synthetic L1 only; native Debian Syft payload scan NOT RUN in this job'

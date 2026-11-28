@@ -40,7 +40,7 @@ jobs:
           assert len(groups)==2 and len(groups[1])==2
           print("PASS: REAL system apt_pkg accepts versioned ABI dependencies and OR groups")
           PY
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
       - name: Negative tests without executing, installing or uploading GUI
         shell: bash
         run: |

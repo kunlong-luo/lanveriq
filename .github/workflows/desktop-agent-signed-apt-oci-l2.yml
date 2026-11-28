@@ -122,7 +122,6 @@ jobs:
           python3 apps/desktop/tools/verify_desktop_agent_signed_apt_oci_lab.py \
             "$LANVERIQ_L2B23_TEMP/lanveriq-agent-offline-preview_0.1.0~dev1_amd64.deb" \
             "$GITHUB_WORKSPACE/l2b31-historical/apps/agent/target/release/lanveriq-agent"
-          python3 apps/desktop/tools/verify_desktop_readonly.py
           python3 apps/desktop/tools/verify_gpui_readonly.py
           python3 apps/desktop/tools/verify_desktop_polkit_review.py
           echo 'PASS: 20 native OCI APT cases incl cold-cache jointly replayed signed Packages/witness rejected by separately RO-mounted CI anchor; still NO independent high-water'

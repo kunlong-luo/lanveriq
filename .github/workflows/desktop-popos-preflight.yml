@@ -25,7 +25,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Enforce source offline and no installer release
-        run: python3 apps/desktop/tools/verify_desktop_readonly.py
+        run: python3 apps/desktop/tools/verify_gpui_readonly.py
       - name: Strict source-only negative tests (no PopOS hardware assumed)
         run: |
           set -Eeuo pipefail

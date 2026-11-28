@@ -27,7 +27,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           /usr/bin/python3 -c 'import apt; c=apt.Cache(); assert c["libc6"].installed is not None; print("PASS: maintained python-apt read-only installed cache")'
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
       - name: Fail-closed dependency graph OR groups and forged authority negatives
         shell: bash
         run: |

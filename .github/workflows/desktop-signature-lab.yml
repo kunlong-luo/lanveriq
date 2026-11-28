@@ -10,7 +10,7 @@ on:
       - 'apps/desktop/tools/verify_desktop_candidate_evidence.py'
       - 'apps/desktop/tools/verify-desktop-deb.py'
       - 'apps/desktop/tools/test_verify_desktop_deb.py'
-      - 'apps/desktop/tools/verify_desktop_readonly.py'
+      - 'apps/desktop/tools/verify_gpui_readonly.py'
       - '.github/workflows/desktop-signature-lab.yml'
   workflow_dispatch:
 permissions:
@@ -30,7 +30,7 @@ jobs:
       - name: Assert read-only GUI and OpenSSL 3 test environment
         run: |
           set -Eeuo pipefail
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
           openssl version
           test "$(openssl version | cut -d ' ' -f 2 | cut -d '.' -f 1)" = "3"
           test -x /usr/bin/dpkg-deb

@@ -23,7 +23,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Refuse source-controlled installer/Agent activation
-        run: python3 apps/desktop/tools/verify_desktop_readonly.py
+        run: python3 apps/desktop/tools/verify_gpui_readonly.py
       - name: Verify 16 clean OCI apt -s proof tests without Docker or install
         run: |
           set -Eeuo pipefail

@@ -25,6 +25,6 @@ jobs:
       - name: Read-only L1 Debian metadata input invariants
         run: |
           set -Eeuo pipefail
-          python3 apps/desktop/tools/verify_desktop_readonly.py
+          python3 apps/desktop/tools/verify_gpui_readonly.py
           python3 -m unittest discover -s apps/desktop/tools -p 'test_verify_desktop_ubuntu_runtime_packages.py' -v
           echo 'PASS: synthetic package owner/version/metadata refusal checks ONLY; actual Tauri ELF must pass separate native job'
