@@ -1,0 +1,22 @@
+name: GPUI owner KDE X11 review helper (nonrelease)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/owner_kde_x11_review.py'
+      - 'apps/desktop/tools/test_owner_kde_x11_review.py'
+      - 'apps/desktop/gpui-candidate/tools/owner_cosmic_review.py'
+      - '.github/workflows/desktop-gpui-owner-kde-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  owner-kde-helper:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify separate KDE scope and fail-closed owner report (no GUI)
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s apps/desktop/tools -p test_owner_kde_x11_review.py -v
