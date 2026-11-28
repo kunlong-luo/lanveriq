@@ -8,8 +8,8 @@ on:
     branches: [main]
     paths:
       - 'apps/desktop/tools/verify_gpui_readonly.py'
-      - 'apps/desktop/gpui-candidate/src/**'
-      - 'apps/desktop/gpui-candidate/Cargo.toml'
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/Cargo.toml'
       - 'apps/agent/src/**'
       - 'apps/agent/Cargo.toml'
       - 'apps/agent/Cargo.lock'

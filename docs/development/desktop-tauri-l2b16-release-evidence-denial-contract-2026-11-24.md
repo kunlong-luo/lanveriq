@@ -11,7 +11,7 @@
 - [版本化证据文件](../../docs/planning/desktop-release-evidence-boundary.json)：只记录历史 GUI-only Ubuntu24 L2 的精确 source SHA、run ID/attempt、未签名 Debian 包名与 SHA256、Ubuntu OCI digest，以及独立桌面原生预览的精确 SHA/run。将真正 Agent 安装、生产发行授权、WORM、法律、运营、完整 UX 和 Pop!_OS24 COSMIC 物理 L3 均显式标记为 OPEN/NOT RUN/NOT APPROVED/OFF。
 - [拒绝优先的 Python 标准库验证器](../../apps/desktop/tools/verify_desktop_release_evidence_boundary.py)：拒绝未知/缺失字段、重复 JSON key、符号链接、过大记录、非标准 JSON 值、虚构或漂移的 CI 源码/哈希、把 unsigned 标成正式签名、包上传/安装、伪造 PoP!_OS 实机成功，以及任何生产功能权限开启。只**核对已提交记录与固定已审历史事实**，不访问生产系统。
 - [30 项独立合成正负测试](../../apps/desktop/tools/test_verify_desktop_release_evidence_boundary.py) 和 [独立 GitHub Actions](../../.github/workflows/desktop-release-boundary-offline.yml)：Ubuntu24、contents:read、no secrets、无包下载、无 polkit/sudo/安装、无发布上传，在 push 上校验 JSON 与桌面现有 source-level 只读锁。工作流改变只影响这个快速安全检查，不强制重跑耗时原生打包。
-- 既有 [verify_desktop_readonly.py](../../apps/desktop/tools/verify_desktop_readonly.py) 继续把 Tauri 两个 IPC、关闭的 bundle、没有 tray/autostart/network 权限与 React release gates 作为独立真实源码断言；新 JSON **不是**可开启功能的配置，绝不反向驱动 React/Rust 功能开关。
+- 既有 [verify_desktop_readonly.py](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop/tools/verify_desktop_readonly.py) 继续把 Tauri 两个 IPC、关闭的 bundle、没有 tray/autostart/network 权限与 React release gates 作为独立真实源码断言；新 JSON **不是**可开启功能的配置，绝不反向驱动 React/Rust 功能开关。
 
 **实际 CI 证据：** [desktop release-boundary #45324049249](https://github.com/kunlong-luo/lanveriq/actions/runs/45324049249) 在 SHA dc82b821 上 **overall SUCCESS**：30 项合成测试和当前只读源码 guard 均通过。验收级别 **L1 离线仓库证据一致性**，不包括签名验证、组织认可、可信时间、撤销、真实 .deb 分发或 Pop!_OS 实机。
 

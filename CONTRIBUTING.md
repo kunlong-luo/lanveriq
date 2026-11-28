@@ -1,6 +1,6 @@
 # Contributing to Lanveriq
 
-**Active 2026-11-24 · v0.1 NOT RELEASE READY.** Java25/Gradle/Spring Boot4.2/PostgreSQL18.7, Rust1.100/SQLx SQLite, Next.js16.4.5 in `apps/web`, and Tauri2 read-only GUI in `apps/desktop` are real source projects with **real synthetic CI**, but are not approved for production or actual employee data. Earlier claims that there was no code and only unit tests would be added later are superseded.
+**Active 2026-11-24 · v0.1 NOT RELEASE READY.** Java25/Gradle/Spring Boot4.2/PostgreSQL18.7, Rust1.100/SQLx SQLite, Next.js16.4.5 in `apps/web`, and GPUI Kit native Rust read-only GUI in `apps/desktop` are real source projects with **real synthetic CI**, but are not approved for production or actual employee data. Earlier claims that there was no code and only unit tests would be added later are superseded.
 
 Read [AGENTS](AGENTS.md), [CURRENT_STATUS](docs/CURRENT_STATUS.md), [engineering playbook](docs/governance/engineering-playbook.md), [DoD](docs/planning/definition-of-done.md), [documentation lifecycle](docs/governance/document-lifecycle.md), [release gaps](docs/planning/release-gap-register.md) before editing.
 

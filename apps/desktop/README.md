@@ -1,63 +1,43 @@
-# Lanveriq Desktop — Tauri 2 安装准备/状态预览（不可安装）
+# Lanveriq Desktop — GPUI native Rust (nonrelease)
+**ACTIVE SOURCE · v0.1 NOT RELEASE READY.** Sole local desktop source after the KDE/X11 12/12 owner review; post-cutover CI is pending. This is not a shipping installer.
+It uses the upstream GPUI Kit 0.11.0 facade and its matched GPUI snapshot (0.3.14).
+No direct Agent IPC, database, network, certificate, privilege or installation interface is implemented. The manual host probe reads /proc/self/status and /etc/os-release, then invokes only fixed local dpkg-query and systemctl show commands through coreutils timeout, and checks fixed legacy leaf symlink metadata. No arbitrary command, path, environment, raw output or background polling; no shell, writes or service mutation.
+The [native desktop design system](../../docs/development/desktop-design-system.md) is the active visual/layout specification. The seven destinations provide native navigation with uniform four-Han-character Chinese labels (设备概览、安装向导、连接配置、设备注册、代理服务、安全诊断、关于软件). Page headings, accessible names and compact tooltips use the same label; stable page IDs and actions are unchanged. Configuration now previews the existing AgentConfig v1 idle interval choices (15/30/60/120/300 seconds, default 30), in memory only; leaving the page resets the selection. Setup displays seven review gates and four independent notice acknowledgments, reset on leaving the page or replacing host evidence. Diagnostics displays a selectable redacted v1 report with explicit unknown defaults and allowlisted advisory projections. Identity, package and systemd metadata feed review and diagnostics, with stale results cleared during a manual background refresh. Failed/absent query output stays unknown. GPUI-specific preflight uses the same bounded query path for the five direct ELF dependency packages and (only for a COSMIC Wayland claim) three fixed COSMIC component packages, plus a bounded classification of KDE/X11, KDE/Wayland or COSMIC/Wayland from the same three XDG variables. KDE never requires COSMIC components. Unknown/ambiguous claims stay unverified. The diagnostic retains its historical COSMIC field and adds fixed desktop claim/preflight fields after inspection. No raw environment values are retained. Even complete metadata is not an ABI, GPU, compositor, window or installation proof. These offline branches cover the accepted local review scope, and acknowledging notices grants no authority.
+The Overview additionally displays an explicit manual local OS/version/kernel, CPU model/core-count and total/available RAM snapshot. It uses the already resolved sysinfo 0.31.4 with only the direct system feature; no process/user/network/disk refresh, no hostname, no persistent or diagnostic-export fields. The same manual refresh clears old values before a background read; missing values remain unknown. The sidebar uses a full-width left-start/vertically centered content slot inside the native focusable Button; compact mode retains centered icons. Historical Tauri source is preserved only in [Git rollback](https://github.com/kunlong-luo/lanveriq/tree/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop), not as a second active desktop. Generic security labs and their inert Polkit fixture remain.
 
-**ACTIVE SOURCE / NONINSTALLING PREVIEW · Tauri 2 / Rust 1.100 / React 19 / Vite 8 / Tailwind 4 · v0.1 NOT RELEASE READY。**
+The original Cargo.lock from the successful native build (d7185887) and its SHA-256 are committed together. Both CI jobs require the tracked lock, reject digest drift and never regenerate it. This is a nonrelease candidate resolution, not product license/security approval. Do not update the lock or digest merely to make CI green. The Linux normal/build graph and direct ELF dependency evidence are archived separately; neither proves a real window or all runtime dependencies. Do not distribute this candidate.
+The candidate has a stable native window title and Ctrl+Q quit action. CI launches the compiled binary in a disposable, non-root Xvfb/Openbox session with software rendering and a private D-Bus session, verifies mapping, nonuniform window pixels, resize, and clean quit, and records text-only evidence. This is X11 synthetic smoke, not a COSMIC/Wayland, GPU, IME, full accessibility or physical L3 acceptance. No binary is published.
 
-这是本机窗口工具，不是第二个 Web 控制台（唯一后台 Web 位于 `apps/web`）。未来面向 Pop!_OS 24.04 / COSMIC 的用户目标是“一次经授权的图形安装 + 独立 systemd 后台 Agent + 可发现的停止/卸载入口”，**不是现在已经可以一键安装**。
+The CI-only package audit strips a copy of the exact debug ELF, uses the existing read-only dpkg-shlibdeps helper for official Ubuntu symbol floors, builds a temporary root-owned archive with only one GUI ELF, one launcher and a nonrelease notice, checks exact members/modes/content hashes and deletes it without installation or upload. Only audit text is archived. The audit retains official diagnostics, rejects unknown/incomplete diversion warnings, checks all five installed amd64 package versions against the official floors, and corroborates the fixed ELF interpreter, canonical loader file ownership/hash and registered libc6 usrmerge diversion with read-only dpkg metadata. This is not a guarantee that dpkg-shlibdeps is correct or that a clean Pop!_OS install will succeed. This is not the final package, full runtime dependency closure, copyright/asset license bundle, release size or install authorization.
 
-## 原生 GPUI 迁移候选（尚未切换）
+CI also observes executable mappings of its own synthetic X11 child after resize, records only allowlisted system shared library paths and counts unclassified mappings, resolves installed owners and traverses mandatory APT satisfiers from observed owners, direct ABI packages and fixed query-tool packages. Debian copyright receipt hashes and missing counts are evidence only. No production process inspection, no package install, no full dynamic/Wayland closure or license approval.
 
-维护者批准优先验证 [GPUI Kit 原生 Rust 候选](gpui-candidate/README.md)，版本和退出标准见 [ADR-0014](../../docs/architecture/adrs/0014-gpui-desktop-candidate.md)。离线导航/只读检查、无真实业务；最终原生全量CI与许可审查材料已通过，KDE本机12/12已通过；正式源码迁移及迁移后CI待完成。2026-11-28维护者批准本机开发与商业发行分离：本机验收通过后才切换唯一入口并移除旧Tauri专用UI/CI，保留Git回退及通用安全实验；权属/第三方正式许可、签名、安装、独立L3留在发行Gate，全部OPEN。不长期维护双客户端，不授权分发或生产。
+The separate CI supply-chain job pins cargo-cyclonedx 0.5.10 and generates CycloneDX 1.6 for Linux from the locked resolution, then reconciles component pairs against Cargo's normal/build graph and records hashes of actual registry license files and GPUI resource candidates. Missing license material and graph discrepancies are retained for review, never implicitly approved. Missing-package evidence also records normal-path vs build-path-only scope, nested notice candidates and registry VCS/repository claims (not verified upstream provenance); nested materials do not close package-level gaps. No new product dependency, actual asset distribution or final-binary SBOM claim.
 
-## 已实现的界面和真实边界
+CI also builds Cargo's default optimized Release profile with the same lock, statically audits a disposable stripped GUI-only deb, and alternates three debug and three Release X11 launches on one runner. It measures spawn-to-positive-pixel-probe delay (including polling), single-process RSS/PSS after a fixed one-second delay, ELF and archive bytes, and records min/median/max. No cold-cache control, hardware GPU/COSMIC measurement, Tauri comparison, distribution or install approval. Only review metadata is archived.
 
-- **MVP-08 工作区（前端 L1 42/42 PASS；原生 APT 审计 FAIL，本机未验）：** 概览、安装向导、服务器与配置、设备注册、Agent 服务、安全与诊断、关于。仅本机只读证据与导航，连接/保存/注册/导入均禁用；保留原两 IPC、空闲配置草稿、安装门禁和诊断。查看[任务账本](../../docs/planning/local-mvp-tasks.md)获取实际 CI 和本机退出条件。
+A separate CI step launches the exact optimized GUI in a private Weston compositor nested in Xvfb with software rendering (only Weston sees DISPLAY; the GUI has no X11 environment). It checks the synthetic client protocol trace for the same titled xdg-shell toplevel, configure/ack serial and non-null buffer attach/commit on the linked wl_surface, with the client still running. The helper first requires wl_seat, xdg_wm_base and wl_compositor in wayland-info. Only status, hashes and bounded synthetic failure categories/error excerpts are archived; raw traces stay in a disposable directory. The harness terminates the children; this is not pixel readback, keyboard/IME, normal close, physical COSMIC/GPU or release proof.
 
-- 四步中文安装准备，新增[AgentConfig v1 的离线图形化空闲配置预览](../../docs/development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)：选择 15/30/60/120/300 秒并生成只读 TOML，不写入 `/etc`、不持有机密；已有系统兼容性、候选 Agent/systemd 状态及发行/Polkit/L3 缺口审查保持。
-- 当前只有 `inspect_host` 与 `inspect_popos_preflight` 两个 Tauri 只读 IPC。安全页新增[本机脱敏诊断与安装阻断报告](../../docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md)，仅白名单状态、可手动选中复制，浏览器预览明确标记未连接本机，不传输、不保存、不添加权限；重新检测自动清除旧 COSMIC 结果。安装、升级、卸载、服务启动、开机自启、生产联网、采集和远控均不可达。
-- 四条隐私/权限说明的勾选仅是瞬时**阅读记录**，不是管理员授权、签名包或真正 Polkit grant。
-- **2026-11-26 原生 CI 恢复：** [本机脱敏诊断报告](../../docs/development/desktop-tauri-local-redacted-diagnostics-l1-2026-11-26.md) 的旧[React PASS/Native FAIL #45744173020](https://github.com/kunlong-luo/lanveriq/actions/runs/45744173020) 原始证据保留。现已[重新审核 176 包签名索引/二 runner #45746180961 PASS](../../docs/development/desktop-ubuntu24-apt-native-cache-rotation-l2-2026-11-26.md)，[Tauri 原生 Rust/Clippy #45745776008 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745776008)，[未签名 GUI-only `.deb` #45745775902 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775902)。**仍不能安装真实 Agent、Polkit broker 不存在、COSMIC L3 未验。**
-- [L2B-21 GUI 审核 CI #45368842676](https://github.com/kunlong-luo/lanveriq/actions/runs/45368842676) 双 job SUCCESS（独立审核测试 10/10、前端 29/29、原生 Rust 6/6）；[GUI-only unsigned .deb 隔离归档 #45368638490](https://github.com/kunlong-luo/lanveriq/actions/runs/45368638490) SUCCESS，但**该包未安装、发布或包含 Agent**，签名仅临时 LAB、不是正式根。详情 [验收报告](../../docs/development/desktop-tauri-l2b21-install-gate-review-ui-2026-11-24.md)。
+## Primary owner-operated Pop!_OS KDE/X11 review (not an installer)
 
-## 系统级验收（仅 Ubuntu24 disposable OCI，不是发行安装器）
-
-| 能力 | 真实证明 | 产品权限边界 |
-| --- | --- | --- |
-| **APT Signed-By 真实 Agent 包** | [L2B-27 10/10 实际 APT #45395513243](https://github.com/kunlong-luo/lanveriq/actions/runs/45395513243)；真实安装/同版重装/卸载、8 个签名/哈希/身份拒绝，另见[旧签名 Release Date 仍被接受的回放风险](../../docs/development/desktop-tauri-l2b27-native-apt-signed-release-date-replay-oci-2026-11-24.md) | CI 临时密钥；**无独立发行根/可信高水位、没有实际 Agent 降级或真实用户安装** |
-| **Polkit 与请求者身份** | [L2B-24 原生 `polkitd` 6/6](../../docs/development/desktop-tauri-l2b24-native-polkitd-rust-subject-authorization-l2-2026-11-24.md)、[L2B-25 root-side D-Bus UID/PID/nonce #45382618806](https://github.com/kunlong-luo/lanveriq/actions/runs/45382618806) | [`polkit/`](polkit/README.md) 全 no/uninstalled；[`tools/polkit-oci-dbus-broker-lab.py`](tools/polkit-oci-dbus-broker-lab.py) 只在 OCI 拒绝请求，**不执行安装** |
-| **真实本机规则覆盖攻击** | [L2B-26 恶意 .rules 令 OS 真 YES，root ReviewLab 仍 NOT_APPROVED #45385719766](https://github.com/kunlong-luo/lanveriq/actions/runs/45385719766) | 规则只在无网络临时容器生成，**不是可授权用户安装的 broker 或可部署策略** |
-
-以上是受控 L2 技术验收，而非正式管理员授权、经批准的生产签名源或 Pop!_OS24 COSMIC 实机 L3。每次 CI 的失败与确切功能 SHA 保存在[专项验收](../../docs/README.md)，**不要向用户分发 CI 内的实验公钥、恶意 .rules 或未经审查的 root 服务**。
-
-## 目录责任
-
-| 目录 | 用途 |
-| --- | --- |
-| `src/` | React 只读向导、AgentConfig v1 配置草稿、安装条件审查、本机脱敏诊断与单元测试 |
-| `src-tauri/` | Tauri2 Rust 只读主机核验、最小 IPC/capabilities、**禁用**正式 bundle 的配置 |
-| `tools/` | Debian/ABI/APT 隔离实装、**polkitd/D-Bus 容器内真实 root-side ReviewLab 与 Unix peer 检验**、非提权 Rust gate 和攻击负测；**不是可部署安装 broker** |
-| `polkit/` | **未安装的**三动作默认拒绝 XML 策略审查与说明；没有部署到系统、没有 helper 或授权规则 |
-| `package.json`、`pnpm-lock.yaml` | 桌面前端构建依赖，与唯一 Next.js Web 分离 |
-
-## 开发者离线预览
-
-要求 Node.js 24 / pnpm 12；在本目录运行：
+The maintainer uses KDE Plasma X11 on Pop!_OS 24.04. This is the primary local MVP desktop; no desktop switch is required. The owner reported 12/12 PASS at 92c8d8a2 (see task ledger); no repeat is required for unchanged business source. For a future local report, run from the trusted clean repository root as the normal owner:
 
 ```bash
-cd apps/desktop
-corepack enable
-corepack prepare pnpm@12.0.0 --activate
-pnpm install --frozen-lockfile
-pnpm test
-pnpm typecheck
-pnpm build
-pnpm dev
+python3 apps/desktop/tools/owner_kde_x11_review.py
 ```
 
-`pnpm dev` 是**浏览器静态窗口预览**，不能读取系统受限状态，绝不意味着 Pop!_OS 兼容性通过。真正 Tauri 原生构建还需要 Linux WebKitGTK/GTK 原生系统依赖，已在隔离 CI 验证；普通终端用户**不需要自行安装 Rust、Node 或运行上述命令**。
+It checks local active logind and X11 socket metadata, fixed link inputs and pinned offline build, then collects twelve observations and confirmed Ctrl+Q. Mark untested checks n; no fabricated pass. This report is not independent L3 or installation authorization. KDE/Wayland and COSMIC/Wayland are separate compatibility targets; their untested status never implies failure on KDE/X11.
 
-下一实际阶段是独立批准的可信 APT `Signed-By` 发行源、受审狭义 Polkit broker、签名 Agent 包、拒绝/取消/卸载测试，再进行真实 Pop!_OS24 COSMIC L3。[安装产品方案](../../docs/product/linux-desktop-installer-v01.md) · [当前状态](../../docs/CURRENT_STATUS.md) · [发布门禁](../../docs/planning/release-gap-register.md)。
+## Separate COSMIC compatibility review (not a local MVP prerequisite)
 
-**v0.1 NOT RELEASE READY；禁止 GUI root、任意 shell、自动安装/启动或伪造发布批准。**
+In a trusted, clean candidate checkout, from the repository root and a COSMIC Wayland terminal as the normal device owner, run:
 
+```bash
+python3 apps/desktop/tools/owner_cosmic_review.py
+```
 
-**L2B-28 发布证据边界：** 新的 [v2 离线合约](../../docs/development/desktop-tauri-l2b28-apt-replay-evidence-boundary-2026-11-24.md)将已观测到的有效旧签名 Release 接受风险与**独立高水位/可信时钟 NOT_APPROVED** 固定到回归测试；这不是安装授权或实际 rollback 拒绝器。**v0.1 NOT RELEASE READY。**
+The helper checks Pop!_OS 24.04 x86_64, ordinary UID, COSMIC session claims and a conventional user-owned Wayland socket, verifies the committed lock, builds the pinned Release profile offline using already cached dependencies, removes X11 DISPLAY/XAUTHORITY and inherited WAYLAND_SOCKET, and launches the candidate. It stops on missing prerequisites rather than installing anything. Follow the nine printed checks, use Ctrl+Q, and enter p/f/n for each observation. The helper exits 0 only for all nine owner-reported passes and confirmed Ctrl+Q with child exit 0, 2 for incomplete observations, and 1 for failures. Build/window timeout stops with a fixed diagnostic and no passing report. Exit 0 is still not independent L3. Report is printed only (no raw paths, identity, environment, upload, install or authorization); it records source/lock/ELF digests and owner-reported status. This is not an independent L3 or protocol proof. The About page has an isolated GPUI Kit Input/InputState for the fixed synthetic phrase 中文输入测试. It is created on entry, dropped on leaving, and never read by the workspace or diagnostic model; no secure memory-erasure claim. Use an actual IME composition and commit (not paste), check caret/candidates, clear and re-entry reset; explicitly report p/f/n. Never type personal information or secrets. The report schema v2 includes owner-reported IME status only; real IME, protocol, compositor close and GPU remain unverified until observed. No root, no service mutation, no Agent installation. If offline compilation fails, inspect missing prerequisites before explicitly acquiring anything.
+
+The upstream generic Ubuntu development prerequisites still include WebKitGTK; native rendering is not proof that all GTK libraries are absent from the resolved/link graph.
+
+See [MVP task ledger](../../docs/planning/local-mvp-tasks.md) and [ADR-0014](../../docs/architecture/adrs/0014-gpui-desktop-candidate.md).

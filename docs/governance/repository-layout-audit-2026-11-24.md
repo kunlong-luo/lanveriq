@@ -9,7 +9,7 @@
 | `apps/web/` | **唯一 Next.js 16 / React 19 管理 Web**；Pages 断开式演示，真实后端业务仅隔离合成验收 |
 | `apps/server/` | Java 25 / Spring Boot 4 / Gradle / Hibernate-JPA / Flyway / PostgreSQL 18，业务 API、迁移与安全测试 |
 | `apps/agent/` | Rust/Tokio/SQLx SQLite/reqwest-rustls Agent、持久 ACK/outbox、Linux 采集只读隔离验证 |
-| `apps/desktop/` | Tauri 2 只读本机预检与 GUI、未安装 Polkit 拒绝规则、OCI APT/DBus 实验；**不是正式安装器** |
+| `apps/desktop/` | GPUI Kit 原生 Rust 只读本机预检与 GUI（2026-11-28 源码切换，迁移后 CI 待验）、未安装 Polkit 拒绝规则、OCI APT/DBus 实验；**不是正式安装器** |
 | `deploy/caddy/`、`deploy/network/` | 双 mTLS 和 LAN/WAN 边界的参考配置/隔离负测，**非公网部署模板** |
 | `deploy/rustdesk/`、`deploy/rustdesk-synthetic/` | RustDesk/RD-2 许可证及默认拒绝负测；远控 **OFF** |
 | `.github/workflows/` | 快速 L1、隔离 L2、源码预览的只读发布前检查及专门安全/文档 CI，不是 Pop!_OS 真机 L3 |

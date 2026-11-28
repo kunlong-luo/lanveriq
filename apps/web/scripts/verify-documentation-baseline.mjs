@@ -175,7 +175,8 @@ export const requiredRepositoryPaths = [
   'apps/web/package.json',
   'apps/server/build.gradle',
   'apps/agent/Cargo.toml',
-  'apps/desktop/src-tauri/Cargo.toml',
+  'apps/desktop/Cargo.toml',
+  'apps/desktop/Cargo.lock.sha256',
   'deploy/caddy/Caddyfile.reference',
   'deploy/network/verify_dual_access.py',
   'deploy/rustdesk/client-release-lock.json',
@@ -187,6 +188,11 @@ export const requiredRepositoryPaths = [
 ];
 
 export const retiredRepositoryPaths = [
+  'apps/desktop/src-tauri',
+  'apps/desktop/gpui-candidate',
+  'apps/desktop/package.json',
+  'apps/desktop/pnpm-lock.yaml',
+  'apps/desktop/vite.config.ts',
   'apps/web-next',
   'apps/web-old',
   'apps/web-legacy',

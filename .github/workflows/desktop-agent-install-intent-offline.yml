@@ -6,8 +6,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/desktop/gpui-candidate/src/**'
-      - 'apps/desktop/gpui-candidate/Cargo.toml'
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/Cargo.toml'
       - 'apps/desktop/tools/verify_gpui_readonly.py'
       - 'apps/desktop/tools/test_verify_gpui_readonly.py'
       - 'apps/desktop/tools/verify_desktop_agent_install_intent.py'

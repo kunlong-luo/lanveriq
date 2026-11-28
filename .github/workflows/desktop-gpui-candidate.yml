@@ -3,7 +3,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/desktop/gpui-candidate/**'
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/Cargo.*'
+      - 'apps/desktop/tools/**'
       - '.github/workflows/desktop-gpui-candidate.yml'
       - 'tools/gpui_release_license.py'
       - 'tools/test_gpui_release_license.py'
@@ -18,7 +20,7 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        working-directory: apps/desktop/gpui-candidate
+        working-directory: apps/desktop
     steps:
       - uses: actions/checkout@v7
         with:
@@ -91,8 +93,8 @@ jobs:
         with:
           name: gpui-candidate-resolution
           path: |
-            apps/desktop/gpui-candidate/Cargo.lock
-            apps/desktop/gpui-candidate/candidate-licenses.tsv
+            apps/desktop/Cargo.lock
+            apps/desktop/candidate-licenses.tsv
           retention-days: 7
       - name: Record actual Linux normal and build dependency and feature graph
         run: |
@@ -150,7 +152,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gpui-candidate-package-audit
-          path: apps/desktop/gpui-candidate/candidate-package-audit.txt
+          path: apps/desktop/candidate-package-audit.txt
           if-no-files-found: ignore
           retention-days: 7
       - name: Install disposable X11 software-rendered window test tools
@@ -175,8 +177,8 @@ jobs:
         with:
           name: gpui-candidate-ui-interaction
           path: |
-            apps/desktop/gpui-candidate/candidate-ui-interaction.json
-            apps/desktop/gpui-candidate/candidate-ui-interaction.txt
+            apps/desktop/candidate-ui-interaction.json
+            apps/desktop/candidate-ui-interaction.txt
           if-no-files-found: ignore
           retention-days: 7
       - name: Inspect observed X11 libraries and installed APT dependency graph (no install)
@@ -189,8 +191,8 @@ jobs:
         with:
           name: gpui-candidate-runtime-evidence
           path: |
-            apps/desktop/gpui-candidate/candidate-mapped-libraries.json
-            apps/desktop/gpui-candidate/candidate-runtime-evidence.json
+            apps/desktop/candidate-mapped-libraries.json
+            apps/desktop/candidate-runtime-evidence.json
           if-no-files-found: ignore
           retention-days: 7
       - name: Archive synthetic window smoke result
@@ -198,7 +200,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gpui-candidate-window-smoke
-          path: apps/desktop/gpui-candidate/candidate-window-smoke.txt
+          path: apps/desktop/candidate-window-smoke.txt
           if-no-files-found: ignore
           retention-days: 7
       - name: Archive Linux graph and direct ELF dependency evidence (no binaries)
@@ -207,9 +209,9 @@ jobs:
         with:
           name: gpui-candidate-linux-evidence
           path: |
-            apps/desktop/gpui-candidate/candidate-linux-packages.txt
-            apps/desktop/gpui-candidate/candidate-linux-features.txt
-            apps/desktop/gpui-candidate/candidate-linux-elf.txt
+            apps/desktop/candidate-linux-packages.txt
+            apps/desktop/candidate-linux-features.txt
+            apps/desktop/candidate-linux-elf.txt
           if-no-files-found: error
           retention-days: 7
       - name: Build optimized Release profile (nonrelease evidence only)
@@ -222,7 +224,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import hashlib, json, mmap, pathlib
-          index = json.loads(pathlib.Path("../../../tools/gpui_default_icon_source_index.json").read_text())
+          index = json.loads(pathlib.Path("../../tools/gpui_default_icon_source_index.json").read_text())
           metadata = json.loads(pathlib.Path("candidate-metadata.json").read_text())
           packages = [p for p in metadata["packages"] if p["name"] == index["package"] and p["version"] == index["version"]]
           assert len(packages) == 1 and packages[0]["source"] == "registry+https://github.com/rust-lang/crates.io-index"
@@ -255,18 +257,18 @@ jobs:
           PY
       - name: Capture Release compiler artifacts (no raw messages or binary upload)
         run: |
-          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ../../../tools -p test_gpui_release_license.py -v
-          python3 ../../../tools/gpui_release_license.py capture
-          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ../../../tools -p test_gpui_link_map.py -v
-          python3 ../../../tools/gpui_link_map.py
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ../../tools -p test_gpui_release_license.py -v
+          python3 ../../tools/gpui_release_license.py capture
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ../../tools -p test_gpui_link_map.py -v
+          python3 ../../tools/gpui_link_map.py
           rm candidate-release-build.jsonl candidate-release-link.map
       - name: Archive Release compiler artifact metadata
         uses: actions/upload-artifact@v4
         with:
           name: gpui-release-compiler-artifacts
           path: |
-            apps/desktop/gpui-candidate/candidate-release-artifacts.json
-            apps/desktop/gpui-candidate/candidate-release-link-map.json
+            apps/desktop/candidate-release-artifacts.json
+            apps/desktop/candidate-release-link-map.json
           if-no-files-found: error
           retention-days: 7
       - name: Audit temporary optimized GUI-only deb (never install)
@@ -286,10 +288,10 @@ jobs:
         with:
           name: gpui-candidate-performance
           path: |
-            apps/desktop/gpui-candidate/candidate-release-package-audit.txt
-            apps/desktop/gpui-candidate/candidate-clean-apt.json
-            apps/desktop/gpui-candidate/candidate-performance.txt
-            apps/desktop/gpui-candidate/candidate-performance.json
+            apps/desktop/candidate-release-package-audit.txt
+            apps/desktop/candidate-clean-apt.json
+            apps/desktop/candidate-performance.txt
+            apps/desktop/candidate-performance.json
           if-no-files-found: ignore
           retention-days: 7
       - name: Install disposable Weston reference compositor
@@ -307,8 +309,8 @@ jobs:
         with:
           name: gpui-candidate-wayland-smoke
           path: |
-            apps/desktop/gpui-candidate/candidate-wayland-smoke.txt
-            apps/desktop/gpui-candidate/candidate-wayland-smoke.json
+            apps/desktop/candidate-wayland-smoke.txt
+            apps/desktop/candidate-wayland-smoke.json
           if-no-files-found: ignore
           retention-days: 7
   dependency-audit:
@@ -316,7 +318,7 @@ jobs:
     timeout-minutes: 30
     defaults:
       run:
-        working-directory: apps/desktop/gpui-candidate
+        working-directory: apps/desktop
     steps:
       - uses: actions/checkout@v7
         with:
@@ -353,15 +355,15 @@ jobs:
         with:
           name: gpui-candidate-rustsec
           path: |
-            apps/desktop/gpui-candidate/candidate-rustsec.json
-            apps/desktop/gpui-candidate/candidate-rustsec-provenance.txt
+            apps/desktop/candidate-rustsec.json
+            apps/desktop/candidate-rustsec-provenance.txt
           retention-days: 7
   supply-chain-evidence:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     defaults:
       run:
-        working-directory: apps/desktop/gpui-candidate
+        working-directory: apps/desktop
     steps:
       - uses: actions/checkout@v7
         with:
@@ -391,9 +393,9 @@ jobs:
         with:
           name: gpui-candidate-supply-chain
           path: |
-            apps/desktop/gpui-candidate/*.cdx.json
-            apps/desktop/gpui-candidate/bom.json
-            apps/desktop/gpui-candidate/candidate-supply-chain.json
+            apps/desktop/*.cdx.json
+            apps/desktop/bom.json
+            apps/desktop/candidate-supply-chain.json
           if-no-files-found: ignore
           retention-days: 7
   release-license-association:

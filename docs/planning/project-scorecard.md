@@ -6,7 +6,7 @@
 
 | 维度 | 满分 | 得分 | 已有事实 / 核心未完成项 |
 | --- | ---: | ---: | --- |
-| 成熟技术栈复用 | 20 | **15** | Java25/Boot4.2/JPA/PG18.7、Rust/SQLx、Next16、Tauri2；[技术文档](../development/technology.md) |
+| 成熟技术栈复用 | 20 | **15** | Java25/Boot4.2/JPA/PG18.7、Rust/SQLx、Next16、GPUI Kit；[技术文档](../development/technology.md) |
 | 维护架构与单一入口 | 15 | **12** | 单 Next.js Web + Agent/Server/Desktop 分工；生产能力仍锁定 |
 | 实际 L1/L2 自动验收 | 20 | **19** | [Rust/mTLS/PG18/Next.js + 跨 GitHub runner PG18 原生恢复，三个 job SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45742025955)；非 L3 |
 | 安全默认拒绝 | 15 | **13** | mTLS、ACK、Polkit 拒绝；正式 MFA/CA、发行根、外部 WORM 缺失 |
@@ -22,7 +22,7 @@
 
 **2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
 
-**本机 MVP（7/16 DONE，不加分）：** [Linux L2 #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816) SUCCESS；维护者真实业务及 GPUI KDE/X11 十二项功能 PASS，非独立 L3。最终GPUI [全量CI #46130643220](https://github.com/kunlong-luo/lanveriq/actions/runs/46130643220) PASS、[最终许可材料 #46131903709](https://github.com/kunlong-luo/lanveriq/actions/runs/46131903709) PASS且独立复核；专有方向已选，开发/发行分离获批；本机补证完成，正式迁移及受影响 CI 待完成，权属许可归独立发行Gate，自动验收不重复。**71/100，Gate 0/10；MVP-08 IN PROGRESS，09～16 TODO。** 详见[任务账本](local-mvp-tasks.md)及[此前评分与证据](https://github.com/kunlong-luo/lanveriq/blob/ec6a84b674bf368436448525ceadda8d7fd75ce0/docs/planning/project-scorecard.md)。
+**本机 MVP（7/16 DONE，不加分）：** [Linux L2 #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816) SUCCESS；维护者真实业务及 GPUI KDE/X11 十二项功能 PASS，非独立 L3。最终GPUI [全量CI #46130643220](https://github.com/kunlong-luo/lanveriq/actions/runs/46130643220) PASS、[最终许可材料 #46131903709](https://github.com/kunlong-luo/lanveriq/actions/runs/46131903709) PASS且独立复核；专有方向已选，开发/发行分离获批；本机补证及唯一源码入口迁移完成，迁移后 CI 待完成，权属许可归独立发行Gate，自动验收不重复。**71/100，Gate 0/10；MVP-08 IN PROGRESS，09～16 TODO。** 详见[任务账本](local-mvp-tasks.md)及[此前评分与证据](https://github.com/kunlong-luo/lanveriq/blob/ec6a84b674bf368436448525ceadda8d7fd75ce0/docs/planning/project-scorecard.md)。
 
 ## 生产发布能力：NO-GO（0/10 已关闭）
 

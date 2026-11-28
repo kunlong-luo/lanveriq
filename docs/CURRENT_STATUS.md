@@ -11,14 +11,14 @@
 | [`apps/web`](../apps/web/README.md) | **唯一 Web Console**：Next.js 16.4.5、React 19、Tailwind 4、Base UI | [Pages](https://kunlong-luo.github.io/lanveriq/) 是断开业务的演示；真实接口仅临时本机授权验收或隔离 CI L2 |
 | [`apps/server`](../apps/server/README.md) | Java 25、Spring Boot 4.2.0、Gradle、JPA/Hibernate、Flyway、PostgreSQL 18.7 | mTLS/PG18 合成事务；真实 CA、正式管理员登录/MFA 仍锁定 |
 | [`apps/agent`](../apps/agent/README.md) | Rust 1.100、SQLx SQLite、rustls mTLS | 手动 once/send 已合 main；用户提供 Pop!_OS once/SQLite 日志，send 本机 HTTP200/精确 ACK PASS（维护者日志）；生产默认 OFF |
-| [`apps/desktop`](../apps/desktop/README.md) | Tauri 2 + React；Vite **只构建桌面窗体** | 只读兼容性/安装资格；**无实际 GUI 安装/服务启动/联网** |
+| [`apps/desktop`](../apps/desktop/README.md) | GPUI Kit 0.11.0 / GPUI 0.3.14 / Rust 1.100 | 只读兼容性/安装资格；**无实际 GUI 安装/服务启动/联网** |
 | [`deploy`](../deploy/caddy/Caddyfile.reference) | Caddy mTLS、LAN/WAN 负测、RustDesk 隔离候选 | 无公网生产路由、远控 RD-2 保持 OFF |
 
 不存在 `apps/web-next`、第二套 Vite Web 或 Maven 后端。目录责任和裁剪依据以 [README 结构地图](../README.zh.md)、[目录治理审计](governance/repository-layout-audit-2026-11-24.md) 为准。
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（7/16）；MVP-08 IN PROGRESS。** GPUI 原生 CI、许可工程材料及 KDE/X11 所有人验收 12/12 PASS（非独立 L3）；独立只读守卫 CI PASS。迁移前六项 CI PASS；16 个保留工作流已改用 GPUI 守卫，待唯一入口迁移及受影响 CI。COSMIC 未测，发行 Gate OPEN。见 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](planning/local-mvp-tasks.md)。
+**MVP-01～07 DONE（7/16）；MVP-08 IN PROGRESS。** GPUI 原生 CI、许可工程材料及 KDE/X11 所有人验收 12/12 PASS（非独立 L3）；独立只读守卫 CI PASS。16 个保留工作流切换 CI 20/20 PASS；已切换唯一入口，移除 Tauri 专用代码与 CI；迁移后 CI 待验。COSMIC 未测，发行 Gate OPEN。见 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 

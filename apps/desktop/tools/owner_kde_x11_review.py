@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "gpui-candidate/tools"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from owner_cosmic_review import (ROOT, NAME, CHECKS, STATUS, require, command,
     source_identity, sha, review_exit_code, run_review_process)
 

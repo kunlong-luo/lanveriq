@@ -7,8 +7,8 @@ on:
     branches: [main]
     paths:
       - 'apps/desktop/tools/verify_gpui_readonly.py'
-      - 'apps/desktop/gpui-candidate/src/**'
-      - 'apps/desktop/gpui-candidate/Cargo.toml'
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/Cargo.toml'
       - 'apps/desktop/polkit/org.lanveriq.agent.package.policy'
       - 'apps/desktop/tools/verify_desktop_polkit_review.py'
       - 'apps/desktop/tools/test_verify_desktop_polkit_review.py'

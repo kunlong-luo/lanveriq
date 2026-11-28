@@ -6,9 +6,9 @@ on:
       - 'tools/gpui_metadata_scope.py'
       - 'tools/test_gpui_metadata_scope.py'
       - '.github/workflows/desktop-gpui-metadata-scope.yml'
-      - 'apps/desktop/gpui-candidate/Cargo.toml'
-      - 'apps/desktop/gpui-candidate/Cargo.lock'
-      - 'apps/desktop/gpui-candidate/Cargo.lock.sha256'
+      - 'apps/desktop/Cargo.toml'
+      - 'apps/desktop/Cargo.lock'
+      - 'apps/desktop/Cargo.lock.sha256'
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
           cargo +1.100.0 install --locked --version '=0.5.10' cargo-cyclonedx
           cargo +1.100.0 cyclonedx --version
       - name: Resolve target metadata and original upstream BOM (no GUI build)
-        working-directory: apps/desktop/gpui-candidate
+        working-directory: apps/desktop
         run: |
           git ls-files --error-unmatch Cargo.lock
           sha256sum --check --strict Cargo.lock.sha256
@@ -38,15 +38,15 @@ jobs:
           sha256sum --check --strict Cargo.lock.sha256
           git diff --exit-code -- Cargo.lock Cargo.toml
       - name: Compare metadata nondev reachability, Cargo tree and BOM
-        run: python3 tools/gpui_metadata_scope.py apps/desktop/gpui-candidate
+        run: python3 tools/gpui_metadata_scope.py apps/desktop
       - name: Archive scope evidence and original BOM (not raw metadata or binaries)
         uses: actions/upload-artifact@v4
         with:
           name: gpui-metadata-scope
           path: |
-            apps/desktop/gpui-candidate/scope-reconciliation.json
-            apps/desktop/gpui-candidate/scope-linux-tree.txt
-            apps/desktop/gpui-candidate/*.cdx.json
-            apps/desktop/gpui-candidate/bom.json
+            apps/desktop/scope-reconciliation.json
+            apps/desktop/scope-linux-tree.txt
+            apps/desktop/*.cdx.json
+            apps/desktop/bom.json
           if-no-files-found: error
           retention-days: 7

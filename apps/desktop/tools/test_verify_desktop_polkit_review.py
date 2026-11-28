@@ -1,6 +1,7 @@
 """L2B-22 malicious Polkit default/action mutations, never a live policy test."""
 import importlib.util
 import pathlib
+import shutil
 import tempfile
 import unittest
 
@@ -196,25 +197,22 @@ class InertPolkitReviewTests(unittest.TestCase):
     def test_context_refuses_native_bundle_and_privileged_command(self):
         with tempfile.TemporaryDirectory(prefix="lanveriq-polkit-context-") as tmp:
             root = pathlib.Path(tmp)
-            t = root / "apps/desktop/src-tauri"
-            (t / "src").mkdir(parents=True)
-            (t / "tauri.conf.json").write_text(
-                '{"bundle":{"active":false,"targets":[],"linux":{"deb":{}}}}'
-            )
-            native = t / "src/lib.rs"
-            native.write_text(
-                "#[tauri::command]\nfn inspect_host() {}\n"
-                "#[tauri::command]\nfn inspect_popos_preflight() {}"
-            )
+            desktop = root / "apps/desktop"
+            shutil.copytree(guard.ROOT / "apps/desktop/src", desktop / "src")
+            shutil.copy2(guard.ROOT / "apps/desktop/Cargo.toml", desktop / "Cargo.toml")
             self.assertEqual(guard.validate_context(root), guard.RESULT)
-            native.write_text(native.read_text() + '\nstd::process::Command::new("pkexec");')
-            with self.assertRaisesRegex(ValueError, "privileged broker"):
+            native = desktop / "src/main.rs"
+            original = native.read_text()
+            native.write_text(original + '\nstd::process::Command::new("pkexec");\n')
+            with self.assertRaisesRegex(ValueError, "native GUI source boundary"):
                 guard.validate_context(root)
-            native.write_text(native.read_text().replace("pkexec", "inspect"))
-            (t / "tauri.conf.json").write_text(
-                '{"bundle":{"active":true,"targets":["deb"],"linux":{"deb":{}}}}'
-            )
-            with self.assertRaisesRegex(ValueError, "installer bundle"):
+            native.write_text(original)
+            (desktop / "build.rs").write_text("fn main() {}")
+            with self.assertRaisesRegex(ValueError, "native GUI source boundary"):
+                guard.validate_context(root)
+            (desktop / "build.rs").unlink()
+            (desktop / "src-tauri").mkdir()
+            with self.assertRaisesRegex(ValueError, "retired desktop source"):
                 guard.validate_context(root)
 
 

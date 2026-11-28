@@ -4,7 +4,7 @@
 
 ## Problem, UX decision and assurance boundary
 
-Prior [L2B-11](desktop-tauri-l2b11-popos-cosmic-host-preflight-2026-11-24.md) implemented a strict read-only Python/`python3-apt` local host inspector but had no graphical entry; users would still need a terminal/script. L2B-12 reuses the current [single Tauri 2 application](../../apps/desktop/src/DesktopApp.tsx), adding a visible **检查兼容性（只读）** action to Step 2 / 环境检查 and a status entry in 安全与诊断. It does not introduce a second desktop stack or any package installer. The initial native `inspect_host` remains unchanged; the heavier Pop!_OS package/COSMIC metadata scan is **only triggered by an explicit GUI click**, never automatically, from the web preview or a background scheduler.
+Prior [L2B-11](desktop-tauri-l2b11-popos-cosmic-host-preflight-2026-11-24.md) implemented a strict read-only Python/`python3-apt` local host inspector but had no graphical entry; users would still need a terminal/script. L2B-12 reuses the current [single Tauri 2 application](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop/src/DesktopApp.tsx), adding a visible **检查兼容性（只读）** action to Step 2 / 环境检查 and a status entry in 安全与诊断. It does not introduce a second desktop stack or any package installer. The initial native `inspect_host` remains unchanged; the heavier Pop!_OS package/COSMIC metadata scan is **only triggered by an explicit GUI click**, never automatically, from the web preview or a background scheduler.
 
 ## Native delivery / no-shell contract
 

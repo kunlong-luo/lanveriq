@@ -17,7 +17,7 @@ Lanveriq is a Linux-first, self-hosted endpoint inventory, health-state and audi
 | [`apps/web/`](apps/web/README.md) | **Only Web console** — Next.js 16 / React 19 / Tailwind 4 / Base UI; public Pages is disconnected | **KEEP** |
 | [`apps/server/`](apps/server/README.md) | Java 25 / Spring Boot 4.2 / **Gradle** / JPA-Hibernate / Flyway / PostgreSQL 18; mTLS, domain APIs and transactions | **KEEP** |
 | [`apps/agent/`](apps/agent/README.md) | Rust / Tokio / SQLx SQLite / reqwest-rustls; isolated read-only Linux probe, durable outbox and strict ACK; production automatic collection OFF | **KEEP** |
-| [`apps/desktop/`](apps/desktop/README.md) | Tauri 2 / React **read-only** installation-readiness GUI; Vite builds the Tauri window, not another Web console | **KEEP** |
+| [`apps/desktop/`](apps/desktop/README.md) | GPUI Kit 0.11.0 / GPUI 0.3.14 native Rust **read-only** installation-readiness GUI | **KEEP** |
 | [`deploy/caddy/`](deploy/caddy/Caddyfile.reference) | TLS 1.3 / double mTLS references and isolated CI; **not** a production Internet-facing config | **KEEP** |
 | [`deploy/network/`](deploy/network/verify_dual_access.py) | LAN/WAN boundary refusal tests | **KEEP** |
 | [`deploy/rustdesk/`](deploy/rustdesk/client-release-lock.json), [`deploy/rustdesk-synthetic/`](deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) | Candidate RustDesk protocol, license and RD-2 release-denial tests; remote control OFF | **KEEP (lab only)** |
@@ -64,7 +64,7 @@ pnpm dev
 # http://127.0.0.1:3100 — disconnected preview
 ```
 
-Other developer tests: `cd apps/server && ./gradlew test`, `cd apps/agent && cargo test --workspace --locked`, `cd apps/desktop && pnpm test`. See [development-only PostgreSQL/loopback setup](docs/operations/installation.md). End users should **not** compile Rust, invoke `dpkg -i` or enable systemd services as a substitute for an approved installer.
+Other developer tests: `cd apps/server && ./gradlew test`, `cd apps/agent && cargo test --workspace --locked`, `cd apps/desktop && cargo +1.100.0 test --locked`. See [development-only PostgreSQL/loopback setup](docs/operations/installation.md). End users should **not** compile Rust, invoke `dpkg -i` or enable systemd services as a substitute for an approved installer.
 
 The next isolated business-loop milestone is [durable Linux inventory recovery after a real Caddy outage, exact mTLS ACK, PG18 revision advance and operator-triggered Chromium refresh](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md). **Verified at functional SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c): [Linux L2 #45554279736 — both jobs SUCCESS](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736).** This is not a product installer, automatic Agent recovery or production approval.
 
@@ -74,7 +74,7 @@ The next isolated business-loop milestone is [durable Linux inventory recovery a
 
 **G-08 backup/DR:** [Native PostgreSQL18 cross-runner restore L2, all 3 jobs PASS #45742025955](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md). [Approval-only physical-host SRE operator card](docs/operations/g08-physical-dr-operator-card-2026-11-26.md) and [L1 default-deny CI #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846) are ready; **real independent hardware, custody/WORM/KMS, and SRE/legal signoff NOT RUN; NO-GO.**
 
-**G-05/G-09 user feature:** [Tauri idle AgentConfig v1 offline GUI](docs/development/desktop-tauri-agent-idle-config-ui-2026-11-26.md) prepares five supported TOML settings without editing system files. [Same-SHA React L1 #45748162585 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585); native GUI jobs pending at writing time. Prior [Tauri #45746181071](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071) and [unsigned GUI-only .deb #45746180976](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) passed. **No signed Agent installation, approved Polkit broker or physical COSMIC L3; engineering 71/100, gates 0/10, NO-GO.**
+**G-05/G-09 user feature:** [GPUI native desktop](apps/desktop/README.md) has a read-only configuration draft, manual system summary and seven navigation pages. Owner KDE/X11 12/12 and precutover CI passed; the single source entry is migrated, post-cutover CI pending. **No signed Agent installation, approved Polkit broker or independent L3; engineering 71/100, gates 0/10, NO-GO.**
 
 ## Native APT: cold-cache signed repository and witness double-replay (L2B-33)
 

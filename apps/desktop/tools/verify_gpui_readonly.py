@@ -8,7 +8,7 @@ import pathlib
 import sys
 import tomllib
 
-DESKTOP = pathlib.Path(__file__).resolve().parents[1] / "gpui-candidate"
+DESKTOP = pathlib.Path(__file__).resolve().parents[1]
 
 
 def validate(root=DESKTOP):

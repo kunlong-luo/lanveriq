@@ -107,7 +107,7 @@ python3 apps/desktop/tools/owner_kde_x11_review.py
 
 ```bash
 git pull --ff-only origin main
-python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
+python3 apps/desktop/tools/owner_cosmic_review.py
 ```
 
 此工具固定 Rust 1.100.0、locked/offline Release 构建，校验源码/锁/ELF及Wayland socket，九项实际观察并 Ctrl+Q；缺少本地依赖或不是真实 COSMIC Wayland 时停止。不改服务/安装包/上传报告。保持独立 L3 NOT_APPROVED。现有 [KDE 工具](../../apps/desktop/tools/owner_kde_x11_review.py) 有十二项，但其报告不得用于 COSMIC。COSMIC 九项工具尚未自动采集以下补充结果，同一窗口观察、附于同一 SHA/ELF 的报告即可，不新增独立运行：
@@ -159,3 +159,7 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 2026-11-28 用户明确批准：本机 MVP-08 不以最终商业发行法律签字阻塞本机非发行源码迁移。当前523包、328原文、22未批准材料缺项与历史证据保持原样；专有方向不变，法律权属/EULA/第三方许可与正式NOTICE、托管、签名安装、独立L3均归G-05/G-07/G-09 OPEN。该决定不豁免实际版权或许可义务，不授权公开分发、安装或生产。
 
 本机只余真实KDE/X11缺失观察及唯一源码入口迁移。现有七项保留；“可以”非完整逐项报告，当前无JSON。仍执行第6节脚本或提交同等可核验源码/锁/ELF及真实逐项观察，未测明确NOT_RUN。通过后才迁移GPUI、清理旧Tauri专用UI/CI并保留Git回退/通用安全实验，受影响CI通过才DONE。不新增测试范围、不重复原生构建、不切换桌面。未获正式批准不得发包或启用生产，G-01～G-10均OPEN，MVP-11独立G-05前提不变。
+
+## 11. 2026-11-28 本机迁移当前状态（覆盖前述本机待验条目）
+
+KDE/X11 所有人非签名报告 12/12 PASS（92c8d8a2）、退出码0、锁一致；通用守卫切换20/20 CI PASS。唯一 GPUI 源码入口迁移至 `apps/desktop`，旧 Tauri 专用代码/CI 移除，Git 回退与通用安全实验保留。迁移后 CI 待验，尚未 DONE；不重复要求所有人执行同一验收。第9节工程归档仍绑定历史8bd35b22及确切ELF，不伪称迁移后的ELF已经生成或许可获批。22材料缺项、权属、第三方许可、正式NOTICE/EULA、保管、签名、安装、独立L3仍OPEN；无分发授权。

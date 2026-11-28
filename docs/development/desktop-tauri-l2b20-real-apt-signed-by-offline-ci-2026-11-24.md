@@ -12,7 +12,7 @@ L2B-18/19 已通过实验用 Ed25519 双签、角色、撤销、模拟根 pin/�
 
 - [Python 9 项系统测试](../../apps/desktop/tools/test_desktop_apt_signed_by_lab.py) 使用 Ubuntu runner 自带 GnuPG/apt-get，随机创建 publisher 和 attacker **两把一次性 OpenPGP Ed25519 签名密钥**，为一个**完全不存在的合成软件包名称**生成非空 `Packages` 元数据（只包含虚构 Filename、Size 和哈希，**没有 .deb 文件**）。本地 `Release` 给该索引绑定 SHA-256/Size 与 `Date`/`Valid-Until`，GPG 产生真实 clearsigned `InRelease`。
 - 每个测试创建独立临时 `file://` 仓库；APT 使用仅指向临时文件的 deb822 `test.sources` 和 `Signed-By` 专用 keyring。**所有** APT `Dir::Etc::sourcelist/sourceparts/trusted/trustedparts`、`Dir::State::lists/status`、`Dir::Cache::archives` 改为临时目录，同时明确 `AllowInsecureRepositories=false`、`AllowUnauthenticated=false`、`Check-Valid-Until=true`、`Check-Date=true`。无外部仓库/网络请求、无 sudo、无 `apt-get install`、无实际包或系统 dpkg 状态修改。
-- [独立 Ubuntu24 工作流](../../.github/workflows/desktop-apt-signed-by-lab.yml)：只读 checkout/contents:read，现场调用真实 `apt-get update`，不上传、签发、下载 Agent；再实际执行 [Desktop 只读源码守卫](../../apps/desktop/tools/verify_desktop_readonly.py)、[L2B-16 发行状态拒绝](../../apps/desktop/tools/verify_desktop_release_evidence_boundary.py) 和 [L2B-17 Agent 安装意图 DENIED](../../apps/desktop/tools/verify_desktop_agent_install_intent.py)。
+- [独立 Ubuntu24 工作流](../../.github/workflows/desktop-apt-signed-by-lab.yml)：只读 checkout/contents:read，现场调用真实 `apt-get update`，不上传、签发、下载 Agent；再实际执行 [Desktop 只读源码守卫](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop/tools/verify_desktop_readonly.py)、[L2B-16 发行状态拒绝](../../apps/desktop/tools/verify_desktop_release_evidence_boundary.py) 和 [L2B-17 Agent 安装意图 DENIED](../../apps/desktop/tools/verify_desktop_agent_install_intent.py)。
 
 | 真实命令/证据 | 期望 | [run #45334019405](https://github.com/kunlong-luo/lanveriq/actions/runs/45334019405) |
 | --- | --- | --- |

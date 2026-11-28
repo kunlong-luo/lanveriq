@@ -6,9 +6,9 @@
 
 普通 Pop!_OS 24.04 COSMIC 用户不应为了准备最基本的 Agent 配置就先学习 Rust、编译软件或手写 TOML。此前 Tauri 安装向导只做离线兼容性预检、签名和 Polkit 门禁说明，**没有配置编辑/生成界面**；真实 Rust Agent 离线候选包与 OCI `dpkg` 安装/卸载已存在，不再复制一套包管理器。
 
-- [Tauri 新增 `IdleConfigPanel`](../../apps/desktop/src/IdleConfigPanel.tsx)：安装向导第 4 步可直接选择受审的 **15/30/60/120/300 秒**空闲周期；默认 30 秒；标准浏览器 radio 键盘可操作、焦点可见；生成对应只读 TOML 文本框，用户可选中文本。
-- [纯函数模板](../../apps/desktop/src/idle-config.ts)只输出 `schema_version = 1`、`[runtime]` 与 `cycle_seconds = N`。这些正是 [Rust `AgentConfig`/严格拒绝未知字段实现](../../apps/agent/src/config.rs) 的真实两项配置；Rust 支持 5～300 秒，本 GUI 仅开放五个离线预审档位。**不加密钥、令牌、URL、设备身份、联网/采集/远控、服务授权字段**；拒绝任意数值、字符串强制转换或注入式参数。
-- [单元测试](../../apps/desktop/src/idle-config.test.ts)将默认值与实际 [Agent 配置示例](../../apps/agent/config/agent.example.toml)去掉注释后逐字对齐，覆盖每个预设与非法输入；[界面渲染测试](../../apps/desktop/src/IdleConfigPanel.test.tsx)检查五个单选项、只读文本及非安装边界。现有 [Tauri 只读源码审计](../../apps/desktop/tools/verify_desktop_readonly.py) 同时确保配置面板已嵌入向导且无文件写入/原生 IPC/网络/安装调用。
+- [Tauri 新增 `IdleConfigPanel`](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop/src/IdleConfigPanel.tsx)：安装向导第 4 步可直接选择受审的 **15/30/60/120/300 秒**空闲周期；默认 30 秒；标准浏览器 radio 键盘可操作、焦点可见；生成对应只读 TOML 文本框，用户可选中文本。
+- [纯函数模板](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop/src/idle-config.ts)只输出 `schema_version = 1`、`[runtime]` 与 `cycle_seconds = N`。这些正是 [Rust `AgentConfig`/严格拒绝未知字段实现](../../apps/agent/src/config.rs) 的真实两项配置；Rust 支持 5～300 秒，本 GUI 仅开放五个离线预审档位。**不加密钥、令牌、URL、设备身份、联网/采集/远控、服务授权字段**；拒绝任意数值、字符串强制转换或注入式参数。
+- [单元测试](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop/src/idle-config.test.ts)将默认值与实际 [Agent 配置示例](../../apps/agent/config/agent.example.toml)去掉注释后逐字对齐，覆盖每个预设与非法输入；[界面渲染测试](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop/src/IdleConfigPanel.test.tsx)检查五个单选项、只读文本及非安装边界。现有 [Tauri 只读源码审计](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/apps/desktop/tools/verify_desktop_readonly.py) 同时确保配置面板已嵌入向导且无文件写入/原生 IPC/网络/安装调用。
 - **实际运行边界：** 仅浏览器/桌面内存中的预览，不写入 `/etc`，无自动保存、下载、剪贴板插件或 root 请求；没有第三个 Tauri IPC，`bundle.active=false`、Agent idle/offline、生产联网/采集/远控/自动恢复/CA 都不变。只读文本**不是**签名配置、管理员批准、真实 Agent 安装或硬件 L3。
 
 ## 精确 CI 和外部缺口

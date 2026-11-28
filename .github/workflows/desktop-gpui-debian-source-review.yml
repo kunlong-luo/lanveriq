@@ -6,8 +6,8 @@ on:
       - 'tools/gpui_debian_source_review.py'
       - 'tools/test_gpui_debian_source_review.py'
       - '.github/workflows/desktop-gpui-debian-source-review.yml'
-      - 'apps/desktop/gpui-candidate/Cargo.lock'
-      - 'apps/desktop/gpui-candidate/Cargo.lock.sha256'
+      - 'apps/desktop/Cargo.lock'
+      - 'apps/desktop/Cargo.lock.sha256'
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,9 +23,9 @@ jobs:
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_debian_source_review.py -v
       - name: Compare original archives without extraction or compilation
         run: |
-          git ls-files --error-unmatch apps/desktop/gpui-candidate/Cargo.lock
+          git ls-files --error-unmatch apps/desktop/Cargo.lock
           python3 tools/gpui_debian_source_review.py
-          git diff --exit-code -- apps/desktop/gpui-candidate/Cargo.lock
+          git diff --exit-code -- apps/desktop/Cargo.lock
       - name: Archive review metadata only
         uses: actions/upload-artifact@v4
         with:

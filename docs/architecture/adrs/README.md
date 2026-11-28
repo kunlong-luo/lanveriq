@@ -16,6 +16,6 @@
 
 | [0013 Tauri 图形安装器 + 独立 headless Agent](0013-tauri-desktop-installer-idle-agent.md) | **ACCEPTED FOR DEVELOPMENT**：v0.1 Pop!_OS24 GUI 安装/配置/诊断方向，Agent systemd 独立无托盘后台运行；Tauri 2 **只读安装准备 UI** 已在 L2B-21 的 React/Rust 合成 CI 验证；**真正的签名 Agent 安装器/受限 Polkit/真实 Pop!_OS L3 未实现或未批准** |
 
-| [0014 GPUI 原生桌面迁移候选](0014-gpui-desktop-candidate.md) | **ACCEPTED FOR DEVELOPMENT / candidate only**：冻结 Tauri 扩展，待证据才部分取代 0013 GUI 选型；安装/权限/后台生命周期与 G-05/G-09 约束不变。 |
+| [0014 GPUI 原生桌面迁移候选](0014-gpui-desktop-candidate.md) | **ACCEPTED FOR DEVELOPMENT / source cutover, CI pending**：本机验收通过，唯一 GPUI 源码替代 0013 GUI 选型；安装/权限/后台生命周期与 G-05/G-09 约束不变。 |
 
 新 ADR 必须记录 Status(Proposed/Accepted-for-development/Superseded/Rejected)、Date、Context、Alternatives、Decision、Tradeoffs、Supersedes、Approval scope 与 Explicit non-authorizations。旧已取代决议仍保留原历史。[文档标准](../../governance/document-lifecycle.md)。

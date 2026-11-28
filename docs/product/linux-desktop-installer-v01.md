@@ -2,7 +2,7 @@
 
 **PRODUCT DESIGN BASELINE · 2026-11-27 · offline source preview / real device deployment NOT APPROVED**
 
-**2026-11-27 技术调整：** [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md) 选 GPUI 原生候选；七入口仅占位/导航，不具备已实现 Tauri 只读能力的等价性。保留旧预览作为回退，以下 Tauri 描述为现存实现/既有目标，安装权限不变。
+**2026-11-28 技术调整：** [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md) GPUI 原生只读功能及 KDE/X11 12/12 所有人验收已通过；源码切换至唯一 apps/desktop，迁移后 CI 待验。旧 Tauri 描述仅为历史；安装权限不变。
 
 **MVP-08 Tauri 历史尝试（前端 L1 PASS，原生 APT 审计 FAIL，本机未验）：** 客户端优先，七入口工作区（概览、安装向导、服务器与配置、设备注册、Agent 服务、安全与诊断、关于），复用原只读检查、草稿、安装审核与诊断；无真实连接、凭据导入、注册、安装、启停。未核验显示未知，敏感动作禁用，紧凑窗保留可见导航。现有 [任务账本](../planning/local-mvp-tasks.md) 管理 MVP-08～16、前置条件、CI/本机退出验收。
 
@@ -10,20 +10,20 @@
 
 ## Goal
 
-Ordinary users receive a **single verified desktop installation experience** with no requirement to install Rust, Node, Cargo or Gradle, edit TOML, execute manual shell commands, or understand systemd. Installation and configuration happen through a user-facing Tauri 2 desktop application; the compiled Rust Agent runs separately as a **systemd system service** when and only when authorized. Closing Tauri leaves an already authorized Agent service running. There is **no permanent GUI, Dock/taskbar icon, tray icon or desktop-session background process** after the installer closes; the app remains discoverable in the applications menu or an administrative system-management entry and can be reopened deliberately. No secret/silent installation, concealed system process or anti-uninstall behavior.
+Ordinary users receive a **single verified desktop installation experience** with no requirement to install Rust, Node, Cargo or Gradle, edit TOML, execute manual shell commands, or understand systemd. Installation and configuration happen through a user-facing GPUI native desktop application; the compiled Rust Agent runs separately as a **systemd system service** when and only when authorized. Closing the desktop GUI leaves an already authorized Agent service running. There is **no permanent GUI, Dock/taskbar icon, tray icon or desktop-session background process** after the installer closes; the app remains discoverable in the applications menu or an administrative system-management entry and can be reopened deliberately. No secret/silent installation, concealed system process or anti-uninstall behavior.
 
-Current state: a Tauri desktop **noninstalling preview** exists; a verified installer bundle, privileged service-install bridge and production signing do **NOT** exist in this repository. The existing unsigned, nonactivating offline Agent .deb is **not** a product installer and must not be distributed or installed as a released application.
+Current state: a GPUI desktop **noninstalling preview** exists; a verified installer bundle, privileged service-install bridge and production signing do **NOT** exist in this repository. The existing unsigned, nonactivating offline Agent .deb is **not** a product installer and must not be distributed or installed as a released application.
 
 ## Deliverable boundaries
 
 | Part | Intended responsibility | Must not do |
 | --- | --- | --- |
-| Tauri 2 desktop manager (planned) | First-run welcome, signed package identity, privacy notice, host compatibility, administrator consent, installation/configuration progress, status, diagnostics, update/uninstall screens | Root GUI, systemd daemon, persistent tray process, unattended service start, collection, remote desktop |
+| GPUI desktop manager (planned) | First-run welcome, signed package identity, privacy notice, host compatibility, administrator consent, installation/configuration progress, status, diagnostics, update/uninstall screens | Root GUI, systemd daemon, persistent tray process, unattended service start, collection, remote desktop |
 | Audited OS authorization bridge (planned) | Narrow fixed PolicyKit/polkit-mediated package/config/systemd operations after explicit consent, verify fixed paths/versions and signature | Arbitrary shell/argv, generic root IPC, hidden privilege elevation, executable packages from arbitrary URLs |
-| Rust Agent (existing idle-only code) | Independent system-level systemd service; offline safe idle lifecycle, logs, OS-protected local state | Depend on Tauri being open, auto-enroll, auto-upload, collect, issue certificates, control remote sessions |
+| Rust Agent (existing idle-only code) | Independent system-level systemd service; offline safe idle lifecycle, logs, OS-protected local state | Depend on the GUI being open, auto-enroll, auto-upload, collect, issue certificates, control remote sessions |
 | Next.js web console (existing disconnected preview) | Future central administrator management, access control and device fleet reporting after separate approvals | Replace the local privileged installer or be bundled as desktop privileged service |
 
-Implementation layout **proposal only**: apps/desktop for Tauri 2 and its React frontend; apps/agent remains independent; a narrowly scoped install broker should be packaged and audited separately only if genuinely necessary. Do not create a competing apps/web-next or reuse obsolete web Vite runtime.
+Implementation layout **proposal only**: apps/desktop for the GPUI native Rust GUI; apps/agent remains independent; a narrowly scoped install broker should be packaged and audited separately only if genuinely necessary. Do not create a competing apps/web-next or reuse obsolete web Vite runtime.
 
 ## User journeys and screen states
 
@@ -40,7 +40,7 @@ Implementation layout **proposal only**: apps/desktop for Tauri 2 and its React 
 - Cancel consent, reject admin auth, missing polkit, unsupported host, invalid signature/hash, modified .deb, wrong package owner, path/symlink/drop-in substitution, untrusted source, stale service manager, existing /usr/local legacy binary or version downgrade: **no enable/start and no partial trusted state claim**.
 - Service failed/inactive/disabled must be accurately displayed. Do not equate package presence, systemctl "loaded", and running healthy Agent; no fictitious connection to server.
 - Installation interruption/failed update must return to inspectable state; never delete SQLite WAL, local certificates or operator-owned configuration by cleanup scripts. Recovery paths need explicit authorization and tests.
-- Restricted privilege operations must have allowlisted actions/paths, deny arbitrary arguments, have scope/time-bound polkit approval and record audit metadata without secrets. A normal user must not acquire root operations via the Tauri IPC layer.
+- Restricted privilege operations must have allowlisted actions/paths, deny arbitrary arguments, have scope/time-bound polkit approval and record audit metadata without secrets. A normal user must not acquire root operations via a GUI IPC layer.
 - Notifications and accessibility: user can review effective permissions and uninstall at any time; keyboard navigation, screen-reader labels, COSMIC focus behavior, 100–200% scaling, 1366×768 and mobile-size/window overflow acceptance. No hidden-only settings.
 
 ## Packaging and lifecycle design

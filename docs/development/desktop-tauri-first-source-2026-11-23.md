@@ -12,7 +12,7 @@
 
 ## CI and next steps
 
-The new [disposable Ubuntu24 CI](../../.github/workflows/desktop-tauri-preview.yml) runs frontend tests, TypeScript/Vite build, Python negative source tests, real Rust/Tauri source compile and Clippy with WebKitGTK 4.1; it **never runs or installs Agent**. Generated lockfiles must be reviewed and committed in a follow-up, followed by strict --frozen-lockfile/--locked CI. Any CI failure remains recorded. CI must finish at exact functional SHA before PASS is claimed.
+The new [disposable Ubuntu24 CI](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/.github/workflows/desktop-tauri-preview.yml) runs frontend tests, TypeScript/Vite build, Python negative source tests, real Rust/Tauri source compile and Clippy with WebKitGTK 4.1; it **never runs or installs Agent**. Generated lockfiles must be reviewed and committed in a follow-up, followed by strict --frozen-lockfile/--locked CI. Any CI failure remains recorded. CI must finish at exact functional SHA before PASS is claimed.
 
 Next steps: real generated Cargo.lock/pnpm-lock.yaml; actual Chromium keyboard/small-screen GUI review; separately reviewed limited polkit broker and signed package design; actual Pop!_OS24 GUI/service/install/rollback/L3 only with approval. These are NOT IMPLEMENTED/NOT RUN. No authorized signed desktop .deb exists.
 

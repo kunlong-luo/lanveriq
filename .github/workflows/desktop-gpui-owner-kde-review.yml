@@ -5,11 +5,11 @@ on:
     paths:
       - 'apps/desktop/tools/verify_gpui_readonly.py'
       - 'apps/desktop/tools/test_verify_gpui_readonly.py'
-      - 'apps/desktop/gpui-candidate/src/**'
-      - 'apps/desktop/gpui-candidate/Cargo.toml'
+      - 'apps/desktop/src/**'
+      - 'apps/desktop/Cargo.toml'
       - 'apps/desktop/tools/owner_kde_x11_review.py'
       - 'apps/desktop/tools/test_owner_kde_x11_review.py'
-      - 'apps/desktop/gpui-candidate/tools/owner_cosmic_review.py'
+      - 'apps/desktop/tools/owner_cosmic_review.py'
       - '.github/workflows/desktop-gpui-owner-kde-review.yml'
   workflow_dispatch:
 permissions:

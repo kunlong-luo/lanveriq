@@ -162,7 +162,7 @@ def rebind(index, lock_bytes, out, previous, supply):
 
 if __name__ == "__main__":
     index = json.loads(pathlib.Path("tools/gpui_notice_gap_index.json").read_text())
-    lock = pathlib.Path("apps/desktop/gpui-candidate/Cargo.lock").read_bytes()
+    lock = pathlib.Path("apps/desktop/Cargo.lock").read_bytes()
     if len(sys.argv) == 6:
         from gpui_compiled_notice_review import read_archive
         previous = read_archive(pathlib.Path(sys.argv[2]), sys.argv[3])

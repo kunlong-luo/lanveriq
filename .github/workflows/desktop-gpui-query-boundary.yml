@@ -3,11 +3,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/desktop/gpui-candidate/src/runtime_metadata.rs'
-      - 'apps/desktop/gpui-candidate/src/host_identity.rs'
-      - 'apps/desktop/gpui-candidate/src/graphics.rs'
-      - 'apps/desktop/gpui-candidate/src/review.rs'
-      - 'apps/desktop/gpui-candidate/src/lib.rs'
+      - 'apps/desktop/src/runtime_metadata.rs'
+      - 'apps/desktop/src/host_identity.rs'
+      - 'apps/desktop/src/graphics.rs'
+      - 'apps/desktop/src/review.rs'
+      - 'apps/desktop/src/lib.rs'
       - '.github/workflows/desktop-gpui-query-boundary.yml'
   workflow_dispatch:
 permissions:
@@ -24,7 +24,7 @@ jobs:
         run: |
           rustup toolchain install 1.100.0 --profile minimal
           test "$(id -u)" -ne 0
-          rustc +1.100.0 --edition=2024 --test apps/desktop/gpui-candidate/src/lib.rs -o "$RUNNER_TEMP/gpui-query-tests"
+          rustc +1.100.0 --edition=2024 --test apps/desktop/src/lib.rs -o "$RUNNER_TEMP/gpui-query-tests"
       - name: Run library model tests and real fixed synthetic timeout fixtures
         run: |
           "$RUNNER_TEMP/gpui-query-tests" --test-threads=1

@@ -17,7 +17,7 @@ Lanveriq 是面向**明确告知并合法授权**的办公终端的 Linux-first�
 | [`apps/web/`](apps/web/README.md) | **唯一 Web 后台**：Next.js 16 / React 19 / Tailwind 4 / Base UI；公开 Pages 仅断开式演示 | **保留** |
 | [`apps/server/`](apps/server/README.md) | Java 25 / Spring Boot 4.2 / **Gradle** / JPA-Hibernate / Flyway / PostgreSQL 18；mTLS、业务事务与 API | **保留** |
 | [`apps/agent/`](apps/agent/README.md) | Rust/Tokio/SQLx SQLite/reqwest-rustls；Linux 只读采样、durable outbox、严格 ACK，生产自动采集仍关闭 | **保留** |
-| [`apps/desktop/`](apps/desktop/README.md) | Tauri 2 + React 的本机安装资格与状态**只读 GUI**；Vite 仅构建 Tauri 窗口，不是第二套 Web | **保留** |
+| [`apps/desktop/`](apps/desktop/README.md) | GPUI Kit 0.11.0 / GPUI 0.3.14 原生 Rust 本机安装资格与状态**只读 GUI** | **保留** |
 | [`deploy/caddy/`](deploy/caddy/Caddyfile.reference) | TLS 1.3 / 双 mTLS 参考配置、隔离联调；不是现成的公网生产部署 | **保留** |
 | [`deploy/network/`](deploy/network/verify_dual_access.py) | LAN/WAN 边界负测 | **保留** |
 | [`deploy/rustdesk/`](deploy/rustdesk/client-release-lock.json)、[`deploy/rustdesk-synthetic/`](deploy/rustdesk-synthetic/verify_rd2_release_boundary.py) | RustDesk 候选与 RD-2 发行拒绝测试；**远控 OFF**，尚无许可批准 | **保留（隔离）** |
@@ -64,7 +64,7 @@ pnpm dev
 # http://127.0.0.1:3100
 ```
 
-其他组件分别在对应目录执行 `cd apps/server && ./gradlew test`、`cd apps/agent && cargo test --workspace --locked`、`cd apps/desktop && pnpm test`。后端独立 PostgreSQL/loopback 配置参见[开发环境指南](docs/operations/installation.md)。**普通终端用户不应自行编译 Rust、使用 `dpkg -i` 或启用 systemd 作为“安装方式”。**
+其他组件分别在对应目录执行 `cd apps/server && ./gradlew test`、`cd apps/agent && cargo test --workspace --locked`、`cd apps/desktop && cargo +1.100.0 test --locked`。后端独立 PostgreSQL/loopback 配置参见[开发环境指南](docs/operations/installation.md)。**普通终端用户不应自行编译 Rust、使用 `dpkg -i` 或启用 systemd 作为“安装方式”。**
 
 正在进行的隔离业务链增量：[真实断网后 Rust SQLite 清单恢复 → mTLS 精确 ACK → PG18 revision 推进 → Next.js 手动刷新](docs/development/linux-inventory-reconnect-exact-ack-nextjs-l2-2026-11-25.md)。**该项已按功能 SHA [`db570181`](https://github.com/kunlong-luo/lanveriq/commit/db570181d603a7f069a85a23c009658e9a8bed4c) 通过[真实隔离 Linux L2 #45554279736（两个 jobs SUCCESS）](https://github.com/kunlong-luo/lanveriq/actions/runs/45554279736)。** 这不代表正式 Agent 可安装、具备后台自动恢复或生产采集授权。
 
@@ -74,7 +74,7 @@ pnpm dev
 
 **G-08 备份/灾备：** [三 job 跨 runner 原生 PG18 恢复 L2 #45742025955 PASS](docs/development/linux-pg18-cross-runner-artifact-restore-l2-2026-11-26.md)；[独立实体机 SRE 演练执行卡](docs/operations/g08-physical-dr-operator-card-2026-11-26.md)与[严格拒绝 L1 #45743205846 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45743205846)已备。**真实跨物理主机、独立 WORM/KMS、高水位、法务/SRE 签收 NOT RUN；不能上线。**
 
-**G-05/G-09 功能进展：** [Tauri 图形化 AgentConfig v1 空闲配置草稿](docs/development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（5 种周期、不需手写 TOML、无提权）；[React L1 #45748162585 UI job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)，同 SHA 原生/GUI CI 待最终结果。此前 [Tauri #45746181071](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only .deb #45746180976](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) PASS；**无正式 Agent 安装、Polkit broker、COSMIC L3。评分 71/100，Gate 0/10，NO-GO。**
+**G-05/G-09 功能进展：** [GPUI 原生桌面](apps/desktop/README.md) 已提供七入口、只读配置草稿及手动系统摘要；KDE/X11 所有人 12/12 与迁移前 CI 通过，唯一源码入口已迁移，迁移后 CI 待验。**无正式 Agent 安装、Polkit broker、独立 L3。评分 71/100，Gate 0/10，NO-GO。**
 
 ## G-05 原生 APT 冷缓存双回放与分离只读见证锚点
 

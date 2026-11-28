@@ -7,8 +7,8 @@ on:
       - 'tools/test_gpui_example_resource_review.py'
       - 'tools/gpui_debian_source_review.py'
       - '.github/workflows/desktop-gpui-example-resource-review.yml'
-      - 'apps/desktop/gpui-candidate/Cargo.lock'
-      - 'apps/desktop/gpui-candidate/Cargo.lock.sha256'
+      - 'apps/desktop/Cargo.lock'
+      - 'apps/desktop/Cargo.lock.sha256'
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,7 +25,7 @@ jobs:
       - name: Review locked archive without extraction or compilation
         run: |
           python3 tools/gpui_example_resource_review.py
-          git diff --exit-code -- apps/desktop/gpui-candidate/Cargo.lock
+          git diff --exit-code -- apps/desktop/Cargo.lock
       - uses: actions/upload-artifact@v4
         with:
           name: gpui-example-resource-review

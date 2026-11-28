@@ -112,17 +112,16 @@ def validate_folder(folder=FOLDER):
 def validate_context(root=ROOT):
     """Source audit only. GUI and bundle must remain fully offline/readonly."""
     desktop = root / "apps/desktop"
-    tauri = (desktop / "src-tauri/tauri.conf.json").read_text(encoding="utf-8")
-    native = (desktop / "src-tauri/src/lib.rs").read_text(encoding="utf-8")
-    import json
-    bundle = json.loads(tauri)["bundle"]
-    require(bundle["active"] is False and bundle["targets"] == []
-            and not bundle["linux"]["deb"].get("files"),
-            "unexpected Tauri policy or installer bundle")
-    require(native.count("#[tauri::command]") == 2
-            and "inspect_popos_preflight" in native and "inspect_host" in native
-            and "pkexec" not in native and "polkit" not in native,
-            "privileged broker or new Tauri IPC not reviewed")
+    from verify_gpui_readonly import validate
+    require(not (desktop / "src-tauri").exists()
+            and not (desktop / "gpui-candidate").exists(),
+            "retired desktop source must not reappear")
+    try:
+        validate(desktop)
+    except (AssertionError, ValueError, KeyError, OSError, RuntimeError) as exc:
+        raise ValueError("native GUI source boundary rejected") from exc
+    manifest = (desktop / "Cargo.toml").read_text(encoding="utf-8")
+    require("publish = false" in manifest, "native GUI publication forbidden")
     return RESULT
 
 

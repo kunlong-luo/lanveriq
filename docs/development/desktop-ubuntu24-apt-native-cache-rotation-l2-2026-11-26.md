@@ -12,9 +12,9 @@
 
 [单个原子提交](https://github.com/kunlong-luo/lanveriq/commit/a6db3afdfdcf75c9ef9690ace18a1240f1a03064) 同时修改以下两个 CI 使用者，不更改产品 Agent、Tauri 权限、安全门禁或正式发布流程：
 
-1. [Tauri 原生构建](../../.github/workflows/desktop-tauri-preview.yml)：审过的包数 **175→176**，归档摘要/缓存 key 更新，严格运行本机签名 APT metadata 和完整闭包校验，安装系统原生 GUI 编译前提时仍 **`--no-download`**。
-2. [GUI-only `.deb` 候选审计](../../.github/workflows/desktop-deb-candidate.yml)：**同一**审核缓存 key、176 包总数、归档哈希、无下载安装和独立 `.deb` 完整性/ELF/许可证缺口检查。CI 构建的 `.deb` 只有 GUI；**不含 Agent、不安装、不签发、不发布**。
-3. [APT 独立预取生产者](../../.github/workflows/desktop-ubuntu-apt-prefetch.yml) 已在任一原生消费者工作流修改时触发重新预取；要求 Ubuntu 签名索引检查、download-only 不更改 dpkg 安装状态、另一个 runner 审计全部归档。诊断仅记录 APT 依赖闭包差异，**不能静默退回旧缓存或接受不完整/越权归档**。
+1. [Tauri 原生构建](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/.github/workflows/desktop-tauri-preview.yml)：审过的包数 **175→176**，归档摘要/缓存 key 更新，严格运行本机签名 APT metadata 和完整闭包校验，安装系统原生 GUI 编译前提时仍 **`--no-download`**。
+2. [GUI-only `.deb` 候选审计](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/.github/workflows/desktop-deb-candidate.yml)：**同一**审核缓存 key、176 包总数、归档哈希、无下载安装和独立 `.deb` 完整性/ELF/许可证缺口检查。CI 构建的 `.deb` 只有 GUI；**不含 Agent、不安装、不签发、不发布**。
+3. [APT 独立预取生产者](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/.github/workflows/desktop-ubuntu-apt-prefetch.yml) 已在任一原生消费者工作流修改时触发重新预取；要求 Ubuntu 签名索引检查、download-only 不更改 dpkg 安装状态、另一个 runner 审计全部归档。诊断仅记录 APT 依赖闭包差异，**不能静默退回旧缓存或接受不完整/越权归档**。
 
 **当前被批准的临时 CI 加速缓存（仅独立 GitHub CI 管理域）：**
 
@@ -28,7 +28,7 @@
 - [旧 #45745478152 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45745478152) 的源 runner 只有 172 个待安装包；[批准 #45745618560 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45745618560) 的源/目标都需要 176；紧接着 [#45745775904 FAIL](https://github.com/kunlong-luo/lanveriq/actions/runs/45745775904) 的源 runner 需要 **176**、独立目标仅需 **172**，其缓存中多出的 **4** 个已由目标宿主机满足，**所需包/版本不缺失**。原先将“两个不同 runner 待安装包数必须相同”当成不变条件，会误拒绝受审的真实缓存。
 - [验证器](../../apps/desktop/tools/verify_desktop_apt_archive_cache.py) 在提交 [`61cedcd3`](https://github.com/kunlong-luo/lanveriq/commit/61cedcd382eebec5ed98c2b74a4f2f84e013c75c) 新增 **显式开启** 的 `--allow-signed-superset`，默认严格模式**仍保持不变**。无论当前 runner 需要多少安装包，仍逐个核查缓存内全部 **176** 件的索引签名链间接信任、确切名字/版本/架构、SHA-256、文件大小及独立生产者 manifest；`Inst` 计划的每一条必需依赖**必须存在且版本一致**。只有“不需要再安装、但仍逐包签名验证”的归档允许额外存在。
 - [离线负测](../../apps/desktop/tools/test_verify_desktop_apt_archive_cache.py) 明确覆盖**缺少必需包、必需版本变更、额外包的哈希篡改、当前计划超过缓存、默认严格模式不允许额外包**。[验证器单元 CI #45746132753 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746132753)（功能 `e9b85a5d`）。
-- 三条[预取](../../.github/workflows/desktop-ubuntu-apt-prefetch.yml)、[原生 Tauri](../../.github/workflows/desktop-tauri-preview.yml)、[GUI-only `.deb`](../../.github/workflows/desktop-deb-candidate.yml) 工作流已由功能 [`c411d3ea`](https://github.com/kunlong-luo/lanveriq/commit/c411d3ead8f7b79c9951fbf31a0a9f1712b72e0d) 显式调用该模式。**若生产者缺少任何目标必需的版本、签名索引不可验证或来源清单不同，仍 FAIL**；不会下载未经审核的替代包。此模式仅适用于一次性 Ubuntu CI GUI 编译依赖，不是 Agent/安装器的发行高水位。
+- 三条[预取](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/.github/workflows/desktop-ubuntu-apt-prefetch.yml)、[原生 Tauri](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/.github/workflows/desktop-tauri-preview.yml)、[GUI-only `.deb`](https://github.com/kunlong-luo/lanveriq/blob/d04d3e01ca97afd0c4a2ae31d5df19f5791c5e09/.github/workflows/desktop-deb-candidate.yml) 工作流已由功能 [`c411d3ea`](https://github.com/kunlong-luo/lanveriq/commit/c411d3ead8f7b79c9951fbf31a0a9f1712b72e0d) 显式调用该模式。**若生产者缺少任何目标必需的版本、签名索引不可验证或来源清单不同，仍 FAIL**；不会下载未经审核的替代包。此模式仅适用于一次性 Ubuntu CI GUI 编译依赖，不是 Agent/安装器的发行高水位。
 
 ## 本轮状态与下一项出口
 

@@ -11,7 +11,7 @@ import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-OLD_TOOLS = ROOT.parent / "tools"
+OLD_TOOLS = HERE
 NAME = "lanveriq-desktop-gpui-candidate"
 VERSION = "0.1.0~dev1"
 EXECUTABLE = "usr/bin/" + NAME

@@ -3,8 +3,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/desktop/gpui-candidate/tools/owner_cosmic_review.py'
-      - 'apps/desktop/gpui-candidate/tools/test_owner_cosmic_review.py'
+      - 'apps/desktop/tools/owner_cosmic_review.py'
+      - 'apps/desktop/tools/test_owner_cosmic_review.py'
       - '.github/workflows/desktop-gpui-owner-review.yml'
   workflow_dispatch:
 permissions:
@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 5
     defaults:
       run:
-        working-directory: apps/desktop/gpui-candidate
+        working-directory: apps/desktop
     steps:
       - uses: actions/checkout@v7
         with:
