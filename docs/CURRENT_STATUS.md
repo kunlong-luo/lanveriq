@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（7/16）。** MVP-08 **BLOCKED**。GPUI UI/主题/响应式全量 PASS；维护者本机功能 7/7 PASS（非完整12项报告）。自动交互修复 a31aa132 实际 X11 步骤 PASS，全量 CI 待完成；COSMIC、正式许可/发行仍 OPEN，按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri。精确 SHA、CI、性能及交接见[任务账本](planning/local-mvp-tasks.md)。
+**MVP-01～07 DONE（7/16）。** MVP-08 **BLOCKED**。GPUI UI/主题/响应式全量 PASS；维护者本机功能 7/7 PASS（非完整12项报告）。自动交互修复 a31aa132 实际 X11 步骤 PASS，全量 CI 待完成；COSMIC、保留图标许可及正式发行仍 OPEN，按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri。精确 SHA、CI、性能及交接见[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 
