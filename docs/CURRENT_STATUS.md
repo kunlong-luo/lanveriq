@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机 PASS，非独立 L3。MVP-08 **BLOCKED**：GPUI [全量 #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) 三 jobs PASS；[任务账本](planning/local-mvp-tasks.md)保存全部 CI 与下一步。按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri 回退；22 registry 许可缺项（Debian 归档 2/3 字节一致）；Release/ABI/合成 Wayland PASS；COSMIC 实机 NOT RUN；验收脚本 CI PASS；BOM 范围已解释，最终链接 OPEN。
+**MVP-01～07 DONE（7/7）。** [Linux L2 #45969893816 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816)；维护者本机 PASS，非独立 L3。MVP-08 **BLOCKED**：GPUI [全量 #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) 三 jobs PASS；[任务账本](planning/local-mvp-tasks.md)保存全部 CI 与下一步。按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri 回退；22 许可缺项（2/3 归档一致，mac 清单差异）；Release/ABI/合成 Wayland PASS；COSMIC 实机 NOT RUN；验收脚本 CI PASS；BOM 范围已解释，最终链接 OPEN。
 
 ## 最近确实通过的关键验收
 
