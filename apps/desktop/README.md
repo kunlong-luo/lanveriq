@@ -6,7 +6,7 @@
 
 ## 原生 GPUI 迁移候选（尚未切换）
 
-维护者批准优先验证 [GPUI Kit 原生 Rust 候选](gpui-candidate/README.md)，版本和退出标准见 [ADR-0014](../../docs/architecture/adrs/0014-gpui-desktop-candidate.md)。离线导航/只读检查、无真实业务；最终原生全量CI与许可审查材料已通过，尚缺KDE本机补证及源码迁移。2026-11-28维护者批准本机开发与商业发行分离：本机验收通过后才切换唯一入口并移除旧Tauri专用UI/CI，保留Git回退及通用安全实验；权属/第三方正式许可、签名、安装、独立L3留在发行Gate，全部OPEN。不长期维护双客户端，不授权分发或生产。
+维护者批准优先验证 [GPUI Kit 原生 Rust 候选](gpui-candidate/README.md)，版本和退出标准见 [ADR-0014](../../docs/architecture/adrs/0014-gpui-desktop-candidate.md)。离线导航/只读检查、无真实业务；最终原生全量CI与许可审查材料已通过，KDE本机12/12已通过；正式源码迁移及迁移后CI待完成。2026-11-28维护者批准本机开发与商业发行分离：本机验收通过后才切换唯一入口并移除旧Tauri专用UI/CI，保留Git回退及通用安全实验；权属/第三方正式许可、签名、安装、独立L3留在发行Gate，全部OPEN。不长期维护双客户端，不授权分发或生产。
 
 ## 已实现的界面和真实边界
 

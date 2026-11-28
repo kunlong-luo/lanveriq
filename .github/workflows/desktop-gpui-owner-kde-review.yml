@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
     paths:
+      - 'apps/desktop/tools/verify_gpui_readonly.py'
+      - 'apps/desktop/tools/test_verify_gpui_readonly.py'
+      - 'apps/desktop/gpui-candidate/src/**'
+      - 'apps/desktop/gpui-candidate/Cargo.toml'
       - 'apps/desktop/tools/owner_kde_x11_review.py'
       - 'apps/desktop/tools/test_owner_kde_x11_review.py'
       - 'apps/desktop/gpui-candidate/tools/owner_cosmic_review.py'
@@ -20,3 +24,7 @@ jobs:
           persist-credentials: false
       - name: Verify separate KDE scope and fail-closed owner report (no GUI)
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s apps/desktop/tools -p test_owner_kde_x11_review.py -v
+      - name: Verify reusable native read-only source policy and negative fixtures
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 apps/desktop/tools/verify_gpui_readonly.py
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s apps/desktop/tools -p test_verify_gpui_readonly.py -v
