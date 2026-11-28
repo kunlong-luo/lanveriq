@@ -12,7 +12,33 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "gpui-candidate/tools"))
 from owner_cosmic_review import (ROOT, NAME, CHECKS, STATUS, require, command,
-    source_identity, sha, parse_answers, review_exit_code, run_review_process)
+    source_identity, sha, review_exit_code, run_review_process)
+
+# Keep the original nine observations unchanged. New UI observations have
+# their own explicit status; old v1 reports cannot silently satisfy v2.
+UI_CHECKS = (
+    ("appearance", "关于页选择浅色/深色，确认全局颜色确实变化；切换其他页面后返回仍保留选择，再选跟随系统（不修改系统设置）"),
+    ("compact_navigation", "缩窄窗口直到左侧仅显示图标，七项仍可点击且有提示；恢复宽窗口后标签复原，当前页不变"),
+    ("scoped_actions", "安装/配置/注册/服务页分别仅有3/2/2/3项受限操作，全部禁用；概览/诊断/关于无重复受限操作区"),
+)
+ALL_CHECKS = CHECKS + UI_CHECKS
+
+def parse_answers(answer):
+    words = answer.lower().split()
+    require(len(words) == len(ALL_CHECKS) and all(word in STATUS for word in words),
+            f"请按顺序输入 {len(ALL_CHECKS)} 个 p/f/n")
+    return {key: STATUS[word] for (key, _), word in zip(ALL_CHECKS, words)}
+
+def owner_exit_code(code, answers, method):
+    require(set(answers) == {key for key, _ in ALL_CHECKS}
+            and all(value in STATUS.values() for value in answers.values()),
+            "KDE 验收结果无效")
+    base = review_exit_code(code, {key: answers[key] for key, _ in CHECKS}, method)
+    if base == 1 or any(answers[key] == STATUS["f"] for key, _ in UI_CHECKS):
+        return 1
+    if base == 2 or any(answers[key] == STATUS["n"] for key, _ in UI_CHECKS):
+        return 2
+    return 0
 
 FIELDS = ("User", "Desktop", "Type", "Remote", "Active")
 # Exact unversioned linker inputs seen in the owner's failed Release link.
@@ -93,13 +119,14 @@ def checked_source():
     return head
 
 def report(head, lock, binary, code, answers, method):
-    review_exit_code(code, answers, method)
-    return {"schema":"lanveriq.gpui.owner-kde-x11-review-v1",
+    owner_exit_code(code, answers, method)
+    return {"schema":"lanveriq.gpui.owner-kde-x11-review-v2",
         "source_sha":head,"lock_sha256":lock,"elf_sha256":binary,
         "target":"Pop!_OS 24.04 x86_64","session_claim":"KDE_X11",
         "local_active_logind_metadata":"CHECKED","x11_socket_metadata":"CHECKED",
         "exit_code":code,"ctrl_q":STATUS["p"] if code == 0 and method == "y" else "NOT_CONFIRMED",
         "checks":answers,"chinese_ime_composition":answers["chinese_ime"],
+        "platform_appearance_event":"NOT_TESTED","physical_dpi":"NOT_VERIFIED",
         "cosmic_wayland":"NOT_RUN","native_compositor_protocol_verified":False,
         "window_manager_close":"NOT_TESTED","hardware_gpu":"NOT_VERIFIED",
         "independent_l3":"NOT_APPROVED","install_authorized":False,"release_approved":False}
@@ -120,7 +147,7 @@ def main():
     verify_link_inputs()
     print("系统默认 cc 的四项已知原生链接输入可见；非完整 ABI 验收。")
     print("仅 KDE/X11 所有人观察，不是 COSMIC Wayland 验收。不会安装 Agent、修改服务或上传报告。")
-    for i, (_, description) in enumerate(CHECKS, 1):
+    for i, (_, description) in enumerate(ALL_CHECKS, 1):
         print(f"{i}. {description}")
     print("完成后 Ctrl+Q；缺少依赖时停止，不自动下载。", flush=True)
     run_review_process(["cargo","+1.100.0","build","--locked","--offline","--release",
@@ -137,13 +164,13 @@ def main():
     require(checked_source() == head and sha(lock) == expected and sha(binary) == binary_sha
             and session() == sock, "测试期间源码、锁、产物或会话发生变化")
     print("窗口退出码:", result.returncode)
-    print("按上述 9 项输入 p=通过 f=失败 n=未测")
+    print(f"按上述 {len(ALL_CHECKS)} 项输入 p=通过 f=失败 n=未测")
     answers = parse_answers(input("> "))
     method = input("是否确实使用 Ctrl+Q 退出？ y/n: ").strip().lower()
     output = report(head,expected,binary_sha,result.returncode,answers,method)
     print("=== KDE/X11 脱敏所有人观察报告（非签名，COSMIC NOT RUN） ===")
     print(json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True))
-    return review_exit_code(result.returncode,answers,method)
+    return owner_exit_code(result.returncode,answers,method)
 
 if __name__ == "__main__":
     try:

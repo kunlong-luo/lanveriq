@@ -1,7 +1,7 @@
 import subprocess
 import unittest
 from unittest.mock import patch
-from owner_kde_x11_review import (verify_session, report, parse_answers, review_exit_code,
+from owner_kde_x11_review import (verify_session, report, parse_answers, owner_exit_code, ALL_CHECKS, UI_CHECKS, STATUS,
                                   LINK_INPUTS, verify_link_inputs, default_cc_lookup)
 from owner_cosmic_review import verify_session as cosmic_session
 
@@ -39,17 +39,17 @@ class KdeReview(unittest.TestCase):
             with self.subTest(raw=raw[:40]),self.assertRaises(ValueError):
                 self.verify(raw=raw)
     def test_report_never_promotes_cosmic_or_release(self):
-        answers=parse_answers("p p p p p p p p p")
+        answers=parse_answers(" ".join(["p"]*12))
         for code,method in ((0,"y"),(0,"n"),(101,"y")):
             data=report("a"*40,"b"*64,"c"*64,code,answers,method)
-            self.assertEqual(data["schema"],"lanveriq.gpui.owner-kde-x11-review-v1")
+            self.assertEqual(data["schema"],"lanveriq.gpui.owner-kde-x11-review-v2")
             self.assertEqual(data["cosmic_wayland"],"NOT_RUN")
             self.assertEqual(data["independent_l3"],"NOT_APPROVED")
             self.assertFalse(data["install_authorized"])
             self.assertFalse(data["release_approved"])
-        self.assertEqual(review_exit_code(0,answers,"y"),0)
-        self.assertEqual(review_exit_code(0,answers,"n"),2)
-        self.assertEqual(review_exit_code(101,answers,"y"),1)
+        self.assertEqual(owner_exit_code(0,answers,"y"),0)
+        self.assertEqual(owner_exit_code(0,answers,"n"),2)
+        self.assertEqual(owner_exit_code(101,answers,"y"),1)
 
     def test_link_inputs_missing_named_dev_package_before_build(self):
         seen = []
@@ -83,3 +83,26 @@ class KdeReview(unittest.TestCase):
             run.assert_called_once_with(["/usr/bin/cc", "-print-file-name=libxcb.so"],
                 check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                 timeout=5, env={"PATH":"/usr/bin:/bin","LANG":"C"})
+
+    def test_new_ui_observations_required_for_v2(self):
+        self.assertEqual(len(ALL_CHECKS),12)
+        self.assertEqual(len(set(key for key,_ in ALL_CHECKS)),12)
+        for raw in ("p "*9,"p "*11,"p "*13,"p "*11+"yes"):
+            with self.assertRaises(ValueError):
+                parse_answers(raw)
+        good = parse_answers("p "*12)
+        self.assertEqual(owner_exit_code(0,good,"y"),0)
+        for key,_ in UI_CHECKS:
+            for marker,code in (("f",1),("n",2)):
+                with self.subTest(key=key,marker=marker):
+                    answers={**good,key:STATUS[marker]}
+                    self.assertEqual(owner_exit_code(0,answers,"y"),code)
+                    data=report("a"*40,"b"*64,"c"*64,0,answers,"y")
+                    self.assertEqual(data["checks"][key],STATUS[marker])
+                    self.assertEqual(data["platform_appearance_event"],"NOT_TESTED")
+                    self.assertEqual(data["physical_dpi"],"NOT_VERIFIED")
+                    self.assertFalse(data["release_approved"])
+        for answers in ({key:value for key,value in good.items() if key!="appearance"},
+                        {**good,"appearance":"PASS"},{**good,"unexpected":STATUS["p"]}):
+            with self.assertRaises(ValueError):
+                owner_exit_code(0,answers,"y")
