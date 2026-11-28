@@ -268,6 +268,8 @@
   - **所有人下一次操作（本轮 NOT RUN）**：在可信已同步 main 的本地仓库根目录、普通 Pop!_OS 24.04 x86_64 COSMIC Wayland 登录终端运行 `python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py`；不 sudo、不安装 Agent、不修改服务、不需要 Spring/PG/Caddy 在线。先人工确认 `git status --short`，不要自动清理本地改动，按现有 README 执行。该脚本只使用已缓存 Rust 1.100.0 与 crate 的 offline/locked Release 构建，缺依赖先停止、回传明确错误；如所有人另行同意开发依赖准备，再按当前 CI 的上游开发库清单及 Cargo 锁定下载准备，不将 CI 安装命令自动复制到实机。使用窗口完成九项显式 p/f/n，Ctrl+Q 后回传 v2 JSON；不贴原始设备标识、环境或凭据。未测填 n，不把 exit 0 等同于九项全通过；窗口管理器关闭/物理 GPU 不在 v2 已验证范围，仍另列。
   - **停止扩展边界**：现阶段合成 X11/Wayland/Release/ABI 自动化已达到本项既定窗口协议范围；在取得实机证据前，不默认追加重复图形测试或全量重构。仍需 22 registry 许可缺项（19 上游候选/3 Debian 佐证）、3 上游精确绑定、46 registry BOM 范围差异（另1本地 target）、9 维护警告、完整 NOTICE/资源/运行时/清洁系统 ABI、Tauri 同条件比较及超时负测。MVP-08 BLOCKED；71/100，G-01～10 OPEN，不进入 MVP-09。
 
+- **2026-11-28 独立 Cargo metadata 范围复核**：基线 [f477872b](https://github.com/kunlong-luo/lanveriq/commit/f477872b3c9bfa9204d849d53e224f836eedc8a6) docs [#46106821177](https://github.com/kunlong-luo/lanveriq/actions/runs/46106821177)、Next [#46106821160](https://github.com/kunlong-luo/lanveriq/actions/runs/46106821160)、RD-2 [#46106821161](https://github.com/kunlong-luo/lanveriq/actions/runs/46106821161)、预览 [#46106821197](https://github.com/kunlong-luo/lanveriq/actions/runs/46106821197) 全 SUCCESS。未收到所有人 COSMIC v2 观察结果；保留 [合成 Wayland #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) PASS 及实机 NOT RUN，不再增加图形测试。新增 [24527b29](https://github.com/kunlong-luo/lanveriq/commit/24527b29b0dce6f6c10acefab764a7a552f22e04) tools/gpui_metadata_scope.py、test_gpui_metadata_scope.py 和独立 read-only workflow desktop-gpui-metadata-scope.yml：固定 Rust 1.100.0/cargo-cyclonedx 0.5.10；同锁运行 Cargo metadata --locked --filter-platform x86_64-unknown-linux-gnu、Linux normal/build tree 和原始 CycloneDX 1.6，前后校验锁摘要与 diff；按 metadata resolve root 非 dev 可达图比较包版本，记录各集合差异、入口边、BOM scope、metadata 解析 features/dep_kinds，单独保留本地 target，拒绝未知/重复包、悬空边等；两组 fixture 测试，报告绑定源/锁/输入 SHA256，原始 BOM 保留，不归档原始 metadata 或二进制。仅工具安装与解析，无 GPUI GUI 编译、APT、产品代码或锁改动；当前 [metadata #46107016332](https://github.com/kunlong-luo/lanveriq/actions/runs/46107016332) RUNNING，[RD-2 #46107016350](https://github.com/kunlong-luo/lanveriq/actions/runs/46107016350) SUCCESS。尚未取得解析实测，不能关闭 46 registry 差异，也不将 metadata reachability 等同最终 rustc 链接或 SBOM 完整性。22 registry 许可缺项（19 上游/3 Debian 佐证）、3 上游精确绑定、9 维护警告、完整 NOTICE/资源/运行时/清洁 ABI/Tauri 对比、真实 COSMIC/IME/GPU/关闭、超时负测仍 OPEN。MVP-08 BLOCKED，71/100。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
@@ -304,13 +306,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [ccc239d7](https://github.com/kunlong-luo/lanveriq/commit/ccc239d74356d6c1f00c7981e4ffd0fca3caafed)；本轮仅更新实测证据与交接，产品/锁/workflow 不变。 |
-| 本轮 | MVP-08 **BLOCKED**；嵌套 Weston 真实合成 Wayland 协议 PASS，五组解析测试 PASS；停止默认扩展图形测试。MVP-01～07 DONE，09～16 TODO。 |
-| CI | [#46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) 三 jobs PASS（功能 85b77ff7）；基线 docs/Next/RD-2/预览 PASS；首测 [#46102204965](https://github.com/kunlong-luo/lanveriq/actions/runs/46102204965) FAIL 保留。 |
-| 锁/风险 | 522 Linux / 569 BOM / 0 缺失 / 46 registry extra + 1 本地 target；22 registry 许可缺项、3 精确上游绑定、9 维护警告、NOTICE/资源/法务/清洁 ABI OPEN。 |
-| 本机 | 最新 Release 临时 deb 12057322 bytes，X11 探针 476.740ms/RSS 197476 KiB/PSS 173338 KiB；合成 Wayland PASS；所有人 COSMIC v2 九项/IME/关闭/GPU、独立 L3、完整运行时/包/Tauri 比较及超时负测 NOT RUN/OPEN。 |
+| 基线 | [f477872b](https://github.com/kunlong-luo/lanveriq/commit/f477872b3c9bfa9204d849d53e224f836eedc8a6)；功能 [24527b29](https://github.com/kunlong-luo/lanveriq/commit/24527b29b0dce6f6c10acefab764a7a552f22e04)。 |
+| 本轮 | MVP-08 **BLOCKED**；新增独立 target metadata/tree/BOM 范围对比与两组负测，待实际 CI；不重复编译 GUI。MVP-01～07 DONE，09～16 TODO。 |
+| CI | 基线 docs/Next/RD-2/预览 PASS；[合成 Wayland #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) 三 jobs PASS；新 [metadata #46107016332](https://github.com/kunlong-luo/lanveriq/actions/runs/46107016332) RUNNING，[RD-2 #46107016350](https://github.com/kunlong-luo/lanveriq/actions/runs/46107016350) PASS。 |
+| 锁/风险 | 522 Linux / 569 BOM / 0 缺失 / 46 registry extra + 1 本地 target；待 metadata 复核，最终链接未证；22 registry 许可缺项、3 精确上游绑定、9 维护警告、NOTICE/资源/法务/清洁 ABI OPEN。 |
+| 本机 | X11/合成 Wayland/Release/ABI/临时包 PASS；真实 COSMIC v2 九项、IME/关闭/GPU、独立 L3、完整运行时/包/Tauri 比较及超时负测 NOT RUN/OPEN。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | MVP-08：所有人从同步 main 的普通 COSMIC Wayland 终端执行 `python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py` 并回传 v2 JSON 或具体失败；按实机证据修复，同时仅收尾剩余供应链/包/Tauri 比较，不进入 MVP-09。 |
+| **下次唯一任务** | MVP-08：读取 metadata 实际 CI，按 scope 差异收尾；所有人从同步 main 的普通 COSMIC Wayland 终端运行 `python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py` 并回传 v2 JSON 或具体失败；不扩展外围图形测试，不进入 MVP-09。 |
 | 约束 | main only；保留 Tauri 回退且冻结扩展，不提高 CI 写权限、不忽略漏洞；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
