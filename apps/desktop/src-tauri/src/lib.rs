@@ -274,19 +274,55 @@ async fn inspect_popos_preflight() -> Result<String, String> {
         .unwrap_or_else(|_| Err("PREFLIGHT_UNAVAILABLE".into()))
 }
 
+// Linux rollback preview: the observed GTK/GdkPixbuf startup panic happens
+// before a window is mapped. Avoid passing a default window icon to GTK
+// while the exact decoder/stride cause is still under investigation.
+// Keep the reviewed desktop launcher PNG and package metadata unchanged.
+// This is a narrow compatibility mitigation, not a tray or product feature.
+fn preview_context() -> tauri::Context<tauri::Wry> {
+    let context = tauri::generate_context!();
+    #[cfg(target_os = "linux")]
+    let context = {
+        let mut context = context;
+        context.set_default_window_icon(None);
+        context
+    };
+    context
+}
+
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             inspect_host,
             inspect_popos_preflight
         ])
-        .run(tauri::generate_context!())
+        .run(preview_context())
         .expect("failed to run offline Lanveriq desktop preview");
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_preview_omits_runtime_icon_but_preserves_bundle_icon() {
+        let original: tauri::Context<tauri::Wry> = tauri::generate_context!();
+        let context = preview_context();
+        assert!(context.default_window_icon().is_none());
+        assert_eq!(context.config().bundle.icon, original.config().bundle.icon);
+        assert_eq!(context.config().bundle.icon, ["icons/icon.png"]);
+        if let Some(icon) = original.default_window_icon() {
+            println!(
+                "Generated window icon: width={} height={} rgba_bytes={}",
+                icon.width(),
+                icon.height(),
+                icon.rgba().len()
+            );
+        } else {
+            println!("Generated window icon: absent");
+        }
+    }
 
     #[test]
     fn popos_target_requires_exact_distribution_and_version() {

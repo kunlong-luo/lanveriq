@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'apps/desktop/src-tauri/src/lib.rs'
       - 'apps/desktop/tools/paired_desktop_performance.py'
       - 'apps/desktop/tools/test_paired_desktop_performance.py'
       - '.github/workflows/desktop-paired-performance.yml'
@@ -50,6 +51,9 @@ jobs:
             libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf python3-apt dpkg-dev \
             xvfb xauth openbox xdotool x11-utils mesa-vulkan-drivers libgl1-mesa-dri \
             dbus-x11 fonts-noto-cjk imagemagick
+      - name: Verify generated context icon mitigation (no GUI)
+        working-directory: apps/desktop/src-tauri
+        run: cargo +1.100.0 test --locked --lib linux_preview_omits_runtime_icon_but_preserves_bundle_icon -- --nocapture
       - name: Build frozen Tauri Release (no bundle or signing)
         working-directory: apps/desktop
         env:
