@@ -358,6 +358,8 @@
 
 - **2026-11-28 用户报告本机系统数据缺失、侧栏文字未垂直居中/左对齐**：此前本机只有 OS 身份与 Agent/service/graphics 元数据，CPU/RAM 未实现，不能归为真实硬件采集成功。复核固定 GPUI Kit e97fe438 button.rs 内部 label 默认 size_full/items_center/justify_center，外层 justify_start 不足；展开态改为原生 Button 的全宽自定义内容槽、固定图标槽、图文 flex items_center/justify_start，折叠仍图标居中，保留焦点、aria、选中、点击和响应式。新增独立 binary system_summary 模块，使用已有候选锁 sysinfo 0.31.4 system-only feature（Agent 的0.37.1不改；不造 proc 解析、不引入新registry版本），旧锁摘要0f77a9e9df9f3ff03612f22f4777de7d7ebf2cd65b69fc79d18a2ed05e37dad9，新锁 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887，仅候选根依赖新增已存在 sysinfo 边；以 Cargo --locked 实际解析为验收，不预称锁有效或沿用旧 ELF/许可结果。概览手动检测后显示 OS/版本/内核/CPU型号/物理逻辑核心/总可用RAM；同一现有非root身份检查及后台任务、刷新清旧数据、异常未知、不上传/不保存/不进脱敏诊断、不枚举进程/用户/网络/磁盘/hostname、不启Agent。新增本机数据真实非root Linux binary test 与未知边界测试，更新现有源码守卫仅放行精确直接依赖；实际构建/CI待验。基线11446778 文档/Next/RD2/预览与KDE只读边界 PASS，KDE适配全量仍运行；用户报告本机Release编译完成2.43s、窗口可执行及EGL/DRI2 warnings，未提交12项结果/精确ELF，不认定GPU加速。71/100，MVP-08 BLOCKED，不进MVP-09。
 
+- **2026-11-28 侧栏四字菜单统一**：用户要求全部菜单四个字，统一 Page::label 为设备概览、安装向导、服务器设置、设备注册、代理服务、安全诊断、关于软件。原七页ID、顺序、图标、功能、选中/键盘/折叠和权限不变；页标题、无障碍名称、折叠提示复用同一标签。新增七项精确名称、Unicode汉字数及唯一性模型测试。基线631e1b06文档/RD2/Next/范围/源码预览已PASS，原生全量尚未验收；新提交 CI 待核，不增加依赖、不改锁、不加分。MVP-08仍BLOCKED，不进入MVP-09。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
