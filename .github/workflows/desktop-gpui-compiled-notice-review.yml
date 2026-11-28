@@ -12,7 +12,7 @@ on:
         description: "Successful GPUI full CI run with Link Map artifact (empty: historical compiler-only review)"
         required: false
         type: string
-        default: "46119431583"
+        default: "46130643220"
 permissions:
   contents: read
   actions: read
@@ -43,7 +43,7 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || inputs.release_run_id != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_RUN_ID: ${{ github.event_name == 'push' && '46119431583' || inputs.release_run_id }}
+          RELEASE_RUN_ID: ${{ github.event_name == 'push' && '46130643220' || inputs.release_run_id }}
         run: |
           set -euo pipefail
           [[ "$RELEASE_RUN_ID" =~ ^[0-9]+$ ]]
@@ -68,9 +68,9 @@ jobs:
             gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "$id.zip"
             args+=("$id.zip" "$digest")
           done < receipts.tsv
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15248859534/zip" > notice.zip
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15258131714/zip" > notice.zip
           python3 tools/gpui_compiled_notice_review.py compiled-notice-review.json "${args[@]}" \
-            notice.zip 003b3fac7425d25b5e2ca4055e94ec71ae40150cf33f8fecd39feb7a1df94619
+            notice.zip 0ab0d822ff3f7941636d5f3b0cafa0119459cb7e24061aa952daaaca07f50efd
           python3 - <<'PY'
           import json
           report = json.load(open("compiled-notice-review.json"))

@@ -139,3 +139,7 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 ### 当前辅助材料实际独立复核 PASS
 
 [新版 #46131465177](https://github.com/kunlong-luo/lanveriq/actions/runs/46131465177) SUCCESS，4/4 fixtures，22/22包及原始材料，0法律缺项关闭；[归档15258131714](https://github.com/kunlong-luo/lanveriq/actions/runs/46131465177/artifacts/15258131714) SHA256 0ab0d822ff3f7941636d5f3b0cafa0119459cb7e24061aa952daaaca07f50efd（39937 bytes）。独立下载新/旧辅助与当前供链三ZIP，实际SHA256均符合固定值、无重复成员；22/22 registry checksum与当前供链一致，22/22原文本逐字节、长度/SHA256/Git blob、packages/materials与旧辅助一致，共72464 bytes；新旧lock及当前source/供链ZIP身份匹配，install/release均false、0关闭。当前 [#46130643220](https://github.com/kunlong-luo/lanveriq/actions/runs/46130643220) Release构建、优化ELF图标及compiler归档通过，优化临时deb审查待终态。最终关联尚未完成，不把辅助文本称为正式NOTICE、权属证明或法务批准。
+
+### 最终布局完整原生 CI PASS
+
+[8bd35b22 / #46130643220](https://github.com/kunlong-luo/lanveriq/actions/runs/46130643220) 四jobs SUCCESS，优化ELF 93f937a25d1fb88300c431a3155d432556e9facc7ffe84fde3e864c510599435；96原SVG存在/12旧payload未检出、clean Ubuntu OCI 92/9/0/五floor/dpkg不变、合成X11及Wayland PASS。compiler 15258091059 SHA256 e303ba5032890fcbe4600ec149db9b2644f51ca29028f4e535987c6029e9872b；association 15257683038 SHA256 4efb264c02f15c101692e999c21720a9bc958acbf6d23f6e93e7ba9716e45bbe（日志及metadata核对，未独立解包）。现有compiled notice流程绑定此成功run及新辅助15258131714，待新实际结果再组装原始文本。22缺项仍OPEN，不把合成窗口、原始字节检查或关联当作正式授权。
