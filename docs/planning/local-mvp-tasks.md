@@ -406,6 +406,9 @@
 
 - **2026-11-28 唯一桌面入口切换（源码迁移，验收待定）**：`d04d3e01` [清单 #46137569001](https://github.com/kunlong-luo/lanveriq/actions/runs/46137569001)、[docs #46137569091](https://github.com/kunlong-luo/lanveriq/actions/runs/46137569091)、[RD2 #46137568984](https://github.com/kunlong-luo/lanveriq/actions/runs/46137568984) SUCCESS。真实清单 29 个移动、46 个旧文件删除/替换、40 个引用文件、49 个断链目标、无冲突；按清单将 GPUI 源码、原锁及原二进制标识迁移到唯一 apps/desktop；移除 Tauri/React/Vite 专用源码及5个专用工作流，保留通用 APT、签名、Polkit、Agent 拒绝实验和历史合约；固定历史链接至迁移前 Git，迁移路径及 Polkit 源码校验/负测同步修改；临时清单工具退出。保留 8 个 Rust 源文件、Cargo.toml/Cargo.lock 原 blob，不换 crate/binary identity（旧 candidate 标识作为证据兼容，非双客户端）。迁移后 CI PENDING，MVP-08 未 DONE，不新增权限、不发布、不安装、不重新要求用户本机验收；71/100、7/16、Gate 0/10。旧源码 Git 回退基线 `d04d3e01`，正式结项待受影响 CI PASS。
 
+
+- **2026-11-28 迁移后首次 CI 与三处路径修复**：`190d5615` 21项 CI，初次核查14 SUCCESS、3 FAIL、4 IN_PROGRESS；失败 [Debian source #46138003723](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003723)、[example resources #46138003549](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003549)、[icon attribution #46138003616](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003616) 实际日志均为 FileNotFoundError: apps/desktop/gpui-candidate/Cargo.lock。三个工具硬编码目录未被初始清单的斜杠匹配覆盖；改为 apps/desktop，保持锁摘要、输入证据、验证规则及所有权限不变。新 CI 待验；其余原始运行仍按各自精确 SHA 记录。MVP-08 IN PROGRESS，71/100、7/16、Gate0/10；未进入 MVP-09。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。

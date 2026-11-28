@@ -131,7 +131,7 @@ def compare(registry, debian, expected, root):
             "license_review": "OPEN_NOT_APPROVED"}
 
 def main():
-    root = pathlib.Path("apps/desktop/gpui-candidate")
+    root = pathlib.Path("apps/desktop")
     lock = (root / "Cargo.lock").read_bytes()
     expected_lock = (root / "Cargo.lock.sha256").read_text().split()[0]
     require(sha(lock) == expected_lock, "candidate lock digest mismatch")

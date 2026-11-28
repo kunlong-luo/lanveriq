@@ -87,7 +87,7 @@ def review(index, supply, metadata, lock_bytes, registry, app_root):
 
 if __name__ == "__main__":
     require(len(sys.argv)==5, "expected metadata, supply zip/digest and output")
-    app = pathlib.Path("apps/desktop/gpui-candidate")
+    app = pathlib.Path("apps/desktop")
     index = json.loads(pathlib.Path("tools/gpui_default_icon_source_index.json").read_text())
     supply = json.loads(read_archive(pathlib.Path(sys.argv[2]),sys.argv[3])["candidate-supply-chain.json"])
     registry = pathlib.Path(os.environ.get("CARGO_HOME",pathlib.Path.home()/".cargo"))/"registry/src"

@@ -102,7 +102,7 @@ def inspect(data, checksum):
             "platform_source_review": review, "resources": rows, "scope": "LITERAL_FILENAME_SOURCE_SEARCH_NOT_LINKAGE_OR_LICENSE"}
 
 def main():
-    root = pathlib.Path("apps/desktop/gpui-candidate")
+    root = pathlib.Path("apps/desktop")
     lock = (root / "Cargo.lock").read_bytes()
     require(sha(lock) == (root / "Cargo.lock.sha256").read_text().split()[0], "lock drift")
     packages = [p for p in tomllib.loads(lock.decode())["package"]
