@@ -2,6 +2,8 @@
 
 **English** · [简体中文](README.zh.md) · [Documentation home](docs/README.md)
 
+**Licensing direction:** proprietary Lanveriq-owned software (maintainer decision, 2026-11-28); ownership and third-party obligations under review. Public source visibility is not an open-source license or distribution approval. [Review scope](docs/operations/gpui-distribution-review-card-2026-11-28.md).
+
 Lanveriq is a Linux-first, self-hosted endpoint inventory, health-state and audit platform for **disclosed, lawfully authorized** workplace devices. First target: **Pop!_OS 24.04 / COSMIC**.
 
 > **v0.1 NOT RELEASE READY.** No approved signed one-click Agent installer, privileged Polkit transaction broker, physical Pop!_OS L3, production CA/MFA, independent WORM or legal/SRE sign-off exists. Production networking, automatic collection/recovery, remote control and certificate issuance remain **OFF**. Synthetic CI PASS is not production authorization.

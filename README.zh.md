@@ -2,6 +2,8 @@
 
 [English](README.md) · **简体中文** · [文档导航](docs/README.md)
 
+**许可方向：** 维护者于2026-11-28选择 Lanveriq 自有代码采用专有软件发行方向；权属、第三方义务及正式发行尚待审。公开源码不等于开源许可或分发批准。[审查入口](docs/operations/gpui-distribution-review-card-2026-11-28.md)。
+
 Lanveriq 是面向**明确告知并合法授权**的办公终端的 Linux-first、自托管资产清单、设备健康与审计平台。首发目标：**Pop!_OS 24.04 / COSMIC**。
 
 > **v0.1 NOT RELEASE READY。** 尚无可供普通用户分发的一键签名 Agent 安装器，也没有获批准的 root Polkit 安装事务、Pop!_OS 实机 L3、正式 CA/MFA、独立 WORM 与法务/SRE 签收。生产联网、自动采集、自动恢复、远控、证书签发保持 **OFF**；合成 CI PASS 不是生产授权。

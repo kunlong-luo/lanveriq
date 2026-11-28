@@ -10,6 +10,9 @@ Read [CURRENT_STATUS](docs/CURRENT_STATUS.md), [engineering playbook](docs/gover
 - D4-C9–C16 are **untrusted synthetic** FIDO staging. Public GlobalSign R46 identity ≠ approved root; Ed25519 proof ≠ real reviewer key custody; asserted CRL/TLS ≠ authenticated retrieval; DB-owned digest ≠ external WORM/rollback protection. Never promote untrusted objects to Spring authentication or issuer trust.
 - Maintain mTLS/TLS1.3, exact ACK, RBAC/Origin/session, PKIX/revocation, immutable database audit and rollback rejection. Any security-sensitive change needs negative tests.
 
+## Product licensing direction
+The maintainer selected proprietary distribution on 2026-11-28; this is a direction, not a grant, verified title, EULA or release approval. Preserve third-party license obligations and rights evidence. No public open-source license for Lanveriq-owned code, invented copyright holder, automatic SPDX branch selection, external contribution acceptance without approved rights terms, or visibility change without express authorization. See the [GPUI ownership and third-party review card](docs/operations/gpui-distribution-review-card-2026-11-28.md). RustDesk remains OFF.
+
 ## One real technology stack
 - Web: only `apps/web` Next.js16 App Router / React19 / Tailwind4 / Base UI; no `apps/web-next` or Vite. Reuse [current UI tokens](docs/development/frontend-design-system.md), disabled-state semantics and keyboard/scroll accessibility. Pages preview is disconnected.
 - Backend: Java25 / **Gradle** / Spring Boot4.2.0 / **JPA-Hibernate** / Flyway / PostgreSQL18.7; no Maven, handwritten JDBC DAO or parallel DB authority.

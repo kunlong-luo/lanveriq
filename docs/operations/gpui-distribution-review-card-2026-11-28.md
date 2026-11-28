@@ -53,15 +53,36 @@
 
 图标：新版使用96个已核对 Lucide 图像与12个兼容映射，精确新版 ELF 原始字节检查 PASS（96存在、12未检出；不证明转换资源不存在）；保留 Lucide ISC/Feather MIT 通知候选、先前12个原始图标来源与权利记录，另6示例资源的最终范围仍待审。OS/native 库、编译器运行时、生成代码、其他平台依赖、完整发行 SBOM 和9维护警告分别审，不用522行替代全范围。
 
-## 4. 维护者必须作出的产品许可决定
+## 4. 产品许可方向已选；权属与实际授权仍待审
 
-当前仓库没有已确定的本地产品发行许可，候选 package 无 license 声明。项目权利人须先核对贡献权属和既有第三方代码；可选内部/专有分发（仍履行第三方义务）或明确开源许可（例如 Apache-2.0 或 MIT，需权利人授权且核对依赖兼容）。不预设是否公开源码，不代选、不生成假版权或签字、不提交根 LICENSE/Cargo metadata。若选择全项目开源，按各组件和实际发行范围独立核对，不能据本卡自动将 RustDesk 或其他第三方改许可。RustDesk 保持 OFF。
+**2026-11-28 维护者明确选择专有软件作为拟定发行方向（DIRECTION SELECTED）**。不对 Lanveriq 自有代码授予 MIT/Apache-2.0 等开源许可；第三方原许可与义务保持不变。当前未取得可核实权利人签署的产品许可/客户 EULA，不提交根 LICENSE 或 Cargo license metadata，不声称所有版权已归属。RustDesk 保持 OFF。
+
+实际基线 ef2377e2：GitHub repo metadata public / fork=false / forks_count=0 / license=null；仓库所有者账户权限 admin。完整 Git tree 非截断，未发现根 LICENSE/COPYING/NOTICE、CLA/DCO 或 AUTHORS；CONTRIBUTING.md 先前已提醒公开不授予发行许可，外部贡献政策待定。候选 Cargo.toml publish=false、无 license 字段。抽查 GitHub 原始提交 27ce8af7、6d4ee762、ef2377e2，三处 author/committer 均关联仓库所有者账户。贡献者 REST 端点不在连接器许可范围；搜索最近100条/另一排序9条的作者映射为空，不构成完整作者清单。样本无权属证明；forks_count=0 也不证明无历史复制。仓库可见性未更改。
+
+### 4.1 待完成权属与商业发行检查
+
+| 事项 | 当前判定 | 后续证据 |
+| --- | --- | --- |
+| 专有发行方向 | SELECTED | 本次维护者选择，记录日期与范围 |
+| 权利主体及签署权限 | OPEN | 真实自然人/法人、授权关系；在受控位置核验 |
+| 全部历史作者及贡献权属 | OPEN | 完整 Git 历史/合并/外部贡献，必要时取得许可或转让文件；提交邮箱及身份不进入公开文档 |
+| 自研/复制/生成/外部素材 | OPEN | 核对来源、合同、许可、适用范围，不以 Git 作者或生成工具替代权属证明 |
+| 仓库可见性 | PUBLIC，未改变 | 单独批准 Private 及 CI/Pages/协作者影响；既有复制不消失 |
+| 客户授权条款与正式发布 | OPEN | 权利人及法务确认 EULA、渠道、支持与适用法；独立发行签署 |
+
+### 4.2 专有产品的第三方审查规则
+
+- MIT/BSD/ISC 等宽松许可：逐组件保留适用许可及版权文本；Apache-2.0 按第4条保留许可证、适用 NOTICE、修改说明等，不把自有代码许可替代原许可。
+- MPL-2.0：按实际分发覆盖文件履行源码可获得性及通知义务；可与专有较大作品共存，但不直接判定本项目 option-ext 合规。
+- GPL/AGPL/LGPL 或多选 SPDX：按真实链接、分发、修改、交互、适用许可分支逐项审核，不能自动批准或一概禁止；RustDesk 未授权功能继续关闭。
+- 22项 registry 材料缺项仍 OPEN；按现有逐包队列及固定上游来源审查。最终设计 ELF/SBOM/原始许可文本统一绑定，不能使用旧版本 NOTICE 代替。安装、分发、生产联网、远控与签名门禁不变。
+- 参考官方 [GitHub 仓库许可](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository)、[Apache-2.0 原文](https://www.apache.org/licenses/LICENSE-2.0)、[Mozilla MPL FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/)；本卡为工程审查记录，不是法务结论。
 
 ## 5. 退出审批卡（全部未签收）
 
 | 责任人 | 必须交付 | 状态 |
 | --- | --- | --- |
-| 权利人/维护者 | 本地产品许可与适用范围、贡献权属、发行渠道 | OPEN |
+| 权利人/维护者 | 专有方向已选；本地产品权属、授权范围、贡献权属、发行渠道仍须核验 | DIRECTION SELECTED / APPROVAL OPEN |
 | 法务/许可 | 522行及其他发行范围的审查结论、22缺项处理、SPDX 分支、原始文本与附加义务、资源来源及许可 | OPEN |
 | 工程/发行 | 同功能 SHA+lock+ELF、包摘要、精确资源检查、发行 SBOM、适用 NOTICE/版权材料与受控证据保管 | OPEN |
 | 设备所有人/UX | 首要本机 KDE/X11：真实刷新、四字对齐、IME、DPI、完整键盘/关闭及受限操作；COSMIC/Wayland 与 KDE/Wayland 独立兼容验收；独立 L3 不由合成 CI 替代 | OPEN |
@@ -101,7 +122,7 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 
 设备所有人交回脱敏 JSON 与附加 PASS/FAIL/NOT_RUN；独立审核人另行确认身份、授权范围、实机证据，不能由所有人报告代签。不索取机器序列号、密钥、完整环境或真实员工数据。
 
-审批前必须由权利人明确 **仅内部/专有发行** 或 **开源及具体许可**，并核对贡献权属；由法务确认适用第三方分支、附加义务及22缺项、由工程/安全审查9维护警告与其余运行时范围、最终包/SBOM/NOTICE/证据保管及回退。仅在所有 ADR-0014 迁移条件及相应授权实际满足后执行 Tauri cutover。当前保留 Tauri，禁止生产/安装权限，MVP-08 BLOCKED。若外部批准未取得，本项进入明确阻塞交接，不以新外围 CI 制造进度。
+维护者已选择 **专有发行方向**，审批前仍须由权利人确认实际主体、贡献权属和具体发行授权；由法务确认适用第三方分支、附加义务及22缺项、由工程/安全审查9维护警告与其余运行时范围、最终包/SBOM/NOTICE/证据保管及回退。仅在所有 ADR-0014 迁移条件及相应授权实际满足后执行 Tauri cutover。当前保留 Tauri，禁止生产/安装权限，MVP-08 BLOCKED。若外部批准未取得，本项进入明确阻塞交接，不以新外围 CI 制造进度。
 
 ## 7. 当前设计基线与历史材料边界
 
