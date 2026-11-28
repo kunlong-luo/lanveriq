@@ -1,5 +1,8 @@
+import subprocess
 import unittest
-from owner_kde_x11_review import verify_session, report, parse_answers, review_exit_code
+from unittest.mock import patch
+from owner_kde_x11_review import (verify_session, report, parse_answers, review_exit_code,
+                                  LINK_INPUTS, verify_link_inputs, default_cc_lookup)
 from owner_cosmic_review import verify_session as cosmic_session
 
 class KdeReview(unittest.TestCase):
@@ -47,3 +50,36 @@ class KdeReview(unittest.TestCase):
         self.assertEqual(review_exit_code(0,answers,"y"),0)
         self.assertEqual(review_exit_code(0,answers,"n"),2)
         self.assertEqual(review_exit_code(101,answers,"y"),1)
+
+    def test_link_inputs_missing_named_dev_package_before_build(self):
+        seen = []
+        def lookup(name):
+            seen.append(name)
+            return name if name == "libxkbcommon-x11.so" else "/usr/lib/"+name
+        with self.assertRaisesRegex(ValueError, "libxkbcommon-x11-dev") as failure:
+            verify_link_inputs(lookup, lambda path: True)
+        self.assertNotIn("libxcb1-dev", str(failure.exception))
+        self.assertEqual(seen, [name for name, _ in LINK_INPUTS])
+        verify_link_inputs(lambda name: "/usr/lib/"+name, lambda path: True)
+
+    def test_link_input_rejects_runtime_only_or_unreadable_and_redacts_errors(self):
+        for result in ("libxkbcommon-x11.so", "/usr/lib/libxkbcommon-x11.so.0",
+                       "/usr/lib/libxkbcommon-x11.so\n/private/path"):
+            with self.subTest(result=result), self.assertRaisesRegex(ValueError, "libxkbcommon-x11-dev"):
+                verify_link_inputs(lambda name: result if name == "libxkbcommon-x11.so" else "/usr/lib/"+name,
+                                   lambda path: True)
+        with self.assertRaisesRegex(ValueError, "libxcb1-dev"):
+            verify_link_inputs(lambda name: "/usr/lib/"+name, lambda path: False)
+        with patch("owner_kde_x11_review.subprocess.run",
+                   side_effect=subprocess.TimeoutExpired(["/private/path"], 5)):
+            with self.assertRaisesRegex(ValueError, "系统默认 cc 无法查询") as error:
+                verify_link_inputs()
+            self.assertNotIn("/private/path", str(error.exception))
+
+    def test_cc_lookup_is_fixed_readonly_query(self):
+        with patch("owner_kde_x11_review.subprocess.run",
+                   return_value=subprocess.CompletedProcess([],0,"/usr/lib/libxcb.so\n")) as run:
+            self.assertEqual(default_cc_lookup("libxcb.so"), "/usr/lib/libxcb.so")
+            run.assert_called_once_with(["/usr/bin/cc", "-print-file-name=libxcb.so"],
+                check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                timeout=5, env={"PATH":"/usr/bin:/bin","LANG":"C"})

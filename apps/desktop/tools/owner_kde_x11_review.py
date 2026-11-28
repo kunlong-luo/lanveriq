@@ -15,6 +15,34 @@ from owner_cosmic_review import (ROOT, NAME, CHECKS, STATUS, require, command,
     source_identity, sha, parse_answers, review_exit_code, run_review_process)
 
 FIELDS = ("User", "Desktop", "Type", "Remote", "Active")
+# Exact unversioned linker inputs seen in the owner's failed Release link.
+# This is a system-default cc lookup, not a complete toolchain/ABI proof.
+LINK_INPUTS = (
+    ("libxcb.so", "libxcb1-dev"),
+    ("libfreetype.so", "libfreetype-dev"),
+    ("libxkbcommon.so", "libxkbcommon-dev"),
+    ("libxkbcommon-x11.so", "libxkbcommon-x11-dev"),
+)
+
+def default_cc_lookup(name):
+    result = subprocess.run(["/usr/bin/cc", "-print-file-name="+name],
+        check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        timeout=5, env={"PATH":"/usr/bin:/bin","LANG":"C"})
+    return result.stdout.strip()
+
+def verify_link_inputs(lookup=default_cc_lookup, exists=lambda path: path.is_file()):
+    missing = []
+    for library, package in LINK_INPUTS:
+        try:
+            found = lookup(library)
+        except (OSError, subprocess.SubprocessError):
+            raise ValueError("系统默认 cc 无法查询链接库；请检查本机 C 工具链") from None
+        path = pathlib.Path(found)
+        if (len(found) > 4096 or "\n" in found or not path.is_absolute()
+                or path.name != library or not exists(path)):
+            missing.append(package)
+    require(not missing, "系统默认链接器缺少开发库："+", ".join(missing)
+            +"；请人工核对 APT 软件源后补齐，不会自动安装")
 
 def verify_session(uid, euid, system, machine, env, query):
     require(uid > 0 and uid == euid, "必须使用普通登录用户")
@@ -89,6 +117,8 @@ def main():
     lock = ROOT/"Cargo.lock"
     expected = (ROOT/"Cargo.lock.sha256").read_text().split()[0]
     require(re.fullmatch(r"[0-9a-f]{64}", expected) and sha(lock) == expected, "Cargo.lock 校验失败")
+    verify_link_inputs()
+    print("系统默认 cc 的四项已知原生链接输入可见；非完整 ABI 验收。")
     print("仅 KDE/X11 所有人观察，不是 COSMIC Wayland 验收。不会安装 Agent、修改服务或上传报告。")
     for i, (_, description) in enumerate(CHECKS, 1):
         print(f"{i}. {description}")
