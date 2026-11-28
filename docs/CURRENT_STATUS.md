@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～07 DONE（7/16）。** MVP-08 **BLOCKED**。GPUI KDE适配/系统摘要/四字菜单CI PASS；新版[布局](development/desktop-design-system.md)全量CI PASS；本机首选 KDE/X11，功能7/7 PASS（非完整12项）。优化ELF图标PASS；[最终材料/审批卡](operations/gpui-distribution-review-card-2026-11-28.md)独立复核PASS；清洁ABI PASS；专有方向已选、自动工作完成，待KDE补证/权属许可审批，COSMIC独立兼容未测，发行OPEN，按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri。精确 SHA、CI、性能及交接见[任务账本](planning/local-mvp-tasks.md)。
+**MVP-01～07 DONE（7/16）。** MVP-08 **BLOCKED**。GPUI KDE/系统摘要/四字菜单及[布局](development/desktop-design-system.md)全量CI PASS；本机首选 KDE/X11，功能7/7 PASS（非完整12项）。优化ELF图标PASS；[最终材料/审批卡](operations/gpui-distribution-review-card-2026-11-28.md)独立复核PASS；清洁ABI PASS；开发/发行分离已批准；自动验收完成，待KDE补证及源码迁移；权属许可归发行Gate，COSMIC独立兼容未测，发行OPEN，按 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md) 保留 Tauri。精确 SHA、CI、性能及交接见[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 

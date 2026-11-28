@@ -78,7 +78,7 @@
 - 22项 registry 材料缺项仍 OPEN；按现有逐包队列及固定上游来源审查。最终设计 ELF/SBOM/原始许可文本统一绑定，不能使用旧版本 NOTICE 代替。安装、分发、生产联网、远控与签名门禁不变。
 - 参考官方 [GitHub 仓库许可](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository)、[Apache-2.0 原文](https://www.apache.org/licenses/LICENSE-2.0)、[Mozilla MPL FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/)；本卡为工程审查记录，不是法务结论。
 
-## 5. 退出审批卡（全部未签收）
+## 5. 正式发行审批卡（全部未签收；非本机开发退出前置）
 
 | 责任人 | 必须交付 | 状态 |
 | --- | --- | --- |
@@ -88,7 +88,7 @@
 | 设备所有人/UX | 首要本机 KDE/X11：真实刷新、四字对齐、IME、DPI、完整键盘/关闭及受限操作；COSMIC/Wayland 与 KDE/Wayland 独立兼容验收；独立 L3 不由合成 CI 替代 | OPEN |
 | 安全/发行 | 真实授权、签名、清洁 ABI、回退及其余 G-01–G-10 的批准 | OPEN |
 
-完成后在真实审批记录写入责任人、日期、范围、确切发行 SHA/包摘要、证据摘要与保管位置、结论（批准/拒绝/待补证）。未获批准不得改写 OPEN，不构建发布用 NOTICE，不发包，不删除 Tauri，不开启 Agent 权限。该卡是审批入口，不是发布许可或法律意见。
+完成后在真实审批记录写入责任人、日期、范围、确切发行 SHA/包摘要、证据摘要与保管位置、结论（批准/拒绝/待补证）。未获批准不得改写 OPEN，不构建发布用 NOTICE，不发包，不开启 Agent 权限。Tauri 的本机源码退出另按第10节及ADR-0014执行。该卡是审批入口，不是发布许可或法律意见。
 
 ## 6. 单次物理验收与移交（2026-11-28 更新：适配维护者 KDE/X11）
 
@@ -153,3 +153,9 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 [最终材料 CI #46131903709](https://github.com/kunlong-luo/lanveriq/actions/runs/46131903709) SUCCESS，2/2 fixtures；[材料ZIP15258615500](https://github.com/kunlong-luo/lanveriq/actions/runs/46131903709/artifacts/15258615500) 637730 bytes SHA256 636e8744e14777c926c590a174113f363ba32c1ffb0b90b3e509860da43b1d87，[linked ZIP15258301989](https://github.com/kunlong-luo/lanveriq/actions/runs/46131789280/artifacts/15258301989) SHA256 7ff459f4d1da720067173c2b87f1cd0f3288bf9c6b2864be9bf99cfcf0da1f1f，均已独立下载、实际摘要验证。330 ZIP成员无重复；328/328原始文本长度及SHA256一致、964931 bytes、所有文本被引用，523/523逐包身份/声明/registry checksum/review/链接分类/辅助摘要与891 registry路径、摘要及长度一致（材料包长度查materials映射），1835资源候选。最终source 8bd35b22698a3113ec833267788a447c8f79624c；lock 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887；ELF 93f937a25d1fb88300c431a3155d432556e9facc7ffe84fde3e864c510599435；SBOM 8349a19e1be1482a761ac60fe77bc2214bcbd0e9cdcabf8562ae32c0e4260081 两包一致。500材料存在（233/227/40），22缺项（13/7/2，逐项与第2节一致），1本地许可未定；247 observed/234 not observed/42 no observation、15 external rlib。新增sysinfo0.31.4 MIT原始LICENSE已验证。0法律缺项关闭，两个批准false。
 
 **自动工程与材料准备已完成，停止重复测试。** 下一步只处理真实外部证据：维护者在KDE/X11执行第6节现有工具并提交脱敏JSON、补充真实刷新及四字/对齐结果（已有历史7项保留，未测填n）；权利主体/贡献权属确认、第三方许可材料结论与维护警告处置、受控证据保管及独立批准。当前会话无所有人JSON。归档7日留存，须由获授权责任人实际保管；不可把本轮临时下载当作长期保管。完成ADR要求后才迁移唯一桌面入口及清理Tauri；不因反复继续自动批准或扩大工作。专有方向已确定，生产/安装/发行仍未批准，MVP08 BLOCKED。
+
+## 10. 维护者批准本机开发/商业发行分离（现行，取代第6/9节旧迁移前置）
+
+2026-11-28 用户明确批准：本机 MVP-08 不以最终商业发行法律签字阻塞本机非发行源码迁移。当前523包、328原文、22未批准材料缺项与历史证据保持原样；专有方向不变，法律权属/EULA/第三方许可与正式NOTICE、托管、签名安装、独立L3均归G-05/G-07/G-09 OPEN。该决定不豁免实际版权或许可义务，不授权公开分发、安装或生产。
+
+本机只余真实KDE/X11缺失观察及唯一源码入口迁移。现有七项保留；“可以”非完整逐项报告，当前无JSON。仍执行第6节脚本或提交同等可核验源码/锁/ELF及真实逐项观察，未测明确NOT_RUN。通过后才迁移GPUI、清理旧Tauri专用UI/CI并保留Git回退/通用安全实验，受影响CI通过才DONE。不新增测试范围、不重复原生构建、不切换桌面。未获正式批准不得发包或启用生产，G-01～G-10均OPEN，MVP-11独立G-05前提不变。
