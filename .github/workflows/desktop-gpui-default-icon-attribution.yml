@@ -1,8 +1,13 @@
-name: GPUI default icon source attribution (nonrelease)
+name: GPUI selected icon source attribution (nonrelease)
 on:
   push:
     branches: [main]
     paths:
+      - 'apps/desktop/src/candidate_assets.rs'
+      - 'apps/desktop/src/main.rs'
+      - 'apps/desktop/Cargo.lock'
+      - 'tools/gpui_selected_icon_review.py'
+      - 'tools/test_gpui_selected_icon_review.py'
       - 'tools/gpui_default_icon_source_index.json'
       - 'tools/gpui_default_icon_attribution.py'
       - 'tools/test_gpui_default_icon_attribution.py'
@@ -10,7 +15,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
 jobs:
   review:
     runs-on: ubuntu-24.04
@@ -21,6 +25,8 @@ jobs:
           persist-credentials: false
       - name: Test exact source match and drift refusal
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_default_icon_attribution.py -v
+      - name: Test selected icon source scope
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_selected_icon_review.py -v
       - name: Fetch locked registry sources without compiling
         run: |
           rustup toolchain install 1.100.0 --profile minimal
@@ -28,16 +34,12 @@ jobs:
           sha256sum --check --strict Cargo.lock.sha256
           cargo +1.100.0 metadata --locked --format-version 1 > "$RUNNER_TEMP/metadata.json"
           git diff --exit-code -- Cargo.lock Cargo.toml
-      - name: Verify actual default icon source and attribution candidates
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify current selected icon source and registry material
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15248992549/zip" > supply.zip
-          python3 tools/gpui_default_icon_attribution.py "$RUNNER_TEMP/metadata.json" supply.zip \
-            9a8a78c88607ddb92e9445b57c9a31da9282d84aee2751b4e24ed526b5baff58 default-icon-review.json
+          python3 tools/gpui_selected_icon_review.py "$RUNNER_TEMP/metadata.json" selected-icon-review.json
       - uses: actions/upload-artifact@v4
         with:
-          name: gpui-default-icon-attribution-REVIEW-ONLY
-          path: default-icon-review.json
+          name: gpui-selected-icon-attribution-REVIEW-ONLY
+          path: selected-icon-review.json
           if-no-files-found: error
           retention-days: 7

@@ -409,6 +409,9 @@
 
 - **2026-11-28 迁移后首次 CI 与三处路径修复**：`190d5615` 21项 CI，初次核查14 SUCCESS、3 FAIL、4 IN_PROGRESS；失败 [Debian source #46138003723](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003723)、[example resources #46138003549](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003549)、[icon attribution #46138003616](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003616) 实际日志均为 FileNotFoundError: apps/desktop/gpui-candidate/Cargo.lock。三个工具硬编码目录未被初始清单的斜杠匹配覆盖；改为 apps/desktop，保持锁摘要、输入证据、验证规则及所有权限不变。新 CI 待验；其余原始运行仍按各自精确 SHA 记录。MVP-08 IN PROGRESS，71/100、7/16、Gate0/10；未进入 MVP-09。
 
+
+- **2026-11-28 迁移后用户启动确认及图标证据范围修复**：用户明确反馈新版客户端可以打开（非新签名报告、不推断新增12项或独立L3）；此前12/12保留。旧 node_modules/src-tauri 是本机未跟踪残留，不是远端活动源码；不自动清理。迁移后 `190d5615` 原始17 SUCCESS、3 FAIL、1 IN_PROGRESS（原生 #46138003740 Release构建），签名APT #46138003719 SUCCESS。`db7014b8` Debian #46138179640、示例 #46138179639、docs #46138179697、RD2 #46138179635 SUCCESS；图标 #46138179623 实际失败 source or lock mismatch：旧默认包历史 index 39db84ef、历史归档与现行选择性资产不相容，不伪造新源或锁。保留旧索引/审查器/测试及历史证据；将活动图标工作流换为当前锁、精确适配器blob、当前注册、96 canonical及12 excluded registry原字节的源级核对；不声称最终ELF不存在转换资产、许可获批或发包。原生CI继续保留精确ELF检查。新CI PENDING，71/100、7/16、Gate0/10，MVP-08 IN PROGRESS，不进入MVP-09。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
