@@ -213,6 +213,24 @@ jobs:
             apps/desktop/gpui-candidate/candidate-performance.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Install disposable Weston reference compositor
+        run: |
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y --no-install-recommends weston
+      - name: Verify native Wayland xdg-shell protocol in private headless Weston
+        run: |
+          /usr/bin/python3 -m unittest discover -s tools -p test_wayland_smoke.py -v
+          set -o pipefail
+          timeout --kill-after=5s 100s dbus-run-session -- /usr/bin/python3 tools/wayland_smoke.py | tee candidate-wayland-smoke.txt
+      - name: Archive synthetic Wayland result (no trace or binaries)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-candidate-wayland-smoke
+          path: |
+            apps/desktop/gpui-candidate/candidate-wayland-smoke.txt
+            apps/desktop/gpui-candidate/candidate-wayland-smoke.json
+          if-no-files-found: ignore
+          retention-days: 7
   dependency-audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

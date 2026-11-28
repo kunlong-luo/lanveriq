@@ -16,6 +16,8 @@ The separate CI supply-chain job pins cargo-cyclonedx 0.5.10 and generates Cyclo
 
 CI also builds Cargo's default optimized Release profile with the same lock, statically audits a disposable stripped GUI-only deb, and alternates three debug and three Release X11 launches on one runner. It measures spawn-to-positive-pixel-probe delay (including polling), single-process RSS/PSS after a fixed one-second delay, ELF and archive bytes, and records min/median/max. No cold-cache control, hardware GPU/COSMIC measurement, Tauri comparison, distribution or install approval. Only review metadata is archived.
 
+A separate CI step launches the exact optimized GUI in a private headless Weston compositor with software rendering and no X11 environment. It checks the synthetic client protocol trace for the same titled xdg-shell toplevel, configure/ack serial and non-null buffer attach/commit on the linked wl_surface, with the client still running. Only status and hashes are archived; raw synthetic traces stay in a disposable directory. The harness terminates the children; this is not pixel readback, keyboard/IME, normal close, physical COSMIC/GPU or release proof.
+
 ## Owner-operated Pop!_OS COSMIC review (not an installer)
 
 In a trusted, clean candidate checkout, from the repository root and a COSMIC Wayland terminal as the normal device owner, run:
