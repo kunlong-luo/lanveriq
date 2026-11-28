@@ -102,3 +102,7 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 设备所有人交回脱敏 JSON 与附加 PASS/FAIL/NOT_RUN；独立审核人另行确认身份、授权范围、实机证据，不能由所有人报告代签。不索取机器序列号、密钥、完整环境或真实员工数据。
 
 审批前必须由权利人明确 **仅内部/专有发行** 或 **开源及具体许可**，并核对贡献权属；由法务确认适用第三方分支、附加义务及22缺项、由工程/安全审查9维护警告与其余运行时范围、最终包/SBOM/NOTICE/证据保管及回退。仅在所有 ADR-0014 迁移条件及相应授权实际满足后执行 Tauri cutover。当前保留 Tauri，禁止生产/安装权限，MVP-08 BLOCKED。若外部批准未取得，本项进入明确阻塞交接，不以新外围 CI 制造进度。
+
+## 7. 当前设计基线与历史材料边界
+
+2026-11-28：实际 KDE 适配 [#46128826401](https://github.com/kunlong-luo/lanveriq/actions/runs/46128826401)、实际本机 OS/CPU/RAM 功能 [#46129584167](https://github.com/kunlong-luo/lanveriq/actions/runs/46129584167) 四jobs全 SUCCESS；新锁 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887，后者 ELF 85bbe31034bcaab42fdbdf0870f7a4a3050932a68780e2524be1131b1e4ef1b9。Release association 实际仍22缺项；归档 [15257710474](https://github.com/kunlong-luo/lanveriq/actions/runs/46129584167/artifacts/15257710474) SHA256 940b99668609f4dc343544ec6dbf78226813e7ff7da710545d5e040dff215e03（仅日志与metadata已核）。当前设计 [26714637](https://github.com/kunlong-luo/lanveriq/commit/267146374dcb67f0e5801f8e9fc29b2d708da2dc) [#46130309195](https://github.com/kunlong-luo/lanveriq/actions/runs/46130309195) supply SUCCESS（569 SBOM pairs/46 extras/0 graph missing/22 gaps），native仍运行。第1、2节f4bd6fde独立解包材料仅作历史佐证，不能作为新锁或ELF已审批材料；最终设计功能CI完成后集中绑定新产物，法律22缺项、产品许可、正式NOTICE及独立审批不自动关闭。当前本机仅KDE/X11，不强制切换；无需重复旧七项演示，最终报告补真实刷新、对齐、未测项和精确SHA/ELF。
