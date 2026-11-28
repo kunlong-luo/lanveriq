@@ -1,0 +1,40 @@
+name: GPUI compiled notice review (nonrelease)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/gpui_compiled_notice_review.py'
+      - 'tools/test_gpui_compiled_notice_review.py'
+      - '.github/workflows/desktop-gpui-compiled-notice-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test archive integrity and package association
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_compiled_notice_review.py -v
+      - name: Join existing verified CI archives (no compilation)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for id in 15249761563 15248833158 15248632946 15248859534; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "$id.zip"
+          done
+          python3 tools/gpui_compiled_notice_review.py compiled-notice-review.json \
+            15249761563.zip 67f1151a30ac2216cf76134d0e2c0d97d1a0e877d7e511bf57c97d6814787553 \
+            15248833158.zip 199149c81e1b02d9825f382273522b18f3b9cfa692b9974f1c5c98dae33e927f \
+            15248632946.zip 7403a2541414eb66db5514361e71b326227b5b48cddbbd2f9933b9ff93ce9e1e \
+            15248859534.zip 003b3fac7425d25b5e2ca4055e94ec71ae40150cf33f8fecd39feb7a1df94619
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gpui-compiled-notice-review-NOT-FOR-DISTRIBUTION
+          path: compiled-notice-review.json
+          if-no-files-found: error
+          retention-days: 7
