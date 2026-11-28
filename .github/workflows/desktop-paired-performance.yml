@@ -37,6 +37,8 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm test
           pnpm typecheck
+          pnpm build
+          git diff --exit-code -- package.json pnpm-lock.yaml
       - name: Prepare disposable Ubuntu development and X11 prerequisites
         run: |
           rustup toolchain install 1.100.0 --profile minimal
@@ -48,19 +50,19 @@ jobs:
             libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf python3-apt dpkg-dev \
             xvfb xauth openbox xdotool x11-utils mesa-vulkan-drivers libgl1-mesa-dri \
             dbus-x11 fonts-noto-cjk imagemagick
-      - name: Build exact GPUI Release (no bundle)
-        working-directory: apps/desktop/gpui-candidate
-        run: |
-          sha256sum --check --strict Cargo.lock.sha256
-          cargo +1.100.0 build --locked --release --bin lanveriq-desktop-gpui-candidate
-          sha256sum --check --strict Cargo.lock.sha256
       - name: Build frozen Tauri Release (no bundle or signing)
         working-directory: apps/desktop
         env:
           RUSTUP_TOOLCHAIN: '1.100.0'
         run: |
           pnpm tauri build --ci --no-bundle --no-sign -- --locked
-          git diff --exit-code -- pnpm-lock.yaml src-tauri/Cargo.lock src-tauri/Cargo.toml src-tauri/tauri.conf.json
+          git diff --exit-code -- package.json pnpm-lock.yaml src-tauri/Cargo.lock src-tauri/Cargo.toml src-tauri/tauri.conf.json
+      - name: Build exact GPUI Release (no bundle)
+        working-directory: apps/desktop/gpui-candidate
+        run: |
+          sha256sum --check --strict Cargo.lock.sha256
+          cargo +1.100.0 build --locked --release --bin lanveriq-desktop-gpui-candidate
+          sha256sum --check --strict Cargo.lock.sha256
       - name: Run alternating actual Release windows, common resize and WM close
         run: |
           timeout --kill-after=5s 600s xvfb-run -a -s "-screen 0 1280x800x24 -nolisten tcp" \
