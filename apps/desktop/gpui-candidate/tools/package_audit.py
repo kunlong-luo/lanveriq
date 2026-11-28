@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import tempfile
@@ -63,6 +64,88 @@ def validate_relations(groups):
         names.add(name)
     check("libc6" in names, "libc ABI dependency missing")
 
+LOADER = "/lib64/ld-linux-x86-64.so.2"
+DIVERTED = LOADER + ".usr-is-merged"
+DIVERSION_HEADER = "dpkg-shlibdeps: warning: diversions involved - output may be incorrect"
+LAYOUT_WARNING = "dpkg-shlibdeps: warning: binaries to analyze should already be installed in their package's directory"
+
+def classify_diagnostics(raw):
+    # Only the exact previously observed pair and synthetic-layout diagnostic
+    # are eligible for independent corroboration. Never suppress warnings.
+    lines = [line.strip() for line in raw.splitlines() if line.strip()]
+    known = []
+    while lines:
+        line = lines.pop(0)
+        if line == LAYOUT_WARNING:
+            check("layout" not in known, "duplicate layout warning")
+            known.append("layout")
+        elif line == DIVERSION_HEADER:
+            check(bool(lines), "missing diversion detail")
+            detail = lines.pop(0)
+            kind = {"diversion by libc6 from: " + LOADER: "from",
+                    "diversion by libc6 to: " + DIVERTED: "to"}.get(detail)
+            check(kind is not None and kind not in known, "unreviewed diversion diagnostic")
+            known.append(kind)
+        else:
+            raise ValueError("unreviewed dpkg-shlibdeps diagnostic")
+    check(("from" in known) == ("to" in known), "incomplete loader diversion warning")
+    return {"loader_diversion": "from" in known, "synthetic_layout": "layout" in known}
+
+def verify_installed_floors(groups, apt_pkg):
+    check({g[0]["name"] for g in groups} == DIRECT, "incomplete direct ABI package set")
+    installed = {}
+    for group in groups:
+        item = group[0]
+        name = item["name"]
+        raw = run("/usr/bin/dpkg-query", "-W",
+                  "-f=${Package}|${Architecture}|${Status}|${Version}\\n",
+                  name + ":amd64", timeout=10).decode("utf-8").strip()
+        fields = raw.split("|")
+        check(len(fields) == 4 and fields[:3] == [name, "amd64", "install ok installed"]
+              and re.fullmatch(r"[A-Za-z0-9.+:~_-]{1,180}", fields[3]) is not None,
+              "unexpected installed ABI package metadata")
+        check(not item["op"] or apt_pkg.version_compare(fields[3], item["version"]) >= 0,
+              "installed direct package is below official symbol floor")
+        installed[name] = fields[3]
+    return installed
+
+def corroborate_loader(binary, diagnostic):
+    elf = run("/usr/bin/readelf", "-l", str(binary), timeout=15).decode("utf-8")
+    interp = re.findall(r"\[Requesting program interpreter: ([^\]]+)\]", elf)
+    check(interp == [LOADER], "unexpected ELF interpreter")
+    real = pathlib.Path(LOADER).resolve(strict=True)
+    check(str(real) == "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2"
+          and real.is_file(), "unexpected canonical loader")
+    # Query the Debian database, not just the symlink name. usrmerge may
+    # record the legacy /lib path; both names must resolve to the same file.
+    names = []
+    for candidate in (str(real), str(real).removeprefix("/usr")):
+        if pathlib.Path(candidate).resolve(strict=True) != real:
+            continue
+        result = subprocess.run(["/usr/bin/dpkg-query", "-S", candidate], env=ENV,
+                                capture_output=True, timeout=10)
+        if result.returncode == 0:
+            rows = result.stdout.decode("utf-8").splitlines()
+            check(len(rows) == 1 and rows[0] in ("libc6:amd64: " + candidate,
+                                                   "libc6: " + candidate),
+                  "unexpected canonical loader package owner")
+            names.append(candidate)
+        else:
+            check(result.returncode == 1, "loader package lookup failed")
+    check(bool(names), "canonical loader package owner missing")
+    divert_owner = run("/usr/bin/dpkg-divert", "--listpackage", LOADER, timeout=10).decode("utf-8").strip()
+    truename = run("/usr/bin/dpkg-divert", "--truename", LOADER, timeout=10).decode("utf-8").strip()
+    check((divert_owner, truename) in (("libc6", DIVERTED), ("libc6:amd64", DIVERTED), ("", LOADER)),
+          "unreviewed registered loader diversion")
+    check(not diagnostic["loader_diversion"] or (divert_owner in ("libc6", "libc6:amd64") and truename == DIVERTED),
+          "warning not corroborated by registered loader diversion")
+    return {"interpreter": LOADER, "canonical_loader": str(real),
+            "canonical_loader_sha256": digest(real), "owner": "libc6:amd64",
+            "registered_diversion_owner": divert_owner or "NONE",
+            "registered_truename": truename,
+            "warning_scope": diagnostic,
+            "release_abi_approval": False}
+
 def validate_members(control, payload):
     check(set(control) == {"control"}, "unexpected control member (scripts/triggers forbidden)")
     member = control["control"]
@@ -100,7 +183,18 @@ def main(profile="debug"):
         binary.chmod(0o755)
         # Old reviewed helper invokes real dpkg-shlibdeps, not guessed floors.
         depends, warnings = abi.official_deps(binary)
-        validate_relations(abi.parse_relations(depends, apt_pkg))
+        groups = abi.parse_relations(depends, apt_pkg)
+        validate_relations(groups)
+        # Keep actual diagnostics visible before rejecting an unknown warning.
+        print("dpkg-shlibdeps diagnostic bytes:", len(warnings.encode("utf-8")))
+        if warnings:
+            print("dpkg-shlibdeps diagnostics (disposable CI):", warnings.replace(str(work), "<temporary-audit>"))
+        diagnostic = classify_diagnostics(warnings)
+        installed = verify_installed_floors(groups, apt_pkg)
+        loader = corroborate_loader(binary, diagnostic)
+        print("PASS: installed direct ABI package versions cover official floors:", installed)
+        print("PASS: ELF loader and registered diversion corroborated:", loader)
+        print("ABI scope: Ubuntu installed-state evidence only; warnings retained; release ABI OPEN")
         for name, value in ((LAUNCHER, DESKTOP), (NOTICE, DISCLAIMER)):
             (stage / name).write_text(value, encoding="utf-8")
             (stage / name).chmod(0o644)
@@ -137,9 +231,6 @@ Description: Lanveriq GPUI nonrelease static audit candidate
         run("/usr/bin/desktop-file-validate", str(dest / LAUNCHER))
         check(digest(original) == original_sha, "original CI executable changed")
         print("PASS: official dpkg-shlibdeps direct version floors: " + depends)
-        print("dpkg-shlibdeps diagnostic bytes:", len(warnings.encode("utf-8")))
-        if warnings:
-            print("dpkg-shlibdeps diagnostics (disposable CI):", warnings.replace(str(work), "<temporary-audit>"))
         print("PASS: GUI-only archive exact control/payload/modes/digests; no hooks or services")
         print("original " + profile + " ELF bytes:", original.stat().st_size)
         print("stripped audit ELF bytes:", binary.stat().st_size)

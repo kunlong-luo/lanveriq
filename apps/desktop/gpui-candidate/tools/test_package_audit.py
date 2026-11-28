@@ -21,6 +21,24 @@ def fixture():
     return control, payload
 
 class PackageAudit(unittest.TestCase):
+    def test_exact_known_diagnostic_pair(self):
+        warning = (audit.DIVERSION_HEADER + "\n diversion by libc6 from: " + audit.LOADER + "\n"
+                   + audit.DIVERSION_HEADER + "\n diversion by libc6 to: " + audit.DIVERTED + "\n"
+                   + audit.LAYOUT_WARNING + "\n")
+        self.assertEqual(audit.classify_diagnostics(warning),
+                         {"loader_diversion": True, "synthetic_layout": True})
+        self.assertEqual(audit.classify_diagnostics(""), {"loader_diversion": False, "synthetic_layout": False})
+        for bad in (warning.replace("libc6 from:", "unknown from:"), warning.replace(audit.DIVERTED, "/tmp/loader"),
+                    audit.DIVERSION_HEADER, warning + "unexpected warning\n",
+                    audit.LAYOUT_WARNING + "\n" + audit.LAYOUT_WARNING,
+                    audit.DIVERSION_HEADER + "\n diversion by libc6 from: " + audit.LOADER):
+            with self.assertRaises(ValueError):
+                audit.classify_diagnostics(bad)
+
+    def test_installed_floor_requires_complete_direct_set(self):
+        with self.assertRaises(ValueError):
+            audit.verify_installed_floors([[{"name":"libc6","op":">=","version":"2.39"}]], None)
+
     def test_exact_archive(self):
         audit.validate_members(*fixture())
 
