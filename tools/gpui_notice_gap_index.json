@@ -1,0 +1,245 @@
+{
+  "schema": "lanveriq.gpui.notice-gap-review-input-v1",
+  "lock_sha256": "0f77a9e9df9f3ff03612f22f4777de7d7ebf2cd65b69fc79d18a2ed05e37dad9",
+  "supply_chain_source": "39db84ef39ac70414e7d3b1a1821d5ec14699f45",
+  "supply_chain_artifact": 15248992549,
+  "supply_chain_zip_sha256": "9a8a78c88607ddb92e9445b57c9a31da9282d84aee2751b4e24ed526b5baff58",
+  "debian_artifact": 15248392436,
+  "groups": [
+    {
+      "packages": [
+        "accesskit@0.24.1",
+        "accesskit_atspi_common@0.19.1",
+        "accesskit_consumer@0.38.0",
+        "accesskit_unix@0.22.1"
+      ],
+      "repository": "AccessKit/accesskit",
+      "commits": [
+        "a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969",
+        "c88605b96d04431f9c3c792464a0f2f253480e94"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "31aa79387f27e730e33d871925e152e35e428031"
+        },
+        {
+          "label": "Apache",
+          "git_blob": "1b5ec8b78e237b5c3b3d812a7c0a6589d0f7161d"
+        },
+        {
+          "label": "Chromium",
+          "git_blob": "a32e00ce6be3620adca152e53734f7de8fda38cf"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "gpui-kit@0.11.0"
+      ],
+      "repository": "longbridge/gpui-kit",
+      "commits": [
+        "e97fe438129c5e4ccab504f2e6fafd9a4e396bba"
+      ],
+      "materials": [
+        {
+          "label": "Apache",
+          "git_blob": "1e9e81e7dc6d9c0a7490c9c5debd67697284ee25"
+        },
+        {
+          "label": "Docs",
+          "git_blob": "645d5d4eb3e806ce68f08b2b76aba4a3b462cf9d"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "harfrust@0.5.2"
+      ],
+      "repository": "harfbuzz/harfrust",
+      "commits": [
+        "efdae3142ab76a2f1524d72cff9e3dfdc5afd7ca"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "37f101a957ca24d9f8ecbb2db7dfc6268561b46d"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "lyon_geom@1.0.20",
+        "lyon_path@1.0.19"
+      ],
+      "repository": "nical/lyon",
+      "commits": [
+        "db98d26a1a90076a7a894262dcb51117eef643c8",
+        "56219c95c658d4f39de7b190d98e57d5773ba241"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "e6d4b179949c58d7a4143d661ccdfecabcebcf54"
+        },
+        {
+          "label": "Apache-notice-only",
+          "git_blob": "47f4fd0e8982271e9b7662380fae36a1ac007cf1"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "pathfinder_simd@0.5.7"
+      ],
+      "repository": "servo/pathfinder",
+      "commits": [
+        "c1baff34ca00e0fa77d9f5ca015dbbdc0b5268c0"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "25597d5838fa4cd7ff5c3c2bb1d1b4c3731eda7f"
+        },
+        {
+          "label": "Apache",
+          "git_blob": "16fe87b06e802f094b3fbb0894b137bca2b16ef1"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "profiling@1.0.18",
+        "profiling-procmacros@1.0.18"
+      ],
+      "repository": "aclysma/profiling",
+      "commits": [
+        "8271551172eb6fa4cba47369aedd93790c623df9"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "6a84e059ad8b43e03c2b06bc2af4dc1d8442808d"
+        },
+        {
+          "label": "Apache",
+          "git_blob": "139dce95d473c201a8561ef17536314d8b8cda65"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "rust-i18n-macro@4.2.4",
+        "rust-i18n-support@4.2.4"
+      ],
+      "repository": "longbridge/rust-i18n",
+      "commits": [
+        "5f3ea5ba03395f2f2908e3587e01788cfdfd3555"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "b276fc5af9586ff23f664513917341f41960a33e"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "spirv@0.4.0+sdk-1.4.341.0"
+      ],
+      "repository": "gfx-rs/rspirv",
+      "commits": [
+        "8afc3d0ac8e158128cd1410bb2e4b4c26ab11bb4"
+      ],
+      "materials": [
+        {
+          "label": "Apache",
+          "git_blob": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "svg_fmt@0.4.5"
+      ],
+      "repository": "nical/rust_debug",
+      "commits": [
+        "93f414cd572b5c2781df93dbdc068ed13443d05a"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "9ad7b40bcf7bb89a9866e5e2e8fdb370fb528e36"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "taffy@0.15.1"
+      ],
+      "repository": "DioxusLabs/taffy",
+      "commits": [
+        "0064bd54cbe38bf1d8bcd6ec6ab0704d45fb048a"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "f6b3d8f95569d0dfca076b6b24901b2a4a89aca8"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "xim-ctext@0.3.0",
+        "xim-parser@0.2.2"
+      ],
+      "repository": "Riey/xim-rs",
+      "commits": [
+        "65f77e44524ba487285a63aac4080faf2c05b4ed",
+        "7300de35a111de2df1a694bf70454532a8419685"
+      ],
+      "materials": [
+        {
+          "label": "MIT",
+          "git_blob": "122b7734602689689ba95a48f5277d66f767e83c"
+        }
+      ]
+    },
+    {
+      "packages": [
+        "zune-inflate@0.2.54"
+      ],
+      "repository": "etemesi254/zune-image",
+      "commits": [
+        "69502ce83fdfecdd0beefd677e2abb3781b29d98"
+      ],
+      "materials": [
+        {
+          "label": "Zlib",
+          "git_blob": "582ec653390adaf4893b71f3e113a6ac4d392463"
+        },
+        {
+          "label": "MIT-Apache-declaration",
+          "git_blob": "ee9ce454f54f6dfd13d10218af4178f07497fde0"
+        }
+      ]
+    }
+  ],
+  "downstream": [
+    {
+      "package": "mac@0.1.1",
+      "url": "https://metadata.ftp-master.debian.org/changelogs/main/r/rust-mac/rust-mac_0.1.1-1_copyright",
+      "sha256": "0ac68658a0b05da7a618a2362c6472381bec6a4f91d2a1cd9501cf34fe41118b"
+    },
+    {
+      "package": "pathfinder_geometry@0.5.1",
+      "url": "https://metadata.ftp-master.debian.org/changelogs/main/r/rust-pathfinder-geometry/rust-pathfinder-geometry_0.5.1-1_copyright",
+      "sha256": "35aadf3ea3108cddd08dab781a88d7e836f2eda1287debf86813244f14b59544"
+    },
+    {
+      "package": "seahash@4.1.0",
+      "url": "https://metadata.ftp-master.debian.org/changelogs/main/r/rust-seahash/rust-seahash_4.1.0-1_copyright",
+      "sha256": "268296361f3ec03e3dfb8a893c35318226119c818f5e8b7866d209e24beda60f"
+    }
+  ]
+}

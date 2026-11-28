@@ -1,0 +1,30 @@
+name: GPUI notice gap material collection (nonrelease)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/gpui_notice_gap_index.json'
+      - 'tools/gpui_notice_gap_bundle.py'
+      - 'tools/test_gpui_notice_gap_bundle.py'
+      - '.github/workflows/desktop-gpui-notice-gap.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  notice-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test material collection and digest refusal
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_notice_gap_bundle.py -v
+      - name: Collect pinned review-only license texts (no compilation)
+        run: python3 tools/gpui_notice_gap_bundle.py gpui-notice-gap-review
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gpui-notice-gap-review-NOT-FOR-DISTRIBUTION
+          path: gpui-notice-gap-review/
+          if-no-files-found: error
+          retention-days: 7
