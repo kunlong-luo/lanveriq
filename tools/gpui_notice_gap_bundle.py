@@ -104,7 +104,71 @@ def collect(index, lock_bytes, out, fetcher=fetch):
     print("Registry gaps closed: 0")
     return report
 
+def rebind(index, lock_bytes, out, previous, supply):
+    """Replay pinned sources from verified archive bytes, not a new network claim."""
+    old = json.loads(previous["index.json"])
+    current = json.loads(supply["candidate-supply-chain.json"])
+    require(old["schema"] == "lanveriq.gpui.notice-gap-review-bundle-v1"
+            and old["registry_gaps_closed"] == 0
+            and old["release_approved"] is False and old["install_authorized"] is False,
+            "old notice review not open")
+    require(current["schema"] == "lanveriq.gpui.untrusted-supply-chain-v1"
+            and current["source_sha"] == index["supply_chain_source"]
+            and current["lock_sha256"] == index["lock_sha256"] == sha(lock_bytes)
+            and current["release_approved"] is False and current["install_authorized"] is False,
+            "current supply identity mismatch")
+    rows = {p["name"]+"@"+p["version"]: p for p in current["packages"]}
+    require(len(rows) == len(current["packages"]), "duplicate supply package")
+    gaps = {key: row for key, row in rows.items() if row["review"] == "MISSING_MATERIAL_REVIEW_OPEN"}
+    require(len(gaps) == current["missing_license_material_count"] == 22
+            and set(gaps) == set(old["packages"]), "gap coverage mismatch")
+    require(all(row["registry_checksum"] == old["packages"][key]["registry_checksum"]
+                and old["packages"][key]["registry_material_missing"] is True
+                and old["packages"][key]["legal_approved"] is False
+                for key, row in gaps.items()), "old registry identity mismatch")
+    cached = {}
+    expected = {"index.json", "READ-ME-FIRST.txt"}
+    for key, material in old["materials"].items():
+        require(re.fullmatch(r"[0-9a-f]{64}", key)
+                and material["file"] == key + ".txt", "unsafe old material name")
+        expected.add(material["file"])
+        body = previous[material["file"]]
+        require(0 < len(body) == material["bytes"] <= MAX and sha(body) == key,
+                "old material digest mismatch")
+        for provenance in material["provenance"]:
+            url = provenance["url"]
+            if provenance["kind"] == "UPSTREAM_BLOB_CANDIDATE":
+                blob = provenance["git_blob"]
+                require(git_blob(body) == blob, "old git blob mismatch")
+                data = json.dumps({"encoding": "base64", "sha": blob, "size": len(body),
+                    "content": base64.b64encode(body).decode()}).encode()
+            else:
+                require(provenance["kind"] == "DOWNSTREAM_CORROBORATION_ONLY",
+                        "unexpected provenance")
+                data = body
+            require(url not in cached or cached[url] == data, "ambiguous cached source")
+            cached[url] = data
+    require(set(previous) == expected, "unexpected old archive content")
+    def fetch_cached(url):
+        require(url in cached, "pinned source absent from old archive")
+        return cached[url]
+    report = collect(index, lock_bytes, out, fetch_cached)
+    require(report["packages"] == old["packages"]
+            and report["materials"] == old["materials"], "rebound material drift")
+    report["rebound_from_lock_sha256"] = old["lock_sha256"]
+    (out / "index.json").write_text(json.dumps(report, sort_keys=True, indent=2)+"\n")
+    print("PASS: unchanged review-only source bytes rebound to current lock")
+    return report
+
 if __name__ == "__main__":
     index = json.loads(pathlib.Path("tools/gpui_notice_gap_index.json").read_text())
     lock = pathlib.Path("apps/desktop/gpui-candidate/Cargo.lock").read_bytes()
-    collect(index, lock, pathlib.Path(sys.argv[1]))
+    if len(sys.argv) == 6:
+        from gpui_compiled_notice_review import read_archive
+        previous = read_archive(pathlib.Path(sys.argv[2]), sys.argv[3])
+        supply = read_archive(pathlib.Path(sys.argv[4]), index["supply_chain_zip_sha256"])
+        require(sys.argv[5] == str(index["supply_chain_artifact"]), "supply artifact receipt mismatch")
+        rebind(index, lock, pathlib.Path(sys.argv[1]), previous, supply)
+    else:
+        require(len(sys.argv) == 2, "unexpected arguments")
+        collect(index, lock, pathlib.Path(sys.argv[1]))

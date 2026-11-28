@@ -133,3 +133,5 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 ## 8. 当前锁的辅助材料重绑（2026-11-28）
 
 旧 f4bd6fde 与当前 Cargo.lock 的813个包记录逐项比较，812个registry stanza完全一致，只有候选根新增已有sysinfo边。现有 compiled/material 合约要求辅助材料与当前锁精确匹配，不使用旧锁材料直接绕过。已将原 [22项材料索引](../../tools/gpui_notice_gap_index.json) 绑定到实际 [8bd35b22 供链归档15258190239](https://github.com/kunlong-luo/lanveriq/actions/runs/46130643220/artifacts/15258190239)，ZIP SHA256 a647b3c2d63ff54b3f1794ae6d03e84068ac0ff71d51ab3f7cae7f8b91a677b1，lock 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887。全部原始22包、上游Git blob、下游摘要与拒绝规则保持原样；重新收集CI待验。最终关联与材料重组须在当前完整Release成功后绑定其实际归档。当前未独立解包新供链归档、不关闭任何法律缺项、不生成发行NOTICE；专有方向不等于权属或分发批准。
+
+辅助材料 #46131299878 实际失败：fixture3/3 PASS，公共GitHub API HTTP403 rate limit exceeded；未生成新版材料。改从固定旧辅助归档15248859534与当前供链15258190239验证ZIP、22 registry checksum、所有旧原始文本及Git blob/下游SHA，要求重组原packages/materials完全一致并记录旧lock；不降低审批条件，不称重新访问上游成功。实际新CI待验。

@@ -4,7 +4,7 @@ import json
 import pathlib
 import tempfile
 import unittest
-from gpui_notice_gap_bundle import collect, git_blob, sha
+from gpui_notice_gap_bundle import collect, git_blob, sha, rebind
 
 class NoticeBundle(unittest.TestCase):
     def fixture(self):
@@ -61,3 +61,38 @@ class NoticeBundle(unittest.TestCase):
                     return data
                 with self.assertRaisesRegex(ValueError, "checksum mismatch"):
                     collect(index, lock, pathlib.Path(temp)/"out", tamper)
+
+    def test_rebind_verified_old_bytes_and_refuse_drift(self):
+        index, lock, fetch = self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            old = collect(index, lock, root/"old", fetch)
+            previous = {p.name: p.read_bytes() for p in (root/"old").iterdir()}
+            lock += b"\n"
+            index["lock_sha256"] = sha(lock)
+            index["supply_chain_source"] = "d"*40
+            current = {"schema": "lanveriq.gpui.untrusted-supply-chain-v1",
+                "source_sha": index["supply_chain_source"], "lock_sha256": sha(lock),
+                "release_approved": False, "install_authorized": False,
+                "missing_license_material_count": 22, "packages": [
+                    {"name": key.split("@")[0], "version": key.split("@")[1],
+                     "registry_checksum": row["registry_checksum"],
+                     "review": "MISSING_MATERIAL_REVIEW_OPEN"}
+                    for key, row in old["packages"].items()]}
+            supply = {"candidate-supply-chain.json": json.dumps(current).encode()}
+            result = rebind(index, lock, root/"new", previous, supply)
+            self.assertEqual(result["packages"], old["packages"])
+            self.assertEqual(result["rebound_from_lock_sha256"], old["lock_sha256"])
+            self.assertEqual(result["registry_gaps_closed"], 0)
+            for mode in ("material", "registry", "lock"):
+                with self.subTest(mode=mode):
+                    p, s = dict(previous), copy.deepcopy(current)
+                    if mode == "material":
+                        p[next(k for k in p if len(k) == 68)] = b"tampered"
+                    elif mode == "registry":
+                        s["packages"][0]["registry_checksum"] = "f"*64
+                    else:
+                        s["lock_sha256"] = "f"*64
+                    with self.assertRaises(ValueError):
+                        rebind(index, lock, root/mode, p,
+                               {"candidate-supply-chain.json": json.dumps(s).encode()})

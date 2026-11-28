@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   notice-review:
     runs-on: ubuntu-24.04
@@ -20,8 +21,15 @@ jobs:
           persist-credentials: false
       - name: Test material collection and digest refusal
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_notice_gap_bundle.py -v
-      - name: Collect pinned review-only license texts (no compilation)
-        run: python3 tools/gpui_notice_gap_bundle.py gpui-notice-gap-review
+      - name: Rebind verified prior source texts to current lock (no compilation)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15248859534/zip" > previous.zip
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15258190239/zip" > supply.zip
+          python3 tools/gpui_notice_gap_bundle.py gpui-notice-gap-review \
+            previous.zip 003b3fac7425d25b5e2ca4055e94ec71ae40150cf33f8fecd39feb7a1df94619 supply.zip 15258190239
       - uses: actions/upload-artifact@v4
         with:
           name: gpui-notice-gap-review-NOT-FOR-DISTRIBUTION
