@@ -16,6 +16,8 @@ use lanveriq_desktop_gpui_candidate::review::{runtime_review_gates, Notice, runt
 use lanveriq_desktop_gpui_candidate::host_identity::HostIdentity;
 use lanveriq_desktop_gpui_candidate::runtime_metadata::inspect_runtime;
 
+mod candidate_assets;
+
 actions!(lanveriq_desktop, [Quit]);
 
 struct Desktop {
@@ -373,7 +375,7 @@ impl Render for Desktop {
 
 fn main() {
     gpui_kit::application()
-        .with_assets(gpui_kit::assets::Assets)
+        .with_assets(candidate_assets::CandidateAssets)
         .run(|cx| {
             gpui_kit::init(cx);
             cx.bind_keys([KeyBinding::new("ctrl-q", Quit, None)]);

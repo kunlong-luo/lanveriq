@@ -113,6 +113,7 @@ jobs:
       - name: Test offline model and build candidate (no GUI execution or install)
         run: |
           cargo +1.100.0 test --locked --lib
+          cargo +1.100.0 test --locked --bin lanveriq-desktop-gpui-candidate
           test "$(id -u)" -ne 0
           cargo +1.100.0 test --locked --lib host_identity::tests::live_ubuntu_identity_only -- --ignored --exact
           cargo +1.100.0 test --locked --lib runtime_metadata::tests::live_ubuntu_runtime_readonly -- --ignored --exact
@@ -213,6 +214,41 @@ jobs:
           cargo +1.100.0 rustc --locked --release --bin lanveriq-desktop-gpui-candidate --message-format=json-render-diagnostics -- -C "link-arg=-Wl,-Map=$PWD/candidate-release-link.map" > candidate-release-build.jsonl
           sha256sum --check --strict Cargo.lock.sha256
           git diff --exit-code -- Cargo.toml Cargo.lock
+      - name: Check selected native icon payloads in exact optimized ELF (nonrelease)
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, mmap, pathlib
+          index = json.loads(pathlib.Path("../../../tools/gpui_default_icon_source_index.json").read_text())
+          metadata = json.loads(pathlib.Path("candidate-metadata.json").read_text())
+          packages = [p for p in metadata["packages"] if p["name"] == index["package"] and p["version"] == index["version"]]
+          assert len(packages) == 1 and packages[0]["source"] == "registry+https://github.com/rust-lang/crates.io-index"
+          root = pathlib.Path(packages[0]["manifest_path"]).parent.resolve(strict=True)
+          def blob(data):
+              return hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+          selected = {r["path"]: r["gpui_blob"] for r in index["rows"] if r["gpui_blob"] == r["lucide_blob"]}
+          selected.update({"assets/icons/x.svg": "e31794349d3eecea1b3ae8e974b68bb8f4becda7",
+                           "assets/icons/arrow-down-right.svg": "049b2ea7b38e6df0760907ee3ba18ed923cc1cfc"})
+          excluded = {r["path"]: r["gpui_blob"] for r in index["rows"] if r["gpui_blob"] != r["lucide_blob"]}
+          assert len(selected) == 96 and len(excluded) == 12 and not selected.keys() & excluded.keys()
+          messages = (json.loads(line) for line in pathlib.Path("candidate-release-build.jsonl").read_text().splitlines())
+          paths = [m["executable"] for m in messages if m.get("reason") == "compiler-artifact" and m.get("executable") and m.get("target", {}).get("name") == "lanveriq-desktop-gpui-candidate" and "bin" in m["target"]["kind"]]
+          assert len(paths) == 1
+          binary = pathlib.Path(paths[0])
+          with binary.open("rb") as f, mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as image:
+              assert image[:4] == b"\x7fELF"
+              for present, entries in ((True, selected), (False, excluded)):
+                  for name, expected in sorted(entries.items()):
+                      path = root / name
+                      assert path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(root)
+                      assert 0 < path.stat().st_size <= 262144
+                      data = path.read_bytes()
+                      assert blob(data) == expected, name
+                      assert (image.find(data) >= 0) == present, ("unexpected exact SVG payload observation", name, present)
+              digest = hashlib.sha256(image).hexdigest()
+          print("PASS: 96 exact canonical SVG payloads observed; 12 retained original payloads not observed")
+          print("ELF SHA256:", digest)
+          print("Scope: exact byte search only; no proof of absence of transformed data or distribution approval.")
+          PY
       - name: Capture Release compiler artifacts (no raw messages or binary upload)
         run: |
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ../../../tools -p test_gpui_release_license.py -v
