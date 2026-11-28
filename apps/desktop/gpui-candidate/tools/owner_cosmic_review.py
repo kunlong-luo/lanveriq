@@ -74,6 +74,27 @@ def parse_answers(answer):
             "请按顺序输入 9 个 p/f/n")
     return {key: STATUS[word] for (key, _), word in zip(CHECKS, words)}
 
+def review_exit_code(returncode, answers, method):
+    # Zero means the owner reported every required observation and Ctrl+Q.
+    # It is still unsigned owner evidence, not independent L3 or release approval.
+    require(set(answers) == {key for key, _ in CHECKS}
+            and all(value in STATUS.values() for value in answers.values())
+            and method in ("y", "n"), "验收结果无效")
+    if returncode != 0 or STATUS["f"] in answers.values():
+        return 1
+    if method != "y" or STATUS["n"] in answers.values():
+        return 2
+    return 0
+
+def run_review_process(args, *, phase, **kwargs):
+    # Do not print child exception arguments, paths or environment.
+    try:
+        return subprocess.run(args, **kwargs)
+    except subprocess.TimeoutExpired:
+        raise ValueError(f"{phase}超时；未生成通过证据") from None
+    except subprocess.CalledProcessError:
+        raise ValueError(f"{phase}失败；未生成通过证据") from None
+
 def wayland_env(env):
     result = dict(env)
     # No X11 fallback or inherited Wayland socket fd; use the verified named socket.
@@ -97,16 +118,17 @@ def main():
         print(f"{i}. {description}")
     print("最后使用 Ctrl+Q 退出；中文 IME 必须实际组合并确认，不能仅粘贴或凭中文标签判断。")
     print("开始离线编译。缺依赖时停止，不自动下载或安装。", flush=True)
-    subprocess.run(["cargo", "+1.100.0", "build", "--locked", "--offline", "--release",
+    run_review_process(["cargo", "+1.100.0", "build", "--locked", "--offline", "--release",
                     "--target-dir", str(ROOT / "target"), "--bin", NAME],
-                   cwd=ROOT, check=True, timeout=3600)
+                   phase="离线构建", cwd=ROOT, check=True, timeout=3600)
     require(source_identity() == head and sha(lock) == expected, "构建期间源码或锁发生变化")
     binary = ROOT / "target" / "release" / NAME
     require(binary.is_file() and not binary.is_symlink(), "Release 可执行文件缺失")
     binary_sha = sha(binary)
     verify_socket(socket, uid)
     print("打开原生 Wayland 候选窗口（已移除 X11 DISPLAY）；完成后 Ctrl+Q。", flush=True)
-    result = subprocess.run([str(binary)], cwd=ROOT, env=wayland_env(os.environ), timeout=900)
+    result = run_review_process([str(binary)], phase="窗口验收", cwd=ROOT,
+                                env=wayland_env(os.environ), timeout=900)
     require(sha(binary) == binary_sha and source_identity() == head, "测试期间产物或源码发生变化")
     print("窗口退出码:", result.returncode)
     print("按上述 9 项顺序输入 p=通过 f=失败 n=未测，例如 p p n n p p p n n")
@@ -126,9 +148,9 @@ def main():
     }
     print("=== 可复制的脱敏所有人观察报告（非签名） ===")
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
-    if result.returncode or any(v == STATUS["f"] for v in answers.values()):
-        return 1
-    return 0
+    code = review_exit_code(result.returncode, answers, method)
+    print({0: "观察完成（非独立 L3）", 1: "验收失败", 2: "验收未完成"}[code])
+    return code
 
 if __name__ == "__main__":
     try:

@@ -1,0 +1,24 @@
+name: GPUI owner review helper checks (nonrelease)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/gpui-candidate/tools/owner_cosmic_review.py'
+      - 'apps/desktop/gpui-candidate/tools/test_owner_cosmic_review.py'
+      - '.github/workflows/desktop-gpui-owner-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  owner-helper:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/desktop/gpui-candidate
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify owner-only review status and timeout handling (no GUI)
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_owner_cosmic_review.py -v

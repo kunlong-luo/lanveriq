@@ -1,5 +1,8 @@
+import subprocess
 import unittest
-from owner_cosmic_review import verify_session, wayland_env, parse_answers, CHECKS
+from unittest.mock import patch
+from owner_cosmic_review import (verify_session, wayland_env, parse_answers, CHECKS,
+                                review_exit_code, run_review_process)
 
 class OwnerReview(unittest.TestCase):
     def fixture(self):
@@ -44,3 +47,42 @@ class OwnerReview(unittest.TestCase):
         for raw in ("", "p", "p p p p p p p p", "p p p p p p p p yes"):
             with self.assertRaises(ValueError):
                 parse_answers(raw)
+
+    def test_exit_code_requires_every_observation_and_clean_quit(self):
+        passed = parse_answers("p p p p p p p p p")
+        self.assertEqual(review_exit_code(0, passed, "y"), 0)
+        self.assertEqual(review_exit_code(0, passed, "n"), 2)
+        for key, _ in CHECKS:
+            with self.subTest(key=key):
+                self.assertEqual(review_exit_code(0, {**passed, key: "NOT_TESTED"}, "y"), 2)
+                self.assertEqual(review_exit_code(0, {**passed, key: "OWNER_REPORTED_FAIL"}, "y"), 1)
+        for code in (1, -9, 124):
+            self.assertEqual(review_exit_code(code, passed, "y"), 1)
+        self.assertEqual(review_exit_code(1, parse_answers("n n n n n n n n n"), "n"), 1)
+        for answers, method in (({}, "y"), ({**passed, "unknown": "NOT_TESTED"}, "y"),
+                                ({**passed, "window": "bogus"}, "y"), (passed, "maybe")):
+            with self.assertRaises(ValueError):
+                review_exit_code(0, answers, method)
+
+    def test_timeout_and_build_failure_are_redacted_and_not_success(self):
+        for phase, timeout in (("离线构建", 3600), ("窗口验收", 900)):
+            with self.subTest(phase=phase), patch("owner_cosmic_review.subprocess.run",
+                    side_effect=subprocess.TimeoutExpired(["/private/path"], timeout)) as run:
+                with self.assertRaisesRegex(ValueError, phase + "超时") as error:
+                    run_review_process(["/private/path"], phase=phase, timeout=timeout)
+                self.assertNotIn("/private/path", str(error.exception))
+                run.assert_called_once_with(["/private/path"], timeout=timeout)
+        with patch("owner_cosmic_review.subprocess.run", side_effect=subprocess.CalledProcessError(
+                101, ["/private/path"], output="private output")):
+            with self.assertRaisesRegex(ValueError, "离线构建失败") as error:
+                run_review_process(["/private/path"], phase="离线构建", check=True)
+            self.assertNotIn("private", str(error.exception))
+
+    def test_real_subprocess_timeout_and_nonzero_status(self):
+        import sys
+        with self.assertRaisesRegex(ValueError, "窗口验收超时"):
+            run_review_process([sys.executable, "-c", "import time; time.sleep(5)"],
+                               phase="窗口验收", timeout=0.1)
+        result = run_review_process([sys.executable, "-c", "raise SystemExit(7)"],
+                                    phase="窗口验收", timeout=5)
+        self.assertEqual(result.returncode, 7)
