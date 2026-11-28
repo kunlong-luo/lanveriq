@@ -22,7 +22,7 @@
 
 **2026-11-26 G-05/G-09（不加分）：** [APT 双 runner #45746180961 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180961)、[Tauri #45746181071 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746181071)、[GUI-only `.deb` #45746180976 PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45746180976) 修复了旧构建闭包漂移；新增[基于真实 Rust AgentConfig v1 的离线 GUI 配置草稿](../development/desktop-tauri-agent-idle-config-ui-2026-11-26.md)（`a70c4243`，[Tauri #45748162585 两 job PASS](https://github.com/kunlong-luo/lanveriq/actions/runs/45748162585)）。尚无可供正式用户使用的安装授权，**评分维持 71/100、Gate 0/10**。
 
-**本机 MVP（7/16 DONE，不加分）：** [Linux L2 #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816) SUCCESS；维护者真实业务及 GPUI 七项功能 PASS，非独立 L3。UI/主题/响应式全量 PASS；自动交互修复步骤 PASS、全量 CI 待完成，完整实机/许可/发行仍 OPEN。**71/100，Gate 0/10；MVP-08 BLOCKED，09～16 TODO。** 详见[任务账本](local-mvp-tasks.md)及[此前评分与证据](https://github.com/kunlong-luo/lanveriq/blob/ec6a84b674bf368436448525ceadda8d7fd75ce0/docs/planning/project-scorecard.md)。
+**本机 MVP（7/16 DONE，不加分）：** [Linux L2 #45969893816](https://github.com/kunlong-luo/lanveriq/actions/runs/45969893816) SUCCESS；维护者真实业务及 GPUI 七项功能 PASS，非独立 L3。UI/主题/响应式全量 PASS；自动交互修复全量 PASS、图标替换待验，完整实机/许可/发行仍 OPEN。**71/100，Gate 0/10；MVP-08 BLOCKED，09～16 TODO。** 详见[任务账本](local-mvp-tasks.md)及[此前评分与证据](https://github.com/kunlong-luo/lanveriq/blob/ec6a84b674bf368436448525ceadda8d7fd75ce0/docs/planning/project-scorecard.md)。
 
 ## 生产发布能力：NO-GO（0/10 已关闭）
 
