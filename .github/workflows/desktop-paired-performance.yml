@@ -1,0 +1,74 @@
+name: Desktop GPUI and Tauri paired Release comparison (nonrelease)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/tools/paired_desktop_performance.py'
+      - 'apps/desktop/tools/test_paired_desktop_performance.py'
+      - '.github/workflows/desktop-paired-performance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify frozen Tauri boundary and test measurement helpers
+        run: |
+          python3 apps/desktop/tools/verify_desktop_readonly.py
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s apps/desktop/tools -p test_paired_desktop_performance.py -v
+      - name: Install pinned Node and pnpm
+        uses: pnpm/setup@v3
+        with:
+          version: '12.0.0'
+          runtime: node@24.22.3
+          working-directory: apps/desktop
+          install: false
+          require-lockfile: true
+          cache: false
+      - name: Build frozen disconnected Tauri frontend
+        working-directory: apps/desktop
+        run: |
+          test "$(node --version)" = 'v24.22.3'
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm typecheck
+      - name: Prepare disposable Ubuntu development and X11 prerequisites
+        run: |
+          rustup toolchain install 1.100.0 --profile minimal
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false update
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y --no-install-recommends \
+            gcc g++ clang cmake pkg-config libfontconfig-dev libwayland-dev \
+            libwebkit2gtk-4.1-dev libxkbcommon-x11-dev libx11-xcb-dev libdbus-1-dev \
+            libssl-dev libzstd-dev libasound2-dev vulkan-validationlayers libvulkan1 \
+            libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf python3-apt dpkg-dev \
+            xvfb xauth openbox xdotool x11-utils mesa-vulkan-drivers libgl1-mesa-dri \
+            dbus-x11 fonts-noto-cjk imagemagick
+      - name: Build exact GPUI Release (no bundle)
+        working-directory: apps/desktop/gpui-candidate
+        run: |
+          sha256sum --check --strict Cargo.lock.sha256
+          cargo +1.100.0 build --locked --release --bin lanveriq-desktop-gpui-candidate
+          sha256sum --check --strict Cargo.lock.sha256
+      - name: Build frozen Tauri Release (no bundle or signing)
+        working-directory: apps/desktop
+        env:
+          RUSTUP_TOOLCHAIN: '1.100.0'
+        run: |
+          pnpm tauri build --ci --no-bundle --no-sign -- --locked
+          git diff --exit-code -- pnpm-lock.yaml src-tauri/Cargo.lock src-tauri/Cargo.toml src-tauri/tauri.conf.json
+      - name: Run alternating actual Release windows, common resize and WM close
+        run: |
+          timeout --kill-after=5s 600s xvfb-run -a -s "-screen 0 1280x800x24 -nolisten tcp" \
+            dbus-run-session -- /usr/bin/python3 apps/desktop/tools/paired_desktop_performance.py "$RUNNER_TEMP/paired-desktop.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-paired-performance-NONRELEASE
+          path: ${{ runner.temp }}/paired-desktop.json
+          if-no-files-found: ignore
+          retention-days: 7
