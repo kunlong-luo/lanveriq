@@ -31,13 +31,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for id in 15253131070 15256242540 15248859534; do
+          for id in 15258190239 15258301989 15258131714; do
             gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "$id.zip"
           done
           python3 tools/gpui_distribution_material_review.py distribution-material-review "$RUNNER_TEMP/registry-metadata.json" apps/desktop/gpui-candidate/Cargo.lock \
-            15253131070.zip 3af53e8676997925d51d364e1a28423563f4120fe01fd42270d6eda12ce4828f \
-            15256242540.zip 3a4ddfaea50c878d6a8201cc3062c41897d5da8168b269e733a68895ad9a506c \
-            15248859534.zip 003b3fac7425d25b5e2ca4055e94ec71ae40150cf33f8fecd39feb7a1df94619
+            15258190239.zip a647b3c2d63ff54b3f1794ae6d03e84068ac0ff71d51ab3f7cae7f8b91a677b1 \
+            15258301989.zip 7ff459f4d1da720067173c2b87f1cd0f3288bf9c6b2864be9bf99cfcf0da1f1f \
+            15258131714.zip 0ab0d822ff3f7941636d5f3b0cafa0119459cb7e24061aa952daaaca07f50efd
       - uses: actions/upload-artifact@v4
         with:
           name: gpui-distribution-material-REVIEW-ONLY

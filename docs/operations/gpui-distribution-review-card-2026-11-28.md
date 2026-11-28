@@ -143,3 +143,7 @@ python3 apps/desktop/gpui-candidate/tools/owner_cosmic_review.py
 ### 最终布局完整原生 CI PASS
 
 [8bd35b22 / #46130643220](https://github.com/kunlong-luo/lanveriq/actions/runs/46130643220) 四jobs SUCCESS，优化ELF 93f937a25d1fb88300c431a3155d432556e9facc7ffe84fde3e864c510599435；96原SVG存在/12旧payload未检出、clean Ubuntu OCI 92/9/0/五floor/dpkg不变、合成X11及Wayland PASS。compiler 15258091059 SHA256 e303ba5032890fcbe4600ec149db9b2644f51ca29028f4e535987c6029e9872b；association 15257683038 SHA256 4efb264c02f15c101692e999c21720a9bc958acbf6d23f6e93e7ba9716e45bbe（日志及metadata核对，未独立解包）。现有compiled notice流程绑定此成功run及新辅助15258131714，待新实际结果再组装原始文本。22缺项仍OPEN，不把合成窗口、原始字节检查或关联当作正式授权。
+
+### 最终优化 ELF 链接许可关联 PASS
+
+[982fd3b4 / #46131789280](https://github.com/kunlong-luo/lanveriq/actions/runs/46131789280) SUCCESS，5/5 fixtures，13 observed+9 other registry gaps，15 external rlib，22辅助文本，0关闭；[linked归档15258301989](https://github.com/kunlong-luo/lanveriq/actions/runs/46131789280/artifacts/15258301989) 52750 bytes，SHA256 7ff459f4d1da720067173c2b87f1cd0f3288bf9c6b2864be9bf99cfcf0da1f1f（日志及metadata核对，未独立解包）。最后材料工作流已绑定当前供链15258190239、linked15258301989、辅助15258131714三个固定摘要，继续核对实际registry文本，不重编或发包。新组装待验；材料完备不构成权属、EULA或正式许可批准。
