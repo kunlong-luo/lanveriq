@@ -2,7 +2,7 @@
 
 **REVIEW ONLY · 2026-11-28 · NOT A DISTRIBUTION NOTICE · v0.1 NOT RELEASE READY**
 
-仅为 MVP-08/G-07 准备审批材料，不替代 [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](../planning/local-mvp-tasks.md) 或[唯一发布门禁](../planning/release-gap-register.md)。以下旧版链接观测不是新版 f4bd6fde 的链接结论。所有许可、安装与发布批准均未取得。
+仅为 MVP-08/G-07 准备审批材料，不替代 [ADR-0014](../architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](../planning/local-mvp-tasks.md) 或[唯一发布门禁](../planning/release-gap-register.md)。本卡逐包队列已按新版 f4bd6fde 的实际归档独立复核。所有许可、安装与发布批准均未取得。
 
 ## 1. 已核实材料及使用顺序
 
@@ -12,15 +12,15 @@
 | 归档绑定 | source 39db84ef39ac70414e7d3b1a1821d5ec14699f45；ELF SHA256 2f2a13853a9259d223d575b29ee8aa12d1587d6df078a6632c6076d347163b5c；lock SHA256 0f77a9e9df9f3ff03612f22f4777de7d7ebf2cd65b69fc79d18a2ed05e37dad9 | 不是新版 ELF；重新绑定前不得将此材料称作新版正式 NOTICE |
 | 522 package rows | 499 有 registry 材料、22 缺项有辅助材料、1 本地产品无许可；890 registry material files、1835 resource candidates | 全部仍待审，材料存在不等于许可充分 |
 | [源码范围复核 #46119833647](https://github.com/kunlong-luo/lanveriq/actions/runs/46119833647) | 3/3 fixture PASS；5个 GPUI 示例资源无外部字面引用；EXIF 另有 test-only 源码引用，registry platform.rs Git blob 与固定上游相同 | 源码范围审查完成；不证明最终 ELF 不含转换资源 |
-| [新版 f4bd6fde #46119431583](https://github.com/kunlong-luo/lanveriq/actions/runs/46119431583) | 4/4 jobs SUCCESS；96 selected 原始 SVG 存在、12 retained 原始 payload 未检出；Release/Wayland/association PASS | ELF SHA256 83b51857cfc422f81e3457df11f6c5c0e6ad2cb31fe305b1aa52020930118b3b；新版 linked notice [#46127559956](https://github.com/kunlong-luo/lanveriq/actions/runs/46127559956) SUCCESS；[归档15256242540](https://github.com/kunlong-luo/lanveriq/actions/runs/46127559956/artifacts/15256242540) SHA256 3a4ddfaea50c878d6a8201cc3062c41897d5da8168b269e733a68895ad9a506c；新版522行/246 observed/13+9缺项/15 external，[新版实际文本重绑 #46127631310](https://github.com/kunlong-luo/lanveriq/actions/runs/46127631310) SUCCESS，522/890/327/1835，0 gaps closed；[归档15255729897](https://github.com/kunlong-luo/lanveriq/actions/runs/46127631310/artifacts/15255729897) SHA256 c354a403494da4066d95dd0468e13f1b326c3ce365acb3de3272e0d3704f8615（实际CI日志及元数据；下方历史逐包清单未按新版独立解包复核） |
+| [新版 f4bd6fde #46119431583](https://github.com/kunlong-luo/lanveriq/actions/runs/46119431583) | 4/4 jobs SUCCESS；96 selected 原始 SVG 存在、12 retained 原始 payload 未检出；Release/Wayland/association PASS | ELF SHA256 83b51857cfc422f81e3457df11f6c5c0e6ad2cb31fe305b1aa52020930118b3b；新版 linked notice [#46127559956](https://github.com/kunlong-luo/lanveriq/actions/runs/46127559956) SUCCESS；[归档15256242540](https://github.com/kunlong-luo/lanveriq/actions/runs/46127559956/artifacts/15256242540) SHA256 3a4ddfaea50c878d6a8201cc3062c41897d5da8168b269e733a68895ad9a506c；新版522行/246 observed/13+9缺项/15 external，[新版实际文本重绑 #46127631310](https://github.com/kunlong-luo/lanveriq/actions/runs/46127631310) SUCCESS，522/890/327/1835，0 gaps closed；[归档15255729897](https://github.com/kunlong-luo/lanveriq/actions/runs/46127631310/artifacts/15255729897) SHA256 c354a403494da4066d95dd0468e13f1b326c3ce365acb3de3272e0d3704f8615（本轮独立下载并复核两个 ZIP；327/327 文本实际字节数及 SHA256 一致，总计963848 bytes；522/522 逐包名称/版本/声明/registry checksum/链接状态/辅助摘要/原始路径与摘要一致，890条原始材料路径及字节数一致；所有文本均被引用；source/lock/ELF/SBOM 摘要两归档一致，SBOM SHA256 7c3f9beb3dc72a4d7cf9d83d265b48dcb1ef9bcdb68ef82769f2161fd2ea7dd6） |
 
 保留原始 CycloneDX、全部 registry material、辅助文本及 SHA；审批人必须能获取原始内容。CI 归档到期前由获授权责任人选择受控证据保管位置，记录接收摘要、访问控制、保留期与审查人；本次没有迁移、长期保管或外部签收。到期后不得凭摘要声称仍能取得原文，必要时用既有工具重建并核对差异。
 
 ## 2. 22 个 registry 材料缺项审批队列
 
-以下来自实际解包核验的 15250515162 index，按旧版 LLD 观测优先级排列；**每行均 OPEN**。不以未观察 rlib 为排除许可义务的依据。
+以下来自新版 15255729897 index 与 15256242540 linked notice 的逐项独立交叉核验，22个名称/版本/声明/辅助材料数/链接分类与历史队列一致，按新版 LLD 观测优先级排列；**每行均 OPEN**。不以未观察 rlib 为排除许可义务的依据。
 
-| 优先级/旧版观测 | 锁定包 | 原始声明 | 辅助材料数 |
+| 优先级/新版观测 | 锁定包 | 原始声明 | 辅助材料数 |
 | --- | --- | --- | ---: |
 | P1 / 非零段 | accesskit 0.24.1 | MIT OR Apache-2.0 | 3 |
 | P1 / 非零段 | accesskit_atspi_common 0.19.1 | MIT OR Apache-2.0 | 3 |
@@ -49,7 +49,7 @@
 
 ## 3. 其他有实质义务的材料
 
-旧版 499 个有材料记录中，优先审 encoding_rs 0.8.44 的 BSD-3-Clause 附加义务，unicode-ident 1.0.27 和 unicode-properties 0.1.5 的 Unicode-3.0 附加义务（AND 不可当作 OR）。rustix 1.1.6、linux-raw-sys 0.12.1 涉及 LLVM exception 的备选声明；self_cell 1.3.0 为 Apache-2.0 OR GPL-2.0-only，须明确审批适用分支，不因 GPL 字样直接判定禁止。option-ext 0.2.0 是 MPL-2.0，旧 rlib 未观察，仍核对实际分发与相应义务；ryu 1.0.23 有 Apache-2.0 OR BSL-1.0 声明。保留全部原始文本，禁止自动选择 SPDX OR 分支、自动批准或删去 AND 通知。上述只为有限风险排序，不是整个项目许可审查。
+新版 499 个有材料记录中，优先审 encoding_rs 0.8.44 的 BSD-3-Clause 附加义务，unicode-ident 1.0.27 和 unicode-properties 0.1.5 的 Unicode-3.0 附加义务（AND 不可当作 OR）。rustix 1.1.6、linux-raw-sys 0.12.1 涉及 LLVM exception 的备选声明；self_cell 1.3.0 为 Apache-2.0 OR GPL-2.0-only，须明确审批适用分支，不因 GPL 字样直接判定禁止。option-ext 0.2.0 是 MPL-2.0，旧 rlib 未观察，仍核对实际分发与相应义务；ryu 1.0.23 有 Apache-2.0 OR BSL-1.0 声明。保留全部原始文本，禁止自动选择 SPDX OR 分支、自动批准或删去 AND 通知。上述只为有限风险排序，不是整个项目许可审查。
 
 图标：新版使用96个已核对 Lucide 图像与12个兼容映射，精确新版 ELF 原始字节检查 PASS（96存在、12未检出；不证明转换资源不存在）；保留 Lucide ISC/Feather MIT 通知候选、先前12个原始图标来源与权利记录，另6示例资源的最终范围仍待审。OS/native 库、编译器运行时、生成代码、其他平台依赖、完整发行 SBOM 和9维护警告分别审，不用522行替代全范围。
 
