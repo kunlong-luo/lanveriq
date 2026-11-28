@@ -12,7 +12,7 @@
 | 归档绑定 | source 39db84ef39ac70414e7d3b1a1821d5ec14699f45；ELF SHA256 2f2a13853a9259d223d575b29ee8aa12d1587d6df078a6632c6076d347163b5c；lock SHA256 0f77a9e9df9f3ff03612f22f4777de7d7ebf2cd65b69fc79d18a2ed05e37dad9 | 不是新版 ELF；重新绑定前不得将此材料称作新版正式 NOTICE |
 | 522 package rows | 499 有 registry 材料、22 缺项有辅助材料、1 本地产品无许可；890 registry material files、1835 resource candidates | 全部仍待审，材料存在不等于许可充分 |
 | [源码范围复核 #46119833647](https://github.com/kunlong-luo/lanveriq/actions/runs/46119833647) | 3/3 fixture PASS；5个 GPUI 示例资源无外部字面引用；EXIF 另有 test-only 源码引用，registry platform.rs Git blob 与固定上游相同 | 源码范围审查完成；不证明最终 ELF 不含转换资源 |
-| [新版 f4bd6fde #46119431583](https://github.com/kunlong-luo/lanveriq/actions/runs/46119431583) | Debug、binary tests、X11 interaction、supply/audit PASS；Release build IN_PROGRESS | 等待96/12 exact-byte、Release/Wayland/association 实际终态 |
+| [新版 f4bd6fde #46119431583](https://github.com/kunlong-luo/lanveriq/actions/runs/46119431583) | 4/4 jobs SUCCESS；96 selected 原始 SVG 存在、12 retained 原始 payload 未检出；Release/Wayland/association PASS | ELF SHA256 83b51857cfc422f81e3457df11f6c5c0e6ad2cb31fe305b1aa52020930118b3b；新版 linked notice [#46127559956](https://github.com/kunlong-luo/lanveriq/actions/runs/46127559956) SUCCESS（job 结论；逐项数据待核）；新版材料重新绑定待完成 |
 
 保留原始 CycloneDX、全部 registry material、辅助文本及 SHA；审批人必须能获取原始内容。CI 归档到期前由获授权责任人选择受控证据保管位置，记录接收摘要、访问控制、保留期与审查人；本次没有迁移、长期保管或外部签收。到期后不得凭摘要声称仍能取得原文，必要时用既有工具重建并核对差异。
 
@@ -51,7 +51,7 @@
 
 旧版 499 个有材料记录中，优先审 encoding_rs 0.8.44 的 BSD-3-Clause 附加义务，unicode-ident 1.0.27 和 unicode-properties 0.1.5 的 Unicode-3.0 附加义务（AND 不可当作 OR）。rustix 1.1.6、linux-raw-sys 0.12.1 涉及 LLVM exception 的备选声明；self_cell 1.3.0 为 Apache-2.0 OR GPL-2.0-only，须明确审批适用分支，不因 GPL 字样直接判定禁止。option-ext 0.2.0 是 MPL-2.0，旧 rlib 未观察，仍核对实际分发与相应义务；ryu 1.0.23 有 Apache-2.0 OR BSL-1.0 声明。保留全部原始文本，禁止自动选择 SPDX OR 分支、自动批准或删去 AND 通知。上述只为有限风险排序，不是整个项目许可审查。
 
-图标：新版使用96个已核对 Lucide 图像与12个兼容映射，仍待精确新版 ELF 检查；保留 Lucide ISC/Feather MIT 通知候选、先前12个原始图标来源与权利记录，另6示例资源的最终范围仍待审。OS/native 库、编译器运行时、生成代码、其他平台依赖、完整发行 SBOM 和9维护警告分别审，不用522行替代全范围。
+图标：新版使用96个已核对 Lucide 图像与12个兼容映射，精确新版 ELF 原始字节检查 PASS（96存在、12未检出；不证明转换资源不存在）；保留 Lucide ISC/Feather MIT 通知候选、先前12个原始图标来源与权利记录，另6示例资源的最终范围仍待审。OS/native 库、编译器运行时、生成代码、其他平台依赖、完整发行 SBOM 和9维护警告分别审，不用522行替代全范围。
 
 ## 4. 维护者必须作出的产品许可决定
 
