@@ -248,6 +248,22 @@
   
   现 22/22 有辅助材料索引（19 固定上游候选 + 3 同版本下游记录），22 registry 缺项、3 精确上游绑定缺项仍 OPEN；尚未下载/比对 Debian orig tar 和 crates.io 锁定包内文件、未审定完整 NOTICE/资源/法律许可，不能据此替代发行材料。不修改产品、Cargo.lock 或 workflow，不重复触发 Rust 编译。47 BOM extra、9 维护警告及真实 Wayland/COSMIC/IME/关闭/GPU、Tauri 比较/完整运行时/正式包/超时负测继续 OPEN。MVP-08 BLOCKED，71/100。
 
+- **2026-11-28 CycloneDX 额外组件范围复核（不重复编译）**：基线 [5722947a](https://github.com/kunlong-luo/lanveriq/commit/5722947a6e0685427ac4b6c714e5f6ac36294656) docs [#46105680971](https://github.com/kunlong-luo/lanveriq/actions/runs/46105680971)、Next [#46105680965](https://github.com/kunlong-luo/lanveriq/actions/runs/46105680965)、RD-2 [#46105680990](https://github.com/kunlong-luo/lanveriq/actions/runs/46105680990)、预览 [#46105680987](https://github.com/kunlong-luo/lanveriq/actions/runs/46105680987) 全 SUCCESS。[85b77ff7 / #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) audit 140857143707/supply-chain 140857143440 SUCCESS，candidate 140857143696 Release 编译 RUNNING，尚无 Weston 实测结果。实际下载并解析同 run artifacts 15246997056（BOM/供应链）与 15247236845（Linux graph/ELF）：报告 source 85b77ff73287c409e92f6b0c0ca35cb296b53683，lock SHA256 0f77a9e9df9f3ff03612f22f4777de7d7ebf2cd65b69fc79d18a2ed05e37dad9，BOM SHA256 8e547e9aa73cd91724bae33083c727607508b2f10dd23b60cfbf9b668bcafd9b 与报告相符；两 artifact 的 Linux 522 package pairs 完全一致，normal 504，BOM 569，遗漏 0，额外 47。其一是 metadata.component.components 中的本地 library target lanveriq_desktop_gpui_candidate 0.1.0（不是额外 registry 包）；其余 46 均为顶层 BOM registry 组件且由 BOM 根可达，44 标记 required，2 标记 excluded（built 0.8.1、jobserver 0.1.35），scope 不代表实际链接。由 522 graph 内组件进入差异集的实际 BOM 边共 11 条、10 个不同入口：
+  | 图内父项 | BOM 图外子项 |
+  | --- | --- |
+  | gpui-kit 0.11.0 | gpui-fast-platform 0.1.19 |
+  | gpui-pre 0.3.14 / gpui-pre-linux 0.3.14 | zed-scap 0.0.8-zed |
+  | image 0.25.10 | ravif 0.13.0 |
+  | rand_core 0.6.4 | getrandom 0.2.17 |
+  | rand 0.8.8 | rand_chacha 0.3.1 |
+  | getrandom 0.4.3 | rand_core 0.10.1 |
+  | jiff 1.0.3 | jiff-static 1.0.3 |
+  | cc 1.12.0 | jobserver 0.1.35 |
+  | codespan-reporting 0.13.1 | termcolor 1.4.1 |
+  | flate2 1.1.11 | zlib-rs 0.6.9 |
+
+  固定 [cargo-cyclonedx 0.5.10 main.rs](https://github.com/CycloneDX/cyclonedx-rust-cargo/blob/cargo-cyclonedx-0.5.10/cargo-cyclonedx/src/main.rs) blob a6abdb38f06f17cd3b1bda2b0d00348279e396bb：仅在 config 要求时传 CargoOpt::AllFeatures/NoDefaultFeatures/SomeFeatures；指定 target 时传 --filter-platform；未自动传 --locked（现 CI offline/前后锁摘要及 diff 检查仍有效）。[generator.rs](https://github.com/CycloneDX/cyclonedx-rust-cargo/blob/cargo-cyclonedx-0.5.10/cargo-cyclonedx/src/generator.rs) blob fc16daa330ed79d433027cc99c47f14d36fb3ef2 默认过滤仅 dev-kind、正常/构建依赖图遍历，并非依据最终 rustc link 输入；[cli.rs](https://github.com/CycloneDX/cyclonedx-rust-cargo/blob/cargo-cyclonedx-0.5.10/cargo-cyclonedx/src/cli.rs) blob 980dd936562b881d2ba279a5ed09b95616556f50 默认无 CLI feature override。现 workflow 无 --all-features，不应笼统归因于 all-features。实际 Linux feature graph 顶层仅 gpui-kit assets/component/x11，未见 gpui-fast 或 ravif 组件；不能仅凭 BOM extra 宣称启用 GPUI Fast，也不能直接删除该条目。下一次用同 SHA 的 cargo metadata --locked --filter-platform x86_64-unknown-linux-gnu 和 resolve.nodes/features/dep_kinds，与实际 cargo tree/build JSON 对照定位 feature resolver 范围差异，保留原始 BOM；本轮无新代码/工作流/锁变更，未证明 46 registry 差异根因或最终二进制组成。22 registry 许可缺项（19 上游/3 Debian 佐证）、3 上游绑定、9 维护警告、真实 Wayland/COSMIC、正式包/完整运行时/Tauri 对比仍 OPEN，MVP-08 BLOCKED，71/100。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
@@ -284,13 +300,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [3c0b76cc](https://github.com/kunlong-luo/lanveriq/commit/3c0b76ccb0bac24a02f40843319338ede07029ca)；本轮仅文档证据复审，无新产品代码/锁/workflow。 |
-| 本轮 | MVP-08 **BLOCKED**；三项未绑定上游包找到 Debian 同版本版权材料；22/22 有辅助索引，22 registry 缺项和 3 上游绑定缺项不关闭。MVP-01～07 DONE，09～16 TODO。 |
-| CI | 基线 docs/Next/RD-2/预览 PASS；[嵌套 Weston #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) supply-chain PASS、candidate/audit RUNNING；[RD-2 #46105475490](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475490) PASS；首测 [#46102204965](https://github.com/kunlong-luo/lanveriq/actions/runs/46102204965) Wayland FAIL。 |
-| 锁/风险 | 锁不变；19 上游候选/3 Debian 佐证（mac/pathfinder_geometry/seahash 未绑定上游），22 registry 缺项、47 BOM extra、9 维护警告、完整 NOTICE/资源/法务 OPEN；清洁系统 ABI OPEN。 |
-| 本机 | X11/Release 性能/ABI 佐证/临时包 PASS；Wayland 复验待 CI；真实 COSMIC v2 九项、IME/关闭/GPU、独立 L3、完整运行时/包、Tauri 比较及超时负测未验。 |
+| 基线 | [5722947a](https://github.com/kunlong-luo/lanveriq/commit/5722947a6e0685427ac4b6c714e5f6ac36294656)；本轮仅文档/实际 artifact 复审，不改产品、锁或 workflow。 |
+| 本轮 | MVP-08 **BLOCKED**；47 BOM extra 拆分为 1 本地 library target + 46 registry（44 required/2 excluded），找到 11 条入口边、10 入口组件；46 差异根因与最终链接未证，保留原 BOM。MVP-01～07 DONE，09～16 TODO。 |
+| CI | 基线 docs/Next/RD-2/预览 PASS；[嵌套 Weston #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) audit/supply-chain PASS、Release 编译 RUNNING；首测 [#46102204965](https://github.com/kunlong-luo/lanveriq/actions/runs/46102204965) Wayland FAIL。 |
+| 锁/风险 | 522 Linux / 569 BOM / 0 缺失 / 47 extra；22 registry 许可缺项（19 上游/3 Debian）、3 精确上游绑定、9 维护警告、清洁系统 ABI/NOTICE/法务 OPEN。 |
+| 本机 | X11/Release 性能/ABI/临时包 PASS；Wayland 复验待 CI；真实 COSMIC v2 九项/IME/关闭/GPU、独立 L3、完整运行时/包、Tauri 比较及超时负测未验。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | MVP-08：核实嵌套 Weston CI，按真实退出/协议/渲染证据修复；集中所有人 COSMIC v2 九项，复审包文件与材料对应关系/维护及完整运行时/包/Tauri 比较；不进入 MVP-09。 |
+| **下次唯一任务** | MVP-08：先核实嵌套 Weston CI、按实际失败修复；集中 COSMIC v2；必要时同 SHA target-filtered metadata/实际 build graph 复核 46 registry 差异、完整许可/维护及包；不进入 MVP-09。 |
 | 约束 | main only；保留 Tauri 回退且冻结扩展，不提高 CI 写权限、不忽略漏洞；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
