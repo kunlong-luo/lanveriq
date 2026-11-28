@@ -5,7 +5,7 @@ import tempfile
 import unittest
 import zipfile
 
-from gpui_compiled_notice_review import join, read_archive, sha
+from gpui_compiled_notice_review import join, read_archive, sha, add_link_observation
 
 def fixture():
     row = {"name": "example", "version": "1.0", "review": "MISSING_MATERIAL_REVIEW_OPEN",
@@ -78,3 +78,55 @@ class CompiledNoticeReview(unittest.TestCase):
                 z.writestr("../escape", "x")
             with self.assertRaises(ValueError):
                 read_archive(path, sha(path.read_bytes()))
+
+    def test_link_observation_keeps_all_compiled_packages(self):
+        args = fixture()
+        report = join(*args)
+        raw = args[1]["candidate-release-artifacts.json"]
+        m = {"schema": "lanveriq.gpui.release-link-map-v1",
+             "scope": "LLD_NONZERO_RLIB_INPUT_SECTIONS_NOT_COMPLETE_BINARY_COMPOSITION",
+             "license_review": "OPEN_NOT_APPROVED", "release_approved": False, "install_authorized": False,
+             "source_sha": report["source_sha"], "lock_sha256": report["lock_sha256"],
+             "elf_sha256": report["elf_sha256"], "compiler_report_sha256": sha(raw), "map_sha256": "e"*64,
+             "observed_packages": [{"name": "example", "version": "1.0", "members": 1,
+                                    "nonzero_input_sections": 2}],
+             "compiler_rlib_packages_not_observed": [],
+             "observed_nonzero_rlib_section_count": 3, "unbound_external_rlib_archive_count": 1}
+        args[1]["candidate-release-link-map.json"] = json.dumps(m).encode()
+        result = add_link_observation(report, args[1])
+        self.assertEqual(result["observed_registry_material_gaps"], [["example", "1.0"]])
+        self.assertEqual(result["registry_gaps_closed"], 0)
+        self.assertFalse(result["release_approved"])
+        for patch in ({"elf_sha256": "f"*64}, {"compiler_report_sha256": "f"*64},
+                      {"release_approved": True}, {"compiler_rlib_packages_not_observed": [["example", "1.0"]]},
+                      {"observed_packages": m["observed_packages"] * 2},
+                      {"observed_nonzero_rlib_section_count": 1},
+                      {"observed_packages": [{"name": "unknown", "version": "1", "members": 1,
+                                             "nonzero_input_sections": 1}]}):
+            with self.subTest(patch=patch):
+                args[1]["candidate-release-link-map.json"] = json.dumps({**m, **patch}).encode()
+                with self.assertRaises(ValueError):
+                    add_link_observation(report, args[1])
+
+    def test_link_non_observation_never_closes_gaps(self):
+        args = fixture()
+        report = join(*args)
+        # Add two separately compiled rows for the observation-stage fixture.
+        report["packages"].extend([{**report["packages"][0], "name": name} for name in ("observed", "macro")])
+        raw = args[1]["candidate-release-artifacts.json"]
+        m = {"schema": "lanveriq.gpui.release-link-map-v1",
+             "scope": "LLD_NONZERO_RLIB_INPUT_SECTIONS_NOT_COMPLETE_BINARY_COMPOSITION",
+             "license_review": "OPEN_NOT_APPROVED", "release_approved": False, "install_authorized": False,
+             "source_sha": report["source_sha"], "lock_sha256": report["lock_sha256"],
+             "elf_sha256": report["elf_sha256"], "compiler_report_sha256": sha(raw), "map_sha256": "e"*64,
+             "observed_packages": [{"name": "observed", "version": "1.0", "members": 1,
+                                    "nonzero_input_sections": 2}],
+             "compiler_rlib_packages_not_observed": [["example", "1.0"]],
+             "observed_nonzero_rlib_section_count": 2, "unbound_external_rlib_archive_count": 0}
+        args[1]["candidate-release-link-map.json"] = json.dumps(m).encode()
+        result = add_link_observation(report, args[1])
+        self.assertEqual(result["other_registry_material_gaps"], [["example", "1.0"], ["macro", "1.0"]])
+        self.assertEqual(len(result["packages"]), 3)
+        self.assertEqual(result["registry_gaps_closed"], 0)
+        self.assertEqual(result["not_observed_rlib_package_count"], 1)
+        self.assertEqual(result["no_rlib_observation_package_count"], 1)

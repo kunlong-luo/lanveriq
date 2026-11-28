@@ -7,6 +7,12 @@ on:
       - 'tools/test_gpui_compiled_notice_review.py'
       - '.github/workflows/desktop-gpui-compiled-notice-review.yml'
   workflow_dispatch:
+    inputs:
+      release_run_id:
+        description: "Successful GPUI full CI run with Link Map artifact (empty: historical compiler-only review)"
+        required: false
+        type: string
+        default: ""
 permissions:
   contents: read
   actions: read
@@ -21,6 +27,7 @@ jobs:
       - name: Test archive integrity and package association
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools -p test_gpui_compiled_notice_review.py -v
       - name: Join existing verified CI archives (no compilation)
+        if: github.event_name != 'workflow_dispatch' || inputs.release_run_id == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -32,6 +39,51 @@ jobs:
             15248833158.zip 199149c81e1b02d9825f382273522b18f3b9cfa692b9974f1c5c98dae33e927f \
             15248632946.zip 7403a2541414eb66db5514361e71b326227b5b48cddbbd2f9933b9ff93ce9e1e \
             15248859534.zip 003b3fac7425d25b5e2ca4055e94ec71ae40150cf33f8fecd39feb7a1df94619
+      - name: Join successful Link Map run and existing notice material
+        if: github.event_name == 'workflow_dispatch' && inputs.release_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_RUN_ID" > release-run.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_RUN_ID/artifacts?per_page=100" > release-artifacts.json
+          python3 - <<'PY' > receipts.tsv
+          import json, re
+          run = json.load(open("release-run.json"))
+          assert run["path"] == ".github/workflows/desktop-gpui-candidate.yml"
+          assert run["head_branch"] == "main" and run["conclusion"] == "success"
+          data = json.load(open("release-artifacts.json"))
+          assert data["total_count"] == len(data["artifacts"])
+          for name in ("gpui-release-license-association", "gpui-release-compiler-artifacts", "gpui-candidate-supply-chain"):
+              match = [a for a in data["artifacts"] if a["name"] == name and not a["expired"]]
+              assert len(match) == 1
+              a = match[0]
+              assert re.fullmatch(r"sha256:[0-9a-f]{64}", a["digest"])
+              print(a["id"], a["digest"].split(":")[1], sep="\t")
+          PY
+          args=()
+          while IFS=        with:
+          name: gpui-compiled-notice-review-NOT-FOR-DISTRIBUTION
+          path: compiled-notice-review.json
+          if-no-files-found: error
+          retention-days: 7
+\t' read -r id digest; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "$id.zip"
+            args+=("$id.zip" "$digest")
+          done < receipts.tsv
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15248859534/zip" > notice.zip
+          python3 tools/gpui_compiled_notice_review.py compiled-notice-review.json "${args[@]}" \
+            notice.zip 003b3fac7425d25b5e2ca4055e94ec71ae40150cf33f8fecd39feb7a1df94619
+          python3 - <<'PY'
+          import json
+          report = json.load(open("compiled-notice-review.json"))
+          run = json.load(open("release-run.json"))
+          assert report["schema"] == "lanveriq.gpui.linked-notice-review-v1"
+          assert report["source_sha"] == run["head_sha"]
+          assert report["release_approved"] is False
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: gpui-compiled-notice-review-NOT-FOR-DISTRIBUTION

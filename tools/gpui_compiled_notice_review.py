@@ -104,11 +104,74 @@ def join(association, compiler, supply, notice):
             "scope": "COMPILED_PACKAGE_REVIEW_NOT_FINAL_LINK_OR_DISTRIBUTION_NOTICE",
             "license_review": "OPEN_NOT_APPROVED", "release_approved": False, "install_authorized": False}
 
+def add_link_observation(report, compiler):
+    """Augment the review with same-ELF nonzero rlib observations, never exclusions."""
+    raw = compiler["candidate-release-artifacts.json"]
+    c = json.loads(raw)
+    m = json.loads(compiler["candidate-release-link-map.json"])
+    require(m["schema"] == "lanveriq.gpui.release-link-map-v1"
+            and m["scope"] == "LLD_NONZERO_RLIB_INPUT_SECTIONS_NOT_COMPLETE_BINARY_COMPOSITION"
+            and m["license_review"] == "OPEN_NOT_APPROVED"
+            and m["release_approved"] is False and m["install_authorized"] is False,
+            "unexpected map scope or approval")
+    require(all(report[k] == m[k] == c[k] for k in ("source_sha", "lock_sha256", "elf_sha256"))
+            and m["compiler_report_sha256"] == sha(raw)
+            and re.fullmatch(r"[0-9a-f]{64}", m["map_sha256"]), "map identity mismatch")
+    compiled = {pair(p): p for p in report["packages"]}
+    observed = {pair(p): p for p in m["observed_packages"]}
+    require(len(compiled) == len(report["packages"]) and len(observed) == len(m["observed_packages"])
+            and bool(observed) and observed.keys() <= compiled.keys(), "map package coverage mismatch")
+    unseen = [tuple(p) for p in m["compiler_rlib_packages_not_observed"]]
+    require(all(len(p) == 2 for p in unseen) and len(unseen) == len(set(unseen))
+            and set(unseen) <= compiled.keys() and not (set(unseen) & observed.keys()),
+            "unobserved map package coverage mismatch")
+    def count(v):
+        return type(v) is int and v >= 0
+    require(count(m["unbound_external_rlib_archive_count"])
+            and count(m["observed_nonzero_rlib_section_count"]), "invalid map counts")
+    for p in observed.values():
+        require(count(p["members"]) and count(p["nonzero_input_sections"])
+                and 0 < p["members"] <= p["nonzero_input_sections"], "invalid section counts")
+    mapped_sections = sum(p["nonzero_input_sections"] for p in observed.values())
+    require(mapped_sections <= m["observed_nonzero_rlib_section_count"]
+            and m["unbound_external_rlib_archive_count"] <=
+                m["observed_nonzero_rlib_section_count"] - mapped_sections,
+            "inconsistent map section totals")
+    rows = []
+    gaps_observed = []
+    gaps_other = []
+    for key, row in sorted(compiled.items()):
+        found = observed.get(key)
+        status = ("NONZERO_RLIB_SECTIONS_OBSERVED" if found else
+                  "RLIB_NOT_OBSERVED" if key in unseen else "NO_RLIB_OBSERVATION")
+        rows.append({**row, "link_observation": status,
+                     "observed_members": found["members"] if found else 0,
+                     "observed_nonzero_input_sections": found["nonzero_input_sections"] if found else 0})
+        if row["review"] == "MISSING_MATERIAL_REVIEW_OPEN":
+            (gaps_observed if found else gaps_other).append(list(key))
+    return {**report, "schema": "lanveriq.gpui.linked-notice-review-v1",
+            "scope": "OBSERVED_RLIB_SECTIONS_NOT_COMPLETE_LINKED_SBOM_OR_NOTICE",
+            "link_map_report_sha256": sha(compiler["candidate-release-link-map.json"]),
+            "raw_map_sha256": m["map_sha256"], "observed_package_count": len(observed),
+            "not_observed_rlib_package_count": len(unseen),
+            "no_rlib_observation_package_count": len(compiled) - len(observed) - len(unseen),
+            "unbound_external_rlib_archive_count": m["unbound_external_rlib_archive_count"],
+            "mapped_nonzero_input_sections": mapped_sections,
+            "observed_registry_material_gaps": gaps_observed,
+            "other_registry_material_gaps": gaps_other,
+            "packages": rows}
+
 if __name__ == "__main__":
     # CLI: output.json association.zip SHA compiler.zip SHA supply.zip SHA notice.zip SHA
     require(len(sys.argv) == 10, "expected output and four archive/digest pairs")
     inputs = [read_archive(pathlib.Path(sys.argv[i]), sys.argv[i+1]) for i in (2, 4, 6, 8)]
     report = join(*inputs)
+    if "candidate-release-link-map.json" in inputs[1]:
+        report = add_link_observation(report, inputs[1])
+        print("Observed rlib packages:", report["observed_package_count"])
+        print("Observed registry material gaps:", len(report["observed_registry_material_gaps"]))
+        print("Other registry material gaps:", len(report["other_registry_material_gaps"]))
+        print("Unbound external rlib archives:", report["unbound_external_rlib_archive_count"])
     report["input_zip_sha256"] = dict(zip(("association", "compiler", "supply", "notice"),
                                           sys.argv[3:10:2]))
     write(pathlib.Path(sys.argv[1]), report)
