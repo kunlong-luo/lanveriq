@@ -59,13 +59,14 @@ jobs:
           set -Eeuo pipefail
           # Only use runner's existing distro repo configuration and APT
           # signature verification; never rewrite URLs or disable auth.
-          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
+            -o APT::Get::AllowUnauthenticated=false -o APT::Update::Error-Mode=any update
           packages=(
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
             libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev
           )
           plan="$RUNNER_TEMP/lanveriq-apt-prefetch-plan.txt"
-          apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
+          LC_ALL=C apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install "${packages[@]}" > "$plan"
           if grep -Eq '^(Remv|Purg) ' "$plan"; then
             echo 'FAIL: prerequisite plan proposes removing packages' >&2
             exit 1
@@ -123,6 +124,7 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get \
             -o Acquire::Retries=2 -o Acquire::http::Timeout=30 \
             -o Acquire::https::Timeout=30 -o APT::Install-Recommends=false \
+            -o APT::Get::AllowUnauthenticated=false \
             -o Dir::Cache::archives="$archive" -o APT::Keep-Downloaded-Packages=true \
             -y --download-only install \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
@@ -144,6 +146,13 @@ jobs:
           archive_sha256="$(find "$archive" -maxdepth 1 -type f -name '*.deb' -print0 |
             sort -z | xargs -0 -r sha256sum | sha256sum | cut -d ' ' -f 1)"
           test -n "$archive_sha256"
+          # Do not publish a producer manifest or cache until the downloaded
+          # archives themselves satisfy the same exact signed-index contract.
+          # The independent receiver still repeats its own checks.
+          python3 apps/desktop/tools/verify_desktop_apt_archive_cache.py \
+            --archive-dir "$archive" --expected-count "$count" \
+            --expected-manifest "$archive_sha256" \
+            --expected-plan-file "$RUNNER_TEMP/lanveriq-apt-prefetch-plan.txt"
           echo "archive_sha256=$archive_sha256" >> "$GITHUB_OUTPUT"
           echo "PASS: Ubuntu apt verified $count archives against signed indexes; installed package states unchanged"
           echo "EXPECTED archive manifest SHA256: $archive_sha256"
@@ -180,11 +189,11 @@ jobs:
           # Uses only the runner's configured Ubuntu sources and APT signature
           # policy. Never permits unauthenticated metadata or source rewriting.
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 \
-            -o APT::Get::AllowUnauthenticated=false update
+            -o APT::Get::AllowUnauthenticated=false -o APT::Update::Error-Mode=any update
           # The independent runner must demand the same selected package set,
           # not merely Ubuntu-origin hashes of unrelated extra archives.
           plan="$RUNNER_TEMP/lanveriq-apt-restored-closure.txt"
-          apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install \
+          LC_ALL=C apt-get -s -o Debug::NoLocking=1 -o APT::Install-Recommends=false install \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
             libssl-dev libxdo-dev patchelf pkg-config python3-apt dpkg-dev > "$plan"
           test -s "$plan"
@@ -203,6 +212,9 @@ jobs:
           print('RECEIVER required package/version absent from producer cache:', len(missing))
           print('RECEIVER producer-cache entries not in current install plan:', len(extra))
           print('RECEIVER missing selected APT package names:', ','.join(missing) if missing else 'none')
+          changed = sorted(name for name in set(planned) & set(cached) if planned[name] != cached[name])
+          for name in changed:
+              print('RECEIVER exact version drift:', name, 'planned=', planned[name], 'cached=', cached[name])
           PY
       - name: Verify independent runner cache bytes AND signed-index package SHA256
         shell: bash
