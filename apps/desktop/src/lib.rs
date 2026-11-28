@@ -67,7 +67,7 @@ impl Page {
         match self {
             Self::Overview => "本机系统与 Agent 状态可手动只读检测；服务器与注册状态未核验。",
             Self::Setup => "安装需要独立发行身份、受限权限代理和逐次授权。当前不可安装。",
-            Self::Configuration => "仅生成非机密的 Agent 空闲周期草稿；不读取或保存真实服务器配置。",
+            Self::Configuration => "仅离线校验固定 HTTPS 服务器草稿和 Agent 空闲周期；不保存或联网。",
             Self::Enrollment => "未接入设备注册、证书或私钥操作。",
             Self::Service => "仅手动查询 systemd 元数据，不启动或停止任何服务。",
             Self::Diagnostics => "不读取日志、采集资产、发送诊断或改变系统权限。",
@@ -171,10 +171,42 @@ impl IdleInterval {
     }
 }
 
+/// Mirrors the only origin accepted by AgentTlsTransport. CI verifies that
+/// the literal and the Agent's exact-origin guard remain aligned.
+/// A matching draft is syntax/policy evidence only, never network approval.
+pub const AGENT_DRAFT_ORIGIN: &str = "https://agent.lanveriq.internal";
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ServerDraft {
+    #[default]
+    Unconfigured,
+    ValidOffline,
+    Rejected,
+}
+
+impl ServerDraft {
+    pub fn validate(origin: &str) -> Self {
+        if origin == AGENT_DRAFT_ORIGIN {
+            Self::ValidOffline
+        } else {
+            Self::Rejected
+        }
+    }
+
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Unconfigured => "未配置 · 未连接",
+            Self::ValidOffline => "草稿校验通过 · 未连接",
+            Self::Rejected => "地址不符合固定 HTTPS 策略 · 未连接",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Workspace {
     page: Page,
     idle_interval: IdleInterval,
+    server_draft: ServerDraft,
     notices: NoticeReview,
     host_identity: HostIdentity,
     runtime_metadata: RuntimeMetadata,
@@ -182,7 +214,7 @@ pub struct Workspace {
 
 impl Default for Workspace {
     fn default() -> Self {
-        Self { page: Page::Overview, idle_interval: IdleInterval::default(), notices: NoticeReview::default(), host_identity: HostIdentity::default(), runtime_metadata: RuntimeMetadata::default() }
+        Self { page: Page::Overview, idle_interval: IdleInterval::default(), server_draft: ServerDraft::default(), notices: NoticeReview::default(), host_identity: HostIdentity::default(), runtime_metadata: RuntimeMetadata::default() }
     }
 }
 
@@ -194,9 +226,27 @@ impl Workspace {
     pub fn navigate(&mut self, page: Page) {
         if self.page != page {
             self.idle_interval = IdleInterval::default();
+            self.server_draft = ServerDraft::default();
             self.notices = NoticeReview::default();
         }
         self.page = page;
+    }
+
+    pub fn server_draft(&self) -> ServerDraft {
+        self.server_draft
+    }
+
+    /// Page-local, retains no input string, CA, credential or path.
+    pub fn validate_server_draft(&mut self, origin: &str) {
+        if self.page == Page::Configuration {
+            self.server_draft = ServerDraft::validate(origin);
+        }
+    }
+
+    pub fn clear_server_draft(&mut self) {
+        if self.page == Page::Configuration {
+            self.server_draft = ServerDraft::Unconfigured;
+        }
     }
 
     pub fn idle_interval(&self) -> IdleInterval {
@@ -314,6 +364,49 @@ mod tests {
                 assert!(!choice.preview().contains(forbidden));
             }
         }
+    }
+
+    #[test]
+    fn server_draft_accepts_only_exact_agent_origin() {
+        assert_eq!(ServerDraft::validate(AGENT_DRAFT_ORIGIN), ServerDraft::ValidOffline);
+        for invalid in [
+            "", "http://agent.lanveriq.internal",
+            "https://user:secret@agent.lanveriq.internal",
+            "https://agent.lanveriq.internal@other.invalid",
+            "https://other.invalid", "https://127.0.0.1",
+            "https://agent.lanveriq.internal:443",
+            "https://agent.lanveriq.internal/",
+            "https://agent.lanveriq.internal?x=1",
+            "https://agent.lanveriq.internal#x",
+            " https://agent.lanveriq.internal", "https://agent.lanveriq.internal\n",
+            "file:///etc/passwd", "/etc/lanveriq/agent.toml",
+            "https://AGENT.lanveriq.internal",
+        ] {
+            assert_eq!(ServerDraft::validate(invalid), ServerDraft::Rejected);
+        }
+    }
+
+    #[test]
+    fn server_draft_resets_and_never_grants_an_action() {
+        let mut w = Workspace::default();
+        w.validate_server_draft(AGENT_DRAFT_ORIGIN);
+        assert_eq!(w.server_draft(), ServerDraft::Unconfigured);
+        w.navigate(Page::Configuration);
+        w.validate_server_draft(AGENT_DRAFT_ORIGIN);
+        assert_eq!(w.server_draft(), ServerDraft::ValidOffline);
+        assert!(Page::Configuration.locked_actions().contains(&"连接检测"));
+        assert!(Page::Configuration.locked_actions().contains(&"保存配置"));
+        w.validate_server_draft("https://other.invalid");
+        assert_eq!(w.server_draft(), ServerDraft::Rejected);
+        w.validate_server_draft(AGENT_DRAFT_ORIGIN);
+        w.clear_server_draft();
+        assert_eq!(w.server_draft(), ServerDraft::Unconfigured);
+        w.validate_server_draft(AGENT_DRAFT_ORIGIN);
+        w.navigate(Page::Configuration);
+        assert_eq!(w.server_draft(), ServerDraft::ValidOffline);
+        w.navigate(Page::Overview);
+        w.navigate(Page::Configuration);
+        assert_eq!(w.server_draft(), ServerDraft::Unconfigured);
     }
 
     #[test]

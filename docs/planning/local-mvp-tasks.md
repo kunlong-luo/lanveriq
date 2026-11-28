@@ -414,9 +414,11 @@
 
 - **2026-11-28 正式本机结项 DONE**：迁移 SHA `190d5615` 的 [原生全量 #46138003740](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003740) completed/success、四 jobs SUCCESS；实际日志 job 140957516239 确认七导航、主题、resize、Ctrl+Q、96 canonical SVG 原字节观察/12 retained 未观察、Release ELF SHA256 `4b4c29168b5232ff5d81c2f709694347d4f2080107d62fb1bcc21eef873f4b4a`、临时 GUI-only Debian 归档、clean Ubuntu OCI 92 base/9 planned/0 removals/五直接 ABI floor/dpkg unchanged、六次 X11 和合成 Weston xdg-shell PASS；job 140960229425 实际许可证据关联 PASS，artifact 15260856321（元数据/日志核实，未独立解包）。该迁移 SHA 其余17项 CI SUCCESS、3项原失败已由 `db7014b8` 的 Debian #46138179640 / 示例 #46138179639 及 `0df20d1e` [selected icon #46138844130](https://github.com/kunlong-luo/lanveriq/actions/runs/46138844130) 成功替代；后者原历史测试2/2与新选择测试及96/12源级检查 PASS，同 SHA docs #46138844084、RD2 #46138844067 SUCCESS。compare 190d5615..0df20d1e 仅7个工具/工作流/账本文件，无 Rust 产品源码或锁变动；不把不同 SHA 的结果伪称同一运行。用户此前12/12 owner报告及迁移后新版窗口启动确认满足限定本机验收。MVP-08 DONE，8/16；工程71/100不变，Gate0/10。独立L3、COSMIC实机、物理GPU/DPI、Windows/macOS、正式权属/许可（22缺项）、签名安装、发行均未批准。下一唯一任务 MVP-09，先离线草稿；实际连接需独立批准目的地及可信CA。此次只结项，不执行MVP09。
 
-### MVP-09 · 服务器配置与连接检测（TODO）
+### MVP-09 · 服务器配置与连接检测（IN PROGRESS / 网络授权 BLOCKED）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
+
+- **2026-11-28 离线第一步源码提交**：基线 `a8b2b1c0`；Agent 既有固定 origin 为 `https://agent.lanveriq.internal`（精确匹配），AgentConfig v1 只含 runtime cycle_seconds，不擅自扩展持久化 schema。原生配置页增加固定地址预览、显式离线校验、清空及离页重置；拒绝非精确地址，不提供任意地址/路径/秘密输入。模型负测覆盖 HTTP、凭据、错误主机、端口、路径、查询、片段、空白及离页清除；轻量 CI 核对固定地址与 Agent 约束一致。保存和连接检测仍禁用，Cargo.lock、依赖、传输、服务权限均不改。新 CI PENDING；真实本机连接、证书负测、超时/断开及新 GUI 实机 NOT RUN；需目的地与可信 CA 独立批准，不能以离线通过代替 TLS/mTLS 验收。工程 71/100、8/16、Gate 0/10，未 DONE、不进入 MVP-10。
 
 ### MVP-10 · 设备注册与凭据准备（TODO）
 
@@ -451,12 +453,12 @@
 | 字段 | 当前内容 |
 | --- | --- |
 | 基线 | 功能 [190d5615](https://github.com/kunlong-luo/lanveriq/commit/190d5615ef146d940dc2c54a910e2b07a18a0745)，修复 [0df20d1e](https://github.com/kunlong-luo/lanveriq/commit/0df20d1e7458bc9445cfa8dc802cdcdc330f261f)，唯一 apps/desktop GPUI。 |
-| 本轮 | MVP-08 DONE（限定本机）；01～08 DONE，09～16 TODO。 |
+| 本轮 | MVP-08 DONE；MVP-09 离线源码已提交，CI PENDING、网络授权 BLOCKED；10～16 TODO。 |
 | CI | [原生全量 #46138003740](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003740) 4/4 SUCCESS；迁移其余17项SUCCESS，3失败经后续 Debian #46138179640、示例 #46138179639、图标 #46138844130 SUCCESS 修复；docs/RD2 SUCCESS。 |
 | 锁/风险 | 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887 不变；22 registry许可缺项与正式发行审批OPEN。 |
 | 本机 | KDE/X11 12/12 owner PASS；用户确认迁移后新版启动。非独立L3，未推断COSMIC/GPU/DPI或新逐项验收。 |
 | 评分/上线 | **71/100；8/16；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。** |
-| **下次唯一任务** | MVP-09：复用 AgentConfig，先离线服务器草稿验证；显式连接测试须另行批准目的地及可信CA，不默认联网。按任务卡验收。 |
+| **下次唯一任务** | 继续 MVP-09：核实离线功能精确 SHA/CI；仅在独立批准目的地及可信 CA 后实现并验收手动连接、拒绝/断开/超时与无副作用。不进入 MVP-10。 |
 | 约束 | main only；唯一 GPUI；保留通用安全实验与Git回退；不安装、签发、启动Agent或开放生产。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**

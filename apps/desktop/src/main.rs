@@ -11,7 +11,7 @@ use gpui_kit::component::{
 use gpui_kit::base::{SelectableText, StyledExt};
 use gpui_kit::*;
 use gpui_kit::prelude::FluentBuilder;
-use lanveriq_desktop_gpui_candidate::{IdleInterval, Page, ThemePreference, Workspace, compact_navigation};
+use lanveriq_desktop_gpui_candidate::{IdleInterval, Page, ThemePreference, Workspace, compact_navigation, AGENT_DRAFT_ORIGIN, ServerDraft};
 
 use lanveriq_desktop_gpui_candidate::review::{runtime_review_gates, Notice, runtime_diagnostic};
 use lanveriq_desktop_gpui_candidate::host_identity::HostIdentity;
@@ -235,10 +235,27 @@ impl Render for Desktop {
                 .child(hint("没有注册或凭据导入接口，不读取证书或私钥。", cx)));
         }
         if page == Page::Configuration {
+            let draft = self.workspace.server_draft();
             content = content.child(panel(cx)
-                .child(section_title("服务器连接"))
-                .child(Label::new("未配置 · 未核验"))
-                .child(hint("真实服务器设置与连接检测将在后续获批任务实现。", cx)));
+                .child(section_title("服务器配置 · 离线草稿"))
+                .child(hint("仅允许现有 Agent 的固定 HTTPS 地址；不接收自定义地址、凭据或文件路径。", cx))
+                .child(div().p_3().border_1().border_color(cx.theme().border)
+                    .child(SelectableText::new("server-origin-preview", AGENT_DRAFT_ORIGIN)))
+                .child(div().flex().flex_wrap().gap_2()
+                    .child(Button::new("validate-server-draft").primary().label("校验草稿")
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.workspace.validate_server_draft(AGENT_DRAFT_ORIGIN);
+                            cx.notify();
+                        })))
+                    .child(Button::new("clear-server-draft").label("清空草稿")
+                        .disabled(draft == ServerDraft::Unconfigured)
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.workspace.clear_server_draft();
+                            cx.notify();
+                        }))))
+                .child(Label::new(draft.label()))
+                .child(hint("离线通过不代表服务器在线、证书可信或设备注册。真实检测需独立批准目的地与可信 CA。", cx))
+                .child(hint("不写配置、不读取密钥、不联网，离开本页重置。", cx)));
         }
         if page == Page::About {
             let appearance = self.appearance;
