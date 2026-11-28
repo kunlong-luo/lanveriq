@@ -29,22 +29,25 @@ OLD_WORKFLOWS = {
     )
 }
 REFERENCE = re.compile(
-    r"gpui-candidate[/\\\\]|src-tauri[/\\\\]|verify_desktop_readonly\\.py"
-    r"|test_verify_desktop_readonly\\.py|paired_desktop_performance\\.py"
-    r"|desktop-tauri-preview\\.yml|desktop-deb-candidate\\.yml"
-    r"|desktop-paired-performance\\.yml|desktop-ubuntu-apt-prefetch\\.yml"
-    r"|desktop-ubuntu-apt-plan-diagnostic\\.yml"
-    r"|apps/desktop/(?:pnpm-lock\\.yaml|package\\.json|src/[^\\s)]+\\.tsx?)"
+    r"gpui-candidate[/\\]|src-tauri[/\\]|verify_desktop_readonly\.py"
+    r"|test_verify_desktop_readonly\.py|paired_desktop_performance\.py"
+    r"|desktop-tauri-preview\.yml|desktop-deb-candidate\.yml"
+    r"|desktop-paired-performance\.yml|desktop-ubuntu-apt-prefetch\.yml"
+    r"|desktop-ubuntu-apt-plan-diagnostic\.yml"
+    r"|apps/desktop/(?:pnpm-lock\.yaml|package\.json|src/[^\s)]+\.tsx?)"
 )
-LINK = re.compile(r"\\]\\(([^)]+)\\)")
+LINK = re.compile(r"\]\(([^)]+)\)")
 TEXT = {".md", ".yml", ".yaml", ".py", ".rs", ".js", ".mjs", ".ts",
         ".tsx", ".sh", ".toml", ".json", ".txt", ".gradle", ".css"}
 
 def tracked():
     raw = subprocess.check_output(["git", "ls-files", "-z"])
-    paths = [p.decode("utf-8") for p in raw.split(b"\\0") if p]
+    paths = [p.decode("utf-8") for p in raw.split(bytes([0])) if p]
     if len(paths) != len(set(paths)):
         raise ValueError("duplicate tracked paths")
+    required = {CANDIDATE + "Cargo.toml", DESKTOP + "src-tauri/Cargo.toml"}
+    if not required <= set(paths):
+        raise ValueError("missing expected tracked source roots")
     return set(paths)
 
 def main():
@@ -83,7 +86,7 @@ def main():
             continue
         for match in LINK.finditer(content):
             target = match[1].strip().split("#", 1)[0]
-            if not target or re.match(r"^(?:[a-z][a-z\\d+.-]*:|/)", target, re.I):
+            if not target or re.match(r"^(?:[a-z][a-z\d+.-]*:|/)", target, re.I):
                 continue
             dest = posixpath.normpath(posixpath.join(posixpath.dirname(p), target))
             if dest not in paths and dest not in old_dirs:

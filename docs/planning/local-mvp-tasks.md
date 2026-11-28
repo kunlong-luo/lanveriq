@@ -400,6 +400,9 @@
 
 - **2026-11-28 守卫切换基线及目录迁移引用清单**：`a3c5dd53` 已触发 20 项 CI；核查时 19 SUCCESS（含 [docs #46134472014](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472014)、[Next #46134472003](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472003)、[Polkit OCI #46134472047](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472047)），[Agent signed APT OCI #46134472023](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472023) IN_PROGRESS，未发现新失败。当前执行环境不能克隆 GitHub，连接器全文代码搜索无结果；不盲删历史链接。新增临时只读 cutover inventory 工作流，在真实 Git checkout 枚举全部跟踪文件、GPUI 移动/旧 Tauri 专用移除、路径冲突、源码引用和 Markdown 失效链接；仅打印路径，不改文件、权限或依赖。清单 CI PENDING，实际目录迁移未执行；保留通用安全实验和 Git 证据，完成实际 cutover 后移除此临时工具/工作流。71/100、7/16、Gate0/10；MVP-08 IN PROGRESS，不进入 MVP-09。
 
+
+- **2026-11-28 守卫切换完成、清单首次失败修复**：`a3c5dd53` 20/20 CI completed/success，最后 [Agent signed APT OCI #46134472023](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472023) SUCCESS。临时清单 `ad6f6a12` [#46134603472](https://github.com/kunlong-luo/lanveriq/actions/runs/46134603472) FAIL（job 140946989039 实际日志：expected both source trees at the precutover baseline）；原因是生成脚本 NUL 分隔与正则过度转义，而非源码缺失。修复分隔、正则、关键路径断言及轻量 smoke；不降低检查条件。该提交 docs #46134603539 与 RD2 #46134603478 SUCCESS。修复后 CI PENDING，未执行源码移动/删除；71/100、7/16、Gate0/10，MVP-08 IN PROGRESS。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
