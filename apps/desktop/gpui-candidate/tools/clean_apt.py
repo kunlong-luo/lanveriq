@@ -25,7 +25,7 @@ for p in lanveriq-desktop lanveriq-desktop-gpui-candidate lanveriq-agent libxcb1
 done
 echo 'LNV_BASE_GUI_LIBS absent'
 for p in libc6 libgcc-s1 libxcb1 libxkbcommon0 libxkbcommon-x11-0; do
-  v="$(dpkg-query -W -f='\${Version}' "$p" 2>/dev/null)" || v=MISSING
+  v="$(dpkg-query -W -f='${Version}' "$p" 2>/dev/null)" || v=MISSING
   printf 'LNV_BASE %s %s\n' "$p" "$v"
 done
 printf 'LNV_PACKAGE_SHA %s\n' "$(sha256sum /candidate.deb | cut -d ' ' -f 1)"
