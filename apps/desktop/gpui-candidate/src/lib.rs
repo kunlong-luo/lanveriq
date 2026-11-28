@@ -76,6 +76,43 @@ impl Page {
     }
 }
 
+/// In-memory appearance preference; never changes the system theme or writes configuration.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ThemePreference {
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
+impl ThemePreference {
+    pub const ALL: [Self; 3] = [Self::System, Self::Light, Self::Dark];
+
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::System => "theme-system",
+            Self::Light => "theme-light",
+            Self::Dark => "theme-dark",
+        }
+    }
+
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::System => "跟随系统",
+            Self::Light => "浅色",
+            Self::Dark => "深色",
+        }
+    }
+
+    pub const fn is_dark(self, system_dark: bool) -> bool {
+        match self {
+            Self::System => system_dark,
+            Self::Light => false,
+            Self::Dark => true,
+        }
+    }
+}
+
 /// The same five reviewed choices as the existing desktop preview.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum IdleInterval {
@@ -232,6 +269,15 @@ mod tests {
     fn overview_does_not_claim_live_evidence() {
         assert!(Page::Overview.description().contains("未核验"));
         assert_eq!(LOCKED_ACTIONS.len(), 10);
+    }
+
+    #[test]
+    fn theme_choices_follow_system_only_in_system_mode() {
+        assert_eq!(ThemePreference::default(), ThemePreference::System);
+        assert_eq!(ThemePreference::ALL.map(|p| p.is_dark(false)), [false, false, true]);
+        assert_eq!(ThemePreference::ALL.map(|p| p.is_dark(true)), [true, false, true]);
+        assert_eq!(ThemePreference::ALL.iter().map(|p| p.id()).collect::<HashSet<_>>().len(), 3);
+        assert!(ThemePreference::ALL.iter().all(|p| !p.label().is_empty()));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 //! Disposable offline GPUI compatibility candidate. No privileged or runtime interfaces.
 use gpui_kit::component::{
-    ActiveTheme, Disableable, Selectable,
+    ActiveTheme, Disableable, Selectable, Theme, ThemeMode,
     button::{Button, ButtonVariants},
     sidebar::{Sidebar, SidebarMenu, SidebarMenuItem},
     IconName,
@@ -10,7 +10,7 @@ use gpui_kit::component::{
 };
 use gpui_kit::base::{SelectableText, StyledExt};
 use gpui_kit::*;
-use lanveriq_desktop_gpui_candidate::{IdleInterval, Page, Workspace};
+use lanveriq_desktop_gpui_candidate::{IdleInterval, Page, ThemePreference, Workspace};
 
 use lanveriq_desktop_gpui_candidate::review::{runtime_review_gates, Notice, runtime_diagnostic};
 use lanveriq_desktop_gpui_candidate::host_identity::HostIdentity;
@@ -22,6 +22,36 @@ struct Desktop {
     workspace: Workspace,
     inspecting: bool,
     ime_probe: Option<Entity<InputState>>,
+    appearance: ThemePreference,
+    _appearance_subscription: Subscription,
+}
+
+fn apply_appearance(preference: ThemePreference, window: &Window, cx: &mut App) {
+    let system_dark = ThemeMode::from(window.appearance()).is_dark();
+    let dark = preference.is_dark(system_dark);
+    if cx.theme().is_dark() != dark {
+        Theme::change(if dark { ThemeMode::Dark } else { ThemeMode::Light }, None, cx);
+    }
+}
+
+impl Desktop {
+    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let appearance = ThemePreference::default();
+        apply_appearance(appearance, window, cx);
+        let subscription = cx.observe_window_appearance(window, |this, window, cx| {
+            if this.appearance == ThemePreference::System {
+                apply_appearance(this.appearance, window, cx);
+                cx.notify();
+            }
+        });
+        Self {
+            workspace: Workspace::default(),
+            inspecting: false,
+            ime_probe: None,
+            appearance,
+            _appearance_subscription: subscription,
+        }
+    }
 }
 
 fn page_icon(page: Page) -> IconName {
@@ -141,7 +171,29 @@ impl Render for Desktop {
                 .child(hint("真实服务器设置与连接检测将在后续获批任务实现。", cx)));
         }
         if page == Page::About {
+            let appearance = self.appearance;
+            let choices = ThemePreference::ALL.into_iter().fold(
+                div().flex().flex_wrap().gap_2(),
+                |group, choice| group.child(Button::new(choice.id())
+                    .icon(match choice {
+                        ThemePreference::System => IconName::LayoutDashboard,
+                        ThemePreference::Light => IconName::Sun,
+                        ThemePreference::Dark => IconName::Moon,
+                    })
+                    .label(choice.label())
+                    .selected(appearance == choice)
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        this.appearance = choice;
+                        apply_appearance(choice, window, cx);
+                        cx.notify();
+                    }))),
+            );
             content = content.child(panel(cx)
+                .child(section_title("外观"))
+                .child(choices)
+                .child(Label::new(if cx.theme().is_dark() { "当前界面：深色" } else { "当前界面：浅色" }))
+                .child(hint("仅本次运行有效；退出后恢复跟随系统，不修改系统设置或写入配置。", cx)))
+                .child(panel(cx)
                 .child(section_title("Lanveriq Desktop"))
                 .child(Label::new("0.1.0 · 原生 GPUI 候选"))
                 .child(hint("Rust / GPUI Kit 0.11.0 · 离线 · 非发行版", cx))
@@ -291,7 +343,7 @@ fn main() {
             };
             gpui_kit::open_window(options, cx, |window, cx| {
                 window.set_window_title("Lanveriq Desktop - Offline Candidate");
-                cx.new(|_| Desktop { workspace: Workspace::default(), inspecting: false, ime_probe: None })
+                cx.new(|cx| Desktop::new(window, cx))
             })
             .expect("Failed to open offline candidate window");
         });
