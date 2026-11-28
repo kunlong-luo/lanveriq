@@ -23,7 +23,7 @@
 | **MVP-07** | 浏览器显示真实 Pop!_OS/CPU/内存及拒绝态 | MVP-06 | **DONE（限定本机 MVP）**：os_version 修复；本机真实列表/详情、刷新、断网、停止/恢复后端、登出及安全收尾 PASS；功能 SHA 七项 CI SUCCESS |
 
 | **MVP-08** | GPUI 原生客户端替代验证、工作区与功能等价 | MVP-07 | **DONE（限定本机 MVP）**：KDE/X11 12/12、迁移后本机启动、唯一 GPUI 源码、原生 4/4 及受影响 CI 修复通过；发行审批独立 |
-| **MVP-09** | 服务器配置草稿及显式连接检测 | MVP-08 | **TODO** |
+| **MVP-09** | 服务器配置草稿及显式连接检测 | MVP-08 | **BLOCKED**：离线模型 PASS；原生回归待完成，独立目的地/CA/身份授权未取得 |
 | **MVP-10** | 可视化设备注册及凭据准备 | MVP-09 | **TODO** |
 | **MVP-11** | 签名 Agent/受限 Polkit 安装及 systemd 生命周期 | MVP-10、独立 G-05 前提 | **TODO** |
 | **MVP-12** | 客户端诊断、安装包与本机窗口验收 | MVP-11 | **TODO** |
@@ -414,11 +414,14 @@
 
 - **2026-11-28 正式本机结项 DONE**：迁移 SHA `190d5615` 的 [原生全量 #46138003740](https://github.com/kunlong-luo/lanveriq/actions/runs/46138003740) completed/success、四 jobs SUCCESS；实际日志 job 140957516239 确认七导航、主题、resize、Ctrl+Q、96 canonical SVG 原字节观察/12 retained 未观察、Release ELF SHA256 `4b4c29168b5232ff5d81c2f709694347d4f2080107d62fb1bcc21eef873f4b4a`、临时 GUI-only Debian 归档、clean Ubuntu OCI 92 base/9 planned/0 removals/五直接 ABI floor/dpkg unchanged、六次 X11 和合成 Weston xdg-shell PASS；job 140960229425 实际许可证据关联 PASS，artifact 15260856321（元数据/日志核实，未独立解包）。该迁移 SHA 其余17项 CI SUCCESS、3项原失败已由 `db7014b8` 的 Debian #46138179640 / 示例 #46138179639 及 `0df20d1e` [selected icon #46138844130](https://github.com/kunlong-luo/lanveriq/actions/runs/46138844130) 成功替代；后者原历史测试2/2与新选择测试及96/12源级检查 PASS，同 SHA docs #46138844084、RD2 #46138844067 SUCCESS。compare 190d5615..0df20d1e 仅7个工具/工作流/账本文件，无 Rust 产品源码或锁变动；不把不同 SHA 的结果伪称同一运行。用户此前12/12 owner报告及迁移后新版窗口启动确认满足限定本机验收。MVP-08 DONE，8/16；工程71/100不变，Gate0/10。独立L3、COSMIC实机、物理GPU/DPI、Windows/macOS、正式权属/许可（22缺项）、签名安装、发行均未批准。下一唯一任务 MVP-09，先离线草稿；实际连接需独立批准目的地及可信CA。此次只结项，不执行MVP09。
 
-### MVP-09 · 服务器配置与连接检测（IN PROGRESS / 网络授权 BLOCKED）
+### MVP-09 · 服务器配置与连接检测（BLOCKED：独立连接授权未取得）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
 
 - **2026-11-28 离线第一步源码提交**：基线 `a8b2b1c0`；Agent 既有固定 origin 为 `https://agent.lanveriq.internal`（精确匹配），AgentConfig v1 只含 runtime cycle_seconds，不擅自扩展持久化 schema。原生配置页增加固定地址预览、显式离线校验、清空及离页重置；拒绝非精确地址，不提供任意地址/路径/秘密输入。模型负测覆盖 HTTP、凭据、错误主机、端口、路径、查询、片段、空白及离页清除；轻量 CI 核对固定地址与 Agent 约束一致。保存和连接检测仍禁用，Cargo.lock、依赖、传输、服务权限均不改。精确功能 [`d2306128`](https://github.com/kunlong-luo/lanveriq/commit/d2306128488040c8c5ffa050c154a4854ebdc3cc)：[RD2 #46139222442](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222442)、[owner guard #46139222364](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222364)、[GUI-only release denial #46139222496](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222496)、[intent deny-all #46139222353](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222353)、[docs #46139222388](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222388) SUCCESS；[轻量模型 #46139222439](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222439) 整体 SUCCESS：job 140961232386 实际日志 26 passed/0 failed/4 ignored，含两项新增 server_draft 与既有 AgentConfig 草稿测试，另 2 项真实固定进程边界 fixtures PASS；[Polkit OCI #46139222685](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222685)、[图标 #46139222403](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222403) SUCCESS；[原生 #46139222474](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222474) 及 [APT OCI #46139222421](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222421) IN_PROGRESS（8/10 SUCCESS）。真实本机连接、证书负测、超时/断开及新 GUI 实机 NOT RUN；需目的地与可信 CA 独立批准，不能以离线通过代替 TLS/mTLS 验收。工程 71/100、8/16、Gate 0/10，未 DONE、不进入 MVP-10。
+
+- **2026-11-28 继续验收与真实 AgentConfig 兼容性合约**：基线 `fea6df4e`；原功能 `d2306128` [APT OCI #46139222421](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222421) SUCCESS，原生 #46139222474 IN_PROGRESS（9/10 SUCCESS）；文档 SHA fea6df4e 的 [docs #46139312034](https://github.com/kunlong-luo/lanveriq/actions/runs/46139312034)、Next #46139311986、RD2 #46139311980、preview #46139311976 均 SUCCESS。新增测试专用黄金样本及 AgentConfig::parse 负测，轻量 CI 编译桌面真实模型并逐字节比较五种草稿，Agent L1 对同一 fixture 执行真正 TOML 严格解析并拒绝 server/CA/key/network/capture 字段；新 CI PENDING，不改产品代码、Cargo.lock、运行配置或权限。
+- **真实检测退出条件（未批准，不执行）**：固定 origin `https://agent.lanveriq.internal`（443），核实本机 loopback 目的 IP、已有测试服务归属、明确批准的服务端公共 CA 指纹及使用范围；Caddy Agent 入口要求 TLS1.3 + 已批准 mTLS 客户端身份，禁止 GUI 读取私钥、关闭验证、使用系统根自动回退或导入/签发新证书（MVP-10）。必须明确批准是否仅使用 MVP-03 已有测试身份及其受限操作方式，不将未经授权的证书/私钥路径写入 Git。先确认可验证的无业务写入探测协议、限定超时、无代理/重定向；成功仅表示该次连接，拒绝/超时/断开清除旧结果，不将其当作设备在线、注册、授权或业务 ACK；禁止修改 SQLite、注册、采集、服务和生产开关。无上述批准时本机真实连接及负测 NOT RUN，保持 BLOCKED；可继续检查隔离 CI，不进入 MVP-10。
 
 ### MVP-10 · 设备注册与凭据准备（TODO）
 
@@ -453,12 +456,12 @@
 | 字段 | 当前内容 |
 | --- | --- |
 | 基线 | MVP-08 结项 a8b2b1c0；MVP-09 离线功能 [d2306128](https://github.com/kunlong-luo/lanveriq/commit/d2306128488040c8c5ffa050c154a4854ebdc3cc)，唯一 apps/desktop GPUI。 |
-| 本轮 | MVP-08 DONE；MVP-09 离线模型 L1 PASS，原生/受影响 CI 未全部完成，网络授权 BLOCKED；10～16 TODO。 |
-| CI | d2306128：8/10 SUCCESS；[轻量 #46139222439](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222439) 26 + 2 PASS；[原生 #46139222474](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222474) 与 APT OCI #46139222421 未完成。其余见本轮任务记录。 |
+| 本轮 | MVP-08 DONE；MVP-09 BLOCKED：离线模型 L1 PASS，新增真实 AgentConfig 兼容性合约 CI PENDING；独立连接授权未取得；10～16 TODO。 |
+| CI | d2306128：9/10 SUCCESS；[轻量 #46139222439](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222439) 26 + 2 PASS；[原生 #46139222474](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222474) 尚未完成；APT OCI #46139222421 SUCCESS。新增合约 CI PENDING。其余见本轮任务记录。 |
 | 锁/风险 | 747f0bf406a772c1253f7ffd67452c8d9cc5ac7cdd9c584541c5110ad1eed887 不变；22 registry许可缺项与正式发行审批OPEN。 |
 | 本机 | MVP-08 KDE/X11 12/12 owner PASS 保留；MVP-09 新 GUI 及真实连接/证书拒绝/超时断开 NOT RUN，非独立 L3。 |
 | 评分/上线 | **71/100；8/16；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。** |
-| **下次唯一任务** | 继续 MVP-09：核实离线功能精确 SHA/CI；仅在独立批准目的地及可信 CA 后实现并验收手动连接、拒绝/断开/超时与无副作用。不进入 MVP-10。 |
+| **下次唯一任务** | 继续 MVP-09：核实原生与新增合约 CI；取得固定本机目的地、可信 CA、既有测试身份受限使用的明确授权，随后实现并验收一次性无写入检测及拒绝/断开/超时。不进入 MVP-10。 |
 | 约束 | main only；唯一 GPUI；保留通用安全实验与Git回退；不安装、签发、启动Agent或开放生产。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**

@@ -1,0 +1,24 @@
+schema_version = 1
+
+[runtime]
+cycle_seconds = 15
+---
+schema_version = 1
+
+[runtime]
+cycle_seconds = 30
+---
+schema_version = 1
+
+[runtime]
+cycle_seconds = 60
+---
+schema_version = 1
+
+[runtime]
+cycle_seconds = 120
+---
+schema_version = 1
+
+[runtime]
+cycle_seconds = 300

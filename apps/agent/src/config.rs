@@ -84,6 +84,35 @@ mod tests {
     }
 
     #[test]
+    fn desktop_preview_contract_uses_real_agent_parser() {
+        // The lightweight desktop CI independently compiles the actual model
+        // and compares all five generated previews byte-for-byte with this fixture.
+        let fixture = include_str!("../tests/fixtures/desktop-config-v1.txt");
+        let previews: Vec<_> = fixture.split("---\n").collect();
+        let expected = [15, 30, 60, 120, 300];
+        assert_eq!(previews.len(), expected.len());
+        for (source, seconds) in previews.into_iter().zip(expected) {
+            let parsed = AgentConfig::parse(source).unwrap();
+            assert_eq!(parsed.schema_version, 1);
+            assert_eq!(parsed.runtime.cycle_seconds, seconds);
+            // A UI draft is not permission to extend the persisted v1 schema.
+            for extra in [
+                "server_url = \"https://agent.lanveriq.internal\"\n",
+                "ca_path = \"/example/unapproved-ca.pem\"\n",
+                "client_key = \"not-a-real-key\"\n",
+                "network_enabled = true\n",
+                "capture_enabled = true\n",
+                "\n[server]\norigin = \"https://agent.lanveriq.internal\"\n",
+            ] {
+                assert!(matches!(
+                    AgentConfig::parse(&format!("{source}{extra}")),
+                    Err(ConfigError::Parse(_))
+                ));
+            }
+        }
+    }
+
+    #[test]
     fn unknown_fields_and_extra_collectors_are_refused() {
         assert!(matches!(
             AgentConfig::parse(&format!("{SYNTHETIC}capture_enabled = true\n")),

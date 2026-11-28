@@ -9,6 +9,8 @@ on:
       - 'apps/desktop/src/review.rs'
       - 'apps/desktop/src/lib.rs'
       - 'apps/agent/src/transport.rs'
+      - 'apps/agent/src/config.rs'
+      - 'apps/agent/tests/fixtures/desktop-config-v1.txt'
       - '.github/workflows/desktop-gpui-query-boundary.yml'
   workflow_dispatch:
 permissions:
@@ -40,6 +42,23 @@ jobs:
           rustup toolchain install 1.100.0 --profile minimal
           test "$(id -u)" -ne 0
           rustc +1.100.0 --edition=2024 --test apps/desktop/src/lib.rs -o "$RUNNER_TEMP/gpui-query-tests"
+      - name: Compare generated desktop drafts with Agent parser test fixture
+        run: |
+          rustc +1.100.0 --edition=2024 --crate-name desktop_draft_contract --crate-type rlib apps/desktop/src/lib.rs -o "$RUNNER_TEMP/libdesktop_draft_contract.rlib"
+          cat > "$RUNNER_TEMP/emit-desktop-drafts.rs" <<'RS'
+          fn main() {
+              for (index, interval) in desktop_draft_contract::IdleInterval::ALL.into_iter().enumerate() {
+                  if index != 0 {
+                      println!("---");
+                  }
+                  print!("{}", interval.preview());
+              }
+          }
+          RS
+          rustc +1.100.0 --edition=2024 --extern desktop_draft_contract="$RUNNER_TEMP/libdesktop_draft_contract.rlib" "$RUNNER_TEMP/emit-desktop-drafts.rs" -o "$RUNNER_TEMP/emit-desktop-drafts"
+          "$RUNNER_TEMP/emit-desktop-drafts" > "$RUNNER_TEMP/desktop-config-v1.txt"
+          cmp "$RUNNER_TEMP/desktop-config-v1.txt" apps/agent/tests/fixtures/desktop-config-v1.txt
+          echo "PASS: all five real desktop draft bytes match the Agent parser fixture"
       - name: Run library model tests and real fixed synthetic timeout fixtures
         run: |
           "$RUNNER_TEMP/gpui-query-tests" --test-threads=1

@@ -18,7 +18,7 @@
 
 ## 本机 MVP（个人开发环境，非生产 L3）
 
-**MVP-01～08 DONE（8/16，限定本机 MVP）；MVP-09 IN PROGRESS（真实连接授权 BLOCKED，离线源码待完整 CI）。** GPUI 唯一源码、本机 KDE/X11 12/12 与迁移后启动、原生全量 4/4、受影响 CI 修复均 PASS。MVP-09 离线源码 [`d2306128`](https://github.com/kunlong-luo/lanveriq/commit/d2306128488040c8c5ffa050c154a4854ebdc3cc) 的[离线模型 #46139222439](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222439) PASS（26+2），原生 CI 尚未完成；真实连接须独立授权目的地及可信 CA，当前不联网。COSMIC 实机未测，发行 Gate OPEN。见 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](planning/local-mvp-tasks.md)。
+**MVP-01～08 DONE（8/16，限定本机 MVP）；MVP-09 BLOCKED（真实连接授权未取得，离线模型 PASS）。** GPUI 唯一源码、本机 KDE/X11 12/12 与迁移后启动、原生全量 4/4、受影响 CI 修复均 PASS。MVP-09 离线源码 [`d2306128`](https://github.com/kunlong-luo/lanveriq/commit/d2306128488040c8c5ffa050c154a4854ebdc3cc) 的[离线模型 #46139222439](https://github.com/kunlong-luo/lanveriq/actions/runs/46139222439) PASS（26+2），APT OCI 回归 PASS、原生 CI 尚未完成；真实连接须独立授权目的地及可信 CA，当前不联网。COSMIC 实机未测，发行 Gate OPEN。见 [ADR-0014](architecture/adrs/0014-gpui-desktop-candidate.md)、[任务账本](planning/local-mvp-tasks.md)。
 
 ## 最近确实通过的关键验收
 
