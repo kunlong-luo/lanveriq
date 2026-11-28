@@ -397,6 +397,9 @@
 
 - **2026-11-28 通用安全实验守卫切换**：`27ef2321` 的 [docs #46134023672](https://github.com/kunlong-luo/lanveriq/actions/runs/46134023672)、[Next #46134023687](https://github.com/kunlong-luo/lanveriq/actions/runs/46134023687)、[RD2 #46134023758](https://github.com/kunlong-luo/lanveriq/actions/runs/46134023758)、[源码预检 #46134023697](https://github.com/kunlong-luo/lanveriq/actions/runs/46134023697)、[Polkit OCI #46134023736](https://github.com/kunlong-luo/lanveriq/actions/runs/46134023736)、[Agent signed APT OCI #46134023704](https://github.com/kunlong-luo/lanveriq/actions/runs/46134023704) 六项均 SUCCESS；APT job 140945220919 日志证实 20/20 实际 OCI APT、旧版真签名索引/witness 联合回放被 CI 锚点拒绝，双守卫均 PASS，不是独立高水位或安装许可。基于该基线，将 16 个保留的通用/历史合约验收工作流中的 Tauri 守卫调用切换为 GPUI 守卫，更新原 Tauri 源码触发路径（安装意图、发行拒绝等）；其他实验命令、拒绝规则和权限不变。旧 Tauri 专用构建、打包、对比及预取暂留至源码目录切换，当前未删源码、未变更 Cargo.lock。新 CI PENDING；下一步迁移唯一入口及归档历史引用，移除旧专用工作流，验收后才 DONE。71/100，7/16，Gate 0/10，MVP-08 IN PROGRESS，不进入 MVP-09。
 
+
+- **2026-11-28 守卫切换基线及目录迁移引用清单**：`a3c5dd53` 已触发 20 项 CI；核查时 19 SUCCESS（含 [docs #46134472014](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472014)、[Next #46134472003](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472003)、[Polkit OCI #46134472047](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472047)），[Agent signed APT OCI #46134472023](https://github.com/kunlong-luo/lanveriq/actions/runs/46134472023) IN_PROGRESS，未发现新失败。当前执行环境不能克隆 GitHub，连接器全文代码搜索无结果；不盲删历史链接。新增临时只读 cutover inventory 工作流，在真实 Git checkout 枚举全部跟踪文件、GPUI 移动/旧 Tauri 专用移除、路径冲突、源码引用和 Markdown 失效链接；仅打印路径，不改文件、权限或依赖。清单 CI PENDING，实际目录迁移未执行；保留通用安全实验和 Git 证据，完成实际 cutover 后移除此临时工具/工作流。71/100、7/16、Gate0/10；MVP-08 IN PROGRESS，不进入 MVP-09。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
