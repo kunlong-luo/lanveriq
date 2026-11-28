@@ -52,6 +52,17 @@ impl Page {
         }
     }
 
+    /// Each restricted action has exactly one destination. No capability is granted.
+    pub const fn locked_actions(self) -> &'static [&'static str] {
+        match self {
+            Self::Setup => &["安装 Agent", "升级 Agent", "卸载 Agent"],
+            Self::Configuration => &["保存配置", "连接检测"],
+            Self::Enrollment => &["注册设备", "导入凭据"],
+            Self::Service => &["启动服务", "停止服务", "开机自启"],
+            Self::Overview | Self::Diagnostics | Self::About => &[],
+        }
+    }
+
     pub const fn description(self) -> &'static str {
         match self {
             Self::Overview => "本机系统与 Agent 状态可手动只读检测；服务器与注册状态未核验。",
@@ -205,6 +216,16 @@ mod tests {
             assert_eq!(workspace.page(), page);
             assert!(!page.description().is_empty());
         }
+    }
+
+    #[test]
+    fn locked_actions_are_partitioned_without_omission_or_duplication() {
+        let actions: Vec<_> = Page::ALL.into_iter().flat_map(Page::locked_actions).copied().collect();
+        assert_eq!(actions.len(), LOCKED_ACTIONS.len());
+        assert_eq!(actions.into_iter().collect::<HashSet<_>>(), LOCKED_ACTIONS.into_iter().collect());
+        assert!(Page::Overview.locked_actions().is_empty());
+        assert!(Page::Diagnostics.locked_actions().is_empty());
+        assert!(Page::About.locked_actions().is_empty());
     }
 
     #[test]
