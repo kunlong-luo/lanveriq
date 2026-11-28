@@ -239,6 +239,15 @@
 
 - **2026-11-28 Wayland 首测失败与嵌套 Weston 复验**：基线 [639a407f](https://github.com/kunlong-luo/lanveriq/commit/639a407f7199184cea8682dff992c94e5d9c4dc0) docs [#46102250833](https://github.com/kunlong-luo/lanveriq/actions/runs/46102250833)、Next [#46102250722](https://github.com/kunlong-luo/lanveriq/actions/runs/46102250722)、RD-2 [#46102250752](https://github.com/kunlong-luo/lanveriq/actions/runs/46102250752)、预览 [#46102250718](https://github.com/kunlong-luo/lanveriq/actions/runs/46102250718) 全 SUCCESS。[370ec55d / #46102204965](https://github.com/kunlong-luo/lanveriq/actions/runs/46102204965) supply-chain 140846939075、dependency-audit 140846939103 SUCCESS；candidate 140846938898 FAILURE，先前 Debug/Release/包/ABI/X11/性能步骤均 PASS，Weston 13.0.0-4build3 安装及 3/3 parser PASS，但 socket 就绪后不到1秒报 synthetic compositor/client exited before protocol evidence；只留 Weston 3215 bytes、candidate 3750 bytes，无法定位哪一进程退出或根因，failure artifact 15246755258。RD-2 [#46102205040](https://github.com/kunlong-luo/lanveriq/actions/runs/46102205040) SUCCESS。外部 GPUI 测试项目记载 headless Weston 无 wl_seat 可导致 GPUI unwrap，属本轮待证假设，不是本项目根因证明；[Ubuntu Noble Weston 13 手册](https://manpages.ubuntu.com/manpages/noble/man1/weston.1.html)明确支持带输入的嵌套 X11 backend。新 [85b77ff7](https://github.com/kunlong-luo/lanveriq/commit/85b77ff73287c409e92f6b0c0ca35cb296b53683)：改用私有 Xvfb 上的 Weston x11-backend.so，仅合成器获得 DISPLAY/XAUTHORITY，候选仍只走私有 Wayland socket，无 XWayland；安装 CI-only wayland-utils，先用 wayland-info 核验 wl_seat/xdg_wm_base/wl_compositor，仍要求确切标题关联 surface/configure/ack/非空 attach/commit 及存活；允许标题在 ack 后出现，新 configure 使旧确认失效，新增两组 parser/诊断测试。失败保留两子进程退出码、固定分类、最多12条/进程且每条400字符的合成错误摘录、临时/源码/home 路径替换；不保留原始 trace、无真实用户数据。新 [GPUI #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398)、[RD-2 #46105475490](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475490) PENDING；无 Rust 锁、产品功能、权限变更。真实 Wayland 未通过，嵌套测试仍非物理 COSMIC/IME/GPU/正常关闭，22 registry 许可缺项（19 候选/3 未核实）、47 BOM extra、9 维护警告、完整运行时/包/Tauri 对比及超时负测 OPEN。MVP-08 BLOCKED，71/100。
 
+- **2026-11-28 剩余三包同版本 Debian 版权材料复审（不重复触发构建）**：基线 [3c0b76cc](https://github.com/kunlong-luo/lanveriq/commit/3c0b76ccb0bac24a02f40843319338ede07029ca) docs [#46105523875](https://github.com/kunlong-luo/lanveriq/actions/runs/46105523875)、Next [#46105523876](https://github.com/kunlong-luo/lanveriq/actions/runs/46105523876)、RD-2 [#46105523930](https://github.com/kunlong-luo/lanveriq/actions/runs/46105523930)、预览 [#46105523856](https://github.com/kunlong-luo/lanveriq/actions/runs/46105523856) 全 SUCCESS；[85b77ff7 / #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) supply-chain 140857143440 SUCCESS，candidate 140857143696 / audit 140857143707 RUNNING，尚无新 Weston 结果；[RD-2 #46105475490](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475490) SUCCESS。本轮实际读取 Debian FTP master 同上游版本的机器可读版权文件（区分 Files:* 和 debian/*），三包均获得下游维护者记录及 MIT 条款/Apache 2.0 共同许可证引用；这不是上游原文或 registry 包字节来源证明。锁定 SHA256 取自当前 Cargo.lock：
+  | 包与锁定 registry 压缩包 SHA256 | Debian 版权材料、上游文件范围声明 | 未闭合 |
+  | --- | --- | --- |
+  | mac 0.1.1 / c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4 | [0.1.1-1 copyright](https://metadata.ftp-master.debian.org/changelogs/main/r/rust-mac/rust-mac_0.1.1-1_copyright)，2015–2017 Jonathan Reem，MIT OR Apache-2.0；[docs.rs 版本声明](https://docs.rs/crate/mac/latest) | 缺 VCS claim，未绑定上游提交 |
+  | pathfinder_geometry 0.5.1 / 0b7b7e7b4ea703700ce73ebf128e1450eb69c3a8329199ffbfb9b2a0418e5ad3 | [0.5.1-1 copyright](https://metadata.ftp-master.debian.org/changelogs//main/r/rust-pathfinder-geometry/rust-pathfinder-geometry_0.5.1-1_copyright)，2017–2022 Patrick Walton、2019–2020 Pathfinder Project Developers，MIT OR Apache-2.0 | registry 声明提交 a5e98fac 仍不可取得 |
+  | seahash 4.1.0 / 1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b | [4.1.0-1 copyright](https://metadata.ftp-master.debian.org/changelogs//main/r/rust-seahash/rust-seahash_4.1.0-1_copyright)，2019–2021 ticki 与 Tom Almeida，MIT；[docs.rs manifest](https://docs.rs/crate/seahash/latest/source/Cargo.toml) 一致 | [固定 GitLab LICENSE](https://gitlab.redox-os.org/redox-os/seahash/-/blob/94b632aeac099031c373599313d5b5f0acbbaec0/LICENSE) 仍无法取得 |
+  
+  现 22/22 有辅助材料索引（19 固定上游候选 + 3 同版本下游记录），22 registry 缺项、3 精确上游绑定缺项仍 OPEN；尚未下载/比对 Debian orig tar 和 crates.io 锁定包内文件、未审定完整 NOTICE/资源/法律许可，不能据此替代发行材料。不修改产品、Cargo.lock 或 workflow，不重复触发 Rust 编译。47 BOM extra、9 维护警告及真实 Wayland/COSMIC/IME/关闭/GPU、Tauri 比较/完整运行时/正式包/超时负测继续 OPEN。MVP-08 BLOCKED，71/100。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
@@ -275,13 +284,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [639a407f](https://github.com/kunlong-luo/lanveriq/commit/639a407f7199184cea8682dff992c94e5d9c4dc0)；功能 [85b77ff7](https://github.com/kunlong-luo/lanveriq/commit/85b77ff73287c409e92f6b0c0ca35cb296b53683)。 |
-| 本轮 | MVP-08 **BLOCKED**；首轮 headless Weston FAIL（提前退出，根因未证）；改嵌套 Weston、核对 wl_seat 等、保留有限失败证据，待 CI。MVP-01～07 DONE，09～16 TODO。 |
-| CI | [ABI #46101148598](https://github.com/kunlong-luo/lanveriq/actions/runs/46101148598) 三 jobs PASS；[Wayland #46102204965](https://github.com/kunlong-luo/lanveriq/actions/runs/46102204965) audit/supply-chain PASS、candidate FAIL（Wayland），基线 docs/Next/RD-2/预览 PASS；新 [GPUI #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398)、[RD-2 #46105475490](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475490) PENDING。 |
-| 锁/风险 | 锁不变；ABI 已装佐证 PASS，清洁系统 ABI OPEN；22 registry 缺项（19 上游候选/3 未核实）、47 BOM extra、9 维护警告 OPEN。 |
-| 本机 | X11/Release 性能及临时包已 PASS；Wayland 首测失败；真实 COSMIC v2 九项/IME/关闭/GPU、独立 L3、完整运行时/包、Tauri 比较及超时负测未验。 |
+| 基线 | [3c0b76cc](https://github.com/kunlong-luo/lanveriq/commit/3c0b76ccb0bac24a02f40843319338ede07029ca)；本轮仅文档证据复审，无新产品代码/锁/workflow。 |
+| 本轮 | MVP-08 **BLOCKED**；三项未绑定上游包找到 Debian 同版本版权材料；22/22 有辅助索引，22 registry 缺项和 3 上游绑定缺项不关闭。MVP-01～07 DONE，09～16 TODO。 |
+| CI | 基线 docs/Next/RD-2/预览 PASS；[嵌套 Weston #46105475398](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475398) supply-chain PASS、candidate/audit RUNNING；[RD-2 #46105475490](https://github.com/kunlong-luo/lanveriq/actions/runs/46105475490) PASS；首测 [#46102204965](https://github.com/kunlong-luo/lanveriq/actions/runs/46102204965) Wayland FAIL。 |
+| 锁/风险 | 锁不变；19 上游候选/3 Debian 佐证（mac/pathfinder_geometry/seahash 未绑定上游），22 registry 缺项、47 BOM extra、9 维护警告、完整 NOTICE/资源/法务 OPEN；清洁系统 ABI OPEN。 |
+| 本机 | X11/Release 性能/ABI 佐证/临时包 PASS；Wayland 复验待 CI；真实 COSMIC v2 九项、IME/关闭/GPU、独立 L3、完整运行时/包、Tauri 比较及超时负测未验。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | MVP-08：核实嵌套 Weston CI、根据具体退出码/协议或渲染错误修复，不放宽门禁；集中所有人 COSMIC v2 九项，复审许可/维护及完整运行时/包/Tauri 比较；不进入 MVP-09。 |
+| **下次唯一任务** | MVP-08：核实嵌套 Weston CI，按真实退出/协议/渲染证据修复；集中所有人 COSMIC v2 九项，复审包文件与材料对应关系/维护及完整运行时/包/Tauri 比较；不进入 MVP-09。 |
 | 约束 | main only；保留 Tauri 回退且冻结扩展，不提高 CI 写权限、不忽略漏洞；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
