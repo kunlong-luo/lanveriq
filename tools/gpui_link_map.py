@@ -28,9 +28,9 @@ def archive_index(messages, metadata, deps):
             if path.suffix != ".rlib":
                 continue
             path = path.resolve()
-            # Cargo also reports a top-level copy of the local library.
-            if path.parent != deps:
-                continue
+            # Cargo 1.100 moved intermediate artifacts beneath profile/build.
+            # Trust exact compiler-artifact filenames, not a fixed deps layout.
+            require(path.is_relative_to(deps), "Cargo rlib outside expected Release profile")
             require(path.is_file(), "missing Cargo rlib")
             require(path not in result or result[path] == key, "ambiguous Cargo archive owner")
             result[path] = key
@@ -45,16 +45,19 @@ def observe(lines, index, deps):
     rows = {}
     other = set()
     total = 0
+    resolved = {}
     for line in lines:
         require(len(line) <= MAX_LINE, "oversize linker map line")
         match = ROW.match(line)
         if not match or int(match[1], 16) == 0:
             continue
-        path = pathlib.Path(match[2]).resolve()
+        if match[2] not in resolved:
+            resolved[match[2]] = pathlib.Path(match[2]).resolve()
+        path = resolved[match[2]]
         member = match[3]
         total += 1
         if path not in index:
-            require(path.parent != deps, "unbound Cargo rlib in linker map")
+            require(not path.is_relative_to(deps), "unbound Cargo rlib in linker map")
             other.add(path)
             continue
         key = index[path]
@@ -82,7 +85,7 @@ def main():
             and artifacts["lock_sha256"] == digest(root / "Cargo.lock")
             and artifacts["elf_sha256"] == digest(binary)
             and artifacts["release_approved"] is False, "compiler artifact identity mismatch")
-    deps = root / "target/release/deps"
+    deps = root / "target/release"
     index = archive_index((json.loads(line) for line in raw.read_text().splitlines()),
                           read_json(root / "candidate-metadata.json"), deps)
     with mapping.open(encoding="utf-8", errors="strict") as stream:

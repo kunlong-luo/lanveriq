@@ -38,7 +38,8 @@ class LinkMap(unittest.TestCase):
     def test_archive_owner_from_exact_cargo_filename(self):
         with tempfile.TemporaryDirectory() as tmp:
             deps = pathlib.Path(tmp)
-            path = deps / "liba-123.rlib"
+            path = deps / "build" / "a-123" / "out" / "liba-123.rlib"
+            path.parent.mkdir(parents=True)
             path.write_bytes(b"fixture")
             metadata = {"packages": [{"id": "a", "name": "a", "version": "1"}]}
             messages = [{"reason": "compiler-artifact", "package_id": "a",
@@ -69,7 +70,7 @@ class LinkMap(unittest.TestCase):
             messages = [json.loads(line) for line in run(
                 "rustc", "--offline", "--locked", "--release", "--message-format=json",
                 "--", "-C", f"link-arg=-Wl,-Map={mapping}").splitlines()]
-            deps = root / "target/release/deps"
+            deps = root / "target/release"
             index = archive_index(messages, metadata, deps)
             with mapping.open() as stream:
                 result = observe(iter(stream), index, deps)
