@@ -17,12 +17,15 @@ use lanveriq_desktop_gpui_candidate::host_identity::HostIdentity;
 use lanveriq_desktop_gpui_candidate::runtime_metadata::inspect_runtime;
 
 mod candidate_assets;
+mod system_summary;
+use system_summary::SystemSummary;
 
 actions!(lanveriq_desktop, [Quit]);
 
 struct Desktop {
     workspace: Workspace,
     inspecting: bool,
+    system_summary: SystemSummary,
     ime_probe: Option<Entity<InputState>>,
     appearance: ThemePreference,
     _appearance_subscription: Subscription,
@@ -49,6 +52,7 @@ impl Desktop {
         Self {
             workspace: Workspace::default(),
             inspecting: false,
+            system_summary: SystemSummary::default(),
             ime_probe: None,
             appearance,
             _appearance_subscription: subscription,
@@ -78,15 +82,22 @@ impl SidebarItem for DestinationItem {
     fn render(self, id: impl Into<ElementId>, _: &mut Window, _: &mut App) -> impl IntoElement {
         let handler = self.handler;
         let button = Button::new(id)
-            .ghost().icon(page_icon(self.page))
+            .ghost()
             .accessibility_label(self.page.label())
             .selected(self.active).toggled(self.active)
             .tab_stop(true).w_full().h(px(36.))
             .on_click(move |event, window, cx| handler(event, window, cx));
         if self.collapsed {
-            button.tooltip(self.page.label())
+            button.icon(page_icon(self.page)).tooltip(self.page.label())
         } else {
-            button.label(self.page.label()).justify_start()
+            // Button's inner label container is centered independently of its
+            // outer style. A full-width child owns actual icon/text alignment.
+            button.child(div().w_full().h_full().flex().items_center().justify_start()
+                .gap_2()
+                .child(div().size(px(20.)).flex_shrink_0().flex().items_center().justify_center()
+                    .child(page_icon(self.page)))
+                .child(div().flex_1().min_w_0().flex().items_center().justify_start()
+                    .child(self.page.label())))
         }
     }
 }
@@ -197,7 +208,7 @@ impl Render for Desktop {
                 .child(section_title("连接与设备状态"))
                 .child(Label::new("服务器：未核验"))
                 .child(Label::new("设备注册：未核验"))
-                .child(hint("当前不连接服务器、不采集设备数据；请先查看本机状态。", cx)));
+                .child(hint("当前不连接服务器；本机系统摘要仅在手动检测时读取，不上传。", cx)));
         }
         if page == Page::Enrollment {
             content = content.child(panel(cx)
@@ -260,11 +271,16 @@ impl Render for Desktop {
                         if this.inspecting { return; }
                         this.inspecting = true;
                         this.workspace.replace_host_identity(HostIdentity::NotChecked);
+                        this.system_summary = SystemSummary::default();
                         cx.notify();
                         cx.spawn(async move |this, cx| {
-                            let (identity, metadata) = cx.background_spawn(async { inspect_runtime() }).await;
+                            let (identity, metadata, summary) = cx.background_spawn(async {
+                                let (identity, metadata) = inspect_runtime();
+                                (identity, metadata, SystemSummary::inspect(identity))
+                            }).await;
                             this.update(cx, |this, cx| {
                                 this.workspace.replace_runtime_metadata(identity, metadata);
+                                this.system_summary = summary;
                                 this.inspecting = false;
                                 cx.notify();
                             }).ok();
@@ -282,6 +298,20 @@ impl Render for Desktop {
                                 .child(Label::new(value).text_color(cx.theme().muted_foreground)))
                         }))
                     .child(hint("仅会话声明及软件包元数据；KDE 不要求 COSMIC 组件。未验证 GPU、实际 ABI、显示连接或窗口启动。", cx)));
+        }
+        if page == Page::Overview {
+            let summary = self.system_summary.rows().into_iter().enumerate().fold(
+                div().flex().flex_col().gap_1(), |group, (i, (key, value))| {
+                    group.child(div().id(format!("system-summary-{i}")).flex().flex_wrap()
+                        .items_center().justify_between().gap_3().py_2().border_b_1()
+                        .border_color(cx.theme().border)
+                        .child(Label::new(key))
+                        .child(Label::new(value).text_color(cx.theme().muted_foreground)))
+                });
+            content = content.child(panel(cx)
+                .child(section_title("本机系统信息"))
+                .child(hint("手动检测时更新的只读快照；不保存、不上传。", cx))
+                .child(summary));
         }
         if page == Page::Configuration {
             let current = self.workspace.idle_interval();

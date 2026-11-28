@@ -31,11 +31,15 @@ jobs:
           import pathlib, tomllib
           p = tomllib.loads(pathlib.Path("Cargo.toml").read_text())
           assert p["package"]["publish"] is False
-          assert set(p["dependencies"]) == {"gpui-kit"}
+          assert set(p["dependencies"]) == {"gpui-kit", "sysinfo"}
+          assert p["dependencies"]["sysinfo"] == {"version": "=0.31.4", "default-features": False, "features": ["system"]}
           d = p["dependencies"]["gpui-kit"]
           assert d["version"] == "=0.11.0" and d["default-features"] is False
           assert set(d["features"]) == {"component", "assets", "x11"}
           assert not pathlib.Path("build.rs").exists()
+          summary = pathlib.Path("src/system_summary.rs").read_text()
+          assert "RefreshKind::new()" in summary and ".with_ram()" in summary
+          assert all(token not in summary for token in ("new_all", "refresh_all", "refresh_processes", "with_processes", "Networks::", "Disks::", "Users::", "host_name", "Components::"))
           for path in pathlib.Path("src").rglob("*.rs"):
               data = path.read_text()
               for token in ("std::net", "unsafe {", "reqwest::", "zbus::", "tokio::", "include_bytes!", "include_str!", "OpenOptions", "File::create", "std::io::Write"):

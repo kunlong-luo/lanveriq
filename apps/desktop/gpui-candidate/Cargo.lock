@@ -3736,6 +3736,7 @@ name = "lanveriq-desktop-gpui-candidate"
 version = "0.1.0"
 dependencies = [
  "gpui-kit",
+ "sysinfo",
 ]
 
 [[package]]
