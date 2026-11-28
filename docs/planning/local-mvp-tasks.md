@@ -316,6 +316,8 @@
 
 - **2026-11-28 所有人 KDE/X11 窗口启动确认及原生链接准备前置检查**：基线 [d0529b99](https://github.com/kunlong-luo/lanveriq/commit/d0529b99e0f29d00f8e487d62eb28bba1da5ef0f) 文档 #46114935540、Next #46114935554、RD-2 #46114935524、预览 #46114935534 全 SUCCESS。所有人贴出真实最终链接失败 rust-lld: error: unable to find library -lxkbcommon-x11（非 Rust registry 问题），随后反馈 NVIDIA EGL/DRI2 warning（driver null / failed to create dri2 screen），并确认窗口可以打开；只记 KDE/X11 owner-reported startup PASS，推断此前链接阻断已解除，未收到实际 APT 安装回执/本机源码SHA/ELF/渲染后端或完整九项报告，不将警告当崩溃，也不认定 GPU 加速。功能 [c608090e](https://github.com/kunlong-luo/lanveriq/commit/c608090e17e075c2815f7891a7b4dde1b4c3bd70) 修改 [KDE helper](../../apps/desktop/tools/owner_kde_x11_review.py)，在 Cargo 前用固定 /usr/bin/cc -print-file-name=lib*.so、5s bounded query、固定环境检查四个已观察的 unversioned link inputs（xcb/freetype/xkbcommon/xkbcommon-x11）；拒绝 basename-only、versioned-only、非绝对路径、多行、非文件及查询失败，仅报告对应 libxcb1-dev/libfreetype-dev/libxkbcommon-dev/libxkbcommon-x11-dev 建议，不执行 APT、不自动安装、不替代完整 ABI 检查或自定义工具链。增加三组 tests（缺 xkbcommon-x11、错误路径/超时脱敏、固定命令），复用原轻量工作流；[KDE helper #46116066431](https://github.com/kunlong-luo/lanveriq/actions/runs/46116066431) SUCCESS；[RD-2 #46116066453](https://github.com/kunlong-luo/lanveriq/actions/runs/46116066453) SUCCESS。原 COSMIC helper 与 GPUI/Tauri 产品源码/依赖锁不变，不重复同机构建。已有同机 #46114149007 双端各3/3 PASS。正式资源/许可、清洁 ABI、物理 COSMIC/IME/GPU、九项功能及独立 L3 仍 OPEN，71/100、MVP-08 BLOCKED，不进入 MVP-09。
 
+- **2026-11-28 所有人七页截图与 GPUI 原生 UI 第一轮重构**：基线 [0f6c769c](https://github.com/kunlong-luo/lanveriq/commit/0f6c769cdbcb3fa8db830d01836eecaec4b8db8d) 文档 #46116108412、Next #46116108443、RD-2 #46116108528、预览 #46116108457 全 SUCCESS。所有人实际 KDE/X11 七张截图显示概览/安装/配置/注册/服务/诊断/关于可展示，Pop!_OS 24.04/x86_64 元数据、service inactive、unit/package unverified、软件包元数据、默认 TOML cycle_seconds=30、禁用操作及诊断 v1；未提供确切本机SHA/ELF、全部交互、选项切换/重置、IME、键盘、GPU或COSMIC证据；不保留原截图或敏感路径。实际反馈：字号偏小、导航全宽按钮、所有页面重复十个操作、内容无限拉宽、英文元数据。功能 [df0f764e](https://github.com/kunlong-luo/lanveriq/commit/df0f764e0bb11ab1a3e84e330ceaff4239cb96b9) 只改 GPUI src/main.rs 与 lib.rs；核对上游 gpui-kit e97fe438 的 Sidebar/SidebarMenuItem/ButtonVariants/Label/default icons，采用原生图标侧栏224px、内容最大920px、正文15px/标题26px/辅助13px、主题 token 分区卡片、可换行周期与操作按钮，中文只读状态（原 diagnostic v1 不改），Overview/Enrollment/Configuration/About 各加明确离线状态区；Setup/Service/Diagnostics 保留只读检查/审核/诊断。Page::locked_actions 将十个操作按 Setup 3/Configuration 2/Enrollment 2/Service 3 唯一归位，全部 disabled(true) 无 handler，新增分区覆盖/去重单测；无新依赖/锁/网络/安装/服务写入，保留原状态重置、五档周期、七 gate 四 notice、IME、窗口标题/尺寸。主题选择器未实现，主题色复用不等于已验证深色；需实际编译与窗口/键盘/缩放/中文 IME复验。[GPUI read-only query process boundary (nonrelease) #46116727728](https://github.com/kunlong-luo/lanveriq/actions/runs/46116727728) IN_PROGRESS；[Desktop GPUI candidate dependency resolution and compile (nonrelease) #46116727702](https://github.com/kunlong-luo/lanveriq/actions/runs/46116727702) IN_PROGRESS；[RD-2 fail-closed remote release guard #46116727716](https://github.com/kunlong-luo/lanveriq/actions/runs/46116727716) SUCCESS。旧GPUI full/paired性能/供应链证据只适用于原功能SHA；新源及使用默认图标的最终发行材料尚需核验。71/100，MVP-08 BLOCKED，不进入MVP-09。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
@@ -352,13 +354,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [d0529b99](https://github.com/kunlong-luo/lanveriq/commit/d0529b99e0f29d00f8e487d62eb28bba1da5ef0f)；功能 [c608090e](https://github.com/kunlong-luo/lanveriq/commit/c608090e17e075c2815f7891a7b4dde1b4c3bd70)，KDE helper 原生链接前置检查。 |
-| 本轮 | MVP-08 **BLOCKED**；所有人 KDE/X11 窗口打开、EGL 警告；链接准备检查已实现；01～07 DONE，09～16 TODO。 |
-| CI | 基线四项 PASS；同机 #46114149007 PASS；[KDE helper #46116066431](https://github.com/kunlong-luo/lanveriq/actions/runs/46116066431) SUCCESS；[RD-2 #46116066453](https://github.com/kunlong-luo/lanveriq/actions/runs/46116066453) SUCCESS。 |
+| 基线 | [0f6c769c](https://github.com/kunlong-luo/lanveriq/commit/0f6c769cdbcb3fa8db830d01836eecaec4b8db8d)；功能 [df0f764e](https://github.com/kunlong-luo/lanveriq/commit/df0f764e0bb11ab1a3e84e330ceaff4239cb96b9)，七页原生UI重构。 |
+| 本轮 | MVP-08 **BLOCKED**；旧版 KDE七页截图及查询展示；新UI已提交待实际验收；01～07 DONE，09～16 TODO。 |
+| CI | 基线四项 PASS；[GPUI read-only query process boundary (nonrelease) #46116727728](https://github.com/kunlong-luo/lanveriq/actions/runs/46116727728) IN_PROGRESS；[Desktop GPUI candidate dependency resolution and compile (nonrelease) #46116727702](https://github.com/kunlong-luo/lanveriq/actions/runs/46116727702) IN_PROGRESS；[RD-2 fail-closed remote release guard #46116727716](https://github.com/kunlong-luo/lanveriq/actions/runs/46116727716) SUCCESS。 |
 | 锁/风险 | 522 Linux / 568 metadata/BOM 包对 +1本地 target；0遗漏，46差异范围已解释而非最终链接批准；22 registry 许可缺项、3 精确上游绑定、9 维护警告、NOTICE/资源/法务/清洁 ABI OPEN。 |
-| 本机 | KDE/X11 所有人自报窗口打开；最终链接缺 xkbcommon-x11 已解除（未提供安装回执），EGL 警告仍待界定；无九项报告/确切SHA/ELF，COSMIC/IME/GPU/独立 L3 NOT RUN。 |
+| 本机 | 旧版 KDE七页展示/元数据/默认草稿/诊断可见，未证实全部交互、GPU、IME、准确SHA/ELF；新UI未运行，COSMIC/独立L3 NOT RUN。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | MVP-08：核实 KDE helper CI；所有人运行 `python3 apps/desktop/tools/owner_kde_x11_review.py`，回传九项 p/f/n JSON 或实际失败；有真实 COSMIC 会话时原 helper v2；正式许可/资源归属/清洁ABI待审，不重复同机/链接验收，不进入 MVP-09。 |
+| **下次唯一任务** | MVP-08：核实新UI exact-SHA CI，按实际编译/窗口失败修复；所有人同步 main 并运行 KDE helper，检查新布局/导航/缩放/键盘/IME，原COSMIC helper仍需真实会话；正式许可/资源归属/清洁ABI待审，不进入 MVP-09。 |
 | 约束 | main only；保留 Tauri 回退且冻结扩展，不提高 CI 写权限、不忽略漏洞；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
