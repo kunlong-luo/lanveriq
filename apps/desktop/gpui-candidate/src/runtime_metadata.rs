@@ -1,6 +1,6 @@
 //! Operator-requested, bounded local queries. No command or path supplied by UI.
 use crate::host_identity::{HostIdentity, inspect_host_identity};
-use crate::graphics::{GraphicsMetadata, DIRECT_PACKAGES, COSMIC_PACKAGES, installed_set, session_claim};
+use crate::graphics::{GraphicsMetadata, SessionClaim, DIRECT_PACKAGES, COSMIC_PACKAGES, installed_set, session_claim};
 
 const UNKNOWN: &str = "unverified";
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -146,9 +146,11 @@ pub fn inspect_runtime() -> (HostIdentity, RuntimeMetadata) {
             let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
             let kind = std::env::var("XDG_SESSION_TYPE").unwrap_or_default();
             let display = std::env::var("WAYLAND_DISPLAY").unwrap_or_default();
-            (session_claim(&desktop, &kind, &display),
-             query(Query::CosmicComponents).is_some_and(|raw| installed_set(&raw, &COSMIC_PACKAGES, true)))
-        } else { (false, false) };
+            let session = session_claim(&desktop, &kind, &display);
+            let cosmic = session == SessionClaim::CosmicWayland &&
+                query(Query::CosmicComponents).is_some_and(|raw| installed_set(&raw, &COSMIC_PACKAGES, true));
+            (session, cosmic)
+        } else { (SessionClaim::Unknown, false) };
         result.graphics = GraphicsMetadata::from_observations(identity, session, direct, cosmic);
     }
     (identity, result)
@@ -213,13 +215,23 @@ mod tests {
     fn graphics_projection_is_advisory_and_cleared_on_failure() {
         use crate::review::{GateStatus, runtime_review_gates, runtime_diagnostic};
         use crate::Workspace;
-        let graphics = GraphicsMetadata::from_observations(HostIdentity::PopOs24Amd64, true, true, true);
+        let graphics = GraphicsMetadata::from_observations(HostIdentity::PopOs24Amd64, SessionClaim::CosmicWayland, true, true);
         let m = RuntimeMetadata { attempted: true, graphics, ..RuntimeMetadata::default() };
         let gates = runtime_review_gates(HostIdentity::PopOs24Amd64, m);
         assert_eq!(gates[3].status, GateStatus::MetadataOnly);
         assert!(gates[4..].iter().all(|g| g.status == GateStatus::NotApproved));
         let report = runtime_diagnostic(HostIdentity::PopOs24Amd64, m);
         assert!(report.contains("cosmic_preflight=metadata_checked_not_l3"));
+        let kde = RuntimeMetadata { graphics: GraphicsMetadata::from_observations(
+            HostIdentity::PopOs24Amd64, SessionClaim::KdeX11, true, false), ..m };
+        let kde_gates = runtime_review_gates(HostIdentity::PopOs24Amd64, kde);
+        assert_eq!(kde_gates[3].status, GateStatus::MetadataOnly);
+        assert!(kde_gates[4..].iter().all(|g| g.status == GateStatus::NotApproved));
+        let kde_report = runtime_diagnostic(HostIdentity::PopOs24Amd64, kde);
+        for line in ["desktop_session_claim=kde_x11_claim", "desktop_preflight=metadata_checked_not_l3",
+                     "cosmic_preflight=not_verified", "install_authorized=false", "agent_start_authorized=false"] {
+            assert!(kde_report.lines().any(|actual| actual == line));
+        }
         assert!(report.contains("install_authorized=false"));
         let mut workspace = Workspace::default();
         workspace.replace_runtime_metadata(HostIdentity::PopOs24Amd64, m);

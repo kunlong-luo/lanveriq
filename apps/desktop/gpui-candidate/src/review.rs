@@ -35,13 +35,13 @@ pub const GATES: [ReviewGate; 7] = [
         detail: "已有包、未知版本或检测失败时不得覆盖安装。" },
     ReviewGate { id: "service-state", title: "后台服务与旧版文件", status: GateStatus::NotChecked,
         detail: "服务、旧版文件、覆盖或 systemd 状态不明时禁止修改。" },
-    ReviewGate { id: "compatibility", title: "COSMIC 与系统库", status: GateStatus::NotChecked,
-        detail: "无可信的 COSMIC/ABI 元数据，不允许预设为兼容。" },
+    ReviewGate { id: "compatibility", title: "桌面环境与系统库", status: GateStatus::NotChecked,
+        detail: "无可信的桌面环境/ABI 元数据，不允许预设为兼容。" },
     ReviewGate { id: "publisher", title: "可信软件源与正式签名", status: GateStatus::NotApproved,
         detail: "未独立预置信任根、发行身份、撤销和 Signed-By 正式仓库。" },
     ReviewGate { id: "broker", title: "逐次管理员授权与受限 Polkit", status: GateStatus::NotApproved,
         detail: "未提供受审 broker；GUI 不得获得 root 或调用任意命令。" },
-    ReviewGate { id: "real-host-l3", title: "Pop!_OS COSMIC 实机与法务批准", status: GateStatus::NotApproved,
+    ReviewGate { id: "real-host-l3", title: "Pop!_OS 实机与法务批准", status: GateStatus::NotApproved,
         detail: "无正式的设备所有人同意、实机 L3 与法务/运维签署。" },
 ];
 
@@ -95,8 +95,10 @@ pub fn runtime_diagnostic(identity: HostIdentity, metadata: RuntimeMetadata) -> 
         }
     }
     if metadata.graphics().attempted() {
+        let graphics = metadata.graphics();
         report = report.replace("cosmic_preflight=not_verified",
-            &format!("cosmic_preflight={}", metadata.graphics().diagnostic()));
+            &format!("cosmic_preflight={}\ndesktop_session_claim={}\ndesktop_preflight={}",
+                     graphics.cosmic_diagnostic(), graphics.session_diagnostic(), graphics.diagnostic()));
     }
     report
 }

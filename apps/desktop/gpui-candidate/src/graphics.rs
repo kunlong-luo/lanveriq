@@ -8,36 +8,84 @@ pub(crate) const DIRECT_PACKAGES: [&str; 5] =
 pub(crate) const COSMIC_PACKAGES: [&str; 3] =
     ["cosmic-session", "cosmic-comp", "xdg-desktop-portal-cosmic"];
 
+// Bounded environment claims, not verified compositor/connection identity.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) enum SessionClaim {
+    #[default]
+    Unknown,
+    KdeX11,
+    KdeWayland,
+    CosmicWayland,
+}
+impl SessionClaim {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Unknown => "未核验",
+            Self::KdeX11 => "KDE / X11（仅声明）",
+            Self::KdeWayland => "KDE / Wayland（仅声明）",
+            Self::CosmicWayland => "COSMIC / Wayland（仅声明）",
+        }
+    }
+    fn diagnostic(self) -> &'static str {
+        match self {
+            Self::Unknown => "unverified",
+            Self::KdeX11 => "kde_x11_claim",
+            Self::KdeWayland => "kde_wayland_claim",
+            Self::CosmicWayland => "cosmic_wayland_claim",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct GraphicsMetadata {
     attempted: bool,
-    session_claim: bool,
+    session_claim: SessionClaim,
     direct_packages: bool,
     cosmic_packages: bool,
 }
 
 impl GraphicsMetadata {
-    pub(crate) fn from_observations(identity: HostIdentity, session: bool, direct: bool, cosmic: bool) -> Self {
+    pub(crate) fn from_observations(identity: HostIdentity, session: SessionClaim, direct: bool, cosmic: bool) -> Self {
         match identity {
             HostIdentity::NotChecked | HostIdentity::Blocked => Self::default(),
             HostIdentity::Other => Self { attempted: true, direct_packages: direct, ..Self::default() },
             HostIdentity::PopOs24Amd64 => Self { attempted: true, session_claim: session,
-                direct_packages: direct, cosmic_packages: cosmic },
+                direct_packages: direct, cosmic_packages: session == SessionClaim::CosmicWayland && cosmic },
         }
     }
 
     pub fn attempted(self) -> bool { self.attempted }
 
     pub fn metadata_complete(self) -> bool {
-        self.attempted && self.session_claim && self.direct_packages && self.cosmic_packages
+        self.attempted && self.direct_packages && match self.session_claim {
+            SessionClaim::KdeX11 | SessionClaim::KdeWayland => true,
+            SessionClaim::CosmicWayland => self.cosmic_packages,
+            SessionClaim::Unknown => false,
+        }
     }
 
     pub fn rows(self) -> [(&'static str, &'static str); 3] {
         [
-            ("COSMIC / Wayland 会话声明", if self.session_claim { "仅有声明" } else { "未核验" }),
+            ("桌面会话声明", self.session_claim.label()),
             ("GPUI 直接 ELF 依赖包", if self.direct_packages { "软件包元数据齐全" } else { "未核验" }),
-            ("COSMIC 组件包", if self.cosmic_packages { "软件包元数据齐全" } else { "未核验" }),
+            ("COSMIC 专用组件包", match self.session_claim {
+                SessionClaim::KdeX11 | SessionClaim::KdeWayland => "不适用（KDE 会话）",
+                _ if self.cosmic_packages => "软件包元数据齐全",
+                _ => "未核验",
+            }),
         ]
+    }
+
+    pub fn session_diagnostic(self) -> &'static str { self.session_claim.diagnostic() }
+
+    // Preserve the historical COSMIC field: KDE metadata must never imply
+    // that COSMIC was checked.
+    pub fn cosmic_diagnostic(self) -> &'static str {
+        match self.session_claim {
+            SessionClaim::CosmicWayland => self.diagnostic(),
+            SessionClaim::KdeX11 | SessionClaim::KdeWayland => "not_verified",
+            SessionClaim::Unknown => if self.attempted { "blocked_not_verified" } else { "not_verified" },
+        }
     }
 
     pub fn diagnostic(self) -> &'static str {
@@ -47,13 +95,21 @@ impl GraphicsMetadata {
     }
 }
 
-// Compare only the old reviewed session claim semantics; never retain values,
-// open a display socket, or claim the compositor is running.
-pub(crate) fn session_claim(desktop: &str, kind: &str, display: &str) -> bool {
-    desktop.len() <= 256 && desktop.is_ascii() &&
-        desktop.split(':').any(|part| part.eq_ignore_ascii_case("COSMIC")) &&
-        kind == "wayland" && !display.is_empty() && display.len() <= 128 &&
-        display.bytes().all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
+// Only fixed XDG classifications are retained. No display socket or raw value
+// is stored, and X11 does not need COSMIC packages or a Wayland display.
+pub(crate) fn session_claim(desktop: &str, kind: &str, display: &str) -> SessionClaim {
+    if desktop.len() > 256 || !desktop.is_ascii() { return SessionClaim::Unknown; }
+    let kde = desktop.split(':').any(|part| part.eq_ignore_ascii_case("KDE"));
+    let cosmic = desktop.split(':').any(|part| part.eq_ignore_ascii_case("COSMIC"));
+    if kde && cosmic { return SessionClaim::Unknown; }
+    let wayland = !display.is_empty() && display.len() <= 128 &&
+        display.bytes().all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b));
+    match (kde, cosmic, kind) {
+        (true, false, "x11") if display.is_empty() => SessionClaim::KdeX11,
+        (true, false, "wayland") if wayland => SessionClaim::KdeWayland,
+        (false, true, "wayland") if wayland => SessionClaim::CosmicWayland,
+        _ => SessionClaim::Unknown,
+    }
 }
 
 // Exact fixed package set, no version/path text retained. A failed query or
@@ -76,12 +132,16 @@ mod tests {
     use super::*;
     #[test]
     fn session_is_only_a_bounded_claim() {
-        assert!(session_claim("COSMIC", "wayland", "wayland-0"));
-        assert!(session_claim("cosmic:GNOME", "wayland", "wayland-1"));
+        assert_eq!(session_claim("COSMIC", "wayland", "wayland-0"), SessionClaim::CosmicWayland);
+        assert_eq!(session_claim("cosmic:GNOME", "wayland", "wayland-1"), SessionClaim::CosmicWayland);
+        assert_eq!(session_claim("KDE", "x11", ""), SessionClaim::KdeX11);
+        assert_eq!(session_claim("kde", "wayland", "wayland-1"), SessionClaim::KdeWayland);
         for (d,k,w) in [("GNOME","wayland","wayland-0"),("COSMIC","x11","wayland-0"),
             ("COSMIC","wayland","/run/user/1000/wayland-0"),("COSMIC","wayland",""),
-            ("COSMIC-other","wayland","wayland-0")] {
-            assert!(!session_claim(d,k,w));
+            ("COSMIC-other","wayland","wayland-0"),("KDE:COSMIC","wayland","wayland-0"),
+            ("KDE","x11","wayland-0"),("KDE","wayland",""),("KDE","wayland","/tmp/socket"),
+            ("KDE-other","x11",""),("GNOME","x11","")] {
+            assert_eq!(session_claim(d,k,w), SessionClaim::Unknown);
         }
     }
     #[test]
@@ -98,12 +158,24 @@ mod tests {
         assert!(!installed_set("a|all|install ok installed", &["a"], false));
     }
     #[test]
-    fn only_target_with_all_three_observations_is_metadata_complete() {
+    fn metadata_complete_depends_on_actual_session_and_never_implies_approval() {
         for identity in [HostIdentity::NotChecked, HostIdentity::Blocked, HostIdentity::Other, HostIdentity::PopOs24Amd64] {
-            for bits in 0..8 {
-                let m = GraphicsMetadata::from_observations(identity, bits & 1 != 0, bits & 2 != 0, bits & 4 != 0);
-                assert_eq!(m.metadata_complete(), identity == HostIdentity::PopOs24Amd64 && bits == 7);
-                assert_ne!(m.diagnostic(), "approved");
+            for session in [SessionClaim::Unknown, SessionClaim::KdeX11, SessionClaim::KdeWayland, SessionClaim::CosmicWayland] {
+                for direct in [false, true] {
+                    for cosmic in [false, true] {
+                        let m = GraphicsMetadata::from_observations(identity, session, direct, cosmic);
+                        let expected = identity == HostIdentity::PopOs24Amd64 && direct && match session {
+                            SessionClaim::Unknown => false,
+                            SessionClaim::KdeX11 | SessionClaim::KdeWayland => true,
+                            SessionClaim::CosmicWayland => cosmic,
+                        };
+                        assert_eq!(m.metadata_complete(), expected);
+                        assert_ne!(m.diagnostic(), "approved");
+                        if matches!(session, SessionClaim::KdeX11 | SessionClaim::KdeWayland) {
+                            assert_ne!(m.cosmic_diagnostic(), "metadata_checked_not_l3");
+                        }
+                    }
+                }
             }
         }
     }

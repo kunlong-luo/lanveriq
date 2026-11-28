@@ -281,7 +281,7 @@ impl Render for Desktop {
                                 .child(Label::new(key))
                                 .child(Label::new(value).text_color(cx.theme().muted_foreground)))
                         }))
-                    .child(hint("仅软件包元数据；未验证 GPU、实际 ABI、显示连接或窗口启动。", cx)));
+                    .child(hint("仅会话声明及软件包元数据；KDE 不要求 COSMIC 组件。未验证 GPU、实际 ABI、显示连接或窗口启动。", cx)));
         }
         if page == Page::Configuration {
             let current = self.workspace.idle_interval();

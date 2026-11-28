@@ -2,7 +2,7 @@
 This bounded MVP-08 candidate is **not** the shipping desktop client or an installer.
 It uses the upstream GPUI Kit 0.11.0 facade and its matched GPUI snapshot (0.3.14).
 No direct Agent IPC, database, network, certificate, privilege or installation interface is implemented. The manual host probe reads /proc/self/status and /etc/os-release, then invokes only fixed local dpkg-query and systemctl show commands through coreutils timeout, and checks fixed legacy leaf symlink metadata. No arbitrary command, path, environment, raw output or background polling; no shell, writes or service mutation.
-The seven destinations provide native navigation. Configuration now previews the existing AgentConfig v1 idle interval choices (15/30/60/120/300 seconds, default 30), in memory only; leaving the page resets the selection. Setup displays seven review gates and four independent notice acknowledgments, reset on leaving the page or replacing host evidence. Diagnostics displays a selectable redacted v1 report with explicit unknown defaults and allowlisted advisory projections. Identity, package and systemd metadata feed review and diagnostics, with stale results cleared during a manual background refresh. Failed/absent query output stays unknown. GPUI-specific preflight uses the same bounded query path for the five direct ELF dependency packages and three fixed COSMIC component packages, plus a bounded claim from three XDG session variables. No raw environment values are retained. Even complete metadata is not an ABI, GPU, compositor, window or installation proof. These offline branches are not full parity, and acknowledging notices grants no authority.
+The seven destinations provide native navigation. Configuration now previews the existing AgentConfig v1 idle interval choices (15/30/60/120/300 seconds, default 30), in memory only; leaving the page resets the selection. Setup displays seven review gates and four independent notice acknowledgments, reset on leaving the page or replacing host evidence. Diagnostics displays a selectable redacted v1 report with explicit unknown defaults and allowlisted advisory projections. Identity, package and systemd metadata feed review and diagnostics, with stale results cleared during a manual background refresh. Failed/absent query output stays unknown. GPUI-specific preflight uses the same bounded query path for the five direct ELF dependency packages and (only for a COSMIC Wayland claim) three fixed COSMIC component packages, plus a bounded classification of KDE/X11, KDE/Wayland or COSMIC/Wayland from the same three XDG variables. KDE never requires COSMIC components. Unknown/ambiguous claims stay unverified. The diagnostic retains its historical COSMIC field and adds fixed desktop claim/preflight fields after inspection. No raw environment values are retained. Even complete metadata is not an ABI, GPU, compositor, window or installation proof. These offline branches are not full parity, and acknowledging notices grants no authority.
 Existing Tauri code remains the rollback implementation until the acceptance in the local task ledger is complete.
 
 The original Cargo.lock from the successful native build (d7185887) and its SHA-256 are committed together. Both CI jobs require the tracked lock, reject digest drift and never regenerate it. This is a nonrelease candidate resolution, not product license/security approval. Do not update the lock or digest merely to make CI green. The Linux normal/build graph and direct ELF dependency evidence are archived separately; neither proves a real window or all runtime dependencies. Do not distribute this candidate.
@@ -18,7 +18,17 @@ CI also builds Cargo's default optimized Release profile with the same lock, sta
 
 A separate CI step launches the exact optimized GUI in a private Weston compositor nested in Xvfb with software rendering (only Weston sees DISPLAY; the GUI has no X11 environment). It checks the synthetic client protocol trace for the same titled xdg-shell toplevel, configure/ack serial and non-null buffer attach/commit on the linked wl_surface, with the client still running. The helper first requires wl_seat, xdg_wm_base and wl_compositor in wayland-info. Only status, hashes and bounded synthetic failure categories/error excerpts are archived; raw traces stay in a disposable directory. The harness terminates the children; this is not pixel readback, keyboard/IME, normal close, physical COSMIC/GPU or release proof.
 
-## Owner-operated Pop!_OS COSMIC review (not an installer)
+## Primary owner-operated Pop!_OS KDE/X11 review (not an installer)
+
+The maintainer uses KDE Plasma X11 on Pop!_OS 24.04. This is the primary local MVP desktop; no desktop switch is required. The seven earlier owner observations remain valid for their scope. For the final exact-source local report, run from the trusted clean repository root as the normal owner:
+
+```bash
+python3 apps/desktop/tools/owner_kde_x11_review.py
+```
+
+It checks local active logind and X11 socket metadata, fixed link inputs and pinned offline build, then collects twelve observations and confirmed Ctrl+Q. Mark untested checks n; no fabricated pass. This report is not independent L3 or installation authorization. KDE/Wayland and COSMIC/Wayland are separate compatibility targets; their untested status never implies failure on KDE/X11.
+
+## Separate COSMIC compatibility review (not a local MVP prerequisite)
 
 In a trusted, clean candidate checkout, from the repository root and a COSMIC Wayland terminal as the normal device owner, run:
 

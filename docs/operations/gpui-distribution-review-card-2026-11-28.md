@@ -69,7 +69,16 @@
 
 完成后在真实审批记录写入责任人、日期、范围、确切发行 SHA/包摘要、证据摘要与保管位置、结论（批准/拒绝/待补证）。未获批准不得改写 OPEN，不构建发布用 NOTICE，不发包，不删除 Tauri，不开启 Agent 权限。该卡是审批入口，不是发布许可或法律意见。
 
-## 6. 单次物理验收与移交（不增加重复测试）
+## 6. 单次物理验收与移交（2026-11-28 更新：适配维护者 KDE/X11）
+
+维护者明确不切换桌面。本机 MVP 首选 Pop!_OS 24.04 KDE/X11，原七项结果保留；只补缺失的本机观察及精确源码/ELF证据。COSMIC/Wayland 与 KDE/Wayland 分开验收，不再是本机 MVP 强制前提，正式发行 Gate 不变。普通用户在可信仓库执行：
+
+```bash
+git pull --ff-only origin main
+python3 apps/desktop/tools/owner_kde_x11_review.py
+```
+
+十二项工具仅在当前本地活动 KDE/X11 会话运行；已有观察不作废，不虚填未测项目。以下 COSMIC 指令仅供未来独立兼容环境使用，不要求当前维护者执行。
 
 当前所有人历史 KDE/X11 七项功能通过；不要求重复原七项 KDE 演示，不当作 COSMIC。自动端以修正后 [#46127948779](https://github.com/kunlong-luo/lanveriq/actions/runs/46127948779) 的实际 clean OCI 结果为准：audit/supply 与原生 X11 交互已通过，Release build IN_PROGRESS，clean APT NOT RUN（本次核查）。若失败只修复具体失败；若通过仍仅为五项直接 ABI 解析，不以其代替全运行时/真实系统。历史先前 Release、图标和新版材料已验，不因文档改动重复运行。
 
