@@ -18,6 +18,19 @@ def distance(first, second):
         raise ValueError("unexpected RGB sample size")
     return sum(abs(a-b) for a,b in zip(first,second)) / PIXELS
 
+# Shared panels can dominate a full-content average. Keep the same RGB
+# threshold, but independently sample the title/description region.
+REGIONS = {"body": "620x580+260+20", "heading": "300x90+260+20"}
+VIEW_DELTA = 1.0
+
+def view_deltas(first, second):
+    if set(first) != set(REGIONS) or set(second) != set(REGIONS):
+        raise ValueError("unexpected navigation sample regions")
+    return {region: distance(first[region], second[region]) for region in REGIONS}
+
+def view_distance(first, second):
+    return max(view_deltas(first, second).values())
+
 def brightness(image):
     if len(image) != PIXELS:
         raise ValueError("unexpected RGB sample size")
@@ -63,22 +76,35 @@ def exercise(app, wid, env, geometry, result):
     command(["/usr/bin/xdotool","windowactivate","--sync",wid],env)
     # Move pointer outside the candidate so hover/tooltip changes do not count.
     command(["/usr/bin/xdotool","mousemove","5","5"],env)
-    overview = content()
+    def navigation_view():
+        live()
+        return {region: stable_pixels(wid, env, crop) for region, crop in REGIONS.items()}
+    overview = navigation_view()
     # From the initial no-focus state, Tab/Enter should activate Overview first.
     # Observe content only, not the focus outline in the sidebar.
     key("Tab","Return")
-    first = content()
-    if distance(overview,first) > 1.0:
+    first = navigation_view()
+    result["initial_view_rgb_deltas"] = view_deltas(overview, first)
+    if view_distance(overview,first) > VIEW_DELTA:
         raise RuntimeError("first keyboard activation did not preserve initial view")
     views = [first]
+    result["navigation_comparisons"] = []
     for index in range(1,7):
         key("Tab","Return")
-        views.append(content())
-        if min(distance(views[-1],other) for other in views[:-1]) <= 1.0:
-            raise RuntimeError(f"navigation did not produce distinct content at step {index+1}")
-    minimum = min(distance(a,b) for a,b in itertools.combinations(views,2))
+        current = navigation_view()
+        comparisons = [
+            {"prior_step": prior+1, **view_deltas(current, other)}
+            for prior, other in enumerate(views)
+        ]
+        result["navigation_comparisons"].append({"step": index+1, "comparisons": comparisons})
+        closest = min(comparisons, key=lambda item: max(item["body"], item["heading"]))
+        if max(closest["body"], closest["heading"]) <= VIEW_DELTA:
+            raise RuntimeError(f"navigation did not produce distinct content at step {index+1}; closest={closest}")
+        views.append(current)
+    minimum = min(view_distance(a,b) for a,b in itertools.combinations(views,2))
     result["distinct_keyboard_views"] = len(views)
-    result["minimum_view_rgb_delta"] = round(minimum,3)
+    result["minimum_view_region_rgb_delta"] = round(minimum,3)
+    result["minimum_view_rgb_delta"] = round(min(distance(a["body"],b["body"]) for a,b in itertools.combinations(views,2)),3)
     print("PASS: seven distinct main-content views via sequential Tab/Return",flush=True)
 
     # About follows the seventh navigation item. Its first three enabled
@@ -117,7 +143,7 @@ def exercise(app, wid, env, geometry, result):
 def main():
     binary = ROOT/"target/debug"/NAME
     source = os.environ["GITHUB_SHA"]
-    result = {"schema":"lanveriq.gpui.synthetic-x11-interaction-v1",
+    result = {"schema":"lanveriq.gpui.synthetic-x11-interaction-v2",
         "source_sha":source,"lock_sha256":digest(ROOT/"Cargo.lock"),"elf_sha256":digest(binary),
         "profile":"debug","scope":"SYNTHETIC_X11_KEYBOARD_AND_WINDOW_PIXELS_NOT_SEMANTIC_ATTESTATION",
         "status":"FAIL","physical_cosmic":"NOT_RUN","chinese_ime":"NOT_RUN",
