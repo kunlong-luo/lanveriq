@@ -29,10 +29,26 @@ ASSETS = {
     "examples/svg/dragon.svg": (20111, "a66278ec0c72d70152ab05fc9dd122ad094a262d96fa6f61fba6b12e128e0e47"),
 }
 
+# The upstream source was manually inspected at this immutable Git tree.
+# Match the entire file, not a heuristic Rust cfg parser or nearby comment.
+PLATFORM_BLOB = "154e5f62471950f0863c1bf8eb6dcc57afbb7c26"
+PLATFORM_COMMIT = "f126950f9d3b62666f97437ae5d4ccac2272c4db"
+EXIF = "examples/image/exif-orientation-rotate-180.jpg"
+
+def platform_review(body):
+    if body is None:
+        return {"status": "SOURCE_NOT_PRESENT_OPEN"}
+    blob = hashlib.sha1(b"blob " + str(len(body)).encode() + b"\0" + body).hexdigest()
+    return {"status": ("EXACT_UPSTREAM_TEST_MODULE_SOURCE_MATCH" if blob == PLATFORM_BLOB
+                       else "SOURCE_DIFFERS_OPEN"),
+            "upstream_commit": PLATFORM_COMMIT, "upstream_blob": PLATFORM_BLOB,
+            "registry_file_git_blob": blob, "registry_file_sha256": sha(body)}
+
 def inspect(data, checksum):
     require(0 < len(data) <= MAX_ARCHIVE and sha(data) == checksum, "locked archive mismatch")
     seen, resources, references = set(), {}, {name: [] for name in ASSETS}
     manifest = None
+    platform = None
     expanded = 0
     with tarfile.open(fileobj=io.BytesIO(data), mode="r|gz") as archive:
         for member in archive:
@@ -55,6 +71,8 @@ def inspect(data, checksum):
             if relative in ASSETS:
                 require((len(body), sha(body)) == ASSETS[relative], "resource inventory drift")
                 resources[relative] = {"bytes": len(body), "sha256": sha(body)}
+            if relative == "src/platform.rs":
+                platform = body
             if relative == "Cargo.toml":
                 require(len(body) <= 262144, "manifest too large")
                 manifest = tomllib.loads(body.decode("utf-8"))
@@ -65,17 +83,23 @@ def inspect(data, checksum):
     require(resources.keys() == ASSETS.keys() and manifest is not None, "missing inventory or manifest")
     require(manifest["package"]["name"] == NAME and manifest["package"]["version"] == VERSION,
             "package identity mismatch")
+    review = platform_review(platform)
     rows = []
     for asset in sorted(ASSETS):
         paths = sorted(references[asset])
         outside = [path for path in paths if not path.startswith("examples/")]
         rows.append({"path": asset, **resources[asset], "literal_filename_references": paths,
-                     "outside_examples": outside, "embedding": "NOT_ESTABLISHED",
+                     "outside_examples": outside,
+                     "literal_reference_scope": ("NO_OUTSIDE_EXAMPLE_REFERENCE_OBSERVED" if not outside
+                         else "UPSTREAM_CFG_TEST_MODULE_MATCH" if asset == EXIF and outside == ["src/platform.rs"]
+                         and review["status"] == "EXACT_UPSTREAM_TEST_MODULE_SOURCE_MATCH"
+                         else "OUTSIDE_EXAMPLES_OPEN"),
+                     "embedding": "NOT_ESTABLISHED",
                      "legal_approved": False})
     return {"registry_sha256": checksum, "resource_count": len(rows),
             "declared_example_targets": [{"name": t.get("name"), "path": t.get("path")}
                                          for t in manifest.get("example", [])],
-            "resources": rows, "scope": "LITERAL_FILENAME_SOURCE_SEARCH_NOT_LINKAGE_OR_LICENSE"}
+            "platform_source_review": review, "resources": rows, "scope": "LITERAL_FILENAME_SOURCE_SEARCH_NOT_LINKAGE_OR_LICENSE"}
 
 def main():
     root = pathlib.Path("apps/desktop/gpui-candidate")
@@ -89,12 +113,13 @@ def main():
         require(response.geturl() == URL, "unexpected redirect")
         data = response.read(MAX_ARCHIVE + 1)
     report = inspect(data, packages[0]["checksum"])
-    report.update(schema="lanveriq.gpui.example-resource-review-v1", source_sha=os.environ["GITHUB_SHA"],
+    report.update(schema="lanveriq.gpui.example-resource-review-v2", source_sha=os.environ["GITHUB_SHA"],
                   lock_sha256=sha(lock), release_approved=False, install_authorized=False)
     pathlib.Path("gpui-example-resource-review.json").write_text(json.dumps(report, indent=2, sort_keys=True)+"\n")
+    print("Platform source review:", report["platform_source_review"])
     for row in report["resources"]:
         print(row["path"], "references:", row["literal_filename_references"],
-              "outside examples:", row["outside_examples"])
+              "outside examples:", row["outside_examples"], "scope:", row["literal_reference_scope"])
 
 if __name__ == "__main__":
     main()

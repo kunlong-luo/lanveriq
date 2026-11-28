@@ -1,9 +1,10 @@
+import hashlib
 import io
 import tarfile
 import unittest
 from unittest.mock import patch
 
-from gpui_example_resource_review import ROOT, inspect, sha
+from gpui_example_resource_review import ROOT, inspect, sha, platform_review
 
 class ExampleResourceReview(unittest.TestCase):
     def archive(self, extras=None):
@@ -36,3 +37,11 @@ class ExampleResourceReview(unittest.TestCase):
         data = self.archive({"../escape": b"bad"})
         with self.assertRaises(ValueError):
             inspect(data, sha(data))
+
+    def test_platform_exact_blob_or_open(self):
+        body = b"reviewed source"
+        blob = hashlib.sha1(b"blob " + str(len(body)).encode() + b"\0" + body).hexdigest()
+        with patch("gpui_example_resource_review.PLATFORM_BLOB", blob):
+            self.assertEqual(platform_review(body)["status"], "EXACT_UPSTREAM_TEST_MODULE_SOURCE_MATCH")
+            self.assertEqual(platform_review(body + b"changed")["status"], "SOURCE_DIFFERS_OPEN")
+            self.assertEqual(platform_review(None)["status"], "SOURCE_NOT_PRESENT_OPEN")
