@@ -163,7 +163,7 @@ def validate_members(control, payload):
             check(entry.isdir() and entry.mode & 0o7777 == 0o755,
                   "unsafe directory type or mode")
 
-def main(profile="debug"):
+def main(profile="debug", clean_apt=False):
     import apt_pkg
     apt_pkg.init_system()
     check(os.getuid() != 0 and os.geteuid() != 0, "non-root CI only")
@@ -236,6 +236,11 @@ Description: Lanveriq GPUI nonrelease static audit candidate
         print("stripped audit ELF bytes:", binary.stat().st_size)
         print("temporary .deb bytes:", deb.stat().st_size)
         print("temporary .deb SHA256:", digest(deb))
+        if clean_apt:
+            check(profile == "release", "clean OCI audit requires Release")
+            from clean_apt import collect
+            collect(deb, groups, original_sha, digest(binary),
+                    ROOT / "candidate-clean-apt.json", apt_pkg.version_compare)
     print("PASS: temporary archive deleted; no install or upload; runtime closure, license, L3 OPEN")
 
 if __name__ == "__main__":

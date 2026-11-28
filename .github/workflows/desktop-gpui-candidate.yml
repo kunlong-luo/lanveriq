@@ -268,7 +268,8 @@ jobs:
       - name: Audit temporary optimized GUI-only deb (never install)
         run: |
           set -o pipefail
-          /usr/bin/python3 -c 'import sys; sys.path.insert(0, "tools"); import package_audit; package_audit.main("release")' | tee candidate-release-package-audit.txt
+          /usr/bin/python3 -m unittest discover -s tools -p test_clean_apt.py -v
+          /usr/bin/python3 -c 'import sys; sys.path.insert(0, "tools"); import package_audit; package_audit.main("release", clean_apt=True)' | tee candidate-release-package-audit.txt
       - name: Measure same-runner debug and optimized native window baselines
         run: |
           /usr/bin/python3 -m unittest discover -s tools -p test_performance_baseline.py -v
@@ -282,6 +283,7 @@ jobs:
           name: gpui-candidate-performance
           path: |
             apps/desktop/gpui-candidate/candidate-release-package-audit.txt
+            apps/desktop/gpui-candidate/candidate-clean-apt.json
             apps/desktop/gpui-candidate/candidate-performance.txt
             apps/desktop/gpui-candidate/candidate-performance.json
           if-no-files-found: ignore
