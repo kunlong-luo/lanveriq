@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthetic headless Weston only; no real desktop, Agent, or installation."""
+"""Synthetic nested Weston only; no real desktop, Agent, or installation."""
 import json
 import os
 import pathlib
@@ -47,16 +47,21 @@ def protocol_evidence(raw):
         elif interface == "xdg_surface" and method == "configure" and not outgoing and obj in surfaces:
             if re.fullmatch(r"\d+", args):
                 configured[obj] = args
+                acked.discard(obj)
+                attached.discard(obj)
         elif interface == "xdg_surface" and method == "ack_configure" and outgoing:
-            if obj in titles and obj in configured and configured[obj] == args:
+            if obj in configured and configured[obj] == args:
                 acked.add(obj)
+            else:
+                acked.discard(obj)
+                attached.discard(obj)
         elif interface == "wl_surface" and method == "attach" and outgoing:
             if re.fullmatch(r"wl_buffer@\d+,\s*-?\d+,\s*-?\d+", args):
                 attached.update(x for x in acked if surfaces[x] == obj)
             else:
                 attached.difference_update(x for x in acked if surfaces[x] == obj)
         elif interface == "wl_surface" and method == "commit" and outgoing:
-            if any(surfaces[x] == obj for x in attached):
+            if any(x in titles and surfaces[x] == obj for x in attached):
                 return True
         elif method == "destroy" and outgoing:
             # Reject stale object reuse rather than combining unrelated surfaces.
@@ -77,6 +82,24 @@ def protocol_evidence(raw):
                 attached.discard(x)
                 acked.discard(x)
     return False
+
+def registry_evidence(raw):
+    check(len(raw) <= 131072, "oversized compositor registry output")
+    return {name: bool(re.search(r"(?m)^\s*interface: '" + name + r"',", raw))
+            for name in ("wl_seat", "xdg_wm_base", "wl_compositor")}
+
+def failure_summary(raw):
+    lower = raw.lower()
+    return {key: any(token in lower for token in tokens) for key, tokens in {
+        "rust_panic": ("panicked at",),
+        "seat_reference": ("wl_seat", "no seat"),
+        "option_unwrap": ("option::unwrap", "option::expect", "none value"),
+        "vulkan_or_egl": ("vulkan", "egl", "vk_error", "no suitable gpu"),
+        "protocol_error": ("protocol error", "error in client communication"),
+        "unsupported_global": ("missing global", "global not found", "unsupported version"),
+        "wayland_connect": ("failed to connect", "no wayland display"),
+        "permission_denied": ("permission denied",),
+    }.items()}
 
 def read_trace(path):
     with path.open("rb") as stream:
@@ -107,20 +130,28 @@ def main():
                "XDG_CURRENT_DESKTOP": "WESTON", "WAYLAND_DISPLAY": SOCKET,
                "DBUS_SESSION_BUS_ADDRESS": os.environ["DBUS_SESSION_BUS_ADDRESS"],
                "LIBGL_ALWAYS_SOFTWARE": "1", "RUST_BACKTRACE": "1"}
-        # No DISPLAY/XAUTHORITY, inherited fd or real desktop environment.
+        # Only Weston receives the private Xvfb display. The GUI gets no X11
+        # variables, inherited fd or real desktop environment.
+        server_env = {**env, "DISPLAY": os.environ["DISPLAY"], "XAUTHORITY": os.environ["XAUTHORITY"]}
+        server_env.pop("WAYLAND_DISPLAY")
         trace = home / "client.trace"
         with (home / "weston.log").open("wb") as server_log, trace.open("wb") as client_log:
             try:
                 compositor = subprocess.Popen(
-                    ["/usr/bin/weston", "--backend=headless-backend.so", "--use-gl",
+                    ["/usr/bin/weston", "--backend=x11-backend.so",
                      "--no-config", "--socket=" + SOCKET, "--idle-time=0",
                      "--width=1280", "--height=800"],
-                    cwd=home, env=env, stdout=server_log, stderr=subprocess.STDOUT)
+                    cwd=home, env=server_env, stdout=server_log, stderr=subprocess.STDOUT)
                 def socket_ready():
                     check(compositor.poll() is None, "synthetic Weston exited")
                     p = runtime / SOCKET
                     return p.exists() and stat.S_ISSOCK(p.lstat().st_mode)
                 wait_for(socket_ready)
+                registry = subprocess.run(["/usr/bin/wayland-info"], cwd=home, env=env,
+                                          capture_output=True, check=True, timeout=10)
+                globals_seen = registry_evidence(registry.stdout.decode("utf-8"))
+                print("Weston registry globals:", globals_seen, flush=True)
+                check(all(globals_seen.values()), "required synthetic compositor globals missing")
                 app = subprocess.Popen([str(binary)], cwd=home,
                                        env=env | {"WAYLAND_DEBUG": "client"},
                                        stdout=client_log, stderr=subprocess.STDOUT)
@@ -136,13 +167,14 @@ def main():
                       "client/compositor exited immediately after commit")
                 check(digest(binary) == elf_sha, "optimized ELF changed")
                 print("PASS: exact-title xdg-shell toplevel configured, acknowledged and non-null buffer committed")
-                # This headless compositor has no physical seat; stop test children.
+                # No physical seat or normal-close proof; stop test children.
                 # Do NOT claim application Ctrl+Q or compositor close from SIGTERM.
                 stop(app)
                 report = {"schema": "lanveriq.gpui.untrusted-wayland-smoke-v1",
                           "source_sha": os.environ["GITHUB_SHA"], "elf_sha256": elf_sha,
                           "lock_sha256": digest(ROOT / "Cargo.lock"),
-                          "scope": "SYNTHETIC_HEADLESS_WESTON_SOFTWARE_RENDERED",
+                          "scope": "SYNTHETIC_XVFB_NESTED_WESTON_SOFTWARE_RENDERED",
+                          "compositor_registry": globals_seen,
                           "x11_environment_removed": True, "xdg_shell_commit": True,
                           "application_exit": "HARNESS_TERMINATED_NOT_NORMAL_CLOSE",
                           "client_returncode": app.returncode,
@@ -153,10 +185,28 @@ def main():
             except BaseException:
                 # Only synthetic child diagnostics; never archive a raw Wayland trace.
                 print("NOT_APPROVED: synthetic Wayland smoke failed; no physical claim", flush=True)
+                print("Weston returncode:", compositor.poll() if compositor else None, flush=True)
+                print("candidate returncode:", app.poll() if app else None, flush=True)
                 for label, path in (("Weston", home / "weston.log"), ("candidate", trace)):
                     with path.open("rb") as stream:
                         stream.seek(0, os.SEEK_END)
-                        print(label + " synthetic log bytes:", stream.tell())
+                        size = stream.tell()
+                        stream.seek(max(0, size - 65536))
+                        tail = stream.read(65536).decode("utf-8", "replace")
+                        print(label + " synthetic log bytes:", size, flush=True)
+                        print(label + " diagnostic categories:", failure_summary(tail), flush=True)
+                        # Only bounded error excerpts from the disposable synthetic session.
+                        errors = 0
+                        for line in tail.splitlines():
+                            if MESSAGE.fullmatch(line):
+                                continue
+                            if re.search(r"panicked at|called .*unwrap|called .*expect|fatal:|Error:|VK_ERROR", line):
+                                safe = line.replace(str(home), "<synthetic-home>").replace(str(ROOT), "<candidate-source>")
+                                safe = re.sub(r"/(?:home|tmp|run)/[^\s,;\]\)]+", "<path>", safe)
+                                print(label + " synthetic error:", safe[:400], flush=True)
+                                errors += 1
+                                if errors >= 12:
+                                    break
                 raise
             finally:
                 stop(app)
