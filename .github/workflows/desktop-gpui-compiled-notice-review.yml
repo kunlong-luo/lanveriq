@@ -12,7 +12,7 @@ on:
         description: "Successful GPUI full CI run with Link Map artifact (empty: historical compiler-only review)"
         required: false
         type: string
-        default: "46110133934"
+        default: "46119431583"
 permissions:
   contents: read
   actions: read
@@ -43,7 +43,7 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || inputs.release_run_id != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_RUN_ID: ${{ github.event_name == 'push' && '46110133934' || inputs.release_run_id }}
+          RELEASE_RUN_ID: ${{ github.event_name == 'push' && '46119431583' || inputs.release_run_id }}
         run: |
           set -euo pipefail
           [[ "$RELEASE_RUN_ID" =~ ^[0-9]+$ ]]
