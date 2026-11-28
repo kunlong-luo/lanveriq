@@ -233,6 +233,8 @@
 
 - **同轮最终复核：Release 性能真实结果**：[c8ef9c35 / #46005272071](https://github.com/kunlong-luo/lanveriq/actions/runs/46005272071) 三 jobs SUCCESS，candidate 140526744579 两项性能 Python 测试 PASS、同 runner 六次窗口通过 mapped/pixels/resize/Ctrl+Q、无产物分发。Debug / Release 原 ELF 165781448 / 54410920 bytes，strip 96971160 / 39478040，临时 deb 18276324 / 11062670。三次样本 spawn-to-positive-pixel-probe ms Debug 1361.696/1364.170/1365.554，Release 959.194/961.156/954.396；RSS KiB Debug 306092/306080/306220，Release 201612/200604/201264；PSS KiB Debug 281862/281854/281967，Release 177397/176465/177148；中位数分别 1364.170/959.194 ms、306092/201264 KiB、281862/177148 KiB。只代表 Ubuntu Xvfb 软件渲染、非受控冷缓存、单子进程探针后1s内存，不是物理 COSMIC/GPU、真实 IME、Tauri 对照或发行批准。dpkg-shlibdeps 实际警告包含 `diversions involved - output may be incorrect`，Ubuntu runner 的 diversion 影响仍须独立核实，不能因静态包测试 PASS 就批准最终依赖。当前最新版 IME 仍待全量回归。
 
+- **2026-11-28 最新 IME 全量复验及 libc6 diversion 证据加固**：基线 [2e4bc766](https://github.com/kunlong-luo/lanveriq/commit/2e4bc766a2041e9ad0ddece756084ef5e370a51d) docs [#46007198080](https://github.com/kunlong-luo/lanveriq/actions/runs/46007198080)、Next [#46007198042](https://github.com/kunlong-luo/lanveriq/actions/runs/46007198042)、RD-2 [#46007198020](https://github.com/kunlong-luo/lanveriq/actions/runs/46007198020)、预览 [#46007198043](https://github.com/kunlong-luo/lanveriq/actions/runs/46007198043) 全 SUCCESS；[7123c187 / #46005715320](https://github.com/kunlong-luo/lanveriq/actions/runs/46005715320) 与 [79ca31eb / #46006250900](https://github.com/kunlong-luo/lanveriq/actions/runs/46006250900) 均三 jobs SUCCESS，后者 candidate 140530031636、supply-chain 140530031784、dependency-audit 140530031862；所有人报告 v2 parser、原生编译、X11/归档/运行库、Release 与六次性能 PASS（未实际测试关于页 IME 交互）。最新 IME 版同 runner Debug/Release 原始 ELF 165790960/59892024 bytes、strip 96977688/43253272 bytes、临时 deb 18280570/12057460 bytes；启动像素探针中位数 907.366/470.827 ms（范围 902.853–910.131/469.982–475.320），RSS 中位数 300384/198020 KiB（300116–300868/197748–198024），PSS 276186/173781 KiB（275910–276698/173612–173854）。与早期源码/不同 runner 性能不可直接比较；非硬件 GPU/COSMIC、Tauri 对照或发行批准。实际 debug/release shlibdeps 均报告 libc6 diversion from /lib64/ld-linux-x86-64.so.2、to /lib64/ld-linux-x86-64.so.2.usr-is-merged 及 synthetic package layout 提示。新增 [b1890a83](https://github.com/kunlong-luo/lanveriq/commit/b1890a83a9549cf43482c2e748e75f5f9e8248a0)：保留原警告文本，严格分类已观察的完整 pair 与布局提示，未知/重复/不完整拒绝；复用 apt_pkg 核对全部五项 direct package 的已装 amd64 status/version >= 官方 floor；readelf PT_INTERP、固定 canonical loader 路径与 SHA、dpkg-query -S 实际所有权及 dpkg-divert --listpackage/--truename 只读独立佐证（未见 diversion 时可接受无登记且无对应警告）。两项新增纯测试，现有归档/原生回归不变，无修改或移除 diversion、无安装 Agent、无产品代码/锁变更。新 [GPUI #46101148598](https://github.com/kunlong-luo/lanveriq/actions/runs/46101148598)、[RD-2 #46101148627](https://github.com/kunlong-luo/lanveriq/actions/runs/46101148627) PENDING；严格 canonical 路径/登记语义须用实际 runner 验证，警告并未消除，不证明 dpkg-shlibdeps 全部符号结果正确或 Pop!_OS 清洁安装。22 registry 许可缺项（19 上游候选/3 来源未核实）、47 BOM extra、9 维护警告、实机/IME/Wayland/关闭/GPU、完整运行时/包/Tauri 比较/超时负测仍 OPEN。MVP-08 BLOCKED，71/100。
+
 ### MVP-09 · 服务器配置与连接检测（TODO）
 
 - 复用现有 AgentConfig/固定 HTTPS/mTLS 与受限路径约定。先离线验证草稿、禁止 URL 凭据/任意文件读写；任何显式本机连接检测需独立批准目的地与可信 CA，拒绝错误主机/证书、超时与非 HTTPS。无后台探测、不自动保存秘密或启用采集。验收真实成功/拒绝/断开和无副作用。
@@ -269,13 +271,13 @@
 
 | 字段 | 当前内容 |
 | --- | --- |
-| 基线 | [916bf4cb](https://github.com/kunlong-luo/lanveriq/commit/916bf4cbb3fc28592d422d3c59952d0e9e31d713)；本轮仅文档证据复审，无新产品代码/工作流/锁。 |
-| 本轮 | MVP-08 **BLOCKED**；22 缺项中 19 有固定版本上游材料候选、3 来源未核实，全部 registry 缺项仍 OPEN；优化 Release 编译/临时包/六次性能 PASS。MVP-01～07 DONE，09～16 TODO。 |
-| CI | 基线 docs/Next/RD-2/预览 PASS；[性能 #46005272071](https://github.com/kunlong-luo/lanveriq/actions/runs/46005272071) 三 jobs PASS（六次性能）；[启动器 #46005715320](https://github.com/kunlong-luo/lanveriq/actions/runs/46005715320)、[IME #46006250900](https://github.com/kunlong-luo/lanveriq/actions/runs/46006250900) audit/supply-chain PASS、Debug/X11/运行库 PASS，Release RUNNING。 |
-| 锁/风险 | 22 registry 缺项不减；mac/pathfinder_geometry/seahash 来源未核实；19 上游候选待包内容/NOTICE/资源/法务复审；47 BOM extra 与 9 停止维护警告 OPEN。 |
-| 本机 | 优化 Release 归档 11062670 bytes、六次性能 PASS（非发行）；真实 COSMIC v2 九项、中文 IME/Wayland/GPU/关闭、独立 L3、完整运行时、正式包、Tauri 对比及超时负测未验。 |
+| 基线 | [2e4bc766](https://github.com/kunlong-luo/lanveriq/commit/2e4bc766a2041e9ad0ddece756084ef5e370a51d)；功能 [b1890a83](https://github.com/kunlong-luo/lanveriq/commit/b1890a83a9549cf43482c2e748e75f5f9e8248a0)。 |
+| 本轮 | MVP-08 **BLOCKED**；最新 IME/启动器三 jobs PASS；Release 六次性能复验 PASS；新增 libc6 loader/diversion 与直接 ABI 已装版本佐证，待 CI。MVP-01～07 DONE，09～16 TODO。 |
+| CI | [IME #46006250900](https://github.com/kunlong-luo/lanveriq/actions/runs/46006250900)、[启动器 #46005715320](https://github.com/kunlong-luo/lanveriq/actions/runs/46005715320)、[性能 #46005272071](https://github.com/kunlong-luo/lanveriq/actions/runs/46005272071) 三 jobs 均 PASS；基线 docs/Next/RD-2/预览 PASS；新 [GPUI #46101148598](https://github.com/kunlong-luo/lanveriq/actions/runs/46101148598)、[RD-2 #46101148627](https://github.com/kunlong-luo/lanveriq/actions/runs/46101148627) PENDING。 |
+| 锁/风险 | 锁不变；22 registry 缺项/19 上游候选/3 来源未绑定，47 BOM extra、9 维护警告；实际 shlibdeps diversion 警告保留，待佐证与清洁系统复审，非发行 ABI 批准。 |
+| 本机 | 最新 Release 临时 deb 12057460 bytes；X11 启动探针中位 470.827ms、RSS 198020 KiB、PSS 173781 KiB；真实 COSMIC v2 九项、IME/协议/关闭/GPU、独立 L3、完整运行时/正式包、Tauri 对比及超时负测未验。 |
 | 评分/上线 | **71/100 不变**；G-01～10 OPEN，0/10；v0.1 NOT RELEASE READY。 |
-| **下次唯一任务** | MVP-08：核实最新 IME 回归及 shlibdeps diversion 警告；按失败修复，集中所有人 COSMIC v2 九项；复审三个未绑定来源、完整许可/资源/维护风险、运行时/包及 Tauri 对比。不进入 MVP-09。 |
+| **下次唯一任务** | MVP-08：核实新 ABI CI；集中所有人 COSMIC v2 九项，真实 Wayland/IME/关闭/GPU；复审许可/维护及完整运行时/包/Tauri 对比，不进入 MVP-09。 |
 | 约束 | main only；保留 Tauri 回退且冻结扩展，不提高 CI 写权限、不忽略漏洞；不安装 Agent、不联网、不签发、不启动服务、不改 Web/Spring/PG/Agent。 |
 
 **本地 MVP 不等于发行批准。v0.1 NOT RELEASE READY。**
